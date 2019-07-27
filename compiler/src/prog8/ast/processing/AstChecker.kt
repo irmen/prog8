@@ -104,6 +104,12 @@ internal class AstChecker(private val program: Program,
         super.visit(returnStmt)
     }
 
+    override fun visit(ifStatement: IfStatement) {
+        if(ifStatement.condition.inferType(program) !in IntegerDatatypes)
+            checkResult.add(ExpressionError("condition value should be an integer type", ifStatement.condition.position))
+        super.visit(ifStatement)
+    }
+
     override fun visit(forLoop: ForLoop) {
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
@@ -313,12 +319,16 @@ internal class AstChecker(private val program: Program,
     override fun visit(repeatLoop: RepeatLoop) {
         if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
+        if(repeatLoop.untilCondition.inferType(program) !in IntegerDatatypes)
+            checkResult.add(ExpressionError("condition value should be an integer type", repeatLoop.untilCondition.position))
         super.visit(repeatLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
         if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
+        if(whileLoop.condition.inferType(program) !in IntegerDatatypes)
+            checkResult.add(ExpressionError("condition value should be an integer type", whileLoop.condition.position))
         super.visit(whileLoop)
     }
 

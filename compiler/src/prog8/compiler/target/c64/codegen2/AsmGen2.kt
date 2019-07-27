@@ -158,9 +158,16 @@ internal class AsmGen2(val program: Program,
         // first translate regular statements, and then put the subroutines at the end.
         val (subroutine, stmts) = block.statements.partition { it is Subroutine }
         stmts.forEach { translate(it) }
-        subroutine.forEach { translate(it as Subroutine) }
+        subroutine.forEach { translateSubroutine(it as Subroutine) }
 
         out("\n\t.pend\n")              // TODO not if force_output?
+    }
+
+    private var generatedLabelSequenceNumber: Int = 0
+
+    private fun makeLabel(postfix: String): String {
+        generatedLabelSequenceNumber++
+        return "_prog8_label_${generatedLabelSequenceNumber}_$postfix"
     }
 
     private fun outputSourceLine(node: Node) {
@@ -460,13 +467,52 @@ internal class AsmGen2(val program: Program,
                 }
             }
 
+    private fun argumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
+        if(argType isAssignableTo paramType)
+            return true
+
+        // we have a special rule for some types.
+        // strings are assignable to UWORD, for example, and vice versa
+        if(argType in StringDatatypes && paramType==DataType.UWORD)
+            return true
+        if(argType==DataType.UWORD && paramType in StringDatatypes)
+            return true
+
+        return false
+    }
+
+    private fun translateSubroutine(sub: Subroutine) {
+        out("")
+        outputSourceLine(sub)
+
+        if(sub.isAsmSubroutine) {
+            if(sub.asmAddress!=null)
+                return  // already done at the memvars section
+
+            // asmsub with most likely just an inline asm in it
+            out("${sub.name}\t.proc")
+            sub.statements.forEach{ translate(it) }
+            out("  .pend\n")
+        } else {
+            // regular subroutine
+            out("${sub.name}\t.proc")
+            zeropagevars2asm(sub.statements)
+            memdefs2asm(sub.statements)
+            out("; statements")
+            sub.statements.forEach{ translate(it) }
+            out("; variables")
+            vardecls2asm(sub.statements)
+            out("  .pend\n")
+        }
+    }
+
     private fun translate(stmt: Statement) {
         outputSourceLine(stmt)
         when(stmt) {
             is VarDecl, is StructDecl, is NopStatement -> {}
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
-            is Subroutine -> translate(stmt)
+            is Subroutine -> translateSubroutine(stmt)
             is InlineAssembly -> translate(stmt)
             is FunctionCallStatement -> {
                 val functionName = stmt.target.nameInSource.last()
@@ -488,31 +534,17 @@ internal class AsmGen2(val program: Program,
             is PostIncrDecr -> translate(stmt)
             is Label -> translate(stmt)
             is BranchStatement -> translate(stmt)
+            is IfStatement -> translate(stmt)
             is ForLoop -> translate(stmt)
-            is Continue -> TODO()
-            is Break -> TODO()
-            is IfStatement -> TODO()
-            is WhileLoop -> TODO()
-            is RepeatLoop -> TODO()
-            is WhenStatement -> TODO()
+            is Continue -> TODO("continue")
+            is Break -> TODO("break")
+            is WhileLoop -> translate(stmt)
+            is RepeatLoop -> translate(stmt)
+            is WhenStatement -> translate(stmt)
             is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
             is AnonymousScope -> translate(stmt)
             is Block -> throw AssemblyError("block should have been handled elsewhere")
         }
-    }
-
-    private fun argumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
-        if(argType isAssignableTo paramType)
-            return true
-
-        // we have a special rule for some types.
-        // strings are assignable to UWORD, for example, and vice versa
-        if(argType in StringDatatypes && paramType==DataType.UWORD)
-            return true
-        if(argType==DataType.UWORD && paramType in StringDatatypes)
-            return true
-
-        return false
     }
 
     private fun translateSubroutineCall(stmt: IFunctionCall) {
@@ -520,7 +552,7 @@ internal class AsmGen2(val program: Program,
         if(Register.X in sub.asmClobbers)
             out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
 
-        val subName = stmt.target.nameInSource.joinToString(".")
+        val subName = asmIdentifierName(stmt.target)
         if(stmt.arglist.isNotEmpty()) {
             for(arg in sub.parameters.withIndex().zip(stmt.arglist)) {
                 translateSubroutineArgument(arg.first, arg.second, sub)
@@ -579,14 +611,27 @@ internal class AsmGen2(val program: Program,
                     else throw AssemblyError("can only use Carry as status flag parameter")
                 }
                 register!=null && register.name.length==1 -> {
-                    val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
-                    target.linkParents(value.parent)
                     val literal = value as? NumericLiteralValue
-                    if(literal!=null) {
-                        // optimize when the argument is a constant literal
-                        assignByteConstant(target, literal.number.toShort())
-                    } else {
-                        TODO("single register param non-const")
+                    when {
+                        literal!=null -> {
+                            val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
+                            target.linkParents(value.parent)
+                            assignByteConstant(target, literal.number.toShort())
+                        }
+                        value is IdentifierReference -> {
+                            val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
+                            target.linkParents(value.parent)
+                            assignByteVariable(target, value)
+                        }
+                        else -> {
+                            translateExpression(value)
+                            when(register) {
+                                RegisterOrPair.A -> out("  inx | lda  $ESTACK_LO_HEX,x")
+                                RegisterOrPair.X -> throw AssemblyError("can't pop into X register - use a variable instead")
+                                RegisterOrPair.Y -> out("  inx | ldy  $ESTACK_LO_HEX,x")
+                                else -> throw AssemblyError("cannot assign to register pair")
+                            }
+                        }
                     }
                 }
                 register!=null && register.name.length==2 -> {
@@ -600,7 +645,7 @@ internal class AsmGen2(val program: Program,
                         else if (register == RegisterOrPair.XY) out("  ldx  #<$hex  |  ldy  #>$hex")
                     } else if(value is AddressOf) {
                         // optimize when the argument is an address of something
-                        val sourceName = value.identifier.nameInSource.joinToString(".")
+                        val sourceName = asmIdentifierName(value.identifier)
                         if (register == RegisterOrPair.AX)  out("  lda  #<$sourceName  |  ldx  #>$sourceName")
                         else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
                         else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
@@ -612,12 +657,47 @@ internal class AsmGen2(val program: Program,
         }
     }
 
+    private fun translate(stmt: IfStatement) {
+        translateExpression(stmt.condition)
+        translateTestStack(stmt.condition.inferType(program)!!)
+        val elseLabel = makeLabel("if_else")
+        val endLabel = makeLabel("if_end")
+        out("  beq  $elseLabel")
+        translate(stmt.truepart)
+        out("  jmp  $endLabel")
+        out(elseLabel)
+        translate(stmt.elsepart)
+        out(endLabel)
+    }
+
+    private fun translateTestStack(dataType: DataType) {
+        when(dataType) {
+            in ByteDatatypes -> out("  inx |  lda  $ESTACK_LO_HEX,x")
+            in WordDatatypes -> out("  inx |  lda  $ESTACK_LO_HEX,x |  ora  $ESTACK_HI_HEX,x")
+            DataType.FLOAT -> throw AssemblyError("conditional value should be an integer (boolean)")
+            else -> throw AssemblyError("non-numerical dt")
+        }
+    }
+
+    private fun translate(stmt: WhileLoop) {
+        TODO("while $stmt")
+    }
+
+    private fun translate(stmt: RepeatLoop) {
+        TODO("repeat $stmt")
+    }
+
+    private fun translate(stmt: WhenStatement) {
+        TODO("when $stmt")
+    }
+
     private fun translate(stmt: Label) {
         out(stmt.name)
     }
 
     private fun translate(scope: AnonymousScope) {
-        scope.statements.forEach { translate(it) }
+        // note: the variables defined in an anonymous scope are moved to their defining subroutine's scope
+        scope.statements.forEach{ translate(it) }
     }
 
     private fun translate(stmt: BranchStatement) {
@@ -633,17 +713,20 @@ internal class AsmGen2(val program: Program,
         } else {
             if(stmt.elsepart.containsNoCodeNorVars()) {
                 val instruction = branchInstruction(stmt.condition, true)
-                out("  $instruction  _prog8_branch_else")
+                val elseLabel = makeLabel("branch_else")
+                out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
-                out("_prog8_branch_else")
+                out(elseLabel)
             } else {
                 val instruction = branchInstruction(stmt.condition, false)
-                out("  $instruction  _prog8_branch_true")
+                val trueLabel = makeLabel("branch_true")
+                val endLabel = makeLabel("branch_end")
+                out("  $instruction  $trueLabel")
                 translate(stmt.elsepart)
-                out("  jmp  _prog8_branch_end")
-                out("_prog8_branch_true")
+                out("  jmp  $endLabel")
+                out(trueLabel)
                 translate(stmt.truepart)
-                out("_prog8_branch_end")
+                out(endLabel)
             }
         }
     }
@@ -673,7 +756,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: ForLoop) {
-        out("; TODO forloop $stmt") // TODO
+        TODO("forloop $stmt")
     }
 
     private fun translate(stmt: PostIncrDecr) {
@@ -697,7 +780,21 @@ internal class AsmGen2(val program: Program,
             }
             stmt.target.identifier!=null -> {
                 val what = asmIdentifierName(stmt.target.identifier!!)
-                out(if(incr) "  inc  $what" else "  dec  $what")
+                val dt = stmt.target.inferType(program, stmt)
+                when (dt) {
+                    in ByteDatatypes -> out(if (incr) "  inc  $what" else "  dec  $what")
+                    in WordDatatypes -> {
+                        if(incr)
+                            out(" inc  $what |  bne  + |  inc  $what+1 |+")
+                        else
+                            out(" lda  $what |  bne  + |  dec  $what+1 |+ |  dec  $what")
+                    }
+                    DataType.FLOAT -> {
+                        out("  lda  #<$what |  ldy  #>$what")
+                        out(if(incr) "  jsr  c64flt.inc_var_f" else "  jsr  c64flt.dec_var_f")
+                    }
+                    else -> throw AssemblyError("need numeric type")
+                }
             }
             stmt.target.memoryAddress!=null -> {
                 val target = stmt.target.memoryAddress!!.addressExpression
@@ -707,7 +804,7 @@ internal class AsmGen2(val program: Program,
                         out(if(incr) "  inc  $what" else "  dec  $what")
                     }
                     is IdentifierReference -> {
-                        val what = target.nameInSource.joinToString(".")
+                        val what = asmIdentifierName(target)
                         out(if(incr) "  inc  $what" else "  dec  $what")
                     }
                     else -> throw AssemblyError("weird target type $target")
@@ -736,31 +833,6 @@ internal class AsmGen2(val program: Program,
     private fun translate(ret: Return) {
         ret.value?.let { translateExpression(it) }
         out("  rts")
-    }
-
-    private fun translate(sub: Subroutine) {
-        out("")
-        outputSourceLine(sub)
-
-        if(sub.isAsmSubroutine) {
-            if(sub.asmAddress!=null)
-                return  // already done at the memvars section
-
-            // asmsub with most likely just an inline asm in it
-            out("${sub.name}\t.proc")
-            sub.statements.forEach{ translate(it) }
-            out("  .pend\n")
-        } else {
-            // regular subroutine
-            out("${sub.name}\t.proc")
-            zeropagevars2asm(sub.statements)
-            memdefs2asm(sub.statements)
-            out("; statements")
-            sub.statements.forEach{ translate(it) }
-            out("; variables")
-            vardecls2asm(sub.statements)
-            out("  .pend\n")
-        }
     }
 
     private fun translate(asm: InlineAssembly) {
@@ -812,7 +884,7 @@ internal class AsmGen2(val program: Program,
                     }
                     else -> {
                         translateExpression(read.addressExpression)
-                        TODO("; TODO read memory byte from result and put that in ${assign.target}")
+                        TODO("read memory byte from result and put that in ${assign.target}")
                     }
                 }
             }
@@ -853,7 +925,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: ArrayIndexedExpression) {
-        out("; TODO evaluate arrayindexed $expr") // TODO
+        TODO("evaluate arrayindexed $expr")
     }
 
     private fun translateExpression(expr: TypecastExpression) {
@@ -938,11 +1010,11 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: AddressOf) {
-        out("; TODO take address of $expr")  // TODO
+        TODO("take address of; $expr")
     }
 
     private fun translateExpression(expr: DirectMemoryRead) {
-        out("; TODO memread $expr")  // TODO
+        TODO("memread $expr")
     }
 
     private fun translateExpression(expr: NumericLiteralValue) {
@@ -972,7 +1044,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: IdentifierReference) {
-        val varname = expr.nameInSource.joinToString(".")
+        val varname = asmIdentifierName(expr)
         when(expr.inferType(program)!!) {
             DataType.UBYTE, DataType.BYTE -> {
                 out("  lda  $varname  |  sta  $ESTACK_LO_HEX,x  |  dex")
@@ -990,7 +1062,16 @@ internal class AsmGen2(val program: Program,
     private fun translateExpression(expr: BinaryExpression) {
         translateExpression(expr.left)
         translateExpression(expr.right)
-        out("; TODO evaluate binary ${expr.operator}")  // TODO
+        val leftDt = expr.left.inferType(program)!!
+        val rightDt = expr.right.inferType(program)!!
+        if(leftDt!=rightDt)
+            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")     // is this strictly required always?
+        when (leftDt) {
+            in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
+            in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
+            DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
+            else -> throw AssemblyError("non-numerical datatype")
+        }
     }
 
     private fun translateExpression(expr: PrefixExpression) {
@@ -1029,13 +1110,93 @@ internal class AsmGen2(val program: Program,
         }
     }
 
+    private fun translateBinaryOperatorBytes(operator: String, types: DataType) {
+        when(operator) {
+            "**" -> throw AssemblyError("** operator requires floats")
+            "*" -> out("  jsr  prog8_lib.mul_byte")
+            "/" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "%" -> {
+                if(types==DataType.BYTE)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                out("  jsr prog8_lib.remainder_ub")
+            }
+            "+" -> {TODO("plus bytes")}
+            "-" -> {TODO("minus bytes")}
+            "<<" -> throw AssemblyError("<< should not operate via stack")
+            ">>" -> throw AssemblyError(">> should not operate via stack")
+            "<" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.less_ub" else "  jsr  prog8_lib.less_b")
+            ">" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.greater_ub" else "  jsr  prog8_lib.greater_b")
+            "<=" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.lesseq_ub" else "  jsr  prog8_lib.lesseq_b")
+            ">=" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.greatereq_ub" else "  jsr  prog8_lib.greatereq_b")
+            "==" -> out("  jsr  prog8_lib.equal_b")
+            "!=" -> out("  jsr  prog8_lib.notequal_b")
+            "&" -> out("  jsr  prog8_lib.bitand_b")
+            "^" -> out("  jsr  prog8_lib.bitxor_b")
+            "|" -> out("  jsr  prog8_lib.bitor_b")
+            "and" -> out("  jsr  prog8_lib.and_b")
+            "or" -> out("  jsr  prog8_lib.or_b")
+            "xor" -> out("  jsr  prog8_lib.xor_b")
+            else -> throw AssemblyError("invalid operator $operator")
+        }
+    }
+
+    private fun translateBinaryOperatorWords(operator: String, types: DataType) {
+        when(operator) {
+            "**" -> throw AssemblyError("** operator requires floats")
+            "*" -> out("  jsr  prog8_lib.mul_word")
+            "/" -> out(if(types==DataType.UWORD) "  jsr  prog8_lib.idiv_uw" else "  jsr  prog8_lib.idiv_w")
+            "%" -> {
+                if(types==DataType.WORD)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                out("  jsr prog8_lib.remainder_uw")
+            }
+            "+" -> {TODO("plus word")}
+            "-" -> {TODO("minus word")}
+            "<<" -> throw AssemblyError("<< should not operate via stack")
+            ">>" -> throw AssemblyError(">> should not operate via stack")
+            "<" -> out(if(types==DataType.UWORD) "  jsr  prog8_lib.less_uw" else "  jsr  prog8_lib.less_w")
+            ">" -> out(if(types==DataType.UWORD) "  jsr  prog8_lib.greater_uw" else "  jsr  prog8_lib.greater_w")
+            "<=" -> out(if(types==DataType.UWORD) "  jsr  prog8_lib.lesseq_uw" else "  jsr  prog8_lib.lesseq_w")
+            ">=" -> out(if(types==DataType.UWORD) "  jsr  prog8_lib.greatereq_uw" else "  jsr  prog8_lib.greatereq_w")
+            "==" -> out("  jsr  prog8_lib.equal_w")
+            "!=" -> out("  jsr  prog8_lib.notequal_w")
+            "&" -> out("  jsr  prog8_lib.bitand_w")
+            "^" -> out("  jsr  prog8_lib.bitxor_w")
+            "|" -> out("  jsr  prog8_lib.bitor_w")
+            "and" -> out("  jsr  prog8_lib.and_w")
+            "or" -> out("  jsr  prog8_lib.or_w")
+            "xor" -> out("  jsr  prog8_lib.xor_w")
+            else -> throw AssemblyError("invalid operator $operator")
+        }
+    }
+
+    private fun translateBinaryOperatorFloats(operator: String) {
+        when(operator) {
+            "**" -> out(" jsr  c64flt.pow_f")
+            "*" -> out("  jsr  c64flt.mul_f")
+            "/" -> out("  jsr  c64flt.div_f")
+            "+" -> out("  jsr  c64flt.add_f")
+            "-" -> out("  jsr  c64flt.sub_f")
+            "<" -> out("  jsr  c64flt.less_f")
+            ">" -> out("  jsr  c64flt.greater_f")
+            "<=" -> out("  jsr  c64flt.lesseq_f")
+            ">=" -> out("  jsr  c64flt.greatereq_f")
+            "==" -> out("  jsr  c64flt.equal_f")
+            "!=" -> out("  jsr  c64flt.notequal_f")
+            "%", "<<", ">>", "&", "^", "|", "and", "or", "xor" -> throw AssemblyError("requires integer datatype")
+            else -> throw AssemblyError("invalid operator $operator")
+        }
+    }
+
     private fun assignEvalResult(target: AssignTarget) {
         when {
             target.register!=null -> {
+                if(target.register==Register.X)
+                    throw AssemblyError("can't pop into X register - use variable instead")
                 out(" inx | ld${target.register.name.toLowerCase()}  $ESTACK_LO_HEX,x ")
             }
             target.identifier!=null -> {
-                val targetName = target.identifier.nameInSource.joinToString(".")
+                val targetName = asmIdentifierName(target.identifier)
                 val targetDt = target.identifier.inferType(program)!!
                 when(targetDt) {
                     DataType.UBYTE, DataType.BYTE -> {
@@ -1061,10 +1222,15 @@ internal class AsmGen2(val program: Program,
                 }
             }
             target.memoryAddress!=null -> {
-                out("; TODO put result in $target")   // TODO
+                val address = target.memoryAddress!!.addressExpression
+                if(address is NumericLiteralValue) {
+                    out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  ${address.number.toHex()}")
+                } else {
+                    TODO("put result in memory $target")
+                }
             }
             target.arrayindexed!=null -> {
-                out("; TODO put result in $target")   // TODO
+                TODO("put result in arrayindexed $target")
             }
             else -> throw AssemblyError("weird assignment target $target")
         }
@@ -1104,7 +1270,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignWordVariable(target: AssignTarget, variable: IdentifierReference) {
-        val sourceName = variable.nameInSource.joinToString(".")
+        val sourceName = asmIdentifierName(variable)
         when {
             target.identifier!=null -> {
                 val targetName = asmIdentifierName(target.identifier)
@@ -1120,7 +1286,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignFloatVariable(target: AssignTarget, variable: IdentifierReference) {
-        val sourceName = variable.nameInSource.joinToString(".")
+        val sourceName = asmIdentifierName(variable)
         when {
             target.identifier!=null -> {
                 val targetName = asmIdentifierName(target.identifier)
@@ -1142,7 +1308,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignByteVariable(target: AssignTarget, variable: IdentifierReference) {
-        val sourceName = variable.nameInSource.joinToString(".")
+        val sourceName = asmIdentifierName(variable)
         when {
             target.register!=null -> {
                 out("  ld${target.register.name.toLowerCase()}  $sourceName")
@@ -1222,7 +1388,7 @@ internal class AsmGen2(val program: Program,
                 """)
             }
         } else {
-            out("; TODO assign word $word to $target")   // TODO
+            TODO("assign word $word to $target")
         }
     }
 
@@ -1235,7 +1401,7 @@ internal class AsmGen2(val program: Program,
                 val targetName = asmIdentifierName(target.identifier)
                 out(" lda  #${byte.toHex()} |  sta  $targetName ")
             }
-            else -> out("; TODO assign byte $byte to $target")   // TODO
+            else -> TODO("assign byte $byte to $target")
         }
     }
 
@@ -1253,7 +1419,7 @@ internal class AsmGen2(val program: Program,
                         sta  $targetName+4
                     """)
             } else {
-                out("; TODO assign float 0.0 to $target")  // TODO
+                TODO("assign float 0.0 to $target")
             }
         } else {
             // non-zero value
@@ -1273,7 +1439,7 @@ internal class AsmGen2(val program: Program,
                         sta  $targetName+4
                     """)
             } else {
-                out("; TODO assign float $float ($constFloat) to $target")   // TODO
+                TODO("assign float $float ($constFloat) to $target")
             }
         }
     }
