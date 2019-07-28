@@ -122,6 +122,8 @@ val IterableDatatypes = setOf(
 val PassByValueDatatypes = NumericDatatypes
 val PassByReferenceDatatypes = IterableDatatypes.plus(DataType.STRUCT)
 val ArrayElementTypes = mapOf(
+        DataType.STR to DataType.UBYTE,
+        DataType.STR_S to DataType.UBYTE,
         DataType.ARRAY_B to DataType.BYTE,
         DataType.ARRAY_UB to DataType.UBYTE,
         DataType.ARRAY_W to DataType.WORD,

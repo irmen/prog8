@@ -913,12 +913,14 @@ internal class AstChecker(private val program: Program,
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
-                // check string lengths
-                val heapId = (target.value as ReferenceLiteralValue).heapId!!
-                val stringLen = program.heap.get(heapId).str!!.length
-                val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
-                if(index!=null && (index<0 || index>=stringLen))
-                    checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
+                if(target.value is ReferenceLiteralValue) {
+                    // check string lengths for non-memory mapped strings
+                    val heapId = (target.value as ReferenceLiteralValue).heapId!!
+                    val stringLen = program.heap.get(heapId).str!!.length
+                    val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
+                    if (index != null && (index < 0 || index >= stringLen))
+                        checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
+                }
             }
         } else
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))

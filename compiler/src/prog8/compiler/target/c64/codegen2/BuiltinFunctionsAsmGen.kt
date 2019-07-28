@@ -3,6 +3,7 @@ package prog8.compiler.target.c64.codegen2
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.base.WordDatatypes
+import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
@@ -32,7 +33,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         if(discardResult) {
             if(func.pure)
                 return  // can just ignore the whole function call altogether
-            else
+            else if(func.returntype!=null)
                 throw AssemblyError("discarding result of non-pure function $fcall")
         }
 
@@ -52,12 +53,23 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 }
             }
             "mkword" -> {
-                asmgen.translateExpression(fcall.arglist[0])
-                asmgen.translateExpression(fcall.arglist[1])
+                translateFunctionArguments(fcall.arglist)
                 asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
+            }
+            "memset" -> {
+                translateFunctionArguments(fcall.arglist)
+                asmgen.out("  jsr  prog8lib.func_memset")
+            }
+            "memsetw" -> {
+                translateFunctionArguments(fcall.arglist)
+                asmgen.out("  jsr  prog8lib.func_memsetw")
             }
             else -> TODO("builtin function $functionName")
         }
+    }
+
+    private fun translateFunctionArguments(args: MutableList<Expression>) {
+        args.forEach { asmgen.translateExpression(it) }
     }
 
 }
