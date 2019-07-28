@@ -7,10 +7,12 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.target.c64.AssemblyProgram
 import prog8.functions.BuiltinFunctions
 
 
 internal class AstIdentifiersChecker(private val program: Program) : IAstModifyingVisitor {
+
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     private var blocks = mutableMapOf<String, Block>()
@@ -64,6 +66,11 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
+        if(decl.name in AssemblyProgram.reservedNames)
+            checkResult.add(NameError("can't use a symbol name reserved by the assembler program", decl.position))
+        if(decl.name in AssemblyProgram.opcodeNames)
+            checkResult.add(NameError("can't use a cpu opcode name as a symbol", decl.position))
+
         // is it a struct variable? then define all its struct members as mangled names,
         //    and include the original decl as well.
         if(decl.datatype==DataType.STRUCT) {
@@ -102,8 +109,9 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
-            if (subroutine.parameters.any { it.name in BuiltinFunctions })
-                checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
+            // already reported elsewhere:
+            // if (subroutine.parameters.any { it.name in BuiltinFunctions })
+            //    checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
             val existing = program.namespace.lookup(listOf(subroutine.name), subroutine)
             if (existing != null && existing !== subroutine)

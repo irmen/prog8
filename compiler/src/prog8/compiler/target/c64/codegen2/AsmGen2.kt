@@ -644,19 +644,18 @@ internal class AsmGen2(val program: Program,
             val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
             val target = AssignTarget(null, IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
             target.linkParents(value.parent)
-            val literal = value as? NumericLiteralValue
-            when {
-                literal!=null -> {
+            when (value) {
+                is NumericLiteralValue -> {
                     // optimize when the argument is a constant literal
                     when(arg.value.type) {
-                        in ByteDatatypes -> assignFromByteConstant(target, literal.number.toShort())
-                        in WordDatatypes -> assignFromWordConstant(target, literal.number.toInt())
-                        DataType.FLOAT -> assignFromFloatConstant(target, literal.number.toDouble())
+                        in ByteDatatypes -> assignFromByteConstant(target, value.number.toShort())
+                        in WordDatatypes -> assignFromWordConstant(target, value.number.toInt())
+                        DataType.FLOAT -> assignFromFloatConstant(target, value.number.toDouble())
                         in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as arguments?")
                         else -> throw AssemblyError("weird arg datatype")
                     }
                 }
-                value is IdentifierReference -> {
+                is IdentifierReference -> {
                     // optimize when the argument is a variable
                     when (arg.value.type) {
                         in ByteDatatypes -> assignFromByteVariable(target, value)
@@ -666,7 +665,29 @@ internal class AsmGen2(val program: Program,
                         else -> throw AssemblyError("weird arg datatype")
                     }
                 }
-                else -> TODO("non-constant sub arg $arg")
+                is RegisterExpr -> {
+                    assignFromRegister(target, value.register)
+                }
+                is DirectMemoryRead -> {
+                    when(value.addressExpression) {
+                        is NumericLiteralValue -> {
+                            val address = (value.addressExpression as NumericLiteralValue).number.toInt()
+                            assignFromMemoryByte(target, address, null)
+                        }
+                        is IdentifierReference -> {
+                            assignFromMemoryByte(target, null, value.addressExpression as IdentifierReference)
+                        }
+                        else -> {
+                            translateExpression(value.addressExpression)
+                            out("  jsr  prog8_lib.read_byte_from_address |  inx")
+                            assignFromRegister(target, Register.A)
+                        }
+                    }
+                }
+                else -> {
+                    translateExpression(value)
+                    assignFromEvalResult(target)
+                }
             }
         } else {
             // pass arg via a register parameter
@@ -1149,7 +1170,21 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: DirectMemoryRead) {
-        TODO("memread $expr")
+        when(expr.addressExpression) {
+            is NumericLiteralValue -> {
+                val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
+                out("  lda  ${address.toHex()} |  sta  $ESTACK_LO_HEX,x |  dex")
+            }
+            is IdentifierReference -> {
+                val sourceName = asmIdentifierName(expr.addressExpression as IdentifierReference)
+                out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+            }
+            else -> {
+                translateExpression(expr.addressExpression)
+                out("  jsr  prog8_lib.read_byte_from_address")
+                out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+            }
+        }
     }
 
     private fun translateExpression(expr: NumericLiteralValue) {
@@ -1514,9 +1549,9 @@ internal class AsmGen2(val program: Program,
                         out("""
      inx
      lda  $ESTACK_LO_HEX,x
+     ldy  $ESTACK_HI_HEX,x
      sta  (+) +1
-     lda  $ESTACK_HI_HEX,x
-     sta  (+) +2
+     sty  (+) +2
      lda  $sourceName
 +    sta  ${65535.toHex()}      ; modified              
                             """)
@@ -1554,7 +1589,97 @@ internal class AsmGen2(val program: Program,
                     }
                 }
             }
-            else -> out("; TODO assign register $register to $target")  // TODO
+            target.memoryAddress!=null -> {
+                val addressExpr = target.memoryAddress.addressExpression
+                val addressLv = addressExpr as? NumericLiteralValue
+                val registerName = register.name.toLowerCase()
+                when {
+                    addressLv != null -> out("  st$registerName  ${addressLv.number.toHex()}")
+                    addressExpr is IdentifierReference -> {
+                        val targetName = asmIdentifierName(addressExpr)
+                        out("  st$registerName  $targetName")
+                    }
+                    else -> {
+                        translateExpression(addressExpr)
+                        when (register) {
+                            Register.A -> out("  tay")
+                            Register.X -> throw AssemblyError("can't use X register here")
+                            Register.Y -> {
+                            }
+                        }
+                        out("""
+     inx
+     lda  $ESTACK_LO_HEX,x
+     sta  (+) +1
+     lda  $ESTACK_HI_HEX,x
+     sta  (+) +2
++    sty  ${65535.toHex()}      ; modified              
+                            """)
+                    }
+                }
+            }
+            targetArrayIdx!=null -> {
+                val index = targetArrayIdx.arrayspec.index
+                val targetName = asmIdentifierName(targetArrayIdx.identifier)
+                when (index) {
+                    is NumericLiteralValue -> {
+                        val memindex = index.number.toInt()
+                        when(register) {
+                            Register.A -> out("  sta  $targetName+$memindex")
+                            Register.X -> out("  stx  $targetName+$memindex")
+                            Register.Y -> out("  sty  $targetName+$memindex")
+                        }
+                    }
+                    is RegisterExpr -> {
+                        when(register) {
+                            Register.A -> out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            Register.X -> out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            Register.Y -> out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                        }
+                        when(index.register) {
+                            Register.A -> {}
+                            Register.X -> out("  txa")
+                            Register.Y -> out("  tya")
+                        }
+                        out("""
+                            tay
+                            lda  ${C64Zeropage.SCRATCH_B1}
+                            sta  $targetName,y
+                            """)
+                    }
+                    is IdentifierReference -> {
+                        when(register) {
+                            Register.A -> out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            Register.X -> out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            Register.Y -> out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                        }
+                        out("""
+                            lda  ${asmIdentifierName(index)}
+                            tay
+                            lda  ${C64Zeropage.SCRATCH_B1}
+                            sta  $targetName,y
+                        """)
+                    }
+                    else -> {
+                        saveRegister(register)
+                        translateExpression(index)
+                        restoreRegister(register)
+                        when(register) {
+                            Register.A -> out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            Register.X -> out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            Register.Y -> out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                        }
+                        out("""
+                            inx
+                            lda  $ESTACK_LO_HEX,x
+                            tay
+                            lda  ${C64Zeropage.SCRATCH_B1}
+                            sta  $targetName,y  
+                        """)
+                    }
+                }
+            }
+            else -> TODO("assign register $register to $target")
         }
     }
 
