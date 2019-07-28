@@ -250,10 +250,8 @@ internal class AsmGen2(val program: Program,
             DataType.STRUCT -> {}       // is flattened
             DataType.STR, DataType.STR_S -> {
                 val string = (decl.value as ReferenceLiteralValue).str!!
-                val bytes = encodeStr(string, decl.datatype).map { "$" + it.toString(16).padStart(2, '0') }
-                out("${decl.name}\t; ${decl.datatype} \"${escape(string).replace("\u0000", "<NULL>")}\"")
-                for (chunk in bytes.chunked(16))
-                    out("  .byte  " + chunk.joinToString())
+                val encoded = encodeStr(string, decl.datatype)
+                outputStringvar(decl, encoded)
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -334,10 +332,30 @@ internal class AsmGen2(val program: Program,
         val (structMembers, normalVars) = vars.partition { it.struct!=null }
         structMembers.forEach { vardecl2asm(it) }
 
-        normalVars.sortedBy { it.datatype }.forEach {
+        // special treatment for string types: merge strings that are identical
+        val encodedstringVars = normalVars
+                .filter {it.datatype in StringDatatypes }
+                .map { it to encodeStr((it.value as ReferenceLiteralValue).str!!, it.datatype) }
+                .groupBy({it.second}, {it.first})
+        for((encoded, vars) in encodedstringVars) {
+            vars.dropLast(1).forEach { out(it.name) }
+            val lastvar = vars.last()
+            outputStringvar(lastvar, encoded)
+        }
+
+        // non-string variables
+        normalVars.filter{ it.datatype !in StringDatatypes}.sortedBy { it.datatype }.forEach {
             if(it.scopedname !in allocatedZeropageVariables)
                 vardecl2asm(it)
         }
+    }
+
+    private fun outputStringvar(lastvar: VarDecl, encoded: List<Short>) {
+        val string = (lastvar.value as ReferenceLiteralValue).str!!
+        out("${lastvar.name}\t; ${lastvar.datatype} \"${escape(string).replace("\u0000", "<NULL>")}\"")
+        val outputBytes = encoded.map { "$" + it.toString(16).padStart(2, '0') }
+        for (chunk in outputBytes.chunked(16))
+            out("  .byte  " + chunk.joinToString())
     }
 
     private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
