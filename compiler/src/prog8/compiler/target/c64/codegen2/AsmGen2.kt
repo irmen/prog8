@@ -698,18 +698,62 @@ internal class AsmGen2(val program: Program,
             when {
                 stack==true -> TODO("param on stack")
                 statusflag!=null -> {
-                    if (statusflag == Statusflag.Pc) TODO("carry flag param")
+                    if (statusflag == Statusflag.Pc) {
+                        // TODO this param needs to be set last right before the jsr
+                        when(value) {
+                            is NumericLiteralValue -> {
+                                val carrySet = value.number.toInt() != 0
+                                out(if(carrySet) "  sec" else "  clc")
+                            }
+                            is IdentifierReference -> {
+                                val sourceName = asmIdentifierName(value)
+                                out("""
+            lda  $sourceName
+            beq  +
+            sec  
+            bcs  ++
++           clc
++
+""")
+                            }
+                            is RegisterExpr -> {
+                                when(value.register) {
+                                    Register.A -> out("  cmp  #0")
+                                    Register.X -> out("  txa")
+                                    Register.Y -> out("  tya")
+                                }
+                                out("""
+            beq  +
+            sec
+            bcs  ++
++           clc
++
+""")
+                            }
+                            else -> {
+                                translateExpression(value)
+                                out("""
+            inx                        
+            lda  $ESTACK_LO_HEX,x
+            beq  +
+            sec  
+            bcs  ++
++           clc
++
+""")
+                            }
+                        }
+                    }
                     else throw AssemblyError("can only use Carry as status flag parameter")
                 }
                 register!=null && register.name.length==1 -> {
-                    val literal = value as? NumericLiteralValue
-                    when {
-                        literal!=null -> {
+                    when (value) {
+                        is NumericLiteralValue -> {
                             val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
                             target.linkParents(value.parent)
-                            assignFromByteConstant(target, literal.number.toShort())
+                            assignFromByteConstant(target, value.number.toShort())
                         }
-                        value is IdentifierReference -> {
+                        is IdentifierReference -> {
                             val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
                             target.linkParents(value.parent)
                             assignFromByteVariable(target, value)
@@ -727,30 +771,34 @@ internal class AsmGen2(val program: Program,
                 }
                 register!=null && register.name.length==2 -> {
                     // register pair as a 16-bit value (only possible for subroutine parameters)
-                    val literal = value as? NumericLiteralValue
-                    if(literal!=null) {
-                        // optimize when the argument is a constant literal
-                        val hex = literal.number.toHex()
-                        if (register == RegisterOrPair.AX)  out("  lda  #<$hex  |  ldx  #>$hex")
-                        else if (register == RegisterOrPair.AY) out("  lda  #<$hex  |  ldy  #>$hex")
-                        else if (register == RegisterOrPair.XY) out("  ldx  #<$hex  |  ldy  #>$hex")
-                    } else if(value is AddressOf) {
-                        // optimize when the argument is an address of something
-                        val sourceName = asmIdentifierName(value.identifier)
-                        if (register == RegisterOrPair.AX) out("  lda  #<$sourceName  |  ldx  #>$sourceName")
-                        else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
-                        else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
-                    } else if(value is IdentifierReference) {
-                        val sourceName = asmIdentifierName(value)
-                        if (register == RegisterOrPair.AX) out("  lda  #<$sourceName  |  ldx  #>$sourceName")
-                        else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
-                        else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
-                    } else {
-                        translateExpression(value)
-                        if (register == RegisterOrPair.AX || register == RegisterOrPair.XY)
-                            throw AssemblyError("can't use X register here - use a variable")
-                        else if (register == RegisterOrPair.AY)
-                            out("  inx |  lda  $ESTACK_LO_HEX,x  |  ldy  $ESTACK_HI_HEX,x")
+                    when (value) {
+                        is NumericLiteralValue -> {
+                            // optimize when the argument is a constant literal
+                            val hex = value.number.toHex()
+                            if (register == RegisterOrPair.AX)  out("  lda  #<$hex  |  ldx  #>$hex")
+                            else if (register == RegisterOrPair.AY) out("  lda  #<$hex  |  ldy  #>$hex")
+                            else if (register == RegisterOrPair.XY) out("  ldx  #<$hex  |  ldy  #>$hex")
+                        }
+                        is AddressOf -> {
+                            // optimize when the argument is an address of something
+                            val sourceName = asmIdentifierName(value.identifier)
+                            if (register == RegisterOrPair.AX) out("  lda  #<$sourceName  |  ldx  #>$sourceName")
+                            else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
+                            else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                        }
+                        is IdentifierReference -> {
+                            val sourceName = asmIdentifierName(value)
+                            if (register == RegisterOrPair.AX) out("  lda  #<$sourceName  |  ldx  #>$sourceName")
+                            else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
+                            else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                        }
+                        else -> {
+                            translateExpression(value)
+                            if (register == RegisterOrPair.AX || register == RegisterOrPair.XY)
+                                throw AssemblyError("can't use X register here - use a variable")
+                            else if (register == RegisterOrPair.AY)
+                                out("  inx |  lda  $ESTACK_LO_HEX,x  |  ldy  $ESTACK_HI_HEX,x")
+                        }
                     }
                 }
             }

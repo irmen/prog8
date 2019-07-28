@@ -821,7 +821,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 }
 
 
-asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -840,7 +840,7 @@ asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
 }
 
 
-asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -862,7 +862,7 @@ asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
 }
 
 
-asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -875,7 +875,7 @@ asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
 }
 
 
-asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
+asmsub print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{

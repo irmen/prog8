@@ -11,7 +11,7 @@ class AssemblyProgram(val name: String) {
 
     companion object {
         // reserved by the 64tass assembler (on top of prog8"s own reserved names)
-        val reservedNames = setOf("bit", "bits", "bool", "bytes", "code", "dict", "gap", "int", "list", "tuple", "type",
+        val reservedNames = setOf("bits", "bool", "bytes", "code", "dict", "gap", "int", "list", "tuple", "type",
                 "trunc", " frac", "cbrt", "log10", "log", "exp", "pow", "asin", "sinh", "acos", "cosh", "tanh", "hypot",
                 "atan2", "sign", "binary", "format", "random", "range", "repr", "size", "sort")
 

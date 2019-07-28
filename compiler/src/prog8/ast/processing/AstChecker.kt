@@ -303,6 +303,18 @@ internal class AstChecker(private val program: Program,
 
             if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
                 err("a return register is also in the clobber list")
+
+            if(subroutine.statements.any{it !is InlineAssembly})
+                err("asmsub can only contain inline assembly (%asm)")
+
+            val statusFlagsNoCarry = subroutine.asmParameterRegisters.mapNotNull { it.statusflag }.toSet() - Statusflag.Pc
+            if(statusFlagsNoCarry.isNotEmpty())
+                err("can only use Carry as status flag parameter")
+
+            val carryParameter = subroutine.asmParameterRegisters.singleOrNull { it.statusflag==Statusflag.Pc }
+            if(carryParameter!=null && carryParameter !== subroutine.asmParameterRegisters.last())
+                err("carry parameter has to come last")
+
         } else {
             // TODO: non-asm subroutines can only take numeric arguments for now. (not strings and arrays) Maybe this can be improved now that we have '&' ?
             // the way string params are treated is almost okay (their address is passed) but the receiving subroutine treats it as an integer rather than referring back to the original string.
