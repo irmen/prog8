@@ -548,7 +548,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateSubroutineCall(stmt: IFunctionCall) {
-        val sub = stmt.target.targetSubroutine(program.namespace)!!
+        val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(Register.X in sub.asmClobbers)
             out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
 
@@ -1189,15 +1189,16 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignEvalResult(target: AssignTarget) {
+        val targetIdent = target.identifier
         when {
             target.register!=null -> {
                 if(target.register==Register.X)
                     throw AssemblyError("can't pop into X register - use variable instead")
                 out(" inx | ld${target.register.name.toLowerCase()}  $ESTACK_LO_HEX,x ")
             }
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
-                val targetDt = target.identifier.inferType(program)!!
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
+                val targetDt = targetIdent.inferType(program)!!
                 when(targetDt) {
                     DataType.UBYTE, DataType.BYTE -> {
                         out(" inx | lda  $ESTACK_LO_HEX,x  | sta  $targetName")
@@ -1222,7 +1223,7 @@ internal class AsmGen2(val program: Program,
                 }
             }
             target.memoryAddress!=null -> {
-                val address = target.memoryAddress!!.addressExpression
+                val address = target.memoryAddress.addressExpression
                 if(address is NumericLiteralValue) {
                     out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  ${address.number.toHex()}")
                 } else {
@@ -1237,9 +1238,10 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignAddressOf(target: AssignTarget, name: IdentifierReference, scopedname: String) {
+        val targetIdent = target.identifier
         when {
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
                 val struct = name.memberOfStruct(program.namespace)
                 if(struct!=null) {
                     // take the address of the first struct member instead
@@ -1271,9 +1273,10 @@ internal class AsmGen2(val program: Program,
 
     private fun assignWordVariable(target: AssignTarget, variable: IdentifierReference) {
         val sourceName = asmIdentifierName(variable)
+        val targetIdent = target.identifier
         when {
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
                 out("""
                     lda  $sourceName
                     ldy  $sourceName+1
@@ -1287,9 +1290,10 @@ internal class AsmGen2(val program: Program,
 
     private fun assignFloatVariable(target: AssignTarget, variable: IdentifierReference) {
         val sourceName = asmIdentifierName(variable)
+        val targetIdent = target.identifier
         when {
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
                 out("""
                     lda  $sourceName
                     sta  $targetName
@@ -1309,12 +1313,13 @@ internal class AsmGen2(val program: Program,
 
     private fun assignByteVariable(target: AssignTarget, variable: IdentifierReference) {
         val sourceName = asmIdentifierName(variable)
+        val targetIdent = target.identifier
         when {
             target.register!=null -> {
                 out("  ld${target.register.name.toLowerCase()}  $sourceName")
             }
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
                 out("""
                     lda  $sourceName
                     sta  $targetName
@@ -1325,9 +1330,11 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignRegister(target: AssignTarget, register: Register) {
+        val targetIdent = target.identifier
+        val targetArrayIdx = target.arrayindexed
         when {
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
                 out("  st${register.name.toLowerCase()}  $targetName")
             }
             target.register!=null -> {
@@ -1370,8 +1377,9 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignWordConstant(target: AssignTarget, word: Int) {
-        if(target.identifier!=null) {
-            val targetName = asmIdentifierName(target.identifier)
+        val targetIdent = target.identifier
+        if(targetIdent!=null) {
+            val targetName = asmIdentifierName(targetIdent)
             if(word ushr 8 == word and 255) {
                 // lsb=msb
                 out("""
@@ -1393,12 +1401,13 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignByteConstant(target: AssignTarget, byte: Short) {
+        val targetIdent = target.identifier
         when {
             target.register!=null -> {
                 out("  ld${target.register.name.toLowerCase()}  #${byte.toHex()}")
             }
-            target.identifier!=null -> {
-                val targetName = asmIdentifierName(target.identifier)
+            targetIdent!=null -> {
+                val targetName = asmIdentifierName(targetIdent)
                 out(" lda  #${byte.toHex()} |  sta  $targetName ")
             }
             else -> TODO("assign byte $byte to $target")
@@ -1406,10 +1415,11 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignFloatConstant(target: AssignTarget, float: Double) {
+        val targetIdent = target.identifier
         if(float==0.0) {
             // optimized case for float zero
-            if (target.identifier != null) {
-                val targetName = asmIdentifierName(target.identifier)
+            if (targetIdent != null) {
+                val targetName = asmIdentifierName(targetIdent)
                 out("""
                         lda  #0
                         sta  $targetName
@@ -1424,8 +1434,8 @@ internal class AsmGen2(val program: Program,
         } else {
             // non-zero value
             val constFloat = getFloatConst(float)
-            if (target.identifier != null) {
-                val targetName = asmIdentifierName(target.identifier)
+            if (targetIdent != null) {
+                val targetName = asmIdentifierName(targetIdent)
                 out("""
                         lda  $constFloat
                         sta  $targetName
@@ -1445,13 +1455,14 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun assignMemoryByte(target: AssignTarget, address: Int?, identifier: IdentifierReference?) {
+        val targetIdent = target.identifier
         if(address!=null) {
             when {
                 target.register!=null -> {
                     out("  ld${target.register.name.toLowerCase()}  ${address.toHex()}")
                 }
-                target.identifier!=null -> {
-                    val targetName = asmIdentifierName(target.identifier)
+                targetIdent!=null -> {
+                    val targetName = asmIdentifierName(targetIdent)
                     out("""
                         lda  ${address.toHex()}
                         sta  $targetName
@@ -1474,8 +1485,8 @@ internal class AsmGen2(val program: Program,
                         Register.Y -> out("  tay")
                     }
                 }
-                target.identifier!=null -> {
-                    val targetName = asmIdentifierName(target.identifier)
+                targetIdent!=null -> {
+                    val targetName = asmIdentifierName(targetIdent)
                     out("""
                         ldy  #0
                         lda  ($sourceName),y

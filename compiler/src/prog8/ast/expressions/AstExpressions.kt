@@ -247,8 +247,8 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     }
 }
 
-class ArrayIndexedExpression(val identifier: IdentifierReference,
-                             var arrayspec: ArrayIndex,
+class ArrayIndexedExpression(var identifier: IdentifierReference,
+                             val arrayspec: ArrayIndex,
                              override val position: Position) : Expression() {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
@@ -304,7 +304,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 }
 
-data class AddressOf(val identifier: IdentifierReference, override val position: Position) : Expression() {
+data class AddressOf(var identifier: IdentifierReference, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -752,6 +752,13 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             is ReferenceLiteralValue -> value.heapId ?: throw FatalAstException("refLv is not on the heap: $value")
             else -> throw FatalAstException("requires a reference value")
         }
+    }
+
+    fun withPrefixedName(nameprefix: String): IdentifierReference {
+        val prefixed = nameInSource.dropLast(1) + listOf(nameprefix+nameInSource.last())
+        val new = IdentifierReference(prefixed, position)
+        new.parent = parent
+        return new
     }
 }
 

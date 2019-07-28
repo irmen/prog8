@@ -472,7 +472,7 @@ class AstVm(val program: Program) {
                     loopvar = IdentifierReference(listOf(stmt.loopRegister.name), stmt.position)
                 } else {
                     loopvarDt = stmt.loopVar!!.inferType(program)!!
-                    loopvar = stmt.loopVar
+                    loopvar = stmt.loopVar!!
                 }
                 val iterator = iterable.iterator()
                 for (loopvalue in iterator) {
@@ -545,10 +545,12 @@ class AstVm(val program: Program) {
     }
 
     fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: Statement, evalCtx: EvalContext) {
+        val targetIdent = target.identifier
+        val targetArrayIndexed = target.arrayindexed
         when {
-            target.identifier != null -> {
-                val decl = contextStmt.definingScope().lookup(target.identifier.nameInSource, contextStmt) as? VarDecl
-                        ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
+            targetIdent != null -> {
+                val decl = contextStmt.definingScope().lookup(targetIdent.nameInSource, contextStmt) as? VarDecl
+                        ?: throw VmExecutionException("can't find assignment target $targetIdent")
                 if (decl.type == VarDeclType.MEMORY) {
                     val address = runtimeVariables.getMemoryAddress(decl.definingScope(), decl.name)
                     when (decl.datatype) {
@@ -565,14 +567,14 @@ class AstVm(val program: Program) {
                     runtimeVariables.set(decl.definingScope(), decl.name, value)
             }
             target.memoryAddress != null -> {
-                val address = evaluate(target.memoryAddress!!.addressExpression, evalCtx).wordval!!
+                val address = evaluate(target.memoryAddress.addressExpression, evalCtx).wordval!!
                 evalCtx.mem.setUByte(address, value.byteval!!)
             }
-            target.arrayindexed != null -> {
-                val vardecl = target.arrayindexed.identifier.targetVarDecl(program.namespace)!!
+            targetArrayIndexed != null -> {
+                val vardecl = targetArrayIndexed.identifier.targetVarDecl(program.namespace)!!
                 if(vardecl.type==VarDeclType.VAR) {
-                    val array = evaluate(target.arrayindexed.identifier, evalCtx)
-                    val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx)
+                    val array = evaluate(targetArrayIndexed.identifier, evalCtx)
+                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx)
                     when (array.type) {
                         DataType.ARRAY_UB -> {
                             if (value.type != DataType.UBYTE)
@@ -606,7 +608,7 @@ class AstVm(val program: Program) {
                         val indexInt = index.integerValue()
                         val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
                         val newstr = array.str!!.replaceRange(indexInt, indexInt + 1, newchr)
-                        val ident = contextStmt.definingScope().lookup(target.arrayindexed.identifier.nameInSource, contextStmt) as? VarDecl
+                        val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
                         program.heap.update(array.heapId!!, newstr)
@@ -615,8 +617,8 @@ class AstVm(val program: Program) {
                 }
                 else {
                     val address = (vardecl.value as NumericLiteralValue).number.toInt()
-                    val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx).integerValue()
-                    val elementType = target.arrayindexed.inferType(program)!!
+                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx).integerValue()
+                    val elementType = targetArrayIndexed.inferType(program)!!
                     when(elementType) {
                         DataType.UBYTE -> mem.setUByte(address+index, value.byteval!!)
                         DataType.BYTE -> mem.setSByte(address+index, value.byteval!!)
@@ -952,4 +954,3 @@ class AstVm(val program: Program) {
     }
 
 }
-

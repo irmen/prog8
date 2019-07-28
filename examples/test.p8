@@ -6,18 +6,37 @@
 
     sub start() {
 
-        float f1 =  1.1
-        float f2 = 2.2
+;
+;        float f1 =  1.1
+;        float f2 = 2.2
+;
+;        @(1024) = f1==f2
+;
+;        c64.CHROUT('\n')
+;        c64scr.print_ub(f1==f2)
+;        c64.CHROUT('\n')
+;
+;        if f1 ==0.0
+;            c64scr.print("error\n")
+;        else
+;            c64scr.print("ok\n")
 
-        @(1024) = f1==f2
+        str  s1 = "hello"
+        str  s2 = "hello"
+        str  s3 = "hello"
+        str  s4 = "hello"
 
-        c64.CHROUT('\n')
-        c64scr.print_ub(f1==f2)
-        c64.CHROUT('\n')
+        if true {
+            ubyte ub1 = 33
+            A=ub1
+            c64scr.print("irmen")
+        }
 
-        if f1 ==0.0
-            c64scr.print("error\n")
-        else
-            c64scr.print("ok\n")
+        if true {
+            ubyte ub1 = 33
+            A=ub1
+            c64scr.print("irmen")
+        }
+
     }
 }

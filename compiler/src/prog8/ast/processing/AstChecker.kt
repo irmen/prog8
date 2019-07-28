@@ -370,8 +370,9 @@ internal class AstChecker(private val program: Program,
         }
 
         val assignment = assignTarget.parent as Statement
-        if (assignTarget.identifier != null) {
-            val targetName = assignTarget.identifier.nameInSource
+        val targetIdentifier = assignTarget.identifier
+        if (targetIdentifier != null) {
+            val targetName = targetIdentifier.nameInSource
             val targetSymbol = program.namespace.lookup(targetName, assignment)
             when (targetSymbol) {
                 null -> {

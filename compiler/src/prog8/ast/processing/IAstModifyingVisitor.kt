@@ -2,6 +2,7 @@ package prog8.ast.processing
 
 import prog8.ast.Module
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
@@ -36,7 +37,7 @@ interface IAstModifyingVisitor {
 
     fun visit(decl: VarDecl): Statement {
         decl.value = decl.value?.accept(this)
-        decl.arraysize?.accept(this)
+        decl.arraysize = decl.arraysize?.accept(this)
         return decl
     }
 
@@ -49,6 +50,8 @@ interface IAstModifyingVisitor {
         val newtarget = functionCall.target.accept(this)
         if(newtarget is IdentifierReference)
             functionCall.target = newtarget
+        else
+            throw FatalAstException("cannot change class of function call target")
         functionCall.arglist = functionCall.arglist.map { it.accept(this) }.toMutableList()
         return functionCall
     }
@@ -57,6 +60,8 @@ interface IAstModifyingVisitor {
         val newtarget = functionCallStatement.target.accept(this)
         if(newtarget is IdentifierReference)
             functionCallStatement.target = newtarget
+        else
+            throw FatalAstException("cannot change class of function call target")
         functionCallStatement.arglist = functionCallStatement.arglist.map { it.accept(this) }.toMutableList()
         return functionCallStatement
     }
@@ -135,7 +140,12 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(forLoop: ForLoop): Statement {
-        forLoop.loopVar?.accept(this)
+        val newloopvar = forLoop.loopVar?.accept(this)
+        when(newloopvar) {
+            is IdentifierReference -> forLoop.loopVar = newloopvar
+            null -> forLoop.loopVar = null
+            else -> throw FatalAstException("can't change class of loopvar")
+        }
         forLoop.iterable = forLoop.iterable.accept(this)
         forLoop.body = forLoop.body.accept(this) as AnonymousScope
         return forLoop
@@ -158,15 +168,24 @@ interface IAstModifyingVisitor {
         return returnStmt
     }
 
-    fun visit(arrayIndexedExpression: ArrayIndexedExpression): Expression {
-        arrayIndexedExpression.identifier.accept(this)
+    fun visit(arrayIndexedExpression: ArrayIndexedExpression): ArrayIndexedExpression {
+        val ident = arrayIndexedExpression.identifier.accept(this)
+        if(ident is IdentifierReference)
+            arrayIndexedExpression.identifier = ident
+        else
+            throw FatalAstException("can't change class of indexed identifier")
         arrayIndexedExpression.arrayspec.accept(this)
         return arrayIndexedExpression
     }
 
     fun visit(assignTarget: AssignTarget): AssignTarget {
-        assignTarget.arrayindexed?.accept(this)
-        assignTarget.identifier?.accept(this)
+        val ident = assignTarget.identifier?.accept(this)
+        when (ident) {
+            is IdentifierReference -> assignTarget.identifier = ident
+            null -> assignTarget.identifier = null
+            else -> throw FatalAstException("can't change class of assign target identifier")
+        }
+        assignTarget.arrayindexed = assignTarget.arrayindexed?.accept(this)
         assignTarget.memoryAddress?.let { visit(it) }
         return assignTarget
     }
@@ -191,7 +210,11 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(addressOf: AddressOf): Expression {
-        addressOf.identifier.accept(this)
+        val ident = addressOf.identifier.accept(this)
+        if(ident is IdentifierReference)
+            addressOf.identifier = ident
+        else
+            throw FatalAstException("can't change class of addressof identifier")
         return addressOf
     }
 
@@ -212,14 +235,19 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(whenStatement: WhenStatement): Statement {
-        whenStatement.condition.accept(this)
+        whenStatement.condition = whenStatement.condition.accept(this)
         whenStatement.choices.forEach { it.accept(this) }
         return whenStatement
     }
 
     fun visit(whenChoice: WhenChoice) {
         whenChoice.values?.forEach { it.accept(this) }
-        whenChoice.statements.accept(this)
+        val stmt = whenChoice.statements.accept(this)
+        if(stmt is AnonymousScope)
+            whenChoice.statements = stmt
+        else {
+            whenChoice.statements = AnonymousScope(mutableListOf(stmt), stmt.position)
+        }
     }
 
     fun visit(structDecl: StructDecl): Statement {
