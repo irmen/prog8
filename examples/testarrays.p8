@@ -2,7 +2,7 @@
 %zeropage basicsafe
 %option enable_floats
 
-~ main {
+main {
 
     sub start() {
 

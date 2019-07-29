@@ -6,6 +6,6 @@
 
 %import c64lib
 
-~ prog8_lib {
+prog8_lib {
 	%asminclude "library:prog8lib.asm", ""
 }

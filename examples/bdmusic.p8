@@ -1,6 +1,6 @@
 %import c64lib
 
-~ main {
+main {
 
 sub start() {
 

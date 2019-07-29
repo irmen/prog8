@@ -168,7 +168,7 @@ These routines are::
 If you activate an IRQ handler with one of these, it expects the handler to be defined
 as a subroutine ``irq`` in the module ``irq`` so like this::
 
-    ~ irq {
+    irq {
         sub irq() {
             ; ... irq handling here ...
         }

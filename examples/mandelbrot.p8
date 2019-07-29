@@ -4,7 +4,7 @@
 %zeropage basicsafe
 
 
-~ main {
+main {
     const uword width = 30
     const uword height = 20
     const ubyte max_iter = 16

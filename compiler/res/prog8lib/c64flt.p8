@@ -7,7 +7,7 @@
 %option enable_floats
 
 
-~ c64flt {
+c64flt {
 	; ---- this block contains C-64 floating point related functions ----
 
 		const  float  PI	= 3.141592653589793

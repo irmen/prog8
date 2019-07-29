@@ -10,7 +10,7 @@
 ; @todo show ghost?
 
 
-~ main {
+main {
 
     const ubyte boardOffsetX = 14
     const ubyte boardOffsetY = 3
@@ -387,7 +387,7 @@ waitkey:
 }
 
 
-~ blocklogic {
+blocklogic {
 
     ubyte currentBlockNum
     ubyte[16] currentBlock
@@ -561,7 +561,7 @@ waitkey:
 }
 
 
-~ sound {
+sound {
 
     sub init() {
         c64.MVOL = 15

@@ -9,7 +9,7 @@
 %import c64lib
 
 
-~ c64utils {
+c64utils {
 
 		const   uword  ESTACK_LO	= $ce00
 		const   uword  ESTACK_HI	= $cf00
@@ -461,7 +461,7 @@ _raster_irq_handler
 
 
 
-~ c64scr {
+c64scr {
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 

@@ -6,7 +6,7 @@
 ; indent format: TABS, size=8
 
 
-~ c64 {
+c64 {
 		const   uword  ESTACK_LO	= $ce00		; evaluation stack (lsb)
 		const   uword  ESTACK_HI	= $cf00		; evaluation stack (msb)
 		&ubyte  SCRATCH_ZPB1		= $02		; scratch byte 1 in ZP
@@ -21,7 +21,7 @@
 		&ubyte  TIME_LO			= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
 		&ubyte  STKEY			= $91		; various keyboard statuses (updated by IRQ)
 		&ubyte  SFDX			= $cb		; current key pressed (matrix value) (updated by IRQ)
-	
+
 		&ubyte  COLOR			= $0286		; cursor color
 		&ubyte  HIBASE			= $0288		; screen base address / 256 (hi-byte of screen memory address)
 		&uword  CINV			= $0314		; IRQ vector

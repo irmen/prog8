@@ -93,7 +93,7 @@ Blocks, Scopes, and accessing Symbols
 **Blocks** are the top level separate pieces of code and data of your program. They are combined
 into a single output program.  No code or data can occur outside a block. Here's an example::
 
-	~ main $c000 {
+	main $c000 {
 		; this is code inside the block...
 	}
 
@@ -151,7 +151,7 @@ taking no parameters and having no return value.
 
 As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call)::
 
-	~ main {
+	main {
 	    sub start ()  {
 	        ; program entrypoint code here
 	        return

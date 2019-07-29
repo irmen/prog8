@@ -1,7 +1,7 @@
 %import c64utils
 %zeropage basicsafe
 
-~ main {
+main {
 
     ubyte[256] sieve
     ubyte candidate_prime = 2       ; is increased in the loop

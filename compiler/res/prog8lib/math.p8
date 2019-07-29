@@ -6,6 +6,6 @@
 
 %import c64lib
 
-~ math {
+math {
 	%asminclude "library:math.asm", ""
 }

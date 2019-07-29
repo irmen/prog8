@@ -3,7 +3,7 @@
 %zeropage basicsafe
 
 
-~ spritedata $0a00 {
+spritedata $0a00 {
     ; this memory block contains the sprite data
     ; it must start on an address aligned to 64 bytes.
     %option force_output    ; make sure the data in this block appears in the resulting program
@@ -31,7 +31,7 @@
                               %00000000,%00011100,%00000000   ]
 }
 
-~ main {
+main {
 
     const uword SP0X = $d000
     const uword SP0Y = $d001
@@ -52,7 +52,7 @@
 }
 
 
-~ irq {
+irq {
 
     sub irq() {
         c64.EXTCOL--

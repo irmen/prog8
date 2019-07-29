@@ -7,7 +7,7 @@
 ; This is extremely handy for the Fibonacci sequence because it is defined
 ; in terms of 'the next value is the sum of the previous two values'
 
-~ main {
+main {
     sub start() {
         c64scr.print("fibonacci sequence\n")
         fib_setup()

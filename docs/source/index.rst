@@ -45,7 +45,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
     %import c64utils
     %zeropage basicsafe
 
-    ~ main {
+    main {
 
         ubyte[256] sieve
         ubyte candidate_prime = 2
@@ -101,7 +101,7 @@ The following programs shows a use of the high level ``struct`` type::
     %import c64utils
     %zeropage basicsafe
 
-    ~ main {
+    main {
 
         struct Color {
             ubyte red

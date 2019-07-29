@@ -173,7 +173,7 @@ Code blocks
 A named block of actual program code. Itefines a *scope* (also known as 'namespace') and
 can contain Prog8 *code*, *directives*, *variable declarations* and *subroutines*::
 
-    ~ <blockname> [<address>] {
+    <blockname> [<address>] {
         <directives>
         <variables>
         <statements>
@@ -185,7 +185,7 @@ The <address> is optional. If specified it must be a valid memory address such a
 It's used to tell the compiler to put the block at a certain position in memory.
 Also read :ref:`blocks`.  Here is an example of a code block, to be loaded at ``$c000``::
 
-	~ main $c000 {
+	main $c000 {
 		; this is code inside the block...
 	}
 
