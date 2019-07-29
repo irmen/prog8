@@ -303,9 +303,8 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
         }
     }
 
-    fun accept(visitor: IAstModifyingVisitor): ArrayIndex {
+    fun accept(visitor: IAstModifyingVisitor) {
         index = index.accept(visitor)
-        return this
     }
 
     fun accept(visitor: IAstVisitor) {
@@ -750,7 +749,7 @@ class RepeatLoop(var body: AnonymousScope,
 }
 
 class WhenStatement(var condition: Expression,
-                    val choices: MutableList<WhenChoice>,
+                    var choices: MutableList<WhenChoice>,
                     override val position: Position): Statement() {
     override lateinit var parent: Node
     override val expensiveToInline: Boolean = true
@@ -768,7 +767,7 @@ class WhenStatement(var condition: Expression,
             if(choice.values==null)
                 result.add(null to choice)
             else {
-                val values = choice.values.map { it.constValue(program)?.number?.toInt() }
+                val values = choice.values!!.map { it.constValue(program)?.number?.toInt() }
                 if(values.contains(null))
                     result.add(null to choice)
                 else
@@ -782,7 +781,7 @@ class WhenStatement(var condition: Expression,
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
 }
 
-class WhenChoice(val values: List<Expression>?,           // if null,  this is the 'else' part
+class WhenChoice(var values: List<Expression>?,           // if null,  this is the 'else' part
                  var statements: AnonymousScope,
                  override val position: Position) : Node {
     override lateinit var parent: Node

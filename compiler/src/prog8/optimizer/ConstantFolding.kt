@@ -224,14 +224,16 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
      */
     override fun visit(expr: PrefixExpression): Expression {
         return try {
-            super.visit(expr)
+            val prefixExpr=super.visit(expr)
+            if(prefixExpr !is PrefixExpression)
+                return prefixExpr
 
-            val subexpr = expr.expression
+            val subexpr = prefixExpr.expression
             if (subexpr is NumericLiteralValue) {
                 // accept prefixed literal values (such as -3, not true)
                 return when {
-                    expr.operator == "+" -> subexpr
-                    expr.operator == "-" -> when {
+                    prefixExpr.operator == "+" -> subexpr
+                    prefixExpr.operator == "-" -> when {
                         subexpr.type in IntegerDatatypes -> {
                             optimizationsDone++
                             NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
@@ -242,21 +244,21 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         }
                         else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
                     }
-                    expr.operator == "~" -> when {
+                    prefixExpr.operator == "~" -> when {
                         subexpr.type in IntegerDatatypes -> {
                             optimizationsDone++
                             NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                     }
-                    expr.operator == "not" -> {
+                    prefixExpr.operator == "not" -> {
                         optimizationsDone++
                         NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
                     }
-                    else -> throw ExpressionError(expr.operator, subexpr.position)
+                    else -> throw ExpressionError(prefixExpr.operator, subexpr.position)
                 }
             }
-            return expr
+            return prefixExpr
         } catch (ax: AstException) {
             addError(ax)
             expr

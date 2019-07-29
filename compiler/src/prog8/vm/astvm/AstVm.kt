@@ -518,7 +518,7 @@ class AstVm(val program: Program) {
                         executeAnonymousScope(choice.statements)
                         break
                     } else {
-                        val value = choice.values.single().constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
+                        val value = choice.values!!.single().constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
                         val rtval = RuntimeValue.fromLv(value)
                         if(condition==rtval) {
                             executeAnonymousScope(choice.statements)

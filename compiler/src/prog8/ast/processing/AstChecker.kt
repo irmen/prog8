@@ -962,7 +962,7 @@ internal class AstChecker(private val program: Program,
         val whenStmt = whenChoice.parent as WhenStatement
         if(whenChoice.values!=null) {
             val conditionType = whenStmt.condition.inferType(program)
-            val constvalues = whenChoice.values.map { it.constValue(program) }
+            val constvalues = whenChoice.values!!.map { it.constValue(program) }
             for(constvalue in constvalues) {
                 when {
                     constvalue == null -> checkResult.add(SyntaxError("choice value must be a constant", whenChoice.position))

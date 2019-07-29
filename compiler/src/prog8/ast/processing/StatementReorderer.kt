@@ -333,9 +333,10 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         // make sure all choices are just for one single value
         val choices = whenStatement.choices.toList()
         for(choice in choices) {
-            if(choice.values==null || choice.values.size==1)
+            val choiceValues = choice.values
+            if(choiceValues==null || choiceValues.size==1)
                 continue
-            for(v in choice.values) {
+            for(v in choiceValues) {
                 val newchoice=WhenChoice(listOf(v), choice.statements, choice.position)
                 newchoice.parent = choice.parent
                 whenStatement.choices.add(newchoice)

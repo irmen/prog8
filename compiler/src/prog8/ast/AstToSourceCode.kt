@@ -343,7 +343,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(repeatLoop: RepeatLoop) {
-        outputln("repeat ")
+        output("repeat ")
         repeatLoop.body.accept(this)
         output(" until ")
         repeatLoop.untilCondition.accept(this)
@@ -427,13 +427,14 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(whenChoice: WhenChoice) {
-        if(whenChoice.values==null)
+        val choiceValues = whenChoice.values
+        if(choiceValues==null)
             outputi("else -> ")
         else {
             outputi("")
-            for(value in whenChoice.values) {
+            for(value in choiceValues) {
                 value.accept(this)
-                if(value !== whenChoice.values.last())
+                if(value !== choiceValues.last())
                     output(",")
             }
             output(" -> ")

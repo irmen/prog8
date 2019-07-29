@@ -12,7 +12,7 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(module: Module) {
-        module.statements = module.statements.asSequence().map { it.accept(this) }.toMutableList()
+        module.statements = module.statements.map { it.accept(this) }.toMutableList()
     }
 
     fun visit(expr: PrefixExpression): Expression {
@@ -31,18 +31,18 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(block: Block): Statement {
-        block.statements = block.statements.asSequence().map { it.accept(this) }.toMutableList()
+        block.statements = block.statements.map { it.accept(this) }.toMutableList()
         return block
     }
 
     fun visit(decl: VarDecl): Statement {
         decl.value = decl.value?.accept(this)
-        decl.arraysize = decl.arraysize?.accept(this)
+        decl.arraysize?.accept(this)
         return decl
     }
 
     fun visit(subroutine: Subroutine): Statement {
-        subroutine.statements = subroutine.statements.asSequence().map { it.accept(this) }.toMutableList()
+        subroutine.statements = subroutine.statements.map { it.accept(this) }.toMutableList()
         return subroutine
     }
 
@@ -191,7 +191,7 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(scope: AnonymousScope): Statement {
-        scope.statements = scope.statements.asSequence().map { it.accept(this) }.toMutableList()
+        scope.statements = scope.statements.map { it.accept(this) }.toMutableList()
         return scope
     }
 
@@ -241,12 +241,13 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(whenChoice: WhenChoice) {
-        whenChoice.values?.forEach { it.accept(this) }
+        whenChoice.values = whenChoice.values?.map { it.accept(this) }
         val stmt = whenChoice.statements.accept(this)
         if(stmt is AnonymousScope)
             whenChoice.statements = stmt
         else {
             whenChoice.statements = AnonymousScope(mutableListOf(stmt), stmt.position)
+            whenChoice.statements.linkParents(whenChoice)
         }
     }
 
