@@ -955,6 +955,9 @@ internal class AstChecker(private val program: Program,
         tally.filter { it.value>1 }.forEach {
             checkResult.add(SyntaxError("choice value occurs multiple times", it.key.position))
         }
+        if(whenStatement.choices.isEmpty())
+            checkResult.add(SyntaxError("empty when statement", whenStatement.position))
+
         super.visit(whenStatement)
     }
 

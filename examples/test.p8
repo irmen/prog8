@@ -59,6 +59,7 @@
                 9999 -> c64scr.print("ninetynine99")
                 else -> c64scr.print("don't know")
             }
+
             c64.CHROUT('\n')
         }
 

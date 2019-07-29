@@ -837,7 +837,44 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: WhenStatement) {
-        TODO("when $stmt")
+        translateExpression(stmt.condition)
+        val endLabel = makeLabel("choice_end")
+        val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
+        val conditionDt = stmt.condition.inferType(program)!!
+        if(conditionDt in ByteDatatypes)
+            out("  inx |  lda  $ESTACK_LO_HEX,x")
+        else
+            out("  inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
+        for(choice in stmt.choices) {
+            val choiceLabel = makeLabel("choice")
+            if(choice.values==null) {
+                // the else choice
+                translate(choice.statements)
+                out("  jmp  $endLabel")
+            } else {
+                choiceBlocks.add(Pair(choiceLabel, choice.statements))
+                for (cv in choice.values!!) {
+                    val value = (cv as NumericLiteralValue).number.toInt()
+                    if(conditionDt in ByteDatatypes) {
+                        out("  cmp  #${value.toHex()} |  beq  $choiceLabel")
+                    } else {
+                        out("""
+                            cmp  #<${value.toHex()}
+                            bne  +
+                            cpy  #>${value.toHex()}
+                            beq  $choiceLabel
++                            
+                            """)
+                    }
+                }
+            }
+        }
+        for(choiceBlock in choiceBlocks) {
+            out(choiceBlock.first)
+            translate(choiceBlock.second)
+            out("  jmp  $endLabel")
+        }
+        out(endLabel)
     }
 
     private fun translate(stmt: Label) {
