@@ -699,7 +699,8 @@ internal class AsmGen2(val program: Program,
                 stack==true -> TODO("param on stack")
                 statusflag!=null -> {
                     if (statusflag == Statusflag.Pc) {
-                        // TODO this param needs to be set last right before the jsr
+                        // this param needs to be set last, right before the jsr
+                        // for now, this is already enforced on the subroutine definition by the Ast Checker
                         when(value) {
                             is NumericLiteralValue -> {
                                 val carrySet = value.number.toInt() != 0
@@ -788,9 +789,9 @@ internal class AsmGen2(val program: Program,
                         }
                         is IdentifierReference -> {
                             val sourceName = asmIdentifierName(value)
-                            if (register == RegisterOrPair.AX) out("  lda  #<$sourceName  |  ldx  #>$sourceName")
-                            else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
-                            else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                            if (register == RegisterOrPair.AX) out("  lda  $sourceName  |  ldx  $sourceName+1")
+                            else if (register == RegisterOrPair.AY) out("  lda  $sourceName  |  ldy  $sourceName+1")
+                            else if (register == RegisterOrPair.XY) out("  ldx  $sourceName  |  ldy  $sourceName+1")
                         }
                         else -> {
                             translateExpression(value)
@@ -1032,7 +1033,6 @@ internal class AsmGen2(val program: Program,
                     DataType.UBYTE, DataType.BYTE -> assignFromByteVariable(assign.target, assign.value as IdentifierReference)
                     DataType.UWORD, DataType.WORD -> assignFromWordVariable(assign.target, assign.value as IdentifierReference)
                     DataType.FLOAT -> assignFromFloatVariable(assign.target, assign.value as IdentifierReference)
-                    in StringDatatypes -> TODO("str assignment")
                     else -> throw AssemblyError("unsupported assignment target type $type")
                 }
             }
@@ -1214,7 +1214,8 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: AddressOf) {
-        TODO("take address of; $expr")
+        val name = asmIdentifierName(expr.identifier)
+        out("  lda  #<$name |  sta  $ESTACK_LO_HEX,x |  lda  #>$name  |  sta  $ESTACK_HI_HEX,x  | dex")
     }
 
     private fun translateExpression(expr: DirectMemoryRead) {
@@ -1454,11 +1455,26 @@ internal class AsmGen2(val program: Program,
                 }
             }
             target.memoryAddress!=null -> {
-                val address = target.memoryAddress.addressExpression
-                if(address is NumericLiteralValue) {
-                    out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  ${address.number.toHex()}")
-                } else {
-                    TODO("put result in memory $target")
+                val addressExpr = target.memoryAddress.addressExpression
+                when (addressExpr) {
+                    is NumericLiteralValue -> out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  ${addressExpr.number.toHex()}")
+                    is IdentifierReference -> {
+                        val name = asmIdentifierName(addressExpr)
+                        out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  $name")
+                    }
+                    else -> {
+                        translateExpression(addressExpr)
+                        out("""
+     inx
+     lda  $ESTACK_LO_HEX,x
+     ldy  $ESTACK_LO_HEX,x
+     sta  (+) +1
+     sty  (+) +2
+     inx
+     lda  $ESTACK_LO_HEX,x
++    sta  ${65535.toHex()}      ; modified              
+                            """)
+                    }
                 }
             }
             target.arrayindexed!=null -> {
@@ -1652,8 +1668,7 @@ internal class AsmGen2(val program: Program,
                         when (register) {
                             Register.A -> out("  tay")
                             Register.X -> throw AssemblyError("can't use X register here")
-                            Register.Y -> {
-                            }
+                            Register.Y -> {}
                         }
                         out("""
      inx
