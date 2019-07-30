@@ -294,7 +294,9 @@ internal class AsmGen2(val program: Program,
                 }
             }
             DataType.ARRAY_F -> {
-                val array = (decl.value as ReferenceLiteralValue).array!!
+                val array = (decl.value as ReferenceLiteralValue).array
+                if(array==null)
+                    TODO("fix this")
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
                     makeFloatFill(MachineDefinition.Mflpt5.fromNumber(number))
@@ -359,7 +361,9 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ReferenceLiteralValue).array!!
+        val array = (decl.value as ReferenceLiteralValue).array
+        if(array==null)
+            TODO("fix this")
         return when {
             decl.datatype == DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
@@ -377,7 +381,10 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ReferenceLiteralValue).array!!
+        val array = (decl.value as ReferenceLiteralValue).array
+        if(array==null)
+            TODO("fix this ${decl.value}")
+
         return when {
             decl.datatype == DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers

@@ -367,6 +367,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                 in 0..255 -> NumericLiteralValue(DataType.UBYTE, value, position)
                 in -128..127 -> NumericLiteralValue(DataType.BYTE, value, position)
                 in 0..65535 -> NumericLiteralValue(DataType.UWORD, value, position)
+                in -32768..32767 -> NumericLiteralValue(DataType.WORD, value, position)
                 else -> throw FatalAstException("integer overflow: $value")
             }
         }
@@ -495,12 +496,12 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
     init {
         when(type){
             in StringDatatypes ->
-                if(str==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
+                if(str==null) throw FatalAstException("literal value missing strvalue/heapId")
             in ArrayDatatypes ->
-                if(array==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
+                if(array==null) throw FatalAstException("literal value missing arrayvalue/heapId")
             else -> throw FatalAstException("invalid type $type")
         }
-        if(array==null && str==null && heapId==null)
+        if(array==null && str==null)
             throw FatalAstException("literal ref value without actual value")
     }
 
@@ -564,7 +565,17 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
             in ArrayDatatypes -> {
                 if(targettype in ArrayDatatypes) {
                     val elementType = ArrayElementTypes.getValue(targettype)
-                    val castArray = array!!.map{ (it as NumericLiteralValue).cast(elementType)!! as Expression }.toTypedArray()
+                    val castArray = array!!.map{
+                        val num = it as? NumericLiteralValue
+                        if(num==null) {
+                            // an array of UWORDs could possibly also contain AddressOfs
+                            if (elementType != DataType.UWORD || it !is AddressOf)
+                                throw FatalAstException("weird array element $it")
+                            it
+                        } else {
+                            num.cast(elementType)!!
+                        }
+                    }.toTypedArray()
                     return ReferenceLiteralValue(targettype, null, array=castArray, position = position)
                 }
             }

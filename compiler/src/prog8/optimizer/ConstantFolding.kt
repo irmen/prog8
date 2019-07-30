@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
-import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
@@ -35,8 +34,8 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
             if(decl.isArray){
-                // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
                 if(decl.arraysize==null) {
+                    // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
                     val arrayval = (decl.value as? ReferenceLiteralValue)?.array
                     if(arrayval!=null) {
                         decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
@@ -73,7 +72,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     val numericLv = decl.value as? NumericLiteralValue
                     val rangeExpr = decl.value as? RangeExpr
                     if(rangeExpr!=null) {
-                        // convert the initializer range expression to an actual array (will be put on heap later)
+                        // convert the initializer range expression to an actual array
                         val declArraySize = decl.arraysize?.size()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
@@ -119,8 +118,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             }
                             else -> {}
                         }
-                        val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
-                        decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = numericLv.position)
+                        // create the array itself, filled with the fillvalue.
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
+                        val refValue = ReferenceLiteralValue(decl.datatype, array = array, position = numericLv.position)
+                        refValue.addToHeap(program.heap)
+                        decl.value = refValue
+                        refValue.parent=decl
                         optimizationsDone++
                         return super.visit(decl)
                     }
@@ -137,8 +140,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         if (fillvalue < FLOAT_MAX_NEGATIVE || fillvalue > FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval.position))
                         else {
-                            val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
-                            decl.value = ReferenceLiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval.position)
+                            // create the array itself, filled with the fillvalue.
+                            val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
+                            val refValue = ReferenceLiteralValue(DataType.ARRAY_F, array = array, position = litval.position)
+                            refValue.addToHeap(program.heap)
+                            decl.value = refValue
+                            refValue.parent=decl
                             optimizationsDone++
                             return super.visit(decl)
                         }

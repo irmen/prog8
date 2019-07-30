@@ -61,7 +61,7 @@ fun compileProgram(filepath: Path,
                 programAst.removeNopsFlattenAnonScopes()
 
                 // if you want to print the AST, do it before shuffling the statements around below
-                printAst(programAst)
+                // printAst(programAst)
 
 
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
