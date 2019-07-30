@@ -952,21 +952,36 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: ForLoop) {
+        val iterableDt = stmt.iterable.inferType(program)
         when(stmt.iterable) {
             is RangeExpr -> {
-                println("forloop over range $stmt")
+                when(iterableDt) {
+                    in ByteDatatypes -> {
+                        println("forloop over byte range $stmt") // TODO
+                    }
+                    in WordDatatypes -> {
+                        println("forloop over word range $stmt") // TODO
+                    }
+                    else -> throw AssemblyError("range expression can only be byte or word")
+                }
             }
             is IdentifierReference -> {
-                val iterableDt = stmt.iterable.inferType(program)
+                val decl = (stmt.iterable as IdentifierReference).targetVarDecl(program.namespace)!!
                 when(iterableDt) {
-                    DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                        println("forloop over byte array/string $stmt")
+                    DataType.STR, DataType.STR_S -> {
+                        println("forloop over string $stmt") // TODO (ends at 0 byte)
+                    }
+                    DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                        val size = decl.arraysize!!.size()
+                        println("forloop over byte array of len $size  $stmt") // TODO  (ends at length of array)
                     }
                     DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                        println("forloop over word array $stmt")
+                        val size = decl.arraysize!!.size()
+                        println("forloop over word array len $size  $stmt")    // TODO
                     }
                     DataType.ARRAY_F -> {
-                        println("forloop over float array $stmt")
+                        val size = decl.arraysize!!.size()
+                        println("forloop over float array len $size  $stmt")   // TODO
                     }
                     else -> throw AssemblyError("can't iterate over $iterableDt")
                 }
