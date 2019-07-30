@@ -7,6 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.functions.BuiltinFunctions
 
@@ -233,10 +234,49 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     }
 
     override fun visit(refLiteral: ReferenceLiteralValue): Expression {
-        if(refLiteral.parent !is VarDecl) {
-            return makeIdentifierFromRefLv(refLiteral)
+        val litval = super.visit(refLiteral)
+        if(litval is ReferenceLiteralValue) {
+            if (litval.isString) {
+                // intern the string; move it into the heap
+                if (litval.str!!.length !in 1..255)
+                    checkResult.add(ExpressionError("string literal length must be between 1 and 255", litval.position))
+                else {
+                    litval.addToHeap(program.heap)
+                }
+            } else if (litval.isArray) {
+                val vardecl = litval.parent as? VarDecl
+                if (vardecl!=null) {
+                    return fixupArrayDatatype(litval, vardecl, program.heap)
+                } else {
+                    // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
+                    // (we don't know the desired datatype here exactly so we guess)
+                    val datatype = determineArrayDt(litval.array!!) ?: return litval
+                    val litval2 = litval.cast(datatype)!!
+                    litval2.parent = litval.parent
+                    // finally, replace the literal by a identifier reference.
+                    return makeIdentifierFromRefLv(litval2)
+                }
+            }
         }
-        return super.visit(refLiteral)
+
+        return litval
+    }
+
+    private fun determineArrayDt(array: Array<Expression>): DataType? {
+        val datatypesInArray = array.mapNotNull { it.inferType(program) }
+        if(datatypesInArray.isEmpty())
+            return null
+        if(DataType.FLOAT in datatypesInArray)
+            return DataType.ARRAY_F
+        if(DataType.WORD in datatypesInArray)
+            return DataType.ARRAY_W
+        if(DataType.UWORD in datatypesInArray)
+            return DataType.ARRAY_UW
+        if(DataType.BYTE in datatypesInArray)
+            return DataType.ARRAY_B
+        if(DataType.UBYTE in datatypesInArray)
+            return DataType.ARRAY_UB
+        return null
     }
 
     private fun makeIdentifierFromRefLv(refLiteral: ReferenceLiteralValue): IdentifierReference {
@@ -314,4 +354,21 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         }
     }
 
+}
+
+internal fun fixupArrayDatatype(array: ReferenceLiteralValue, vardecl: VarDecl, heap: HeapValues): ReferenceLiteralValue {
+    if(array.heapId!=null) {
+        val arrayDt = array.type
+        if(arrayDt!=vardecl.datatype) {
+            // fix the datatype of the array (also on the heap) to match the vardecl
+            val litval2 = array.cast(vardecl.datatype)!!
+            vardecl.value = litval2
+            litval2.linkParents(vardecl)
+            litval2.addToHeap(heap)     // TODO is the previous array discarded from the resulting asm code?
+            return litval2
+        }
+    } else {
+        array.addToHeap(heap)
+    }
+    return array
 }

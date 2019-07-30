@@ -952,7 +952,27 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: ForLoop) {
-        TODO("forloop $stmt")
+        when(stmt.iterable) {
+            is RangeExpr -> {
+                println("forloop over range $stmt")
+            }
+            is IdentifierReference -> {
+                val iterableDt = stmt.iterable.inferType(program)
+                when(iterableDt) {
+                    DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                        println("forloop over byte array/string $stmt")
+                    }
+                    DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                        println("forloop over word array $stmt")
+                    }
+                    DataType.ARRAY_F -> {
+                        println("forloop over float array $stmt")
+                    }
+                    else -> throw AssemblyError("can't iterate over $iterableDt")
+                }
+            }
+            else -> throw AssemblyError("can't iterate over ${stmt.iterable}")
+        }
     }
 
     private fun translate(stmt: PostIncrDecr) {

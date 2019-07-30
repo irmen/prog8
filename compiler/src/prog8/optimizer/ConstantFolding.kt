@@ -5,6 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.fixupArrayDatatype
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
@@ -580,33 +581,11 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(refLiteral: ReferenceLiteralValue): Expression {
         val litval = super.visit(refLiteral)
         if(litval is ReferenceLiteralValue) {
-            if (litval.isString) {
-                // intern the string; move it into the heap
-                if (litval.str!!.length !in 1..255)
-                    addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
-                else {
-                    litval.addToHeap(program.heap)
-                }
-            } else if (litval.isArray) {
+            if (litval.isArray) {
                 val vardecl = litval.parent as? VarDecl
                 if (vardecl!=null) {
-                    if(litval.heapId!=null) {
-                        val arrayDt = litval.type
-                        if(arrayDt!=vardecl.datatype) {
-                            // fix the datatype of the array (also on the heap) to match the vardecl
-                            val litval2 = litval.cast(vardecl.datatype)!!
-                            vardecl.value = litval2
-                            litval2.linkParents(vardecl)
-                            litval2.addToHeap(program.heap)     // TODO is the previous array discarded from the resulting asm code?
-                            return litval2
-                        }
-                    }
-                } else {
-                    TODO("VISIT REFLITERAL OUTSIDE OF VARDECL $litval")
+                    return fixupArrayDatatype(litval, vardecl, program.heap)
                 }
-
-                if(litval.heapId==null)
-                    litval.addToHeap(program.heap)
             }
         }
         return litval

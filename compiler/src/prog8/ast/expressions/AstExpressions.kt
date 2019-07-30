@@ -600,13 +600,15 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                 }
                 heapId = heap.addIntegerArray(type, intArrayWithAddressOfs.toTypedArray())
             } else {
-                val valuesInArray = array.map { (it as NumericLiteralValue).number }
-                heapId = if(type== DataType.ARRAY_F) {
-                    val doubleArray = valuesInArray.map { it.toDouble() }.toDoubleArray()
-                    heap.addDoublesArray(doubleArray)
-                } else {
-                    val integerArray = valuesInArray.map { it.toInt() }
-                    heap.addIntegerArray(type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                val valuesInArray = array.map { (it as? NumericLiteralValue)?.number }
+                if(null !in valuesInArray) {
+                    heapId = if (type == DataType.ARRAY_F) {
+                        val doubleArray = valuesInArray.map { it!!.toDouble() }.toDoubleArray()
+                        heap.addDoublesArray(doubleArray)
+                    } else {
+                        val integerArray = valuesInArray.map { it!!.toInt() }
+                        heap.addIntegerArray(type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                    }
                 }
             }
         }
