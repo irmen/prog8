@@ -4,13 +4,15 @@
 
 main {
 
+    ubyte abc
+
+
     sub start() {
 
-            byte[4] barray=2
-            uword[4] uwarray=50000
-            word[4] warray=-500
-            float[4] rotatedx=0.0
+        A=abc
 
+        if A>0
+            Y=abc       ; @todo gets prefixed with anon1_  but should not be because is found in other scope...
 
     }
 }

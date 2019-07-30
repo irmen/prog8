@@ -1499,27 +1499,8 @@ internal class AsmGen2(val program: Program,
                 }
             }
             target.memoryAddress!=null -> {
-                val addressExpr = target.memoryAddress.addressExpression
-                when (addressExpr) {
-                    is NumericLiteralValue -> out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  ${addressExpr.number.toHex()}")
-                    is IdentifierReference -> {
-                        val name = asmIdentifierName(addressExpr)
-                        out("  inx |  lda  $ESTACK_LO_HEX,x  |  sta  $name")
-                    }
-                    else -> {
-                        translateExpression(addressExpr)
-                        out("""
-     inx
-     lda  $ESTACK_LO_HEX,x
-     ldy  $ESTACK_LO_HEX,x
-     sta  (+) +1
-     sty  (+) +2
-     inx
-     lda  $ESTACK_LO_HEX,x
-+    sta  ${65535.toHex()}      ; modified              
-                            """)
-                    }
-                }
+                out("  inx  | ldy  $ESTACK_LO_HEX,x")
+                storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
             }
             target.arrayindexed!=null -> {
                 TODO("put result in arrayindexed $target")
@@ -1698,32 +1679,7 @@ internal class AsmGen2(val program: Program,
                 }
             }
             target.memoryAddress!=null -> {
-                val addressExpr = target.memoryAddress.addressExpression
-                val addressLv = addressExpr as? NumericLiteralValue
-                val registerName = register.name.toLowerCase()
-                when {
-                    addressLv != null -> out("  st$registerName  ${addressLv.number.toHex()}")
-                    addressExpr is IdentifierReference -> {
-                        val targetName = asmIdentifierName(addressExpr)
-                        out("  st$registerName  $targetName")
-                    }
-                    else -> {
-                        translateExpression(addressExpr)
-                        when (register) {
-                            Register.A -> out("  tay")
-                            Register.X -> throw AssemblyError("can't use X register here")
-                            Register.Y -> {}
-                        }
-                        out("""
-     inx
-     lda  $ESTACK_LO_HEX,x
-     sta  (+) +1
-     lda  $ESTACK_HI_HEX,x
-     sta  (+) +2
-+    sty  ${65535.toHex()}      ; modified              
-                            """)
-                    }
-                }
+                storeRegisterInMemoryAddress(register, target.memoryAddress)
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -1790,6 +1746,37 @@ internal class AsmGen2(val program: Program,
         }
     }
 
+    private fun storeRegisterInMemoryAddress(register: Register, memoryAddress: DirectMemoryWrite) {
+        val addressExpr = memoryAddress.addressExpression
+        val addressLv = addressExpr as? NumericLiteralValue
+        val registerName = register.name.toLowerCase()
+        when {
+            addressLv != null -> out("  st$registerName  ${addressLv.number.toHex()}")
+            addressExpr is IdentifierReference -> {
+                val targetName = asmIdentifierName(addressExpr)
+                out("  st$registerName  $targetName")
+            }
+            else -> {
+                saveRegister(register)
+                translateExpression(addressExpr)
+                restoreRegister(register)
+                when (register) {
+                    Register.A -> out("  tay")
+                    Register.X -> throw AssemblyError("can't use X register here")
+                    Register.Y -> {}
+                }
+                out("""
+     inx
+     lda  $ESTACK_LO_HEX,x
+     sta  (+) +1
+     lda  $ESTACK_HI_HEX,x
+     sta  (+) +2
++    sty  ${65535.toHex()}      ; modified              
+                            """)
+            }
+        }
+    }
+
     private fun assignFromWordConstant(target: AssignTarget, word: Int) {
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
@@ -1836,7 +1823,8 @@ internal class AsmGen2(val program: Program,
                 out(" lda  #${byte.toHex()} |  sta  $targetName ")
             }
             target.memoryAddress!=null -> {
-                TODO("assign byte $byte to memory ${target.memoryAddress}")
+                out("  ldy  #${byte.toHex()}")
+                storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -1913,7 +1901,8 @@ internal class AsmGen2(val program: Program,
                         """)
                 }
                 target.memoryAddress!=null -> {
-                    TODO("assign memory byte at $address to memory ${target.memoryAddress}")
+                    out("  ldy  ${address.toHex()}")
+                    storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
                 }
                 targetArrayIdx!=null -> {
                     val index = targetArrayIdx.arrayspec.index
@@ -1946,7 +1935,8 @@ internal class AsmGen2(val program: Program,
                     """)
                 }
                 target.memoryAddress!=null -> {
-                    TODO("assign memory byte $sourceName to memoyr ${target.memoryAddress}")
+                    out("  ldy  $sourceName")
+                    storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
                 }
                 targetArrayIdx!=null -> {
                     val index = targetArrayIdx.arrayspec.index
