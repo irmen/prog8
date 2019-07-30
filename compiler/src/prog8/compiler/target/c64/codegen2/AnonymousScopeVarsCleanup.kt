@@ -57,8 +57,8 @@ class AnonymousScopeVarsCleanup(val program: Program): IAstModifyingVisitor {
 
         val scope = ident.definingScope() as? AnonymousScope ?: return ident
         val vardecl = ident.targetVarDecl(program.namespace)
-        return if(vardecl!=null) {
-            // prefix the variable name reference
+        return if(vardecl!=null && vardecl.definingScope() == ident.definingScope()) {
+            // prefix the variable name reference that is defined inside the anon scope
             ident.withPrefixedName(nameprefix(scope))
         } else {
             ident

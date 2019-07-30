@@ -840,7 +840,10 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: RepeatLoop) {
-        TODO("repeat $stmt")
+        // TODO("repeat $stmt")
+        out(";------ TODO REPEAT")
+        translate(stmt.body)
+        out(";------ TODO REPEAT  END")
     }
 
     private fun translate(stmt: WhenStatement) {

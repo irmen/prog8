@@ -10,9 +10,29 @@ main {
     sub start() {
 
         A=abc
+        ubyte zzz
 
-        if A>0
-            Y=abc       ; @todo gets prefixed with anon1_  but should not be because is found in other scope...
+        repeat {
+            uword wvar
+            Y=abc
+            Y=zzz
+            wvar=99
+        } until 99
+
+        repeat {
+            uword wvar
+            Y=abc
+            Y=zzz
+            wvar=99
+        } until 99
+
+        if A>0 {
+            uword wvar
+            Y=abc
+            Y=zzz
+            wvar=99
+        }
+
 
     }
 }
