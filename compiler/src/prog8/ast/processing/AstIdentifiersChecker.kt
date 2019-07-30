@@ -236,6 +236,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     override fun visit(refLiteral: ReferenceLiteralValue): Expression {
         val litval = super.visit(refLiteral)
         if(litval is ReferenceLiteralValue) {
+            val vardecl = litval.parent as? VarDecl
             if (litval.isString) {
                 // intern the string; move it into the heap
                 if (litval.str!!.length !in 1..255)
@@ -243,8 +244,11 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                 else {
                     litval.addToHeap(program.heap)
                 }
+                return if(vardecl!=null)
+                    litval
+                else
+                    makeIdentifierFromRefLv(litval)  // replace the literal string by a identifier reference.
             } else if (litval.isArray) {
-                val vardecl = litval.parent as? VarDecl
                 if (vardecl!=null) {
                     return fixupArrayDatatype(litval, vardecl, program.heap)
                 } else {
@@ -253,7 +257,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                     val datatype = determineArrayDt(litval.array!!) ?: return litval
                     val litval2 = litval.cast(datatype)!!
                     litval2.parent = litval.parent
-                    // finally, replace the literal by a identifier reference.
+                    // finally, replace the literal array by a identifier reference.
                     return makeIdentifierFromRefLv(litval2)
                 }
             }
