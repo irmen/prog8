@@ -150,14 +150,14 @@ internal class AstChecker(private val program: Program,
                                 checkResult.add(ExpressionError("word loop variable can only loop over bytes or words", forLoop.position))
                         }
                         DataType.FLOAT -> {
-                            if(iterableDt!= DataType.FLOAT && iterableDt != DataType.ARRAY_F)
-                                checkResult.add(ExpressionError("float loop variable can only loop over floats", forLoop.position))
+                            checkResult.add(ExpressionError("for loop only supports integers", forLoop.position))
                         }
                         else -> checkResult.add(ExpressionError("loop variable must be numeric type", forLoop.position))
                     }
                 }
             }
         }
+
         super.visit(forLoop)
     }
 
@@ -772,8 +772,11 @@ internal class AstChecker(private val program: Program,
         super.visit(range)
         val from = range.from.constValue(program)
         val to = range.to.constValue(program)
-        val stepLv = range.step.constValue(program) ?: NumericLiteralValue(DataType.UBYTE, 1, range.position)
-        if (stepLv.type !in IntegerDatatypes || stepLv.number.toInt() == 0) {
+        val stepLv = range.step.constValue(program)
+        if(stepLv==null) {
+            err("range step must be a constant integer")
+            return
+        } else if (stepLv.type !in IntegerDatatypes || stepLv.number.toInt() == 0) {
             err("range step must be an integer != 0")
             return
         }
