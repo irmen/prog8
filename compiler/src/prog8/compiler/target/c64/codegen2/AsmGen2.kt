@@ -339,9 +339,9 @@ internal class AsmGen2(val program: Program,
                 .filter {it.datatype in StringDatatypes }
                 .map { it to encodeStr((it.value as ReferenceLiteralValue).str!!, it.datatype) }
                 .groupBy({it.second}, {it.first})
-        for((encoded, vars) in encodedstringVars) {
-            vars.dropLast(1).forEach { out(it.name) }
-            val lastvar = vars.last()
+        for((encoded, variables) in encodedstringVars) {
+            variables.dropLast(1).forEach { out(it.name) }
+            val lastvar = variables.last()
             outputStringvar(lastvar, encoded)
         }
 
@@ -953,35 +953,178 @@ internal class AsmGen2(val program: Program,
 
     private fun translate(stmt: ForLoop) {
         val iterableDt = stmt.iterable.inferType(program)
+        val loopLabel = makeLabel("for_loop")
+        val endLabel = makeLabel("for_end")
         when(stmt.iterable) {
             is RangeExpr -> {
+                val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()
+                if(range==null)
+                    TODO("non-const range loop")
+                if(range.isEmpty())
+                    throw AssemblyError("empty range")
                 when(iterableDt) {
                     in ByteDatatypes -> {
-                        println("forloop over byte range $stmt") // TODO
+                        if(stmt.loopRegister!=null) {
+                            // loop register
+                            if(stmt.loopRegister!=Register.A)
+                                throw AssemblyError("can only use A")
+                            when {
+                                range.step==1 -> {
+                                    val counterLabel = makeLabel("for_counter")
+                                    out("""
+                lda  #${range.first}
+                sta  $loopLabel+1
+                lda  #${range.last-range.first+1 and 255}
+                sta  $counterLabel
+$loopLabel      lda  #0                 ; modified""")
+                translate(stmt.body)
+                out("""
+                dec  $counterLabel
+                beq  $endLabel
+                inc  $loopLabel+1
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                                }
+                                range.step==-1 -> {
+                                    val counterLabel = makeLabel("for_counter")
+                                    out("""
+                lda  #${range.first}
+                sta  $loopLabel+1
+                lda  #${range.first-range.last+1 and 255}
+                sta  $counterLabel
+$loopLabel      lda  #0                 ; modified """)
+                                    translate(stmt.body)
+                                    out("""
+                dec  $counterLabel
+                beq  $endLabel
+                dec  $loopLabel+1
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                                }
+                                range.step>0 -> {
+                                    val counterLabel = makeLabel("for_counter")
+                                    out("""
+                lda  #${(range.last-range.first) / range.step + 1}
+                sta  $counterLabel
+                lda  #${range.first}
+$loopLabel      pha""")
+                                    translate(stmt.body)
+                                    out("""
+                pla
+                dec  $counterLabel
+                beq  $endLabel
+                clc
+                adc  #${range.step}
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                                }
+                                else -> {
+                                    val counterLabel = makeLabel("for_counter")
+                                    out("""
+                lda  #${(range.first-range.last) / range.step.absoluteValue + 1}
+                sta  $counterLabel
+                lda  #${range.first}
+$loopLabel      pha""")
+                                    translate(stmt.body)
+                                    out("""
+                pla
+                dec  $counterLabel
+                beq  $endLabel
+                sec
+                sbc  #${range.step.absoluteValue}
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                                }
+                            }
+                        } else {
+                            TODO("loop over byte range via loopvar $stmt")
+                        }
                     }
                     in WordDatatypes -> {
-                        println("forloop over word range $stmt") // TODO
+                        TODO("forloop over word range $stmt") // TODO
                     }
                     else -> throw AssemblyError("range expression can only be byte or word")
                 }
             }
             is IdentifierReference -> {
-                val decl = (stmt.iterable as IdentifierReference).targetVarDecl(program.namespace)!!
+                val ident = (stmt.iterable as IdentifierReference)
+                val iterableName = asmIdentifierName(ident)
+                val decl = ident.targetVarDecl(program.namespace)!!
                 when(iterableDt) {
                     DataType.STR, DataType.STR_S -> {
-                        println("forloop over string $stmt") // TODO (ends at 0 byte)
+                        if(stmt.loopRegister!=null) {
+                            // loop register
+                            if(stmt.loopRegister!=Register.A)
+                                throw AssemblyError("can only use A")
+                            out("""
+                lda  #<$iterableName
+                ldy  #>$iterableName
+                sta  $loopLabel+1
+                sty  $loopLabel+2
+$loopLabel      lda  ${65535.toHex()}       ; modified
+                beq  $endLabel""")
+                            translate(stmt.body)
+                            out("""
+                inc  $loopLabel+1
+                bne  $loopLabel
+                inc  $loopLabel+2
+                bne  $loopLabel
+$endLabel""")
+                        } else {
+                            TODO("loop over string via loopvar $stmt")
+                        }
                     }
                     DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                        val size = decl.arraysize!!.size()
-                        println("forloop over byte array of len $size  $stmt") // TODO  (ends at length of array)
+                        val length = decl.arraysize!!.size()
+                        if(stmt.loopRegister!=null) {
+                            // loop register
+                            if(stmt.loopRegister!=Register.A)
+                                throw AssemblyError("can only use A")
+                            val counterLabel = makeLabel("for_counter")
+                            val modifiedLabel = makeLabel("for_modified")
+                            out("""
+                lda  #<$iterableName
+                ldy  #>$iterableName
+                sta  $modifiedLabel+1
+                sty  $modifiedLabel+2
+                ldy  #0
+$loopLabel      sty  $counterLabel
+                cpy  #$length
+                beq  $endLabel
+$modifiedLabel  lda  ${65535.toHex()},y       ; modified
+                """)
+                            translate(stmt.body)
+                            out("""
+                ldy  $counterLabel
+                iny
+                jmp  $loopLabel
+$counterLabel   .byte  0
+$endLabel""")
+                        } else {
+                            TODO("loop variable over bytearray of len $length")
+                        }
                     }
                     DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                        val size = decl.arraysize!!.size()
-                        println("forloop over word array len $size  $stmt")    // TODO
+                        val length = decl.arraysize!!.size()
+                        println("forloop over word array len $length  $stmt")    // TODO
+                        if(stmt.loopRegister!=null) {
+                            TODO("loop register over wordarray of len $length")
+                        } else {
+                            TODO("loop variable over wordarray of len $length")
+                        }
                     }
                     DataType.ARRAY_F -> {
-                        val size = decl.arraysize!!.size()
-                        println("forloop over float array len $size  $stmt")   // TODO
+                        val length = decl.arraysize!!.size()
+                        println("forloop over float array len $length  $stmt")   // TODO
+                        if(stmt.loopRegister!=null) {
+                            throw AssemblyError("can't use register to loop over floats")
+                        } else {
+                            TODO("loop variable over floatarray of len $length")
+                        }
                     }
                     else -> throw AssemblyError("can't iterate over $iterableDt")
                 }

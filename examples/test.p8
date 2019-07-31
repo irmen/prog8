@@ -19,12 +19,30 @@ main {
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
-;
-;        for A in 10 to 20 {
-;            c64scr.print_ub(A)
-;            c64.CHROUT(',')
-;        }
-;        c64.CHROUT('\n')
+
+        for A in 10 to 20 {
+            c64scr.print_ub(A)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for A in 20 to 10 step -1 {
+            c64scr.print_ub(A)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for A in 10 to 21 step 3 {
+            c64scr.print_ub(A)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for A in 24 to 10 step -3 {
+            c64scr.print_ub(A)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
 
 ;        for var2 in 10 to 20 {
 ;            c64scr.print_ub(var2)

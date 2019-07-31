@@ -119,10 +119,11 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
             if (forLoop.loopRegister != null) {
-                printWarning("using a register as loop variable is risky (it could get clobbered)", forLoop.position)
                 // loop register
                 if (iterableDt != DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
+                if(forLoop.loopRegister!=Register.A)
+                    checkResult.add(ExpressionError("it's only possible to use A as a loop register", forLoop.position))
             } else {
                 // loop variable
                 val loopvar = forLoop.loopVar!!.targetVarDecl(program.namespace)
