@@ -836,14 +836,44 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: WhileLoop) {
-        TODO("while $stmt")
+        val whileLabel = makeLabel("while")
+        val endLabel = makeLabel("whileend")
+        out(whileLabel)
+        // TODO optimize for the simple cases, can we avoid stack use?
+        translateExpression(stmt.condition)
+        if(stmt.condition.inferType(program) in ByteDatatypes) {
+            out("  inx |  lda  $ESTACK_LO_HEX,x  |  beq  $endLabel")
+        } else {
+            out("""
+                inx
+                lda  $ESTACK_LO_HEX,x
+                bne  +
+                lda  $ESTACK_HI_HEX,x
+                beq  $endLabel
++  """)
+        }
+        translate(stmt.body)
+        out("  jmp  $whileLabel")
+        out(endLabel)
     }
 
     private fun translate(stmt: RepeatLoop) {
-        // TODO("repeat $stmt")
-        out(";------ TODO REPEAT")
+        val repeatLabel = makeLabel("repeat")
+        out(repeatLabel)
+        // TODO optimize this for the simple cases, can we avoid stack use?
         translate(stmt.body)
-        out(";------ TODO REPEAT  END")
+        translateExpression(stmt.untilCondition)
+        if(stmt.untilCondition.inferType(program) in ByteDatatypes) {
+            out("  inx |  lda  $ESTACK_LO_HEX,x  |  beq  $repeatLabel")
+        } else {
+            out("""
+                inx
+                lda  $ESTACK_LO_HEX,x
+                bne  +
+                lda  $ESTACK_HI_HEX,x
+                beq  $repeatLabel
++ """)
+        }
     }
 
     private fun translate(stmt: WhenStatement) {
