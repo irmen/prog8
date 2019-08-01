@@ -1775,8 +1775,20 @@ $endLabel""")
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 out("  jsr prog8_lib.remainder_ub")
             }
-            "+" -> out("  jsr  prog8_lib.add_w")
-            "-" -> out("  jsr  prog8_lib.sub_w")
+            "+" -> out("""
+                lda  $ESTACK_LO_PLUS2_HEX,x
+                clc
+                adc  $ESTACK_LO_PLUS1_HEX,x
+                inx
+                sta  $ESTACK_LO_PLUS1_HEX,x
+                """)
+            "-" -> out("""
+                lda  $ESTACK_LO_PLUS2_HEX,x
+                sec
+                sbc  $ESTACK_LO_PLUS1_HEX,x
+                inx
+                sta  $ESTACK_LO_PLUS1_HEX,x
+                """)
             "<<" -> throw AssemblyError("<< should not operate via stack")
             ">>" -> throw AssemblyError(">> should not operate via stack")
             "<" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.less_ub" else "  jsr  prog8_lib.less_b")
@@ -1805,20 +1817,8 @@ $endLabel""")
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 out("  jsr prog8_lib.remainder_uw")
             }
-            "+" -> out("""
-                lda  $ESTACK_LO_PLUS2_HEX,x
-                clc
-                adc  $ESTACK_LO_PLUS1_HEX,x
-                inx
-                sta  $ESTACK_LO_PLUS1_HEX,x
-                """)
-            "-" -> out("""
-                lda  $ESTACK_LO_PLUS2_HEX,x
-                sec
-                sbc  $ESTACK_LO_PLUS1_HEX,x
-                inx
-                sta  $ESTACK_LO_PLUS1_HEX,x
-                """)
+            "+" -> out("  jsr  prog8_lib.add_w")
+            "-" -> out("  jsr  prog8_lib.sub_w")
             "<<" -> throw AssemblyError("<< should not operate via stack")
             ">>" -> throw AssemblyError(">> should not operate via stack")
             "<" -> out(if(types==DataType.UWORD) "  jsr  prog8_lib.less_uw" else "  jsr  prog8_lib.less_w")
