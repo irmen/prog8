@@ -120,7 +120,7 @@ internal class AstChecker(private val program: Program,
         } else {
             if (forLoop.loopRegister != null) {
                 // loop register
-                if (iterableDt != DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
+                if (iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_B && iterableDt !in StringDatatypes)
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
                 if(forLoop.loopRegister!=Register.A)
                     checkResult.add(ExpressionError("it's only possible to use A as a loop register", forLoop.position))
@@ -749,6 +749,12 @@ internal class AstChecker(private val program: Program,
                 // only integer numeric operands accepted
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     checkResult.add(ExpressionError("bitwise operator can only be used on integer operands", expr.right.position))
+            }
+            "<<", ">>" -> {
+                // for now, bit-shifts can only shift by a constant number
+                val constRight = expr.right.constValue(program)
+                if(constRight==null)
+                    checkResult.add(ExpressionError("bit-shift can only be done by a constant number (for now)", expr.right.position))
             }
         }
 

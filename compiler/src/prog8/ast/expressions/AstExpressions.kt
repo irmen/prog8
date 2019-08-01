@@ -637,13 +637,13 @@ class RangeExpr(var from: Expression,
         val toDt=to.inferType(program)
         return when {
             fromDt==null || toDt==null -> null
-            fromDt== DataType.UBYTE && toDt== DataType.UBYTE -> DataType.UBYTE
-            fromDt== DataType.UWORD && toDt== DataType.UWORD -> DataType.UWORD
+            fromDt== DataType.UBYTE && toDt== DataType.UBYTE -> DataType.ARRAY_UB
+            fromDt== DataType.UWORD && toDt== DataType.UWORD -> DataType.ARRAY_UW
             fromDt== DataType.STR && toDt== DataType.STR -> DataType.STR
             fromDt== DataType.STR_S && toDt== DataType.STR_S -> DataType.STR_S
-            fromDt== DataType.WORD || toDt== DataType.WORD -> DataType.WORD
-            fromDt== DataType.BYTE || toDt== DataType.BYTE -> DataType.BYTE
-            else -> DataType.UBYTE
+            fromDt== DataType.WORD || toDt== DataType.WORD -> DataType.ARRAY_W
+            fromDt== DataType.BYTE || toDt== DataType.BYTE -> DataType.ARRAY_B
+            else -> DataType.ARRAY_UB
         }
     }
     override fun toString(): String {

@@ -599,10 +599,13 @@ internal class AsmGen2(val program: Program,
                 } else {
                     translateSubroutineCall(stmt)
                     // discard any results from the stack:
-                    val returns = stmt.target.targetSubroutine(program.namespace)!!.returntypes
-                    for(t in returns) {
-                        if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
-                        else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
+                    val sub = stmt.target.targetSubroutine(program.namespace)!!
+                    val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+                    for((t, reg) in returns) {
+                        if(reg.stack) {
+                            if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
+                            else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
+                        }
                     }
                 }
             }
@@ -1032,7 +1035,7 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                val length = decl.arraysize!!.size()
+                val length = decl.arraysize!!.size()!!
                 if(stmt.loopRegister!=null && stmt.loopRegister!=Register.A)
                     throw AssemblyError("can only use A")
                 val counterLabel = makeLabel("for_counter")
@@ -1044,8 +1047,6 @@ $endLabel""")
                     sty  $modifiedLabel+2
                     ldy  #0
 $loopLabel          sty  $counterLabel
-                    cpy  #$length
-                    beq  $endLabel
 $modifiedLabel      lda  ${65535.toHex()},y       ; modified""")
                 if(stmt.loopVar!=null)
                     out("  sta  ${asmIdentifierName(stmt.loopVar!!)}")
@@ -1053,6 +1054,8 @@ $modifiedLabel      lda  ${65535.toHex()},y       ; modified""")
                 out("""
                     ldy  $counterLabel
                     iny
+                    cpy  #${length and 255}
+                    beq  $endLabel
                     jmp  $loopLabel
 $counterLabel       .byte  0
 $endLabel""")
@@ -1076,8 +1079,6 @@ $endLabel""")
                     sty  $modifiedLabel2+2
                     ldy  #0
 $loopLabel          sty  $counterLabel
-                    cpy  #$length
-                    beq  $endLabel
 $modifiedLabel      lda  ${65535.toHex()},y       ; modified
                     sta  $loopvarName
 $modifiedLabel2     lda  ${65535.toHex()},y       ; modified
@@ -1087,6 +1088,8 @@ $modifiedLabel2     lda  ${65535.toHex()},y       ; modified
                     ldy  $counterLabel
                     iny
                     iny
+                    cpy  #${length and 255}
+                    beq  $endLabel
                     jmp  $loopLabel
 $counterLabel       .byte  0
 $endLabel""")
@@ -1102,7 +1105,7 @@ $endLabel""")
         val loopLabel = makeLabel("for_loop")
         val endLabel = makeLabel("for_end")
         when(iterableDt) {
-            in ByteDatatypes -> {
+            DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 if(stmt.loopRegister!=null) {
 
                     // loop register over range
@@ -1269,7 +1272,7 @@ $endLabel""")
                     }
                 }
             }
-            in WordDatatypes -> {
+            DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 // loop over word range via loopvar
                 val counterLabel = makeLabel("for_counter")
                 val varname = asmIdentifierName(stmt.loopVar!!)
@@ -1745,17 +1748,42 @@ $endLabel""")
     }
 
     private fun translateExpression(expr: BinaryExpression) {
-        translateExpression(expr.left)
-        translateExpression(expr.right)
         val leftDt = expr.left.inferType(program)!!
         val rightDt = expr.right.inferType(program)!!
-        if(leftDt!=rightDt)
-            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")     // is this strictly required always?
-        when (leftDt) {
-            in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
-            in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
-            DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
-            else -> throw AssemblyError("non-numerical datatype")
+        when(expr.operator) {
+            ">>" -> {
+                // bit-shifts are always by a constant number (for now)
+                translateExpression(expr.left)
+                val amount = expr.right.constValue(program)!!.number.toInt()
+                when(leftDt) {
+                    DataType.UBYTE -> repeat(amount) { out("  lsr  $ESTACK_LO_PLUS1_HEX,x") }
+                    DataType.BYTE -> repeat(amount) { out("  lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                    DataType.UWORD -> repeat(amount) { out("  lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                    DataType.WORD -> repeat(amount) { out( "  lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "<<" -> {
+                // bit-shifts are always by a constant number (for now)
+                translateExpression(expr.left)
+                val amount = expr.right.constValue(program)!!.number.toInt()
+                if(leftDt in ByteDatatypes)
+                    repeat(amount) { out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
+                else
+                    repeat(amount) { out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+            }
+            else -> {
+                translateExpression(expr.left)
+                translateExpression(expr.right)
+                if(leftDt!=rightDt)
+                    throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")     // is this strictly required always?
+                when (leftDt) {
+                    in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
+                    in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
+                    DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
+                    else -> throw AssemblyError("non-numerical datatype")
+                }
+            }
         }
     }
 
@@ -1819,8 +1847,7 @@ $endLabel""")
                 inx
                 sta  $ESTACK_LO_PLUS1_HEX,x
                 """)
-            "<<" -> throw AssemblyError("<< should not operate via stack")
-            ">>" -> throw AssemblyError(">> should not operate via stack")
+            "<<", ">>" -> throw AssemblyError("bit-shifts not via stack")
             "<" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.less_ub" else "  jsr  prog8_lib.less_b")
             ">" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.greater_ub" else "  jsr  prog8_lib.greater_b")
             "<=" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.lesseq_ub" else "  jsr  prog8_lib.lesseq_b")
