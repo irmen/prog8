@@ -56,15 +56,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 translateFunctionArguments(fcall.arglist)
                 asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
             }
-            "memset" -> {
+            else -> {
                 translateFunctionArguments(fcall.arglist)
-                asmgen.out("  jsr  prog8lib.func_memset")
+                asmgen.out("  jsr  prog8_lib.func_$functionName")
             }
-            "memsetw" -> {
-                translateFunctionArguments(fcall.arglist)
-                asmgen.out("  jsr  prog8lib.func_memsetw")
-            }
-            else -> TODO("builtin function $functionName")
         }
     }
 
