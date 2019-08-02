@@ -1,36 +1,47 @@
+%import c64lib
+%import c64utils
+%import c64flt
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        c64.CHROUT('\n')
-        %asm {{
-            stx $0410
-        }}
-        c64.CHRIN()
-        %asm {{
-            stx $0411
-        }}
-        print_notes(80,35)
-        %asm {{
-            stx $0412
-        }}
-        return
-    }
+;        float fl = 123.4567
+;        c64flt.print_f(round(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(round(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(round(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(ceil(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(ceil(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(ceil(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(floor(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(floor(fl))
+;        c64.CHROUT('\n')
+;        c64flt.print_f(floor(fl))
+;        c64.CHROUT('\n')
+;        @($040a)=X
+;        return
 
-    sub print_notes(ubyte n1, ubyte n2) {
-        c64scr.print_ub(n1/2)
+        while true {
+        float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60
+        float hours = floor(clock_seconds / 3600)
+        clock_seconds -= hours*3600
+        float minutes = floor(clock_seconds / 60)
+        clock_seconds = floor(clock_seconds - minutes * 60.0)
+
+        c64scr.print("system time in ti$ is ")
+        c64flt.print_f(hours)
+        c64.CHROUT(':')
+        c64flt.print_f(minutes)
+        c64.CHROUT(':')
+        c64flt.print_f(clock_seconds)
         c64.CHROUT('\n')
-        c64scr.print_ub(n1/3)
-        c64.CHROUT('\n')
-        c64scr.print_ub(n1/4)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
-        c64scr.print_ub(n2/2)
-        c64.CHROUT('\n')
-        c64scr.print_ub(n2/3)
-        c64.CHROUT('\n')
-        c64scr.print_ub(n2/4)
-        c64.CHROUT('\n')
+        }
     }
 }

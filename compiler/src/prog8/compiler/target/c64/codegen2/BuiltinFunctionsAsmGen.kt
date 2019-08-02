@@ -2,6 +2,8 @@ package prog8.compiler.target.c64.codegen2
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
+import prog8.ast.base.ByteDatatypes
+import prog8.ast.base.DataType
 import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
@@ -55,6 +57,24 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "mkword" -> {
                 translateFunctionArguments(fcall.arglist)
                 asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
+            }
+            "abs" -> {
+                translateFunctionArguments(fcall.arglist)
+                val dt = fcall.arglist.single().inferType(program)!!
+                when (dt) {
+                    in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
+                    in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
+                    DataType.FLOAT -> asmgen.out("  jsr  c64flt.abs_f")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            // TODO: any(f), all(f), max(f), min(f), sum(f)
+            "sin", "cos", "tan", "atan",
+            "ln", "log2", "sqrt", "rad",
+            "deg", "round", "floor", "ceil",
+            "rdnf" -> {
+                translateFunctionArguments(fcall.arglist)
+                asmgen.out("  jsr  c64flt.func_$functionName")
             }
             else -> {
                 translateFunctionArguments(fcall.arglist)

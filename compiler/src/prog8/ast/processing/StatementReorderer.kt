@@ -187,26 +187,29 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     }
 
     override fun visit(expr: BinaryExpression): Expression {
-        val leftDt = expr.left.inferType(program)
-        val rightDt = expr.right.inferType(program)
+        val expr2 = super.visit(expr)
+        if(expr2 !is BinaryExpression)
+            return expr2
+        val leftDt = expr2.left.inferType(program)
+        val rightDt = expr2.right.inferType(program)
         if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
             // determine common datatype and add typecast as required to make left and right equal types
-            val (commonDt, toFix) = expr.commonDatatype(leftDt, rightDt, expr.left, expr.right)
+            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt, rightDt, expr2.left, expr2.right)
             if(toFix!=null) {
                 when {
-                    toFix===expr.left -> {
-                        expr.left = TypecastExpression(expr.left, commonDt, true, expr.left.position)
-                        expr.left.linkParents(expr)
+                    toFix===expr2.left -> {
+                        expr2.left = TypecastExpression(expr2.left, commonDt, true, expr2.left.position)
+                        expr2.left.linkParents(expr2)
                     }
-                    toFix===expr.right -> {
-                        expr.right = TypecastExpression(expr.right, commonDt, true, expr.right.position)
-                        expr.right.linkParents(expr)
+                    toFix===expr2.right -> {
+                        expr2.right = TypecastExpression(expr2.right, commonDt, true, expr2.right.position)
+                        expr2.right.linkParents(expr2)
                     }
                     else -> throw FatalAstException("confused binary expression side")
                 }
             }
         }
-        return super.visit(expr)
+        return expr2
     }
 
     override fun visit(assignment: Assignment): Statement {

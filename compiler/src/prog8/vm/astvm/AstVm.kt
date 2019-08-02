@@ -675,23 +675,23 @@ class AstVm(val program: Program) {
                 dialog.canvas.printText(args[0].wordval!!.toString(), true)
             }
             "c64scr.print_ubhex" -> {
-                val prefix = if (args[0].asBoolean) "$" else ""
-                val number = args[1].byteval!!
+                val number = args[0].byteval!!
+                val prefix = if (args[1].asBoolean) "$" else ""
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", true)
             }
             "c64scr.print_uwhex" -> {
-                val prefix = if (args[0].asBoolean) "$" else ""
-                val number = args[1].wordval!!
+                val number = args[0].wordval!!
+                val prefix = if (args[1].asBoolean) "$" else ""
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", true)
             }
             "c64scr.print_uwbin" -> {
-                val prefix = if (args[0].asBoolean) "%" else ""
-                val number = args[1].wordval!!
+                val number = args[0].wordval!!
+                val prefix = if (args[1].asBoolean) "%" else ""
                 dialog.canvas.printText("$prefix${number.toString(2).padStart(16, '0')}", true)
             }
             "c64scr.print_ubbin" -> {
-                val prefix = if (args[0].asBoolean) "%" else ""
-                val number = args[1].byteval!!
+                val number = args[0].byteval!!
+                val prefix = if (args[1].asBoolean) "%" else ""
                 dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", true)
             }
             "c64scr.clear_screenchars" -> {

@@ -145,12 +145,11 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 
     return when (function) {
         "abs" -> {
-            when(val dt = args.single().inferType(program)) {
-                in ByteDatatypes -> DataType.UBYTE
-                in WordDatatypes -> DataType.UWORD
-                DataType.FLOAT -> DataType.FLOAT
-                else -> throw FatalAstException("weird datatype passed to abs $dt")
-            }
+            val dt = args.single().inferType(program)
+            if(dt in NumericDatatypes)
+                return dt
+            else
+                throw FatalAstException("weird datatype passed to abs $dt")
         }
         "max", "min" -> {
             when(val dt = datatypeFromIterableArg(args.single())) {

@@ -1823,6 +1823,9 @@ $endLabel""")
         }
     }
 
+    // TODO: use optimized routines such as mul_10
+
+
     private fun translateBinaryOperatorBytes(operator: String, types: DataType) {
         when(operator) {
             "**" -> throw AssemblyError("** operator requires floats")

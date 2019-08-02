@@ -97,14 +97,13 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
         return when (operator) {
-            "+", "-", "*", "**", "%" -> if (leftDt == null || rightDt == null) null else {
+            "+", "-", "*", "**", "%", "/" -> if (leftDt == null || rightDt == null) null else {
                 try {
-                    arithmeticOpDt(leftDt, rightDt)
+                    commonDatatype(leftDt, rightDt, null, null).first
                 } catch (x: FatalAstException) {
                     null
                 }
             }
-            "/" -> if (leftDt == null || rightDt == null) null else divisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
@@ -118,131 +117,60 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     }
 
     companion object {
-        fun divisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
+        fun commonDatatype(leftDt: DataType, rightDt: DataType,
+                           left: Expression?, right: Expression?): Pair<DataType, Expression?> {
+            // byte + byte -> byte
+            // byte + word -> word
+            // word + byte -> word
+            // word + word -> word
+            // a combination with a float will be float (but give a warning about this!)
+
             return when (leftDt) {
-                DataType.UBYTE -> when (rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UBYTE
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.BYTE
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.UBYTE -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.UBYTE, null)
+                        DataType.BYTE -> Pair(DataType.BYTE, left)
+                        DataType.UWORD -> Pair(DataType.UWORD, left)
+                        DataType.WORD -> Pair(DataType.WORD, left)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.BYTE -> when (rightDt) {
-                    in NumericDatatypes -> DataType.BYTE
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.BYTE -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.BYTE, right)
+                        DataType.BYTE -> Pair(DataType.BYTE, null)
+                        DataType.UWORD -> Pair(DataType.WORD, left)
+                        DataType.WORD -> Pair(DataType.WORD, left)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.UWORD -> when (rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.UWORD -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.UWORD, right)
+                        DataType.BYTE -> Pair(DataType.WORD, right)
+                        DataType.UWORD -> Pair(DataType.UWORD, null)
+                        DataType.WORD -> Pair(DataType.WORD, left)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.WORD -> when (rightDt) {
-                    in NumericDatatypes -> DataType.WORD
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.WORD -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.WORD, right)
+                        DataType.BYTE -> Pair(DataType.WORD, right)
+                        DataType.UWORD -> Pair(DataType.WORD, right)
+                        DataType.WORD -> Pair(DataType.WORD, null)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.FLOAT -> when (rightDt) {
-                    in NumericDatatypes -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.FLOAT -> {
+                    Pair(DataType.FLOAT, right)
                 }
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                else -> Pair(leftDt, null)      // non-numeric datatype
             }
-        }
-
-        fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
-            return when (leftDt) {
-                DataType.UBYTE -> when (rightDt) {
-                    DataType.UBYTE -> DataType.UBYTE
-                    DataType.BYTE -> DataType.BYTE
-                    DataType.UWORD -> DataType.UWORD
-                    DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.BYTE -> when (rightDt) {
-                    in ByteDatatypes -> DataType.BYTE
-                    in WordDatatypes -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.UWORD -> when (rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.WORD -> when (rightDt) {
-                    in IntegerDatatypes -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.FLOAT -> when (rightDt) {
-                    in NumericDatatypes -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-        }
-    }
-
-    fun commonDatatype(leftDt: DataType, rightDt: DataType,
-                       left: Expression, right: Expression): Pair<DataType, Expression?> {
-        // byte + byte -> byte
-        // byte + word -> word
-        // word + byte -> word
-        // word + word -> word
-        // a combination with a float will be float (but give a warning about this!)
-
-        if(this.operator=="/") {
-            // division is a bit weird, don't cast the operands
-            val commondt = divisionOpDt(leftDt, rightDt)
-            return Pair(commondt, null)
-        }
-
-        return when (leftDt) {
-            DataType.UBYTE -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.UBYTE, null)
-                    DataType.BYTE -> Pair(DataType.BYTE, left)
-                    DataType.UWORD -> Pair(DataType.UWORD, left)
-                    DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.BYTE -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.BYTE, right)
-                    DataType.BYTE -> Pair(DataType.BYTE, null)
-                    DataType.UWORD -> Pair(DataType.WORD, left)
-                    DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.UWORD -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.UWORD, right)
-                    DataType.BYTE -> Pair(DataType.UWORD, right)
-                    DataType.UWORD -> Pair(DataType.UWORD, null)
-                    DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.WORD -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.WORD, right)
-                    DataType.BYTE -> Pair(DataType.WORD, right)
-                    DataType.UWORD -> Pair(DataType.WORD, right)
-                    DataType.WORD -> Pair(DataType.WORD, null)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.FLOAT -> {
-                Pair(DataType.FLOAT, right)
-            }
-            else -> Pair(leftDt, null)      // non-numeric datatype
         }
     }
 }

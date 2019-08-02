@@ -762,6 +762,8 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("left operand is not numeric", expr.left.position))
         if(rightDt!in NumericDatatypes)
             checkResult.add(ExpressionError("right operand is not numeric", expr.right.position))
+        if(leftDt!=rightDt)
+            checkResult.add(ExpressionError("left and right operands aren't the same type", expr.left.position))
         super.visit(expr)
     }
 
