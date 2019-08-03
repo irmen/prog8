@@ -2,6 +2,28 @@
 TODO
 ====
 
+
+Fixes
+^^^^^
+variable naming issue::
+
+    main {
+
+        sub start() {
+            for A in 0 to 10 {
+                ubyte note1 = 44
+                Y+=note1
+            }
+            delay(1)
+
+            sub delay(ubyte note1) {        ; TODO: redef of note1 above, conflicts because that one was moved to the zeropage
+                A= note1
+            }
+        }
+    }
+
+
+
 Memory Block Operations integrated in language?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

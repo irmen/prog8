@@ -925,7 +925,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(scope: AnonymousScope) {
-        // note: the variables defined in an anonymous scope are moved to their defining subroutine's scope
+        // note: the variables defined in an anonymous scope have been moved to their defining subroutine's scope
         scope.statements.forEach{ translate(it) }
     }
 

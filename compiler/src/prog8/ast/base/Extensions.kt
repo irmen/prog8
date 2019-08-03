@@ -4,6 +4,7 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.processing.*
 import prog8.compiler.CompilationOptions
+import prog8.compiler.target.c64.codegen2.AnonymousScopeVarsCleanup
 import prog8.optimizer.FlattenAnonymousScopesAndRemoveNops
 
 
@@ -25,6 +26,13 @@ internal fun Program.checkValid(compilerOptions: CompilationOptions) {
     val checker = AstChecker(this, compilerOptions)
     checker.visit(this)
     printErrors(checker.result(), name)
+}
+
+
+internal fun Program.anonscopeVarsCleanup() {
+    val mover = AnonymousScopeVarsCleanup(this)
+    mover.visit(this)
+    printErrors(mover.result(), name)
 }
 
 
