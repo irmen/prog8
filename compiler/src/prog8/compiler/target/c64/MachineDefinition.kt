@@ -86,7 +86,7 @@ object MachineDefinition {
 
                 // add the other free Zp addresses,
                 // these are valid for the C-64 (when no RS232 I/O is performed) but to keep BASIC running fully:
-                free.addAll(listOf(0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0d, 0x0e,
+                free.addAll(listOf(0x04, 0x05, 0x06, 0x0a, 0x0e,
                         0x94, 0x95, 0xa7, 0xa8, 0xa9, 0xaa,
                         0xb5, 0xb6, 0xf7, 0xf8, 0xf9))
             }

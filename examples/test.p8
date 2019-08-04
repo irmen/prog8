@@ -1,32 +1,111 @@
 %import c64utils
 %import c64flt
-%zeropage basicsafe
 %option enable_floats
+%zeropage basicsafe     ; @todo dontuse
 
 main {
 
-    sub start() {
 
-        ubyte x=3
-        ubyte y=2
-        ubyte a=1
-        ubyte s=0
-        float repr=4.4
-        ;memset(c64.Screen, 40, 1)
-        ;memset(c64.Screen+40, 80, 2)
-        A=x
-        A=y
-        Y=a
-        A=s
+    sub start()  {
+
+        ubyte ub=200
+        byte bb=-100
+        uword uw = 2000
+        word ww = -1000
+        float fl = 99.99
+
+        c64scr.print("++\n")
+        ub++
+        bb++
+        uw++
+        ww++
+        fl++
+
+        check_ub(ub, 201)
+        Y=100
+        Y++
+        check_ub(Y, 101)
+        check_fl(fl, 100.99)        ; @todo CLOBBERS OTHER VARS
+        check_b(bb, -99)
+        check_uw(uw, 2001)
+        check_w(ww, -999)
+
+        c64scr.print("--\n")
+        ub--
+        bb--
+        uw--
+        ww--
+        fl--
+        check_ub(ub, 200)
+        Y=100
+        Y--
+        check_ub(Y, 99)
+        check_fl(fl, 99.99)        ; @todo CLOBBERS OTHER VARS
+        check_b(bb, -100)
+        check_uw(uw, 2000)
+        check_w(ww, -1000)
+
+        @($0400+39) = X
+        ;c64.Screen[39] = X      ; @todo compiler error
     }
 
-    sub foo() {
+    sub check_ub(ubyte value, ubyte expected) {
+        if value==expected
+            c64scr.print(" ok  ")
+        else
+            c64scr.print("err! ")
+        c64scr.print(" ubyte ")
+        c64scr.print_ub(value)
+        c64.CHROUT(',')
+        c64scr.print_ub(expected)
+        c64.CHROUT('\n')
+    }
 
-    x:
-    s:
-    y:
-    a:
-        A=3
+    sub check_b(byte value, byte expected) {
+        if value==expected
+            c64scr.print(" ok  ")
+        else
+            c64scr.print("err! ")
+        c64scr.print(" byte ")
+        c64scr.print_b(value)
+        c64.CHROUT(',')
+        c64scr.print_b(expected)
+        c64.CHROUT('\n')
+    }
 
+    sub check_uw(uword value, uword expected) {
+        if value==expected
+            c64scr.print(" ok  ")
+        else
+            c64scr.print("err! ")
+        c64scr.print(" uword ")
+        c64scr.print_uw(value)
+        c64.CHROUT(',')
+        c64scr.print_uw(expected)
+        c64.CHROUT('\n')
+    }
+
+    sub check_w(word value, word expected) {
+        if value==expected
+            c64scr.print(" ok  ")
+        else
+            c64scr.print("err! ")
+        c64scr.print(" word ")
+        c64scr.print_w(value)
+        c64.CHROUT(',')
+        c64scr.print_w(expected)
+        c64.CHROUT('\n')
+    }
+
+    sub check_fl(float value, float expected) {
+        if value==expected
+            c64scr.print(" ok  ")
+        else
+            c64scr.print("err! ")
+        c64scr.print(" float ")
+        c64flt.print_f(value)
+        c64.CHROUT(',')
+        c64flt.print_f(expected)
+        c64.CHROUT('\n')
     }
 }
