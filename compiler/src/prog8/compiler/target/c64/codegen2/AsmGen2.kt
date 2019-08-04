@@ -36,9 +36,14 @@ internal class AsmGen2(val program: Program,
     private val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
     private val breakpointLabels = mutableListOf<String>()
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, options, zeropage, this)
+    private val loopEndLabels = Stack<String>()
+    private val loopContinueLabels = Stack<String>()
 
     internal fun compileToAssembly(optimize: Boolean): AssemblyProgram {
         assemblyLines.clear()
+        loopEndLabels.clear()
+        loopContinueLabels.clear()
+
         println("Generating assembly code... ")
 
         header()
@@ -619,8 +624,8 @@ internal class AsmGen2(val program: Program,
             is BranchStatement -> translate(stmt)
             is IfStatement -> translate(stmt)
             is ForLoop -> translate(stmt)
-            is Continue -> TODO("continue")
-            is Break -> TODO("break")
+            is Continue -> out("  jmp  ${loopContinueLabels.peek()}")
+            is Break -> out("  jmp  ${loopEndLabels.peek()}")
             is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
             is WhenStatement -> translate(stmt)
@@ -844,6 +849,8 @@ internal class AsmGen2(val program: Program,
     private fun translate(stmt: WhileLoop) {
         val whileLabel = makeLabel("while")
         val endLabel = makeLabel("whileend")
+        loopEndLabels.push(endLabel)
+        loopContinueLabels.push(whileLabel)
         out(whileLabel)
         // TODO optimize for the simple cases, can we avoid stack use?
         translateExpression(stmt.condition)
@@ -861,10 +868,15 @@ internal class AsmGen2(val program: Program,
         translate(stmt.body)
         out("  jmp  $whileLabel")
         out(endLabel)
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
     }
 
     private fun translate(stmt: RepeatLoop) {
         val repeatLabel = makeLabel("repeat")
+        val endLabel = makeLabel("repeatend")
+        loopEndLabels.push(endLabel)
+        loopContinueLabels.push(repeatLabel)
         out(repeatLabel)
         // TODO optimize this for the simple cases, can we avoid stack use?
         translate(stmt.body)
@@ -880,6 +892,9 @@ internal class AsmGen2(val program: Program,
                 beq  $repeatLabel
 + """)
         }
+        out(endLabel)
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
     }
 
     private fun translate(stmt: WhenStatement) {
@@ -1014,6 +1029,9 @@ internal class AsmGen2(val program: Program,
     private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
         val loopLabel = makeLabel("for_loop")
         val endLabel = makeLabel("for_end")
+        val continueLabel = makeLabel("for_continue")
+        loopEndLabels.push(endLabel)
+        loopContinueLabels.push(continueLabel)
         val iterableName = asmIdentifierName(ident)
         val decl = ident.targetVarDecl(program.namespace)!!
         when(iterableDt) {
@@ -1031,7 +1049,7 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
                     out("  sta  ${asmIdentifierName(stmt.loopVar!!)}")
                 translate(stmt.body)
                 out("""
-                    inc  $loopLabel+1
+$continueLabel      inc  $loopLabel+1
                     bne  $loopLabel
                     inc  $loopLabel+2
                     bne  $loopLabel
@@ -1055,7 +1073,7 @@ $modifiedLabel      lda  ${65535.toHex()},y       ; modified""")
                     out("  sta  ${asmIdentifierName(stmt.loopVar!!)}")
                 translate(stmt.body)
                 out("""
-                    ldy  $counterLabel
+$continueLabel      ldy  $counterLabel
                     iny
                     cpy  #${length and 255}
                     beq  $endLabel
@@ -1088,7 +1106,7 @@ $modifiedLabel2     lda  ${65535.toHex()},y       ; modified
                     sta  $loopvarName+1""")
                 translate(stmt.body)
                 out("""
-                    ldy  $counterLabel
+$continueLabel      ldy  $counterLabel
                     iny
                     iny
                     cpy  #${length and 255}
@@ -1102,11 +1120,16 @@ $endLabel""")
             }
             else -> throw AssemblyError("can't iterate over $iterableDt")
         }
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
     }
 
     private fun translateForOverConstRange(stmt: ForLoop, iterableDt: DataType, range: IntProgression) {
         val loopLabel = makeLabel("for_loop")
         val endLabel = makeLabel("for_end")
+        val continueLabel = makeLabel("for_continue")
+        loopEndLabels.push(endLabel)
+        loopContinueLabels.push(continueLabel)
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 if(stmt.loopRegister!=null) {
@@ -1127,7 +1150,7 @@ $endLabel""")
 $loopLabel      lda  #0                 ; modified""")
                             translate(stmt.body)
                             out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 inc  $loopLabel+1
                 jmp  $loopLabel
@@ -1145,7 +1168,7 @@ $endLabel""")
 $loopLabel      lda  #0                 ; modified """)
                             translate(stmt.body)
                             out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 dec  $loopLabel+1
                 jmp  $loopLabel
@@ -1162,7 +1185,7 @@ $endLabel""")
 $loopLabel      pha""")
                             translate(stmt.body)
                             out("""
-                pla
+$continueLabel  pla
                 dec  $counterLabel
                 beq  $endLabel
                 clc
@@ -1181,7 +1204,7 @@ $endLabel""")
 $loopLabel      pha""")
                             translate(stmt.body)
                             out("""
-                pla
+$continueLabel  pla
                 dec  $counterLabel
                 beq  $endLabel
                 sec
@@ -1208,7 +1231,7 @@ $endLabel""")
 $loopLabel""")
                             translate(stmt.body)
                             out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 inc  $varname
                 jmp  $loopLabel
@@ -1225,7 +1248,7 @@ $endLabel""")
 $loopLabel""")
                             translate(stmt.body)
                             out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 dec  $varname
                 jmp  $loopLabel
@@ -1242,7 +1265,7 @@ $endLabel""")
 $loopLabel""")
                             translate(stmt.body)
                             out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 lda  $varname
                 clc
@@ -1262,7 +1285,7 @@ $endLabel""")
 $loopLabel""")
                             translate(stmt.body)
                             out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 lda  $varname
                 sec
@@ -1292,7 +1315,7 @@ $endLabel""")
 $loopLabel""")
                         translate(stmt.body)
                         out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 inc  $varname
                 bne  $loopLabel
@@ -1313,7 +1336,7 @@ $endLabel""")
 $loopLabel""")
                         translate(stmt.body)
                         out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 lda  $varname
                 bne  +
@@ -1335,7 +1358,7 @@ $endLabel""")
 $loopLabel""")
                         translate(stmt.body)
                         out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 clc
                 lda  $varname
@@ -1360,7 +1383,7 @@ $endLabel""")
 $loopLabel""")
                         translate(stmt.body)
                         out("""
-                dec  $counterLabel
+$continueLabel  dec  $counterLabel
                 beq  $endLabel
                 sec
                 lda  $varname
@@ -1377,6 +1400,8 @@ $endLabel""")
             }
             else -> throw AssemblyError("range expression can only be byte or word")
         }
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
     }
 
     private fun translate(stmt: PostIncrDecr) {

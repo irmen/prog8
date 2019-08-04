@@ -5,38 +5,39 @@
 
 main {
 
-    ubyte[10] barray
-    uword[10] warray
-    float[10] farray
-    &ubyte memubarray = 1000
-    &uword memuwarray = 1000
-    &float memfltarray = 1000
-
     sub start() {
-        ubyte i
-        uword uw
-        float fl = farray[2]
+        ubyte ub=0
+        while ub<30 {
+            ub++
+            if ub < 5
+                continue
+            c64scr.print_ub(ub)
+            c64.CHROUT(',')
+            if ub >= 10
+                break
+        }
+        c64.CHROUT('\n')
 
-        barray[4] = 4
-        barray[i] = 4
-        barray[i+4] = 4
-        memubarray[4] = 4
-        memubarray[i] = 4
-        memubarray[i+4] = 4
+        ub=0
+        repeat {
+            ub++
+            if ub < 5
+                continue
+            c64scr.print_ub(ub)
+            c64.CHROUT(',')
+            if ub>=10
+                break
+        } until ub>30
+        c64.CHROUT('\n')
 
-
-        warray[4] = 4
-        warray[i] = 4
-        warray[i+4] = 4
-        memuwarray[4] = 4
-        memuwarray[i] = 4
-        memuwarray[i+4] = 4
-
-        farray[4] = 4
-        farray[i] = 4
-        farray[i+4] = 4
-        memfltarray[4] = 4
-        memfltarray[i] = 4
-        memfltarray[i+4] = 4
+        for ub in 1 to 30 {
+            if ub < 5
+                continue
+            c64scr.print_ub(ub)
+            c64.CHROUT(',')
+            if ub >=10
+                break
+        }
+        c64.CHROUT('\n')
     }
 }
