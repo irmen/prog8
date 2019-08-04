@@ -74,6 +74,7 @@ Directives
       As with ``kernalsafe``, it is not possible to cleanly exit the program, other than to reset the machine.
       This option makes programs smaller and faster because even more variables can
       be stored in the ZP (which allows for more efficient assembly code).
+    - style ``dontuse`` -- don't use *any* location in the zeropage.
 
     Also read :ref:`zeropage`.
 

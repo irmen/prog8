@@ -24,7 +24,8 @@ enum class ZeropageType {
     BASICSAFE,
     FLOATSAFE,
     KERNALSAFE,
-    FULL
+    FULL,
+    DONTUSE
 }
 
 data class IntegerOrAddressOf(val integer: Int?, val addressOf: AddressOf?)

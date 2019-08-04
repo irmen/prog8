@@ -1466,26 +1466,78 @@ $endLabel""")
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
-                val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                val elementDt = ArrayElementTypes.getValue(targetArrayIdx.identifier.targetVarDecl(program.namespace)!!.datatype)
+                val what = asmIdentifierName(targetArrayIdx.identifier)
+                val arrayDt = targetArrayIdx.identifier.inferType(program)!!
+                val elementDt = ArrayElementTypes.getValue(arrayDt)
                 when(index) {
                     is NumericLiteralValue -> {
                         val indexValue = index.number.toInt() * elementDt.memorySize()
-                        out(if(incr) "  inc  $targetName+$indexValue" else "  dec  $targetName+$indexValue")
+                        when(elementDt) {
+                            in ByteDatatypes -> out(if (incr) "  inc  $what+$indexValue" else "  dec  $what+$indexValue")
+                            in WordDatatypes -> {
+                                if(incr)
+                                    out(" inc  $what+$indexValue |  bne  + |  inc  $what+$indexValue+1 |+")
+                                else
+                                    out("""
+        lda  $what+$indexValue
+        bne  +
+        dec  $what+$indexValue+1
++       dec  $what+$indexValue 
+""")
+                            }
+                            DataType.FLOAT -> {
+                                out("  lda  #<$what+$indexValue |  ldy  #>$what+$indexValue")
+                                out(if(incr) "  jsr  c64flt.inc_var_f" else "  jsr  c64flt.dec_var_f")
+                            }
+                            else -> throw AssemblyError("need numeric type")
+                        }
                     }
                     is RegisterExpr -> {
-                        TODO("postincrdecr $elementDt array $targetName [ $index ]")
+                        // TODO optimize common cases
+                        translateArrayIndexIntoA(targetArrayIdx)
+                        incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }
                     is IdentifierReference -> {
-                        TODO("postincrdecr $elementDt array $targetName [ $index ]")
+                        // TODO optimize common cases
+                        translateArrayIndexIntoA(targetArrayIdx)
+                        incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }
                     else -> {
-                        TODO("postincrdecr $elementDt array $targetName [ $index ]")
+                        // TODO optimize common cases
+                        translateArrayIndexIntoA(targetArrayIdx)
+                        incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }
                 }
             }
             else -> throw AssemblyError("weird target type ${stmt.target}")
         }
+    }
+
+    private fun incrDecrArrayvalueWithIndexA(incr: Boolean, arrayDt: DataType, arrayVarName: String) {
+        out("  stx  ${C64Zeropage.SCRATCH_REG_X} |  tax")
+        when(arrayDt) {
+            DataType.STR, DataType.STR_S,
+            DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                out(if(incr) "  inc  $arrayVarName,x" else "  dec  $arrayVarName,x")
+            }
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                if(incr)
+                    out(" inc  $arrayVarName,x |  bne  + |  inc  $arrayVarName+1,x |+")
+                else
+                    out("""
+        lda  $arrayVarName,x
+        bne  +
+        dec  $arrayVarName+1,x
++       dec  $arrayVarName 
+""")
+            }
+            DataType.ARRAY_F -> {
+                out("  lda  #<$arrayVarName |  ldy  #>$arrayVarName")
+                out(if(incr) "  jsr  c64flt.inc_indexed_var_f" else "  jsr  c64flt.dec_indexed_var_f")
+            }
+            else -> throw AssemblyError("weird array dt")
+        }
+        out("  ldx  ${C64Zeropage.SCRATCH_REG_X}")
     }
 
     private fun translate(jmp: Jump) {
@@ -1588,7 +1640,7 @@ $endLabel""")
                             throw AssemblyError("weird array type")
                     }
                 } else {
-                    translateCalcArrayIndexIntoA(arrayExpr)
+                    translateArrayIndexIntoA(arrayExpr)
                     readAndPushArrayvalueWithIndexA(arrayDt, arrayExpr.identifier)
                 }
                 assignFromEvalResult(assign.target)
@@ -1617,8 +1669,7 @@ $endLabel""")
         }
     }
 
-    private fun translateCalcArrayIndexIntoA(expr: ArrayIndexedExpression) {
-        val arrayDt = expr.identifier.targetVarDecl(program.namespace)!!.datatype
+    private fun translateArrayIndexIntoA(expr: ArrayIndexedExpression) {
         val index = expr.arrayspec.index
         when (index) {
             is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
@@ -1699,12 +1750,7 @@ $endLabel""")
         when(expression) {
             is PrefixExpression -> translateExpression(expression)
             is BinaryExpression -> translateExpression(expression)
-            is ArrayIndexedExpression -> {
-                // assume *reading* from an array
-                translateCalcArrayIndexIntoA(expression)
-                val arrayDt = expression.identifier.targetVarDecl(program.namespace)!!.datatype
-                readAndPushArrayvalueWithIndexA(arrayDt, expression.identifier)
-            }
+            is ArrayIndexedExpression -> translatePushFromArray(expression as ArrayIndexedExpression)
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
             is DirectMemoryRead -> translateExpression(expression)
@@ -1723,6 +1769,32 @@ $endLabel""")
             is ReferenceLiteralValue -> TODO("string/array/struct assignment?")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
+        }
+    }
+
+    private fun translatePushFromArray(arrayExpr: ArrayIndexedExpression) {
+        // assume *reading* from an array
+        val index = arrayExpr.arrayspec.index
+        val arrayDt = arrayExpr.identifier.targetVarDecl(program.namespace)!!.datatype
+        val arrayVarName = asmIdentifierName(arrayExpr.identifier)
+        if(index is NumericLiteralValue) {
+            val elementDt = ArrayElementTypes.getValue(arrayDt)
+            val indexValue = index.number.toInt() * elementDt.memorySize()
+            when(elementDt) {
+                in ByteDatatypes -> {
+                    out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
+                }
+                in WordDatatypes -> {
+                    out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x |  dex")
+                }
+                DataType.FLOAT -> {
+                    out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
+                }
+                else -> throw AssemblyError("weird type")
+            }
+        } else {
+            translateArrayIndexIntoA(arrayExpr)
+            readAndPushArrayvalueWithIndexA(arrayDt, arrayExpr.identifier)
         }
     }
 
@@ -2398,24 +2470,20 @@ $endLabel""")
                         val indexValue = index.number.toInt() * MachineDefinition.Mflpt5.MemorySize
                         out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.pop_float")
                     } else {
-                        translateCalcArrayIndexIntoA(targetArrayIdx)
+                        translateArrayIndexIntoA(targetArrayIdx)
                         out("  sta  ${C64Zeropage.SCRATCH_REG} |  asl  a |  asl  a  | clc |  adc  ${C64Zeropage.SCRATCH_REG}")
                         out("""
                             tay
                             lda  $constFloat
                             sta  $arrayVarName,y
                             lda  $constFloat+1
-                            iny
-                            sta  $arrayVarName,y
+                            sta  $arrayVarName+1,y
                             lda  $constFloat+2
-                            iny
-                            sta  $arrayVarName,y
+                            sta  $arrayVarName+2,y
                             lda  $constFloat+3
-                            iny
-                            sta  $arrayVarName,y
+                            sta  $arrayVarName+3,y
                             lda  $constFloat+4
-                            iny
-                            sta  $arrayVarName,y
+                            sta  $arrayVarName+4,y
                         """)        // TODO use a subroutine for this
                     }
                 }

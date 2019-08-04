@@ -165,6 +165,8 @@ class TestZeropage {
         }
     }
 
+    // TODO test dontuse option
+
     @Test
     fun testFreeSpaces() {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
