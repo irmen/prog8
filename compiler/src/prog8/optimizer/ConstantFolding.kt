@@ -9,6 +9,7 @@ import prog8.ast.processing.fixupArrayDatatype
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
+import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
 
@@ -200,6 +201,25 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     }
 
     private fun typeCastConstArguments(functionCall: IFunctionCall) {
+        if(functionCall.target.nameInSource.size==1) {
+            val builtinFunction = BuiltinFunctions[functionCall.target.nameInSource.single()]
+            if(builtinFunction!=null) {
+                // match the arguments of a builtin function signature.
+                for(arg in functionCall.arglist.withIndex().zip(builtinFunction.parameters)) {
+                    val possibleDts = arg.second.possibleDatatypes
+                    val argConst = arg.first.value.constValue(program)
+                    if(argConst!=null && argConst.type !in possibleDts) {
+                        val convertedValue = argConst.cast(possibleDts.first())
+                        if(convertedValue!=null) {
+                            functionCall.arglist[arg.first.index] = convertedValue
+                            optimizationsDone++
+                        }
+                    }
+                }
+                return
+            }
+        }
+        // match the arguments of a subroutine.
         val subroutine = functionCall.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
@@ -214,6 +234,8 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     }
                 }
             }
+        } else {
+            throw FatalAstException("can't find function ${functionCall.target}")
         }
     }
 

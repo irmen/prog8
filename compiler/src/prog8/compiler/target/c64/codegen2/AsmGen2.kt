@@ -1994,20 +1994,11 @@ $endLabel""")
                 storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
             }
             target.arrayindexed!=null -> {
-                val targetDt = target.arrayindexed!!.inferType(program)!!
+                val arrayDt = target.arrayindexed!!.identifier.targetVarDecl(program.namespace)!!.datatype
                 val arrayVarName = asmIdentifierName(target.arrayindexed!!.identifier)
-                when(targetDt) {
-                    in ByteDatatypes -> {
-                        TODO("pop byte into array ${target.arrayindexed}")
-                    }
-                    in WordDatatypes -> {
-                        TODO("pop word into array ${target.arrayindexed}")
-                    }
-                    DataType.FLOAT -> {
-                        TODO("pop float into array ${target.arrayindexed}")
-                    }
-                    else -> throw AssemblyError("weird datatype")
-                }
+                translateExpression(target.arrayindexed!!.arrayspec.index)
+                out("  inx |  lda  $ESTACK_LO_HEX,x")
+                popAndWriteArrayvalueWithIndexA(arrayDt, arrayVarName)
             }
             else -> throw AssemblyError("weird assignment target $target")
         }
