@@ -149,7 +149,8 @@ internal class AsmGen2(val program: Program,
 
     private fun block2asm(block: Block) {
         out("\n; ---- block: '${block.name}' ----")
-        out("${block.name}\t.proc\n")           // TODO not if force_output?
+        out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
+
         if(block.address!=null) {
             out(".cerror * > ${block.address.toHex()}, 'block address overlaps by ', *-${block.address.toHex()},' bytes'")
             out("* = ${block.address.toHex()}")
@@ -166,7 +167,7 @@ internal class AsmGen2(val program: Program,
         stmts.forEach { translate(it) }
         subroutine.forEach { translateSubroutine(it as Subroutine) }
 
-        out("\n\t.pend\n")              // TODO not if force_output?
+        out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
     }
 
     private var generatedLabelSequenceNumber: Int = 0
@@ -2471,8 +2472,12 @@ $endLabel""")
                         out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.pop_float")
                     } else {
                         translateArrayIndexIntoA(targetArrayIdx)
-                        out("  sta  ${C64Zeropage.SCRATCH_REG} |  asl  a |  asl  a  | clc |  adc  ${C64Zeropage.SCRATCH_REG}")
                         out("""
+                            sta  ${C64Zeropage.SCRATCH_REG}
+                            asl  a
+                            asl  a
+                            clc
+                            adc  ${C64Zeropage.SCRATCH_REG}
                             tay
                             lda  $constFloat
                             sta  $arrayVarName,y
