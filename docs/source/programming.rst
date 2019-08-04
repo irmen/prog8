@@ -127,12 +127,20 @@ The address must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100`
 to them by their 'short' name directly.  If the symbol is not found in the same scope,
 the enclosing scope is searched for it, and so on, until the symbol is found.
 
-Scopes are created using several statements:
+Scopes are created using either of these two statements:
 
 - blocks  (top-level named scope)
-- subroutines   (nested named scopes)
-- for, while, repeat loops   (anonymous scope)
-- if statements and branching conditionals    (anonymous scope)
+- subroutines   (nested named scope)
+
+.. note::
+    In contrast to many other programming languages, a new scope is *not* created inside
+    for, while and repeat statements, nor for the if statement and branching conditionals.
+    This is a bit restrictive because you have to think harder about what variables you
+    want to use inside a subroutine. But it is done precisely for this reason; memory in the
+    target system is very limited and it would be a waste to allocate a lot of variables.
+
+    Right now the prog8 compiler is not advanced enough to be able to 'share' or 'overlap'
+    variables intelligently by itself. So for now, it's something the programmer has to think about.
 
 
 Program Start and Entry Point
@@ -400,7 +408,9 @@ You can also create loops by using the ``goto`` statement, but this should usual
     The value of the loop variable or register after executing the loop *is undefined*. Don't use it immediately
     after the loop without first assigning a new value to it!
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
-    Loop variables that are declared inline are scoped in the loop body so they're not accessible at all after the loop finishes.
+    Loop variables that are declared inline are not different to them being
+    defined in a separate var declaration in the subroutine, it's just a readability convenience.
+    (this may change in the future if the compiler gets more advanced with additional sub-scopes)
 
 
 Conditional Execution

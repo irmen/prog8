@@ -60,7 +60,7 @@ fun compileProgram(filepath: Path,
                 programAst.removeNopsFlattenAnonScopes()
 
                 // if you want to print the AST, do it before shuffling the statements around below
-                // printAst(programAst)
+                printAst(programAst)
 
 
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
@@ -87,6 +87,8 @@ fun compileProgram(filepath: Path,
             programAst.removeNopsFlattenAnonScopes()
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
+
+            printAst(programAst)
 
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code

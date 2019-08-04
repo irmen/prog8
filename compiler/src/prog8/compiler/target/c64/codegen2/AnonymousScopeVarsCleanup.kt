@@ -21,11 +21,12 @@ class AnonymousScopeVarsCleanup(val program: Program): IAstModifyingVisitor {
         super.visit(program)
         for((scope, decls) in varsToMove) {
             val sub = scope.definingSubroutine()!!
-            val existingVariables = sub.statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
+            val existingVariables = sub.statements.filterIsInstance<VarDecl>().associate { it.name to it }
             var conflicts = false
             decls.forEach {
-                if (it.name in existingVariables) {
-                    checkResult.add(NameError("variable ${it.name} already exists in subroutine ${sub.name}", it.position))
+                val existing = existingVariables[it.name]
+                if (existing!=null) {
+                    checkResult.add(NameError("variable ${it.name} already defined in subroutine ${sub.name} at ${existing.position}", it.position))
                     conflicts = true
                 }
             }

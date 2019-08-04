@@ -233,7 +233,7 @@ internal class AsmGen2(val program: Program,
                 }
             }
             else {
-                throw AssemblyError("huh, var is already on zp  $zpVar")
+                throw AssemblyError("huh, var is already in zp  $fullName")
                 // it was already allocated on the zp, what to do?
                 // out("${variable.name} = ${zpVar.first}\t; zp ${zpVar.second}")
             }
@@ -469,7 +469,7 @@ internal class AsmGen2(val program: Program,
 +       sta  $destination
         """
 
-    private fun asmIdentifierName(identifier: IdentifierReference): String {
+    internal fun asmIdentifierName(identifier: IdentifierReference): String {
         val name = if(identifier.memberOfStruct(program.namespace)!=null) {
             identifier.targetVarDecl(program.namespace)!!.name
         } else {
@@ -519,7 +519,8 @@ internal class AsmGen2(val program: Program,
         return false
     }
 
-    private fun readAndPushArrayvalueWithIndexA(arrayDt: DataType, variablename: String) {
+    private fun readAndPushArrayvalueWithIndexA(arrayDt: DataType, variable: IdentifierReference) {
+        val variablename = asmIdentifierName(variable)
         when (ArrayElementTypes.getValue(arrayDt).memorySize()) {
             1 -> {}
             2 -> out("  asl  a")
@@ -530,11 +531,13 @@ internal class AsmGen2(val program: Program,
             DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
                 out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  dex")
             DataType.ARRAY_UW, DataType.ARRAY_W ->
-                out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  iny |  lda  $variablename,y |  sta  $ESTACK_HI_HEX,x | dex")
+                out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  lda  $variablename+1,y |  sta  $ESTACK_HI_HEX,x | dex")
             DataType.ARRAY_F ->
                 out("""
                     sta  $ESTACK_LO_HEX,x
                     dex
+                    lda  #<$variablename
+                    ldy  #>$variablename
                     jsr  c64flt.push_float_from_indexed_var
                 """)
             else ->
@@ -1526,15 +1529,38 @@ $endLabel""")
                 }
             }
             is PrefixExpression -> {
+                // TODO optimize common cases
                 translateExpression(assign.value as PrefixExpression)
                 assignFromEvalResult(assign.target)
             }
             is BinaryExpression -> {
+                // TODO optimize common cases
                 translateExpression(assign.value as BinaryExpression)
                 assignFromEvalResult(assign.target)
             }
             is ArrayIndexedExpression -> {
-                translateExpression(assign.value as ArrayIndexedExpression)
+                // TODO optimize common cases
+                val arrayExpr = assign.value as ArrayIndexedExpression
+                val arrayDt = arrayExpr.identifier.targetVarDecl(program.namespace)!!.datatype
+                val index = arrayExpr.arrayspec.index
+                if(index is NumericLiteralValue) {
+                    // constant array index value
+                    val arrayVarName = asmIdentifierName(arrayExpr.identifier)
+                    val indexValue = index.number.toInt() * ArrayElementTypes.getValue(arrayDt).memorySize()
+                    when (arrayDt) {
+                        DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
+                            out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
+                        DataType.ARRAY_UW, DataType.ARRAY_W ->
+                            out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x | dex")
+                        DataType.ARRAY_F ->
+                            out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
+                        else ->
+                            throw AssemblyError("weird array type")
+                    }
+                } else {
+                    translateCalcArrayIndexIntoA(arrayExpr)
+                    readAndPushArrayvalueWithIndexA(arrayDt, arrayExpr.identifier)
+                }
                 assignFromEvalResult(assign.target)
             }
             is TypecastExpression -> {
@@ -1561,41 +1587,25 @@ $endLabel""")
         }
     }
 
-    private fun translateExpression(expr: ArrayIndexedExpression) {
+    private fun translateCalcArrayIndexIntoA(expr: ArrayIndexedExpression) {
         val arrayDt = expr.identifier.targetVarDecl(program.namespace)!!.datatype
-        val sourceName = asmIdentifierName(expr.identifier)
         val index = expr.arrayspec.index
         when (index) {
-            is NumericLiteralValue -> {
-                val indexValue = index.number.toInt() * ArrayElementTypes.getValue(arrayDt).memorySize()
-                when (arrayDt) {
-                    DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
-                        out("  lda  $sourceName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
-                    DataType.ARRAY_UW, DataType.ARRAY_W ->
-                        out("  lda  $sourceName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x | dex")
-                    DataType.ARRAY_F ->
-                        out("  lda  #<$sourceName+$indexValue |  ldy  #>$sourceName+$indexValue |  jsr  c64flt.push_float")
-                    else ->
-                        throw AssemblyError("weird array type")
-                }
-            }
+            is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
             is RegisterExpr -> {
                 when (index.register) {
                     Register.A -> {}
                     Register.X -> out("  txa")
                     Register.Y -> out("  tya")
                 }
-                readAndPushArrayvalueWithIndexA(arrayDt, sourceName)
             }
             is IdentifierReference -> {
                 val indexName = asmIdentifierName(index)
                 out("  lda  $indexName")
-                readAndPushArrayvalueWithIndexA(arrayDt, sourceName)
             }
             else -> {
                 translateExpression(index)
                 out("  inx |  lda  $ESTACK_LO_HEX,x")
-                readAndPushArrayvalueWithIndexA(arrayDt, sourceName)
             }
         }
     }
@@ -1659,7 +1669,12 @@ $endLabel""")
         when(expression) {
             is PrefixExpression -> translateExpression(expression)
             is BinaryExpression -> translateExpression(expression)
-            is ArrayIndexedExpression -> translateExpression(expression)
+            is ArrayIndexedExpression -> {
+                // assume *reading* from an array
+                translateCalcArrayIndexIntoA(expression)
+                val arrayDt = expression.identifier.targetVarDecl(program.namespace)!!.datatype
+                readAndPushArrayvalueWithIndexA(arrayDt, expression.identifier)
+            }
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
             is DirectMemoryRead -> translateExpression(expression)
@@ -1954,7 +1969,20 @@ $endLabel""")
                 storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
             }
             target.arrayindexed!=null -> {
-                TODO("put result in arrayindexed $target")
+                val targetDt = target.arrayindexed!!.inferType(program)!!
+                val arrayVarName = asmIdentifierName(target.arrayindexed!!.identifier)
+                when(targetDt) {
+                    in ByteDatatypes -> {
+                        TODO("pop byte into array ${target.arrayindexed}")
+                    }
+                    in WordDatatypes -> {
+                        TODO("pop word into array ${target.arrayindexed}")
+                    }
+                    DataType.FLOAT -> {
+                        TODO("pop float into array ${target.arrayindexed}")
+                    }
+                    else -> throw AssemblyError("weird datatype")
+                }
             }
             else -> throw AssemblyError("weird assignment target $target")
         }
@@ -2042,9 +2070,6 @@ $endLabel""")
                     lda  $sourceName+4
                     sta  $targetName+4
                 """)
-            }
-            target.memoryAddress!=null -> {
-                TODO("assign floatvar $sourceName to memory ${target.memoryAddress}")
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -2256,7 +2281,16 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                TODO("assign word $word to array $targetName [ $index ]")
+                // TODO optimize common cases
+                translateExpression(index)
+                out("""
+                    inx
+                    ldy  $ESTACK_LO_HEX,x
+                    lda  #<${word.toHex()}
+                    sta  $targetName,y
+                    lda  #>${word.toHex()}
+                    sta  $targetName+1,y
+                """)
             }
             else -> TODO("assign word $word to $target")
         }
@@ -2280,7 +2314,14 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                TODO("assign byte $byte to array $targetName [ $index ]")
+                // TODO optimize common cases
+                translateExpression(index)
+                out("""
+                    inx
+                    ldy  $ESTACK_LO_HEX,x
+                    lda  #${byte.toHex()}
+                    sta  $targetName,y
+                """)
             }
             else -> TODO("assign byte $byte to $target")
         }
@@ -2303,9 +2344,6 @@ $endLabel""")
                             sta  $targetName+4
                         """)
                 }
-                target.memoryAddress!=null -> {
-                    TODO("assign float 0.0 to memory ${target.memoryAddress}")
-                }
                 targetArrayIdx!=null -> {
                     val index = targetArrayIdx.arrayspec.index
                     val targetName = asmIdentifierName(targetArrayIdx.identifier)
@@ -2316,23 +2354,77 @@ $endLabel""")
         } else {
             // non-zero value
             val constFloat = getFloatConst(float)
-            if (targetIdent != null) {
-                val targetName = asmIdentifierName(targetIdent)
-                out("""
-                        lda  $constFloat
-                        sta  $targetName
-                        lda  $constFloat+1
-                        sta  $targetName+1
-                        lda  $constFloat+2
-                        sta  $targetName+2
-                        lda  $constFloat+3
-                        sta  $targetName+3
-                        lda  $constFloat+4
-                        sta  $targetName+4
-                    """)
-            } else {
-                TODO("assign float $float ($constFloat) to $target")
+            when {
+                targetIdent != null -> {
+                    val targetName = asmIdentifierName(targetIdent)
+                    out("""
+                            lda  $constFloat
+                            sta  $targetName
+                            lda  $constFloat+1
+                            sta  $targetName+1
+                            lda  $constFloat+2
+                            sta  $targetName+2
+                            lda  $constFloat+3
+                            sta  $targetName+3
+                            lda  $constFloat+4
+                            sta  $targetName+4
+                        """)
+                }
+                targetArrayIdx!=null -> {
+                    val index = targetArrayIdx.arrayspec.index
+                    val arrayVarName = asmIdentifierName(targetArrayIdx.identifier)
+                    if(index is NumericLiteralValue) {
+                        val indexValue = index.number.toInt() * MachineDefinition.Mflpt5.MemorySize
+                        out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.pop_float")
+                    } else {
+                        translateCalcArrayIndexIntoA(targetArrayIdx)
+                        out("  sta  ${C64Zeropage.SCRATCH_REG} |  asl  a |  asl  a  | clc |  adc  ${C64Zeropage.SCRATCH_REG}")
+                        out("""
+                            tay
+                            lda  $constFloat
+                            sta  $arrayVarName,y
+                            lda  $constFloat+1
+                            iny
+                            sta  $arrayVarName,y
+                            lda  $constFloat+2
+                            iny
+                            sta  $arrayVarName,y
+                            lda  $constFloat+3
+                            iny
+                            sta  $arrayVarName,y
+                            lda  $constFloat+4
+                            iny
+                            sta  $arrayVarName,y
+                        """)        // TODO use a subroutine for this
+                    }
+                }
+                else -> TODO("assign float $float to $target")
             }
+        }
+    }
+
+    private fun popAndWriteArrayvalueWithIndexA(arrayDt: DataType, variablename: String) {
+        when (ArrayElementTypes.getValue(arrayDt).memorySize()) {
+            1 -> {}
+            2 -> out("  asl  a")
+            5 -> out("  sta  ${C64Zeropage.SCRATCH_REG} |  asl  a |  asl  a  | clc |  adc  ${C64Zeropage.SCRATCH_REG}")
+            else -> throw AssemblyError("invalid memory size")
+        }
+        when (arrayDt) {
+            DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
+                out("  tay |  inx |  lda  $ESTACK_LO_HEX,x  | sta  $variablename,y")
+            DataType.ARRAY_UW, DataType.ARRAY_W ->
+                out("  tay |  inx |  lda  $ESTACK_LO_HEX,x |  sta  $variablename,y |  lda  $ESTACK_HI_HEX,x |  sta $variablename+1,y")
+            DataType.ARRAY_F ->
+                out("""
+                    sta  $ESTACK_LO_HEX,x
+                    dex
+                    lda  #<$variablename
+                    ldy  #>$variablename
+                    jsr  c64flt.pop_float_to_indexed_var
+                """)
+            else ->
+                throw AssemblyError("weird array type")
         }
     }
 
