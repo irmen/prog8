@@ -376,6 +376,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignTarget: AssignTarget) {
+        super.visit(assignTarget)
+
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
         if (memAddr != null) {
             if (memAddr < 0 || memAddr >= 65536)

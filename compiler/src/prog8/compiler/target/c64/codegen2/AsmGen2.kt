@@ -1436,7 +1436,12 @@ $endLabel""")
                         if(incr)
                             out(" inc  $what |  bne  + |  inc  $what+1 |+")
                         else
-                            out(" lda  $what |  bne  + |  dec  $what+1 |+ |  dec  $what")
+                            out("""
+        lda  $what
+        bne  +
+        dec  $what+1
++       dec  $what 
+""")
                     }
                     DataType.FLOAT -> {
                         out("  lda  #<$what |  ldy  #>$what")

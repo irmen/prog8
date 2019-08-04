@@ -234,8 +234,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     }
                 }
             }
-        } else {
-            throw FatalAstException("can't find function ${functionCall.target}")
         }
     }
 

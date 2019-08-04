@@ -25,7 +25,7 @@ main {
         Y=100
         Y++
         check_ub(Y, 101)
-        check_fl(fl, 100.99)        ; @todo CLOBBERS OTHER VARS
+        check_fl(fl, 100.99)
         check_b(bb, -99)
         check_uw(uw, 2001)
         check_w(ww, -999)
@@ -40,13 +40,12 @@ main {
         Y=100
         Y--
         check_ub(Y, 99)
-        check_fl(fl, 99.99)        ; @todo CLOBBERS OTHER VARS
+        check_fl(fl, 99.99)
         check_b(bb, -100)
         check_uw(uw, 2000)
         check_w(ww, -1000)
 
         @($0400+39) = X
-        ;c64.Screen[39] = X      ; @todo compiler error
     }
 
     sub check_ub(ubyte value, ubyte expected) {

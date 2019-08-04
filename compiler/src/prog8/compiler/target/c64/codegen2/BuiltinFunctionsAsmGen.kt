@@ -46,7 +46,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 if(arg is NumericLiteralValue)
                     throw AssemblyError("should have been const-folded")
                 if(arg is IdentifierReference) {
-                    val sourceName = arg.nameInSource.joinToString(".")
+                    val sourceName = asmgen.asmIdentifierName(arg)
                     asmgen.out("  lda  $sourceName+1 |  sta  $ESTACK_LO_HEX,x |  dex")
                 } else {
                     asmgen.translateExpression(arg)

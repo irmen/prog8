@@ -172,8 +172,6 @@ interface IAstModifyingVisitor {
         val ident = arrayIndexedExpression.identifier.accept(this)
         if(ident is IdentifierReference)
             arrayIndexedExpression.identifier = ident
-        else
-            throw FatalAstException("can't change class of indexed identifier")
         arrayIndexedExpression.arrayspec.accept(this)
         return arrayIndexedExpression
     }
