@@ -10,12 +10,7 @@ class AssemblyProgram(val name: String) {
     private val viceMonListFile = "$name.vice-mon-list"
 
     companion object {
-        // reserved by the 64tass assembler (on top of prog8"s own reserved names)
-        val reservedNames = setOf("bits", "bool", "bytes", "code", "dict", "gap", "int", "list", "tuple", "type",
-                "trunc", " frac", "cbrt", "log10", "log", "exp", "pow", "asin", "sinh", "acos", "cosh", "tanh", "hypot",
-                "atan2", "sign", "binary", "format", "random", "range", "repr", "size", "sort")
-
-        // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable names either
+        // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
         val opcodeNames = setOf("adc", "ahx", "alr", "anc", "and", "ane", "arr", "asl", "asr", "axs", "bcc", "bcs",
                 "beq", "bge", "bit", "blt", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
                 "cld", "cli", "clv", "cmp", "cpx", "cpy", "dcm", "dcp", "dec", "dex", "dey",
@@ -30,8 +25,9 @@ class AssemblyProgram(val name: String) {
 
     fun assemble(options: CompilationOptions) {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps
-        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "-Wno-strict-bool",
-                "-Werror", "-Wno-error=long-branch", "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
+        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+                "-Wall", "-Wno-strict-bool", "-Wno-shadow", "-Werror", "-Wno-error=long-branch",
+                "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
 
         val outFile = when(options.output) {
             OutputType.PRG -> {

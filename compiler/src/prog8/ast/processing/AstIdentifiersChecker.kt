@@ -67,8 +67,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
-        if(decl.name in AssemblyProgram.reservedNames)
-            checkResult.add(NameError("can't use a symbol name reserved by the assembler program", decl.position))
         if(decl.name in AssemblyProgram.opcodeNames)
             checkResult.add(NameError("can't use a cpu opcode name as a symbol", decl.position))
 
@@ -106,7 +104,9 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     }
 
     override fun visit(subroutine: Subroutine): Statement {
-        if(subroutine.name in BuiltinFunctions) {
+        if(subroutine.name in AssemblyProgram.opcodeNames) {
+            checkResult.add(NameError("can't use a cpu opcode name as a symbol", subroutine.position))
+        } else if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
@@ -162,6 +162,9 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     }
 
     override fun visit(label: Label): Statement {
+        if(label.name in AssemblyProgram.opcodeNames)
+            checkResult.add(NameError("can't use a cpu opcode name as a symbol", label.position))
+
         if(label.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))

@@ -1063,7 +1063,7 @@ _mod		lda  $ffff		; modified
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
-		lda  setcc_row
+		lda  row
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
@@ -1072,15 +1072,15 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 		sta  _colormod+2
 		lda  setchr._screenrows,y
 		clc
-		adc  setcc_column
+		adc  column
 		sta  _charmod+1
 		sta  _colormod+1
 		bcc  +
 		inc  _charmod+2
 		inc  _colormod+2
-+		lda  setcc_char
++		lda  char
 _charmod	sta  $ffff		; modified
-		lda  setcc_color
+		lda  color
 _colormod	sta  $ffff		; modified
 		rts
 	}}
