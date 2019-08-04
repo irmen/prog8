@@ -18,6 +18,9 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     fun allocate(scopedname: String, datatype: DataType, position: Position?): Int {
         assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"isSameAs scopedname can't be allocated twice"}
 
+        if(options.zeropage==ZeropageType.DONTUSE)
+            throw CompilerException("zero page usage has been disabled")
+
         val size =
                 when (datatype) {
                     in ByteDatatypes -> 1

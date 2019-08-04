@@ -84,7 +84,7 @@ object MachineDefinition {
                     ))
                 }
 
-                if(options.zeropage==ZeropageType.BASICSAFE) {
+                if(options.zeropage!=ZeropageType.DONTUSE) {
                     // add the other free Zp addresses,
                     // these are valid for the C-64 (when no RS232 I/O is performed) but to keep BASIC running fully:
                     free.addAll(listOf(0x04, 0x05, 0x06, 0x0a, 0x0e,

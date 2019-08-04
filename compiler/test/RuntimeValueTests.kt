@@ -117,18 +117,6 @@ class TestRuntimeValue {
     }
 
     @Test
-    fun testRequireHeap()
-    {
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.STR, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.STR_S, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_F, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_W, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_UW, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_B, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_UB, num = 999) }
-    }
-
-    @Test
     fun testEqualityHeapTypes()
     {
         assertTrue(sameValueAndType(RuntimeValue(DataType.STR, heapId = 999), RuntimeValue(DataType.STR, heapId = 999)))
