@@ -1745,7 +1745,7 @@ $endLabel""")
         when(expression) {
             is PrefixExpression -> translateExpression(expression)
             is BinaryExpression -> translateExpression(expression)
-            is ArrayIndexedExpression -> translatePushFromArray(expression as ArrayIndexedExpression)
+            is ArrayIndexedExpression -> translatePushFromArray(expression)
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
             is DirectMemoryRead -> translateExpression(expression)

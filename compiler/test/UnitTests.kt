@@ -147,12 +147,10 @@ class TestZeropage {
         }
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true))
         assertFailsWith<CompilerException> {
-            zp.allocate("", DataType.FLOAT, null)
+            zp2.allocate("", DataType.FLOAT, null)
         }
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true))
-        assertFailsWith<CompilerException> {
-            zp.allocate("", DataType.FLOAT, null)
-        }
+        zp3.allocate("", DataType.FLOAT, null)
     }
 
     @Test
