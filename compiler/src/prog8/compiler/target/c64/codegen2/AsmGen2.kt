@@ -300,9 +300,7 @@ internal class AsmGen2(val program: Program,
                 }
             }
             DataType.ARRAY_F -> {
-                val array = (decl.value as ReferenceLiteralValue).array
-                if(array==null)
-                    TODO("fix this")
+                val array = (decl.value as ReferenceLiteralValue).array ?: throw AssemblyError("array should not be null?")
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
                     makeFloatFill(MachineDefinition.Mflpt5.fromNumber(number))
@@ -367,9 +365,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ReferenceLiteralValue).array
-        if(array==null)
-            TODO("fix this")
+        val array = (decl.value as ReferenceLiteralValue).array ?: throw AssemblyError("array should not be null?")
         return when {
             decl.datatype == DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
@@ -387,9 +383,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ReferenceLiteralValue).array
-        if(array==null)
-            TODO("fix this ${decl.value}")
+        val array = (decl.value as ReferenceLiteralValue).array ?: throw AssemblyError("array should not be null?")
 
         return when {
             decl.datatype == DataType.ARRAY_UB ->
@@ -1865,43 +1859,102 @@ $endLabel""")
         }
     }
 
+    private val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40)
+    private val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40)
+    private val powerOfTwos = setOf(0,1,2,4,8,16,32,64,128,256)
+
     private fun translateExpression(expr: BinaryExpression) {
         val leftDt = expr.left.inferType(program)!!
         val rightDt = expr.right.inferType(program)!!
+
+        // see if we can apply some optimized routines
         when(expr.operator) {
             ">>" -> {
                 // bit-shifts are always by a constant number (for now)
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)!!.number.toInt()
-                when(leftDt) {
+                when (leftDt) {
                     DataType.UBYTE -> repeat(amount) { out("  lsr  $ESTACK_LO_PLUS1_HEX,x") }
                     DataType.BYTE -> repeat(amount) { out("  lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
                     DataType.UWORD -> repeat(amount) { out("  lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                    DataType.WORD -> repeat(amount) { out( "  lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                    DataType.WORD -> repeat(amount) { out("  lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
                     else -> throw AssemblyError("weird type")
                 }
+                return
             }
             "<<" -> {
                 // bit-shifts are always by a constant number (for now)
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)!!.number.toInt()
-                if(leftDt in ByteDatatypes)
+                if (leftDt in ByteDatatypes)
                     repeat(amount) { out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
                 else
                     repeat(amount) { out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                return
             }
-            else -> {
-                translateExpression(expr.left)
-                translateExpression(expr.right)
-                if(leftDt!=rightDt)
-                    throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")     // is this strictly required always?
-                when (leftDt) {
-                    in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
-                    in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
-                    DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
-                    else -> throw AssemblyError("non-numerical datatype")
+            "*" -> {
+                val value = expr.right.constValue(program)
+                if(value!=null) {
+                    if(rightDt in IntegerDatatypes) {
+                        val amount = value.number.toInt()
+                        if(amount in powerOfTwos)
+                            printWarning("${expr.right.position} multiplication by power of 2 should have been optimized into a left shift instruction: $amount")
+                        when(rightDt) {
+                            DataType.UBYTE -> {
+                                if(amount in optimizedByteMultiplications) {
+                                    translateExpression(expr.left)
+                                    out(" jsr  math.mul_byte_$amount")
+                                    return
+                                }
+                            }
+                            DataType.BYTE -> {
+                                if(amount in optimizedByteMultiplications) {
+                                    translateExpression(expr.left)
+                                    out(" jsr  math.mul_byte_$amount")
+                                    return
+                                }
+                                if(amount.absoluteValue in optimizedByteMultiplications) {
+                                    translateExpression(expr.left)
+                                    out(" jsr  prog8_lib.neg_b |  jsr  math.mul_byte_${amount.absoluteValue}")
+                                    return
+                                }
+                            }
+                            DataType.UWORD -> {
+                                if(amount in optimizedWordMultiplications) {
+                                    translateExpression(expr.left)
+                                    out(" jsr  math.mul_word_$amount")
+                                    return
+                                }
+                            }
+                            DataType.WORD -> {
+                                if(amount in optimizedWordMultiplications) {
+                                    translateExpression(expr.left)
+                                    out(" jsr  math.mul_word_$amount")
+                                    return
+                                }
+                                if(amount.absoluteValue in optimizedWordMultiplications) {
+                                    translateExpression(expr.left)
+                                    out(" jsr  prog8_lib.neg_w |  jsr  math.mul_word_${amount.absoluteValue}")
+                                    return
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
                 }
             }
+        }
+
+        // the general, non-optimized cases
+        translateExpression(expr.left)
+        translateExpression(expr.right)
+        if(leftDt!=rightDt)
+            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")     // is this strictly required always?
+        when (leftDt) {
+            in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
+            in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
+            DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
+            else -> throw AssemblyError("non-numerical datatype")
         }
     }
 
