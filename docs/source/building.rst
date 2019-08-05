@@ -87,6 +87,13 @@ If you use the option to let the compiler auto-start a C-64 emulator, it will do
 a successful compilation. This will load your program and the symbol and breakpoint lists
 (for the machine code monitor) into the emulator.
 
+Continuous compilation mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Almost instant compilation times (<0.1 second) can be achieved when using the continuous compilation mode.
+Start the compiler with the ``-watch`` argument to enable this.
+It will compile your program and then instead of exiting, it waits for any changes in the module source files.
+As soon as a change happens, the program gets compiled again.
+
 
 Module source code files
 ------------------------
@@ -99,6 +106,13 @@ Prog8 has a couple of *LIBRARY* modules that are defined in special internal fil
 ``c64lib``, ``c64utils``, ``c64flt`` and ``prog8lib``. You should not overwrite these or reuse their names.
 They are embedded into the packaged release version of the compiler so you don't have to worry about
 where they are, but their names are still reserved.
+
+
+User defined library files
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+You can create library files yourself too that can be shared among programs.
+You can tell the compiler where it should look for these files, by setting the java command line property ``prog8.libdir``
+or by setting the ``PROG8_LIBDIR`` environment variable to the correct directory.
 
 
 .. _debugging:

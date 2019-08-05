@@ -140,7 +140,8 @@ Design principles and features
 - 'One statement per line' code style, resulting in clear readable programs.
 - Modular programming and scoping via modules, code blocks, and subroutines.
 - Provide high level programming constructs but stay close to the metal;
-  still able to directly use memory addresses, CPU registers and ROM subroutines
+  still able to directly use memory addresses, CPU registers and ROM subroutines,
+  and inline assembly to have full control when every cycle or byte matters
 - Arbitrary number of subroutine parameters (constrained only by available memory)
 - Complex nested expressions are possible
 - Values are typed. Types supported include signed and unsigned bytes and words, arrays, strings and floats.

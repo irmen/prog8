@@ -189,8 +189,9 @@ waitkey:
         ; check if line(s) are full -> flash/clear line(s) + add score + move rest down
         ubyte[boardHeight] complete_lines
         ubyte num_lines=0
+        ubyte linepos
         memset(complete_lines, len(complete_lines), 0)
-        for ubyte linepos in boardOffsetY to boardOffsetY+boardHeight-1 {
+        for linepos in boardOffsetY to boardOffsetY+boardHeight-1 {
             if blocklogic.isLineFull(linepos) {
                 complete_lines[num_lines]=linepos
                 num_lines++
@@ -208,7 +209,7 @@ waitkey:
                 ; slight delay to flash the line
             }
             c64.TIME_LO=0
-            for ubyte linepos in complete_lines
+            for linepos in complete_lines
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
             lines += num_lines

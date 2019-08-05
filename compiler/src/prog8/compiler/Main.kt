@@ -14,14 +14,19 @@ import prog8.parser.importLibraryModule
 import prog8.parser.importModule
 import prog8.parser.moduleName
 import java.nio.file.Path
-import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
+
+
+class CompilationResult(val programAst: Program, val programName: String, val importedFiles: List<Path>)
+
 
 fun compileProgram(filepath: Path,
                    optimize: Boolean, optimizeInlining: Boolean,
-                   writeAssembly: Boolean): Pair<Program, String?> {
+                   writeAssembly: Boolean): CompilationResult {
     lateinit var programAst: Program
     var programName: String? = null
+
+    var importedFiles: List<Path> = emptyList()
 
     try {
         val totalTime = measureTimeMillis {
@@ -29,6 +34,8 @@ fun compileProgram(filepath: Path,
             println("Parsing...")
             programAst = Program(moduleName(filepath.fileName), mutableListOf())
             importModule(programAst, filepath)
+
+            importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map{ it.source }
 
             val compilerOptions = determineCompilationOptions(programAst)
             if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
@@ -60,7 +67,7 @@ fun compileProgram(filepath: Path,
                 programAst.removeNopsFlattenAnonScopes()
 
                 // if you want to print the AST, do it before shuffling the statements around below
-                printAst(programAst)
+                //printAst(programAst)
 
 
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
@@ -88,7 +95,7 @@ fun compileProgram(filepath: Path,
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 
-            printAst(programAst)
+            //printAst(programAst)
 
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code
@@ -105,12 +112,10 @@ fun compileProgram(filepath: Path,
         System.err.print("\u001b[91m")  // bright red
         System.err.println(px.message)
         System.err.print("\u001b[0m")  // reset
-        exitProcess(1)
     } catch (ax: AstException) {
         System.err.print("\u001b[91m")  // bright red
         System.err.println(ax.toString())
         System.err.print("\u001b[0m")  // reset
-        exitProcess(1)
     } catch (x: Exception) {
         print("\u001b[91m")  // bright red
         println("\n* internal error *")
@@ -124,7 +129,7 @@ fun compileProgram(filepath: Path,
         System.out.flush()
         throw x
     }
-    return Pair(programAst, programName)
+    return CompilationResult(programAst, programName ?: "", importedFiles)
 }
 
 fun printAst(programAst: Program) {

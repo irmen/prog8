@@ -1,8 +1,14 @@
 package prog8
 
+import prog8.ast.base.AstException
+import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
+import prog8.parser.ParsingFailedError
 import prog8.vm.astvm.AstVm
-import java.nio.file.Paths
+import prog8.repl.Repl
+import java.lang.Exception
+import java.nio.file.*
+import java.util.*
 import kotlin.system.exitProcess
 
 
@@ -29,6 +35,8 @@ private fun compileMain(args: Array<String>) {
     var optimize = true
     var optimizeInlining = true
     var launchAstVm = false
+    var launchRepl = false
+    var watchMode = false
     for (arg in args) {
         if(arg=="-emu")
             emulatorToStart = "x64"
@@ -42,33 +50,81 @@ private fun compileMain(args: Array<String>) {
             optimizeInlining = false
         else if(arg=="-avm")
             launchAstVm = true
+        else if(arg=="-repl")
+            launchRepl = true
+        else if(arg=="-watch")
+            watchMode = true
         else if(!arg.startsWith("-"))
             moduleFile = arg
         else
             usage()
     }
-    if(moduleFile.isBlank())
-        usage()
 
-    val filepath = Paths.get(moduleFile).normalize()
+    if(watchMode) {
+        if(moduleFile.isBlank())
+            usage()
 
-    val (programAst, programName) = compileProgram(filepath, optimize, optimizeInlining, writeAssembly)
+        val watchservice = FileSystems.getDefault().newWatchService()
 
-    if(launchAstVm) {
-        println("\nLaunching AST-based vm...")
-        val vm = AstVm(programAst)
-        vm.run()
-    }
+        while(true) {
+            val filepath = Paths.get(moduleFile).normalize()
+            println("Continuous watch mode active. Main module: $filepath")
 
-    if(emulatorToStart.isNotEmpty()) {
-        if(programName==null)
-            println("\nCan't start emulator because no program was assembled.")
-        else {
-            println("\nStarting C-64 emulator $emulatorToStart...")
-            val cmdline = listOf(emulatorToStart, "-silent", "-moncommands", "$programName.vice-mon-list",
-                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", programName + ".prg")
-            val process = ProcessBuilder(cmdline).inheritIO().start()
-            process.waitFor()
+            try {
+                val compilationResult = compileProgram(filepath, optimize, optimizeInlining, writeAssembly)
+                println("Imported files (now watching:)")
+                for (importedFile in compilationResult.importedFiles) {
+                    print("  ")
+                    println(importedFile)
+                    importedFile.parent.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
+                }
+                println("${Date()}: Waiting for file changes.")
+                val event = watchservice.take()
+                for(changed in event.pollEvents()) {
+                    val changedPath = changed.context() as Path
+                    println("  change detected: ${changedPath}")
+                }
+                event.reset()
+                println("\u001b[H\u001b[2J")      // clear the screen
+            } catch (x: Exception) {
+                throw x
+            }
+        }
+
+    } else if(launchRepl) {
+        val repl = Repl()
+        repl.loop()
+    } else {
+        if(moduleFile.isBlank())
+            usage()
+
+        val filepath = Paths.get(moduleFile).normalize()
+        val compilationResult: CompilationResult
+
+        try {
+            compilationResult = compileProgram(filepath, optimize, optimizeInlining, writeAssembly)
+        } catch (x: ParsingFailedError) {
+            exitProcess(1)
+        } catch (x: AstException) {
+            exitProcess(1)
+        }
+
+        if (launchAstVm) {
+            println("\nLaunching AST-based vm...")
+            val vm = AstVm(compilationResult.programAst)
+            vm.run()
+        }
+
+        if (emulatorToStart.isNotEmpty()) {
+            if (compilationResult.programName.isEmpty())
+                println("\nCan't start emulator because no program was assembled.")
+            else {
+                println("\nStarting C-64 emulator $emulatorToStart...")
+                val cmdline = listOf(emulatorToStart, "-silent", "-moncommands", "${compilationResult.programName}.vice-mon-list",
+                        "-autostartprgmode", "1", "-autostart-warp", "-autostart", compilationResult.programName + ".prg")
+                val process = ProcessBuilder(cmdline).inheritIO().start()
+                process.waitFor()
+            }
         }
     }
 }
@@ -76,12 +132,14 @@ private fun compileMain(args: Array<String>) {
 
 private fun usage() {
     System.err.println("Missing argument(s):")
-    System.err.println("    [-emu]          auto-start the 'x64' C-64 emulator after successful compilation")
-    System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
     System.err.println("    [-noasm]        don't create assembly code")
-    System.err.println("    [-avm]          launch the prog8 ast-based virtual machine after compilation")
     System.err.println("    [-noopt]        don't perform any optimizations")
     System.err.println("    [-nooptinline]  don't perform subroutine inlining optimizations")
+    System.err.println("    [-emu]          auto-start the 'x64' C-64 emulator after successful compilation")
+    System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
+    System.err.println("    [-avm]          launch the prog8 ast-based virtual machine after compilation")
+    System.err.println("    [-repl]         launch the prog8 REPL (interactive mode)")
+    System.err.println("    [-watch]        continuous compilation mode (watches for file changes)")
     System.err.println("    modulefile      main module file to compile")
     exitProcess(1)
 }

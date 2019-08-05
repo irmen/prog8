@@ -1,27 +1,45 @@
 %import c64utils
-%import c64flt
-%option enable_floats
 %zeropage basicsafe
 
 main {
 
+    ubyte[256] sieve
+    ubyte candidate_prime = 2
 
-    sub start()  {
+    sub start() {
+        memset(sieve, 256, false)
 
-        byte bb
-        ubyte ub
-        word ww
-        uword uw
-        float fl
-
-        bb = 10*bb
-        ub = 12*ub
-        ww = 15*ww
-        uw = 20*uw
-        fl = 20*fl
-
-
-
+        c64scr.print("prime numbers up to 255:\n\n")
+        ubyte amount=0
+        while true {
+            ubyte prime = find_next_prime()
+            if prime==0
+                break
+            c64scr.print_ub(prime)
+            c64scr.print(", ")
+            amount++
+        }
+        c64.CHROUT('\n')
+        c64scr.print("number of primes (expected 54): ")
+        c64scr.print_ub(amount)
+        c64.CHROUT('\n')
     }
 
+
+    sub find_next_prime() -> ubyte {
+
+        while sieve[candidate_prime] {
+            candidate_prime++
+            if candidate_prime==0
+                return 0
+        }
+
+        sieve[candidate_prime] = true
+        uword multiple = candidate_prime
+        while multiple < len(sieve) {
+            sieve[lsb(multiple)] = true
+            multiple += candidate_prime
+        }
+        return candidate_prime
+    }
 }

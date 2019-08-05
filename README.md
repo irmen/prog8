@@ -17,7 +17,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - easier program understanding (because it's higher level, and way more compact)
 - modularity, symbol scoping, subroutines
 - subroutines have enforced input- and output parameter definitions
-- various data types other than just bytes (16-bit words, floats, strings, 16-bit register pairs)
+- various data types other than just bytes (16-bit words, floats, strings)
 - automatic variable allocations, automatic string variables and string sharing
 - constant folding in expressions (compile-time evaluation)
 - conditional branches
@@ -33,7 +33,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 Rapid edit-compile-run-debug cycle:
 
 - use modern PC to work on 
-- quick compilation times (less than 1 second)
+- quick compilation times (around a second, and less than 0.1 seconds when using the continuous compilation mode)
 - option to automatically run the program in the Vice emulator  
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
