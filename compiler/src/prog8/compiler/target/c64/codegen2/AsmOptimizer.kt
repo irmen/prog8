@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package prog8.compiler.target.c64.codegen2
 
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX

@@ -1,7 +1,7 @@
 %import c64utils
 %import c64flt
 
-~ main {
+main {
 
     const uword width = 40
     const uword height = 25

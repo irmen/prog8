@@ -440,7 +440,7 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
-                    // the ConstantFolder takes care of that and converts the type if needed.
+                    // the ConstantFold takes care of that and converts the type if needed.
                     ReferenceLiteralValue(DataType.ARRAY_UB, array = array, position = litval.toPosition())
                 }
                 litval.structliteral()!=null -> {

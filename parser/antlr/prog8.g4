@@ -68,7 +68,7 @@ module :  (modulestatement | EOL)* EOF ;
 
 modulestatement:  directive | block ;
 
-block:	'~' identifier integerliteral? statement_block EOL ;
+block:	identifier integerliteral? statement_block EOL ;
 
 statement :
 	directive

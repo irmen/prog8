@@ -107,8 +107,6 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                 asBoolean = floatval != 0.0
             }
             else -> {
-                if(heapId==null)
-                    throw IllegalArgumentException("for non-numeric types, a heapId should be given")
                 byteval = null
                 wordval = null
                 floatval = null
@@ -628,7 +626,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
 }
 
 
-class RuntimeValueRange(type: DataType, val range: IntProgression): RuntimeValue(type, 0) {
+class RuntimeValueRange(type: DataType, val range: IntProgression): RuntimeValue(type, array=range.toList().toTypedArray()) {
     override fun iterator(): Iterator<Number> {
         return range.iterator()
     }

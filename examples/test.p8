@@ -1,16 +1,26 @@
 %import c64utils
 %import c64flt
-%zeropage basicsafe
 %option enable_floats
+%zeropage basicsafe
 
-~ main {
+main {
 
-    sub start() {
 
-        if_z goto start
-        if_pos goto start
-        if_cc goto start
-        if_nz goto start
+    sub start()  {
+
+        byte bb
+        ubyte ub
+        word ww
+        uword uw
+        float fl
+
+        bb = 10*bb
+        ub = 12*ub
+        ww = 15*ww
+        uw = 20*uw
+        fl = 20*fl
+
+
 
     }
 

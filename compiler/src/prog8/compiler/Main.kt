@@ -4,7 +4,6 @@ import prog8.ast.AstToSourceCode
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.statements.Directive
-import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.codegen2.AsmGen2
 import prog8.optimizer.constantFold
@@ -14,16 +13,13 @@ import prog8.parser.ParsingFailedError
 import prog8.parser.importLibraryModule
 import prog8.parser.importModule
 import prog8.parser.moduleName
-import java.io.File
-import java.io.PrintStream
 import java.nio.file.Path
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 fun compileProgram(filepath: Path,
                    optimize: Boolean, optimizeInlining: Boolean,
-                   generateVmCode: Boolean, writeVmCode: Boolean,
-                   writeAssembly: Boolean, asm2: Boolean): Pair<Program, String?> {
+                   writeAssembly: Boolean): Pair<Program, String?> {
     lateinit var programAst: Program
     var programName: String? = null
 
@@ -64,7 +60,7 @@ fun compileProgram(filepath: Path,
                 programAst.removeNopsFlattenAnonScopes()
 
                 // if you want to print the AST, do it before shuffling the statements around below
-                //printAst(programAst)
+                printAst(programAst)
 
 
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
@@ -92,33 +88,13 @@ fun compileProgram(filepath: Path,
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 
-            if(generateVmCode) {
-                // compile the syntax tree into stackvmProg form, and optimize that
-                val compiler = Compiler(programAst)
-                val intermediate = compiler.compile(compilerOptions)
-                if (optimize)
-                    intermediate.optimize()
+            printAst(programAst)
 
-                if (writeVmCode) {
-                    val stackVmFilename = intermediate.name + ".vm.txt"
-                    val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
-                    intermediate.writeCode(stackvmFile)
-                    stackvmFile.close()
-                    println("StackVM program code written to '$stackVmFilename'")
-                }
-
-                if (writeAssembly && !asm2) {
-                    val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
-                    intermediate.allocateZeropage(zeropage)
-                    val assembly = AsmGen(compilerOptions, intermediate, programAst.heap, zeropage).compileToAssembly(optimize)
-                    assembly.assemble(compilerOptions)
-                    programName = assembly.name
-                }
-            }
-
-            if(asm2 && writeAssembly) {
+            if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code
-                val assembly = AsmGen2(programAst, compilerOptions, MachineDefinition.C64Zeropage(compilerOptions)).compileToAssembly(optimize)
+                val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
+                programAst.anonscopeVarsCleanup()
+                val assembly = AsmGen2(programAst, compilerOptions, zeropage).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name
             }

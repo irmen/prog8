@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package compiler.target.c64.codegen
 
 // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
 // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles

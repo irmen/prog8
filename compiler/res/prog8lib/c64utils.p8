@@ -9,7 +9,7 @@
 %import c64lib
 
 
-~ c64utils {
+c64utils {
 
 		const   uword  ESTACK_LO	= $ce00
 		const   uword  ESTACK_HI	= $cf00
@@ -461,7 +461,7 @@ _raster_irq_handler
 
 
 
-~ c64scr {
+c64scr {
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 
@@ -821,7 +821,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 }
 
 
-asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -840,7 +840,7 @@ asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
 }
 
 
-asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -862,7 +862,7 @@ asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
 }
 
 
-asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -875,7 +875,7 @@ asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
 }
 
 
-asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
+asmsub print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -1063,7 +1063,7 @@ _mod		lda  $ffff		; modified
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
-		lda  setcc_row
+		lda  row
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
@@ -1072,15 +1072,15 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 		sta  _colormod+2
 		lda  setchr._screenrows,y
 		clc
-		adc  setcc_column
+		adc  column
 		sta  _charmod+1
 		sta  _colormod+1
 		bcc  +
 		inc  _charmod+2
 		inc  _colormod+2
-+		lda  setcc_char
++		lda  char
 _charmod	sta  $ffff		; modified
-		lda  setcc_color
+		lda  color
 _colormod	sta  $ffff		; modified
 		rts
 	}}

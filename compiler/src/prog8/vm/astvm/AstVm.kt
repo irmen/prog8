@@ -472,7 +472,7 @@ class AstVm(val program: Program) {
                     loopvar = IdentifierReference(listOf(stmt.loopRegister.name), stmt.position)
                 } else {
                     loopvarDt = stmt.loopVar!!.inferType(program)!!
-                    loopvar = stmt.loopVar
+                    loopvar = stmt.loopVar!!
                 }
                 val iterator = iterable.iterator()
                 for (loopvalue in iterator) {
@@ -518,7 +518,7 @@ class AstVm(val program: Program) {
                         executeAnonymousScope(choice.statements)
                         break
                     } else {
-                        val value = choice.values.single().constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
+                        val value = choice.values!!.single().constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
                         val rtval = RuntimeValue.fromLv(value)
                         if(condition==rtval) {
                             executeAnonymousScope(choice.statements)
@@ -545,10 +545,12 @@ class AstVm(val program: Program) {
     }
 
     fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: Statement, evalCtx: EvalContext) {
+        val targetIdent = target.identifier
+        val targetArrayIndexed = target.arrayindexed
         when {
-            target.identifier != null -> {
-                val decl = contextStmt.definingScope().lookup(target.identifier.nameInSource, contextStmt) as? VarDecl
-                        ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
+            targetIdent != null -> {
+                val decl = contextStmt.definingScope().lookup(targetIdent.nameInSource, contextStmt) as? VarDecl
+                        ?: throw VmExecutionException("can't find assignment target $targetIdent")
                 if (decl.type == VarDeclType.MEMORY) {
                     val address = runtimeVariables.getMemoryAddress(decl.definingScope(), decl.name)
                     when (decl.datatype) {
@@ -565,14 +567,14 @@ class AstVm(val program: Program) {
                     runtimeVariables.set(decl.definingScope(), decl.name, value)
             }
             target.memoryAddress != null -> {
-                val address = evaluate(target.memoryAddress!!.addressExpression, evalCtx).wordval!!
+                val address = evaluate(target.memoryAddress.addressExpression, evalCtx).wordval!!
                 evalCtx.mem.setUByte(address, value.byteval!!)
             }
-            target.arrayindexed != null -> {
-                val vardecl = target.arrayindexed.identifier.targetVarDecl(program.namespace)!!
+            targetArrayIndexed != null -> {
+                val vardecl = targetArrayIndexed.identifier.targetVarDecl(program.namespace)!!
                 if(vardecl.type==VarDeclType.VAR) {
-                    val array = evaluate(target.arrayindexed.identifier, evalCtx)
-                    val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx)
+                    val array = evaluate(targetArrayIndexed.identifier, evalCtx)
+                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx)
                     when (array.type) {
                         DataType.ARRAY_UB -> {
                             if (value.type != DataType.UBYTE)
@@ -606,7 +608,7 @@ class AstVm(val program: Program) {
                         val indexInt = index.integerValue()
                         val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
                         val newstr = array.str!!.replaceRange(indexInt, indexInt + 1, newchr)
-                        val ident = contextStmt.definingScope().lookup(target.arrayindexed.identifier.nameInSource, contextStmt) as? VarDecl
+                        val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
                         program.heap.update(array.heapId!!, newstr)
@@ -615,8 +617,8 @@ class AstVm(val program: Program) {
                 }
                 else {
                     val address = (vardecl.value as NumericLiteralValue).number.toInt()
-                    val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx).integerValue()
-                    val elementType = target.arrayindexed.inferType(program)!!
+                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx).integerValue()
+                    val elementType = targetArrayIndexed.inferType(program)!!
                     when(elementType) {
                         DataType.UBYTE -> mem.setUByte(address+index, value.byteval!!)
                         DataType.BYTE -> mem.setSByte(address+index, value.byteval!!)
@@ -673,23 +675,23 @@ class AstVm(val program: Program) {
                 dialog.canvas.printText(args[0].wordval!!.toString(), true)
             }
             "c64scr.print_ubhex" -> {
-                val prefix = if (args[0].asBoolean) "$" else ""
-                val number = args[1].byteval!!
+                val number = args[0].byteval!!
+                val prefix = if (args[1].asBoolean) "$" else ""
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", true)
             }
             "c64scr.print_uwhex" -> {
-                val prefix = if (args[0].asBoolean) "$" else ""
-                val number = args[1].wordval!!
+                val number = args[0].wordval!!
+                val prefix = if (args[1].asBoolean) "$" else ""
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", true)
             }
             "c64scr.print_uwbin" -> {
-                val prefix = if (args[0].asBoolean) "%" else ""
-                val number = args[1].wordval!!
+                val number = args[0].wordval!!
+                val prefix = if (args[1].asBoolean) "%" else ""
                 dialog.canvas.printText("$prefix${number.toString(2).padStart(16, '0')}", true)
             }
             "c64scr.print_ubbin" -> {
-                val prefix = if (args[0].asBoolean) "%" else ""
-                val number = args[1].byteval!!
+                val number = args[0].byteval!!
+                val prefix = if (args[1].asBoolean) "%" else ""
                 dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", true)
             }
             "c64scr.clear_screenchars" -> {
@@ -731,7 +733,7 @@ class AstVm(val program: Program) {
                 result = RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000'))
             }
             "c64flt.print_f" -> {
-                dialog.canvas.printText(args[0].floatval.toString(), true)
+                dialog.canvas.printText(args[0].floatval.toString(), false)
             }
             "c64.CHROUT" -> {
                 dialog.canvas.printPetscii(args[0].byteval!!)
@@ -952,4 +954,3 @@ class AstVm(val program: Program) {
     }
 
 }
-

@@ -1,0 +1,238 @@
+package prog8.compiler.target.c64.codegen2
+
+import prog8.ast.IFunctionCall
+import prog8.ast.Program
+import prog8.ast.base.ByteDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.Register
+import prog8.ast.base.WordDatatypes
+import prog8.ast.expressions.*
+import prog8.ast.statements.FunctionCallStatement
+import prog8.compiler.CompilationOptions
+import prog8.compiler.Zeropage
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.toHex
+import prog8.functions.FunctionSignature
+
+internal class BuiltinFunctionsAsmGen(private val program: Program,
+                                      private val options: CompilationOptions,
+                                      private val zeropage: Zeropage,
+                                      private val asmgen: AsmGen2) {
+
+    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FunctionSignature) {
+        translateFunctioncall(fcall, func, false)
+    }
+
+    internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FunctionSignature) {
+        translateFunctioncall(fcall, func, true)
+    }
+
+    private fun translateFunctioncall(fcall: IFunctionCall, func: FunctionSignature, discardResult: Boolean) {
+        val functionName = fcall.target.nameInSource.last()
+        if(discardResult) {
+            if(func.pure)
+                return  // can just ignore the whole function call altogether
+            else if(func.returntype!=null)
+                throw AssemblyError("discarding result of non-pure function $fcall")
+        }
+
+        when(functionName) {
+            "msb" -> {
+                val arg = fcall.arglist.single()
+                if(arg.inferType(program) !in WordDatatypes)
+                    throw AssemblyError("msb required word argument")
+                if(arg is NumericLiteralValue)
+                    throw AssemblyError("should have been const-folded")
+                if(arg is IdentifierReference) {
+                    val sourceName = asmgen.asmIdentifierName(arg)
+                    asmgen.out("  lda  $sourceName+1 |  sta  $ESTACK_LO_HEX,x |  dex")
+                } else {
+                    asmgen.translateExpression(arg)
+                    asmgen.out("  lda  $ESTACK_HI_PLUS1_HEX,x |  sta  $ESTACK_LO_PLUS1_HEX,x")
+                }
+            }
+            "mkword" -> {
+                translateFunctionArguments(fcall.arglist)
+                asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
+            }
+            "abs" -> {
+                translateFunctionArguments(fcall.arglist)
+                val dt = fcall.arglist.single().inferType(program)!!
+                when (dt) {
+                    in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
+                    in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
+                    DataType.FLOAT -> asmgen.out("  jsr  c64flt.abs_f")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            // TODO: any(f), all(f), max(f), min(f), sum(f)
+            "sin", "cos", "tan", "atan",
+            "ln", "log2", "sqrt", "rad",
+            "deg", "round", "floor", "ceil",
+            "rdnf" -> {
+                translateFunctionArguments(fcall.arglist)
+                asmgen.out("  jsr  c64flt.func_$functionName")
+            }
+/*
+        TODO this was the old code for bit rotations:
+            Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
+            Opcode.SHR_UBYTE -> AsmFragment(" lsr  $variable+$index", 8)
+            Opcode.SHR_SBYTE -> AsmFragment(" lda  $variable+$index |  asl  a |  ror  $variable+$index")
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index * 2 + 1} |  rol  $variable+${index * 2}", 8)
+            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
+            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index * 2 + 1} |  asl  a |  ror  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
+            Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
+            Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index * 2 + 1} |  rol  $variable+${index * 2}", 8)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
+            Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
+            Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index * 2 + 1} |  rol  $variable+${index * 2} |  bcc  + |  inc  $variable+${index * 2 + 1} |+", 20)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index * 2 + 1} |  ror  $variable+${index * 2} |  bcc  + |  lda  $variable+${index * 2 + 1} |  ora  #\$80 |  sta  $variable+${index * 2 + 1} |+", 30)
+
+ */
+            "lsl" -> {
+                // in-place
+                val what = fcall.arglist.single()
+                val dt = what.inferType(program)!!
+                when(dt) {
+                    in ByteDatatypes -> {
+                        when(what) {
+                            is RegisterExpr -> {
+                                when(what.register) {
+                                    Register.A -> asmgen.out("  asl  a")
+                                    Register.X -> asmgen.out("  txa  |  asl  a |  tax")
+                                    Register.Y -> asmgen.out("  tya  |  asl  a |  tay")
+                                }
+                            }
+                            is IdentifierReference -> asmgen.out("  asl  ${asmgen.asmIdentifierName(what)}")
+                            is DirectMemoryRead -> {
+                                if(what.addressExpression is NumericLiteralValue) {
+                                    asmgen.out("  asl  ${(what.addressExpression as NumericLiteralValue).number.toHex()}")
+                                } else {
+                                    TODO("lsl memory byte $what")
+                                }
+                            }
+                            is ArrayIndexedExpression -> {
+                                TODO("lsl byte array $what")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
+                    }
+                    in WordDatatypes -> {
+                        TODO("lsl word $what")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "lsr" -> {
+                // in-place
+                val what = fcall.arglist.single()
+                val dt = what.inferType(program)!!
+                when(dt) {
+                    DataType.UBYTE -> {
+                        when(what) {
+                            is RegisterExpr -> {
+                                when(what.register) {
+                                    Register.A -> asmgen.out("  lsr  a")
+                                    Register.X -> asmgen.out("  txa  |  lsr  a |  tax")
+                                    Register.Y -> asmgen.out("  tya  |  lsr  a |  tay")
+                                }
+                            }
+                            is IdentifierReference -> asmgen.out("  lsr  ${asmgen.asmIdentifierName(what)}")
+                            is DirectMemoryRead -> {
+                                if(what.addressExpression is NumericLiteralValue) {
+                                    asmgen.out("  lsr  ${(what.addressExpression as NumericLiteralValue).number.toHex()}")
+                                } else {
+                                    TODO("lsr memory byte $what")
+                                }
+                            }
+                            is ArrayIndexedExpression -> {
+                                TODO("lsr byte array $what")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
+                    }
+                    DataType.BYTE -> {
+                        TODO("lsr sbyte $what")
+                    }
+                    DataType.UWORD -> {
+                        TODO("lsr sword $what")
+                    }
+                    DataType.WORD -> {
+                        TODO("lsr word $what")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "rol" -> {
+                // in-place
+                val what = fcall.arglist.single()
+                val dt = what.inferType(program)!!
+                when(dt) {
+                    DataType.UBYTE -> {
+                        TODO("rol ubyte")
+                    }
+                    DataType.UWORD -> {
+                        TODO("rol uword")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "rol2" -> {
+                // in-place
+                val what = fcall.arglist.single()
+                val dt = what.inferType(program)!!
+                when(dt) {
+                    DataType.UBYTE -> {
+                        TODO("rol2 ubyte")
+                    }
+                    DataType.UWORD -> {
+                        TODO("rol2 uword")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "ror" -> {
+                // in-place
+                val what = fcall.arglist.single()
+                val dt = what.inferType(program)!!
+                when(dt) {
+                    DataType.UBYTE -> {
+                        TODO("ror ubyte")
+                    }
+                    DataType.UWORD -> {
+                        TODO("ror uword")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "ror2" -> {
+                // in-place
+                val what = fcall.arglist.single()
+                val dt = what.inferType(program)!!
+                when(dt) {
+                    DataType.UBYTE -> {
+                        TODO("ror2 ubyte")
+                    }
+                    DataType.UWORD -> {
+                        TODO("ror2 uword")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            else -> {
+                translateFunctionArguments(fcall.arglist)
+                asmgen.out("  jsr  prog8_lib.func_$functionName")
+            }
+        }
+    }
+
+    private fun translateFunctionArguments(args: MutableList<Expression>) {
+        args.forEach { asmgen.translateExpression(it) }
+    }
+
+}
+

@@ -6,7 +6,7 @@
 ; indent format: TABS, size=8
 
 
-~ c64 {
+c64 {
 		const   uword  ESTACK_LO	= $ce00		; evaluation stack (lsb)
 		const   uword  ESTACK_HI	= $cf00		; evaluation stack (msb)
 		&ubyte  SCRATCH_ZPB1		= $02		; scratch byte 1 in ZP
@@ -21,7 +21,7 @@
 		&ubyte  TIME_LO			= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
 		&ubyte  STKEY			= $91		; various keyboard statuses (updated by IRQ)
 		&ubyte  SFDX			= $cb		; current key pressed (matrix value) (updated by IRQ)
-	
+
 		&ubyte  COLOR			= $0286		; cursor color
 		&ubyte  HIBASE			= $0288		; screen base address / 256 (hi-byte of screen memory address)
 		&uword  CINV			= $0314		; IRQ vector
@@ -202,12 +202,12 @@ asmsub	CINT     () clobbers(A,X,Y)			= $FF81		; (alias: SCINIT) initialize scree
 asmsub	IOINIT   () clobbers(A, X)			= $FF84		; initialize I/O devices (CIA, SID, IRQ)
 asmsub	RAMTAS   () clobbers(A,X,Y)			= $FF87		; initialize RAM, tape buffer, screen
 asmsub	RESTOR   () clobbers(A,X,Y)			= $FF8A		; restore default I/O vectors
-asmsub	VECTOR   (ubyte dir @ Pc, uword userptr @ XY) clobbers(A,Y)  = $FF8D		; read/set I/O vector table
+asmsub	VECTOR   (uword userptr @ XY, ubyte dir @ Pc) clobbers(A,Y)  = $FF8D		; read/set I/O vector table
 asmsub	SETMSG   (ubyte value @ A)			= $FF90		; set Kernal message control flag
 asmsub	SECOND   (ubyte address @ A) clobbers(A)	= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
 asmsub	TKSA     (ubyte address @ A) clobbers(A)	= $FF96		; (alias: TALKSA) send secondary address after TALK
-asmsub	MEMTOP   (ubyte dir @ Pc, uword address @ XY) -> uword @ XY	= $FF99		; read/set top of memory  pointer
-asmsub	MEMBOT   (ubyte dir @ Pc, uword address @ XY) -> uword @ XY	= $FF9C		; read/set bottom of memory  pointer
+asmsub	MEMTOP   (uword address @ XY, ubyte dir @ Pc) -> uword @ XY	= $FF99		; read/set top of memory  pointer
+asmsub	MEMBOT   (uword address @ XY, ubyte dir @ Pc) -> uword @ XY	= $FF9C		; read/set bottom of memory  pointer
 asmsub	SCNKEY   () clobbers(A,X,Y)			= $FF9F		; scan the keyboard
 asmsub	SETTMO   (ubyte timeout @ A)			= $FFA2		; set time-out flag for IEEE bus
 asmsub	ACPTR    () -> ubyte @ A			= $FFA5		; (alias: IECIN) input byte from serial bus
@@ -235,7 +235,7 @@ asmsub	GETIN    () clobbers(X,Y) -> ubyte @ A		= $FFE4		; (via 810 ($32A)) get a
 asmsub	CLALL    () clobbers(A,X)			= $FFE7		; (via 812 ($32C)) close all files
 asmsub	UDTIM    () clobbers(A,X)			= $FFEA		; update the software clock
 asmsub	SCREEN   () -> ubyte @ X, ubyte @ Y		= $FFED		; read number of screen rows and columns
-asmsub	PLOT     (ubyte dir @ Pc, ubyte col @ Y, ubyte row @ X) -> ubyte @ X, ubyte @ Y	= $FFF0		; read/set position of cursor on screen.  Use c64scr.plot for a 'safe' wrapper that preserves X.
+asmsub	PLOT     (ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y	= $FFF0		; read/set position of cursor on screen.  Use c64scr.plot for a 'safe' wrapper that preserves X.
 asmsub	IOBASE   () -> uword @ XY			= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----

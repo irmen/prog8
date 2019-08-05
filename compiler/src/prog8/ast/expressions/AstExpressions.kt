@@ -97,14 +97,13 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
         return when (operator) {
-            "+", "-", "*", "**", "%" -> if (leftDt == null || rightDt == null) null else {
+            "+", "-", "*", "**", "%", "/" -> if (leftDt == null || rightDt == null) null else {
                 try {
-                    arithmeticOpDt(leftDt, rightDt)
+                    commonDatatype(leftDt, rightDt, null, null).first
                 } catch (x: FatalAstException) {
                     null
                 }
             }
-            "/" -> if (leftDt == null || rightDt == null) null else divisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
@@ -118,137 +117,66 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     }
 
     companion object {
-        fun divisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
+        fun commonDatatype(leftDt: DataType, rightDt: DataType,
+                           left: Expression?, right: Expression?): Pair<DataType, Expression?> {
+            // byte + byte -> byte
+            // byte + word -> word
+            // word + byte -> word
+            // word + word -> word
+            // a combination with a float will be float (but give a warning about this!)
+
             return when (leftDt) {
-                DataType.UBYTE -> when (rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UBYTE
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.BYTE
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.UBYTE -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.UBYTE, null)
+                        DataType.BYTE -> Pair(DataType.BYTE, left)
+                        DataType.UWORD -> Pair(DataType.UWORD, left)
+                        DataType.WORD -> Pair(DataType.WORD, left)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.BYTE -> when (rightDt) {
-                    in NumericDatatypes -> DataType.BYTE
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.BYTE -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.BYTE, right)
+                        DataType.BYTE -> Pair(DataType.BYTE, null)
+                        DataType.UWORD -> Pair(DataType.WORD, left)
+                        DataType.WORD -> Pair(DataType.WORD, left)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.UWORD -> when (rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.UWORD -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.UWORD, right)
+                        DataType.BYTE -> Pair(DataType.WORD, right)
+                        DataType.UWORD -> Pair(DataType.UWORD, null)
+                        DataType.WORD -> Pair(DataType.WORD, left)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.WORD -> when (rightDt) {
-                    in NumericDatatypes -> DataType.WORD
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.WORD -> {
+                    when (rightDt) {
+                        DataType.UBYTE -> Pair(DataType.WORD, right)
+                        DataType.BYTE -> Pair(DataType.WORD, right)
+                        DataType.UWORD -> Pair(DataType.WORD, right)
+                        DataType.WORD -> Pair(DataType.WORD, null)
+                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
                 }
-                DataType.FLOAT -> when (rightDt) {
-                    in NumericDatatypes -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                DataType.FLOAT -> {
+                    Pair(DataType.FLOAT, right)
                 }
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                else -> Pair(leftDt, null)      // non-numeric datatype
             }
-        }
-
-        fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
-            return when (leftDt) {
-                DataType.UBYTE -> when (rightDt) {
-                    DataType.UBYTE -> DataType.UBYTE
-                    DataType.BYTE -> DataType.BYTE
-                    DataType.UWORD -> DataType.UWORD
-                    DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.BYTE -> when (rightDt) {
-                    in ByteDatatypes -> DataType.BYTE
-                    in WordDatatypes -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.UWORD -> when (rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.WORD -> when (rightDt) {
-                    in IntegerDatatypes -> DataType.WORD
-                    DataType.FLOAT -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                DataType.FLOAT -> when (rightDt) {
-                    in NumericDatatypes -> DataType.FLOAT
-                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-                }
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-        }
-    }
-
-    fun commonDatatype(leftDt: DataType, rightDt: DataType,
-                       left: Expression, right: Expression): Pair<DataType, Expression?> {
-        // byte + byte -> byte
-        // byte + word -> word
-        // word + byte -> word
-        // word + word -> word
-        // a combination with a float will be float (but give a warning about this!)
-
-        if(this.operator=="/") {
-            // division is a bit weird, don't cast the operands
-            val commondt = divisionOpDt(leftDt, rightDt)
-            return Pair(commondt, null)
-        }
-
-        return when (leftDt) {
-            DataType.UBYTE -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.UBYTE, null)
-                    DataType.BYTE -> Pair(DataType.BYTE, left)
-                    DataType.UWORD -> Pair(DataType.UWORD, left)
-                    DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.BYTE -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.BYTE, right)
-                    DataType.BYTE -> Pair(DataType.BYTE, null)
-                    DataType.UWORD -> Pair(DataType.WORD, left)
-                    DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.UWORD -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.UWORD, right)
-                    DataType.BYTE -> Pair(DataType.UWORD, right)
-                    DataType.UWORD -> Pair(DataType.UWORD, null)
-                    DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.WORD -> {
-                when (rightDt) {
-                    DataType.UBYTE -> Pair(DataType.WORD, right)
-                    DataType.BYTE -> Pair(DataType.WORD, right)
-                    DataType.UWORD -> Pair(DataType.WORD, right)
-                    DataType.WORD -> Pair(DataType.WORD, null)
-                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> Pair(leftDt, null)      // non-numeric datatype
-                }
-            }
-            DataType.FLOAT -> {
-                Pair(DataType.FLOAT, right)
-            }
-            else -> Pair(leftDt, null)      // non-numeric datatype
         }
     }
 }
 
-class ArrayIndexedExpression(val identifier: IdentifierReference,
-                             var arrayspec: ArrayIndex,
+class ArrayIndexedExpression(var identifier: IdentifierReference,
+                             val arrayspec: ArrayIndex,
                              override val position: Position) : Expression() {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
@@ -304,7 +232,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 }
 
-data class AddressOf(val identifier: IdentifierReference, override val position: Position) : Expression() {
+data class AddressOf(var identifier: IdentifierReference, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -367,6 +295,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                 in 0..255 -> NumericLiteralValue(DataType.UBYTE, value, position)
                 in -128..127 -> NumericLiteralValue(DataType.BYTE, value, position)
                 in 0..65535 -> NumericLiteralValue(DataType.UWORD, value, position)
+                in -32768..32767 -> NumericLiteralValue(DataType.WORD, value, position)
                 else -> throw FatalAstException("integer overflow: $value")
             }
         }
@@ -495,12 +424,12 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
     init {
         when(type){
             in StringDatatypes ->
-                if(str==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
+                if(str==null) throw FatalAstException("literal value missing strvalue/heapId")
             in ArrayDatatypes ->
-                if(array==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
+                if(array==null) throw FatalAstException("literal value missing arrayvalue/heapId")
             else -> throw FatalAstException("invalid type $type")
         }
-        if(array==null && str==null && heapId==null)
+        if(array==null && str==null)
             throw FatalAstException("literal ref value without actual value")
     }
 
@@ -524,7 +453,7 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
             in ArrayDatatypes -> "$array"
             else -> throw FatalAstException("weird ref type")
         }
-        return "ReferenceValueLiteral($type, $valueStr)"
+        return "RefValueLit($type, $valueStr)"
     }
 
     override fun inferType(program: Program) = type
@@ -559,7 +488,24 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
         when(type) {
             in StringDatatypes -> {
                 if(targettype in StringDatatypes)
-                    return ReferenceLiteralValue(targettype, str, initHeapId = heapId, position = position)
+                    return ReferenceLiteralValue(targettype, str, position = position)
+            }
+            in ArrayDatatypes -> {
+                if(targettype in ArrayDatatypes) {
+                    val elementType = ArrayElementTypes.getValue(targettype)
+                    val castArray = array!!.map{
+                        val num = it as? NumericLiteralValue
+                        if(num==null) {
+                            // an array of UWORDs could possibly also contain AddressOfs
+                            if (elementType != DataType.UWORD || it !is AddressOf)
+                                throw FatalAstException("weird array element $it")
+                            it
+                        } else {
+                            num.cast(elementType)!!
+                        }
+                    }.toTypedArray()
+                    return ReferenceLiteralValue(targettype, null, array=castArray, position = position)
+                }
             }
             else -> {}
         }
@@ -582,13 +528,15 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                 }
                 heapId = heap.addIntegerArray(type, intArrayWithAddressOfs.toTypedArray())
             } else {
-                val valuesInArray = array.map { (it as NumericLiteralValue).number }
-                heapId = if(type== DataType.ARRAY_F) {
-                    val doubleArray = valuesInArray.map { it.toDouble() }.toDoubleArray()
-                    heap.addDoublesArray(doubleArray)
-                } else {
-                    val integerArray = valuesInArray.map { it.toInt() }
-                    heap.addIntegerArray(type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                val valuesInArray = array.map { (it as? NumericLiteralValue)?.number }
+                if(null !in valuesInArray) {
+                    heapId = if (type == DataType.ARRAY_F) {
+                        val doubleArray = valuesInArray.map { it!!.toDouble() }.toDoubleArray()
+                        heap.addDoublesArray(doubleArray)
+                    } else {
+                        val integerArray = valuesInArray.map { it!!.toInt() }
+                        heap.addIntegerArray(type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                    }
                 }
             }
         }
@@ -617,13 +565,13 @@ class RangeExpr(var from: Expression,
         val toDt=to.inferType(program)
         return when {
             fromDt==null || toDt==null -> null
-            fromDt== DataType.UBYTE && toDt== DataType.UBYTE -> DataType.UBYTE
-            fromDt== DataType.UWORD && toDt== DataType.UWORD -> DataType.UWORD
+            fromDt== DataType.UBYTE && toDt== DataType.UBYTE -> DataType.ARRAY_UB
+            fromDt== DataType.UWORD && toDt== DataType.UWORD -> DataType.ARRAY_UW
             fromDt== DataType.STR && toDt== DataType.STR -> DataType.STR
             fromDt== DataType.STR_S && toDt== DataType.STR_S -> DataType.STR_S
-            fromDt== DataType.WORD || toDt== DataType.WORD -> DataType.WORD
-            fromDt== DataType.BYTE || toDt== DataType.BYTE -> DataType.BYTE
-            else -> DataType.UBYTE
+            fromDt== DataType.WORD || toDt== DataType.WORD -> DataType.ARRAY_W
+            fromDt== DataType.BYTE || toDt== DataType.BYTE -> DataType.ARRAY_B
+            else -> DataType.ARRAY_UB
         }
     }
     override fun toString(): String {
@@ -745,6 +693,13 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             is ReferenceLiteralValue -> value.heapId ?: throw FatalAstException("refLv is not on the heap: $value")
             else -> throw FatalAstException("requires a reference value")
         }
+    }
+
+    fun withPrefixedName(nameprefix: String): IdentifierReference {
+        val prefixed = nameInSource.dropLast(1) + listOf(nameprefix+nameInSource.last())
+        val new = IdentifierReference(prefixed, position)
+        new.parent = parent
+        return new
     }
 }
 

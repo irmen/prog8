@@ -74,6 +74,7 @@ Directives
       As with ``kernalsafe``, it is not possible to cleanly exit the program, other than to reset the machine.
       This option makes programs smaller and faster because even more variables can
       be stored in the ZP (which allows for more efficient assembly code).
+    - style ``dontuse`` -- don't use *any* location in the zeropage.
 
     Also read :ref:`zeropage`.
 
@@ -173,7 +174,7 @@ Code blocks
 A named block of actual program code. Itefines a *scope* (also known as 'namespace') and
 can contain Prog8 *code*, *directives*, *variable declarations* and *subroutines*::
 
-    ~ <blockname> [<address>] {
+    <blockname> [<address>] {
         <directives>
         <variables>
         <statements>
@@ -185,7 +186,7 @@ The <address> is optional. If specified it must be a valid memory address such a
 It's used to tell the compiler to put the block at a certain position in memory.
 Also read :ref:`blocks`.  Here is an example of a code block, to be loaded at ``$c000``::
 
-	~ main $c000 {
+	main $c000 {
 		; this is code inside the block...
 	}
 
@@ -387,7 +388,7 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
     ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
     ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243. (it only works on floating point variables)
-    ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2
+    ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2.
     Remainder is only supported on integer operands (not floats).
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``

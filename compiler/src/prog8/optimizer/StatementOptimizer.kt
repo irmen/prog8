@@ -241,8 +241,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
                 functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            if(functionCallStatement.arglist.single() is NumericLiteralValue)
-                throw AstException("string argument should be on heap already")
             val stringVar = functionCallStatement.arglist.single() as? IdentifierReference
             if(stringVar!=null) {
                 val heapId = stringVar.heapId(program.namespace)
@@ -379,10 +377,10 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 printWarning("condition is always true", whileLoop.position)
                 if(hasContinueOrBreak(whileLoop.body))
                     return whileLoop
-                val label = Label("__back", whileLoop.condition.position)
+                val label = Label("_prog8_back", whileLoop.condition.position)
                 whileLoop.body.statements.add(0, label)
                 whileLoop.body.statements.add(Jump(null,
-                        IdentifierReference(listOf("__back"), whileLoop.condition.position),
+                        IdentifierReference(listOf("_prog8_back"), whileLoop.condition.position),
                         null, whileLoop.condition.position))
                 optimizationsDone++
                 return whileLoop.body
@@ -489,8 +487,10 @@ internal class StatementOptimizer(private val program: Program, private val opti
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
 
         if(assignment.target isSameAs assignment.value) {
-            optimizationsDone++
-            return NopStatement.insteadOf(assignment)
+            if(assignment.target.isNotMemory(program.namespace)) {
+                optimizationsDone++
+                return NopStatement.insteadOf(assignment)
+            }
         }
         val targetDt = assignment.target.inferType(program, assignment)
         val bexpr=assignment.value as? BinaryExpression

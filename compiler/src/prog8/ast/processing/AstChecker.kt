@@ -104,6 +104,12 @@ internal class AstChecker(private val program: Program,
         super.visit(returnStmt)
     }
 
+    override fun visit(ifStatement: IfStatement) {
+        if(ifStatement.condition.inferType(program) !in IntegerDatatypes)
+            checkResult.add(ExpressionError("condition value should be an integer type", ifStatement.condition.position))
+        super.visit(ifStatement)
+    }
+
     override fun visit(forLoop: ForLoop) {
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
@@ -113,10 +119,11 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
             if (forLoop.loopRegister != null) {
-                printWarning("using a register as loop variable is risky (it could get clobbered)", forLoop.position)
                 // loop register
-                if (iterableDt != DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
+                if (iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_B && iterableDt !in StringDatatypes)
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
+                if(forLoop.loopRegister!=Register.A)
+                    checkResult.add(ExpressionError("it's only possible to use A as a loop register", forLoop.position))
             } else {
                 // loop variable
                 val loopvar = forLoop.loopVar!!.targetVarDecl(program.namespace)
@@ -143,14 +150,14 @@ internal class AstChecker(private val program: Program,
                                 checkResult.add(ExpressionError("word loop variable can only loop over bytes or words", forLoop.position))
                         }
                         DataType.FLOAT -> {
-                            if(iterableDt!= DataType.FLOAT && iterableDt != DataType.ARRAY_F)
-                                checkResult.add(ExpressionError("float loop variable can only loop over floats", forLoop.position))
+                            checkResult.add(ExpressionError("for loop only supports integers", forLoop.position))
                         }
                         else -> checkResult.add(ExpressionError("loop variable must be numeric type", forLoop.position))
                     }
                 }
             }
         }
+
         super.visit(forLoop)
     }
 
@@ -297,6 +304,18 @@ internal class AstChecker(private val program: Program,
 
             if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
                 err("a return register is also in the clobber list")
+
+            if(subroutine.statements.any{it !is InlineAssembly})
+                err("asmsub can only contain inline assembly (%asm)")
+
+            val statusFlagsNoCarry = subroutine.asmParameterRegisters.mapNotNull { it.statusflag }.toSet() - Statusflag.Pc
+            if(statusFlagsNoCarry.isNotEmpty())
+                err("can only use Carry as status flag parameter")
+
+            val carryParameter = subroutine.asmParameterRegisters.singleOrNull { it.statusflag==Statusflag.Pc }
+            if(carryParameter!=null && carryParameter !== subroutine.asmParameterRegisters.last())
+                err("carry parameter has to come last")
+
         } else {
             // TODO: non-asm subroutines can only take numeric arguments for now. (not strings and arrays) Maybe this can be improved now that we have '&' ?
             // the way string params are treated is almost okay (their address is passed) but the receiving subroutine treats it as an integer rather than referring back to the original string.
@@ -313,12 +332,16 @@ internal class AstChecker(private val program: Program,
     override fun visit(repeatLoop: RepeatLoop) {
         if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
+        if(repeatLoop.untilCondition.inferType(program) !in IntegerDatatypes)
+            checkResult.add(ExpressionError("condition value should be an integer type", repeatLoop.untilCondition.position))
         super.visit(repeatLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
         if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
+        if(whileLoop.condition.inferType(program) !in IntegerDatatypes)
+            checkResult.add(ExpressionError("condition value should be an integer type", whileLoop.condition.position))
         super.visit(whileLoop)
     }
 
@@ -353,6 +376,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignTarget: AssignTarget) {
+        super.visit(assignTarget)
+
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
         if (memAddr != null) {
             if (memAddr < 0 || memAddr >= 65536)
@@ -360,8 +385,9 @@ internal class AstChecker(private val program: Program,
         }
 
         val assignment = assignTarget.parent as Statement
-        if (assignTarget.identifier != null) {
-            val targetName = assignTarget.identifier.nameInSource
+        val targetIdentifier = assignTarget.identifier
+        if (targetIdentifier != null) {
+            val targetName = targetIdentifier.nameInSource
             val targetSymbol = program.namespace.lookup(targetName, assignment)
             when (targetSymbol) {
                 null -> {
@@ -596,8 +622,9 @@ internal class AstChecker(private val program: Program,
                         directive.args[0].name != "basicsafe" &&
                         directive.args[0].name != "floatsafe" &&
                         directive.args[0].name != "kernalsafe" &&
+                        directive.args[0].name != "dontuse" &&
                         directive.args[0].name != "full")
-                    err("invalid zp type, expected basicsafe, floatsafe, kernalsafe, or full")
+                    err("invalid zp type, expected basicsafe, floatsafe, kernalsafe, dontuse, or full")
             }
             "%zpreserved" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
@@ -726,12 +753,20 @@ internal class AstChecker(private val program: Program,
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     checkResult.add(ExpressionError("bitwise operator can only be used on integer operands", expr.right.position))
             }
+            "<<", ">>" -> {
+                // for now, bit-shifts can only shift by a constant number
+                val constRight = expr.right.constValue(program)
+                if(constRight==null)
+                    checkResult.add(ExpressionError("bit-shift can only be done by a constant number (for now)", expr.right.position))
+            }
         }
 
         if(leftDt !in NumericDatatypes)
             checkResult.add(ExpressionError("left operand is not numeric", expr.left.position))
         if(rightDt!in NumericDatatypes)
             checkResult.add(ExpressionError("right operand is not numeric", expr.right.position))
+        if(leftDt!=rightDt)
+            checkResult.add(ExpressionError("left and right operands aren't the same type", expr.left.position))
         super.visit(expr)
     }
 
@@ -748,8 +783,11 @@ internal class AstChecker(private val program: Program,
         super.visit(range)
         val from = range.from.constValue(program)
         val to = range.to.constValue(program)
-        val stepLv = range.step.constValue(program) ?: NumericLiteralValue(DataType.UBYTE, 1, range.position)
-        if (stepLv.type !in IntegerDatatypes || stepLv.number.toInt() == 0) {
+        val stepLv = range.step.constValue(program)
+        if(stepLv==null) {
+            err("range step must be a constant integer")
+            return
+        } else if (stepLv.type !in IntegerDatatypes || stepLv.number.toInt() == 0) {
             err("range step must be an integer != 0")
             return
         }
@@ -791,6 +829,13 @@ internal class AstChecker(private val program: Program,
                 printWarning("result value of subroutine call is discarded", functionCallStatement.position)
             else
                 printWarning("result values of subroutine call are discarded", functionCallStatement.position)
+        }
+
+        if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap")) {
+            // in-place modification, can't be done on literals
+            if(functionCallStatement.arglist.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
+                checkResult.add(ExpressionError("can't use that as argument to a in-place modifying function", functionCallStatement.position))
+            }
         }
         super.visit(functionCallStatement)
     }
@@ -902,12 +947,14 @@ internal class AstChecker(private val program: Program,
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
-                // check string lengths
-                val heapId = (target.value as ReferenceLiteralValue).heapId!!
-                val stringLen = program.heap.get(heapId).str!!.length
-                val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
-                if(index!=null && (index<0 || index>=stringLen))
-                    checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
+                if(target.value is ReferenceLiteralValue) {
+                    // check string lengths for non-memory mapped strings
+                    val heapId = (target.value as ReferenceLiteralValue).heapId!!
+                    val stringLen = program.heap.get(heapId).str!!.length
+                    val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
+                    if (index != null && (index < 0 || index >= stringLen))
+                        checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
+                }
             }
         } else
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
@@ -930,6 +977,9 @@ internal class AstChecker(private val program: Program,
         tally.filter { it.value>1 }.forEach {
             checkResult.add(SyntaxError("choice value occurs multiple times", it.key.position))
         }
+        if(whenStatement.choices.isEmpty())
+            checkResult.add(SyntaxError("empty when statement", whenStatement.position))
+
         super.visit(whenStatement)
     }
 
@@ -937,7 +987,7 @@ internal class AstChecker(private val program: Program,
         val whenStmt = whenChoice.parent as WhenStatement
         if(whenChoice.values!=null) {
             val conditionType = whenStmt.condition.inferType(program)
-            val constvalues = whenChoice.values.map { it.constValue(program) }
+            val constvalues = whenChoice.values!!.map { it.constValue(program) }
             for(constvalue in constvalues) {
                 when {
                     constvalue == null -> checkResult.add(SyntaxError("choice value must be a constant", whenChoice.position))

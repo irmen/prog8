@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package compiler.target.c64.codegen
 
 import prog8.compiler.CompilerException
 import prog8.compiler.intermediate.Instruction
@@ -459,8 +459,8 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.CAST_B_TO_F -> " jsr  c64flt.stack_b2float"
         Opcode.CAST_UW_TO_F -> " jsr  c64flt.stack_uw2float"
         Opcode.CAST_W_TO_F -> " jsr  c64flt.stack_w2float"
-        Opcode.CAST_F_TO_UB -> " jsr  c64flt.stack_float2uw"
-        Opcode.CAST_F_TO_B -> " jsr  c64flt.stack_float2w"
+        Opcode.CAST_F_TO_UB -> " jsr  c64flt.stack_float2ub"
+        Opcode.CAST_F_TO_B -> " jsr  c64flt.stack_float2b"
         Opcode.CAST_F_TO_UW -> " jsr  c64flt.stack_float2uw"
         Opcode.CAST_F_TO_W -> " jsr  c64flt.stack_float2w"
         Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  $ESTACK_HI_PLUS1_HEX,x"     // clear the msb
@@ -513,27 +513,27 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.BITOR_WORD -> "  jsr  prog8_lib.bitor_w"
         Opcode.BITXOR_WORD -> "  jsr  prog8_lib.bitxor_w"
 
-        Opcode.REMAINDER_UB -> "  jsr prog8_lib.remainder_ub"
-        Opcode.REMAINDER_UW -> "  jsr prog8_lib.remainder_uw"
+        Opcode.REMAINDER_UB -> "  jsr  prog8_lib.remainder_ub"
+        Opcode.REMAINDER_UW -> "  jsr  prog8_lib.remainder_uw"
 
-        Opcode.GREATER_B -> "  jsr prog8_lib.greater_b"
-        Opcode.GREATER_UB -> "  jsr prog8_lib.greater_ub"
-        Opcode.GREATER_W -> "  jsr prog8_lib.greater_w"
-        Opcode.GREATER_UW -> "  jsr prog8_lib.greater_uw"
-        Opcode.GREATER_F -> "  jsr c64flt.greater_f"
+        Opcode.GREATER_B -> "  jsr  prog8_lib.greater_b"
+        Opcode.GREATER_UB -> "  jsr  prog8_lib.greater_ub"
+        Opcode.GREATER_W -> "  jsr  prog8_lib.greater_w"
+        Opcode.GREATER_UW -> "  jsr  prog8_lib.greater_uw"
+        Opcode.GREATER_F -> "  jsr  c64flt.greater_f"
 
-        Opcode.GREATEREQ_B -> "  jsr prog8_lib.greatereq_b"
-        Opcode.GREATEREQ_UB -> "  jsr prog8_lib.greatereq_ub"
-        Opcode.GREATEREQ_W -> "  jsr prog8_lib.greatereq_w"
-        Opcode.GREATEREQ_UW -> "  jsr prog8_lib.greatereq_uw"
-        Opcode.GREATEREQ_F -> "  jsr c64flt.greatereq_f"
+        Opcode.GREATEREQ_B -> "  jsr  prog8_lib.greatereq_b"
+        Opcode.GREATEREQ_UB -> "  jsr  prog8_lib.greatereq_ub"
+        Opcode.GREATEREQ_W -> "  jsr  prog8_lib.greatereq_w"
+        Opcode.GREATEREQ_UW -> "  jsr  prog8_lib.greatereq_uw"
+        Opcode.GREATEREQ_F -> "  jsr  c64flt.greatereq_f"
 
-        Opcode.EQUAL_BYTE -> "  jsr prog8_lib.equal_b"
-        Opcode.EQUAL_WORD -> "  jsr prog8_lib.equal_w"
-        Opcode.EQUAL_F -> "  jsr c64flt.equal_f"
+        Opcode.EQUAL_BYTE -> "  jsr  prog8_lib.equal_b"
+        Opcode.EQUAL_WORD -> "  jsr  prog8_lib.equal_w"
+        Opcode.EQUAL_F -> "  jsr  c64flt.equal_f"
         Opcode.NOTEQUAL_BYTE -> "  jsr prog8_lib.notequal_b"
         Opcode.NOTEQUAL_WORD -> "  jsr prog8_lib.notequal_w"
-        Opcode.NOTEQUAL_F -> "  jsr c64flt.notequal_f"
+        Opcode.NOTEQUAL_F -> "  jsr  c64flt.notequal_f"
 
         Opcode.LESS_UB -> "  jsr  prog8_lib.less_ub"
         Opcode.LESS_B -> "  jsr  prog8_lib.less_b"

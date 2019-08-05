@@ -1,6 +1,6 @@
 %import c64lib
 
-~ main {
+main {
 
 sub start() {
 
@@ -18,10 +18,10 @@ sub start() {
 
     while(true) {
         for uword note in notes {
-            ubyte n1 = lsb(note)
-            ubyte n2 = msb(note)
-            c64.FREQ1 = music_freq_table[n1]    ; set lo+hi freq of voice 1
-            c64.FREQ2 = music_freq_table[n2]    ; set lo+hi freq of voice 2
+            ubyte note1 = lsb(note)
+            ubyte note2 = msb(note)
+            c64.FREQ1 = music_freq_table[note1]    ; set lo+hi freq of voice 1
+            c64.FREQ2 = music_freq_table[note2]    ; set lo+hi freq of voice 2
 
             ; retrigger voice 1 and 2 ADSR
             c64.CR1 = waveform <<4 | 0
@@ -29,7 +29,7 @@ sub start() {
             c64.CR1 = waveform <<4 | 1
             c64.CR2 = waveform <<4 | 1
 
-            print_notes(n1, n2)
+            print_notes(note1, note2)
             delay()
         }
     }

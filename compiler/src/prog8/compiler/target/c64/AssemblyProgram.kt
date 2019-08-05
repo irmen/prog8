@@ -9,10 +9,25 @@ class AssemblyProgram(val name: String) {
     private val assemblyFile = "$name.asm"
     private val viceMonListFile = "$name.vice-mon-list"
 
+    companion object {
+        // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
+        val opcodeNames = setOf("adc", "ahx", "alr", "anc", "and", "ane", "arr", "asl", "asr", "axs", "bcc", "bcs",
+                "beq", "bge", "bit", "blt", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
+                "cld", "cli", "clv", "cmp", "cpx", "cpy", "dcm", "dcp", "dec", "dex", "dey",
+                "eor", "gcc", "gcs", "geq", "gge", "glt", "gmi", "gne", "gpl", "gvc", "gvs",
+                "inc", "ins", "inx", "iny", "isb", "isc", "jam", "jmp", "jsr", "lae", "las",
+                "lax", "lda", "lds", "ldx", "ldy", "lsr", "lxa", "nop", "ora", "pha", "php",
+                "pla", "plp", "rla", "rol", "ror", "rra", "rti", "rts", "sax", "sbc", "sbx",
+                "sec", "sed", "sei", "sha", "shl", "shr", "shs", "shx", "shy", "slo", "sre",
+                "sta", "stx", "sty", "tas", "tax", "tay", "tsx", "txa", "txs", "tya", "xaa")
+    }
+
+
     fun assemble(options: CompilationOptions) {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps
-        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "-Wno-strict-bool",
-                "-Werror", "-Wno-error=long-branch", "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
+        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+                "-Wall", "-Wno-strict-bool", "-Wno-shadow", "-Werror", "-Wno-error=long-branch",
+                "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
 
         val outFile = when(options.output) {
             OutputType.PRG -> {
@@ -41,7 +56,7 @@ class AssemblyProgram(val name: String) {
     private fun generateBreakpointList() {
         // builds list of breakpoints, appends to monitor list file
         val breakpoints = mutableListOf<String>()
-        val pattern = Regex("""al (\w+) \S+_prog8_breakpoint_\d+.?""")      // gather breakpoints by the source label that's generated for them
+        val pattern = Regex("""al (\w+) \S+_prog8_breakpoint_\d+.?""")      // gather breakpoints by the source label that"s generated for them
         for(line in File(viceMonListFile).readLines()) {
             val match = pattern.matchEntire(line)
             if(match!=null)

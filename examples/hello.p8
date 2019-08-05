@@ -4,7 +4,7 @@
 %zeropage basicsafe
 
 
-~ main {
+main {
 
     sub start() {
 

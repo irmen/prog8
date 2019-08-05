@@ -1,6 +1,7 @@
 package prog8.ast.base
 
 import prog8.ast.Node
+import prog8.compiler.target.c64.MachineDefinition
 
 /**************************** AST Data classes ****************************/
 
@@ -25,10 +26,10 @@ enum class DataType {
     infix fun isAssignableTo(targetType: DataType) =
             // what types are assignable to others without loss of precision?
             when(this) {
-                UBYTE -> targetType in setOf(UBYTE, UWORD, WORD, FLOAT)
-                BYTE -> targetType in setOf(BYTE, UBYTE, UWORD, WORD, FLOAT)
+                UBYTE -> targetType in setOf(UBYTE, WORD, UWORD, FLOAT)
+                BYTE -> targetType in setOf(BYTE, WORD, FLOAT)
                 UWORD -> targetType in setOf(UWORD, FLOAT)
-                WORD -> targetType in setOf(WORD, UWORD, FLOAT)
+                WORD -> targetType in setOf(WORD, FLOAT)
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR || targetType==STR_S
                 STR_S -> targetType == STR || targetType==STR_S
@@ -52,6 +53,16 @@ enum class DataType {
                 in WordDatatypes -> other in WordDatatypes
                 else -> false
             }
+
+    fun memorySize(): Int {
+        return when(this) {
+            in ByteDatatypes -> 1
+            in WordDatatypes -> 2
+            FLOAT -> MachineDefinition.Mflpt5.MemorySize
+            in PassByReferenceDatatypes -> 2
+            else -> -9999999
+        }
+    }
 }
 
 enum class Register {
@@ -111,6 +122,8 @@ val IterableDatatypes = setOf(
 val PassByValueDatatypes = NumericDatatypes
 val PassByReferenceDatatypes = IterableDatatypes.plus(DataType.STRUCT)
 val ArrayElementTypes = mapOf(
+        DataType.STR to DataType.UBYTE,
+        DataType.STR_S to DataType.UBYTE,
         DataType.ARRAY_B to DataType.BYTE,
         DataType.ARRAY_UB to DataType.UBYTE,
         DataType.ARRAY_W to DataType.WORD,

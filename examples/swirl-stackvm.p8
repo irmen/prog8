@@ -2,7 +2,7 @@
 %launcher none
 %import c64flt
 
-~ main {
+main {
 
     const uword width = 320
     const uword height = 200

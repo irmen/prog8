@@ -2,7 +2,7 @@
 %import c64flt
 %zeropage basicsafe
 
-~ main {
+main {
 
     sub start()  {
 

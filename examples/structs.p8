@@ -1,7 +1,7 @@
 %import c64utils
 %zeropage basicsafe
 
-~ main {
+main {
 
     struct Color {
         ubyte red

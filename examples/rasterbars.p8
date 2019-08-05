@@ -2,7 +2,7 @@
 %import c64lib
 
 
-~ main {
+main {
 
     sub start() {
         c64.SCROLY &= %11101111             ; blank the screen
@@ -16,7 +16,7 @@
 }
 
 
-~ irq {
+irq {
 
     const ubyte barheight = 4
     ubyte[] colors = [6,2,4,5,15,7,1,13,3,12,8,11,9]

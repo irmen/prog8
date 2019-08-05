@@ -5,11 +5,11 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.fixupArrayDatatype
 import prog8.ast.statements.*
-import prog8.compiler.HeapValues
-import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
+import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
 
@@ -35,13 +35,9 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
-            val refLv = decl.value as? ReferenceLiteralValue
-            if(refLv!=null && refLv.isArray && refLv.heapId!=null)
-                fixupArrayTypeOnHeap(decl, refLv)
-
             if(decl.isArray){
-                // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
                 if(decl.arraysize==null) {
+                    // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
                     val arrayval = (decl.value as? ReferenceLiteralValue)?.array
                     if(arrayval!=null) {
                         decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
@@ -78,7 +74,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     val numericLv = decl.value as? NumericLiteralValue
                     val rangeExpr = decl.value as? RangeExpr
                     if(rangeExpr!=null) {
-                        // convert the initializer range expression to an actual array (will be put on heap later)
+                        // convert the initializer range expression to an actual array
                         val declArraySize = decl.arraysize?.size()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
@@ -124,8 +120,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             }
                             else -> {}
                         }
-                        val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
-                        decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = numericLv.position)
+                        // create the array itself, filled with the fillvalue.
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
+                        val refValue = ReferenceLiteralValue(decl.datatype, array = array, position = numericLv.position)
+                        refValue.addToHeap(program.heap)
+                        decl.value = refValue
+                        refValue.parent=decl
                         optimizationsDone++
                         return super.visit(decl)
                     }
@@ -142,8 +142,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         if (fillvalue < FLOAT_MAX_NEGATIVE || fillvalue > FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval.position))
                         else {
-                            val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
-                            decl.value = ReferenceLiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval.position)
+                            // create the array itself, filled with the fillvalue.
+                            val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
+                            val refValue = ReferenceLiteralValue(DataType.ARRAY_F, array = array, position = litval.position)
+                            refValue.addToHeap(program.heap)
+                            decl.value = refValue
+                            refValue.parent=decl
                             optimizationsDone++
                             return super.visit(decl)
                         }
@@ -156,36 +160,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
 
         return super.visit(decl)
-    }
-
-    private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: ReferenceLiteralValue) {
-        // fix the type of the array value that's on the heap, to match the vardecl.
-        // notice that checking the bounds of the actual values is not done here, but in the AstChecker later.
-
-        if(decl.datatype==litval.type)
-            return   // already correct datatype
-        val heapId = litval.heapId ?: throw FatalAstException("expected array to be on heap $litval")
-        val array = program.heap.get(heapId)
-        when(decl.datatype) {
-            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                if(array.array!=null) {
-                    program.heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
-                    decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
-                }
-            }
-            DataType.ARRAY_F -> {
-                if(array.array!=null) {
-                    // convert a non-float array to floats
-                    val doubleArray = array.array.map { it.integer!!.toDouble() }.toDoubleArray()
-                    program.heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
-                    decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
-                }
-            }
-            DataType.STRUCT -> {
-                // leave it alone for structs.
-            }
-            else -> throw FatalAstException("invalid array vardecl type ${decl.datatype}")
-        }
     }
 
     /**
@@ -227,6 +201,25 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     }
 
     private fun typeCastConstArguments(functionCall: IFunctionCall) {
+        if(functionCall.target.nameInSource.size==1) {
+            val builtinFunction = BuiltinFunctions[functionCall.target.nameInSource.single()]
+            if(builtinFunction!=null) {
+                // match the arguments of a builtin function signature.
+                for(arg in functionCall.arglist.withIndex().zip(builtinFunction.parameters)) {
+                    val possibleDts = arg.second.possibleDatatypes
+                    val argConst = arg.first.value.constValue(program)
+                    if(argConst!=null && argConst.type !in possibleDts) {
+                        val convertedValue = argConst.cast(possibleDts.first())
+                        if(convertedValue!=null) {
+                            functionCall.arglist[arg.first.index] = convertedValue
+                            optimizationsDone++
+                        }
+                    }
+                }
+                return
+            }
+        }
+        // match the arguments of a subroutine.
         val subroutine = functionCall.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
@@ -259,14 +252,16 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
      */
     override fun visit(expr: PrefixExpression): Expression {
         return try {
-            super.visit(expr)
+            val prefixExpr=super.visit(expr)
+            if(prefixExpr !is PrefixExpression)
+                return prefixExpr
 
-            val subexpr = expr.expression
+            val subexpr = prefixExpr.expression
             if (subexpr is NumericLiteralValue) {
                 // accept prefixed literal values (such as -3, not true)
                 return when {
-                    expr.operator == "+" -> subexpr
-                    expr.operator == "-" -> when {
+                    prefixExpr.operator == "+" -> subexpr
+                    prefixExpr.operator == "-" -> when {
                         subexpr.type in IntegerDatatypes -> {
                             optimizationsDone++
                             NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
@@ -277,21 +272,21 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         }
                         else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
                     }
-                    expr.operator == "~" -> when {
+                    prefixExpr.operator == "~" -> when {
                         subexpr.type in IntegerDatatypes -> {
                             optimizationsDone++
                             NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                     }
-                    expr.operator == "not" -> {
+                    prefixExpr.operator == "not" -> {
                         optimizationsDone++
                         NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
                     }
-                    else -> throw ExpressionError(expr.operator, subexpr.position)
+                    else -> throw ExpressionError(prefixExpr.operator, subexpr.position)
                 }
             }
-            return expr
+            return prefixExpr
         } catch (ax: AstException) {
             addError(ax)
             expr
@@ -606,64 +601,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(refLiteral: ReferenceLiteralValue): Expression {
         val litval = super.visit(refLiteral)
         if(litval is ReferenceLiteralValue) {
-            if (litval.isString) {
-                // intern the string; move it into the heap
-                if (litval.str!!.length !in 1..255)
-                    addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
-                else {
-                    litval.addToHeap(program.heap)  // TODO: we don't know the actual string type yet, STR != STR_S etc...
+            if (litval.isArray) {
+                val vardecl = litval.parent as? VarDecl
+                if (vardecl!=null) {
+                    return fixupArrayDatatype(litval, vardecl, program.heap)
                 }
-            } else if (litval.isArray) {
-                // first, adjust the array datatype
-                val litval2 = adjustArrayValDatatype(litval)
-                litval2.addToHeap(program.heap)
-                return litval2
             }
-        }
-        return litval
-    }
-
-    private fun adjustArrayValDatatype(litval: ReferenceLiteralValue): ReferenceLiteralValue {
-        if(litval.array==null) {
-            if(litval.heapId!=null)
-                return litval       // thing is already on the heap, assume it's the right type
-            throw FatalAstException("missing array value")
-        }
-
-        val typesInArray = litval.array.mapNotNull { it.inferType(program) }.toSet()
-        val arrayDt =
-                when {
-                    litval.array.any { it is AddressOf } -> DataType.ARRAY_UW
-                    DataType.FLOAT in typesInArray -> DataType.ARRAY_F
-                    DataType.WORD in typesInArray -> DataType.ARRAY_W
-                    else -> {
-                        val allElementsAreConstantOrAddressOf = litval.array.fold(true) { c, expr-> c and (expr is NumericLiteralValue|| expr is AddressOf)}
-                        if(!allElementsAreConstantOrAddressOf) {
-                            addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", litval.position))
-                            return litval
-                        } else {
-                            val integerArray = litval.array.map { it.constValue(program)!!.number.toInt() }
-                            val maxValue = integerArray.max()!!
-                            val minValue = integerArray.min()!!
-                            if (minValue >= 0) {
-                                // unsigned
-                                if (maxValue <= 255)
-                                    DataType.ARRAY_UB
-                                else
-                                    DataType.ARRAY_UW
-                            } else {
-                                // signed
-                                if (maxValue <= 127)
-                                    DataType.ARRAY_B
-                                else
-                                    DataType.ARRAY_W
-                            }
-                        }
-                    }
-                }
-
-        if(arrayDt!=litval.type) {
-            return ReferenceLiteralValue(arrayDt, array = litval.array, position = litval.position)
         }
         return litval
     }

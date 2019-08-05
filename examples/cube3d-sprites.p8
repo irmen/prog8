@@ -1,7 +1,7 @@
 %import c64lib
 %import c64utils
 
-~ spritedata $2000 {
+spritedata $2000 {
     ; this memory block contains the sprite data
     ; it must start on an address aligned to 64 bytes.
     %option force_output    ; make sure the data in this block appears in the resulting program
@@ -58,7 +58,7 @@
 }
 
 
-~ main {
+main {
 
     const uword width = 255
     const uword height = 200

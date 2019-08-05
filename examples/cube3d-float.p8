@@ -2,7 +2,7 @@
 %import c64utils
 %import c64flt
 
-~ main {
+main {
 
     const uword width = 40
     const uword height = 25
@@ -66,23 +66,28 @@
 
         ; plot the points of the 3d cube
         ; first the points on the back, then the points on the front (painter algorithm)
+        ubyte i
+        float rz
+        float persp
+        ubyte sx
+        ubyte sy
 
-        for ubyte i in 0 to len(xcoor)-1 {
-            float rz = rotatedz[i]
+        for i in 0 to len(xcoor)-1 {
+            rz = rotatedz[i]
             if rz >= 0.1 {
-                float persp = (5.0+rz)/height
-                ubyte sx = rotatedx[i] / persp + width/2.0 as ubyte
-                ubyte sy = rotatedy[i] / persp + height/2.0 as ubyte
+                persp = (5.0+rz)/height
+                sx = rotatedx[i] / persp + width/2.0 as ubyte
+                sy = rotatedy[i] / persp + height/2.0 as ubyte
                 c64scr.setcc(sx, sy, 46, i+2)
             }
         }
 
-        for ubyte i in 0 to len(xcoor)-1 {
-            float rz = rotatedz[i]
+        for i in 0 to len(xcoor)-1 {
+            rz = rotatedz[i]
             if rz < 0.1 {
-                float persp = (5.0+rz)/height
-                ubyte sx = rotatedx[i] / persp + width/2.0 as ubyte
-                ubyte sy = rotatedy[i] / persp + height/2.0 as ubyte
+                persp = (5.0+rz)/height
+                sx = rotatedx[i] / persp + width/2.0 as ubyte
+                sy = rotatedy[i] / persp + height/2.0 as ubyte
                 c64scr.setcc(sx, sy, 81, i+2)
             }
         }

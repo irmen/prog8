@@ -2,7 +2,7 @@
 %launcher none
 %import c64flt
 
-~ irq {
+irq {
     uword global_time
     ubyte time_changed
 
@@ -14,7 +14,7 @@
 }
 
 
-~ main {
+main {
 
     const uword width = 320
     const uword height = 200

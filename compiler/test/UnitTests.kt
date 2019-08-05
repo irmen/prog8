@@ -145,8 +145,12 @@ class TestZeropage {
         assertFailsWith<CompilerException> {
             zp.allocate("", DataType.FLOAT, null)
         }
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true))
-        zp2.allocate("", DataType.FLOAT, null)
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true))
+        assertFailsWith<CompilerException> {
+            zp2.allocate("", DataType.FLOAT, null)
+        }
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true))
+        zp3.allocate("", DataType.FLOAT, null)
     }
 
     @Test
@@ -165,14 +169,16 @@ class TestZeropage {
         }
     }
 
+    // TODO test dontuse option
+
     @Test
     fun testFreeSpaces() {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
-        assertEquals(20, zp1.available())
+        assertEquals(16, zp1.available())
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false))
-        assertEquals(95, zp2.available())
+        assertEquals(91, zp2.available())
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false))
-        assertEquals(129, zp3.available())
+        assertEquals(125, zp3.available())
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertEquals(238, zp4.available())
     }
@@ -202,11 +208,10 @@ class TestZeropage {
     @Test
     fun testBasicsafeAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
-        assertEquals(20, zp.available())
+        assertEquals(16, zp.available())
 
-        zp.allocate("", DataType.FLOAT, null)
         assertFailsWith<ZeropageDepletedError> {
-            // in regular zp there aren't 5 sequential bytes free after we take the first sequence
+            // in regular zp there aren't 5 sequential bytes free
             zp.allocate("", DataType.FLOAT, null)
         }
 
@@ -256,16 +261,16 @@ class TestZeropage {
     @Test
     fun testEfficientAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true))
-        assertEquals(20, zp.available())
-        assertEquals(0x04, zp.allocate("", DataType.FLOAT, null))
-        assertEquals(0x09, zp.allocate("", DataType.UBYTE, null))
-        assertEquals(0x0d, zp.allocate("", DataType.UWORD, null))
+        assertEquals(16, zp.available())
+        assertEquals(0x04, zp.allocate("", DataType.WORD, null))
+        assertEquals(0x06, zp.allocate("", DataType.UBYTE, null))
+        assertEquals(0x0a, zp.allocate("", DataType.UBYTE, null))
         assertEquals(0x94, zp.allocate("", DataType.UWORD, null))
         assertEquals(0xa7, zp.allocate("", DataType.UWORD, null))
         assertEquals(0xa9, zp.allocate("", DataType.UWORD, null))
         assertEquals(0xb5, zp.allocate("", DataType.UWORD, null))
         assertEquals(0xf7, zp.allocate("", DataType.UWORD, null))
-        assertEquals(0x0a, zp.allocate("", DataType.UBYTE, null))
+        assertEquals(0x0e, zp.allocate("", DataType.UBYTE, null))
         assertEquals(0xf9, zp.allocate("", DataType.UBYTE, null))
         assertEquals(0, zp.available())
     }

@@ -1,6 +1,6 @@
 %import c64utils
 
-~ main {
+main {
 
     const uword width = 40
     const uword height = 25

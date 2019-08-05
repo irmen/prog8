@@ -1,7 +1,7 @@
 %import c64lib
 %import c64utils
 
-~ main {
+main {
 
     const uword width = 40
     const uword height = 25
@@ -75,22 +75,28 @@
         ; plot the points of the 3d cube
         ; first the points on the back, then the points on the front (painter algorithm)
 
-        for ubyte i in 0 to len(xcoor)-1 {
-            word rz = rotatedz[i]
+        ubyte i
+        word rz
+        word persp
+        byte sx
+        byte sy
+
+        for i in 0 to len(xcoor)-1 {
+            rz = rotatedz[i]
             if rz >= 10 {
-                word persp = (rz+200) / height
-                byte sx = rotatedx[i] / persp as byte + width/2
-                byte sy = rotatedy[i] / persp as byte + height/2
+                persp = (rz+200) / height
+                sx = rotatedx[i] / persp as byte + width/2
+                sy = rotatedy[i] / persp as byte + height/2
                 c64scr.setcc(sx as ubyte, sy as ubyte, 46, vertexcolors[(rz as byte >>5) + 3])
             }
         }
 
-        for ubyte i in 0 to len(xcoor)-1 {
-            word rz = rotatedz[i]
+        for i in 0 to len(xcoor)-1 {
+            rz = rotatedz[i]
             if rz < 10 {
-                word persp = (rz+200) / height
-                byte sx = rotatedx[i] / persp as byte + width/2
-                byte sy = rotatedy[i] / persp as byte + height/2
+                persp = (rz+200) / height
+                sx = rotatedx[i] / persp as byte + width/2
+                sy = rotatedy[i] / persp as byte + height/2
                 c64scr.setcc(sx as ubyte, sy as ubyte, 81, vertexcolors[(rz as byte >>5) + 3])
             }
         }
