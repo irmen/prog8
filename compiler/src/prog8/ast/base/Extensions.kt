@@ -12,10 +12,6 @@ import prog8.optimizer.FlattenAnonymousScopesAndRemoveNops
 internal const val initvarsSubName="prog8_init_vars"
 
 
-// prefix for literal values that are turned into a variable on the heap
-internal const val autoHeapValuePrefix = "auto_heap_value_"
-
-
 internal fun Program.removeNopsFlattenAnonScopes() {
     val flattener = FlattenAnonymousScopesAndRemoveNops()
     flattener.visit(this)

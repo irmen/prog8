@@ -192,12 +192,16 @@ class VarDecl(val type: VarDeclType,
     override val expensiveToInline
             get() = value!=null && value !is NumericLiteralValue
 
+    // prefix for literal values that are turned into a variable on the heap
+
     companion object {
+        private var autoHeapValueSequenceNumber = 0
+
         fun createAuto(refLv: ReferenceLiteralValue, heap: HeapValues): VarDecl {
             if(refLv.heapId==null)
                 throw FatalAstException("can only create autovar for a ref lv that has a heapid  $refLv")
 
-            val autoVarName = "$autoHeapValuePrefix${refLv.heapId}"
+            val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             return if(refLv.isArray) {
                 val declaredType = ArrayElementTypes.getValue(refLv.type)
                 val arraysize = ArrayIndex.forArray(refLv, heap)
@@ -523,14 +527,11 @@ class AnonymousScope(override var statements: MutableList<Statement>,
     override lateinit var parent: Node
     override val expensiveToInline
         get() = statements.any { it.expensiveToInline }
+    private var sequenceNumber = 1
 
     init {
         name = "<anon-$sequenceNumber>"     // make sure it's an invalid soruce code identifier so user source code can never produce it
         sequenceNumber++
-    }
-
-    companion object {
-        private var sequenceNumber = 1
     }
 
     override fun linkParents(parent: Node) {

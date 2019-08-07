@@ -23,10 +23,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
-
-    companion object {
-        private var generatedLabelSequenceNumber = 0
-    }
+    private var generatedLabelSequenceNumber = 0
 
     override fun visit(program: Program) {
         removeUnusedCode(callgraph)

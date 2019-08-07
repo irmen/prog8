@@ -301,9 +301,11 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     private fun makeIdentifierFromRefLv(refLiteral: ReferenceLiteralValue): IdentifierReference {
         // a referencetype literal value that's not declared as a variable
         // we need to introduce an auto-generated variable for this to be able to refer to the value
+        // note: if the var references the same literal value, it is not yet de-duplicated here.
         refLiteral.addToHeap(program.heap)
         val scope = refLiteral.definingScope()
         var variable = VarDecl.createAuto(refLiteral, program.heap)
+        val existing = scope.lookup(listOf(variable.name), refLiteral)
         variable = addVarDecl(scope, variable)
         // replace the reference literal by a identifier reference
         val identifier = IdentifierReference(listOf(variable.name), variable.position)

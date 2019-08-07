@@ -113,7 +113,6 @@ private fun compileMain(args: Array<String>) {
             exitProcess(1)
         }
 
-        println("LAUNCH VM!@")
         if (launchAstVm) {
             println("\nLaunching AST-based vm...")
             val vm = AstVm(compilationResult.programAst)
