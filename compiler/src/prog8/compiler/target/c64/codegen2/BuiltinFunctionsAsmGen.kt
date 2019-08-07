@@ -54,11 +54,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 }
             }
             "mkword" -> {
-                translateFunctionArguments(fcall.arglist)
+                translateFunctionArguments(fcall.arglist, func)
                 asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
             }
             "abs" -> {
-                translateFunctionArguments(fcall.arglist)
+                translateFunctionArguments(fcall.arglist, func)
                 val dt = fcall.arglist.single().inferType(program)!!
                 when (dt) {
                     in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
@@ -72,7 +72,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
             "rdnf" -> {
-                translateFunctionArguments(fcall.arglist)
+                translateFunctionArguments(fcall.arglist, func)
                 asmgen.out("  jsr  c64flt.func_$functionName")
             }
 /*
@@ -224,14 +224,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 }
             }
             else -> {
-                translateFunctionArguments(fcall.arglist)
+                translateFunctionArguments(fcall.arglist, func)
                 asmgen.out("  jsr  prog8_lib.func_$functionName")
             }
         }
     }
 
-    private fun translateFunctionArguments(args: MutableList<Expression>) {
-        args.forEach { asmgen.translateExpression(it) }
+    private fun translateFunctionArguments(args: MutableList<Expression>, signature: FunctionSignature) {
+        args.forEach {
+            asmgen.translateExpression(it)
+        }
     }
 
 }

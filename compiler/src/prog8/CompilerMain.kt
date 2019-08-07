@@ -4,10 +4,12 @@ import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.parser.ParsingFailedError
-import prog8.vm.astvm.AstVm
 import prog8.repl.Repl
-import java.lang.Exception
-import java.nio.file.*
+import prog8.vm.astvm.AstVm
+import java.nio.file.FileSystems
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardWatchEventKinds
 import java.util.*
 import kotlin.system.exitProcess
 
@@ -103,12 +105,15 @@ private fun compileMain(args: Array<String>) {
 
         try {
             compilationResult = compileProgram(filepath, optimize, optimizeInlining, writeAssembly)
+            if(!compilationResult.success)
+                exitProcess(1)
         } catch (x: ParsingFailedError) {
             exitProcess(1)
         } catch (x: AstException) {
             exitProcess(1)
         }
 
+        println("LAUNCH VM!@")
         if (launchAstVm) {
             println("\nLaunching AST-based vm...")
             val vm = AstVm(compilationResult.programAst)

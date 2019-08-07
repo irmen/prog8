@@ -1,5 +1,6 @@
 package prog8.compiler
 
+import com.sun.org.apache.xpath.internal.functions.FuncFalse
 import prog8.ast.AstToSourceCode
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -17,7 +18,10 @@ import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
 
-class CompilationResult(val programAst: Program, val programName: String, val importedFiles: List<Path>)
+class CompilationResult(val success: Boolean,
+                        val programAst: Program,
+                        val programName: String,
+                        val importedFiles: List<Path>)
 
 
 fun compileProgram(filepath: Path,
@@ -27,6 +31,7 @@ fun compileProgram(filepath: Path,
     var programName: String? = null
 
     var importedFiles: List<Path> = emptyList()
+    var success=false
 
     try {
         val totalTime = measureTimeMillis {
@@ -65,11 +70,6 @@ fun compileProgram(filepath: Path,
             //println(" time2: $time2")
             val time3 = measureTimeMillis {
                 programAst.removeNopsFlattenAnonScopes()
-
-                // if you want to print the AST, do it before shuffling the statements around below
-                //printAst(programAst)
-
-
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
             }
             //println(" time3: $time3")
@@ -95,7 +95,7 @@ fun compileProgram(filepath: Path,
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 
-            //printAst(programAst)
+            printAst(programAst)
 
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code
@@ -105,6 +105,7 @@ fun compileProgram(filepath: Path,
                 assembly.assemble(compilerOptions)
                 programName = assembly.name
             }
+            success = true
         }
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
 
@@ -129,7 +130,7 @@ fun compileProgram(filepath: Path,
         System.out.flush()
         throw x
     }
-    return CompilationResult(programAst, programName ?: "", importedFiles)
+    return CompilationResult(success, programAst, programName ?: "", importedFiles)
 }
 
 fun printAst(programAst: Program) {

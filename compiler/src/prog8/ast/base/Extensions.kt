@@ -37,7 +37,7 @@ internal fun Program.anonscopeVarsCleanup() {
 
 
 internal fun Program.reorderStatements() {
-    val initvalueCreator = VarInitValueAndAddressOfCreator(namespace, heap)
+    val initvalueCreator = VarInitValueAndAddressOfCreator(this)
     initvalueCreator.visit(this)
 
     val checker = StatementReorderer(this)

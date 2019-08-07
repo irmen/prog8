@@ -3,13 +3,16 @@ package prog8.ast.processing
 import prog8.ast.INameScope
 import prog8.ast.Module
 import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.HeapValues
+import prog8.compiler.CompilerException
+import prog8.functions.BuiltinFunctions
+import prog8.functions.FunctionSignature
 
 
-internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope, private val heap: HeapValues): IAstModifyingVisitor {
+internal class VarInitValueAndAddressOfCreator(private val program: Program): IAstModifyingVisitor {
     // For VarDecls that declare an initialization value:
     // Replace the vardecl with an assignment (to set the initial value),
     // and add a new vardecl with the default constant value of that type (usually zero) to the scope.
@@ -42,7 +45,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
             val array = ReferenceLiteralValue(decl.datatype, null,
                     Array(arraysize) { NumericLiteralValue.optimalInteger(0, decl.position) },
                     null, decl.position)
-            array.addToHeap(heap)
+            array.addToHeap(program.heap)
             decl.value = array
         }
 
@@ -73,20 +76,29 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
     }
 
     override fun visit(functionCall: FunctionCall): Expression {
-        val targetStatement = functionCall.target.targetSubroutine(namespace)
+        var parentStatement: Node = functionCall
+        while(parentStatement !is Statement)
+            parentStatement = parentStatement.parent
+        val targetStatement = functionCall.target.targetSubroutine(program.namespace)
         if(targetStatement!=null) {
-            var node: Node = functionCall
-            while(node !is Statement)
-                node=node.parent
-            addAddressOfExprIfNeeded(targetStatement, functionCall.arglist, node)
+            addAddressOfExprIfNeeded(targetStatement, functionCall.arglist, parentStatement)
+        } else {
+            val builtinFunc = BuiltinFunctions[functionCall.target.nameInSource.joinToString (".")]
+            if(builtinFunc!=null)
+                addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCall.arglist, parentStatement)
         }
         return functionCall
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement): Statement {
-        val targetStatement = functionCallStatement.target.targetSubroutine(namespace)
-        if(targetStatement!=null)
+        val targetStatement = functionCallStatement.target.targetSubroutine(program.namespace)
+        if(targetStatement!=null) {
             addAddressOfExprIfNeeded(targetStatement, functionCallStatement.arglist, functionCallStatement)
+        } else {
+            val builtinFunc = BuiltinFunctions[functionCallStatement.target.nameInSource.joinToString (".")]
+            if(builtinFunc!=null)
+                addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCallStatement.arglist, functionCallStatement)
+        }
         return functionCallStatement
     }
 
@@ -99,7 +111,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                 val idref = argparam.second as? IdentifierReference
                 val strvalue = argparam.second as? ReferenceLiteralValue
                 if(idref!=null) {
-                    val variable = idref.targetVarDecl(namespace)
+                    val variable = idref.targetVarDecl(program.namespace)
                     if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
                         val pointerExpr = AddressOf(idref, idref.position)
                         pointerExpr.scopedname = parent.makeScopedName(idref.nameInSource.single())
@@ -110,7 +122,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                 else if(strvalue!=null) {
                     if(strvalue.isString) {
                         // add a vardecl so that the autovar can be resolved in later lookups
-                        val variable = VarDecl.createAuto(strvalue, heap)
+                        val variable = VarDecl.createAuto(strvalue, program.heap)
                         addVarDecl(strvalue.definingScope(), variable)
                         // replace the argument with &autovar
                         val autoHeapvarRef = IdentifierReference(listOf(variable.name), strvalue.position)
@@ -123,6 +135,22 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
             }
         }
     }
+
+    private fun addAddressOfExprIfNeededForBuiltinFuncs(signature: FunctionSignature, args: MutableList<Expression>, parent: Statement) {
+        for(arg in args.withIndex().zip(signature.parameters)) {
+            val argvalue = arg.first.value
+            val argDt = argvalue.inferType(program)
+            if(DataType.UWORD in arg.second.possibleDatatypes && argDt in PassByReferenceDatatypes) {
+                if(argvalue !is IdentifierReference)
+                    throw CompilerException("pass-by-reference parameter isn't an identifier? $argvalue")
+                val addrOf = AddressOf(argvalue, argvalue.position)
+                args[arg.first.index] = addrOf
+                addrOf.scopedname = parent.makeScopedName(argvalue.nameInSource.single())
+                addrOf.linkParents(parent)
+            }
+        }
+    }
+
 
     private fun addVarDecl(scope: INameScope, variable: VarDecl) {
         if(scope !in vardeclsToAdd)

@@ -238,11 +238,6 @@ internal class AsmGen2(val program: Program,
                     }
                 }
             }
-            else {
-                throw AssemblyError("huh, var is already in zp  $fullName")
-                // it was already allocated on the zp, what to do?
-                // out("${variable.name} = ${zpVar.first}\t; zp ${zpVar.second}")
-            }
         }
     }
 
@@ -647,7 +642,7 @@ internal class AsmGen2(val program: Program,
             out("  ldx  c64.SCRATCH_ZPREGX")        // restore X again
     }
 
-    private fun translateSubroutineArgument(arg: IndexedValue<SubroutineParameter>, value: Expression, sub: Subroutine) {
+    fun translateSubroutineArgument(arg: IndexedValue<SubroutineParameter>, value: Expression, sub: Subroutine) {
         val sourceDt = value.inferType(program)!!
         if(!argumentTypeCompatible(sourceDt, arg.value.type))
             throw AssemblyError("argument type incompatible")

@@ -7,6 +7,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
+import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.vm.RuntimeValue
@@ -877,27 +878,31 @@ class AstVm(val program: Program) {
                     RuntimeValue(DataType.UBYTE, args[0].str!!.length)
             }
             "memset" -> {
-                val target = args[0].array!!
+                val heapId = args[0].wordval!!
+                val target = program.heap.get(heapId).array ?: throw VmExecutionException("memset target is not an array")
                 val amount = args[1].integerValue()
                 val value = args[2].integerValue()
                 for (i in 0 until amount) {
-                    target[i] = value
+                    target[i] = IntegerOrAddressOf(value, null)
                 }
                 null
             }
             "memsetw" -> {
-                val target = args[0].array!!
+                val heapId = args[0].wordval!!
+                val target = program.heap.get(heapId).array  ?: throw VmExecutionException("memset target is not an array")
                 val amount = args[1].integerValue()
                 val value = args[2].integerValue()
                 for (i in 0 until amount step 2) {
-                    target[i * 2] = value and 255
-                    target[i * 2 + 1] = value ushr 8
+                    target[i * 2] = IntegerOrAddressOf(value and 255, null)
+                    target[i * 2 + 1] = IntegerOrAddressOf(value ushr 8, null)
                 }
                 null
             }
             "memcopy" -> {
-                val source = args[0].array!!
-                val dest = args[1].array!!
+                val sourceHeapId = args[0].wordval!!
+                val destHeapId = args[1].wordval!!
+                val source = program.heap.get(sourceHeapId).array!!
+                val dest = program.heap.get(destHeapId).array!!
                 val amount = args[2].integerValue()
                 for(i in 0 until amount) {
                     dest[i] = source[i]
