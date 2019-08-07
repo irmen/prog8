@@ -227,7 +227,8 @@ internal class AsmGen2(val program: Program,
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
                 if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
                         variable.datatype in zeropage.allowedDatatypes
-                        && variable.datatype != DataType.FLOAT) {
+                        && variable.datatype != DataType.FLOAT
+                        && options.zeropage != ZeropageType.DONTUSE) {
                     try {
                         val address = zeropage.allocate(fullName, variable.datatype, null)
                         out("${variable.name} = $address\t; auto zp ${variable.datatype}")
@@ -626,6 +627,8 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateSubroutineCall(stmt: IFunctionCall) {
+        // output the code to setup the parameters and perform the actual call
+        // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(Register.X in sub.asmClobbers)
             out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
@@ -1754,6 +1757,23 @@ $endLabel""")
                     builtinFunctionsAsmGen.translateFunctioncallExpression(expression, builtinFunc)
                 } else {
                     translateSubroutineCall(expression)
+                    val sub = expression.target.targetSubroutine(program.namespace)!!
+                    val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+                    for((t, reg) in returns) {
+                        if(!reg.stack) {
+                            // result value in cpu or status registers, put it on the stack
+                            if(reg.registerOrPair!=null) {
+                                when(reg.registerOrPair) {
+                                    RegisterOrPair.A -> out("  sta  $ESTACK_LO_HEX,x |  dex")
+                                    RegisterOrPair.Y -> out("  tya |  sta  $ESTACK_LO_HEX,x |  dex")
+                                    RegisterOrPair.AY -> out("  sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex")
+                                    RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't push X register - use a variable")
+                                }
+                            } else {
+                                TODO("put return value from statusregister on stack $reg")
+                            }
+                        }
+                    }
                 }
             }
             is ReferenceLiteralValue -> TODO("string/array/struct assignment?")

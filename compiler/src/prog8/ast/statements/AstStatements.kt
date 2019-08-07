@@ -527,7 +527,10 @@ class AnonymousScope(override var statements: MutableList<Statement>,
     override lateinit var parent: Node
     override val expensiveToInline
         get() = statements.any { it.expensiveToInline }
-    private var sequenceNumber = 1
+
+    companion object {
+        private var sequenceNumber = 1
+    }
 
     init {
         name = "<anon-$sequenceNumber>"     // make sure it's an invalid soruce code identifier so user source code can never produce it
