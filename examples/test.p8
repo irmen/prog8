@@ -6,14 +6,12 @@ main {
 
     sub start() {
 
-        uword uw
-
-        uw = c64utils.str2uword("12345")
-        c64scr.print_uw(uw)
-        c64.CHROUT('\n')
-
-        uw = c64utils.str2uword("11")
-        c64scr.print_uw(uw)
-        c64.CHROUT('\n')
+        for ubyte ub1 in 10 to 20 {
+            for ubyte ub2 in ub1 to 30 {
+                c64scr.print_ub(ub2)
+                c64.CHROUT(',')
+            }
+            c64.CHROUT('\n')
+        }
     }
 }

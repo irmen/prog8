@@ -1016,7 +1016,84 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateForOverNonconstRange(stmt: ForLoop, iterableDt: DataType, range: RangeExpr) {
-        TODO("non-const range loop")
+        val loopLabel = makeLabel("for_loop")
+        val endLabel = makeLabel("for_end")
+        val continueLabel = makeLabel("for_continue")
+        val counterLabel = makeLabel("for_counter")
+        loopEndLabels.push(endLabel)
+        loopContinueLabels.push(continueLabel)
+        when (range.step.constValue(program)?.number) {
+            1 -> {
+                when(iterableDt) {
+                    DataType.ARRAY_B, DataType.ARRAY_UB -> {
+                        if (stmt.loopRegister != null) {
+                            // loop register over range
+                            if(stmt.loopRegister!=Register.A)
+                                throw AssemblyError("can only use A")
+                            translateExpression(range.to)
+                            translateExpression(range.from)
+                            out("""
+                inx
+                lda  $ESTACK_LO_HEX,x
+                sta  $loopLabel+1
+                inx
+                lda  $ESTACK_LO_HEX,x
+                sec
+                sbc  $loopLabel+1
+                adc  #0
+                sta  $counterLabel
+$loopLabel      lda  #0                 ; modified""")
+                            translate(stmt.body)
+                            out("""
+$continueLabel  dec  $counterLabel
+                beq  $endLabel
+                inc  $loopLabel+1
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                        } else {
+                            // loop over byte range via loopvar
+                            val varname = asmIdentifierName(stmt.loopVar!!)
+                            translateExpression(range.to)
+                            translateExpression(range.from)
+                            out("""
+                inx
+                lda  $ESTACK_LO_HEX,x
+                sta  $varname
+                inx
+                lda  $ESTACK_LO_HEX,x
+                sec
+                sbc  $varname
+                adc  #0
+                sta  $counterLabel
+$loopLabel""")
+                            translate(stmt.body)
+                            out("""
+$continueLabel  dec  $counterLabel
+                beq  $endLabel
+                inc  $varname
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                        }
+                    }
+                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                        TODO("loop over word range")
+                    }
+                    else -> throw AssemblyError("range expression can only be byte or word")
+                }
+            }
+            -1 -> {
+                TODO("non-const forloop with step -1")
+            }
+            else -> when (iterableDt) {
+                DataType.ARRAY_UB, DataType.ARRAY_B -> TODO()
+                DataType.ARRAY_UW, DataType.ARRAY_W -> TODO()
+                else -> throw AssemblyError("range expression can only be byte or word")
+            }
+        }
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
     }
 
     private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
@@ -1121,6 +1198,7 @@ $endLabel""")
         val loopLabel = makeLabel("for_loop")
         val endLabel = makeLabel("for_end")
         val continueLabel = makeLabel("for_continue")
+        val counterLabel = makeLabel("for_counter")
         loopEndLabels.push(endLabel)
         loopContinueLabels.push(continueLabel)
         when(iterableDt) {
@@ -1134,7 +1212,6 @@ $endLabel""")
                     when {
                         range.step==1 -> {
                             // step = 1
-                            val counterLabel = makeLabel("for_counter")
                             out("""
                 lda  #${range.first}
                 sta  $loopLabel+1
@@ -1152,7 +1229,6 @@ $endLabel""")
                         }
                         range.step==-1 -> {
                             // step = -1
-                            val counterLabel = makeLabel("for_counter")
                             out("""
                 lda  #${range.first}
                 sta  $loopLabel+1
@@ -1170,7 +1246,6 @@ $endLabel""")
                         }
                         range.step >= 2 -> {
                             // step >= 2
-                            val counterLabel = makeLabel("for_counter")
                             out("""
                 lda  #${(range.last-range.first) / range.step + 1}
                 sta  $counterLabel
@@ -1189,7 +1264,6 @@ $endLabel""")
                         }
                         else -> {
                             // step <= -2
-                            val counterLabel = makeLabel("for_counter")
                             out("""
                 lda  #${(range.first-range.last) / range.step.absoluteValue + 1}
                 sta  $counterLabel
@@ -1212,7 +1286,6 @@ $endLabel""")
 
                     // loop over byte range via loopvar
                     val varname = asmIdentifierName(stmt.loopVar!!)
-                    val counterLabel = makeLabel("for_counter")
                     when {
                         range.step==1 -> {
                             // step = 1
@@ -1293,7 +1366,6 @@ $endLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 // loop over word range via loopvar
-                val counterLabel = makeLabel("for_counter")
                 val varname = asmIdentifierName(stmt.loopVar!!)
                 when {
                     range.step == 1 -> {
@@ -1769,9 +1841,8 @@ $endLabel""")
                                     RegisterOrPair.AY -> out("  sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex")
                                     RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't push X register - use a variable")
                                 }
-                            } else {
-                                TODO("put return value from statusregister on stack $reg")
                             }
+                            // return value from a statusregister is not put on the stack, it should be acted on via a conditional branch such as if_cc
                         }
                     }
                 }
