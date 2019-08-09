@@ -2,6 +2,10 @@
 %zeropage basicsafe
 %option enable_floats
 
+; TODO complete codegeneration for all lines in this
+
+
+
 main {
 
     sub start() {
@@ -117,28 +121,28 @@ main {
         muwarray[2] = uw
         mflarray[2] = fl
 
-;        s1[A] = ub
-;        s2[A] = ub
-;        barray[A] = bb
-;        ubarray[A] = ub
-;        warray[A] = ww
-;        uwarray[A] = uw
-;        flarray[A] = fl
-;
-;        s1[bb] = ub
-;        s2[bb] = ub
-;        barray[bb] = bb
-;        ubarray[bb] = ub
-;        warray[bb] = ww
-;        uwarray[bb] = uw
-;        flarray[bb] = fl
-;
-;        s1[bb*3] = ub
-;        s2[bb*3] = ub
-;        barray[bb*3] = bb
-;        ubarray[bb*3] = ub
-;        warray[bb*3] = ww
-;        uwarray[bb*3] = uw
-;        flarray[bb*3] = fl
+        s1[A] = ub
+        s2[A] = ub
+        barray[A] = bb
+        ubarray[A] = ub
+        warray[A] = ww
+        uwarray[A] = uw
+        flarray[A] = fl
+
+        s1[bb] = ub
+        s2[bb] = ub
+        barray[bb] = bb
+        ubarray[bb] = ub
+        warray[bb] = ww
+        uwarray[bb] = uw
+        flarray[bb] = fl
+
+        s1[bb*3] = ub
+        s2[bb*3] = ub
+        barray[bb*3] = bb
+        ubarray[bb*3] = ub
+        warray[bb*3] = ww
+        uwarray[bb*3] = uw
+        flarray[bb*3] = fl
     }
 }

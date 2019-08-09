@@ -89,7 +89,6 @@ fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>
                 lines[1].value.trim()=="dex" &&
                 lines[2].value.trim()=="inx" &&
                 lines[3].value.trim()=="lda  $ESTACK_LO_HEX,x") {
-            removeLines.add(lines[0].index)
             removeLines.add(lines[1].index)
             removeLines.add(lines[2].index)
             removeLines.add(lines[3].index)

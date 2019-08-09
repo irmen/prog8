@@ -7,6 +7,9 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Register
 import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.*
+import prog8.ast.statements.AssignTarget
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
@@ -66,6 +69,17 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     DataType.FLOAT -> asmgen.out("  jsr  c64flt.abs_f")
                     else -> throw AssemblyError("weird type")
                 }
+            }
+            "swap" -> {
+                val first = fcall.arglist[0]
+                val second = fcall.arglist[1]
+                asmgen.translateExpression(first)
+                asmgen.translateExpression(second)
+                // pop in reverse order
+                val firstTarget = AssignTarget.fromExpr(first)
+                val secondTarget = AssignTarget.fromExpr(second)
+                asmgen.assignFromEvalResult(firstTarget)
+                asmgen.assignFromEvalResult(secondTarget)
             }
             // TODO: any(f), all(f), max(f), min(f), sum(f)
             "sin", "cos", "tan", "atan",

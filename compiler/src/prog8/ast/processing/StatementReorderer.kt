@@ -298,7 +298,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
                 }
             }
             is BuiltinFunctionStatementPlaceholder -> {
-                // if(sub.name in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "memset", "memcopy", "memsetw", "swap"))
                 val func = BuiltinFunctions.getValue(sub.name)
                 if(func.pure) {
                     // non-pure functions don't get automatic typecasts because sometimes they act directly on their parameters

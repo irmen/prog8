@@ -582,7 +582,7 @@ internal class AsmGen2(val program: Program,
         }
     }
 
-    private fun translate(stmt: Statement) {
+    internal fun translate(stmt: Statement) {
         outputSourceLine(stmt)
         when(stmt) {
             is VarDecl, is StructDecl, is NopStatement -> {}
@@ -2172,7 +2172,7 @@ $endLabel""")
         }
     }
 
-    private fun assignFromEvalResult(target: AssignTarget) {
+    internal fun assignFromEvalResult(target: AssignTarget) {
         val targetIdent = target.identifier
         when {
             target.register!=null -> {
@@ -2580,7 +2580,34 @@ $endLabel""")
                 targetArrayIdx!=null -> {
                     val index = targetArrayIdx.arrayspec.index
                     val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                    TODO("assign float 0.0 to array $targetName [ $index ]")
+                    if(index is NumericLiteralValue) {
+                        val indexValue = index.number.toInt() * MachineDefinition.Mflpt5.MemorySize
+                        out("""
+                            lda  #0
+                            sta  $targetName+$indexValue
+                            sta  $targetName+$indexValue+1
+                            sta  $targetName+$indexValue+2
+                            sta  $targetName+$indexValue+3
+                            sta  $targetName+$indexValue+4
+                        """)
+                    } else {
+                        translateExpression(index)
+                        out("""
+                        inx
+                        lda  $ESTACK_LO_HEX,x
+                        asl  a
+                        asl  a
+                        clc
+                        adc  $ESTACK_LO_HEX,x
+                        tay
+                        lda  #0
+                        sta  $targetName,y
+                        sta  $targetName+1,y
+                        sta  $targetName+2,y
+                        sta  $targetName+3,y
+                        sta  $targetName+4,y
+                    """) // TODO use a subroutine for this
+                    }
                 }
                 else -> TODO("assign float 0.0 to $target")
             }
@@ -2608,7 +2635,18 @@ $endLabel""")
                     val arrayVarName = asmIdentifierName(targetArrayIdx.identifier)
                     if(index is NumericLiteralValue) {
                         val indexValue = index.number.toInt() * MachineDefinition.Mflpt5.MemorySize
-                        out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.pop_float")
+                        out("""
+                            lda  $constFloat
+                            sta  $arrayVarName+$indexValue
+                            lda  $constFloat+1
+                            sta  $arrayVarName+$indexValue+1
+                            lda  $constFloat+2
+                            sta  $arrayVarName+$indexValue+2
+                            lda  $constFloat+3
+                            sta  $arrayVarName+$indexValue+3
+                            lda  $constFloat+4
+                            sta  $arrayVarName+$indexValue+4
+                        """)
                     } else {
                         translateArrayIndexIntoA(targetArrayIdx)
                         out("""

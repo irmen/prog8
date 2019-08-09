@@ -857,7 +857,7 @@ internal class AstChecker(private val program: Program,
                     }
                 }
                 if(target.name=="swap") {
-                    // swap() is a bit weird because this one is translated into a sequence of bytecodes, instead of being an actual function call
+                    // swap() is a bit weird because this one is translated into a operations directly, instead of being a function call
                     val dt1 = args[0].inferType(program)!!
                     val dt2 = args[1].inferType(program)!!
                     if (dt1 != dt2)
