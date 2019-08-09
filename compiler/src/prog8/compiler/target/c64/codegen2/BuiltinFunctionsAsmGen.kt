@@ -8,8 +8,6 @@ import prog8.ast.base.Register
 import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage

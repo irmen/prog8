@@ -1,6 +1,5 @@
 package prog8.compiler
 
-import com.sun.org.apache.xpath.internal.functions.FuncFalse
 import prog8.ast.AstToSourceCode
 import prog8.ast.Program
 import prog8.ast.base.*
