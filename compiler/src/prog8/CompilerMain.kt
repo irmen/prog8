@@ -4,7 +4,6 @@ import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.parser.ParsingFailedError
-import prog8.repl.Repl
 import prog8.vm.astvm.AstVm
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -37,7 +36,6 @@ private fun compileMain(args: Array<String>) {
     var optimize = true
     var optimizeInlining = true
     var launchAstVm = false
-    var launchRepl = false
     var watchMode = false
     for (arg in args) {
         if(arg=="-emu")
@@ -52,8 +50,6 @@ private fun compileMain(args: Array<String>) {
             optimizeInlining = false
         else if(arg=="-avm")
             launchAstVm = true
-        else if(arg=="-repl")
-            launchRepl = true
         else if(arg=="-watch")
             watchMode = true
         else if(!arg.startsWith("-"))
@@ -93,9 +89,6 @@ private fun compileMain(args: Array<String>) {
             }
         }
 
-    } else if(launchRepl) {
-        val repl = Repl()
-        repl.loop()
     } else {
         if(moduleFile.isBlank())
             usage()
@@ -142,7 +135,6 @@ private fun usage() {
     System.err.println("    [-emu]          auto-start the 'x64' C-64 emulator after successful compilation")
     System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
     System.err.println("    [-avm]          launch the prog8 ast-based virtual machine after compilation")
-    System.err.println("    [-repl]         launch the prog8 REPL (interactive mode)")
     System.err.println("    [-watch]        continuous compilation mode (watches for file changes)")
     System.err.println("    modulefile      main module file to compile")
     exitProcess(1)
