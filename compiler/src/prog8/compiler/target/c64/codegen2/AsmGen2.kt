@@ -370,9 +370,11 @@ internal class AsmGen2(val program: Program,
                     "$"+number.toString(16).padStart(2, '0')
                 }
             decl.datatype== DataType.ARRAY_UW -> array.map {
-                val number = (it as NumericLiteralValue).number.toInt()
-                // TODO word array with address-references
-                "$"+number.toString(16).padStart(4, '0')
+                if(it is NumericLiteralValue) {
+                    "$" + it.number.toInt().toString(16).padStart(4, '0')
+                } else {
+                    (it as AddressOf).identifier.nameInSource.joinToString(".")
+                }
             }
             else -> throw AssemblyError("invalid arraysize type")
         }
