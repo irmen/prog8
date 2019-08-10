@@ -44,11 +44,13 @@ Rapid edit-compile-run-debug cycle:
 It is mainly targeted at the Commodore-64 machine at this time.
 Contributions to add support for other 8-bit (or other?!) machines are welcome.
 
-Documentation is online at https://prog8.readthedocs.io/
+Documentation/manual
+--------------------
+See https://prog8.readthedocs.io/
 
 
-Required tools:
----------------
+Required tools
+--------------
 
 [64tass](https://sourceforge.net/projects/tass64/) - cross assembler. Install this on your shell path.
 A recent .exe version of this tool for Windows can be obtained from my [clone](https://github.com/irmen/64tass/releases) of this project.
