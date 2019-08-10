@@ -1,43 +1,21 @@
-%import c64utils
 %import c64lib
-%import c64flt
-%zeropage dontuse
-
+%import c64utils
 
 main {
 
     sub start() {
 
-        word[] warr = [1111, 2222, 3333, 4444]
-        byte[] barr = [11, 22, 33, 44]
+        for ubyte ax in 0 to 255 {
+            word wcosa = cos8(ax) as word
+            word wsina = sin8(ax) as word
 
-        word ww = 9999
-        byte bb = 99
-
-        c64scr.print_b(barr[2])
-        c64.CHROUT('\n')
-
-        barr[2] = 55
-        c64scr.print_b(barr[2])
-        c64.CHROUT('\n')
-
-        barr[2] = bb
-        c64scr.print_b(barr[2])
-        c64.CHROUT('\n')
-
-        @($0400+72) = X
-
-        c64scr.print_w(warr[2])
-        c64.CHROUT('\n')
-
-        warr[2] = 5555
-        c64scr.print_w(warr[2])
-        c64.CHROUT('\n')
-
-        warr[2] = ww
-        c64scr.print_w(warr[2])
-        c64.CHROUT('\n')
-
-        @($0400+73) = X
+            c64scr.print_ub(ax)
+            c64.CHROUT(':')
+            c64.CHROUT(' ')
+            c64scr.print_w(wcosa)
+            c64.CHROUT(',')
+            c64scr.print_w(wsina)
+            c64.CHROUT('\n')
+        }
     }
 }

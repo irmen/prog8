@@ -1786,7 +1786,7 @@ $endLabel""")
             DataType.BYTE -> {
                 when(expr.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
-                    DataType.UWORD, DataType.WORD -> out("  lda  $ESTACK_HI_PLUS1_HEX,x  |  ${signExtendAtoMsb("$ESTACK_HI_PLUS1_HEX,x")}")
+                    DataType.UWORD, DataType.WORD -> out("  lda  $ESTACK_LO_PLUS1_HEX,x  |  ${signExtendAtoMsb("$ESTACK_HI_PLUS1_HEX,x")}")
                     DataType.FLOAT -> out(" jsr  c64flt.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
