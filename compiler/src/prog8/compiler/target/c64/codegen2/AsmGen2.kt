@@ -517,24 +517,39 @@ internal class AsmGen2(val program: Program,
 
     private fun readAndPushArrayvalueWithIndexA(arrayDt: DataType, variable: IdentifierReference) {
         val variablename = asmIdentifierName(variable)
-        when (ArrayElementTypes.getValue(arrayDt).memorySize()) {
-            1 -> {}
-            2 -> out("  asl  a")
-            5 -> out("  sta  ${C64Zeropage.SCRATCH_REG} |  asl  a |  asl  a  | clc |  adc  ${C64Zeropage.SCRATCH_REG}")
-            else -> throw AssemblyError("invalid memory size")
-        }
         when (arrayDt) {
             DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
                 out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  dex")
             DataType.ARRAY_UW, DataType.ARRAY_W ->
-                out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  lda  $variablename+1,y |  sta  $ESTACK_HI_HEX,x | dex")
+                out("  asl  a |  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  lda  $variablename+1,y |  sta  $ESTACK_HI_HEX,x | dex")
             DataType.ARRAY_F ->
+                // index * 5 is done in the subroutine that's called
                 out("""
                     sta  $ESTACK_LO_HEX,x
                     dex
                     lda  #<$variablename
                     ldy  #>$variablename
                     jsr  c64flt.push_float_from_indexed_var
+                """)
+            else ->
+                throw AssemblyError("weird array type")
+        }
+    }
+
+    private fun popAndWriteArrayvalueWithIndexA(arrayDt: DataType, variablename: String) {
+        when (arrayDt) {
+            DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
+                out("  tay |  inx |  lda  $ESTACK_LO_HEX,x  | sta  $variablename,y")
+            DataType.ARRAY_UW, DataType.ARRAY_W ->
+                out("  asl  a |  tay |  inx |  lda  $ESTACK_LO_HEX,x |  sta  $variablename,y |  lda  $ESTACK_HI_HEX,x |  sta $variablename+1,y")
+            DataType.ARRAY_F ->
+                // index * 5 is done in the subroutine that's called
+                out("""
+                    sta  $ESTACK_LO_HEX,x
+                    dex
+                    lda  #<$variablename
+                    ldy  #>$variablename
+                    jsr  c64flt.pop_float_to_indexed_var
                 """)
             else ->
                 throw AssemblyError("weird array type")
@@ -1087,8 +1102,8 @@ $endLabel""")
                 TODO("non-const forloop with step -1")
             }
             else -> when (iterableDt) {
-                DataType.ARRAY_UB, DataType.ARRAY_B -> TODO()
-                DataType.ARRAY_UW, DataType.ARRAY_W -> TODO()
+                DataType.ARRAY_UB, DataType.ARRAY_B -> TODO("non-const forloop bytes")
+                DataType.ARRAY_UW, DataType.ARRAY_W -> TODO("non-const forloop words")
                 else -> throw AssemblyError("range expression can only be byte or word")
             }
         }
@@ -2080,13 +2095,10 @@ $endLabel""")
         }
     }
 
-    // TODO: use optimized routines such as mul_10
-
-
     private fun translateBinaryOperatorBytes(operator: String, types: DataType) {
         when(operator) {
             "**" -> throw AssemblyError("** operator requires floats")
-            "*" -> out("  jsr  prog8_lib.mul_byte")
+            "*" -> out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 if(types==DataType.BYTE)
@@ -2278,7 +2290,11 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                TODO("assign wordvar $sourceName to array $targetName [ $index ]")
+                val arrayDt = targetArrayIdx.identifier.inferType(program)!!
+                out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
+                translateExpression(index)
+                out("  inx |  lda  $ESTACK_LO_HEX,x")
+                popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
             else -> TODO("assign wordvar to $target")
         }
@@ -2307,7 +2323,9 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                TODO("assign floatvar $sourceName to array $targetName [ $index ]")
+                out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
+                translateExpression(index)
+                out("  lda  #<$targetName |  ldy  #>$targetName |  jsr  c64flt.pop_float_to_indexed_var")
             }
             else -> TODO("assign floatvar to $target")
         }
@@ -2331,7 +2349,11 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                TODO("assign bytevar to array $targetName [ $index ] ")
+                val arrayDt = targetArrayIdx.identifier.inferType(program)!!
+                out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+                translateExpression(index)
+                out("  inx |  lda  $ESTACK_LO_HEX,x")
+                popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
             target.memoryAddress != null -> {
                 val addressExpr = target.memoryAddress.addressExpression
@@ -2518,7 +2540,9 @@ $endLabel""")
                 translateExpression(index)
                 out("""
                     inx
-                    ldy  $ESTACK_LO_HEX,x
+                    lda  $ESTACK_LO_HEX,x
+                    asl  a
+                    tay
                     lda  #<${word.toHex()}
                     sta  $targetName,y
                     lda  #>${word.toHex()}
@@ -2671,31 +2695,6 @@ $endLabel""")
                 }
                 else -> TODO("assign float $float to $target")
             }
-        }
-    }
-
-    private fun popAndWriteArrayvalueWithIndexA(arrayDt: DataType, variablename: String) {
-        when (ArrayElementTypes.getValue(arrayDt).memorySize()) {
-            1 -> {}
-            2 -> out("  asl  a")
-            5 -> out("  sta  ${C64Zeropage.SCRATCH_REG} |  asl  a |  asl  a  | clc |  adc  ${C64Zeropage.SCRATCH_REG}")
-            else -> throw AssemblyError("invalid memory size")
-        }
-        when (arrayDt) {
-            DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
-                out("  tay |  inx |  lda  $ESTACK_LO_HEX,x  | sta  $variablename,y")
-            DataType.ARRAY_UW, DataType.ARRAY_W ->
-                out("  tay |  inx |  lda  $ESTACK_LO_HEX,x |  sta  $variablename,y |  lda  $ESTACK_HI_HEX,x |  sta $variablename+1,y")
-            DataType.ARRAY_F ->
-                out("""
-                    sta  $ESTACK_LO_HEX,x
-                    dex
-                    lda  #<$variablename
-                    ldy  #>$variablename
-                    jsr  c64flt.pop_float_to_indexed_var
-                """)
-            else ->
-                throw AssemblyError("weird array type")
         }
     }
 

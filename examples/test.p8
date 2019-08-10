@@ -8,50 +8,36 @@ main {
 
     sub start() {
 
-        ubyte ub1 = 123
-        ubyte ub2 = 222
-        uword uw = 1111
-        uword uw2 = 2222
-        word[] warr = [1111, 2222]
-        float[] farr = [1.111, 2.222]
+        word[] warr = [1111, 2222, 3333, 4444]
+        byte[] barr = [11, 22, 33, 44]
 
-        c64scr.print_ub(ub1)
-        c64.CHROUT(',')
-        c64scr.print_ub(ub2)
-        c64.CHROUT('\n')
-        c64scr.print_uw(uw)
-        c64.CHROUT(',')
-        c64scr.print_uw(uw2)
-        c64.CHROUT('\n')
-        c64scr.print_w(warr[0])
-        c64.CHROUT(',')
-        c64scr.print_w(warr[1])
-        c64.CHROUT('\n')
-        c64flt.print_f(farr[0])
-        c64.CHROUT(',')
-        c64flt.print_f(farr[1])
+        word ww = 9999
+        byte bb = 99
+
+        c64scr.print_b(barr[2])
         c64.CHROUT('\n')
 
-        swap(ub1, ub2)
-        swap(uw,uw2)
-        swap(warr[0], warr[1])
-        swap(farr[0], farr[1])      ; TODO CRASHES
+        barr[2] = 55
+        c64scr.print_b(barr[2])
+        c64.CHROUT('\n')
 
-        c64scr.print_ub(ub1)
-        c64.CHROUT(',')
-        c64scr.print_ub(ub2)
+        barr[2] = bb
+        c64scr.print_b(barr[2])
         c64.CHROUT('\n')
-        c64scr.print_uw(uw)
-        c64.CHROUT(',')
-        c64scr.print_uw(uw2)
+
+        @($0400+72) = X
+
+        c64scr.print_w(warr[2])
         c64.CHROUT('\n')
-        c64scr.print_w(warr[0])
-        c64.CHROUT(',')
-        c64scr.print_w(warr[1])
+
+        warr[2] = 5555
+        c64scr.print_w(warr[2])
         c64.CHROUT('\n')
-        c64flt.print_f(farr[0])
-        c64.CHROUT(',')
-        c64flt.print_f(farr[1])
+
+        warr[2] = ww
+        c64scr.print_w(warr[2])
         c64.CHROUT('\n')
+
+        @($0400+73) = X
     }
 }
