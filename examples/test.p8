@@ -3,19 +3,38 @@
 
 main {
 
+    str title="bla"
+    struct Color {
+        ubyte red
+        ubyte green
+        ubyte blue
+    }
+
     sub start() {
+        str subtitle = "basdf"
+        Color rgb
 
-        for ubyte ax in 0 to 255 {
-            word wcosa = cos8(ax) as word
-            word wsina = sin8(ax) as word
+        derp.dop()
 
-            c64scr.print_ub(ax)
-            c64.CHROUT(':')
-            c64.CHROUT(' ')
-            c64scr.print_w(wcosa)
-            c64.CHROUT(',')
-            c64scr.print_w(wsina)
-            c64.CHROUT('\n')
-        }
+        uword zz = &title
+        zz=&main.title
+        zz=&subtitle
+        zz=&main.start.subtitle
+
+;        uword addr = &derp.dop.name         ; @todo strange error "pointer-of operand must be the name of a heap variable"
+;        c64scr.print(&derp.dop.name)
+
+        zz=&rgb
+    }
+}
+
+
+derp {
+
+    sub dop() {
+        ubyte zzz=33
+        str name="irmen"
+
+        A=54
     }
 }

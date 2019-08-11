@@ -316,7 +316,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     override fun visit(addressOf: AddressOf): Expression {
         // register the scoped name of the referenced identifier
         val variable= addressOf.identifier.targetVarDecl(program.namespace) ?: return addressOf
-        addressOf.scopedname = variable.scopedname
         return super.visit(addressOf)
     }
 

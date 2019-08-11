@@ -442,8 +442,6 @@ internal class AstChecker(private val program: Program,
             if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes && variable.datatype!=DataType.STRUCT)
                 checkResult.add(ExpressionError("invalid pointer-of operand type", addressOf.position))
         }
-        if(addressOf.scopedname==null)
-            throw FatalAstException("the scopedname of AddressOf should have been set by now  $addressOf")
         super.visit(addressOf)
     }
 

@@ -1673,8 +1673,7 @@ $endLabel""")
             }
             is AddressOf -> {
                 val identifier = (assign.value as AddressOf).identifier
-                val scopedname = (assign.value as AddressOf).scopedname!!
-                assignFromAddressOf(assign.target, identifier, scopedname)
+                assignFromAddressOf(assign.target, identifier)
             }
             is DirectMemoryRead -> {
                 val read = (assign.value as DirectMemoryRead)
@@ -2235,7 +2234,7 @@ $endLabel""")
         }
     }
 
-    private fun assignFromAddressOf(target: AssignTarget, name: IdentifierReference, scopedname: String) {
+    private fun assignFromAddressOf(target: AssignTarget, name: IdentifierReference) {
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
         val struct = name.memberOfStruct(program.namespace)
@@ -2248,8 +2247,9 @@ $endLabel""")
             val firstVar = name.definingScope().lookup(firstVarName, name) as VarDecl
             firstVar.name
         } else {
-            fixNameSymbols(scopedname)
+            fixNameSymbols(name.nameInSource.joinToString ("."))
         }
+
         when {
             targetIdent!=null -> {
                 val targetName = asmIdentifierName(targetIdent)

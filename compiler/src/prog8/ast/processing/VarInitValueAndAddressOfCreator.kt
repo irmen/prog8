@@ -114,7 +114,6 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
                     val variable = idref.targetVarDecl(program.namespace)
                     if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
                         val pointerExpr = AddressOf(idref, idref.position)
-                        pointerExpr.scopedname = parent.makeScopedName(idref.nameInSource.single())
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                     }
@@ -127,7 +126,6 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
                         // replace the argument with &autovar
                         val autoHeapvarRef = IdentifierReference(listOf(variable.name), strvalue.position)
                         val pointerExpr = AddressOf(autoHeapvarRef, strvalue.position)
-                        pointerExpr.scopedname = parent.makeScopedName(variable.name)
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                     }
@@ -145,7 +143,6 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
                     throw CompilerException("pass-by-reference parameter isn't an identifier? $argvalue")
                 val addrOf = AddressOf(argvalue, argvalue.position)
                 args[arg.first.index] = addrOf
-                addrOf.scopedname = parent.makeScopedName(argvalue.nameInSource.single())
                 addrOf.linkParents(parent)
             }
         }

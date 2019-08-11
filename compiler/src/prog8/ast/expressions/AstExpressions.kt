@@ -240,7 +240,6 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
         identifier.parent=this
     }
 
-    var scopedname: String? = null     // will be set in a later state by the compiler  // TODO get rid of this??
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program) = DataType.UWORD
