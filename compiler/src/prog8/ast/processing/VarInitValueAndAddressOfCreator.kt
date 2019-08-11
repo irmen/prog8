@@ -135,10 +135,11 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
     }
 
     private fun addAddressOfExprIfNeededForBuiltinFuncs(signature: FunctionSignature, args: MutableList<Expression>, parent: Statement) {
+        // val paramTypesForAddressOf = PassByReferenceDatatypes + DataType.UWORD
         for(arg in args.withIndex().zip(signature.parameters)) {
             val argvalue = arg.first.value
             val argDt = argvalue.inferType(program)
-            if(DataType.UWORD in arg.second.possibleDatatypes && argDt in PassByReferenceDatatypes) {
+            if(argDt in PassByReferenceDatatypes && DataType.UWORD in arg.second.possibleDatatypes) {
                 if(argvalue !is IdentifierReference)
                     throw CompilerException("pass-by-reference parameter isn't an identifier? $argvalue")
                 val addrOf = AddressOf(argvalue, argvalue.position)

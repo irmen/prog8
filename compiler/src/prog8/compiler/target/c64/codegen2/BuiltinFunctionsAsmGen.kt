@@ -11,6 +11,7 @@ import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
@@ -79,7 +80,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 asmgen.assignFromEvalResult(firstTarget)
                 asmgen.assignFromEvalResult(secondTarget)
             }
-            // TODO: any(f), all(f), max(f), min(f), sum(f)
+            "strlen" -> {
+                val identifierName = asmgen.asmIdentifierName(fcall.arglist[0] as IdentifierReference)
+                asmgen.out("""
+                    lda  #<$identifierName
+                    sta  $ESTACK_LO_HEX,x
+                    lda  #>$identifierName
+                    sta  $ESTACK_HI_HEX,x
+                    dex
+                    jsr  prog8_lib.func_strlen
+                """)
+            }
+            // TODO: any(f), all(f), max(f), min(f), sum(f), avg(f)
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",

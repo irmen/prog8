@@ -10,13 +10,13 @@ class SyntaxError(override var message: String, val position: Position) : AstExc
     override fun toString() = "$position Syntax error: $message"
 }
 
-class NameError(override var message: String, val position: Position) : AstException(message) {
+open class NameError(override var message: String, val position: Position) : AstException(message) {
     override fun toString() = "$position Name error: $message"
 }
 
-open class ExpressionError(message: String, val position: Position) : AstException(message) {
+class ExpressionError(message: String, val position: Position) : AstException(message) {
     override fun toString() = "$position Error: $message"
 }
 
 class UndefinedSymbolError(symbol: IdentifierReference)
-    : ExpressionError("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
+    : NameError("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)

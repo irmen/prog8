@@ -326,7 +326,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     operator fun compareTo(other: NumericLiteralValue): Int = number.toDouble().compareTo(other.number.toDouble())
 
-    fun cast(targettype: DataType): NumericLiteralValue? {
+    fun cast(targettype: DataType): NumericLiteralValue {
         if(type==targettype)
             return this
         val numval = number.toDouble()
@@ -381,7 +381,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
             }
             else -> {}
         }
-        return null    // invalid type conversion from $this to $targettype
+        throw ExpressionError("can't cast $type into $targettype", position)
     }
 }
 

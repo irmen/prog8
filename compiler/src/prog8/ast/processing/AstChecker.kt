@@ -848,9 +848,12 @@ internal class AstChecker(private val program: Program,
             if(args.size!=func.parameters.size)
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
+                val paramTypesForAddressOf = PassByReferenceDatatypes + DataType.UWORD
                 for (arg in args.withIndex().zip(func.parameters)) {
                     val argDt=arg.first.value.inferType(program)
-                    if(argDt!=null && !(argDt isAssignableTo arg.second.possibleDatatypes)) {
+                    if (argDt != null
+                            && !(argDt isAssignableTo arg.second.possibleDatatypes)
+                            && (argDt != DataType.UWORD || arg.second.possibleDatatypes.intersect(paramTypesForAddressOf).isEmpty())) {
                         checkResult.add(ExpressionError("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
                 }
@@ -866,6 +869,14 @@ internal class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("swap should have 2 different args", position))
                     else if(dt1 !in NumericDatatypes)
                         checkResult.add(ExpressionError("swap requires args of numerical type", position))
+                }
+                else if(target.name=="all" || target.name=="any") {
+                    if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype in StringDatatypes) {
+                        checkResult.add(ExpressionError("any/all on a string is useless (is always true unless the string is empty)", position))
+                    }
+                    if(args[0].inferType(program) in StringDatatypes) {
+                        checkResult.add(ExpressionError("any/all on a string is useless (is always true unless the string is empty)", position))
+                    }
                 }
             }
         } else if(target is Subroutine) {

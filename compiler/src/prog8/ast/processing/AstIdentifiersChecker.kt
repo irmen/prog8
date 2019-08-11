@@ -381,7 +381,14 @@ internal fun fixupArrayDatatype(array: ReferenceLiteralValue, vardecl: VarDecl, 
         val arrayDt = array.type
         if(arrayDt!=vardecl.datatype) {
             // fix the datatype of the array (also on the heap) to match the vardecl
-            val litval2 = array.cast(vardecl.datatype)!!
+            val litval2 =
+                    try {
+                        array.cast(vardecl.datatype)!!
+                    } catch(x: ExpressionError) {
+                        // couldn't cast permanently.
+                        // instead, simply adjust the array type and trust the AstChecker to report the exact error
+                        ReferenceLiteralValue(vardecl.datatype, null, array.array, array.heapId, array.position)
+                    }
             vardecl.value = litval2
             litval2.linkParents(vardecl)
             litval2.addToHeap(heap)     // TODO is the previous array discarded from the resulting asm code?
