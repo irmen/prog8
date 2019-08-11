@@ -28,7 +28,7 @@ sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteralValue?
     abstract fun accept(visitor: IAstModifyingVisitor): Expression
     abstract fun accept(visitor: IAstVisitor)
-    abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove this here and move it into CallGraph instead
+    abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove this and add identifier usage tracking into CallGraph instead
     abstract fun inferType(program: Program): DataType?
 
     infix fun isSameAs(other: Expression): Boolean {

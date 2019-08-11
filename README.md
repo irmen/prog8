@@ -33,7 +33,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 Rapid edit-compile-run-debug cycle:
 
 - use modern PC to work on 
-- quick compilation times (around a second, and less than 0.1 seconds when using the continuous compilation mode)
+- quick compilation times (couple of seconds, and less than a second when using the continuous compilation mode)
 - option to automatically run the program in the Vice emulator  
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly

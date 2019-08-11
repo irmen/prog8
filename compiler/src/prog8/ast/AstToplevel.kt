@@ -240,7 +240,7 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
                 }
             }
         }
-
+        // lookup something from the module.
         val stmt = localContext.definingModule().lookup(scopedName, localContext)
         return when (stmt) {
             is Label, is VarDecl, is Block, is Subroutine -> stmt

@@ -391,7 +391,7 @@ internal class AstChecker(private val program: Program,
             val targetSymbol = program.namespace.lookup(targetName, assignment)
             when (targetSymbol) {
                 null -> {
-                    checkResult.add(ExpressionError("undefined symbol: ${targetName.joinToString(".")}", assignment.position))
+                    checkResult.add(UndefinedSymbolError(targetIdentifier))
                     return
                 }
                 !is VarDecl -> {
@@ -406,6 +406,9 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+        val targetDt = assignTarget.inferType(program, assignment)
+        if(targetDt in StringDatatypes || targetDt in ArrayDatatypes)
+            checkResult.add(SyntaxError("cannot assign to a string or array type", assignTarget.position))
 
         if (assignment is Assignment) {
 
@@ -909,7 +912,7 @@ internal class AstChecker(private val program: Program,
             val targetName = postIncrDecr.target.identifier!!.nameInSource
             val target = program.namespace.lookup(targetName, postIncrDecr)
             if(target==null) {
-                checkResult.add(SyntaxError("undefined symbol: ${targetName.joinToString(".")}", postIncrDecr.position))
+                checkResult.add(UndefinedSymbolError(postIncrDecr.target.identifier!!))
             } else {
                 if(target !is VarDecl || target.type== VarDeclType.CONST) {
                     checkResult.add(SyntaxError("can only increment or decrement a variable", postIncrDecr.position))
@@ -920,7 +923,7 @@ internal class AstChecker(private val program: Program,
         } else if(postIncrDecr.target.arrayindexed != null) {
             val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(program.namespace)
             if(target==null) {
-                checkResult.add(SyntaxError("undefined symbol", postIncrDecr.position))
+                checkResult.add(NameError("undefined symbol", postIncrDecr.position))
             }
             else {
                 val dt = (target as VarDecl).datatype

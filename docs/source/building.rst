@@ -89,7 +89,7 @@ a successful compilation. This will load your program and the symbol and breakpo
 
 Continuous compilation mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Almost instant compilation times (<0.1 second) can be achieved when using the continuous compilation mode.
+Almost instant compilation times (less than a second) can be achieved when using the continuous compilation mode.
 Start the compiler with the ``-watch`` argument to enable this.
 It will compile your program and then instead of exiting, it waits for any changes in the module source files.
 As soon as a change happens, the program gets compiled again.

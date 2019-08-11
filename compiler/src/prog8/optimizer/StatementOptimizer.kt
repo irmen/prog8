@@ -14,84 +14,21 @@ import kotlin.math.floor
 /*
     todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
+
+    TODO: proper inlining of small subroutines (correctly renaming/relocating all variables in them and refs to those as well, or restrict to subs without variables?)
 */
 
 
-internal class StatementOptimizer(private val program: Program, private val optimizeInlining: Boolean) : IAstModifyingVisitor {
+internal class StatementOptimizer(private val program: Program) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
         private set
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
-    private var generatedLabelSequenceNumber = 0
 
     override fun visit(program: Program) {
         removeUnusedCode(callgraph)
-        if(optimizeInlining) {
-            inlineSubroutines(callgraph)
-        }
         super.visit(program)
-    }
-
-    private fun inlineSubroutines(callgraph: CallGraph) {
-        val entrypoint = program.entrypoint()
-        program.modules.forEach {
-            callgraph.forAllSubroutines(it) { sub ->
-                if(sub!==entrypoint && !sub.isAsmSubroutine) {
-                    if (sub.statements.size <= 3 && !sub.expensiveToInline) {
-                        sub.calledBy.toList().forEach { caller -> inlineSubroutine(sub, caller) }
-                    } else if (sub.calledBy.size==1 && sub.statements.size < 50) {
-                        inlineSubroutine(sub, sub.calledBy[0])
-                    } else if(sub.calledBy.size<=3 && sub.statements.size < 10 && !sub.expensiveToInline) {
-                        sub.calledBy.toList().forEach { caller -> inlineSubroutine(sub, caller) }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun inlineSubroutine(sub: Subroutine, caller: Node) {
-        // if the sub is called multiple times from the isSameAs scope, we can't inline (would result in duplicate definitions)
-        // (unless we add a sequence number to all vars/labels and references to them in the inlined code, but I skip that for now)
-        val scope = caller.definingScope()
-        if(sub.calledBy.count { it.definingScope()===scope } > 1)
-            return
-        if(caller !is IFunctionCall || caller !is Statement || sub.statements.any { it is Subroutine })
-            return
-
-        if(sub.parameters.isEmpty() && sub.returntypes.isEmpty()) {
-            // sub without params and without return value can be easily inlined
-            val parent = caller.parent as INameScope
-            val inlined = AnonymousScope(sub.statements.toMutableList(), caller.position)
-            parent.statements[parent.statements.indexOf(caller)] = inlined
-            // replace return statements in the inlined sub by a jump to the end of it
-            var haveNewEndLabel = false
-            var endLabelUsed = false
-            var endlabel = inlined.statements.last() as? Label
-            if(endlabel==null) {
-                endlabel = makeLabel("_prog8_auto_sub_end", inlined.statements.last().position)
-                endlabel.parent = inlined
-                haveNewEndLabel = true
-            }
-            val returns = inlined.statements.withIndex().filter { iv -> iv.value is Return }.map { iv -> Pair(iv.index, iv.value as Return)}
-            for(returnIdx in returns) {
-                val jump = Jump(null, IdentifierReference(listOf(endlabel.name), returnIdx.second.position), null, returnIdx.second.position)
-                inlined.statements[returnIdx.first] = jump
-                endLabelUsed = true
-            }
-            if(endLabelUsed && haveNewEndLabel)
-                inlined.statements.add(endlabel)
-            inlined.linkParents(caller.parent)
-            sub.calledBy.remove(caller)     // if there are no callers left, the sub will be removed automatically later
-            optimizationsDone++
-        } else {
-            // TODO inline subroutine that has params or returnvalues or both
-        }
-    }
-
-    private fun makeLabel(name: String, position: Position): Label {
-        generatedLabelSequenceNumber++
-        return Label("${name}_$generatedLabelSequenceNumber", position)
     }
 
     private fun removeUnusedCode(callgraph: CallGraph) {

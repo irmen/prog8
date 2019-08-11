@@ -34,7 +34,6 @@ private fun compileMain(args: Array<String>) {
     var moduleFile = ""
     var writeAssembly = true
     var optimize = true
-    var optimizeInlining = true
     var launchAstVm = false
     var watchMode = false
     for (arg in args) {
@@ -46,8 +45,6 @@ private fun compileMain(args: Array<String>) {
             writeAssembly = false
         else if(arg=="-noopt")
             optimize = false
-        else if(arg=="-nooptinline")
-            optimizeInlining = false
         else if(arg=="-avm")
             launchAstVm = true
         else if(arg=="-watch")
@@ -69,7 +66,7 @@ private fun compileMain(args: Array<String>) {
             println("Continuous watch mode active. Main module: $filepath")
 
             try {
-                val compilationResult = compileProgram(filepath, optimize, optimizeInlining, writeAssembly)
+                val compilationResult = compileProgram(filepath, optimize, writeAssembly)
                 println("Imported files (now watching:)")
                 for (importedFile in compilationResult.importedFiles) {
                     print("  ")
@@ -97,7 +94,7 @@ private fun compileMain(args: Array<String>) {
         val compilationResult: CompilationResult
 
         try {
-            compilationResult = compileProgram(filepath, optimize, optimizeInlining, writeAssembly)
+            compilationResult = compileProgram(filepath, optimize, writeAssembly)
             if(!compilationResult.success)
                 exitProcess(1)
         } catch (x: ParsingFailedError) {
@@ -131,7 +128,6 @@ private fun usage() {
     System.err.println("Missing argument(s):")
     System.err.println("    [-noasm]        don't create assembly code")
     System.err.println("    [-noopt]        don't perform any optimizations")
-    System.err.println("    [-nooptinline]  don't perform subroutine inlining optimizations")
     System.err.println("    [-emu]          auto-start the 'x64' C-64 emulator after successful compilation")
     System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
     System.err.println("    [-avm]          launch the prog8 ast-based virtual machine after compilation")

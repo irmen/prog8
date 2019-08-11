@@ -24,7 +24,7 @@ class CompilationResult(val success: Boolean,
 
 
 fun compileProgram(filepath: Path,
-                   optimize: Boolean, optimizeInlining: Boolean,
+                   optimize: Boolean,
                    writeAssembly: Boolean): CompilationResult {
     lateinit var programAst: Program
     var programName: String? = null
@@ -84,7 +84,7 @@ fun compileProgram(filepath: Path,
                 while (true) {
                     // keep optimizing expressions and statements until no more steps remain
                     val optsDone1 = programAst.simplifyExpressions()
-                    val optsDone2 = programAst.optimizeStatements(optimizeInlining)
+                    val optsDone2 = programAst.optimizeStatements()
                     if (optsDone1 + optsDone2 == 0)
                         break
                 }

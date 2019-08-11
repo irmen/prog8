@@ -2,28 +2,6 @@
 TODO
 ====
 
-
-Fixes
-^^^^^
-variable naming issue::
-
-    main {
-
-        sub start() {
-            for A in 0 to 10 {
-                ubyte note1 = 44
-                Y+=note1
-            }
-            delay(1)
-
-            sub delay(ubyte note1) {        ; TODO: redef of note1 above, conflicts because that one was moved to the zeropage
-                A= note1
-            }
-        }
-    }
-
-
-
 Memory Block Operations integrated in language?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -49,7 +27,6 @@ More optimizations
 Add more compiler optimizations to the existing ones.
 
 - on the language AST level
-- on the StackVM intermediate code level
 - on the final assembly source level
 - can the parameter passing to subroutines be optimized to avoid copying?
 
@@ -57,6 +34,7 @@ Add more compiler optimizations to the existing ones.
   this requires rethinking the way parameters are represented, simply injecting vardecls to
   declare local variables for them is not always correct anymore
 
+- working subroutine inlining (taking care of vars and identifier refs to them)
 
 Also some library routines and code patterns could perhaps be optimized further
 

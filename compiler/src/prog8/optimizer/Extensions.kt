@@ -27,8 +27,8 @@ internal fun Program.constantFold() {
 }
 
 
-internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
-    val optimizer = StatementOptimizer(this, optimizeInlining)
+internal fun Program.optimizeStatements(): Int {
+    val optimizer = StatementOptimizer(this)
     optimizer.visit(this)
     modules.forEach { it.linkParents(this.namespace) }   // re-link in final configuration
 

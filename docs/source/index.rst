@@ -151,7 +151,7 @@ Design principles and features
   the compiled program in an emulator and provide debugging information to the emulator.
 - The compiler outputs a regular 6502 assembly source code file, but doesn't assemble this itself.
   The (separate) '64tass' cross-assembler tool is used for that.
-- Goto is usually considered harmful, but not here: arbitrary control flow jumps and branches are possible,
+- Arbitrary control flow jumps and branches are possible,
   and will usually translate directly into the appropriate single 6502 jump/branch instruction.
 - There are no complicated built-in error handling or overflow checks, you'll have to take care
   of this yourself if required. This keeps the language and code simple and efficient.
