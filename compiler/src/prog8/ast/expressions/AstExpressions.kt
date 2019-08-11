@@ -18,6 +18,7 @@ import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
+import java.util.*
 import kotlin.math.abs
 
 
@@ -316,7 +317,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     override fun inferType(program: Program) = type
 
-    override fun hashCode(): Int  = type.hashCode() * 31 xor number.hashCode()
+    override fun hashCode(): Int = Objects.hash(type, number)
 
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is NumericLiteralValue)
@@ -457,11 +458,7 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
 
     override fun inferType(program: Program) = type
 
-    override fun hashCode(): Int {
-        val sh = str?.hashCode() ?: 0x00014567
-        val ah = array?.hashCode() ?: 0x11119876
-        return sh * 31 xor ah xor type.hashCode()
-    }
+    override fun hashCode(): Int = Objects.hash(str, array, type)
 
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is ReferenceLiteralValue)

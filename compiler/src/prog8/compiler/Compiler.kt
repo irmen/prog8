@@ -83,13 +83,7 @@ class HeapValues {
             return type==other.type && str==other.str && Arrays.equals(array, other.array) && Arrays.equals(doubleArray, other.doubleArray)
         }
 
-        override fun hashCode(): Int {
-            var result = type.hashCode()
-            result = 31 * result + (str?.hashCode() ?: 0)
-            result = 31 * result + (array?.let { Arrays.hashCode(it) } ?: 0)
-            result = 31 * result + (doubleArray?.let { Arrays.hashCode(it) } ?: 0)
-            return result
-        }
+        override fun hashCode(): Int = Objects.hash(str, array, doubleArray)
 
         val arraysize: Int = array?.size ?: doubleArray?.size ?: 0
     }

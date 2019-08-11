@@ -5,6 +5,7 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -154,12 +155,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
         }
     }
 
-    override fun hashCode(): Int {
-        val bh = byteval?.hashCode() ?: 0x10001234
-        val wh = wordval?.hashCode() ?: 0x01002345
-        val fh = floatval?.hashCode() ?: 0x00103456
-        return bh xor wh xor fh xor heapId.hashCode() xor type.hashCode()
-    }
+    override fun hashCode(): Int = Objects.hash(byteval, wordval, floatval, type)
 
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is RuntimeValue)
