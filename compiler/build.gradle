@@ -22,8 +22,6 @@ repositories {
     jcenter()
 }
 
-sourceCompatibility = 1.8
-
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {
@@ -46,6 +44,12 @@ compileKotlin {
         jvmTarget = "1.8"
         verbose = true
         // freeCompilerArgs += "-XXLanguage:+NewInference"
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
