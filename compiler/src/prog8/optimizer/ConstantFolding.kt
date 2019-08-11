@@ -210,7 +210,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     val possibleDts = arg.second.possibleDatatypes
                     val argConst = arg.first.value.constValue(program)
                     if(argConst!=null && argConst.type !in possibleDts) {
-                        val convertedValue = argConst.cast(possibleDts.first())     // TODO can throw exception
+                        val convertedValue = argConst.cast(possibleDts.first())
                         functionCall.arglist[arg.first.index] = convertedValue
                         optimizationsDone++
                     }
@@ -226,7 +226,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 val expectedDt = arg.second.type
                 val argConst = arg.first.value.constValue(program)
                 if(argConst!=null && argConst.type!=expectedDt) {
-                    val convertedValue = argConst.cast(expectedDt)  // TODO can throw exception
+                    val convertedValue = argConst.cast(expectedDt)
                     functionCall.arglist[arg.first.index] = convertedValue
                     optimizationsDone++
                 }
@@ -356,7 +356,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                                        subleftIsConst: Boolean,
                                        subrightIsConst: Boolean): Expression
     {
-        // @todo this implements only a small set of possible reorderings for now
+        // todo: this implements only a small set of possible reorderings at this time
         if(expr.operator==subExpr.operator) {
             // both operators are the isSameAs.
             // If + or *,  we can simply swap the const of expr and Var in subexpr.
@@ -544,11 +544,15 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(forLoop: ForLoop): Statement {
 
         fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
-            // TODO casts can throw exception
-            val newFrom = rangeFrom.cast(targetDt)
-            val newTo = rangeTo.cast(targetDt)
-            val newStep: Expression =
-                    stepLiteral?.cast(targetDt) ?: range.step
+            val newFrom: NumericLiteralValue
+            val newTo: NumericLiteralValue
+            try {
+                newFrom = rangeFrom.cast(targetDt)
+                newTo = rangeTo.cast(targetDt)
+            } catch (x: ExpressionError) {
+                return range
+            }
+            val newStep: Expression = stepLiteral?.cast(targetDt) ?: range.step
             return RangeExpr(newFrom, newTo, newStep, range.position)
         }
 

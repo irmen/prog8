@@ -390,7 +390,7 @@ internal fun fixupArrayDatatype(array: ReferenceLiteralValue, vardecl: VarDecl, 
                     }
             vardecl.value = litval2
             litval2.linkParents(vardecl)
-            litval2.addToHeap(heap)     // TODO is the previous array discarded from the resulting asm code?
+            litval2.addToHeap(heap)
             return litval2
         }
     } else {

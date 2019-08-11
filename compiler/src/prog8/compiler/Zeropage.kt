@@ -13,7 +13,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     val allowedDatatypes = NumericDatatypes
 
-    fun available() = free.size
+    fun available() = if(options.zeropage==ZeropageType.DONTUSE) 0 else free.size
 
     fun allocate(scopedname: String, datatype: DataType, position: Position?): Int {
         assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"isSameAs scopedname can't be allocated twice"}

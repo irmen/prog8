@@ -497,7 +497,11 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                                 throw FatalAstException("weird array element $it")
                             it
                         } else {
-                            num.cast(elementType)    // TODO this can throw an exception
+                            try {
+                                num.cast(elementType)
+                            } catch(x: ExpressionError) {
+                                return null
+                            }
                         }
                     }.toTypedArray()
                     return ReferenceLiteralValue(targettype, null, array=castArray, position = position)
@@ -668,7 +672,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifiers(vararg name: String): Boolean = nameInSource.last() in name   // @todo is this correct all the time?
+    override fun referencesIdentifiers(vararg name: String): Boolean = nameInSource.last() in name
 
     override fun inferType(program: Program): DataType? {
         val targetStmt = targetStatement(program.namespace)
