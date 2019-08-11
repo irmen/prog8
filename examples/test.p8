@@ -4,25 +4,14 @@
 main {
 
     sub start() {
-        derp.dop()
-
-        A=derp.dop.zzz
-
-        derp.dop.zzz=3
-
-
-        uword addr = &derp.dop.name         ; @todo strange error "pointer-of operand must be the name of a heap variable"
-        c64scr.print(&derp.dop.name)
+        A = testsub(33)
     }
-}
 
-
-derp {
-
-    sub dop() {
-        ubyte zzz=33
-        str name="irmen"
-
-        A=54
+    asmsub testsub(ubyte foo @stack) -> ubyte @stack {
+        %asm {{
+            Y=44
+            rts
+        }}
     }
+
 }

@@ -319,7 +319,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
                 }
             }
             null -> {}
-            else -> TODO("call to something weird $sub   ${call.target}")
+            else -> throw FatalAstException("call to something weird $sub   ${call.target}")
         }
     }
 

@@ -107,13 +107,6 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(subroutine.canBeAsmSubroutine) {
             optimizationsDone++
             return subroutine.intoAsmSubroutine()   // TODO this doesn't work yet due to parameter vardecl issue
-
-            // TODO fix parameter passing so this also works:
-//            asmsub aa(byte arg @ Y) -> clobbers() -> () {
-//                byte local = arg            ; @todo fix 'undefined symbol arg' by some sort of alias name for the parameter
-//                A=44
-//            }
-
         }
 
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {

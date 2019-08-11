@@ -662,35 +662,35 @@ internal class AsmGen2(val program: Program,
             out("  ldx  c64.SCRATCH_ZPREGX")        // restore X again
     }
 
-    fun translateSubroutineArgument(arg: IndexedValue<SubroutineParameter>, value: Expression, sub: Subroutine) {
+    fun translateSubroutineArgument(parameter: IndexedValue<SubroutineParameter>, value: Expression, sub: Subroutine) {
         val sourceDt = value.inferType(program)!!
-        if(!argumentTypeCompatible(sourceDt, arg.value.type))
+        if(!argumentTypeCompatible(sourceDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
         if(sub.asmParameterRegisters.isEmpty()) {
-            // pass arg via a variable
-            val paramVar = arg.value
+            // pass parameter via a variable
+            val paramVar = parameter.value
             val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
             val target = AssignTarget(null, IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
             target.linkParents(value.parent)
             when (value) {
                 is NumericLiteralValue -> {
                     // optimize when the argument is a constant literal
-                    when(arg.value.type) {
+                    when(parameter.value.type) {
                         in ByteDatatypes -> assignFromByteConstant(target, value.number.toShort())
                         in WordDatatypes -> assignFromWordConstant(target, value.number.toInt())
                         DataType.FLOAT -> assignFromFloatConstant(target, value.number.toDouble())
                         in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as arguments?")
-                        else -> throw AssemblyError("weird arg datatype")
+                        else -> throw AssemblyError("weird parameter datatype")
                     }
                 }
                 is IdentifierReference -> {
                     // optimize when the argument is a variable
-                    when (arg.value.type) {
+                    when (parameter.value.type) {
                         in ByteDatatypes -> assignFromByteVariable(target, value)
                         in WordDatatypes -> assignFromWordVariable(target, value)
                         DataType.FLOAT -> assignFromFloatVariable(target, value)
                         in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as arguments?")
-                        else -> throw AssemblyError("weird arg datatype")
+                        else -> throw AssemblyError("weird parameter datatype")
                     }
                 }
                 is RegisterExpr -> {
@@ -718,13 +718,17 @@ internal class AsmGen2(val program: Program,
                 }
             }
         } else {
-            // pass arg via a register parameter
-            val paramRegister = sub.asmParameterRegisters[arg.index]
+            // pass parameter via a register parameter
+            val paramRegister = sub.asmParameterRegisters[parameter.index]
             val statusflag = paramRegister.statusflag
             val register = paramRegister.registerOrPair
             val stack = paramRegister.stack
             when {
-                stack==true -> TODO("param on stack")
+                stack -> {
+                    // push arg onto the stack
+                    // note: argument order is reversed (first argument will be deepest on the stack)
+                    translateExpression(value)
+                }
                 statusflag!=null -> {
                     if (statusflag == Statusflag.Pc) {
                         // this param needs to be set last, right before the jsr

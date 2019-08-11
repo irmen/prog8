@@ -19,6 +19,15 @@ these should call optimized pieces of assembly code, so they run as fast as poss
 
 For now, we have the ``memcopy``, ``memset`` and ``strlen`` builtin functions.
 
+Fixes
+^^^^^
+
+fix asmsub parameters so this works::
+
+      asmsub aa(byte arg @ Y) -> clobbers() -> () {
+          byte local = arg      ; @todo fix 'undefined symbol arg' that occurs here
+          A=44
+      }
 
 
 More optimizations

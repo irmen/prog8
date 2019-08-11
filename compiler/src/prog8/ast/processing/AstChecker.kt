@@ -317,14 +317,11 @@ internal class AstChecker(private val program: Program,
                 err("carry parameter has to come last")
 
         } else {
-            // TODO: non-asm subroutines can only take numeric arguments for now. (not strings and arrays) Maybe this can be improved now that we have '&' ?
-            // the way string params are treated is almost okay (their address is passed) but the receiving subroutine treats it as an integer rather than referring back to the original string.
-            // the way array params are treated is buggy; it thinks the subroutine needs a byte parameter in place of a byte[] ...
-            // This is not easy to fix because strings and arrays are treated a bit simplistic (a "virtual" pointer to the value on the heap)
-            // while passing them as subroutine parameters would require a "real" pointer OR copying the VALUE to the subroutine's parameter variable (which is very inefficient).
-            // For now, don't pass strings and arrays as parameters and instead create the workaround as suggested in the error message below.
-            if(!subroutine.parameters.all{it.type in NumericDatatypes }) {
-                err("Non-asm subroutine can only take numerical parameters (no str/array types) for now. Workaround (for nested subroutine): access the variable from the outer scope directly.")
+            // Pass-by-reference datatypes can not occur as parameters to a subroutine directly
+            // Instead, their reference (address) should be passed (as an UWORD).
+            // The language has no typed pointers at this time.
+            if(subroutine.parameters.any{it.type in PassByReferenceDatatypes }) {
+                err("Pass-by-reference types (str, array) cannot occur as a parameter type directly. Instead, use an uword for their address, or access the variable from the outer scope directly.")
             }
         }
     }
