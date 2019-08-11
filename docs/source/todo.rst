@@ -57,11 +57,13 @@ It could then even be moved into the zeropage to greatly reduce code size and sl
 
 Or just move the LSB portion into a slab of the zeropage.
 
-Allocate a fixed word in ZP that is the TOS so we can operate on TOS directly
+Allocate a fixed word in ZP that is the TOS so we can always operate on TOS directly
 without having to to index into the stack?
 
 
 Misc
 ^^^^
 
-- are there any other missing instructions in the code generator?
+Several ideas were discussed on my reddit post
+https://www.reddit.com/r/programming/comments/alhj59/creating_a_programming_language_and_cross/
+
