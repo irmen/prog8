@@ -35,7 +35,7 @@ init_system	.proc
 		rts
 		.pend
 
-		
+
 read_byte_from_address	.proc
 	; -- read the byte from the memory address on the top of the stack, return in A (stack remains unchanged)
 		lda  c64.ESTACK_LO+1,x
@@ -45,7 +45,7 @@ read_byte_from_address	.proc
 +		lda  $ffff		; modified
 		rts
 		.pend
-		
+
 
 add_a_to_zpword	.proc
 	; -- add ubyte in A to the uword in c64.SCRATCH_ZPWORD1
@@ -851,10 +851,11 @@ func_all_w	.proc
 		bne  +
 		iny
 		lda  (c64.SCRATCH_ZPWORD1),y
-		bne  +
+		bne  ++
 		lda  #0
 		sta  c64.ESTACK_LO+1,x
 		rts
++		iny
 +		iny
 _cmp_mod	cpy  #255		; modified
 		bne  -

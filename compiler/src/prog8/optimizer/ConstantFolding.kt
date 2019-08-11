@@ -9,6 +9,7 @@ import prog8.ast.processing.fixupArrayDatatype
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
+import prog8.compiler.target.c64.codegen2.AssemblyError
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
@@ -174,7 +175,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     copy.parent = identifier.parent
                     copy
                 }
-                cval.type in PassByReferenceDatatypes -> TODO("ref type $identifier")
+                cval.type in PassByReferenceDatatypes -> throw AssemblyError("pass-by-reference type should not be considered a constant")
                 else -> identifier
             }
         } catch (ax: AstException) {
@@ -209,11 +210,9 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     val possibleDts = arg.second.possibleDatatypes
                     val argConst = arg.first.value.constValue(program)
                     if(argConst!=null && argConst.type !in possibleDts) {
-                        val convertedValue = argConst.cast(possibleDts.first())
-                        if(convertedValue!=null) {
-                            functionCall.arglist[arg.first.index] = convertedValue
-                            optimizationsDone++
-                        }
+                        val convertedValue = argConst.cast(possibleDts.first())     // TODO can throw exception
+                        functionCall.arglist[arg.first.index] = convertedValue
+                        optimizationsDone++
                     }
                 }
                 return
@@ -227,11 +226,9 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 val expectedDt = arg.second.type
                 val argConst = arg.first.value.constValue(program)
                 if(argConst!=null && argConst.type!=expectedDt) {
-                    val convertedValue = argConst.cast(expectedDt)
-                    if(convertedValue!=null) {
-                        functionCall.arglist[arg.first.index] = convertedValue
-                        optimizationsDone++
-                    }
+                    val convertedValue = argConst.cast(expectedDt)  // TODO can throw exception
+                    functionCall.arglist[arg.first.index] = convertedValue
+                    optimizationsDone++
                 }
             }
         }
@@ -315,7 +312,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             super.visit(expr)
 
             if(expr.left is ReferenceLiteralValue || expr.right is ReferenceLiteralValue)
-                TODO("binexpr with reference litval")
+                throw FatalAstException("binexpr with reference litval instead of numeric")
 
             val leftconst = expr.left.constValue(program)
             val rightconst = expr.right.constValue(program)
@@ -547,14 +544,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(forLoop: ForLoop): Statement {
 
         fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
+            // TODO casts can throw exception
             val newFrom = rangeFrom.cast(targetDt)
             val newTo = rangeTo.cast(targetDt)
-            if (newFrom != null && newTo != null) {
-                val newStep: Expression =
-                        if (stepLiteral != null) (stepLiteral.cast(targetDt) ?: stepLiteral) else range.step
-                return RangeExpr(newFrom, newTo, newStep, range.position)
-            }
-            return range
+            val newStep: Expression =
+                    stepLiteral?.cast(targetDt) ?: range.step
+            return RangeExpr(newFrom, newTo, newStep, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.

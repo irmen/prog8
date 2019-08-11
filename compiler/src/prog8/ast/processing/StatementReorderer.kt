@@ -337,7 +337,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         if(dt!=DataType.UWORD) {
             val literaladdr = memread.addressExpression as? NumericLiteralValue
             if(literaladdr!=null) {
-                memread.addressExpression = literaladdr.cast(DataType.UWORD)!!
+                memread.addressExpression = literaladdr.cast(DataType.UWORD)
             } else {
                 memread.addressExpression = TypecastExpression(memread.addressExpression, DataType.UWORD, true, memread.addressExpression.position)
                 memread.addressExpression.parent = memread
@@ -351,7 +351,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         if(dt!=DataType.UWORD) {
             val literaladdr = memwrite.addressExpression as? NumericLiteralValue
             if(literaladdr!=null) {
-                memwrite.addressExpression = literaladdr.cast(DataType.UWORD)!!
+                memwrite.addressExpression = literaladdr.cast(DataType.UWORD)
             } else {
                 memwrite.addressExpression = TypecastExpression(memwrite.addressExpression, DataType.UWORD, true, memwrite.addressExpression.position)
                 memwrite.addressExpression.parent = memwrite

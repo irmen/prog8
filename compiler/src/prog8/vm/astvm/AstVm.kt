@@ -845,10 +845,6 @@ class AstVm(val program: Program) {
                 val numbers = args.single().array!!.map { it.toDouble() }
                 RuntimeValue(ArrayElementTypes.getValue(args[0].type), numbers.min())
             }
-            "avg" -> {
-                val numbers = args.single().array!!.map { it.toDouble() }
-                RuntimeValue(DataType.FLOAT, numbers.average())
-            }
             "sum" -> {
                 val sum = args.single().array!!.map { it.toDouble() }.sum()
                 when (args[0].type) {

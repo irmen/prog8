@@ -57,10 +57,8 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
             addVarDecl(scope, decl.asDefaultValueDecl(null))
             val declvalue = decl.value!!
             val value =
-                    if(declvalue is NumericLiteralValue) {
-                        val converted = declvalue.cast(decl.datatype)
-                        converted ?: declvalue
-                    }
+                    if(declvalue is NumericLiteralValue)
+                        declvalue.cast(decl.datatype)
                     else
                         declvalue
             val identifierName = listOf(decl.name)    // this was: (scoped name) decl.scopedname.split(".")

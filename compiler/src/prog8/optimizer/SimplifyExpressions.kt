@@ -43,7 +43,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         val literal = tc.expression as? NumericLiteralValue
         if(literal!=null) {
             val newLiteral = literal.cast(tc.type)
-            if(newLiteral!=null && newLiteral!==literal) {
+            if(newLiteral!==literal) {
                 optimizationsDone++
                 return newLiteral
             }

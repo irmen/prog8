@@ -707,9 +707,6 @@ max(x)
 min(x)
 	Minimum of the values in the array value x
 
-avg(x)
-	Average of the values in the array value x
-
 sum(x)
 	Sum of the values in the array value x
 

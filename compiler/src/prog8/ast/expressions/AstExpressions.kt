@@ -500,7 +500,7 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                                 throw FatalAstException("weird array element $it")
                             it
                         } else {
-                            num.cast(elementType)!!
+                            num.cast(elementType)    // TODO this can throw an exception
                         }
                     }.toTypedArray()
                     return ReferenceLiteralValue(targettype, null, array=castArray, position = position)

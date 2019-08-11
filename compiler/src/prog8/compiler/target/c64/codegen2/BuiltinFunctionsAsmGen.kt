@@ -81,17 +81,31 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 asmgen.assignFromEvalResult(secondTarget)
             }
             "strlen" -> {
-                val identifierName = asmgen.asmIdentifierName(fcall.arglist[0] as IdentifierReference)
-                asmgen.out("""
-                    lda  #<$identifierName
-                    sta  $ESTACK_LO_HEX,x
-                    lda  #>$identifierName
-                    sta  $ESTACK_HI_HEX,x
-                    dex
-                    jsr  prog8_lib.func_strlen
-                """)
+                outputPushAddressOfIdentifier(fcall.arglist[0])
+                asmgen.out("  jsr  prog8_lib.func_strlen")
             }
-            // TODO: any(f), all(f), max(f), min(f), sum(f), avg(f)
+            "min", "max", "sum" -> {
+                outputPushAddressAndLenghtOfArray(fcall.arglist[0])
+                val dt = fcall.arglist.single().inferType(program)!!
+                when(dt) {
+                    DataType.ARRAY_UB, DataType.STR_S, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
+                    DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
+                    DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw")
+                    DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
+                    DataType.ARRAY_F -> asmgen.out("  jsr  c64flt.func_${functionName}_f")
+                    else -> throw AssemblyError("weird type $dt")
+                }
+            }
+            "any", "all" -> {
+                outputPushAddressAndLenghtOfArray(fcall.arglist[0])
+                val dt = fcall.arglist.single().inferType(program)!!
+                when(dt) {
+                    DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR_S, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
+                    DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
+                    DataType.ARRAY_F -> asmgen.out("  jsr  c64flt.func_${functionName}_f")
+                    else -> throw AssemblyError("weird type $dt")
+                }
+            }
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
@@ -252,6 +266,33 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 asmgen.out("  jsr  prog8_lib.func_$functionName")
             }
         }
+    }
+
+    private fun outputPushAddressAndLenghtOfArray(arg: Expression) {
+        arg as IdentifierReference
+        val identifierName = asmgen.asmIdentifierName(arg)
+        val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.size()!!
+        asmgen.out("""
+                    lda  #<$identifierName
+                    sta  $ESTACK_LO_HEX,x
+                    lda  #>$identifierName
+                    sta  $ESTACK_HI_HEX,x
+                    dex
+                    lda  #$size
+                    sta  $ESTACK_LO_HEX,x
+                    dex
+                    """)
+    }
+
+    private fun outputPushAddressOfIdentifier(arg: Expression) {
+        val identifierName = asmgen.asmIdentifierName(arg as IdentifierReference)
+        asmgen.out("""
+                    lda  #<$identifierName
+                    sta  $ESTACK_LO_HEX,x
+                    lda  #>$identifierName
+                    sta  $ESTACK_HI_HEX,x
+                    dex
+                    """)
     }
 
     private fun translateFunctionArguments(args: MutableList<Expression>, signature: FunctionSignature) {
