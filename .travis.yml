@@ -1,11 +1,11 @@
 language: java
+sudo: false
 # jdk: openjdk8
 # dist: xenial
-# sudo: false
 
 before_install:
   - chmod +x gradlew
 
 script:
-  - ./gradlew test
+  - gradle test
 
