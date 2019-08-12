@@ -409,7 +409,6 @@ class StructLiteralValue(var values: List<Expression>,
 class ReferenceLiteralValue(val type: DataType,     // only reference types allowed here
                             val str: String? = null,
                             val array: Array<Expression>? = null,
-                            // actually, at the moment, we don't have struct literals in the language
                             initHeapId: Int? =null,
                             override val position: Position) : Expression() {
     override lateinit var parent: Node
