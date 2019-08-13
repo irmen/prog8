@@ -429,7 +429,7 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
-                litval.stringliteral()!=null -> ReferenceLiteralValue(DataType.STR, unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
+                litval.stringliteral()!=null -> StringLiteralValue(DataType.STR, unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
                 litval.charliteral()!=null -> {
                     try {
                         NumericLiteralValue(DataType.UBYTE, Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], litval.toPosition())
@@ -438,10 +438,10 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                     }
                 }
                 litval.arrayliteral()!=null -> {
-                    val array = litval.arrayliteral()?.toAst()
+                    val array = litval.arrayliteral().toAst()
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
                     // the ConstantFold takes care of that and converts the type if needed.
-                    ReferenceLiteralValue(DataType.ARRAY_UB, array = array, position = litval.toPosition())
+                    ArrayLiteralValue(DataType.ARRAY_UB, array, position = litval.toPosition())
                 }
                 litval.structliteral()!=null -> {
                     val values = litval.structliteral().expression().map { it.toAst() }
@@ -596,10 +596,10 @@ private fun prog8Parser.WhenstmtContext.toAst(): WhenStatement {
 private fun prog8Parser.When_choiceContext.toAst(): WhenChoice {
     val values = expression_list()?.toAst()
     val stmt = statement()?.toAst()
-    val stmt_block = statement_block()?.toAst()?.toMutableList() ?: mutableListOf()
+    val stmtBlock = statement_block()?.toAst()?.toMutableList() ?: mutableListOf()
     if(stmt!=null)
-        stmt_block.add(stmt)
-    val scope = AnonymousScope(stmt_block, toPosition())
+        stmtBlock.add(stmt)
+    val scope = AnonymousScope(stmtBlock, toPosition())
     return WhenChoice(values, scope, toPosition())
 }
 

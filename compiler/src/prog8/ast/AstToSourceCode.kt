@@ -132,7 +132,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 val reg =
                         when {
-                            true==param.second.stack -> "stack"
+                            param.second.stack -> "stack"
                             param.second.registerOrPair!=null -> param.second.registerOrPair.toString()
                             param.second.statusflag!=null -> param.second.statusflag.toString()
                             else -> "?????1"
@@ -256,15 +256,12 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         output(numLiteral.number.toString())
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue) {
-        when {
-            refLiteral.isString -> output("\"${escape(refLiteral.str!!)}\"")
-            refLiteral.isArray -> {
-                if(refLiteral.array!=null) {
-                    outputListMembers(refLiteral.array.asSequence(), '[', ']')
-                }
-            }
-        }
+    override fun visit(string: StringLiteralValue) {
+        output("\"${escape(string.value)}\"")
+    }
+
+    override fun visit(array: ArrayLiteralValue) {
+        outputListMembers(array.value.asSequence(), '[', ']')
     }
 
     private fun outputListMembers(array: Sequence<Expression>, openchar: Char, closechar: Char) {

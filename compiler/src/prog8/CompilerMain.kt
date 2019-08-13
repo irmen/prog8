@@ -77,7 +77,7 @@ private fun compileMain(args: Array<String>) {
                 val event = watchservice.take()
                 for(changed in event.pollEvents()) {
                     val changedPath = changed.context() as Path
-                    println("  change detected: ${changedPath}")
+                    println("  change detected: $changedPath")
                 }
                 event.reset()
                 println("\u001b[H\u001b[2J")      // clear the screen

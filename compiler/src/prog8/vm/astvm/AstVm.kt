@@ -166,10 +166,10 @@ class AstVm(val program: Program) {
     fun memwrite(address: Int, value: Short): Short {
         if(address==0xa0 || address==0xa1 || address==0xa2) {
             // a write to the jiffy clock, update the clock offset for the irq
-            val time_hi = if(address==0xa0) value else mem.getUByte_DMA(0xa0)
-            val time_mid = if(address==0xa1) value else mem.getUByte_DMA(0xa1)
-            val time_lo = if(address==0xa2) value else mem.getUByte_DMA(0xa2)
-            val jiffies = (time_hi.toInt() shl 16) + (time_mid.toInt() shl 8) + time_lo
+            val timeHi = if(address==0xa0) value else mem.getUByte_DMA(0xa0)
+            val timeMid = if(address==0xa1) value else mem.getUByte_DMA(0xa1)
+            val timeLo = if(address==0xa2) value else mem.getUByte_DMA(0xa2)
+            val jiffies = (timeHi.toInt() shl 16) + (timeMid.toInt() shl 8) + timeLo
             rtcOffset = bootTime - (jiffies*1000/60)
         }
         if(address in 1024..2023) {

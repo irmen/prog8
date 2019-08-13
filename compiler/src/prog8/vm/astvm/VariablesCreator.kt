@@ -5,8 +5,9 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.base.Register
 import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.ReferenceLiteralValue
+import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.Statement
 import prog8.ast.statements.StructDecl
@@ -50,8 +51,10 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
                         val value = if(numericLv!=null) {
                             RuntimeValue.fromLv(numericLv)
                         } else {
-                            val referenceLv = decl.value as ReferenceLiteralValue
-                            RuntimeValue.fromLv(referenceLv, heap)
+                            if(decl.value is StringLiteralValue)
+                                RuntimeValue.fromLv(decl.value as StringLiteralValue, heap)
+                            else
+                                RuntimeValue.fromLv(decl.value as ArrayLiteralValue, heap)
                         }
                         runtimeVariables.define(decl.definingScope(), decl.name, value)
                     }

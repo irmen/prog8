@@ -7,7 +7,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.CompilationOptions
-import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.functions.BuiltinFunctions
@@ -526,14 +525,12 @@ internal class AstChecker(private val program: Program,
                 }
                 when(decl.value) {
                     is RangeExpr -> throw FatalAstException("range expression should have been converted to a true array value")
-                    is ReferenceLiteralValue -> {
-                        val arraySpec = decl.arraysize ?: (
-                                if((decl.value as ReferenceLiteralValue).isArray)
-                                    ArrayIndex.forArray(decl.value as ReferenceLiteralValue, program.heap)
-                                else
-                                    ArrayIndex(NumericLiteralValue.optimalInteger(-2, decl.position), decl.position)
-                                )
-                        checkValueTypeAndRange(decl.datatype, decl.struct, arraySpec, decl.value as ReferenceLiteralValue, program.heap)
+                    is StringLiteralValue -> {
+                        checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteralValue)
+                    }
+                    is ArrayLiteralValue -> {
+                        val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteralValue)
+                        checkValueTypeAndRangeArray(decl.datatype, decl.struct, arraySpec, decl.value as ArrayLiteralValue)
                     }
                     is NumericLiteralValue -> {
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
@@ -682,30 +679,24 @@ internal class AstChecker(private val program: Program,
             checkResult.add(NameError("included file not found: $filename", directive.position))
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue) {
-        if(!compilerOptions.floats && refLiteral.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
-            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", refLiteral.position))
+    override fun visit(array: ArrayLiteralValue) {
+        if(!compilerOptions.floats && array.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", array.position))
         }
-        val arrayspec =
-                if(refLiteral.isArray)
-                    ArrayIndex.forArray(refLiteral, program.heap)
-                else
-                    ArrayIndex(NumericLiteralValue.optimalInteger(-3, refLiteral.position), refLiteral.position)
-        checkValueTypeAndRange(refLiteral.type, null, arrayspec, refLiteral, program.heap)
+        val arrayspec = ArrayIndex.forArray(array)
+        checkValueTypeAndRangeArray(array.type, null, arrayspec, array)
 
-        super.visit(refLiteral)
+        super.visit(array)
 
-        when(refLiteral.type) {
-            in StringDatatypes -> {
-                if(refLiteral.heapId==null)
-                    throw FatalAstException("string should have been moved to heap at ${refLiteral.position}")
-            }
-            in ArrayDatatypes -> {
-                if(refLiteral.heapId==null)
-                    throw FatalAstException("array should have been moved to heap at ${refLiteral.position}")
-            }
-            else -> {}
-        }
+        if(array.heapId==null)
+            throw FatalAstException("array should have been moved to heap at ${array.position}")
+    }
+
+    override fun visit(string: StringLiteralValue) {
+        checkValueTypeAndRangeString(string.type, string)
+        super.visit(string)
+        if(string.heapId==null)
+            throw FatalAstException("string should have been moved to heap at ${string.position}")
     }
 
     override fun visit(expr: PrefixExpression) {
@@ -956,9 +947,9 @@ internal class AstChecker(private val program: Program,
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
-                if(target.value is ReferenceLiteralValue) {
+                if(target.value is StringLiteralValue) {
                     // check string lengths for non-memory mapped strings
-                    val heapId = (target.value as ReferenceLiteralValue).heapId!!
+                    val heapId = (target.value as StringLiteralValue).heapId!!
                     val stringLen = program.heap.get(heapId).str!!.length
                     val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
                     if (index != null && (index < 0 || index >= stringLen))
@@ -1037,26 +1028,37 @@ internal class AstChecker(private val program: Program,
         return null
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, struct: StructDecl?,
-                                       arrayspec: ArrayIndex, value: ReferenceLiteralValue, heap: HeapValues) : Boolean {
+    private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteralValue) : Boolean {
+        fun err(msg: String): Boolean {
+            checkResult.add(ExpressionError(msg, value.position))
+            return false
+        }
+        return when (targetDt) {
+            in StringDatatypes -> {
+                return if (value.value.length > 255)
+                    err("string length must be 0-255")
+                else
+                    true
+            }
+            else -> false
+        }
+    }
+
+    private fun checkValueTypeAndRangeArray(targetDt: DataType, struct: StructDecl?,
+                                            arrayspec: ArrayIndex, value: ArrayLiteralValue) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
         }
         when (targetDt) {
-            in StringDatatypes -> {
-                if(!value.isString)
-                    return err("string value expected")
-                if (value.str!!.length > 255)
-                    return err("string length must be 0-255")
-            }
+            in StringDatatypes -> return err("string value expected")
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arraysize (of all constant values), or a range
                 if(value.type==targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.size()
-                    val arraySize = value.array?.size ?: heap.get(value.heapId!!).arraysize
+                    val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
                             return err("byte array length must be 1-256")
@@ -1078,7 +1080,7 @@ internal class AstChecker(private val program: Program,
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.size()
-                    val arraySize = value.array?.size ?: heap.get(value.heapId!!).arraysize
+                    val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
                             return err("word array length must be 1-128")
@@ -1099,7 +1101,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type==targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
-                    val arraySize = value.array?.size ?: heap.get(value.heapId!!).doubleArray!!.size
+                    val arraySize = value.value.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
@@ -1114,10 +1116,7 @@ internal class AstChecker(private val program: Program,
                         return err("invalid float array size, must be 1-51")
 
                     // check if the floating point values are all within range
-                    val doubles = if(value.array!=null)
-                        value.array.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    else
-                        heap.get(value.heapId!!).doubleArray!!
+                    val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
                     if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
@@ -1126,9 +1125,9 @@ internal class AstChecker(private val program: Program,
             }
             DataType.STRUCT -> {
                 if(value.type in ArrayDatatypes) {
-                    if(value.array!!.size != struct!!.numberOfElements)
+                    if(value.value.size != struct!!.numberOfElements)
                         return err("number of values is not the same as the number of members in the struct")
-                    for(elt in value.array.zip(struct.statements)) {
+                    for(elt in value.value.zip(struct.statements)) {
                         val vardecl = elt.second as VarDecl
                         val valuetype = elt.first.inferType(program)!!
                         if (!(valuetype isAssignableTo vardecl.datatype)) {
@@ -1142,7 +1141,6 @@ internal class AstChecker(private val program: Program,
             }
             else -> return false
         }
-        return true
     }
 
     private fun checkValueTypeAndRange(targetDt: DataType, value: NumericLiteralValue) : Boolean {
@@ -1189,10 +1187,10 @@ internal class AstChecker(private val program: Program,
         return true
     }
 
-    private fun checkArrayValues(value: ReferenceLiteralValue, type: DataType): Boolean {
-        if(value.isArray && value.heapId==null) {
+    private fun checkArrayValues(value: ArrayLiteralValue, type: DataType): Boolean {
+        if(value.heapId==null) {
             // hmm weird, array literal that hasn't been moved to the heap yet?
-            val array = value.array!!.map { it.constValue(program)!! }
+            val array = value.value.map { it.constValue(program)!! }
             val correct: Boolean
             when(type) {
                 DataType.ARRAY_UB -> {

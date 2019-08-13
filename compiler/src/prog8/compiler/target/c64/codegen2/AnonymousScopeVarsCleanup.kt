@@ -21,7 +21,7 @@ class AnonymousScopeVarsCleanup(val program: Program): IAstModifyingVisitor {
         super.visit(program)
         for((scope, decls) in varsToMove) {
             val sub = scope.definingSubroutine()!!
-            val existingVariables = sub.statements.filterIsInstance<VarDecl>().associate { it.name to it }
+            val existingVariables = sub.statements.filterIsInstance<VarDecl>().associateBy { it.name }
             var conflicts = false
             decls.forEach {
                 val existing = existingVariables[it.name]

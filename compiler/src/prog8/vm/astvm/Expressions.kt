@@ -30,12 +30,9 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
         return RuntimeValue.fromLv(constval)
 
     when(expr) {
-        is NumericLiteralValue -> {
-            return RuntimeValue.fromLv(expr)
-        }
-        is ReferenceLiteralValue -> {
-            return RuntimeValue.fromLv(expr, ctx.program.heap)
-        }
+        is NumericLiteralValue -> return RuntimeValue.fromLv(expr)
+        is StringLiteralValue -> return RuntimeValue.fromLv(expr, ctx.program.heap)
+        is ArrayLiteralValue -> return RuntimeValue.fromLv(expr, ctx.program.heap)
         is PrefixExpression -> {
             return when(expr.operator) {
                 "-" -> evaluate(expr.expression, ctx).neg()

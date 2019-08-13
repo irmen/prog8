@@ -1,8 +1,9 @@
 package prog8.vm
 
 import prog8.ast.base.*
+import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.ReferenceLiteralValue
+import prog8.ast.expressions.StringLiteralValue
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import java.util.*
@@ -28,13 +29,8 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             return RuntimeValue(literalValue.type, num = literalValue.number)
         }
 
-        fun fromLv(literalValue: ReferenceLiteralValue, heap: HeapValues): RuntimeValue {
-            return when(literalValue.type) {
-                in StringDatatypes -> fromHeapId(literalValue.heapId!!, heap)
-                in ArrayDatatypes -> fromHeapId(literalValue.heapId!!, heap)
-                else -> throw IllegalArgumentException("weird source value $literalValue")
-            }
-        }
+        fun fromLv(string: StringLiteralValue, heap: HeapValues): RuntimeValue = fromHeapId(string.heapId!!, heap)
+        fun fromLv(array: ArrayLiteralValue, heap: HeapValues): RuntimeValue = fromHeapId(array.heapId!!, heap)
 
         fun fromHeapId(heapId: Int, heap: HeapValues): RuntimeValue {
             val value = heap.get(heapId)

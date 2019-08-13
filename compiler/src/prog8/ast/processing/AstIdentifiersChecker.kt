@@ -247,75 +247,83 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(returnStmt)
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): Expression {
-        val litval = super.visit(refLiteral)
-        if(litval is ReferenceLiteralValue) {
-            val vardecl = litval.parent as? VarDecl
-            if (litval.isString) {
-                // intern the string; move it into the heap
-                if (litval.str!!.length !in 1..255)
-                    checkResult.add(ExpressionError("string literal length must be between 1 and 255", litval.position))
-                else {
-                    litval.addToHeap(program.heap)
-                }
-                return if(vardecl!=null)
-                    litval
-                else
-                    makeIdentifierFromRefLv(litval)  // replace the literal string by a identifier reference.
-            } else if (litval.isArray) {
-                if (vardecl!=null) {
-                    return fixupArrayDatatype(litval, vardecl, program.heap)
-                } else {
-                    // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
-                    // (we don't know the desired datatype here exactly so we guess)
-                    val datatype = determineArrayDt(litval.array!!) ?: return litval
-                    val litval2 = litval.cast(datatype)!!
-                    litval2.parent = litval.parent
-                    // finally, replace the literal array by a identifier reference.
-                    return makeIdentifierFromRefLv(litval2)
-                }
+    override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
+        val array = super.visit(arrayLiteral)
+        if(array is ArrayLiteralValue) {
+            val vardecl = array.parent as? VarDecl
+            return if (vardecl!=null) {
+                fixupArrayDatatype(array, vardecl, program.heap)
+            } else {
+                // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
+                // (we don't know the desired datatype here exactly so we guess)
+                val datatype = determineArrayDt(array.value)
+                val litval2 = array.cast(datatype)!!
+                litval2.parent = array.parent
+                // finally, replace the literal array by a identifier reference.
+                makeIdentifierFromRefLv(litval2)
             }
         }
-
-        return litval
+        return array
     }
 
-    private fun determineArrayDt(array: Array<Expression>): DataType? {
+    override fun visit(stringLiteral: StringLiteralValue): Expression {
+        val string = super.visit(stringLiteral)
+        if(string is StringLiteralValue) {
+            val vardecl = string.parent as? VarDecl
+            // intern the string; move it into the heap
+            if (string.value.length !in 1..255)
+                checkResult.add(ExpressionError("string literal length must be between 1 and 255", string.position))
+            else {
+                string.addToHeap(program.heap)
+            }
+            return if (vardecl != null)
+                string
+            else
+                makeIdentifierFromRefLv(string)  // replace the literal string by a identifier reference.
+        }
+        return string
+    }
+
+    private fun determineArrayDt(array: Array<Expression>): DataType {
         val datatypesInArray = array.mapNotNull { it.inferType(program) }
         if(datatypesInArray.isEmpty())
-            return null
-        if(DataType.FLOAT in datatypesInArray)
-            return DataType.ARRAY_F
-        if(DataType.WORD in datatypesInArray)
-            return DataType.ARRAY_W
-        if(DataType.UWORD in datatypesInArray)
-            return DataType.ARRAY_UW
-        if(DataType.BYTE in datatypesInArray)
-            return DataType.ARRAY_B
-        if(DataType.UBYTE in datatypesInArray)
-            return DataType.ARRAY_UB
-        return null
+            throw IllegalArgumentException("can't determine type of empty array")
+        return when {
+            DataType.FLOAT in datatypesInArray -> DataType.ARRAY_F
+            DataType.WORD in datatypesInArray -> DataType.ARRAY_W
+            DataType.UWORD in datatypesInArray -> DataType.ARRAY_UW
+            DataType.BYTE in datatypesInArray -> DataType.ARRAY_B
+            DataType.UBYTE in datatypesInArray -> DataType.ARRAY_UB
+            else -> throw IllegalArgumentException("can't determine type of array")
+        }
     }
 
-    private fun makeIdentifierFromRefLv(refLiteral: ReferenceLiteralValue): IdentifierReference {
+    private fun makeIdentifierFromRefLv(array: ArrayLiteralValue): IdentifierReference {
         // a referencetype literal value that's not declared as a variable
         // we need to introduce an auto-generated variable for this to be able to refer to the value
         // note: if the var references the same literal value, it is not yet de-duplicated here.
-        refLiteral.addToHeap(program.heap)
-        val scope = refLiteral.definingScope()
-        var variable = VarDecl.createAuto(refLiteral, program.heap)
-        val existing = scope.lookup(listOf(variable.name), refLiteral)
-        variable = addVarDecl(scope, variable)
-        // replace the reference literal by a identifier reference
-        val identifier = IdentifierReference(listOf(variable.name), variable.position)
-        identifier.parent = refLiteral.parent
-        return identifier
+        array.addToHeap(program.heap)
+        val scope = array.definingScope()
+        val variable = VarDecl.createAuto(array)
+        return replaceWithIdentifier(variable, scope, array.parent)
     }
 
-    override fun visit(addressOf: AddressOf): Expression {
-        // register the scoped name of the referenced identifier
-        val variable= addressOf.identifier.targetVarDecl(program.namespace) ?: return addressOf
-        return super.visit(addressOf)
+    private fun makeIdentifierFromRefLv(string: StringLiteralValue): IdentifierReference {
+        // a referencetype literal value that's not declared as a variable
+        // we need to introduce an auto-generated variable for this to be able to refer to the value
+        // note: if the var references the same literal value, it is not yet de-duplicated here.
+        string.addToHeap(program.heap)
+        val scope = string.definingScope()
+        val variable = VarDecl.createAuto(string)
+        return replaceWithIdentifier(variable, scope, string.parent)
+    }
+
+    private fun replaceWithIdentifier(variable: VarDecl, scope: INameScope, parent: Node): IdentifierReference {
+        val variable1 = addVarDecl(scope, variable)
+        // replace the reference literal by a identifier reference
+        val identifier = IdentifierReference(listOf(variable1.name), variable1.position)
+        identifier.parent = parent
+        return identifier
     }
 
     override fun visit(structDecl: StructDecl): Statement {
@@ -330,32 +338,27 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
     override fun visit(expr: BinaryExpression): Expression {
         return when {
-            expr.left is ReferenceLiteralValue ->
-                processBinaryExprWithReferenceVal(expr.left as ReferenceLiteralValue, expr.right, expr)
-            expr.right is ReferenceLiteralValue ->
-                processBinaryExprWithReferenceVal(expr.right as ReferenceLiteralValue, expr.left, expr)
+            expr.left is StringLiteralValue ->
+                processBinaryExprWithString(expr.left as StringLiteralValue, expr.right, expr)
+            expr.right is StringLiteralValue ->
+                processBinaryExprWithString(expr.right as StringLiteralValue, expr.left, expr)
             else -> super.visit(expr)
         }
     }
 
-    private fun processBinaryExprWithReferenceVal(refLv: ReferenceLiteralValue, operand: Expression, expr: BinaryExpression): Expression {
-        // expressions on strings or arrays
-        if(refLv.isString) {
-            val constvalue = operand.constValue(program)
-            if(constvalue!=null) {
-                if (expr.operator == "*") {
-                    // repeat a string a number of times
-                    return ReferenceLiteralValue(refLv.inferType(program),
-                            refLv.str!!.repeat(constvalue.number.toInt()), null, null, expr.position)
-                }
+    private fun processBinaryExprWithString(string: StringLiteralValue, operand: Expression, expr: BinaryExpression): Expression {
+        val constvalue = operand.constValue(program)
+        if(constvalue!=null) {
+            if (expr.operator == "*") {
+                // repeat a string a number of times
+                return StringLiteralValue(string.inferType(program),
+                        string.value.repeat(constvalue.number.toInt()), null, expr.position)
             }
-            if(expr.operator == "+" && operand is ReferenceLiteralValue) {
-                if (operand.isString) {
-                    // concatenate two strings
-                    return ReferenceLiteralValue(refLv.inferType(program),
-                            "${refLv.str}${operand.str}", null, null, expr.position)
-                }
-            }
+        }
+        if(expr.operator == "+" && operand is StringLiteralValue) {
+            // concatenate two strings
+            return StringLiteralValue(string.inferType(program),
+                    "${string.value}${operand.value}", null, expr.position)
         }
         return expr
     }
@@ -375,7 +378,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
 }
 
-internal fun fixupArrayDatatype(array: ReferenceLiteralValue, vardecl: VarDecl, heap: HeapValues): ReferenceLiteralValue {
+internal fun fixupArrayDatatype(array: ArrayLiteralValue, vardecl: VarDecl, heap: HeapValues): ArrayLiteralValue {
     if(array.heapId!=null) {
         val arrayDt = array.type
         if(arrayDt!=vardecl.datatype) {
@@ -386,7 +389,7 @@ internal fun fixupArrayDatatype(array: ReferenceLiteralValue, vardecl: VarDecl, 
                     } catch(x: ExpressionError) {
                         // couldn't cast permanently.
                         // instead, simply adjust the array type and trust the AstChecker to report the exact error
-                        ReferenceLiteralValue(vardecl.datatype, null, array.array, array.heapId, array.position)
+                        ArrayLiteralValue(vardecl.datatype, array.value, array.heapId, array.position)
                     }
             vardecl.value = litval2
             litval2.linkParents(vardecl)

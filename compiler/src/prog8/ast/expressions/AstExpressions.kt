@@ -406,119 +406,98 @@ class StructLiteralValue(var values: List<Expression>,
     }
 }
 
-class ReferenceLiteralValue(val type: DataType,     // only reference types allowed here
-                            val str: String? = null,
-                            val array: Array<Expression>? = null,
-                            initHeapId: Int? =null,
-                            override val position: Position) : Expression() {
+class StringLiteralValue(val type: DataType,     // only string types
+                         val value: String,
+                         initHeapId: Int? =null,
+                         override val position: Position) : Expression() {
     override lateinit var parent: Node
 
-    override fun referencesIdentifiers(vararg name: String) = array?.any { it.referencesIdentifiers(*name) } ?: false
-
-    val isString = type in StringDatatypes
-    val isArray = type in ArrayDatatypes
     var heapId = initHeapId
         private set
 
-    init {
-        when(type){
-            in StringDatatypes ->
-                if(str==null) throw FatalAstException("literal value missing strvalue/heapId")
-            in ArrayDatatypes ->
-                if(array==null) throw FatalAstException("literal value missing arrayvalue/heapId")
-            else -> throw FatalAstException("invalid type $type")
-        }
-        if(array==null && str==null)
-            throw FatalAstException("literal ref value without actual value")
+    override fun linkParents(parent: Node) {
+        this.parent = parent
     }
+    override fun referencesIdentifiers(vararg name: String) = false
+    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun toString(): String = "'${escape(value)}'"
+    override fun inferType(program: Program) = type
+    operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
+    override fun hashCode(): Int = Objects.hash(value, type)
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is StringLiteralValue)
+            return false
+        return value==other.value && type==other.type
+    }
+
+    fun addToHeap(heap: HeapValues) {
+        if (heapId != null)
+            return
+        else
+            heapId = heap.addString(type, value)
+    }
+}
+
+class ArrayLiteralValue(val type: DataType,     // only array types
+                        val value: Array<Expression>,
+                        initHeapId: Int? =null,
+                        override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    var heapId = initHeapId
+        private set
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        array?.forEach {it.linkParents(this)}
+        value.forEach {it.linkParents(this)}
     }
-
-    override fun constValue(program: Program): NumericLiteralValue? {
-        // note that we can't handle arrays that only contain constant numbers here anymore
-        // so they're not treated as constants anymore
-        return null
-    }
-
+    override fun referencesIdentifiers(vararg name: String) = value.any { it.referencesIdentifiers(*name) }
+    override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-
-    override fun toString(): String {
-        val valueStr = when(type) {
-            in StringDatatypes -> "'${escape(str!!)}'"
-            in ArrayDatatypes -> "$array"
-            else -> throw FatalAstException("weird ref type")
-        }
-        return "RefValueLit($type, $valueStr)"
-    }
-
+    override fun toString(): String = "$value"
     override fun inferType(program: Program) = type
-
-    override fun hashCode(): Int = Objects.hash(str, array, type)
-
+    operator fun compareTo(other: ArrayLiteralValue): Int = throw ExpressionError("cannot order compare arrays", position)
+    override fun hashCode(): Int = Objects.hash(value, type)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is ReferenceLiteralValue)
+        if(other==null || other !is ArrayLiteralValue)
             return false
-        if(isArray && other.isArray)
-            return array!!.contentEquals(other.array!!) && heapId==other.heapId
-        if(isString && other.isString)
-            return str==other.str && heapId==other.heapId
-
-        if(type!=other.type)
-            return false
-
-        return compareTo(other) == 0
+        return type==other.type && value.contentEquals(other.value)
     }
 
-    operator fun compareTo(other: ReferenceLiteralValue): Int {
-        throw ExpressionError("cannot order compare type $type with ${other.type}", other.position)
-    }
-
-    fun cast(targettype: DataType): ReferenceLiteralValue? {
+    fun cast(targettype: DataType): ArrayLiteralValue? {
         if(type==targettype)
             return this
-        when(type) {
-            in StringDatatypes -> {
-                if(targettype in StringDatatypes)
-                    return ReferenceLiteralValue(targettype, str, position = position)
-            }
-            in ArrayDatatypes -> {
-                if(targettype in ArrayDatatypes) {
-                    val elementType = ArrayElementTypes.getValue(targettype)
-                    val castArray = array!!.map{
-                        val num = it as? NumericLiteralValue
-                        if(num==null) {
-                            // an array of UWORDs could possibly also contain AddressOfs
-                            if (elementType != DataType.UWORD || it !is AddressOf)
-                                throw FatalAstException("weird array element $it")
-                            it
-                        } else {
-                            try {
-                                num.cast(elementType)
-                            } catch(x: ExpressionError) {
-                                return null
-                            }
-                        }
-                    }.toTypedArray()
-                    return ReferenceLiteralValue(targettype, null, array=castArray, position = position)
+        if(targettype in ArrayDatatypes) {
+            val elementType = ArrayElementTypes.getValue(targettype)
+            val castArray = value.map{
+                val num = it as? NumericLiteralValue
+                if(num==null) {
+                    // an array of UWORDs could possibly also contain AddressOfs
+                    if (elementType != DataType.UWORD || it !is AddressOf)
+                        throw FatalAstException("weird array element $it")
+                    it
+                } else {
+                    try {
+                        num.cast(elementType)
+                    } catch(x: ExpressionError) {
+                        return null
+                    }
                 }
-            }
-            else -> {}
+            }.toTypedArray()
+            return ArrayLiteralValue(targettype, castArray, position = position)
         }
         return null    // invalid type conversion from $this to $targettype
     }
 
     fun addToHeap(heap: HeapValues) {
-        if (heapId != null) return
-        if (str != null) {
-            heapId = heap.addString(type, str)
-        }
-        else if (array!=null) {
-            if(array.any {it is AddressOf }) {
-                val intArrayWithAddressOfs = array.map {
+        if (heapId != null)
+            return
+        else {
+            if(value.any {it is AddressOf }) {
+                val intArrayWithAddressOfs = value.map {
                     when (it) {
                         is AddressOf -> IntegerOrAddressOf(null, it)
                         is NumericLiteralValue -> IntegerOrAddressOf(it.number.toInt(), null)
@@ -527,7 +506,7 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                 }
                 heapId = heap.addIntegerArray(type, intArrayWithAddressOfs.toTypedArray())
             } else {
-                val valuesInArray = array.map { (it as? NumericLiteralValue)?.number }
+                val valuesInArray = value.map { (it as? NumericLiteralValue)?.number }
                 if(null !in valuesInArray) {
                     heapId = if (type == DataType.ARRAY_F) {
                         val doubleArray = valuesInArray.map { it!!.toDouble() }.toDoubleArray()
@@ -588,12 +567,12 @@ class RangeExpr(var from: Expression,
     fun toConstantIntegerRange(): IntProgression? {
         val fromVal: Int
         val toVal: Int
-        val fromRlv = from as? ReferenceLiteralValue
-        val toRlv = to as? ReferenceLiteralValue
-        if(fromRlv!=null && fromRlv.isString && toRlv!=null && toRlv.isString) {
+        val fromString = from as? StringLiteralValue
+        val toString = to as? StringLiteralValue
+        if(fromString!=null && toString!=null ) {
             // string range -> int range over petscii values
-            fromVal = Petscii.encodePetscii(fromRlv.str!!, true)[0].toInt()
-            toVal = Petscii.encodePetscii(toRlv.str!!, true)[0].toInt()
+            fromVal = Petscii.encodePetscii(fromString.value, true)[0].toInt()
+            toVal = Petscii.encodePetscii(toString.value, true)[0].toInt()
         } else {
             val fromLv = from as? NumericLiteralValue
             val toLv = to as? NumericLiteralValue
@@ -689,16 +668,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         val value = (node as? VarDecl)?.value ?: throw FatalAstException("requires a reference value")
         return when (value) {
             is IdentifierReference -> value.heapId(namespace)
-            is ReferenceLiteralValue -> value.heapId ?: throw FatalAstException("refLv is not on the heap: $value")
+            is StringLiteralValue -> value.heapId ?: throw FatalAstException("string is not on the heap: $value")
+            is ArrayLiteralValue -> value.heapId ?: throw FatalAstException("array is not on the heap: $value")
             else -> throw FatalAstException("requires a reference value")
         }
-    }
-
-    fun withPrefixedName(nameprefix: String): IdentifierReference {
-        val prefixed = nameInSource.dropLast(1) + listOf(nameprefix+nameInSource.last())
-        val new = IdentifierReference(prefixed, position)
-        new.parent = parent
-        return new
     }
 }
 

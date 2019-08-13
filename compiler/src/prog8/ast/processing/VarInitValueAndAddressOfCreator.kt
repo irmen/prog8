@@ -42,7 +42,7 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
         if(decl.isArray && decl.value==null) {
             // array datatype without initialization value, add list of zeros
             val arraysize = decl.arraysize!!.size()!!
-            val array = ReferenceLiteralValue(decl.datatype, null,
+            val array = ArrayLiteralValue(decl.datatype,
                     Array(arraysize) { NumericLiteralValue.optimalInteger(0, decl.position) },
                     null, decl.position)
             array.addToHeap(program.heap)
@@ -107,7 +107,7 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
                 if(argparam.second is AddressOf)
                     continue
                 val idref = argparam.second as? IdentifierReference
-                val strvalue = argparam.second as? ReferenceLiteralValue
+                val strvalue = argparam.second as? StringLiteralValue
                 if(idref!=null) {
                     val variable = idref.targetVarDecl(program.namespace)
                     if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
@@ -117,16 +117,14 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
                     }
                 }
                 else if(strvalue!=null) {
-                    if(strvalue.isString) {
-                        // add a vardecl so that the autovar can be resolved in later lookups
-                        val variable = VarDecl.createAuto(strvalue, program.heap)
-                        addVarDecl(strvalue.definingScope(), variable)
-                        // replace the argument with &autovar
-                        val autoHeapvarRef = IdentifierReference(listOf(variable.name), strvalue.position)
-                        val pointerExpr = AddressOf(autoHeapvarRef, strvalue.position)
-                        pointerExpr.linkParents(arglist[argparam.first.index].parent)
-                        arglist[argparam.first.index] = pointerExpr
-                    }
+                    // add a vardecl so that the autovar can be resolved in later lookups
+                    val variable = VarDecl.createAuto(strvalue)
+                    addVarDecl(strvalue.definingScope(), variable)
+                    // replace the argument with &autovar
+                    val autoHeapvarRef = IdentifierReference(listOf(variable.name), strvalue.position)
+                    val pointerExpr = AddressOf(autoHeapvarRef, strvalue.position)
+                    pointerExpr.linkParents(arglist[argparam.first.index].parent)
+                    arglist[argparam.first.index] = pointerExpr
                 }
             }
         }

@@ -4,8 +4,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
+import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.ReferenceLiteralValue
+import prog8.ast.expressions.StringLiteralValue
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -14,10 +15,6 @@ import kotlin.test.assertTrue
 
 private fun sameValueAndType(lv1: NumericLiteralValue, lv2: NumericLiteralValue): Boolean {
     return lv1.type==lv2.type && lv1==lv2
-}
-
-private fun sameValueAndType(rv1: ReferenceLiteralValue, rv2: ReferenceLiteralValue): Boolean {
-    return rv1.type==rv2.type && rv1==rv2
 }
 
 
@@ -86,8 +83,8 @@ class TestParserNumericLiteralValue {
 
     @Test
     fun testEqualsRef() {
-        assertTrue(sameValueAndType(ReferenceLiteralValue(DataType.STR, str = "hello", position = dummyPos), ReferenceLiteralValue(DataType.STR, str = "hello", position = dummyPos)))
-        assertFalse(sameValueAndType(ReferenceLiteralValue(DataType.STR, str = "hello", position = dummyPos), ReferenceLiteralValue(DataType.STR, str = "bye", position = dummyPos)))
+        assertTrue(StringLiteralValue(DataType.STR, "hello", position = dummyPos) == StringLiteralValue(DataType.STR, "hello", position = dummyPos))
+        assertFalse(StringLiteralValue(DataType.STR, "hello", position = dummyPos) == StringLiteralValue(DataType.STR, "bye", position = dummyPos))
 
         val lvOne = NumericLiteralValue(DataType.UBYTE, 1, dummyPos)
         val lvTwo = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)
@@ -96,9 +93,9 @@ class TestParserNumericLiteralValue {
         val lvTwoR = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)
         val lvThreeR = NumericLiteralValue(DataType.UBYTE, 3, dummyPos)
         val lvFour= NumericLiteralValue(DataType.UBYTE, 4, dummyPos)
-        val lv1 = ReferenceLiteralValue(DataType.ARRAY_UB, array = arrayOf(lvOne, lvTwo, lvThree), position = dummyPos)
-        val lv2 = ReferenceLiteralValue(DataType.ARRAY_UB, array = arrayOf(lvOneR, lvTwoR, lvThreeR), position = dummyPos)
-        val lv3 = ReferenceLiteralValue(DataType.ARRAY_UB, array = arrayOf(lvOneR, lvTwoR, lvFour), position = dummyPos)
+        val lv1 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOne, lvTwo, lvThree), position = dummyPos)
+        val lv2 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvThreeR), position = dummyPos)
+        val lv3 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvFour), position = dummyPos)
         assertEquals(lv1, lv2)
         assertNotEquals(lv1, lv3)
     }

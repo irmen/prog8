@@ -79,8 +79,11 @@ interface IAstVisitor {
     fun visit(numLiteral: NumericLiteralValue) {
     }
 
-    fun visit(refLiteral: ReferenceLiteralValue) {
-        refLiteral.array?.let { it.forEach { v->v.accept(this) }}
+    fun visit(string: StringLiteralValue) {
+    }
+
+    fun visit(array: ArrayLiteralValue) {
+        array.value.forEach { v->v.accept(this) }
     }
 
     fun visit(assignment: Assignment) {

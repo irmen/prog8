@@ -115,9 +115,9 @@ val BuiltinFunctions = mapOf(
 fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): DataType? {
 
     fun datatypeFromIterableArg(arglist: Expression): DataType {
-        if(arglist is ReferenceLiteralValue) {
+        if(arglist is ArrayLiteralValue) {
             if(arglist.type== DataType.ARRAY_UB || arglist.type== DataType.ARRAY_UW || arglist.type== DataType.ARRAY_F) {
-                val dt = arglist.array!!.map {it.inferType(program)}
+                val dt = arglist.value.map {it.inferType(program)}
                 if(dt.any { it!= DataType.UBYTE && it!= DataType.UWORD && it!= DataType.FLOAT}) {
                     throw FatalAstException("fuction $function only accepts arraysize of numeric values")
                 }
@@ -271,10 +271,10 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)
         }
         in StringDatatypes -> {
-            val refLv = target.value as ReferenceLiteralValue
-            if(refLv.str!!.length>255)
+            val refLv = target.value as StringLiteralValue
+            if(refLv.value.length>255)
                 throw CompilerException("string length exceeds byte limit ${refLv.position}")
-            NumericLiteralValue.optimalInteger(refLv.str.length, args[0].position)
+            NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
         }
         in NumericDatatypes -> throw SyntaxError("len of weird argument ${args[0]}", position)
         else -> throw CompilerException("weird datatype")

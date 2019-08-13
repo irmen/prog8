@@ -39,11 +39,9 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             if(decl.isArray){
                 if(decl.arraysize==null) {
                     // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
-                    val arrayval = (decl.value as? ReferenceLiteralValue)?.array
-                    if(arrayval!=null) {
-                        decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
-                        optimizationsDone++
-                    }
+                    val arrayval = (decl.value as ArrayLiteralValue).value
+                    decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
+                    optimizationsDone++
                 }
                 else if(decl.arraysize?.size()==null) {
                     val size = decl.arraysize!!.index.accept(this)
@@ -83,13 +81,13 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program)!!
                             if(eltType in ByteDatatypes) {
-                                decl.value = ReferenceLiteralValue(decl.datatype,
-                                        array = constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }
-                                                .toTypedArray(), position = decl.value!!.position)
+                                decl.value = ArrayLiteralValue(decl.datatype,
+                                        constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),
+                                        position = decl.value!!.position)
                             } else {
-                                decl.value = ReferenceLiteralValue(decl.datatype,
-                                        array = constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }
-                                                .toTypedArray(), position = decl.value!!.position)
+                                decl.value = ArrayLiteralValue(decl.datatype,
+                                        constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }.toTypedArray(),
+                                        position = decl.value!!.position)
                             }
                             decl.value!!.linkParents(decl)
                             optimizationsDone++
@@ -123,7 +121,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         }
                         // create the array itself, filled with the fillvalue.
                         val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
-                        val refValue = ReferenceLiteralValue(decl.datatype, array = array, position = numericLv.position)
+                        val refValue = ArrayLiteralValue(decl.datatype, array, position = numericLv.position)
                         refValue.addToHeap(program.heap)
                         decl.value = refValue
                         refValue.parent=decl
@@ -145,7 +143,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         else {
                             // create the array itself, filled with the fillvalue.
                             val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
-                            val refValue = ReferenceLiteralValue(DataType.ARRAY_F, array = array, position = litval.position)
+                            val refValue = ArrayLiteralValue(DataType.ARRAY_F, array, position = litval.position)
                             refValue.addToHeap(program.heap)
                             decl.value = refValue
                             refValue.parent=decl
@@ -311,7 +309,8 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return try {
             super.visit(expr)
 
-            if(expr.left is ReferenceLiteralValue || expr.right is ReferenceLiteralValue)
+            if(expr.left is StringLiteralValue || expr.left is ArrayLiteralValue
+                    || expr.right is StringLiteralValue || expr.right is ArrayLiteralValue)
                 throw FatalAstException("binexpr with reference litval instead of numeric")
 
             val leftconst = expr.left.constValue(program)
@@ -597,17 +596,15 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return resultStmt
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): Expression {
-        val litval = super.visit(refLiteral)
-        if(litval is ReferenceLiteralValue) {
-            if (litval.isArray) {
-                val vardecl = litval.parent as? VarDecl
-                if (vardecl!=null) {
-                    return fixupArrayDatatype(litval, vardecl, program.heap)
-                }
+    override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
+        val array = super.visit(arrayLiteral)
+        if(array is ArrayLiteralValue) {
+            val vardecl = array.parent as? VarDecl
+            if (vardecl!=null) {
+                return fixupArrayDatatype(array, vardecl, program.heap)
             }
         }
-        return litval
+        return array
     }
 
     override fun visit(assignment: Assignment): Statement {

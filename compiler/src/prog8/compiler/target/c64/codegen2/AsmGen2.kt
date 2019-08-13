@@ -251,7 +251,7 @@ internal class AsmGen2(val program: Program,
             DataType.FLOAT -> out("${decl.name}\t.byte  0,0,0,0,0  ; float")
             DataType.STRUCT -> {}       // is flattened
             DataType.STR, DataType.STR_S -> {
-                val string = (decl.value as ReferenceLiteralValue).str!!
+                val string = (decl.value as StringLiteralValue).value
                 val encoded = encodeStr(string, decl.datatype)
                 outputStringvar(decl, encoded)
             }
@@ -296,7 +296,7 @@ internal class AsmGen2(val program: Program,
                 }
             }
             DataType.ARRAY_F -> {
-                val array = (decl.value as ReferenceLiteralValue).array ?: throw AssemblyError("array should not be null?")
+                val array = (decl.value as ArrayLiteralValue).value
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
                     makeFloatFill(MachineDefinition.Mflpt5.fromNumber(number))
@@ -337,7 +337,7 @@ internal class AsmGen2(val program: Program,
         // special treatment for string types: merge strings that are identical
         val encodedstringVars = normalVars
                 .filter {it.datatype in StringDatatypes }
-                .map { it to encodeStr((it.value as ReferenceLiteralValue).str!!, it.datatype) }
+                .map { it to encodeStr((it.value as StringLiteralValue).value, it.datatype) }
                 .groupBy({it.second}, {it.first})
         for((encoded, variables) in encodedstringVars) {
             variables.dropLast(1).forEach { out(it.name) }
@@ -353,7 +353,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun outputStringvar(lastvar: VarDecl, encoded: List<Short>) {
-        val string = (lastvar.value as ReferenceLiteralValue).str!!
+        val string = (lastvar.value as StringLiteralValue).value
         out("${lastvar.name}\t; ${lastvar.datatype} \"${escape(string).replace("\u0000", "<NULL>")}\"")
         val outputBytes = encoded.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
@@ -361,7 +361,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ReferenceLiteralValue).array ?: throw AssemblyError("array should not be null?")
+        val array = (decl.value as ArrayLiteralValue).value
         return when {
             decl.datatype == DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
@@ -381,7 +381,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ReferenceLiteralValue).array ?: throw AssemblyError("array should not be null?")
+        val array = (decl.value as ArrayLiteralValue).value
 
         return when {
             decl.datatype == DataType.ARRAY_UB ->
@@ -808,22 +808,31 @@ internal class AsmGen2(val program: Program,
                         is NumericLiteralValue -> {
                             // optimize when the argument is a constant literal
                             val hex = value.number.toHex()
-                            if (register == RegisterOrPair.AX)  out("  lda  #<$hex  |  ldx  #>$hex")
-                            else if (register == RegisterOrPair.AY) out("  lda  #<$hex  |  ldy  #>$hex")
-                            else if (register == RegisterOrPair.XY) out("  ldx  #<$hex  |  ldy  #>$hex")
+                            when (register) {
+                                RegisterOrPair.AX -> out("  lda  #<$hex  |  ldx  #>$hex")
+                                RegisterOrPair.AY -> out("  lda  #<$hex  |  ldy  #>$hex")
+                                RegisterOrPair.XY -> out("  ldx  #<$hex  |  ldy  #>$hex")
+                                else -> {}
+                            }
                         }
                         is AddressOf -> {
                             // optimize when the argument is an address of something
                             val sourceName = asmIdentifierName(value.identifier)
-                            if (register == RegisterOrPair.AX) out("  lda  #<$sourceName  |  ldx  #>$sourceName")
-                            else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
-                            else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                            when (register) {
+                                RegisterOrPair.AX -> out("  lda  #<$sourceName  |  ldx  #>$sourceName")
+                                RegisterOrPair.AY -> out("  lda  #<$sourceName  |  ldy  #>$sourceName")
+                                RegisterOrPair.XY -> out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                                else -> {}
+                            }
                         }
                         is IdentifierReference -> {
                             val sourceName = asmIdentifierName(value)
-                            if (register == RegisterOrPair.AX) out("  lda  $sourceName  |  ldx  $sourceName+1")
-                            else if (register == RegisterOrPair.AY) out("  lda  $sourceName  |  ldy  $sourceName+1")
-                            else if (register == RegisterOrPair.XY) out("  ldx  $sourceName  |  ldy  $sourceName+1")
+                            when (register) {
+                                RegisterOrPair.AX -> out("  lda  $sourceName  |  ldx  $sourceName+1")
+                                RegisterOrPair.AY -> out("  lda  $sourceName  |  ldy  $sourceName+1")
+                                RegisterOrPair.XY -> out("  ldx  $sourceName  |  ldy  $sourceName+1")
+                                else -> {}
+                            }
                         }
                         else -> {
                             translateExpression(value)
@@ -1748,7 +1757,7 @@ $endLabel""")
                 translateExpression(assign.value as FunctionCall)
                 assignFromEvalResult(assign.target)
             }
-            is ReferenceLiteralValue -> TODO("string/array/struct assignment?")
+            is ArrayLiteralValue, is StringLiteralValue -> TODO("string/array/struct assignment?")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
         }
@@ -1851,7 +1860,7 @@ $endLabel""")
                     translateSubroutineCall(expression)
                     val sub = expression.target.targetSubroutine(program.namespace)!!
                     val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-                    for((t, reg) in returns) {
+                    for((_, reg) in returns) {
                         if(!reg.stack) {
                             // result value in cpu or status registers, put it on the stack
                             if(reg.registerOrPair!=null) {
@@ -1867,7 +1876,7 @@ $endLabel""")
                     }
                 }
             }
-            is ReferenceLiteralValue -> TODO("string/array/struct assignment?")
+            is ArrayLiteralValue, is StringLiteralValue -> TODO("string/array/struct assignment?")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
         }

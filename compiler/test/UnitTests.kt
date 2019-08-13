@@ -8,7 +8,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.ReferenceLiteralValue
+import prog8.ast.expressions.StringLiteralValue
 import prog8.compiler.*
 import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
@@ -371,8 +371,8 @@ class TestPetscii {
         assertTrue(ten <= ten)
         assertFalse(ten < ten)
 
-        val abc = ReferenceLiteralValue(DataType.STR, str = "abc", position = Position("", 0, 0, 0))
-        val abd = ReferenceLiteralValue(DataType.STR, str = "abd", position = Position("", 0, 0, 0))
+        val abc = StringLiteralValue(DataType.STR, "abc", position = Position("", 0, 0, 0))
+        val abd = StringLiteralValue(DataType.STR, "abd", position = Position("", 0, 0, 0))
         assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)
