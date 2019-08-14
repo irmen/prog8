@@ -285,15 +285,16 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     }
 
     private fun determineArrayDt(array: Array<Expression>): DataType {
-        val datatypesInArray = array.mapNotNull { it.inferType(program) }
-        if(datatypesInArray.isEmpty())
+        val datatypesInArray = array.map { it.inferType(program) }
+        if(datatypesInArray.isEmpty() || datatypesInArray.any { !it.isKnown })
             throw IllegalArgumentException("can't determine type of empty array")
+        val dts = datatypesInArray.map { it.typeOrElse(DataType.STRUCT) }
         return when {
-            DataType.FLOAT in datatypesInArray -> DataType.ARRAY_F
-            DataType.WORD in datatypesInArray -> DataType.ARRAY_W
-            DataType.UWORD in datatypesInArray -> DataType.ARRAY_UW
-            DataType.BYTE in datatypesInArray -> DataType.ARRAY_B
-            DataType.UBYTE in datatypesInArray -> DataType.ARRAY_UB
+            DataType.FLOAT in dts -> DataType.ARRAY_F
+            DataType.WORD in dts -> DataType.ARRAY_W
+            DataType.UWORD in dts -> DataType.ARRAY_UW
+            DataType.BYTE in dts -> DataType.ARRAY_B
+            DataType.UBYTE in dts -> DataType.ARRAY_UB
             else -> throw IllegalArgumentException("can't determine type of array")
         }
     }
@@ -351,13 +352,15 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         if(constvalue!=null) {
             if (expr.operator == "*") {
                 // repeat a string a number of times
-                return StringLiteralValue(string.inferType(program),
+                val idt = string.inferType(program)
+                return StringLiteralValue(idt.typeOrElse(DataType.STR),
                         string.value.repeat(constvalue.number.toInt()), null, expr.position)
             }
         }
         if(expr.operator == "+" && operand is StringLiteralValue) {
             // concatenate two strings
-            return StringLiteralValue(string.inferType(program),
+            val idt = string.inferType(program)
+            return StringLiteralValue(idt.typeOrElse(DataType.STR),
                     "${string.value}${operand.value}", null, expr.position)
         }
         return expr

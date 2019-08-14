@@ -112,25 +112,29 @@ val BuiltinFunctions = mapOf(
 )
 
 
-fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): DataType? {
+fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): InferredTypes.InferredType {
 
     fun datatypeFromIterableArg(arglist: Expression): DataType {
         if(arglist is ArrayLiteralValue) {
             if(arglist.type== DataType.ARRAY_UB || arglist.type== DataType.ARRAY_UW || arglist.type== DataType.ARRAY_F) {
                 val dt = arglist.value.map {it.inferType(program)}
-                if(dt.any { it!= DataType.UBYTE && it!= DataType.UWORD && it!= DataType.FLOAT}) {
+                if(dt.any { !(it istype DataType.UBYTE) && !(it istype DataType.UWORD) && !(it istype DataType.FLOAT)}) {
                     throw FatalAstException("fuction $function only accepts arraysize of numeric values")
                 }
-                if(dt.any { it== DataType.FLOAT }) return DataType.FLOAT
-                if(dt.any { it== DataType.UWORD }) return DataType.UWORD
+                if(dt.any { it istype DataType.FLOAT }) return DataType.FLOAT
+                if(dt.any { it istype DataType.UWORD }) return DataType.UWORD
                 return DataType.UBYTE
             }
         }
         if(arglist is IdentifierReference) {
-            return when(val dt = arglist.inferType(program)) {
-                in NumericDatatypes -> dt!!
-                in StringDatatypes -> dt!!
-                in ArrayDatatypes -> ArrayElementTypes.getValue(dt!!)
+            val idt = arglist.inferType(program)
+            if(!idt.isKnown)
+                throw FatalAstException("couldn't determine type of iterable $arglist")
+            val dt = idt.typeOrElse(DataType.STRUCT)
+            return when(dt) {
+                in NumericDatatypes -> dt
+                in StringDatatypes -> dt
+                in ArrayDatatypes -> ArrayElementTypes.getValue(dt)
                 else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
             }
         }
@@ -139,43 +143,43 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 
     val func = BuiltinFunctions.getValue(function)
     if(func.returntype!=null)
-        return func.returntype
+        return InferredTypes.knownFor(func.returntype)
     // function has return values, but the return type depends on the arguments
 
     return when (function) {
         "abs" -> {
             val dt = args.single().inferType(program)
-            if(dt in NumericDatatypes)
+            if(dt.typeOrElse(DataType.STRUCT) in NumericDatatypes)
                 return dt
             else
                 throw FatalAstException("weird datatype passed to abs $dt")
         }
         "max", "min" -> {
             when(val dt = datatypeFromIterableArg(args.single())) {
-                in NumericDatatypes -> dt
-                in StringDatatypes -> DataType.UBYTE
-                in ArrayDatatypes -> ArrayElementTypes.getValue(dt)
-                else -> null
+                in NumericDatatypes -> InferredTypes.knownFor(dt)
+                in StringDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
+                in ArrayDatatypes -> InferredTypes.knownFor(ArrayElementTypes.getValue(dt))
+                else -> InferredTypes.unknown()
             }
         }
         "sum" -> {
             when(datatypeFromIterableArg(args.single())) {
-                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                DataType.BYTE, DataType.WORD -> DataType.WORD
-                DataType.FLOAT -> DataType.FLOAT
-                DataType.ARRAY_UB, DataType.ARRAY_UW -> DataType.UWORD
-                DataType.ARRAY_B, DataType.ARRAY_W -> DataType.WORD
-                DataType.ARRAY_F -> DataType.FLOAT
-                in StringDatatypes -> DataType.UWORD
-                else -> null
+                DataType.UBYTE, DataType.UWORD -> InferredTypes.knownFor(DataType.UWORD)
+                DataType.BYTE, DataType.WORD -> InferredTypes.knownFor(DataType.WORD)
+                DataType.FLOAT -> InferredTypes.knownFor(DataType.FLOAT)
+                DataType.ARRAY_UB, DataType.ARRAY_UW -> InferredTypes.knownFor(DataType.UWORD)
+                DataType.ARRAY_B, DataType.ARRAY_W -> InferredTypes.knownFor(DataType.WORD)
+                DataType.ARRAY_F -> InferredTypes.knownFor(DataType.FLOAT)
+                in StringDatatypes -> InferredTypes.knownFor(DataType.UWORD)
+                else -> InferredTypes.unknown()
             }
         }
         "len" -> {
             // a length can be >255 so in that case, the result is an UWORD instead of an UBYTE
             // but to avoid a lot of code duplication we simply assume UWORD in all cases for now
-            return DataType.UWORD
+            return InferredTypes.knownFor(DataType.UWORD)
         }
-        else -> return null
+        else -> return InferredTypes.unknown()
     }
 }
 

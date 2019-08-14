@@ -484,8 +484,8 @@ internal class Compiler(private val program: Program) {
                 translatePrefixOperator(expr.operator, expr.expression.inferType(program))
             }
             is BinaryExpression -> {
-                val leftDt = expr.left.inferType(program)!!
-                val rightDt = expr.right.inferType(program)!!
+                val leftDt = expr.left.inferType(program)
+                val rightDt = expr.right.inferType(program)
                 val (commonDt, _) = expr.commonDatatype(leftDt, rightDt, expr.left, expr.right)
                 translate(expr.left)
                 if(leftDt!=commonDt)
@@ -654,7 +654,7 @@ internal class Compiler(private val program: Program) {
             // cast type if needed
             if(builtinFuncParams!=null) {
                 val paramDts = builtinFuncParams[index].possibleDatatypes
-                val argDt = arg.inferType(program)!!
+                val argDt = arg.inferType(program)
                 if(argDt !in paramDts) {
                     for(paramDt in paramDts.sorted())
                         if(tryConvertType(argDt, paramDt))
@@ -827,8 +827,8 @@ internal class Compiler(private val program: Program) {
         // swap(x,y) is treated differently, it's not a normal function call
         if (args.size != 2)
             throw AstException("swap requires 2 arguments")
-        val dt1 = args[0].inferType(program)!!
-        val dt2 = args[1].inferType(program)!!
+        val dt1 = args[0].inferType(program)
+        val dt2 = args[1].inferType(program)
         if (dt1 != dt2)
             throw AstException("swap requires 2 args of identical type")
         if (args[0].constValue(program) != null || args[1].constValue(program) != null)
@@ -861,7 +861,7 @@ internal class Compiler(private val program: Program) {
             // (subroutine arguments are not passed via the stack!)
             for (arg in arguments.zip(subroutine.parameters)) {
                 translate(arg.first)
-                convertType(arg.first.inferType(program)!!, arg.second.type) // convert types of arguments to required parameter type
+                convertType(arg.first.inferType(program), arg.second.type) // convert types of arguments to required parameter type
                 val opcode = opcodePopvar(arg.second.type)
                 prog.instr(opcode, callLabel = subroutine.scopedname + "." + arg.second.name)
             }

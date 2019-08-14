@@ -79,7 +79,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
                         val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
-                            val eltType = rangeExpr.inferType(program)!!
+                            val eltType = rangeExpr.inferType(program).typeOrElse(DataType.UBYTE)
                             if(eltType in ByteDatatypes) {
                                 decl.value = ArrayLiteralValue(decl.datatype,
                                         constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),
@@ -612,7 +612,10 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         val lv = assignment.value as? NumericLiteralValue
         if(lv!=null) {
             // see if we can promote/convert a literal value to the required datatype
-            when(assignment.target.inferType(program, assignment)) {
+            val idt = assignment.target.inferType(program, assignment)
+            if(!idt.isKnown)
+                return assignment
+            when(idt.typeOrElse(DataType.STRUCT)) {
                 DataType.UWORD -> {
                     // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
                     if(lv.type== DataType.UBYTE)

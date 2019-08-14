@@ -10,6 +10,7 @@ import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.c64.codegen2.AssemblyError
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
@@ -422,7 +423,10 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                 return NopStatement.insteadOf(assignment)
             }
         }
-        val targetDt = assignment.target.inferType(program, assignment)
+        val targetIDt = assignment.target.inferType(program, assignment)
+        if(!targetIDt.isKnown)
+            throw AssemblyError("can't infer type of assignment target")
+        val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
             val cv = bexpr.right.constValue(program)?.number?.toDouble()

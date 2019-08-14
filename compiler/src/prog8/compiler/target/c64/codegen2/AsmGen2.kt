@@ -663,7 +663,10 @@ internal class AsmGen2(val program: Program,
     }
 
     fun translateSubroutineArgument(parameter: IndexedValue<SubroutineParameter>, value: Expression, sub: Subroutine) {
-        val sourceDt = value.inferType(program)!!
+        val sourceIDt = value.inferType(program)
+        if(!sourceIDt.isKnown)
+            throw AssemblyError("arg type unknown")
+        val sourceDt = sourceIDt.typeOrElse(DataType.STRUCT)
         if(!argumentTypeCompatible(sourceDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
         if(sub.asmParameterRegisters.isEmpty()) {
@@ -849,7 +852,7 @@ internal class AsmGen2(val program: Program,
 
     private fun translate(stmt: IfStatement) {
         translateExpression(stmt.condition)
-        translateTestStack(stmt.condition.inferType(program)!!)
+        translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
         val elseLabel = makeLabel("if_else")
         val endLabel = makeLabel("if_end")
         out("  beq  $elseLabel")
@@ -877,7 +880,10 @@ internal class AsmGen2(val program: Program,
         out(whileLabel)
         // TODO optimize for the simple cases, can we avoid stack use?
         translateExpression(stmt.condition)
-        if(stmt.condition.inferType(program) in ByteDatatypes) {
+        val conditionDt = stmt.condition.inferType(program)
+        if(!conditionDt.isKnown)
+            throw AssemblyError("unknown condition dt")
+        if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
             out("  inx |  lda  $ESTACK_LO_HEX,x  |  beq  $endLabel")
         } else {
             out("""
@@ -904,7 +910,10 @@ internal class AsmGen2(val program: Program,
         // TODO optimize this for the simple cases, can we avoid stack use?
         translate(stmt.body)
         translateExpression(stmt.untilCondition)
-        if(stmt.untilCondition.inferType(program) in ByteDatatypes) {
+        val conditionDt = stmt.untilCondition.inferType(program)
+        if(!conditionDt.isKnown)
+            throw AssemblyError("unknown condition dt")
+        if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
             out("  inx |  lda  $ESTACK_LO_HEX,x  |  beq  $repeatLabel")
         } else {
             out("""
@@ -924,8 +933,10 @@ internal class AsmGen2(val program: Program,
         translateExpression(stmt.condition)
         val endLabel = makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
-        val conditionDt = stmt.condition.inferType(program)!!
-        if(conditionDt in ByteDatatypes)
+        val conditionDt = stmt.condition.inferType(program)
+        if(!conditionDt.isKnown)
+            throw AssemblyError("unknown condition dt")
+        if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes)
             out("  inx |  lda  $ESTACK_LO_HEX,x")
         else
             out("  inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
@@ -939,7 +950,7 @@ internal class AsmGen2(val program: Program,
                 choiceBlocks.add(Pair(choiceLabel, choice.statements))
                 for (cv in choice.values!!) {
                     val value = (cv as NumericLiteralValue).number.toInt()
-                    if(conditionDt in ByteDatatypes) {
+                    if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
                         out("  cmp  #${value.toHex()} |  beq  $choiceLabel")
                     } else {
                         out("""
@@ -1026,20 +1037,22 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: ForLoop) {
-        val iterableDt = stmt.iterable.inferType(program)!!
+        val iterableDt = stmt.iterable.inferType(program)
+        if(!iterableDt.isKnown)
+            throw AssemblyError("can't determine iterable dt")
         when(stmt.iterable) {
             is RangeExpr -> {
                 val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()
                 if(range==null) {
-                    translateForOverNonconstRange(stmt, iterableDt, stmt.iterable as RangeExpr)
+                    translateForOverNonconstRange(stmt, iterableDt.typeOrElse(DataType.STRUCT), stmt.iterable as RangeExpr)
                 } else {
                     if (range.isEmpty())
                         throw AssemblyError("empty range")
-                    translateForOverConstRange(stmt, iterableDt, range)
+                    translateForOverConstRange(stmt, iterableDt.typeOrElse(DataType.STRUCT), range)
                 }
             }
             is IdentifierReference -> {
-                translateForOverIterableVar(stmt, iterableDt, stmt.iterable as IdentifierReference)
+                translateForOverIterableVar(stmt, iterableDt.typeOrElse(DataType.STRUCT), stmt.iterable as IdentifierReference)
             }
             else -> throw AssemblyError("can't iterate over ${stmt.iterable}")
         }
@@ -1524,7 +1537,7 @@ $endLabel""")
             }
             targetIdent!=null -> {
                 val what = asmIdentifierName(targetIdent)
-                val dt = stmt.target.inferType(program, stmt)
+                val dt = stmt.target.inferType(program, stmt).typeOrElse(DataType.STRUCT)
                 when (dt) {
                     in ByteDatatypes -> out(if (incr) "  inc  $what" else "  dec  $what")
                     in WordDatatypes -> {
@@ -1562,7 +1575,7 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val what = asmIdentifierName(targetArrayIdx.identifier)
-                val arrayDt = targetArrayIdx.identifier.inferType(program)!!
+                val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 val elementDt = ArrayElementTypes.getValue(arrayDt)
                 when(index) {
                     is NumericLiteralValue -> {
@@ -1676,7 +1689,7 @@ $endLabel""")
                 assignFromRegister(assign.target, (assign.value as RegisterExpr).register)
             }
             is IdentifierReference -> {
-                val type = assign.target.inferType(program, assign)!!
+                val type = assign.target.inferType(program, assign).typeOrElse(DataType.STRUCT)
                 when(type) {
                     DataType.UBYTE, DataType.BYTE -> assignFromByteVariable(assign.target, assign.value as IdentifierReference)
                     DataType.UWORD, DataType.WORD -> assignFromWordVariable(assign.target, assign.value as IdentifierReference)
@@ -1743,8 +1756,9 @@ $endLabel""")
                 val cast = assign.value as TypecastExpression
                 val sourceType = cast.expression.inferType(program)
                 val targetType = assign.target.inferType(program, assign)
-                if((sourceType in ByteDatatypes && targetType in ByteDatatypes) ||
-                        (sourceType in WordDatatypes && targetType in WordDatatypes)) {
+                if(sourceType.isKnown && targetType.isKnown &&
+                        (sourceType.typeOrElse(DataType.STRUCT) in ByteDatatypes && targetType.typeOrElse(DataType.STRUCT) in ByteDatatypes) ||
+                        (sourceType.typeOrElse(DataType.STRUCT) in WordDatatypes && targetType.typeOrElse(DataType.STRUCT) in WordDatatypes)) {
                     // no need for a type cast
                     assign.value = cast.expression
                     translate(assign)
@@ -1787,7 +1801,7 @@ $endLabel""")
 
     private fun translateExpression(expr: TypecastExpression) {
         translateExpression(expr.expression)
-        when(expr.expression.inferType(program)!!) {
+        when(expr.expression.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
                 when(expr.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
@@ -1959,7 +1973,7 @@ $endLabel""")
 
     private fun translateExpression(expr: IdentifierReference) {
         val varname = asmIdentifierName(expr)
-        when(expr.inferType(program)!!) {
+        when(expr.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE, DataType.BYTE -> {
                 out("  lda  $varname  |  sta  $ESTACK_LO_HEX,x  |  dex")
             }
@@ -1979,9 +1993,13 @@ $endLabel""")
     private val powerOfTwos = setOf(0,1,2,4,8,16,32,64,128,256)
 
     private fun translateExpression(expr: BinaryExpression) {
-        val leftDt = expr.left.inferType(program)!!
-        val rightDt = expr.right.inferType(program)!!
+        val leftIDt = expr.left.inferType(program)
+        val rightIDt = expr.right.inferType(program)
+        if(!leftIDt.isKnown || !rightIDt.isKnown)
+            throw AssemblyError("can't infer type of both expression operands")
 
+        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
+        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
         // see if we can apply some optimized routines
         when(expr.operator) {
             ">>" -> {
@@ -2075,7 +2093,7 @@ $endLabel""")
 
     private fun translateExpression(expr: PrefixExpression) {
         translateExpression(expr.expression)
-        val type = expr.inferType(program)
+        val type = expr.inferType(program).typeOrElse(DataType.STRUCT)
         when(expr.operator) {
             "+" -> {}
             "-" -> {
@@ -2208,7 +2226,7 @@ $endLabel""")
             }
             targetIdent!=null -> {
                 val targetName = asmIdentifierName(targetIdent)
-                val targetDt = targetIdent.inferType(program)!!
+                val targetDt = targetIdent.inferType(program).typeOrElse(DataType.STRUCT)
                 when(targetDt) {
                     DataType.UBYTE, DataType.BYTE -> {
                         out(" inx | lda  $ESTACK_LO_HEX,x  | sta  $targetName")
@@ -2305,10 +2323,10 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                val arrayDt = targetArrayIdx.identifier.inferType(program)!!
                 out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
                 translateExpression(index)
                 out("  inx |  lda  $ESTACK_LO_HEX,x")
+                val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
             else -> TODO("assign wordvar to $target")
@@ -2364,7 +2382,7 @@ $endLabel""")
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmIdentifierName(targetArrayIdx.identifier)
-                val arrayDt = targetArrayIdx.identifier.inferType(program)!!
+                val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
                 translateExpression(index)
                 out("  inx |  lda  $ESTACK_LO_HEX,x")

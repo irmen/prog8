@@ -412,9 +412,11 @@ class AstVm(val program: Program) {
                     stmt.target.arrayindexed != null -> {
                         val arrayvar = stmt.target.arrayindexed!!.identifier.targetVarDecl(program.namespace)!!
                         val arrayvalue = runtimeVariables.get(arrayvar.definingScope(), arrayvar.name)
-                        val elementType = stmt.target.arrayindexed!!.inferType(program)!!
                         val index = evaluate(stmt.target.arrayindexed!!.arrayspec.index, evalCtx).integerValue()
-                        var value = RuntimeValue(elementType, arrayvalue.array!![index].toInt())
+                        val elementType = stmt.target.arrayindexed!!.inferType(program)
+                        if(!elementType.isKnown)
+                            throw VmExecutionException("unknown/void elt type")
+                        var value = RuntimeValue(elementType.typeOrElse(DataType.BYTE), arrayvalue.array!![index].toInt())
                         value = when {
                             stmt.operator == "++" -> value.inc()
                             stmt.operator == "--" -> value.dec()
@@ -472,7 +474,8 @@ class AstVm(val program: Program) {
                     loopvarDt = DataType.UBYTE
                     loopvar = IdentifierReference(listOf(stmt.loopRegister.name), stmt.position)
                 } else {
-                    loopvarDt = stmt.loopVar!!.inferType(program)!!
+                    val dt = stmt.loopVar!!.inferType(program)
+                    loopvarDt = dt.typeOrElse(DataType.UBYTE)
                     loopvar = stmt.loopVar!!
                 }
                 val iterator = iterable.iterator()
@@ -619,8 +622,10 @@ class AstVm(val program: Program) {
                 else {
                     val address = (vardecl.value as NumericLiteralValue).number.toInt()
                     val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx).integerValue()
-                    val elementType = targetArrayIndexed.inferType(program)!!
-                    when(elementType) {
+                    val elementType = targetArrayIndexed.inferType(program)
+                    if(!elementType.isKnown)
+                        throw VmExecutionException("unknown/void array elt type $targetArrayIndexed")
+                    when(elementType.typeOrElse(DataType.UBYTE)) {
                         DataType.UBYTE -> mem.setUByte(address+index, value.byteval!!)
                         DataType.BYTE -> mem.setSByte(address+index, value.byteval!!)
                         DataType.UWORD -> mem.setUWord(address+index*2, value.wordval!!)

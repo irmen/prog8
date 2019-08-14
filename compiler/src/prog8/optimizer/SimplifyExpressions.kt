@@ -1,10 +1,7 @@
 package prog8.optimizer
 
 import prog8.ast.Program
-import prog8.ast.base.AstException
-import prog8.ast.base.DataType
-import prog8.ast.base.IntegerDatatypes
-import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.Assignment
@@ -136,9 +133,14 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         val constTrue = NumericLiteralValue.fromBoolean(true, expr.position)
         val constFalse = NumericLiteralValue.fromBoolean(false, expr.position)
 
-        val leftDt = expr.left.inferType(program)
-        val rightDt = expr.right.inferType(program)
-        if (leftDt != null && rightDt != null && leftDt != rightDt) {
+        val leftIDt = expr.left.inferType(program)
+        val rightIDt = expr.right.inferType(program)
+        if(!leftIDt.isKnown || !rightIDt.isKnown)
+            throw FatalAstException("can't determine datatype of both expression operands $expr")
+
+        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
+        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
+        if (leftDt != rightDt) {
             // try to convert a datatype into the other (where ddd
             if (adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
                 optimizationsDone++
@@ -226,7 +228,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if(y!=null) {
-                        val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue(leftDt!!, 1, y.position), y.position)
+                        val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue(leftDt, 1, y.position), y.position)
                         return BinaryExpression(x, "*", yPlus1, x.position)
                     }
                 } else {
@@ -235,7 +237,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if(y!=null) {
-                        val yMinus1 = BinaryExpression(y, "-", NumericLiteralValue(leftDt!!, 1, y.position), y.position)
+                        val yMinus1 = BinaryExpression(y, "-", NumericLiteralValue(leftDt, 1, y.position), y.position)
                         return BinaryExpression(x, "*", yMinus1, x.position)
                     }
                 }
@@ -590,7 +592,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             "%" -> {
                 if (cv == 1.0) {
                     optimizationsDone++
-                    return NumericLiteralValue(expr.inferType(program)!!, 0, expr.position)
+                    return NumericLiteralValue(expr.inferType(program).typeOrElse(DataType.STRUCT), 0, expr.position)
                 } else if (cv == 2.0) {
                     optimizationsDone++
                     expr.operator = "&"
@@ -613,7 +615,10 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
             val cv = rightConst.number.toDouble()
-            val leftDt = expr.left.inferType(program)
+            val leftIDt = expr.left.inferType(program)
+            if(!leftIDt.isKnown)
+                return expr
+            val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
             when(cv) {
                 -1.0 -> {
                     //  '/' -> -left
@@ -701,7 +706,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                     return expr.left
                 }
                 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
-                    if(leftValue.inferType(program) in IntegerDatatypes) {
+                    if(leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
                         // times a power of two => shift left
                         optimizationsDone++
                         val numshifts = log2(cv).toInt()
@@ -709,7 +714,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                     }
                 }
                 -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
-                    if(leftValue.inferType(program) in IntegerDatatypes) {
+                    if(leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
                         optimizationsDone++
                         val numshifts = log2(-cv).toInt()

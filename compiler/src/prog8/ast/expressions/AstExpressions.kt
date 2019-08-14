@@ -30,7 +30,7 @@ sealed class Expression: Node {
     abstract fun accept(visitor: IAstModifyingVisitor): Expression
     abstract fun accept(visitor: IAstVisitor)
     abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove this and add identifier usage tracking into CallGraph instead
-    abstract fun inferType(program: Program): DataType?
+    abstract fun inferType(program: Program): InferredTypes.InferredType
 
     infix fun isSameAs(other: Expression): Boolean {
         if(this===other)
@@ -68,7 +68,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
-    override fun inferType(program: Program): DataType? = expression.inferType(program)
+    override fun inferType(program: Program): InferredTypes.InferredType = expression.inferType(program)
 
     override fun toString(): String {
         return "Prefix($operator $expression)"
@@ -94,15 +94,22 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = left.referencesIdentifiers(*name) || right.referencesIdentifiers(*name)
-    override fun inferType(program: Program): DataType? {
+    override fun inferType(program: Program): InferredTypes.InferredType {
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
         return when (operator) {
-            "+", "-", "*", "**", "%", "/" -> if (leftDt == null || rightDt == null) null else {
-                try {
-                    commonDatatype(leftDt, rightDt, null, null).first
-                } catch (x: FatalAstException) {
-                    null
+            "+", "-", "*", "**", "%", "/" -> {
+                if (!leftDt.isKnown || !rightDt.isKnown)
+                    InferredTypes.unknown()
+                else {
+                    try {
+                        InferredTypes.knownFor(commonDatatype(
+                                leftDt.typeOrElse(DataType.BYTE),
+                                rightDt.typeOrElse(DataType.BYTE),
+                                null, null).first)
+                    } catch (x: FatalAstException) {
+                        InferredTypes.unknown()
+                    }
                 }
             }
             "&" -> leftDt
@@ -111,7 +118,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             "and", "or", "xor",
             "<", ">",
             "<=", ">=",
-            "==", "!=" -> DataType.UBYTE
+            "==", "!=" -> InferredTypes.knownFor(DataType.UBYTE)
             "<<", ">>" -> leftDt
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
@@ -191,17 +198,16 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = identifier.referencesIdentifiers(*name)
 
-    override fun inferType(program: Program): DataType? {
+    override fun inferType(program: Program): InferredTypes.InferredType {
         val target = identifier.targetStatement(program.namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
-                in NumericDatatypes -> null
-                in StringDatatypes -> DataType.UBYTE
-                in ArrayDatatypes -> ArrayElementTypes[target.datatype]
-                else -> throw FatalAstException("invalid dt")
+                in StringDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
+                in ArrayDatatypes -> InferredTypes.knownFor(ArrayElementTypes.getValue(target.datatype))
+                else -> InferredTypes.unknown()
             }
         }
-        return null
+        return InferredTypes.unknown()
     }
 
     override fun toString(): String {
@@ -220,7 +226,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
-    override fun inferType(program: Program): DataType? = type
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
         return cv.cast(type)
@@ -243,7 +249,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
 
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifiers(vararg name: String) = false
-    override fun inferType(program: Program) = DataType.UWORD
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UWORD)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
@@ -259,7 +265,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = false
-    override fun inferType(program: Program): DataType? = DataType.UBYTE
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UBYTE)
     override fun constValue(program: Program): NumericLiteralValue? = null
 
     override fun toString(): String {
@@ -315,7 +321,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     override fun toString(): String = "NumericLiteral(${type.name}:$number)"
 
-    override fun inferType(program: Program) = type
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
 
     override fun hashCode(): Int = Objects.hash(type, number)
 
@@ -399,7 +405,7 @@ class StructLiteralValue(var values: List<Expression>,
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = values.any { it.referencesIdentifiers(*name) }
-    override fun inferType(program: Program) = DataType.STRUCT
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.STRUCT)
 
     override fun toString(): String {
         return "struct{ ${values.joinToString(", ")} }"
@@ -423,7 +429,7 @@ class StringLiteralValue(val type: DataType,     // only string types
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun toString(): String = "'${escape(value)}'"
-    override fun inferType(program: Program) = type
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
     operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, type)
     override fun equals(other: Any?): Boolean {
@@ -458,7 +464,7 @@ class ArrayLiteralValue(val type: DataType,     // only array types
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun toString(): String = "$value"
-    override fun inferType(program: Program) = type
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
     operator fun compareTo(other: ArrayLiteralValue): Int = throw ExpressionError("cannot order compare arrays", position)
     override fun hashCode(): Int = Objects.hash(value, type)
     override fun equals(other: Any?): Boolean {
@@ -538,18 +544,18 @@ class RangeExpr(var from: Expression,
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String): Boolean  = from.referencesIdentifiers(*name) || to.referencesIdentifiers(*name)
-    override fun inferType(program: Program): DataType? {
+    override fun inferType(program: Program): InferredTypes.InferredType {
         val fromDt=from.inferType(program)
         val toDt=to.inferType(program)
         return when {
-            fromDt==null || toDt==null -> null
-            fromDt== DataType.UBYTE && toDt== DataType.UBYTE -> DataType.ARRAY_UB
-            fromDt== DataType.UWORD && toDt== DataType.UWORD -> DataType.ARRAY_UW
-            fromDt== DataType.STR && toDt== DataType.STR -> DataType.STR
-            fromDt== DataType.STR_S && toDt== DataType.STR_S -> DataType.STR_S
-            fromDt== DataType.WORD || toDt== DataType.WORD -> DataType.ARRAY_W
-            fromDt== DataType.BYTE || toDt== DataType.BYTE -> DataType.ARRAY_B
-            else -> DataType.ARRAY_UB
+            !fromDt.isKnown || !toDt.isKnown -> InferredTypes.unknown()
+            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.ARRAY_UB)
+            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.ARRAY_UW)
+            fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(DataType.STR)
+            fromDt istype DataType.STR_S && toDt istype DataType.STR_S -> InferredTypes.knownFor(DataType.STR_S)
+            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.ARRAY_W)
+            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.ARRAY_B)
+            else -> InferredTypes.knownFor(DataType.ARRAY_UB)
         }
     }
     override fun toString(): String {
@@ -583,17 +589,21 @@ class RangeExpr(var from: Expression,
             toVal = toLv.number.toInt()
         }
         val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
-        return when {
-            fromVal <= toVal -> when {
-                stepVal <= 0 -> IntRange.EMPTY
-                stepVal == 1 -> fromVal..toVal
-                else -> fromVal..toVal step stepVal
-            }
-            else -> when {
-                stepVal >= 0 -> IntRange.EMPTY
-                stepVal == -1 -> fromVal downTo toVal
-                else -> fromVal downTo toVal step abs(stepVal)
-            }
+        return makeRange(fromVal, toVal, stepVal)
+    }
+}
+
+internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
+    return when {
+        fromVal <= toVal -> when {
+            stepVal <= 0 -> IntRange.EMPTY
+            stepVal == 1 -> fromVal..toVal
+            else -> fromVal..toVal step stepVal
+        }
+        else -> when {
+            stepVal >= 0 -> IntRange.EMPTY
+            stepVal == -1 -> fromVal downTo toVal
+            else -> fromVal downTo toVal step abs(stepVal)
         }
     }
 }
@@ -613,7 +623,7 @@ class RegisterExpr(val register: Register, override val position: Position) : Ex
         return "RegisterExpr(register=$register, pos=$position)"
     }
 
-    override fun inferType(program: Program) = DataType.UBYTE
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UBYTE)
 }
 
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression() {
@@ -652,10 +662,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String): Boolean = nameInSource.last() in name
 
-    override fun inferType(program: Program): DataType? {
+    override fun inferType(program: Program): InferredTypes.InferredType {
         val targetStmt = targetStatement(program.namespace)
         if(targetStmt is VarDecl) {
-            return targetStmt.datatype
+            return InferredTypes.knownFor(targetStmt.datatype)
         } else {
             throw FatalAstException("cannot get datatype from identifier reference ${this}, pos=$position")
         }
@@ -705,7 +715,7 @@ class FunctionCall(override var target: IdentifierReference,
 
             if(withDatatypeCheck) {
                 val resultDt = this.inferType(program)
-                if(resultValue==null || resultDt == resultValue.type)
+                if(resultValue==null || resultDt istype resultValue.type)
                     return resultValue
                 throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
             } else {
@@ -726,27 +736,27 @@ class FunctionCall(override var target: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String): Boolean = target.referencesIdentifiers(*name) || arglist.any{it.referencesIdentifiers(*name)}
 
-    override fun inferType(program: Program): DataType? {
+    override fun inferType(program: Program): InferredTypes.InferredType {
         val constVal = constValue(program ,false)
         if(constVal!=null)
-            return constVal.type
-        val stmt = target.targetStatement(program.namespace) ?: return null
+            return InferredTypes.knownFor(constVal.type)
+        val stmt = target.targetStatement(program.namespace) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionStatementPlaceholder -> {
                 if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
                         target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
-                    return null // these have no return value
+                    return InferredTypes.void() // these have no return value
                 }
                 return builtinFunctionReturnType(target.nameInSource[0], this.arglist, program)
             }
             is Subroutine -> {
                 if(stmt.returntypes.isEmpty())
-                    return null     // no return value
+                    return InferredTypes.void()     // no return value
                 if(stmt.returntypes.size==1)
-                    return stmt.returntypes[0]
-                return null     // has multiple return types... so not a single resulting datatype possible
+                    return InferredTypes.knownFor(stmt.returntypes[0])
+                return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
             }
-            else -> return null
+            else -> return InferredTypes.unknown()
         }
     }
 }

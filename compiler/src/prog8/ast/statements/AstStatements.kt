@@ -368,25 +368,23 @@ data class AssignTarget(val register: Register?,
         }
     }
 
-    fun inferType(program: Program, stmt: Statement): DataType? {
+    fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {
         if(register!=null)
-            return DataType.UBYTE
+            return InferredTypes.knownFor(DataType.UBYTE)
 
         if(identifier!=null) {
-            val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return null
-            if (symbol is VarDecl) return symbol.datatype
+            val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return InferredTypes.unknown()
+            if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
         }
 
         if(arrayindexed!=null) {
-            val dt = arrayindexed!!.inferType(program)
-            if(dt!=null)
-                return dt
+            return arrayindexed!!.inferType(program)
         }
 
         if(memoryAddress!=null)
-            return DataType.UBYTE
+            return InferredTypes.knownFor(DataType.UBYTE)
 
-        return null
+        return InferredTypes.unknown()
     }
 
     infix fun isSameAs(value: Expression): Boolean {

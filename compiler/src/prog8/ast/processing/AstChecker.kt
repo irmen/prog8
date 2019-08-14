@@ -97,14 +97,18 @@ internal class AstChecker(private val program: Program,
         }
         if(expectedReturnValues.size==1 && returnStmt.value!=null) {
             val valueDt = returnStmt.value!!.inferType(program)
-            if(expectedReturnValues[0]!=valueDt)
-                checkResult.add(ExpressionError("type $valueDt of return value doesn't match subroutine's return type", returnStmt.value!!.position))
+            if(!valueDt.isKnown) {
+                checkResult.add(ExpressionError("return value type mismatch", returnStmt.value!!.position))
+            } else {
+                if (expectedReturnValues[0] != valueDt.typeOrElse(DataType.STRUCT))
+                    checkResult.add(ExpressionError("type $valueDt of return value doesn't match subroutine's return type", returnStmt.value!!.position))
+            }
         }
         super.visit(returnStmt)
     }
 
     override fun visit(ifStatement: IfStatement) {
-        if(ifStatement.condition.inferType(program) !in IntegerDatatypes)
+        if(ifStatement.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             checkResult.add(ExpressionError("condition value should be an integer type", ifStatement.condition.position))
         super.visit(ifStatement)
     }
@@ -113,7 +117,7 @@ internal class AstChecker(private val program: Program,
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
 
-        val iterableDt = forLoop.iterable.inferType(program)
+        val iterableDt = forLoop.iterable.inferType(program).typeOrElse(DataType.BYTE)
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
@@ -328,7 +332,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(repeatLoop: RepeatLoop) {
         if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
-        if(repeatLoop.untilCondition.inferType(program) !in IntegerDatatypes)
+        if(repeatLoop.untilCondition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             checkResult.add(ExpressionError("condition value should be an integer type", repeatLoop.untilCondition.position))
         super.visit(repeatLoop)
     }
@@ -336,7 +340,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(whileLoop: WhileLoop) {
         if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
-        if(whileLoop.condition.inferType(program) !in IntegerDatatypes)
+        if(whileLoop.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             checkResult.add(ExpressionError("condition value should be an integer type", whileLoop.condition.position))
         super.visit(whileLoop)
     }
@@ -350,7 +354,8 @@ internal class AstChecker(private val program: Program,
                 if(stmt.returntypes.size>1)
                     checkResult.add(ExpressionError("It's not possible to store the multiple results of this asmsub call; you should use a small block of custom inline assembly for this.", assignment.value.position))
                 else {
-                    if(stmt.returntypes.single()!=assignment.target.inferType(program, assignment)) {
+                    val idt = assignment.target.inferType(program, assignment)
+                    if(!idt.isKnown || stmt.returntypes.single()!=idt.typeOrElse(DataType.BYTE)) {
                          checkResult.add(ExpressionError("return type mismatch", assignment.value.position))
                     }
                 }
@@ -402,7 +407,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-        val targetDt = assignTarget.inferType(program, assignment)
+        val targetDt = assignTarget.inferType(program, assignment).typeOrElse(DataType.STR)
         if(targetDt in StringDatatypes || targetDt in ArrayDatatypes)
             checkResult.add(SyntaxError("cannot assign to a string or array type", assignTarget.position))
 
@@ -412,13 +417,13 @@ internal class AstChecker(private val program: Program,
                 throw FatalAstException("augmented assignment should have been converted into normal assignment")
 
             val targetDatatype = assignTarget.inferType(program, assignment)
-            if (targetDatatype != null) {
+            if (targetDatatype.isKnown) {
                 val constVal = assignment.value.constValue(program)
                 if (constVal != null) {
-                    checkValueTypeAndRange(targetDatatype, constVal)
+                    checkValueTypeAndRange(targetDatatype.typeOrElse(DataType.BYTE), constVal)
                 } else {
-                    val sourceDatatype: DataType? = assignment.value.inferType(program)
-                    if (sourceDatatype == null) {
+                    val sourceDatatype = assignment.value.inferType(program)
+                    if (!sourceDatatype.isKnown) {
                         if (assignment.value is FunctionCall) {
                             val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
                             if (targetStmt != null)
@@ -426,7 +431,8 @@ internal class AstChecker(private val program: Program,
                         } else
                             checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                     } else {
-                        checkAssignmentCompatible(targetDatatype, assignTarget, sourceDatatype, assignment.value, assignment.position)
+                        checkAssignmentCompatible(targetDatatype.typeOrElse(DataType.BYTE), assignTarget,
+                                sourceDatatype.typeOrElse(DataType.BYTE), assignment.value, assignment.position)
                     }
                 }
             }
@@ -701,7 +707,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(expr: PrefixExpression) {
         if(expr.operator=="-") {
-            val dt = expr.inferType(program)
+            val dt = expr.inferType(program).typeOrElse(DataType.STRUCT)
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 checkResult.add(ExpressionError("can only take negative of a signed number type", expr.position))
             }
@@ -710,8 +716,13 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: BinaryExpression) {
-        val leftDt = expr.left.inferType(program)
-        val rightDt = expr.right.inferType(program)
+        val leftIDt = expr.left.inferType(program)
+        val rightIDt = expr.right.inferType(program)
+        if(!leftIDt.isKnown || !rightIDt.isKnown) {
+            throw FatalAstException("can't determine datatype of both expression operands $expr")
+        }
+        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
+        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
 
         when(expr.operator){
             "/", "%" -> {
@@ -842,30 +853,30 @@ internal class AstChecker(private val program: Program,
                 val paramTypesForAddressOf = PassByReferenceDatatypes + DataType.UWORD
                 for (arg in args.withIndex().zip(func.parameters)) {
                     val argDt=arg.first.value.inferType(program)
-                    if (argDt != null
-                            && !(argDt isAssignableTo arg.second.possibleDatatypes)
-                            && (argDt != DataType.UWORD || arg.second.possibleDatatypes.intersect(paramTypesForAddressOf).isEmpty())) {
+                    if (argDt.isKnown
+                            && !(argDt.typeOrElse(DataType.STRUCT) isAssignableTo arg.second.possibleDatatypes)
+                            && (argDt.typeOrElse(DataType.STRUCT) != DataType.UWORD || arg.second.possibleDatatypes.intersect(paramTypesForAddressOf).isEmpty())) {
                         checkResult.add(ExpressionError("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
                 }
                 if(target.name=="swap") {
                     // swap() is a bit weird because this one is translated into a operations directly, instead of being a function call
-                    val dt1 = args[0].inferType(program)!!
-                    val dt2 = args[1].inferType(program)!!
+                    val dt1 = args[0].inferType(program)
+                    val dt2 = args[1].inferType(program)
                     if (dt1 != dt2)
                         checkResult.add(ExpressionError("swap requires 2 args of identical type", position))
                     else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
                         checkResult.add(ExpressionError("swap requires 2 variables, not constant value(s)", position))
                     else if(args[0] isSameAs args[1])
                         checkResult.add(ExpressionError("swap should have 2 different args", position))
-                    else if(dt1 !in NumericDatatypes)
+                    else if(dt1.typeOrElse(DataType.STRUCT) !in NumericDatatypes)
                         checkResult.add(ExpressionError("swap requires args of numerical type", position))
                 }
                 else if(target.name=="all" || target.name=="any") {
                     if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype in StringDatatypes) {
                         checkResult.add(ExpressionError("any/all on a string is useless (is always true unless the string is empty)", position))
                     }
-                    if(args[0].inferType(program) in StringDatatypes) {
+                    if(args[0].inferType(program).typeOrElse(DataType.STR) in StringDatatypes) {
                         checkResult.add(ExpressionError("any/all on a string is useless (is always true unless the string is empty)", position))
                     }
                 }
@@ -875,8 +886,12 @@ internal class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
-                    val argDt = arg.first.value.inferType(program)
-                    if(argDt!=null && !(argDt isAssignableTo arg.second.type)) {
+                    val argIDt = arg.first.value.inferType(program)
+                    if(!argIDt.isKnown) {
+                        throw FatalAstException("can't determine arg dt ${arg.first.value}")
+                    }
+                    val argDt=argIDt.typeOrElse(DataType.STRUCT)
+                    if(!(argDt isAssignableTo arg.second.type)) {
                         // for asm subroutines having STR param it's okay to provide a UWORD (address value)
                         if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt == DataType.UWORD))
                             checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position))
@@ -960,7 +975,7 @@ internal class AstChecker(private val program: Program,
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
 
         // check index value 0..255
-        val dtx = arrayIndexedExpression.arrayspec.index.inferType(program)
+        val dtx = arrayIndexedExpression.arrayspec.index.inferType(program).typeOrElse(DataType.STRUCT)
         if(dtx!= DataType.UBYTE && dtx!= DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
@@ -968,7 +983,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whenStatement: WhenStatement) {
-        val conditionType = whenStatement.condition.inferType(program)
+        val conditionType = whenStatement.condition.inferType(program).typeOrElse(DataType.STRUCT)
         if(conditionType !in IntegerDatatypes)
             checkResult.add(SyntaxError("when condition must be an integer value", whenStatement.position))
         val choiceValues = whenStatement.choiceValues(program)
@@ -987,12 +1002,14 @@ internal class AstChecker(private val program: Program,
         val whenStmt = whenChoice.parent as WhenStatement
         if(whenChoice.values!=null) {
             val conditionType = whenStmt.condition.inferType(program)
+            if(!conditionType.isKnown)
+                throw FatalAstException("can't determine when choice datatype $whenChoice")
             val constvalues = whenChoice.values!!.map { it.constValue(program) }
             for(constvalue in constvalues) {
                 when {
                     constvalue == null -> checkResult.add(SyntaxError("choice value must be a constant", whenChoice.position))
                     constvalue.type !in IntegerDatatypes -> checkResult.add(SyntaxError("choice value must be a byte or word", whenChoice.position))
-                    constvalue.type != conditionType -> checkResult.add(SyntaxError("choice value datatype differs from condition value", whenChoice.position))
+                    constvalue.type != conditionType.typeOrElse(DataType.STRUCT) -> checkResult.add(SyntaxError("choice value datatype differs from condition value", whenChoice.position))
                 }
             }
         } else {
@@ -1129,8 +1146,8 @@ internal class AstChecker(private val program: Program,
                         return err("number of values is not the same as the number of members in the struct")
                     for(elt in value.value.zip(struct.statements)) {
                         val vardecl = elt.second as VarDecl
-                        val valuetype = elt.first.inferType(program)!!
-                        if (!(valuetype isAssignableTo vardecl.datatype)) {
+                        val valuetype = elt.first.inferType(program)
+                        if (!valuetype.isKnown || !(valuetype.typeOrElse(DataType.STRUCT) isAssignableTo vardecl.datatype)) {
                             checkResult.add(ExpressionError("invalid struct member init value type $valuetype, expected ${vardecl.datatype}", elt.first.position))
                             return false
                         }

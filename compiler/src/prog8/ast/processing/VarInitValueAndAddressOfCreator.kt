@@ -135,7 +135,7 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
         for(arg in args.withIndex().zip(signature.parameters)) {
             val argvalue = arg.first.value
             val argDt = argvalue.inferType(program)
-            if(argDt in PassByReferenceDatatypes && DataType.UWORD in arg.second.possibleDatatypes) {
+            if(argDt.typeOrElse(DataType.UBYTE) in PassByReferenceDatatypes && DataType.UWORD in arg.second.possibleDatatypes) {
                 if(argvalue !is IdentifierReference)
                     throw CompilerException("pass-by-reference parameter isn't an identifier? $argvalue")
                 val addrOf = AddressOf(argvalue, argvalue.position)

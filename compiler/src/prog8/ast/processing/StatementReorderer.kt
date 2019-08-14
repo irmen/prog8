@@ -192,9 +192,9 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             return expr2
         val leftDt = expr2.left.inferType(program)
         val rightDt = expr2.right.inferType(program)
-        if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
+        if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
             // determine common datatype and add typecast as required to make left and right equal types
-            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt, rightDt, expr2.left, expr2.right)
+            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.typeOrElse(DataType.STRUCT), rightDt.typeOrElse(DataType.STRUCT), expr2.left, expr2.right)
             if(toFix!=null) {
                 when {
                     toFix===expr2.left -> {
@@ -218,32 +218,35 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             return assg
 
         // see if a typecast is needed to convert the value's type into the proper target type
-        val valuetype = assg.value.inferType(program)
-        val targettype = assg.target.inferType(program, assg)
-        if(targettype!=null && valuetype!=null) {
-            if(valuetype!=targettype) {
+        val valueItype = assg.value.inferType(program)
+        val targetItype = assg.target.inferType(program, assg)
+
+        if(targetItype.isKnown && valueItype.isKnown) {
+            val targettype = targetItype.typeOrElse(DataType.STRUCT)
+            val valuetype = valueItype.typeOrElse(DataType.STRUCT)
+            if (valuetype != targettype) {
                 if (valuetype isAssignableTo targettype) {
                     assg.value = TypecastExpression(assg.value, targettype, true, assg.value.position)
                     assg.value.linkParents(assg)
                 }
                 // if they're not assignable, we'll get a proper error later from the AstChecker
             }
-        }
 
-        // struct assignments will be flattened (if it's not a struct literal)
-        if(valuetype==DataType.STRUCT && targettype==DataType.STRUCT) {
-            if(assg.value is StructLiteralValue)
-                return assg  // do NOT flatten it at this point!! (the compiler will take care if it, later, if needed)
+            // struct assignments will be flattened (if it's not a struct literal)
+            if (valuetype == DataType.STRUCT && targettype == DataType.STRUCT) {
+                if (assg.value is StructLiteralValue)
+                    return assg  // do NOT flatten it at this point!! (the compiler will take care if it, later, if needed)
 
-            val assignments = flattenStructAssignmentFromIdentifier(assg, program)    //   'structvar1 = structvar2'
-            return if(assignments.isEmpty()) {
-                // something went wrong (probably incompatible struct types)
-                // we'll get an error later from the AstChecker
-                assg
-            } else {
-                val scope = AnonymousScope(assignments.toMutableList(), assg.position)
-                scope.linkParents(assg.parent)
-                scope
+                val assignments = flattenStructAssignmentFromIdentifier(assg, program)    //   'structvar1 = structvar2'
+                return if (assignments.isEmpty()) {
+                    // something went wrong (probably incompatible struct types)
+                    // we'll get an error later from the AstChecker
+                    assg
+                } else {
+                    val scope = AnonymousScope(assignments.toMutableList(), assg.position)
+                    scope.linkParents(assg.parent)
+                    scope
+                }
             }
         }
 
@@ -283,8 +286,9 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         when(val sub = call.target.targetStatement(scope)) {
             is Subroutine -> {
                 for(arg in sub.parameters.zip(call.arglist.withIndex())) {
-                    val argtype = arg.second.value.inferType(program)
-                    if(argtype!=null) {
+                    val argItype = arg.second.value.inferType(program)
+                    if(argItype.isKnown) {
+                        val argtype = argItype.typeOrElse(DataType.STRUCT)
                         val requiredType = arg.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
@@ -302,8 +306,9 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
                 if(func.pure) {
                     // non-pure functions don't get automatic typecasts because sometimes they act directly on their parameters
                     for (arg in func.parameters.zip(call.arglist.withIndex())) {
-                        val argtype = arg.second.value.inferType(program)
-                        if (argtype != null) {
+                        val argItype = arg.second.value.inferType(program)
+                        if (argItype.isKnown) {
+                            val argtype = argItype.typeOrElse(DataType.STRUCT)
                             if (arg.first.possibleDatatypes.any { argtype == it })
                                 continue
                             for (possibleType in arg.first.possibleDatatypes) {
@@ -334,7 +339,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     override fun visit(memread: DirectMemoryRead): Expression {
         // make sure the memory address is an uword
         val dt = memread.addressExpression.inferType(program)
-        if(dt!=DataType.UWORD) {
+        if(dt.isKnown && dt.typeOrElse(DataType.UWORD)!=DataType.UWORD) {
             val literaladdr = memread.addressExpression as? NumericLiteralValue
             if(literaladdr!=null) {
                 memread.addressExpression = literaladdr.cast(DataType.UWORD)
@@ -348,7 +353,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
     override fun visit(memwrite: DirectMemoryWrite) {
         val dt = memwrite.addressExpression.inferType(program)
-        if(dt!=DataType.UWORD) {
+        if(dt.isKnown && dt.typeOrElse(DataType.UWORD)!=DataType.UWORD) {
             val literaladdr = memwrite.addressExpression as? NumericLiteralValue
             if(literaladdr!=null) {
                 memwrite.addressExpression = literaladdr.cast(DataType.UWORD)
@@ -391,7 +396,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         structLv.values = struct.statements.zip(structLv.values).map {
             val memberDt = (it.first as VarDecl).datatype
             val valueDt = it.second.inferType(program)
-            if (valueDt != memberDt)
+            if (valueDt.typeOrElse(memberDt) != memberDt)
                 TypecastExpression(it.second, memberDt, true, it.second.position)
             else
                 it.second

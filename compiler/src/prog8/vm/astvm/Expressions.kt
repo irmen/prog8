@@ -12,7 +12,6 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
-import kotlin.math.abs
 
 
 typealias BuiltinfunctionCaller =  (name: String, args: List<RuntimeValue>, flags: StatusFlags) -> RuntimeValue?
@@ -147,24 +146,22 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
         }
         is RangeExpr -> {
             val cRange = expr.toConstantIntegerRange()
-            if(cRange!=null)
-                return RuntimeValueRange(expr.inferType(ctx.program)!!, cRange)
+            if(cRange!=null) {
+                val dt = expr.inferType(ctx.program)
+                if(dt.isKnown)
+                    return RuntimeValueRange(dt.typeOrElse(DataType.UBYTE), cRange)
+                else
+                    throw VmExecutionException("couldn't determine datatype")
+            }
             val fromVal = evaluate(expr.from, ctx).integerValue()
             val toVal = evaluate(expr.to, ctx).integerValue()
             val stepVal = evaluate(expr.step, ctx).integerValue()
-            val range = when {
-                fromVal <= toVal -> when {
-                    stepVal <= 0 -> IntRange.EMPTY
-                    stepVal == 1 -> fromVal..toVal
-                    else -> fromVal..toVal step stepVal
-                }
-                else -> when {
-                    stepVal >= 0 -> IntRange.EMPTY
-                    stepVal == -1 -> fromVal downTo toVal
-                    else -> fromVal downTo toVal step abs(stepVal)
-                }
-            }
-            return RuntimeValueRange(expr.inferType(ctx.program)!!, range)
+            val range = makeRange(fromVal, toVal, stepVal)
+            val dt = expr.inferType(ctx.program)
+            if(dt.isKnown)
+                return RuntimeValueRange(dt.typeOrElse(DataType.UBYTE), range)
+            else
+                throw VmExecutionException("couldn't determine datatype")
         }
         else -> {
             throw VmExecutionException("unimplemented expression node $expr")
