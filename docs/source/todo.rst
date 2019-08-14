@@ -19,17 +19,6 @@ these should call optimized pieces of assembly code, so they run as fast as poss
 
 For now, we have the ``memcopy``, ``memset`` and ``strlen`` builtin functions.
 
-Fixes
-^^^^^
-
-fix asmsub parameters so this works::
-
-      asmsub aa(byte arg @ Y) -> clobbers() -> () {
-          byte local = arg      ; @todo fix 'undefined symbol arg' that occurs here
-          A=44
-      }
-
-
 More optimizations
 ^^^^^^^^^^^^^^^^^^
 
@@ -38,11 +27,6 @@ Add more compiler optimizations to the existing ones.
 - on the language AST level
 - on the final assembly source level
 - can the parameter passing to subroutines be optimized to avoid copying?
-
-- subroutines with 1 or 2 byte args (or 1 word arg) should be converted to asm calling convention with the args in A/Y register
-  this requires rethinking the way parameters are represented, simply injecting vardecls to
-  declare local variables for them is not always correct anymore
-
 - working subroutine inlining (taking care of vars and identifier refs to them)
 
 Also some library routines and code patterns could perhaps be optimized further

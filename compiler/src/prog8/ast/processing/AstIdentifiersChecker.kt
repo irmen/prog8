@@ -144,8 +144,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             // NOTE:
             // - numeric types BYTE and WORD and FLOAT are passed by value;
             // - strings, arrays, matrices are passed by reference (their 16-bit address is passed as an uword parameter)
-            // - do NOT do this is the statement can be transformed into an asm subroutine later!
-            if(subroutine.asmAddress==null && !subroutine.canBeAsmSubroutine) {
+            if(subroutine.asmAddress==null) {
                 if(subroutine.asmParameterRegisters.isEmpty()) {
                     subroutine.parameters
                             .filter { it.name !in namesInSub }
@@ -156,6 +155,10 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                                 subroutine.statements.add(0, vardecl)
                             }
                 }
+            }
+
+            if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {
+                checkResult.add(SyntaxError("asmsub can only contain inline assembly (%asm)", subroutine.position))
             }
         }
         return super.visit(subroutine)

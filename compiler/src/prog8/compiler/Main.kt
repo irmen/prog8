@@ -96,7 +96,7 @@ fun compileProgram(filepath: Path,
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 
-            printAst(programAst)
+            // printAst(programAst)
 
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code

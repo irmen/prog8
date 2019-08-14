@@ -1,6 +1,8 @@
 package prog8.ast.processing
 
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.INameScope
+import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.printWarning

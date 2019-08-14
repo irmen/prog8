@@ -599,40 +599,6 @@ class Subroutine(override val name: String,
             .filter { it is InlineAssembly }
             .map { (it as InlineAssembly).assembly }
             .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
-
-    val canBeAsmSubroutine =false // TODO disabled for now, see below about problem with converting to asm subroutine
-//            !isAsmSubroutine
-//                    && ((parameters.size == 1 && parameters[0].type in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.UWORD))
-//                    || (parameters.size == 2 && parameters.map { it.type }.all { it == DataType.BYTE || it == DataType.UBYTE }))
-
-    fun intoAsmSubroutine(): Subroutine {
-        // TODO turn subroutine into asm calling convention.   Requires rethinking of how parameters are handled (conflicts with local vardefs now, see AstIdentifierChecker...)
-        return this // TODO
-
-//        println("TO ASM   $this")  // TODO
-//        val paramregs = if (parameters.size == 1 && parameters[0].type in setOf(DataType.BYTE, DataType.UBYTE))
-//            listOf(RegisterOrStatusflag(RegisterOrPair.Y, null, null))
-//        else if (parameters.size == 1 && parameters[0].type in setOf(DataType.WORD, DataType.UWORD))
-//            listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, null))
-//        else if (parameters.size == 2 && parameters.map { it.type }.all { it == DataType.BYTE || it == DataType.UBYTE })
-//            listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null), RegisterOrStatusflag(RegisterOrPair.Y, null, null))
-//        else throw FatalAstException("cannot convert subroutine to asm parameters")
-//
-//        val asmsub=Subroutine(
-//                name,
-//                parameters,
-//                returntypes,
-//                paramregs,
-//                emptyList(),
-//                emptySet(),
-//                null,
-//                true,
-//                statements,
-//                position
-//        )
-//        asmsub.linkParents(parent)
-//        return asmsub
-    }
 }
 
 open class SubroutineParameter(val name: String,

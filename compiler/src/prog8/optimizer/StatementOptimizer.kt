@@ -16,9 +16,7 @@ import kotlin.math.floor
 
 
 /*
-    todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
-    todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
-
+    TODO: analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
     TODO: proper inlining of small subroutines (correctly renaming/relocating all variables in them and refs to those as well, or restrict to subs without variables?)
 */
 
@@ -106,11 +104,6 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         val linesToRemove = deduplicateAssignments(subroutine.statements)
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{subroutine.statements.removeAt(it)}
-        }
-
-        if(subroutine.canBeAsmSubroutine) {
-            optimizationsDone++
-            return subroutine.intoAsmSubroutine()   // TODO this doesn't work yet due to parameter vardecl issue
         }
 
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {

@@ -27,4 +27,12 @@ main {
 ;        uw *= 2
 ;        ub *= 2
     }
+
+
+          asmsub aa(byte arg @ Y) clobbers() {
+            %asm {{
+            rts
+            }}
+          }
+
 }
