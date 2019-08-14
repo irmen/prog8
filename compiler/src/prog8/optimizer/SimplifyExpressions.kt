@@ -216,6 +216,12 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             }
         }
 
+        // WORD >> 8  --> msb(WORD)
+        if(expr.operator == ">>" && leftDt in WordDatatypes && rightVal?.number == 8) {
+            optimizationsDone++
+            return FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+        }
+
         if (expr.operator == "+" || expr.operator == "-"
                 && leftVal == null && rightVal == null
                 && leftDt in NumericDatatypes && rightDt in NumericDatatypes) {

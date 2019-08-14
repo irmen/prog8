@@ -29,7 +29,7 @@ object InferredTypes {
     private val unknownInstance = InferredType.unknown()
     private val voidInstance = InferredType.void()
     private val knownInstances = mapOf(
-            DataType.BYTE to InferredType.known(DataType.BYTE),
+            DataType.UBYTE to InferredType.known(DataType.UBYTE),
             DataType.BYTE to InferredType.known(DataType.BYTE),
             DataType.UWORD to InferredType.known(DataType.UWORD),
             DataType.WORD to InferredType.known(DataType.WORD),

@@ -160,7 +160,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         }
                     }
                     in WordDatatypes -> {
-                        TODO("lsl word $what")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("lsl sbyte $what")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out(" asl  $variable |  rol  $variable+1")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -194,13 +201,30 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         }
                     }
                     DataType.BYTE -> {
-                        TODO("lsr sbyte $what")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("lsr sbyte $what")
+                            is DirectMemoryRead -> TODO("lsr sbyte $what")
+                            is RegisterExpr -> TODO("lsr sbyte $what")
+                            is IdentifierReference -> TODO("lsr sbyte $what")
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     DataType.UWORD -> {
-                        TODO("lsr sword $what")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("lsr uword $what")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out(" lsr  $variable+1 |  ror  $variable")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     DataType.WORD -> {
-                        TODO("lsr word $what")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("lsr sword $what")
+                            is IdentifierReference -> TODO("lsr sword $what")
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }

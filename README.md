@@ -14,32 +14,29 @@ as used in many home computers from that era. It is a medium to low level progra
 which aims to provide many conveniences over raw assembly code (even when using a macro assembler):
 
 - reduction of source code length
-- easier program understanding (because it's higher level, and way more compact)
 - modularity, symbol scoping, subroutines
-- subroutines have enforced input- and output parameter definitions
 - various data types other than just bytes (16-bit words, floats, strings)
-- automatic variable allocations, automatic string variables and string sharing
-- constant folding in expressions (compile-time evaluation)
+- automatic variable allocations, automatic string and array variables and string sharing
+- subroutines with a input- and output parameter signature
+- constant folding in expressions
 - conditional branches
-- when statement to provide a 'jump table' alternative to if/elseif chains
+- 'when' statement to provide a concise jump table alternative to if/elseif chains
 - structs to group together sets of variables and manipulate them at once
-- automatic type conversions
-- floating point operations  (uses the C64 Basic ROM routines for this)
+- floating point operations  (requires the C64 Basic ROM routines for this)
 - abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - various code optimizations (code structure, logical and numerical expressions, unused code removal...)
 - inline assembly allows you to have full control when every cycle or byte matters
- 
+- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``
 
 Rapid edit-compile-run-debug cycle:
 
 - use modern PC to work on 
-- quick compilation times (couple of seconds, and less than a second when using the continuous compilation mode)
+- quick compilation times (seconds)
 - option to automatically run the program in the Vice emulator  
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
-- the compiler includes a virtual machine that can execute compiled code directy on the
-  host system without having to actually convert it to assembly to run on a real 6502. 
-  This allows for very quick experimentation and debugging
+- virtual machine that can execute compiled code directy on the host system,
+  without having to actually convert it to assembly to run on a real 6502 
 
 It is mainly targeted at the Commodore-64 machine at this time.
 Contributions to add support for other 8-bit (or other?!) machines are welcome.

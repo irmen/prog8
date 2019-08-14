@@ -40,6 +40,11 @@ internal fun Program.reorderStatements() {
     checker.visit(this)
 }
 
+internal fun Program.addTypecasts() {
+    val caster = TypecastsAdder(this)
+    caster.visit(this)
+}
+
 internal fun Module.checkImportedValid() {
     val checker = ImportedModuleDirectiveRemover()
     checker.visit(this)
