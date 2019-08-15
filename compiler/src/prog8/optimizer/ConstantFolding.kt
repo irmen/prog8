@@ -9,7 +9,7 @@ import prog8.ast.processing.fixupArrayDatatype
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
-import prog8.compiler.target.c64.codegen2.AssemblyError
+import prog8.compiler.target.c64.codegen.AssemblyError
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 

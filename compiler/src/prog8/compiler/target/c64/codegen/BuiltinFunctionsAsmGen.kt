@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen2
+package prog8.compiler.target.c64.codegen
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
@@ -21,7 +21,7 @@ import prog8.functions.FunctionSignature
 internal class BuiltinFunctionsAsmGen(private val program: Program,
                                       private val options: CompilationOptions,
                                       private val zeropage: Zeropage,
-                                      private val asmgen: AsmGen2) {
+                                      private val asmgen: AsmGen) {
 
     internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FunctionSignature) {
         translateFunctioncall(fcall, func, false)

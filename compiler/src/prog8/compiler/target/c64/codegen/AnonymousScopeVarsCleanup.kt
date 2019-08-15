@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen2
+package prog8.compiler.target.c64.codegen
 
 import prog8.ast.Program
 import prog8.ast.base.AstException

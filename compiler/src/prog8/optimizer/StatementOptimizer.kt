@@ -10,7 +10,7 @@ import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.c64.codegen2.AssemblyError
+import prog8.compiler.target.c64.codegen.AssemblyError
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 

@@ -5,7 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.statements.Directive
 import prog8.compiler.target.c64.MachineDefinition
-import prog8.compiler.target.c64.codegen2.AsmGen2
+import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
 import prog8.optimizer.simplifyExpressions
@@ -102,7 +102,7 @@ fun compileProgram(filepath: Path,
                 // asm generation directly from the Ast, no need for intermediate code
                 val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
                 programAst.anonscopeVarsCleanup()
-                val assembly = AsmGen2(programAst, compilerOptions, zeropage).compileToAssembly(optimize)
+                val assembly = AsmGen(programAst, compilerOptions, zeropage).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name
             }

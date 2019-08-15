@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen2
+package prog8.compiler.target.c64.codegen
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
@@ -27,9 +27,9 @@ import kotlin.math.absoluteValue
 internal class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-internal class AsmGen2(val program: Program,
-                       val options: CompilationOptions,
-                       val zeropage: Zeropage) {
+internal class AsmGen(val program: Program,
+                      val options: CompilationOptions,
+                      val zeropage: Zeropage) {
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -1065,7 +1065,8 @@ internal class AsmGen2(val program: Program,
         val counterLabel = makeLabel("for_counter")
         loopEndLabels.push(endLabel)
         loopContinueLabels.push(continueLabel)
-        when (range.step.constValue(program)?.number) {
+        val stepsize=range.step.constValue(program)?.number
+        when (stepsize) {
             1 -> {
                 when(iterableDt) {
                     DataType.ARRAY_B, DataType.ARRAY_UB -> {
@@ -1121,17 +1122,118 @@ $endLabel""")
                         }
                     }
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                        TODO("loop over word range")
+                        translateExpression(range.to)
+                        out("  inc  $ESTACK_LO_HEX+1,x |  bne  + |  inc  $ESTACK_HI_HEX+1,x |+  ")
+                        val varname = asmIdentifierName(stmt.loopVar!!)
+                        val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
+                                null, range.from, range.position)
+                        assignLoopvar.linkParents(stmt)
+                        translate(assignLoopvar)
+                        out(loopLabel)
+                        translate(stmt.body)
+                        out("""
+                inc  $varname
+                bne  +
+                inc  $varname+1            
++               lda  $ESTACK_HI_HEX+1,x
+                cmp  $varname+1
+                bne  +
+                lda  $ESTACK_LO_HEX+1,x
+                cmp  $varname
+                beq  $endLabel
++               jmp  $loopLabel
+$endLabel       inx""")
                     }
                     else -> throw AssemblyError("range expression can only be byte or word")
                 }
             }
             -1 -> {
-                TODO("non-const forloop with step -1")
+                when(iterableDt){
+                    DataType.ARRAY_B, DataType.ARRAY_UB -> {
+                        if (stmt.loopRegister != null) {
+                            // loop register over range
+                            if(stmt.loopRegister!=Register.A)
+                                throw AssemblyError("can only use A")
+                            translateExpression(range.from)
+                            translateExpression(range.to)
+                            out("""
+                inx
+                lda  $ESTACK_LO_HEX+1,x
+                sta  $loopLabel+1
+                sec
+                sbc  $ESTACK_LO_HEX,x
+                adc  #0
+                sta  $counterLabel
+                inx
+$loopLabel      lda  #0                 ; modified""")
+                            translate(stmt.body)
+                            out("""
+$continueLabel  dec  $counterLabel
+                beq  $endLabel
+                dec  $loopLabel+1
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                        } else {
+                            // loop over byte range via loopvar
+                            val varname = asmIdentifierName(stmt.loopVar!!)
+                            translateExpression(range.from)
+                            translateExpression(range.to)
+                            out("""
+                inx
+                lda  $ESTACK_LO_HEX+1,x
+                sta  $varname
+                sec
+                sbc  $ESTACK_LO_HEX,x
+                adc  #0
+                sta  $counterLabel
+                inx
+$loopLabel""")
+                            translate(stmt.body)
+                            out("""
+$continueLabel  dec  $counterLabel
+                beq  $endLabel
+                dec  $varname
+                jmp  $loopLabel
+$counterLabel   .byte  0                
+$endLabel""")
+                        }
+                    }
+                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                        translateExpression(range.to)
+                        out("""
+                lda  $ESTACK_LO_HEX+1,x
+                bne  +
+                dec  $ESTACK_HI_HEX+1,x
++               dec  $ESTACK_LO_HEX+1,x                            
+                        """)
+                        val varname = asmIdentifierName(stmt.loopVar!!)
+                        val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
+                                null, range.from, range.position)
+                        assignLoopvar.linkParents(stmt)
+                        translate(assignLoopvar)
+                        out(loopLabel)
+                        translate(stmt.body)
+                        out("""
+                lda  $varname
+                bne  +
+                dec  $varname+1
++               dec  $varname                
+                lda  $ESTACK_HI_HEX+1,x
+                cmp  $varname+1
+                bne  +
+                lda  $ESTACK_LO_HEX+1,x
+                cmp  $varname
+                beq  $endLabel
++               jmp  $loopLabel
+$endLabel       inx""")
+                    }
+                    else -> throw AssemblyError("range expression can only be byte or word")
+                }
             }
             else -> when (iterableDt) {
-                DataType.ARRAY_UB, DataType.ARRAY_B -> TODO("non-const forloop bytes")
-                DataType.ARRAY_UW, DataType.ARRAY_W -> TODO("non-const forloop words")
+                DataType.ARRAY_UB, DataType.ARRAY_B -> TODO("non-const forloop bytes, step >1: $stepsize")
+                DataType.ARRAY_UW, DataType.ARRAY_W -> TODO("non-const forloop words, step >1: $stepsize")
                 else -> throw AssemblyError("range expression can only be byte or word")
             }
         }
@@ -1238,14 +1340,15 @@ $endLabel""")
     }
 
     private fun translateForOverConstRange(stmt: ForLoop, iterableDt: DataType, range: IntProgression) {
+        // TODO: optimize loop code when the range is < 256 iterations, don't need a separate counter in such cases
         val loopLabel = makeLabel("for_loop")
         val endLabel = makeLabel("for_end")
         val continueLabel = makeLabel("for_continue")
-        val counterLabel = makeLabel("for_counter")
         loopEndLabels.push(endLabel)
         loopContinueLabels.push(continueLabel)
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
+                val counterLabel = makeLabel("for_counter")
                 if(stmt.loopRegister!=null) {
 
                     // loop register over range
@@ -1412,97 +1515,59 @@ $endLabel""")
                 val varname = asmIdentifierName(stmt.loopVar!!)
                 when {
                     range.step == 1 -> {
-                        // step = 1
+                        // word, step = 1
+                        val lastValue = range.last+1
                         out("""
                 lda  #<${range.first}
                 ldy  #>${range.first}
                 sta  $varname
                 sty  $varname+1
-                lda  #${range.last - range.first + 1 and 255}
-                sta  $counterLabel
 $loopLabel""")
                         translate(stmt.body)
                         out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                inc  $varname
-                bne  $loopLabel
+$continueLabel  inc  $varname
+                bne  +
                 inc  $varname+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
++               lda  $varname
+                cmp  #<$lastValue
+                bne  +
+                lda  $varname+1
+                cmp  #>$lastValue
+                beq  $endLabel
++               jmp  $loopLabel
 $endLabel""")
                     }
                     range.step == -1 -> {
-                        // step = 1
+                        // word, step = 1
+                        val lastValue = range.last-1
                         out("""
                 lda  #<${range.first}
                 ldy  #>${range.first}
                 sta  $varname
                 sty  $varname+1
-                lda  #${range.first - range.last + 1 and 255}
-                sta  $counterLabel
 $loopLabel""")
                         translate(stmt.body)
                         out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                lda  $varname
+$continueLabel  lda  $varname
                 bne  +
                 dec  $varname+1
-+               dec  $varname                
-                jmp  $loopLabel
-$counterLabel   .byte  0                
++               dec  $varname
+                lda  $varname
+                cmp  #<$lastValue
+                bne  +
+                lda  $varname+1
+                cmp  #>$lastValue
+                beq  $endLabel
++               jmp  $loopLabel
 $endLabel""")
                     }
                     range.step >= 2 -> {
-                        // step >= 2
-                        out("""
-                lda  #<${range.first}
-                ldy  #>${range.first}
-                sta  $varname
-                sty  $varname+1
-                lda  #${(range.last-range.first) / range.step + 1}
-                sta  $counterLabel
-$loopLabel""")
-                        translate(stmt.body)
-                        out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                clc
-                lda  $varname
-                adc  #<${range.step}
-                sta  $varname
-                lda  $varname+1
-                adc  #>${range.step}
-                sta  $varname+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
+                        // word, step >= 2
+                        TODO("for, word, step>=2")
                     }
                     else -> {
                         // step <= -2
-                        out("""
-                lda  #<${range.first}
-                ldy  #>${range.first}
-                sta  $varname
-                sty  $varname+1
-                lda  #${(range.first-range.last) / range.step.absoluteValue + 1}
-                sta  $counterLabel
-$loopLabel""")
-                        translate(stmt.body)
-                        out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                sec
-                lda  $varname
-                sbc  #<${range.step.absoluteValue}
-                sta  $varname
-                lda  $varname+1
-                sbc  #>${range.step.absoluteValue}
-                sta  $varname+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
+                        TODO("for, word, step<=-2")
                     }
                 }
             }
@@ -2518,7 +2583,34 @@ $endLabel""")
             addressLv != null -> out("  st$registerName  ${addressLv.number.toHex()}")
             addressExpr is IdentifierReference -> {
                 val targetName = asmIdentifierName(addressExpr)
-                out("  st$registerName  $targetName")
+                when(register) {
+                    Register.A -> out("""
+                        ldy  $targetName
+                        sty  ${C64Zeropage.SCRATCH_W1}
+                        ldy  $targetName+1
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldy  #0
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
+                        """)
+                    Register.X -> out("""
+                        txa
+                        ldy  $targetName
+                        sty  ${C64Zeropage.SCRATCH_W1}
+                        ldy  $targetName+1
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldy  #0
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
+                        """)
+                    Register.Y -> out("""
+                        tya
+                        ldy  $targetName
+                        sty  ${C64Zeropage.SCRATCH_W1}
+                        ldy  $targetName+1
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldy  #0
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
+                        """)
+                }
             }
             else -> {
                 saveRegister(register)
