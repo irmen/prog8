@@ -9,8 +9,6 @@ import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.FunctionCallStatement
-import prog8.compiler.CompilationOptions
-import prog8.compiler.Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
@@ -18,10 +16,7 @@ import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.compiler.toHex
 import prog8.functions.FunctionSignature
 
-internal class BuiltinFunctionsAsmGen(private val program: Program,
-                                      private val options: CompilationOptions,
-                                      private val zeropage: Zeropage,
-                                      private val asmgen: AsmGen) {
+internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FunctionSignature) {
         translateFunctioncall(fcall, func, false)
@@ -33,21 +28,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
 
     private fun translateFunctioncall(fcall: IFunctionCall, func: FunctionSignature, discardResult: Boolean) {
         val functionName = fcall.target.nameInSource.last()
-        if(discardResult) {
-            if(func.pure)
+        if (discardResult) {
+            if (func.pure)
                 return  // can just ignore the whole function call altogether
-            else if(func.returntype!=null)
+            else if (func.returntype != null)
                 throw AssemblyError("discarding result of non-pure function $fcall")
         }
 
-        when(functionName) {
+        when (functionName) {
             "msb" -> {
                 val arg = fcall.arglist.single()
-                if(arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
+                if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
                     throw AssemblyError("msb required word argument")
-                if(arg is NumericLiteralValue)
+                if (arg is NumericLiteralValue)
                     throw AssemblyError("should have been const-folded")
-                if(arg is IdentifierReference) {
+                if (arg is IdentifierReference) {
                     val sourceName = asmgen.asmIdentifierName(arg)
                     asmgen.out("  lda  $sourceName+1 |  sta  $ESTACK_LO_HEX,x |  dex")
                 } else {
@@ -87,7 +82,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "min", "max", "sum" -> {
                 outputPushAddressAndLenghtOfArray(fcall.arglist[0])
                 val dt = fcall.arglist.single().inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.ARRAY_UB, DataType.STR_S, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
                     DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
                     DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw")
@@ -99,7 +94,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "any", "all" -> {
                 outputPushAddressAndLenghtOfArray(fcall.arglist[0])
                 val dt = fcall.arglist.single().inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR_S, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
                     DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
                     DataType.ARRAY_F -> asmgen.out("  jsr  c64flt.func_${functionName}_f")
@@ -135,11 +130,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 // in-place
                 val what = fcall.arglist.single()
                 val dt = what.inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> {
-                        when(what) {
+                        when (what) {
                             is RegisterExpr -> {
-                                when(what.register) {
+                                when (what.register) {
                                     Register.A -> asmgen.out("  asl  a")
                                     Register.X -> asmgen.out("  txa  |  asl  a |  tax")
                                     Register.Y -> asmgen.out("  tya  |  asl  a |  tay")
@@ -147,7 +142,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             }
                             is IdentifierReference -> asmgen.out("  asl  ${asmgen.asmIdentifierName(what)}")
                             is DirectMemoryRead -> {
-                                if(what.addressExpression is NumericLiteralValue) {
+                                if (what.addressExpression is NumericLiteralValue) {
                                     asmgen.out("  asl  ${(what.addressExpression as NumericLiteralValue).number.toHex()}")
                                 } else {
                                     TODO("lsl memory byte $what")
@@ -160,7 +155,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         }
                     }
                     in WordDatatypes -> {
-                        when(what) {
+                        when (what) {
                             is ArrayIndexedExpression -> TODO("lsl sbyte $what")
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
@@ -176,11 +171,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 // in-place
                 val what = fcall.arglist.single()
                 val dt = what.inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
-                        when(what) {
+                        when (what) {
                             is RegisterExpr -> {
-                                when(what.register) {
+                                when (what.register) {
                                     Register.A -> asmgen.out("  lsr  a")
                                     Register.X -> asmgen.out("  txa  |  lsr  a |  tax")
                                     Register.Y -> asmgen.out("  tya  |  lsr  a |  tay")
@@ -188,7 +183,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             }
                             is IdentifierReference -> asmgen.out("  lsr  ${asmgen.asmIdentifierName(what)}")
                             is DirectMemoryRead -> {
-                                if(what.addressExpression is NumericLiteralValue) {
+                                if (what.addressExpression is NumericLiteralValue) {
                                     asmgen.out("  lsr  ${(what.addressExpression as NumericLiteralValue).number.toHex()}")
                                 } else {
                                     TODO("lsr memory byte $what")
@@ -201,7 +196,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         }
                     }
                     DataType.BYTE -> {
-                        when(what) {
+                        when (what) {
                             is ArrayIndexedExpression -> TODO("lsr sbyte $what")
                             is DirectMemoryRead -> TODO("lsr sbyte $what")
                             is RegisterExpr -> TODO("lsr sbyte $what")
@@ -210,7 +205,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         }
                     }
                     DataType.UWORD -> {
-                        when(what) {
+                        when (what) {
                             is ArrayIndexedExpression -> TODO("lsr uword $what")
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
@@ -220,7 +215,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         }
                     }
                     DataType.WORD -> {
-                        when(what) {
+                        when (what) {
                             is ArrayIndexedExpression -> TODO("lsr sword $what")
                             is IdentifierReference -> TODO("lsr sword $what")
                             else -> throw AssemblyError("weird type")
@@ -233,7 +228,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 // in-place
                 val what = fcall.arglist.single()
                 val dt = what.inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         TODO("rol ubyte")
                     }
@@ -247,7 +242,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 // in-place
                 val what = fcall.arglist.single()
                 val dt = what.inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         TODO("rol2 ubyte")
                     }
@@ -261,7 +256,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 // in-place
                 val what = fcall.arglist.single()
                 val dt = what.inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         TODO("ror ubyte")
                     }
@@ -275,7 +270,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 // in-place
                 val what = fcall.arglist.single()
                 val dt = what.inferType(program)
-                when(dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         TODO("ror2 ubyte")
                     }
@@ -326,4 +321,3 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     }
 
 }
-
