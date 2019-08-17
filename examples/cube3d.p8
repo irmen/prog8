@@ -79,7 +79,6 @@ main {
         word persp
         byte sx
         byte sy
-        ubyte color
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]

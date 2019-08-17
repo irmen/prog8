@@ -24,6 +24,14 @@ object InferredTypes {
                 return false
             return isVoid==other.isVoid && datatype==other.datatype
         }
+
+        override fun toString(): String {
+            return when {
+                datatype!=null -> datatype.toString()
+                isVoid -> "<void>"
+                else -> "<unkonwn>"
+            }
+        }
     }
 
     private val unknownInstance = InferredType.unknown()

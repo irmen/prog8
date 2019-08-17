@@ -256,7 +256,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             val vardecl = array.parent as? VarDecl
             return if (vardecl!=null) {
                 fixupArrayDatatype(array, vardecl, program.heap)
-            } else {
+            } else if(array.heapId!=null) {
                 // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
                 // (we don't know the desired datatype here exactly so we guess)
                 val datatype = determineArrayDt(array.value)
@@ -264,7 +264,8 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                 litval2.parent = array.parent
                 // finally, replace the literal array by a identifier reference.
                 makeIdentifierFromRefLv(litval2)
-            }
+            } else
+                array
         }
         return array
     }
@@ -382,6 +383,29 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         }
     }
 
+}
+
+internal fun fixupArrayDatatype(array: ArrayLiteralValue, program: Program): ArrayLiteralValue {
+    val dts = array.value.map {it.inferType(program).typeOrElse(DataType.STRUCT)}.toSet()
+    if(dts.any { it !in NumericDatatypes }) {
+        return array
+    }
+    val dt = when {
+        DataType.FLOAT in dts -> DataType.ARRAY_F
+        DataType.WORD in dts -> DataType.ARRAY_W
+        DataType.UWORD in dts -> DataType.ARRAY_UW
+        DataType.BYTE in dts -> DataType.ARRAY_B
+        else -> DataType.ARRAY_UB
+    }
+    if(dt==array.type)
+        return array
+
+    // convert values and array type
+    val elementType = ArrayElementTypes.getValue(dt)
+    val values = array.value.map { (it as NumericLiteralValue).cast(elementType) as Expression}.toTypedArray()
+    val array2 = ArrayLiteralValue(dt, values, array.heapId, array.position)
+    array2.linkParents(array.parent)
+    return array2
 }
 
 internal fun fixupArrayDatatype(array: ArrayLiteralValue, vardecl: VarDecl, heap: HeapValues): ArrayLiteralValue {

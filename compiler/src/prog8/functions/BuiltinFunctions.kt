@@ -28,9 +28,9 @@ val BuiltinFunctions = mapOf(
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
         // these few have a return value depending on the argument(s):
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, _ -> collectionArgNeverConst(a, p) },    // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, _ -> collectionArgNeverConst(a, p) },    // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, _ -> collectionArgNeverConst(a, p) },      // type depends on args
+    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
+    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
+    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
         // normal functions follow:
@@ -56,8 +56,8 @@ val BuiltinFunctions = mapOf(
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
-    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, _ -> collectionArgNeverConst(a, p) },
-    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, _ -> collectionArgNeverConst(a, p) },
+    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
+    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 }},
     "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255}},
     "mkword"      to FunctionSignature(true, listOf(
@@ -112,20 +112,30 @@ val BuiltinFunctions = mapOf(
                                                         null)
 )
 
+fun builtinMax(array: List<Number>): Number = array.maxBy { it.toDouble() }!!
+
+fun builtinMin(array: List<Number>): Number = array.minBy { it.toDouble() }!!
+
+fun builtinSum(array: List<Number>): Number = array.sumByDouble { it.toDouble() }
+
+fun builtinAny(array: List<Number>): Number = if(array.any { it.toDouble()!=0.0 }) 1 else 0
+
+fun builtinAll(array: List<Number>): Number = if(array.all { it.toDouble()!=0.0 }) 1 else 0
+
 
 fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): InferredTypes.InferredType {
 
     fun datatypeFromIterableArg(arglist: Expression): DataType {
         if(arglist is ArrayLiteralValue) {
-            if(arglist.type== DataType.ARRAY_UB || arglist.type== DataType.ARRAY_UW || arglist.type== DataType.ARRAY_F) {
-                val dt = arglist.value.map {it.inferType(program)}
-                if(dt.any { !(it istype DataType.UBYTE) && !(it istype DataType.UWORD) && !(it istype DataType.FLOAT)}) {
-                    throw FatalAstException("fuction $function only accepts arraysize of numeric values")
-                }
-                if(dt.any { it istype DataType.FLOAT }) return DataType.FLOAT
-                if(dt.any { it istype DataType.UWORD }) return DataType.UWORD
-                return DataType.UBYTE
+            val dt = arglist.value.map {it.inferType(program).typeOrElse(DataType.STRUCT)}.toSet()
+            if(dt.any { it !in NumericDatatypes }) {
+                throw FatalAstException("fuction $function only accepts array of numeric values")
             }
+            if(DataType.FLOAT in dt) return DataType.FLOAT
+            if(DataType.UWORD in dt) return DataType.UWORD
+            if(DataType.WORD in dt) return DataType.WORD
+            if(DataType.BYTE in dt) return DataType.BYTE
+            return DataType.UBYTE
         }
         if(arglist is IdentifierReference) {
             val idt = arglist.inferType(program)
@@ -215,12 +225,16 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
     return numericLiteral(function(integer).toInt(), args[0].position)
 }
 
-private fun collectionArgNeverConst(args: List<Expression>, position: Position): NumericLiteralValue {
+private fun collectionArg(args: List<Expression>, position: Position, program: Program, function: (arg: List<Number>)->Number): NumericLiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
 
-    // max/min/sum etc only work on arrays and these are never considered to be const for these functions
-    throw NotConstArgumentException()
+    val array= args[0] as? ArrayLiteralValue ?: throw NotConstArgumentException()
+    val constElements = array.value.map{it.constValue(program)?.number}
+    if(constElements.contains(null))
+        throw NotConstArgumentException()
+
+    return NumericLiteralValue.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
 }
 
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
@@ -258,6 +272,8 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     var arraySize = directMemVar?.arraysize?.size()
     if(arraySize != null)
         return NumericLiteralValue.optimalInteger(arraySize, position)
+    if(args[0] is ArrayLiteralValue)
+        return NumericLiteralValue.optimalInteger((args[0] as ArrayLiteralValue).value.size, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
     val target = (args[0] as IdentifierReference).targetVarDecl(program.namespace)!!

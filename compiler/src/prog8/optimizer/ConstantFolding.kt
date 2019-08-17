@@ -39,9 +39,11 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             if(decl.isArray){
                 if(decl.arraysize==null) {
                     // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
-                    val arrayval = (decl.value as ArrayLiteralValue).value
-                    decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
-                    optimizationsDone++
+                    val arrayval = decl.value as? ArrayLiteralValue
+                    if(arrayval!=null) {
+                        decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.value.size, decl.position), decl.position)
+                        optimizationsDone++
+                    }
                 }
                 else if(decl.arraysize?.size()==null) {
                     val size = decl.arraysize!!.index.accept(this)
@@ -183,9 +185,9 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     }
 
     override fun visit(functionCall: FunctionCall): Expression {
+        super.visit(functionCall)
+        typeCastConstArguments(functionCall)
         return try {
-            super.visit(functionCall)
-            typeCastConstArguments(functionCall)
             functionCall.constValue(program) ?: functionCall
         } catch (ax: AstException) {
             addError(ax)
@@ -600,8 +602,11 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
             val vardecl = array.parent as? VarDecl
-            if (vardecl!=null) {
-                return fixupArrayDatatype(array, vardecl, program.heap)
+            return if (vardecl!=null) {
+                fixupArrayDatatype(array, vardecl, program.heap)
+            } else {
+                // it's not an array associated with a vardecl, attempt to guess the data type from the array values
+                fixupArrayDatatype(array, program)
             }
         }
         return array

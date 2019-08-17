@@ -694,7 +694,7 @@ internal class AstChecker(private val program: Program,
 
         super.visit(array)
 
-        if(array.heapId==null)
+        if(array.heapId==null && array.parent !is FunctionCall)
             throw FatalAstException("array should have been moved to heap at ${array.position}")
     }
 
@@ -1207,7 +1207,7 @@ internal class AstChecker(private val program: Program,
     private fun checkArrayValues(value: ArrayLiteralValue, type: DataType): Boolean {
         if(value.heapId==null) {
             // hmm weird, array literal that hasn't been moved to the heap yet?
-            val array = value.value.map { it.constValue(program)!! }
+            val array = value.value.mapNotNull { it.constValue(program) }
             val correct: Boolean
             when(type) {
                 DataType.ARRAY_UB -> {

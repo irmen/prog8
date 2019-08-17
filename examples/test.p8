@@ -6,78 +6,50 @@
 main {
 
     sub start() {
-        byte ub = 100
-        byte ub2
-        word uw = 22222
-        word uw2
+            ubyte ubarr = max([10,0,2,8,5,4,3,9])
+            uword uwarr = max([1000,0,200,8000,50,40000,3,900])
+            byte barr = max([-10,0,-2,8,5,4,-3,9])
+            word warr = max([-1000,0,-200,8000,50,2000,3,-900])
+            float flarr = max([-2.2, 1.1, 3.3, 0.0])
 
-        ub = -100
-        c64scr.print_b(ub >> 1)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 2)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 7)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 8)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 9)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 16)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 26)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
+            ubarr = min([10,0,2,8,5,4,3,9])
+            uwarr = min([1000,0,200,8000,50,40000,3,900])
+            barr = min([-10,0,-2,8,5,4,-3,9])
+            warr = min([-1000,0,-200,8000,50,2000,3,-900])
+            flarr = min([-2.2, 1.1, 3.3, 0.0])
 
-        ub = 100
-        c64scr.print_b(ub >> 1)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 2)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 7)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 8)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 9)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 16)
-        c64.CHROUT('\n')
-        c64scr.print_b(ub >> 26)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
+            uwarr = sum([10,0,2,8,5,4,3,9])
+            uwarr = sum([1000,0,200,8000,50,40000,3,900])
+            warr = sum([-10,0,-2,8,5,4,-3,9])
+            warr = sum([-1000,0,-200,8000,50,2000,3,-900])
+            flarr = sum([-2.2, 1.1, 3.3, 0.0])
+
+            ubarr = any([10,0,2,8,5,4,3,9])
+            ubarr = any([1000,0,200,8000,50,40000,3,900])
+            ubarr = any([-10,0,-2,8,5,4,-3,9])
+            ubarr = any([-1000,0,-200,8000,50,2000,3,-900])
+            ubarr = any([-2.2, 1.1, 3.3, 0.0])
+
+            ubarr = all([10,0,2,8,5,4,3,9])
+            ubarr = all([1000,0,200,8000,50,40000,3,900])
+            ubarr = all([-10,0,-2,8,5,4,-3,9])
+            ubarr = all([-1000,0,-200,8000,50,2000,3,-900])
+            ubarr = all([-2.2, 1.1, 3.3, 0.0])
+
+            ubarr = len([10,0,2,8,5,4,3,9])
+            A = len([1000,0,200,8000,50,40000,3,900])
+            ubarr = len([-10,0,-2,8,5,4,-3,9])
+            A = len([-1000,0,-200,8000,50,2000,3,-900])
+            ubarr = len([-2.2, 1.1, 3.3, 0.0])
 
 
-        uw = -22222
-        c64scr.print_w(uw >> 1)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 7)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 8)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 9)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 15)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 16)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 26)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
+;        ubyte[] uba = sort([10,0,2,8,5,4,3,9])
+;        uword[] uwa = sort([1000,0,200,8000,50,40000,3,900])
+;        byte[] ba = sort([-10,0,-2,8,5,4,-3,9])
+;        word[] wa = sort([-1000,0,-200,8000,50,40000,3,-900])
+;        float[] fla = sort([-2.2, 1.1, 3.3, 0.0])
 
-        uw = 22222
-        c64scr.print_w(uw >> 1)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 7)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 8)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 9)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 15)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 16)
-        c64.CHROUT('\n')
-        c64scr.print_w(uw >> 26)
-        c64.CHROUT('\n')
+
 
     }
 }
