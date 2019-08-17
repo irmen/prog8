@@ -135,18 +135,16 @@ main {
 
         ; first sort vertices to sprite order so the back/front order is correct as well
         ; (simple bubble sort as it's only 8 items to sort)
-        ; TODO make a builtin function sort()
-        sort(rotatedz)
-;        for ubyte sorti in 6 to 0 step -1 {
-;            for ubyte i1 in 0 to sorti {
-;                ubyte i2 = i1+1
-;                if(rotatedz[i1] > rotatedz[i2]) {
-;                    swap(rotatedx[i1], rotatedx[i2])
-;                    swap(rotatedy[i1], rotatedy[i2])
-;                    swap(rotatedz[i1], rotatedz[i2])
-;                }
-;            }
-;        }
+        for ubyte sorti in 6 to 0 step -1 {
+            for ubyte i1 in 0 to sorti {
+                ubyte i2 = i1+1
+                if(rotatedz[i1] > rotatedz[i2]) {
+                    swap(rotatedx[i1], rotatedx[i2])
+                    swap(rotatedy[i1], rotatedy[i2])
+                    swap(rotatedz[i1], rotatedz[i2])
+                }
+            }
+        }
 
         ubyte[] spritecolors = [1,1,7,15,12,11,9,9]
 

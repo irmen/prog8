@@ -663,52 +663,58 @@ cos16u(x)
     Fast 16-bit uword cosine of angle 0..255, result is in range 0..65535
 
 cos16(x)
-    Fast 16-bit word cosine of angle 0..255, result is in range -32767..32767
+   Fast 16-bit word cosine of angle 0..255, result is in range -32767..32767
 
 abs(x)
-	Absolute value.
+    Absolute value.
 
 tan(x)
-	Tangent.
+    Tangent.
 
 atan(x)
-	Arctangent.
+    Arctangent.
 
 ln(x)
-	Natural logarithm (base e).
+    Natural logarithm (base e).
 
 log2(x)
     Base 2 logarithm.
 
 sqrt16(w)
-	16 bit unsigned integer Square root. Result is unsigned byte.
+    16 bit unsigned integer Square root. Result is unsigned byte.
 
 sqrt(x)
-	Floating point Square root.
+    Floating point Square root.
 
 round(x)
-	Rounds the floating point to the closest integer.
+    Rounds the floating point to the closest integer.
 
 floor (x)
-	Rounds the floating point down to an integer towards minus infinity.
+    Rounds the floating point down to an integer towards minus infinity.
 
 ceil(x)
-	Rounds the floating point up to an integer towards positive infinity.
+    Rounds the floating point up to an integer towards positive infinity.
 
 rad(x)
-	Degrees to radians.
+    Degrees to radians.
 
 deg(x)
-	Radians to degrees.
+    Radians to degrees.
 
 max(x)
-	Maximum of the values in the array value x
+    Maximum of the values in the array value x
 
 min(x)
-	Minimum of the values in the array value x
+    Minimum of the values in the array value x
 
 sum(x)
-	Sum of the values in the array value x
+    Sum of the values in the array value x
+
+sort(array)
+    Sort the array in ascending order (in-place)
+
+reverse(array)
+    Reverse the values in the array (in-place). Can be used after sort() to sort an array in descending order.
 
 len(x)
     Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).

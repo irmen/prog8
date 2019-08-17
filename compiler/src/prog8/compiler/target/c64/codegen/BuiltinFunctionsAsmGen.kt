@@ -336,6 +336,38 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else
                     throw AssemblyError("weird type")
             }
+            "reverse" -> {
+                val variable = fcall.arglist.single()
+                if (variable is IdentifierReference) {
+                    val decl = variable.targetVarDecl(program.namespace)!!
+                    val varName = asmgen.asmIdentifierName(variable)
+                    val numElements = decl.arraysize!!.size()
+                    when (decl.datatype) {
+                        DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                            asmgen.out("""
+                                lda  #<$varName
+                                ldy  #>$varName
+                                sta  ${C64Zeropage.SCRATCH_W1}
+                                sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                lda  #$numElements
+                                jsr  prog8_lib.reverse_b
+                            """)
+                        }
+                        DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                            asmgen.out("""
+                                lda  #<$varName
+                                ldy  #>$varName
+                                sta  ${C64Zeropage.SCRATCH_W1}
+                                sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                lda  #$numElements
+                                jsr  prog8_lib.reverse_w
+                            """)
+                        }
+                        DataType.ARRAY_F -> TODO("reverse floats (consider another solution if possible - this will be quite slow, if ever implemented)")
+                        else -> throw AssemblyError("weird type")
+                    }
+                }
+            }
             else -> {
                 translateFunctionArguments(fcall.arglist, func)
                 asmgen.out("  jsr  prog8_lib.func_$functionName")

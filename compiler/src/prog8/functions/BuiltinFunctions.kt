@@ -28,6 +28,7 @@ val BuiltinFunctions = mapOf(
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
     "sort"        to FunctionSignature(false, listOf(BuiltinFunctionParam("array", ArrayDatatypes)), null),
+    "reverse"     to FunctionSignature(false, listOf(BuiltinFunctionParam("array", ArrayDatatypes)), null),
         // these few have a return value depending on the argument(s):
     "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
     "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args

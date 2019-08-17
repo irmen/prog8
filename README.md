@@ -26,7 +26,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - various code optimizations (code structure, logical and numerical expressions, unused code removal...)
 - inline assembly allows you to have full control when every cycle or byte matters
-- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``
+- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
 
 Rapid edit-compile-run-debug cycle:
 

@@ -1535,14 +1535,15 @@ _sort_loop	ldy  c64.SCRATCH_ZPB1    	;start of subroutine sort
 _l1		dey  
 		dey
 		beq  _l3
+		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  c64.SCRATCH_ZPWORD2
 		iny
 		lda  (c64.SCRATCH_ZPWORD1),y
 		dey
-		cmp  c64.SCRATCH_ZPWORD2+1
-		bne  +
-		lda  (c64.SCRATCH_ZPWORD1),y
-		cmp  c64.SCRATCH_ZPWORD2
-+		bmi  _l1
+		sbc  c64.SCRATCH_ZPWORD2+1
+		bvc  +
+		eor  #$80
++		bmi  _l1		
 _l2		sty  _work1          		;index of potentially largest value
 		lda  (c64.SCRATCH_ZPWORD1),y
 		sta  c64.SCRATCH_ZPWORD2          ;potentially largest value
@@ -1571,3 +1572,102 @@ _l3		ldy  c64.SCRATCH_ZPB1           ;where the largest value shall be put
 _work1	.byte  0
 _work3	.word  0
 		.pend		
+		
+		
+reverse_b	.proc
+		; --- reverse an array of bytes (in-place)
+		; inputs:  pointer to array in c64.SCRATCH_ZPWORD1, length in A
+_left_index = c64.SCRATCH_ZPWORD2
+_right_index = c64.SCRATCH_ZPWORD2+1
+		pha
+		sec
+		sbc  #1
+		sta  _left_index
+		lda  #0
+		sta  _right_index
+		pla
+		lsr  a
+		tay
+_loop		sty  c64.SCRATCH_ZPREG
+		ldy  _left_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		pla
+		ldy  _right_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _right_index
+		dec  _left_index
+		ldy  c64.SCRATCH_ZPREG
+		dey
+		bne  _loop
+		rts
+		.pend
+
+		
+reverse_w	.proc
+		; --- reverse an array of words (in-place)
+		; inputs:  pointer to array in c64.SCRATCH_ZPWORD1, length in A
+_left_index = c64.SCRATCH_ZPWORD2
+_right_index = c64.SCRATCH_ZPWORD2+1
+		pha
+		asl  a     ; *2 because words
+		sec
+		sbc  #2
+		sta  _left_index
+		lda  #0
+		sta  _right_index
+		pla
+		lsr  a
+		pha
+		tay
+		; first reverse the lsbs
+_loop_lo	sty  c64.SCRATCH_ZPREG
+		ldy  _left_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		pla
+		ldy  _right_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _right_index
+		inc  _right_index
+		dec  _left_index
+		dec  _left_index
+		ldy  c64.SCRATCH_ZPREG
+		dey
+		bne  _loop_lo
+		; now reverse the msbs
+		dec  _right_index
+		inc  _left_index
+		inc  _left_index
+		inc  _left_index
+		pla
+		tay
+_loop_hi	sty  c64.SCRATCH_ZPREG
+		ldy  _left_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		pla
+		ldy  _right_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dec  _right_index
+		dec  _right_index
+		inc  _left_index
+		inc  _left_index
+		ldy  c64.SCRATCH_ZPREG
+		dey
+		bne  _loop_hi
+
+		rts	
+		.pend

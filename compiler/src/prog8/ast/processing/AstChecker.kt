@@ -832,7 +832,7 @@ internal class AstChecker(private val program: Program,
                 printWarning("result values of subroutine call are discarded", functionCallStatement.position)
         }
 
-        if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort")) {
+        if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
             if(functionCallStatement.arglist.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                 checkResult.add(ExpressionError("can't use that as argument to a in-place modifying function", functionCallStatement.position))
