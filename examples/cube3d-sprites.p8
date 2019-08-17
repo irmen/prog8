@@ -1,8 +1,6 @@
 %import c64lib
 %import c64utils
 
-; TODO:  some optimizer breaks this..   runs fine without optimization
-
 spritedata $2000 {
     ; this memory block contains the sprite data
     ; it must start on an address aligned to 64 bytes.

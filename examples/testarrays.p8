@@ -2,7 +2,7 @@
 %zeropage basicsafe
 %option enable_floats
 
-; TODO complete codegeneration for all lines in this
+; TODO complete asm code generation for all lines in this
 
 
 

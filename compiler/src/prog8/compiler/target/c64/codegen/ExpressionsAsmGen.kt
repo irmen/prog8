@@ -21,34 +21,36 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is NumericLiteralValue -> translateExpression(expression)
             is RegisterExpr -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
-            is FunctionCall -> {
-                val functionName = expression.target.nameInSource.last()
-                val builtinFunc = BuiltinFunctions[functionName]
-                if(builtinFunc!=null) {
-                    asmgen.translateFunctioncallExpression(expression, builtinFunc)
-                } else {
-                    asmgen.translateFunctionCall(expression)
-                    val sub = expression.target.targetSubroutine(program.namespace)!!
-                    val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-                    for((_, reg) in returns) {
-                        if(!reg.stack) {
-                            // result value in cpu or status registers, put it on the stack
-                            if(reg.registerOrPair!=null) {
-                                when(reg.registerOrPair) {
-                                    RegisterOrPair.A -> asmgen.out("  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  dex")
-                                    RegisterOrPair.Y -> asmgen.out("  tya |  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  dex")
-                                    RegisterOrPair.AY -> asmgen.out("  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  tya |  sta  ${MachineDefinition.ESTACK_HI_HEX},x |  dex")
-                                    RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't push X register - use a variable")
-                                }
-                            }
-                            // return value from a statusregister is not put on the stack, it should be acted on via a conditional branch such as if_cc
-                        }
-                    }
-                }
-            }
+            is FunctionCall -> translateExpression(expression)
             is ArrayLiteralValue, is StringLiteralValue -> TODO("string/array/struct assignment?")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
+        }
+    }
+
+    private fun translateExpression(expression: FunctionCall) {
+        val functionName = expression.target.nameInSource.last()
+        val builtinFunc = BuiltinFunctions[functionName]
+        if (builtinFunc != null) {
+            asmgen.translateFunctioncallExpression(expression, builtinFunc)
+        } else {
+            asmgen.translateFunctionCall(expression)
+            val sub = expression.target.targetSubroutine(program.namespace)!!
+            val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+            for ((_, reg) in returns) {
+                if (!reg.stack) {
+                    // result value in cpu or status registers, put it on the stack
+                    if (reg.registerOrPair != null) {
+                        when (reg.registerOrPair) {
+                            RegisterOrPair.A -> asmgen.out("  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  dex")
+                            RegisterOrPair.Y -> asmgen.out("  tya |  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  dex")
+                            RegisterOrPair.AY -> asmgen.out("  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  tya |  sta  ${MachineDefinition.ESTACK_HI_HEX},x |  dex")
+                            RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't push X register - use a variable")
+                        }
+                    }
+                    // return value from a statusregister is not put on the stack, it should be acted on via a conditional branch such as if_cc
+                }
+            }
         }
     }
 
@@ -175,7 +177,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40)
     private val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40)
-    private val powerOfTwos = setOf(0,1,2,4,8,16,32,64,128,256)
+    private val powersOfTwo = setOf(0,1,2,4,8,16,32,64,128,256)
 
     private fun translateExpression(expr: BinaryExpression) {
         val leftIDt = expr.left.inferType(program)
@@ -215,7 +217,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(value!=null) {
                     if(rightDt in IntegerDatatypes) {
                         val amount = value.number.toInt()
-                        if(amount in powerOfTwos)
+                        if(amount in powersOfTwo)
                             printWarning("${expr.right.position} multiplication by power of 2 should have been optimized into a left shift instruction: $amount")
                         when(rightDt) {
                             DataType.UBYTE -> {
@@ -311,7 +313,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             else -> throw AssemblyError("invalid prefix operator ${expr.operator}")
         }
     }
-
 
     private fun translatePushFromArray(arrayExpr: ArrayIndexedExpression) {
         // assume *reading* from an array

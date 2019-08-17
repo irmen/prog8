@@ -608,8 +608,8 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
 
     }
 
-    private val powersOfTwo = (1 .. 16).map { (2.0).pow(it) }
-    private val negativePowersOfTwo = powersOfTwo.map { -it }
+    private val powersOfTwo = (1 .. 16).map { (2.0).pow(it) }.toSet()
+    private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
     private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
         if(leftVal==null && rightVal==null)
@@ -712,7 +712,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                     optimizationsDone++
                     return expr.left
                 }
-                2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
+                in powersOfTwo -> {
                     if(leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
                         // times a power of two => shift left
                         optimizationsDone++
@@ -720,7 +720,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                         return BinaryExpression(expr.left, "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
-                -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
+                in negativePowersOfTwo -> {
                     if(leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
                         optimizationsDone++
