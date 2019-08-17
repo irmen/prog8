@@ -9,6 +9,8 @@ import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.FunctionCallStatement
+import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
@@ -297,6 +299,42 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     else -> throw AssemblyError("weird type")
                 }
+            }
+            "sort" -> {
+                val variable = fcall.arglist.single()
+                if(variable is IdentifierReference) {
+                    val decl = variable.targetVarDecl(program.namespace)!!
+                    val varName = asmgen.asmIdentifierName(variable)
+                    val numElements = decl.arraysize!!.size()
+                    when(decl.datatype) {
+                        DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                            asmgen.out("""
+                                lda  #<$varName
+                                ldy  #>$varName
+                                sta  ${C64Zeropage.SCRATCH_W1}
+                                sty  ${C64Zeropage.SCRATCH_W1+1}
+                                lda  #$numElements
+                                sta  ${C64Zeropage.SCRATCH_B1}
+                            """)
+                            asmgen.out(if(decl.datatype==DataType.ARRAY_UB) "  jsr  prog8_lib.sort_ub" else "  jsr  prog8_lib.sort_b")
+                        }
+                        DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                            asmgen.out("""
+                                lda  #<$varName
+                                ldy  #>$varName
+                                sta  ${C64Zeropage.SCRATCH_W1}
+                                sty  ${C64Zeropage.SCRATCH_W1+1}
+                                lda  #$numElements
+                                sta  ${C64Zeropage.SCRATCH_B1}
+                            """)
+                            asmgen.out(if(decl.datatype==DataType.ARRAY_UW) "  jsr  prog8_lib.sort_uw" else "  jsr  prog8_lib.sort_w")
+                        }
+                        DataType.ARRAY_F -> TODO("sort floats (consider another solution if possible - this will be very slow, if ever implemented)")
+                        else -> throw AssemblyError("weird type")
+                    }
+                }
+                else
+                    throw AssemblyError("weird type")
             }
             else -> {
                 translateFunctionArguments(fcall.arglist, func)

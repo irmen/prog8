@@ -1384,3 +1384,190 @@ _mod2b          lda  #0                         ; self-modified
 _done		rts
 		.pend
 
+
+sort_ub		.proc
+		; 8bit unsigned sort
+		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
+		; input:  address of array to sort in c64.SCRATCH_ZPWORD1, length in c64.SCRATCH_ZPB1
+		; first, put pointer BEFORE array
+		lda  c64.SCRATCH_ZPWORD1
+		bne  +
+		dec  c64.SCRATCH_ZPWORD1+1
++		dec  c64.SCRATCH_ZPWORD1
+_sortloop	ldy  c64.SCRATCH_ZPB1		;start of subroutine sort
+		lda  (c64.SCRATCH_ZPWORD1),y	;last value in (what is left of) sequence to be sorted
+		sta  c64.SCRATCH_ZPREG		;save value. will be over-written by largest number
+		jmp  _l2
+_l1		dey
+		beq  _l3
+		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  c64.SCRATCH_ZPWORD2+1
+		bcc  _l1
+_l2		sty  c64.SCRATCH_ZPWORD2	;index of potentially largest value
+		sta  c64.SCRATCH_ZPWORD2+1	;potentially largest value
+		jmp  _l1
+_l3		ldy  c64.SCRATCH_ZPB1		;where the largest value shall be put
+		lda  c64.SCRATCH_ZPWORD2+1	;the largest value
+		sta  (c64.SCRATCH_ZPWORD1),y	;put largest value in place
+		ldy  c64.SCRATCH_ZPWORD2	;index of free space
+		lda  c64.SCRATCH_ZPREG		;the over-written value
+		sta  (c64.SCRATCH_ZPWORD1),y	;put the over-written value in the free space
+		dec  c64.SCRATCH_ZPB1		;end of the shorter sequence still left
+		bne  _sortloop			;start working with the shorter sequence
+		rts
+		.pend
+
+		
+sort_b		.proc
+		; 8bit signed sort
+		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
+		; input:  address of array to sort in c64.SCRATCH_ZPWORD1, length in c64.SCRATCH_ZPB1
+		; first, put pointer BEFORE array
+		lda  c64.SCRATCH_ZPWORD1
+		bne  +
+		dec  c64.SCRATCH_ZPWORD1+1
++		dec  c64.SCRATCH_ZPWORD1
+_sortloop	ldy  c64.SCRATCH_ZPB1		;start of subroutine sort
+		lda  (c64.SCRATCH_ZPWORD1),y	;last value in (what is left of) sequence to be sorted
+		sta  c64.SCRATCH_ZPREG		;save value. will be over-written by largest number
+		jmp  _l2
+_l1		dey
+		beq  _l3
+		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  c64.SCRATCH_ZPWORD2+1
+		bmi  _l1
+_l2		sty  c64.SCRATCH_ZPWORD2	;index of potentially largest value
+		sta  c64.SCRATCH_ZPWORD2+1	;potentially largest value
+		jmp  _l1
+_l3		ldy  c64.SCRATCH_ZPB1		;where the largest value shall be put
+		lda  c64.SCRATCH_ZPWORD2+1	;the largest value
+		sta  (c64.SCRATCH_ZPWORD1),y	;put largest value in place
+		ldy  c64.SCRATCH_ZPWORD2	;index of free space
+		lda  c64.SCRATCH_ZPREG		;the over-written value
+		sta  (c64.SCRATCH_ZPWORD1),y	;put the over-written value in the free space
+		dec  c64.SCRATCH_ZPB1		;end of the shorter sequence still left
+		bne  _sortloop			;start working with the shorter sequence
+		rts
+		.pend
+
+
+sort_uw		.proc
+		; 16bit unsigned sort
+		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
+		; input:  address of array to sort in c64.SCRATCH_ZPWORD1, length in c64.SCRATCH_ZPB1
+		; first: subtract 2 of the pointer
+		asl  c64.SCRATCH_ZPB1		; *2 because words
+		lda  c64.SCRATCH_ZPWORD1
+		sec
+		sbc  #2
+		sta  c64.SCRATCH_ZPWORD1
+		bcs  _sort_loop
+		dec  c64.SCRATCH_ZPWORD1+1
+_sort_loop	ldy  c64.SCRATCH_ZPB1    	;start of subroutine sort
+		lda  (c64.SCRATCH_ZPWORD1),y    ;last value in (what is left of) sequence to be sorted
+		sta  _work3          		;save value. will be over-written by largest number
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  _work3+1
+		dey
+		jmp  _l2
+_l1		dey  
+		dey
+		beq  _l3
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		dey
+		cmp  c64.SCRATCH_ZPWORD2+1
+		bne  +
+		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  c64.SCRATCH_ZPWORD2
++		bcc  _l1
+_l2		sty  _work1          		;index of potentially largest value
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  c64.SCRATCH_ZPWORD2          ;potentially largest value
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  c64.SCRATCH_ZPWORD2+1
+		dey
+		jmp  _l1
+_l3		ldy  c64.SCRATCH_ZPB1           ;where the largest value shall be put
+		lda  c64.SCRATCH_ZPWORD2          ;the largest value
+		sta  (c64.SCRATCH_ZPWORD1),y      ;put largest value in place
+		iny
+		lda  c64.SCRATCH_ZPWORD2+1
+		sta  (c64.SCRATCH_ZPWORD1),y
+		ldy  _work1         		 ;index of free space
+		lda  _work3          		;the over-written value
+		sta  (c64.SCRATCH_ZPWORD1),y      ;put the over-written value in the free space
+		iny
+		lda  _work3+1
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		dec  c64.SCRATCH_ZPB1           ;end of the shorter sequence still left
+		dec  c64.SCRATCH_ZPB1
+		bne  _sort_loop           ;start working with the shorter sequence
+		rts		
+_work1	.byte  0
+_work3	.word  0
+		.pend
+
+		
+sort_w		.proc
+		; 16bit signed sort
+		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
+		; input:  address of array to sort in c64.SCRATCH_ZPWORD1, length in c64.SCRATCH_ZPB1
+		; first: subtract 2 of the pointer
+		asl  c64.SCRATCH_ZPB1		; *2 because words
+		lda  c64.SCRATCH_ZPWORD1
+		sec
+		sbc  #2
+		sta  c64.SCRATCH_ZPWORD1
+		bcs  _sort_loop
+		dec  c64.SCRATCH_ZPWORD1+1
+_sort_loop	ldy  c64.SCRATCH_ZPB1    	;start of subroutine sort
+		lda  (c64.SCRATCH_ZPWORD1),y    ;last value in (what is left of) sequence to be sorted
+		sta  _work3          		;save value. will be over-written by largest number
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  _work3+1
+		dey
+		jmp  _l2
+_l1		dey  
+		dey
+		beq  _l3
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		dey
+		cmp  c64.SCRATCH_ZPWORD2+1
+		bne  +
+		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  c64.SCRATCH_ZPWORD2
++		bmi  _l1
+_l2		sty  _work1          		;index of potentially largest value
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  c64.SCRATCH_ZPWORD2          ;potentially largest value
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  c64.SCRATCH_ZPWORD2+1
+		dey
+		jmp  _l1
+_l3		ldy  c64.SCRATCH_ZPB1           ;where the largest value shall be put
+		lda  c64.SCRATCH_ZPWORD2          ;the largest value
+		sta  (c64.SCRATCH_ZPWORD1),y      ;put largest value in place
+		iny
+		lda  c64.SCRATCH_ZPWORD2+1
+		sta  (c64.SCRATCH_ZPWORD1),y
+		ldy  _work1         		 ;index of free space
+		lda  _work3          		;the over-written value
+		sta  (c64.SCRATCH_ZPWORD1),y      ;put the over-written value in the free space
+		iny
+		lda  _work3+1
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		dec  c64.SCRATCH_ZPB1           ;end of the shorter sequence still left
+		dec  c64.SCRATCH_ZPB1
+		bne  _sort_loop           ;start working with the shorter sequence
+		rts		
+_work1	.byte  0
+_work3	.word  0
+		.pend		

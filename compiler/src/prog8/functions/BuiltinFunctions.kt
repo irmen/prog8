@@ -27,6 +27,7 @@ val BuiltinFunctions = mapOf(
     "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
+    "sort"        to FunctionSignature(false, listOf(BuiltinFunctionParam("array", ArrayDatatypes)), null),
         // these few have a return value depending on the argument(s):
     "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
     "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
@@ -75,18 +76,20 @@ val BuiltinFunctions = mapOf(
     "read_flags"  to FunctionSignature(false, emptyList(), DataType.UBYTE),
     "swap"        to FunctionSignature(false, listOf(BuiltinFunctionParam("first", NumericDatatypes), BuiltinFunctionParam("second", NumericDatatypes)), null),
     "memcopy"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("from", IterableDatatypes + setOf(DataType.UWORD)),
-                                                        BuiltinFunctionParam("to", IterableDatatypes + setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("from", IterableDatatypes + DataType.UWORD),
+                                                        BuiltinFunctionParam("to", IterableDatatypes + DataType.UWORD),
                                                         BuiltinFunctionParam("numbytes", setOf(DataType.UBYTE))), null),
     "memset"      to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("address", IterableDatatypes + DataType.UWORD),
                                                         BuiltinFunctionParam("numbytes", setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("bytevalue", ByteDatatypes)), null),
     "memsetw"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("address", IterableDatatypes + DataType.UWORD),
                                                         BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
     "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE, ::builtinStrlen),
+
+    // TODO clean up these vm-specific functions
     "vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),

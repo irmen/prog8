@@ -149,7 +149,7 @@ internal class AsmGen(val program: Program,
     }
 
     private fun block2asm(block: Block) {
-        out("\n; ---- block: '${block.name}' ----")
+        out("\n\n; ---- block: '${block.name}' ----")
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
         if(block.address!=null) {

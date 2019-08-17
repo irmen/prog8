@@ -232,7 +232,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
 
     private fun block2asm(blk: IntermediateProgram.ProgramBlock) {
         block = blk
-        out("\n; ---- block: '${block.name}' ----")
+        out("\n\n; ---- block: '${block.name}' ----")
         if(!blk.force_output)
             out("${block.name}\t.proc\n")
         if(block.address!=null) {

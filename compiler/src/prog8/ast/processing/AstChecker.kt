@@ -1,5 +1,6 @@
 package prog8.ast.processing
 
+import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Module
 import prog8.ast.Program
@@ -694,7 +695,7 @@ internal class AstChecker(private val program: Program,
 
         super.visit(array)
 
-        if(array.heapId==null && array.parent !is FunctionCall)
+        if(array.heapId==null && array.parent !is IFunctionCall)
             throw FatalAstException("array should have been moved to heap at ${array.position}")
     }
 
@@ -831,7 +832,7 @@ internal class AstChecker(private val program: Program,
                 printWarning("result values of subroutine call are discarded", functionCallStatement.position)
         }
 
-        if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap")) {
+        if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort")) {
             // in-place modification, can't be done on literals
             if(functionCallStatement.arglist.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                 checkResult.add(ExpressionError("can't use that as argument to a in-place modifying function", functionCallStatement.position))
