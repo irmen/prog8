@@ -48,6 +48,9 @@ without having to to index into the stack?
 Misc
 ^^^^
 
+Add sort() function that can sort an array (ascending and descending)
+
+
 Several ideas were discussed on my reddit post
 https://www.reddit.com/r/programming/comments/alhj59/creating_a_programming_language_and_cross/
 

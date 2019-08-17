@@ -1,5 +1,7 @@
 %zeropage basicsafe
 
+; TODO implement asm generation for all loops here
+
 main {
 
     sub start() {

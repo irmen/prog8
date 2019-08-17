@@ -1,6 +1,8 @@
 %import c64utils
 %zeropage basicsafe
 
+; TODO implement asm generation for all operation in here
+
 main {
 
     byte bb

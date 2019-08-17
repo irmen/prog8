@@ -250,6 +250,7 @@ $continueLabel      inc  $loopLabel+1
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter in such cases
                 val length = decl.arraysize!!.size()!!
                 if(stmt.loopRegister!=null && stmt.loopRegister!= Register.A)
                     throw AssemblyError("can only use A")
@@ -276,6 +277,7 @@ $counterLabel       .byte  0
 $endLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter in such cases
                 val length = decl.arraysize!!.size()!! * 2
                 if(stmt.loopRegister!=null)
                     throw AssemblyError("can't use register to loop over words")

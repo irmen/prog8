@@ -1,7 +1,7 @@
 %import c64lib
 %import c64utils
 
-; TODO:  some optimizer breaks this.. the 3d sorting seems broken? or maybe more?  runs fine without optimization
+; TODO:  some optimizer breaks this..   runs fine without optimization
 
 spritedata $2000 {
     ; this memory block contains the sprite data
@@ -102,12 +102,12 @@ main {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        word wcosa = cos8(ax) as word
-        word wsina = sin8(ax) as word
-        word wcosb = cos8(ay) as word
-        word wsinb = sin8(ay) as word
-        word wcosc = cos8(az) as word
-        word wsinc = sin8(az) as word
+        word wcosa = cos8(ax)
+        word wsina = sin8(ax)
+        word wcosb = cos8(ay)
+        word wsinb = sin8(ay)
+        word wcosc = cos8(az)
+        word wsinc = sin8(az)
 
         word wcosa_sinb = wcosa*wsinb / 128
         word wsina_sinb = wsina*wsinb / 128
@@ -136,7 +136,8 @@ main {
         ; set each of the 8 sprites to the correct vertex of the cube
 
         ; first sort vertices to sprite order so the back/front order is correct as well
-        ; (chose to do a simple bubble sort it's only 8 items to sort)
+        ; (simple bubble sort as it's only 8 items to sort)
+        ; TODO make a builtin function sort()
         for ubyte sorti in 6 to 0 step -1 {
             for ubyte i1 in 0 to sorti {
                 ubyte i2 = i1+1
@@ -163,7 +164,7 @@ main {
             else
                 c64.SPRPTR[i] = $2000/64        ; small ball
 
-            c64.SPCOL[i] = spritecolors[zc>>13 as byte + 4]      ; further away=darker color
+            c64.SPCOL[i] = spritecolors[(zc>>13) as byte + 4]      ; further away=darker color
         }
     }
 }

@@ -41,12 +41,12 @@ main {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        word wcosa = cos8(ax) as word
-        word wsina = sin8(ax) as word
-        word wcosb = cos8(ay) as word
-        word wsinb = sin8(ay) as word
-        word wcosc = cos8(az) as word
-        word wsinc = sin8(az) as word
+        word wcosa = cos8(ax)
+        word wsina = sin8(ax)
+        word wcosb = cos8(ay)
+        word wsinb = sin8(ay)
+        word wcosc = cos8(az)
+        word wsinc = sin8(az)
 
         word wcosa_sinb = wcosa*wsinb / 128
         word wsina_sinb = wsina*wsinb / 128
@@ -62,13 +62,12 @@ main {
         word Azz = wcosb*wcosc / 128
 
         for ubyte i in 0 to len(xcoor)-1 {
-            rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]) / 128
-            rotatedy[i] = (Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]) / 128
-            rotatedz[i] = (Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]) / 128
+            ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
+            rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i])
+            rotatedy[i] = (Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i])
+            rotatedz[i] = (Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i])
         }
     }
-
-    ubyte[] vertexcolors = [1,7,7,12,11,6]
 
     sub draw_edges() {
 
@@ -80,24 +79,25 @@ main {
         word persp
         byte sx
         byte sy
+        ubyte color
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 10 {
-                persp = (rz+200) / height
+                persp = 900 + rz/32
                 sx = rotatedx[i] / persp as byte + width/2
                 sy = rotatedy[i] / persp as byte + height/2
-                c64scr.setcc(sx as ubyte, sy as ubyte, 46, vertexcolors[(rz as byte >>5) + 3])
+                c64scr.setcc(sx as ubyte, sy as ubyte, 46, 7)
             }
         }
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 10 {
-                persp = (rz+200) / height
+                persp = 900 + rz/32
                 sx = rotatedx[i] / persp as byte + width/2
                 sy = rotatedy[i] / persp as byte + height/2
-                c64scr.setcc(sx as ubyte, sy as ubyte, 81, vertexcolors[(rz as byte >>5) + 3])
+                c64scr.setcc(sx as ubyte, sy as ubyte, 81, 7)
             }
         }
     }
