@@ -603,7 +603,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         if(array is ArrayLiteralValue) {
             val vardecl = array.parent as? VarDecl
             return if (vardecl!=null) {
-                fixupArrayDatatype(array, vardecl, program.heap)
+                fixupArrayDatatype(array, vardecl, program)
             } else {
                 // it's not an array associated with a vardecl, attempt to guess the data type from the array values
                 fixupArrayDatatype(array, program)
