@@ -34,6 +34,7 @@ val BuiltinFunctions = mapOf(
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
         // normal functions follow:
+    "sgn"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
     "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
     "sin8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
     "sin8u"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
@@ -184,7 +185,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 }
 
 
-class NotConstArgumentException: AstException("not a const argument to a built-in function")
+class NotConstArgumentException: AstException("not a const argument to a built-in function")        // TODO: ugly, remove throwing exceptions for control flow
 
 
 private fun oneDoubleArg(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Number): NumericLiteralValue {
@@ -357,6 +358,13 @@ private fun builtinCos16u(args: List<Expression>, position: Position, program: P
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number.toDouble() /256.0 * 2.0 * PI
     return NumericLiteralValue(DataType.UWORD, (32768.0 + 32767.5 * cos(rad)).toInt(), position)
+}
+
+private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("sgn requires one argument", position)
+    val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
+    return NumericLiteralValue(DataType.BYTE, constval.number.toDouble().sign.toShort(), position)
 }
 
 private fun numericLiteral(value: Number, position: Position): NumericLiteralValue {

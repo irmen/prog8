@@ -101,6 +101,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     else -> throw AssemblyError("weird type $dt")
                 }
             }
+            "sgn" -> {
+                translateFunctionArguments(fcall.arglist, func)
+                val dt = fcall.arglist.single().inferType(program)
+                when(dt.typeOrElse(DataType.STRUCT)) {
+                    DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub")
+                    DataType.BYTE -> asmgen.out("  jsr  math.sign_b")
+                    DataType.UWORD -> asmgen.out("  jsr  math.sign_uw")
+                    DataType.WORD -> asmgen.out("  jsr  math.sign_w")
+                    DataType.FLOAT -> asmgen.out("  jsr  c64flt.sign_f")
+                    else -> throw AssemblyError("weird type $dt")
+                }
+            }
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
@@ -200,7 +212,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             is ArrayIndexedExpression -> TODO("lsr sbyte $what")
                             is DirectMemoryRead -> TODO("lsr sbyte $what")
                             is RegisterExpr -> TODO("lsr sbyte $what")
-                            is IdentifierReference -> TODO("lsr sbyte $what")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  lda  $variable |  asl  a |  ror  $variable")
+                            }
                             else -> throw AssemblyError("weird type")
                         }
                     }
@@ -217,7 +232,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     DataType.WORD -> {
                         when (what) {
                             is ArrayIndexedExpression -> TODO("lsr sword $what")
-                            is IdentifierReference -> TODO("lsr sword $what")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  lda  $variable+1 |  asl a  |  ror  $variable+1 |  ror  $variable")
+                            }
                             else -> throw AssemblyError("weird type")
                         }
                     }

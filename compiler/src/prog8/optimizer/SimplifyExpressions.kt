@@ -8,6 +8,7 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.Statement
 import kotlin.math.abs
 import kotlin.math.log2
+import kotlin.math.pow
 
 /*
     todo advanced expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
@@ -216,12 +217,6 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             }
         }
 
-        // WORD >> 8  --> msb(WORD)
-        if(expr.operator == ">>" && leftDt in WordDatatypes && rightVal?.number == 8) {
-            optimizationsDone++
-            return FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-        }
-
         if (expr.operator == "+" || expr.operator == "-"
                 && leftVal == null && rightVal == null
                 && leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
@@ -346,6 +341,8 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             "-" -> return optimizeSub(expr, leftVal, rightVal)
             "**" -> return optimizePower(expr, leftVal, rightVal)
             "%" -> return optimizeRemainder(expr, leftVal, rightVal)
+            ">>" -> return optimizeShiftRight(expr, rightVal)
+            "<<" -> return optimizeShiftLeft(expr, rightVal)
         }
         return expr
     }
@@ -611,12 +608,16 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
 
     }
 
+    private val powersOfTwo = (1 .. 16).map { (2.0).pow(it) }
+    private val negativePowersOfTwo = powersOfTwo.map { -it }
+
     private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
         if(leftVal==null && rightVal==null)
             return expr
 
-        // cannot shuffle assiciativity with division!
+        // TODO fix bug in this routine!
 
+        // cannot shuffle assiciativity with division!
         if(rightVal!=null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
@@ -640,7 +641,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                         return expr.left
                     }
                 }
-                2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
+                in powersOfTwo -> {
                     if(leftDt in IntegerDatatypes) {
                         // divided by a power of two => shift right
                         optimizationsDone++
@@ -648,7 +649,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                         return BinaryExpression(expr.left, ">>", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
-                -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
+                in negativePowersOfTwo -> {
                     if(leftDt in IntegerDatatypes) {
                         // divided by a negative power of two => negate, then shift right
                         optimizationsDone++
@@ -731,6 +732,99 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         }
         // no need to check for left val constant (because of associativity)
 
+        return expr
+    }
+
+    private fun optimizeShiftLeft(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression {
+        if(amountLv==null)
+            return expr
+
+        val amount=amountLv.number.toInt()
+        if(amount==0) {
+            optimizationsDone++
+            return expr.left
+        }
+        val targetDt = expr.left.inferType(program).typeOrElse(DataType.STRUCT)
+        when(targetDt) {
+            DataType.UBYTE, DataType.BYTE -> {
+                if(amount>=8) {
+                    optimizationsDone++
+                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                }
+            }
+            DataType.UWORD, DataType.WORD -> {
+                if(amount>=16) {
+                    optimizationsDone++
+                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                }
+                else if(amount>=8) {
+                    optimizationsDone++
+                    val lsb=TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
+                    if(amount==8) {
+                        return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(NumericLiteralValue.optimalInteger(0, expr.position), lsb), expr.position)
+                    }
+                    val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount-8, expr.position), expr.position)
+                    return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(NumericLiteralValue.optimalInteger(0, expr.position), shifted), expr.position)
+                }
+            }
+            else -> {}
+        }
+        return expr
+    }
+
+    private fun optimizeShiftRight(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression {
+        if(amountLv==null)
+            return expr
+
+        val amount=amountLv.number.toInt()
+        if(amount==0) {
+            optimizationsDone++
+            return expr.left
+        }
+        val targetDt = expr.left.inferType(program).typeOrElse(DataType.STRUCT)
+        when(targetDt) {
+            DataType.UBYTE -> {
+                if(amount>=8) {
+                    optimizationsDone++
+                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                }
+            }
+            DataType.BYTE -> {
+                if(amount>8) {
+                    expr.right = NumericLiteralValue.optimalInteger(8, expr.right.position)
+                    return expr
+                }
+            }
+            DataType.UWORD -> {
+                if(amount>=16) {
+                    optimizationsDone++
+                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                }
+                else if(amount>=8) {
+                    optimizationsDone++
+                    val msb=FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                    if(amount==8)
+                        return msb
+                    return BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount-8, expr.position), expr.position)
+                }
+            }
+            DataType.WORD -> {
+                if(amount>16) {
+                    expr.right = NumericLiteralValue.optimalInteger(16, expr.right.position)
+                    return expr
+                } else if(amount>=8) {
+                    optimizationsDone++
+                    val msbAsByte = TypecastExpression(
+                            FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position),
+                            DataType.BYTE,
+                            true, expr.position)
+                    if(amount==8)
+                        return msbAsByte
+                    return BinaryExpression(msbAsByte, ">>", NumericLiteralValue.optimalInteger(amount-8, expr.position), expr.position)
+                }
+            }
+            else -> {}
+        }
         return expr
     }
 }

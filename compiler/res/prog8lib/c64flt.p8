@@ -954,6 +954,16 @@ func_sum_f	.proc
 		bne  -
 +		jmp  push_fac1_as_result
 		.pend
+		
+sign_f		.proc
+		jsr  pop_float_fac1
+		jsr  SIGN
+		sta  c64.ESTACK_LO,x
+		dex
+		rts
+		.pend
+		
+
 }}
 
 }  ; ------ end of block c64flt

@@ -516,8 +516,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                                 optimizationsDone++
                                 return NopStatement.insteadOf(assignment)
                             }
-                            if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
-                                    ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
+                            if ((targetDt == DataType.UWORD && cv > 15.0) || (targetDt == DataType.UBYTE && cv > 7.0)) {
                                 assignment.value = NumericLiteralValue.optimalInteger(0, assignment.value.position)
                                 assignment.value.linkParents(assignment)
                                 optimizationsDone++

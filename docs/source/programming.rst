@@ -727,6 +727,9 @@ lsb(x)
 msb(x)
     Get the most significant byte of the word x.
 
+sgn(x)
+    Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
+
 mkword(lsb, msb)
     Efficiently create a word value from two bytes (the lsb and the msb). Avoids multiplication and shifting.
 

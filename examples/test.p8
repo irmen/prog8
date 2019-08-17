@@ -6,55 +6,78 @@
 main {
 
     sub start() {
+        byte ub = 100
+        byte ub2
+        word uw = 22222
+        word uw2
 
-        uword start=1027
-        uword stop=2020
-        uword i
-        ubyte ib
+        ub = -100
+        c64scr.print_b(ub >> 1)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 2)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 7)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 8)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 9)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 16)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 26)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
 
-        c64scr.print("\n\n\n\n\n\n\n\n")
-        memset($0400, 40*25, 30)
-
-        ubyte ibstart = 1
-        for ib in ibstart to 255-ibstart {
-            @(ib+1024) = 44
-        }
-
-        for ib in 253 to 2 step -1 {
-            @(ib+1024) = 3
-        }
-
-        ibstart = 3
-        for ib in 255-ibstart to ibstart step -1 {
-            @(ib+1024) = 45
-        }
-
-
-        for i in 1025 to 2022 {
-            @(i) = 1
-        }
-
-        for i in 2021 to 1026 step -1 {
-            @(i) = 92
-        }
-
-        for i in start to stop {
-            @(i) = 0
-        }
-
-        for i in stop-1 to start+1 step -1 {
-            @(i) = 91
-        }
-
-
-        ubyte xx=X
-        c64scr.print_ub(xx)
+        ub = 100
+        c64scr.print_b(ub >> 1)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 2)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 7)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 8)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 9)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 16)
+        c64.CHROUT('\n')
+        c64scr.print_b(ub >> 26)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
 
 
-;        for i in stop to start {
-;            c64scr.print_uw(i)
-;            c64.CHROUT(',')
-;        }
+        uw = -22222
+        c64scr.print_w(uw >> 1)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 7)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 8)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 9)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 15)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 16)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 26)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+        uw = 22222
+        c64scr.print_w(uw >> 1)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 7)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 8)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 9)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 15)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 16)
+        c64.CHROUT('\n')
+        c64scr.print_w(uw >> 26)
+        c64.CHROUT('\n')
 
     }
 }

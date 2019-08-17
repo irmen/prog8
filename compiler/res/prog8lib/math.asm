@@ -643,3 +643,40 @@ mul_word_40	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
+
+sign_b		.proc
+		lda  c64.ESTACK_LO+1,x
+		beq  _sign_zero
+		bmi  _sign_neg
+_sign_pos	lda  #1
+		sta  c64.ESTACK_LO+1,x
+		rts
+_sign_neg	lda  #-1
+_sign_zero	sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+sign_ub		.proc
+		lda  c64.ESTACK_LO+1,x
+		beq  sign_b._sign_zero
+		bne  sign_b._sign_pos
+		.pend
+
+sign_w		.proc
+		lda  c64.ESTACK_HI+1,x
+		bmi  sign_b._sign_neg
+		beq  sign_ub
+		bne  sign_b._sign_pos
+		.pend
+
+sign_uw		.proc
+		lda  c64.ESTACK_HI+1,x
+		beq  _sign_possibly_zero
+_sign_pos	lda  #1
+		sta  c64.ESTACK_LO+1,x
+		rts
+_sign_possibly_zero	lda  c64.ESTACK_LO+1,x
+		bne  _sign_pos
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
