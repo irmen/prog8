@@ -517,8 +517,8 @@ Loops
 for loop
 ^^^^^^^^
 
-The loop variable must be a register or a byte/word variable. It must be defined first in the local scope (to reuse
-an existing variable).
+The loop variable must be a register or a byte/word variable,
+and must be defined first in the local scope of the for loop.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 
@@ -530,18 +530,23 @@ You can use a single statement, or a statement block like in the example below::
 		continue	; immediately enter next iteration
 	}
 
-For example, this is a for loop using the existing byte variable ``i`` to loop over a certain range of numbers::
+For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
+
+    ubyte i
+
+    ...
 
     for i in 20 to 155 {
         ; do something
     }
 
-And this is a loop over the values of the array ``fibonacci_numbers`` where the loop variable is declared in the loop itself::
+And this is a loop over the values of the array ``fibonacci_numbers``::
 
-    word[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
+    uword[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
 
-    for word fibnr in fibonacci_numbers {
-        ; do something
+    uword number
+    for number in fibonacci_numbers {
+        ; do something with number
     }
 
 
