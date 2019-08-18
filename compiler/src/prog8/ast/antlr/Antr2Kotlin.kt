@@ -552,8 +552,6 @@ private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf
 
 private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
-    val datatype = datatype()?.toAst()
-    val zeropage = if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
     val scope =
@@ -561,7 +559,7 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
                 AnonymousScope(mutableListOf(statement().toAst()), statement().toPosition())
             else
                 AnonymousScope(statement_block().toAst(), statement_block().toPosition())
-    return ForLoop(loopregister, datatype, zeropage, loopvar, iterable, scope, toPosition())
+    return ForLoop(loopregister, loopvar, iterable, scope, toPosition())
 }
 
 

@@ -17,13 +17,14 @@ main {
 
         ; use iteration to write text
         str question = "How are you?\n"
-        for ubyte char in question
+        ubyte char
+        for char in question
             c64.CHROUT(char)
 
         ; use indexed loop to write characters
         str bye = "Goodbye!\n"
-        for ubyte c in 0 to len(bye)
-            c64.CHROUT(bye[c])
+        for char in 0 to len(bye)
+            c64.CHROUT(bye[char])
 
 
         float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60

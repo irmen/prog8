@@ -16,10 +16,13 @@ main {
         c64.TIME_MID=0
         c64.TIME_LO=0
 
-        for ubyte pixely in 0 to height-1 {
+        ubyte pixelx
+        ubyte pixely
+
+        for pixely in 0 to height-1 {
             float yy = (pixely as float)/0.4/height - 1.0
 
-            for ubyte pixelx in 0 to width-1 {
+            for pixelx in 0 to width-1 {
                 float xx = (pixelx as float)/0.3/width - 2.2
 
                 float xsquared = 0.0

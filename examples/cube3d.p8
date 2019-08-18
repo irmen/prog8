@@ -61,7 +61,8 @@ main {
         word Azy = wcosb*wsinc / 128
         word Azz = wcosb*wcosc / 128
 
-        for ubyte i in 0 to len(xcoor)-1 {
+        ubyte i
+        for i in 0 to len(xcoor)-1 {
             ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
             rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i])
             rotatedy[i] = (Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i])

@@ -34,8 +34,8 @@ spritedata $0a00 {
 main {
 
     sub start() {
-
-        for ubyte i in 0 to 7 {
+        ubyte i
+        for i in 0 to 7 {
             c64.SPRPTR[i] = $0a00/64
         }
         c64.SPENA = 255                 ; enable all sprites
@@ -48,16 +48,18 @@ irq {
 
     sub irq() {
         ubyte angle     ; no initialization value so it keeps the previous one.
+        ubyte @zp spri
 
         c64.EXTCOL--
 
         angle++
         c64.MSIGX=0
 
-        for ubyte @zp i in 7 to 0 step -1 {
-            uword @zp x = sin8u(angle*2-i*16) as uword + 50
-            ubyte @zp y = cos8u(angle*3-i*16) / 2 + 70
-            c64.SPXYW[i] = mkword(lsb(x), y)
+
+        for spri in 7 to 0 step -1 {
+            uword @zp x = sin8u(angle*2-spri*16) as uword + 50
+            ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
+            c64.SPXYW[spri] = mkword(lsb(x), y)
             lsl(c64.MSIGX)
             if msb(x) c64.MSIGX++
             c64.EXTCOL++

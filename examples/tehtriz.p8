@@ -10,6 +10,8 @@
 ; @todo show ghost?
 
 
+; TODO FIX COMPILATION ERROR  can't change class of loopvar
+
 main {
 
     const ubyte boardOffsetX = 14
@@ -195,7 +197,8 @@ waitkey:
             if blocklogic.isLineFull(linepos) {
                 complete_lines[num_lines]=linepos
                 num_lines++
-                for ubyte x in boardOffsetX to boardOffsetX+boardWidth-1
+                ubyte x
+                for x in boardOffsetX to boardOffsetX+boardWidth-1
                     c64scr.setcc(x, linepos, 160, 1)
             }
         }
@@ -330,7 +333,8 @@ waitkey:
 
         ubyte[] colors = [6,8,7,5,4]
         for i in len(colors)-1 to 0 step -1 {
-            for ubyte x in 5 to 0 step -1 {
+            ubyte x
+            for x in 5 to 0 step -1 {
                 c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])
             }
         }
@@ -350,7 +354,8 @@ waitkey:
     sub drawNextBlock() {
         const ubyte nextBlockXpos = 29
         const ubyte nextBlockYpos = 5
-        for ubyte x in nextBlockXpos+3 to nextBlockXpos step -1 {
+        const ubyte x = 33
+        for x in nextBlockXpos+3 to nextBlockXpos step -1 {     ; TODO error because const
             c64scr.setcc(x, nextBlockYpos, ' ', 0)
             c64scr.setcc(x, nextBlockYpos+1, ' ', 0)
         }
@@ -365,7 +370,8 @@ waitkey:
     sub drawHoldBlock() {
         const ubyte holdBlockXpos = 7
         const ubyte holdBlockYpos = 6
-        for ubyte x in holdBlockXpos+3 to holdBlockXpos step -1 {
+        ubyte x
+        for x in holdBlockXpos+3 to holdBlockXpos step -1 {
             c64scr.setcc(x, holdBlockYpos, '@', 0)
             c64scr.setcc(x, holdBlockYpos+1, '@', 0)
         }
@@ -379,7 +385,8 @@ waitkey:
     }
 
     sub drawBlock(ubyte x, ubyte y, ubyte character) {
-        for ubyte i in 15 to 0 step -1 {
+        ubyte i
+        for i in 15 to 0 step -1 {
             ubyte c=blocklogic.currentBlock[i]
             if c
                 c64scr.setcc((i&3)+x, (i/4)+y, character, c)
@@ -527,7 +534,8 @@ blocklogic {
     }
 
     sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
-        for ubyte i in 15 to 0 step -1 {
+        ubyte i
+        for i in 15 to 0 step -1 {
             if currentBlock[i] and c64scr.getchr(xpos + (i&3), ypos+i/4)!=32
                 return false
         }
@@ -542,7 +550,8 @@ blocklogic {
     }
 
     sub isLineFull(ubyte ypos) -> ubyte {
-        for ubyte x in main.boardOffsetX to main.boardOffsetX+main.boardWidth-1 {
+        ubyte x
+        for x in main.boardOffsetX to main.boardOffsetX+main.boardWidth-1 {
             if c64scr.getchr(x, ypos)==32
                 return false
         }
@@ -551,7 +560,8 @@ blocklogic {
 
     sub collapse(ubyte ypos) {
         while(ypos>main.startYpos+1) {
-            for ubyte x in main.boardOffsetX+main.boardWidth-1 to main.boardOffsetX step -1 {
+            ubyte x
+            for x in main.boardOffsetX+main.boardWidth-1 to main.boardOffsetX step -1 {
                 ubyte char = c64scr.getchr(x, ypos-1)
                 ubyte color = c64scr.getclr(x, ypos-1)
                 c64scr.setcc(x, ypos, char, color)

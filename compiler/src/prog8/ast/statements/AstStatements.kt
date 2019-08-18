@@ -649,8 +649,6 @@ class BranchStatement(var condition: BranchCondition,
 }
 
 class ForLoop(val loopRegister: Register?,
-              val decltype: DataType?,
-              val zeropage: ZeropageWish,
               var loopVar: IdentifierReference?,
               var iterable: Expression,
               var body: AnonymousScope,
@@ -660,7 +658,7 @@ class ForLoop(val loopRegister: Register?,
 
     override fun linkParents(parent: Node) {
         this.parent=parent
-        loopVar?.linkParents(if(decltype==null) this else body)
+        loopVar?.linkParents(this)
         iterable.linkParents(this)
         body.linkParents(this)
     }

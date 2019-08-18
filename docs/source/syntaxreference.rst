@@ -517,15 +517,14 @@ Loops
 for loop
 ^^^^^^^^
 
-The loop variable must be a register or a byte/word variable. It must be defined in the local scope (to reuse
-an existing variable), or you can declare it in the for loop directly to make a new one that is only visible
-in the body of the for loop.
+The loop variable must be a register or a byte/word variable. It must be defined first in the local scope (to reuse
+an existing variable).
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 
 You can use a single statement, or a statement block like in the example below::
 
-	for [byte | word]  <loopvar>  in  <expression>  [ step <amount> ]   {
+	for <loopvar>  in  <expression>  [ step <amount> ]   {
 		; do something...
 		break		; break out of the loop
 		continue	; immediately enter next iteration
@@ -545,13 +544,6 @@ And this is a loop over the values of the array ``fibonacci_numbers`` where the 
         ; do something
     }
 
-
-You can inline the loop variable declaration in the for statement, including optional zp-tag. In this case
-the variable is not visible outside of the for loop::
-
-    for ubyte @zp fastindex in 10 to 20 {
-        ; do something
-    }
 
 
 while loop

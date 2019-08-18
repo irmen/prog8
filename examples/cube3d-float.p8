@@ -55,7 +55,8 @@ main {
         float Azy = cosb*sinc
         float Azz = cosb*cosc
 
-        for ubyte i in 0 to len(xcoor)-1 {
+        ubyte i
+        for i in 0 to len(xcoor)-1 {
             rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
             rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
             rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]

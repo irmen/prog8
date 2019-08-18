@@ -315,13 +315,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
     override fun visit(forLoop: ForLoop) {
         output("for ")
-        if(forLoop.decltype!=null) {
-            output(datatypeString(forLoop.decltype))
-            if (forLoop.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || forLoop.zeropage==ZeropageWish.PREFER_ZEROPAGE)
-                output(" @zp ")
-            else
-                output(" ")
-        }
         if(forLoop.loopRegister!=null)
             output(forLoop.loopRegister.toString())
         else

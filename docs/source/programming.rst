@@ -395,8 +395,7 @@ Loops
 -----
 
 The *for*-loop is used to let a variable (or register) iterate over a range of values. Iteration is done in steps of 1, but you can change this.
-The loop variable can be declared as byte or word earlier so you can reuse it for multiple occasions,
-or you can declare one directly in the for statement which will only be visible in the for loop body.
+The loop variable must be declared as byte or word earlier so you can reuse it for multiple occasions.
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
@@ -408,9 +407,6 @@ You can also create loops by using the ``goto`` statement, but this should usual
     The value of the loop variable or register after executing the loop *is undefined*. Don't use it immediately
     after the loop without first assigning a new value to it!
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
-    Loop variables that are declared inline are not different to them being
-    defined in a separate var declaration in the subroutine, it's just a readability convenience.
-    (this may change in the future if the compiler gets more advanced with additional sub-scopes)
 
 
 Conditional Execution

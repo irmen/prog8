@@ -33,25 +33,29 @@ main {
 
 
         sub print_arrays() {
-            for ubyte ub in uba {
+            ubyte ub
+            uword uw
+            byte bb
+            word ww
+            for ub in uba {
                 c64scr.print_ub(ub)
                 c64.CHROUT(',')
             }
             c64.CHROUT('\n')
 
-            for uword uw in uwa {
+            for uw in uwa {
                 c64scr.print_uw(uw)
                 c64.CHROUT(',')
             }
             c64.CHROUT('\n')
 
-            for byte bb in ba {
+            for bb in ba {
                 c64scr.print_b(bb)
                 c64.CHROUT(',')
             }
             c64.CHROUT('\n')
 
-            for word ww in wa {
+            for ww in wa {
                 c64scr.print_w(ww)
                 c64.CHROUT(',')
             }

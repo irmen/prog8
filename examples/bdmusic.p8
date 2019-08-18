@@ -17,7 +17,8 @@ sub start() {
     c64.CLEARSCR()
 
     while(true) {
-        for uword note in notes {
+        uword note
+        for note in notes {
             ubyte note1 = lsb(note)
             ubyte note2 = msb(note)
             c64.FREQ1 = music_freq_table[note1]    ; set lo+hi freq of voice 1
@@ -35,7 +36,8 @@ sub start() {
     }
 
     sub delay() {
-        for ubyte d in 0 to 12 {
+        ubyte d
+        for d in 0 to 12 {
             while(c64.RASTER!=0) {
                 ; tempo delay synced to screen refresh
             }

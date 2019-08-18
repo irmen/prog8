@@ -40,7 +40,8 @@ main {
 
         c64scr.print("balloon sprites!\n...we are all floating...\n")
 
-        for ubyte i in 0 to 7 {
+        ubyte @zp i
+        for i in 0 to 7 {
             c64.SPRPTR[i] = $0a00 / 64
             c64.SPXY[i*2] = 50+25*i
             c64.SPXY[i*2+1] = rnd()
@@ -58,7 +59,8 @@ irq {
         c64.EXTCOL--
 
         ; float up & wobble horizontally
-        for ubyte @zp i in 0 to 14 step 2 {
+        ubyte @zp i
+        for i in 0 to 14 step 2 {
             c64.SPXY[i+1]--
             ubyte @zp r = rnd()
             if r>200

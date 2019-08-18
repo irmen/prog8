@@ -6,10 +6,13 @@ main {
 
     sub start() {
 
-        print_name()
+        ubyte i
+        for i in 0 to 10 {
+            A=i
+        }
 
-        sub print_name() {
-            c64scr.print("irmen\n")
+        for i in 0 to 10 {
+            Y=i
         }
 
 ;        ubyte[] uba = [10,0,2,8,5,4,3,9]
@@ -102,8 +105,6 @@ main {
 ;        c64.CHROUT('\n')
 ;        c64.CHROUT('\n')
 
-
-        ; TODO  2 for loops that both define the same loopvar -> double definition -> fix second for -> 'unknown symbol' ????
 
     }
 }

@@ -17,7 +17,7 @@ main {
         }
         c64.CHROUT('\n')
 
-        for A in [1,3,5,99] {
+        for A in [1,3,5,99] {           ; TODO FIX COMPILER ERROR array should have been moved to the heap
             c64scr.print_ub(A)
             c64.CHROUT(',')
         }
@@ -54,81 +54,84 @@ main {
         c64.CHROUT('\n')
         c64.CHROUT('\n')
 
-        for ubyte cc in "hello" {
+        ubyte cc
+        for cc in "hello" {
             c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for ubyte cc2 in [1,3,5,99] {
-            c64scr.print_ub(cc2)
+        for cc in [1,3,5,99] {
+            c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for ubyte cc3 in 10 to 20 {
-            c64scr.print_ub(cc3)
+        for cc in 10 to 20 {
+            c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for ubyte cc4 in 20 to 10 step -1 {
-            c64scr.print_ub(cc4)
+        for cc in 20 to 10 step -1 {
+            c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for ubyte cc5 in 10 to 21 step 3 {
-            c64scr.print_ub(cc5)
+        for cc in 10 to 21 step 3 {
+            c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for ubyte cc6 in 24 to 10 step -3 {
-            c64scr.print_ub(cc6)
+        for cc in 24 to 10 step -3 {
+            c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for ubyte cc7 in barr {
-            c64scr.print_ub(cc7)
+        for cc in barr {
+            c64scr.print_ub(cc)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
         c64.CHROUT('\n')
 
-        for uword ww1 in [1111, 2222, 3333] {
-            c64scr.print_uw(ww1)
+        uword uw
+        for uw in [1111, 2222, 3333] {
+            c64scr.print_uw(uw)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for word ww2 in warr {
-            c64scr.print_w(ww2)
+        for uw in warr {
+            c64scr.print_w(uw)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for uword ww3 in 1111 to 1117  {
-            c64scr.print_uw(ww3)
+        for uw in 1111 to 1117  {
+            c64scr.print_uw(uw)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for uword ww3b in 2000 to 1995 step -1 {
-            c64scr.print_uw(ww3b)
+        for uw in 2000 to 1995 step -1 {
+            c64scr.print_uw(uw)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for uword ww3c in 1111 to 50000 step 4444 {
-            c64scr.print_uw(ww3c)
+        for uw in 1111 to 50000 step 4444 {
+            c64scr.print_uw(uw)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for word ww4 in 999 to -999 step -500 {
-            c64scr.print_w(ww4)
+        word ww
+        for ww in 999 to -999 step -500 {
+            c64scr.print_w(ww)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
