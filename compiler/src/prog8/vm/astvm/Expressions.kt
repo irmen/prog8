@@ -79,8 +79,13 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
         is ArrayIndexedExpression -> {
             val array = evaluate(expr.identifier, ctx)
             val index = evaluate(expr.arrayspec.index, ctx)
-            val value = array.array!![index.integerValue()]
-            return RuntimeValue(ArrayElementTypes.getValue(array.type), value)
+            return if(array.array!=null) {
+                val value = array.array!![index.integerValue()]
+                RuntimeValue(ArrayElementTypes.getValue(array.type), value)
+            } else {
+                val value = array.str!![index.integerValue()]
+                RuntimeValue(ArrayElementTypes.getValue(array.type), value.toShort())
+            }
         }
         is TypecastExpression -> {
             return evaluate(expr.expression, ctx).cast(expr.type)

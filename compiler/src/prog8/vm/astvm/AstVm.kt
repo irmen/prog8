@@ -955,6 +955,24 @@ class AstVm(val program: Program) {
                 runtimeVariables.set(program.namespace, Register.Y.name, registerYsave.pop())
                 null
             }
+            "sort" -> {
+                val array=args.single()
+                array.array!!.sort()
+                null
+            }
+            "reverse" -> {
+                val array=args.single()
+                array.array!!.reverse()
+                null
+            }
+            "sgn" -> {
+                val value = args.single().numericValue().toDouble()
+                when {
+                    value<0.0 -> RuntimeValue(DataType.BYTE, -1)
+                    value==0.0 -> RuntimeValue(DataType.BYTE, 0)
+                    else -> RuntimeValue(DataType.BYTE, 1)
+                }
+            }
             else -> TODO("builtin function $name")
         }
     }
