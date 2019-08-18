@@ -5,19 +5,18 @@ TODO
 Memory Block Operations integrated in language?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-list,string memory block operations?
+array/string memory block operations?
 
-- list operations (whole list, individual element)
-  operations: set, get, copy (from another list with the same length), shift-N(left,right), rotate-N(left,right)
-  clear (set whole list to the given value, default 0)
+- array operations
+  copy (from another array with the same length), shift-N(left,right), rotate-N(left,right)
+  clear (set whole array to the given value, default 0)
 
-- list operations ofcourse work identical on vars and on memory mapped vars of these types.
+- array operations ofcourse work identical on vars and on memory mapped vars of these types.
 
-- strings: identical operations as on lists.
+- strings: identical operations as on array.
 
-these should call optimized pieces of assembly code, so they run as fast as possible
+For now, we have the ``memcopy`` and ``memset`` builtin functions.
 
-For now, we have the ``memcopy``, ``memset`` and ``strlen`` builtin functions.
 
 More optimizations
 ^^^^^^^^^^^^^^^^^^
@@ -47,9 +46,6 @@ without having to to index into the stack?
 
 Misc
 ^^^^
-
-Add sort() function that can sort an array (ascending and descending)
-
 
 Several ideas were discussed on my reddit post
 https://www.reddit.com/r/programming/comments/alhj59/creating_a_programming_language_and_cross/
