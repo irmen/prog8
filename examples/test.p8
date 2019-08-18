@@ -6,19 +6,18 @@ main {
 
     sub start() {
 
-        ubyte i
+        const ubyte i = 33
 
-        for i in [1,3,5,99] {
-            c64scr.print_ub(i)
-            c64.CHROUT(',')
+        i=33
+        i++
+        const ubyte q=33
+        for q in [1,3,5,99] {
+            A=i
         }
-        c64.CHROUT('\n')
 
-        for A in [1,3,5,99] {
-            c64scr.print_ub(A)
-            c64.CHROUT(',')
+        while q<10 {
+            q++
         }
-        c64.CHROUT('\n')
 
     }
 }

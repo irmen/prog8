@@ -2,10 +2,6 @@
 %zeropage basicsafe
 %option enable_floats
 
-; TODO complete asm code generation for all lines in this
-
-
-
 main {
 
     sub start() {
@@ -34,8 +30,6 @@ main {
         float fl
 
         ; read array
-        @($d020) = ub
-
         A=s1[2]
         ub=s1[2]
         ub=s2[2]

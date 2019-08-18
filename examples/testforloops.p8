@@ -17,7 +17,7 @@ main {
         }
         c64.CHROUT('\n')
 
-        for A in [1,3,5,99] {           ; TODO FIX COMPILER ERROR array should have been moved to the heap
+        for A in [1,3,5,99] {
             c64scr.print_ub(A)
             c64.CHROUT(',')
         }

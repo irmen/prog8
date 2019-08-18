@@ -167,6 +167,15 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
      * replace identifiers that refer to const value, with the value itself (if it's a simple type)
      */
     override fun visit(identifier: IdentifierReference): Expression {
+        // don't replace when it's an assignment target or loop variable
+        if(identifier.parent is AssignTarget)
+            return identifier
+        var forloop = identifier.parent as? ForLoop
+        if(forloop==null)
+            forloop = identifier.parent.parent as? ForLoop
+        if(forloop!=null && identifier===forloop.loopVar)
+            return identifier
+
         return try {
             val cval = identifier.constValue(program) ?: return identifier
             return when {

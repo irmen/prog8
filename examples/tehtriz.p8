@@ -9,9 +9,6 @@
 ;
 ; @todo show ghost?
 
-
-; TODO FIX COMPILATION ERROR  can't change class of loopvar
-
 main {
 
     const ubyte boardOffsetX = 14
@@ -354,8 +351,8 @@ waitkey:
     sub drawNextBlock() {
         const ubyte nextBlockXpos = 29
         const ubyte nextBlockYpos = 5
-        const ubyte x = 33
-        for x in nextBlockXpos+3 to nextBlockXpos step -1 {     ; TODO error because const
+        ubyte x
+        for x in nextBlockXpos+3 to nextBlockXpos step -1 {
             c64scr.setcc(x, nextBlockYpos, ' ', 0)
             c64scr.setcc(x, nextBlockYpos+1, ' ', 0)
         }
