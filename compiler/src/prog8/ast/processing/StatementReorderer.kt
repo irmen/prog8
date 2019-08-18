@@ -1,7 +1,6 @@
 package prog8.ast.processing
 
-import prog8.ast.Module
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.initvarsSubName
@@ -64,7 +63,10 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
+    private val addReturns = mutableListOf<Pair<INameScope, Int>>()
+
     override fun visit(module: Module) {
+        addReturns.clear()
         super.visit(module)
 
         val (blocks, other) = module.statements.partition { it is Block }
@@ -92,6 +94,13 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
+
+        for(pos in addReturns) {
+            println(pos)
+            val returnStmt = Return(null, pos.first.position)
+            returnStmt.linkParents(pos.first as Node)
+            pos.first.statements.add(pos.second, returnStmt)
+        }
     }
 
     override fun visit(block: Block): Statement {
@@ -160,6 +169,19 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
     override fun visit(subroutine: Subroutine): Statement {
         super.visit(subroutine)
+
+        val scope = subroutine.definingScope()
+        if(scope is Subroutine) {
+            for(stmt in scope.statements.withIndex()) {
+                if(stmt.index>0 && stmt.value===subroutine) {
+                    val precedingStmt = scope.statements[stmt.index-1]
+                    if(precedingStmt !is Jump && precedingStmt !is Subroutine) {
+                        // insert a return statement before a nested subroutine, to avoid falling trough inside the subroutine
+                        addReturns.add(Pair(scope, stmt.index))
+                    }
+                }
+            }
+        }
 
         val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
         subroutine.statements.removeAll(varDecls)
