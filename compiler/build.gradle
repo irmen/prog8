@@ -81,9 +81,6 @@ artifacts {
 }
 
 
-// To create a fat-jar use the 'create_compiler_jar' script for now
-// @todo investigate https://imperceptiblethoughts.com/shadow/introduction/
-
 shadowJar {
     baseName = 'prog8compiler'
     version = prog8version

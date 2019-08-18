@@ -67,7 +67,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
         if(decl.name in AssemblyProgram.opcodeNames)
-            checkResult.add(NameError("can't use a cpu opcode name as a symbol", decl.position))
+            checkResult.add(NameError("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position))
 
         // is it a struct variable? then define all its struct members as mangled names,
         //    and include the original decl as well.
@@ -104,7 +104,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
     override fun visit(subroutine: Subroutine): Statement {
         if(subroutine.name in AssemblyProgram.opcodeNames) {
-            checkResult.add(NameError("can't use a cpu opcode name as a symbol", subroutine.position))
+            checkResult.add(NameError("can't use a cpu opcode name as a symbol: '${subroutine.name}'", subroutine.position))
         } else if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
@@ -165,7 +165,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
     override fun visit(label: Label): Statement {
         if(label.name in AssemblyProgram.opcodeNames)
-            checkResult.add(NameError("can't use a cpu opcode name as a symbol", label.position))
+            checkResult.add(NameError("can't use a cpu opcode name as a symbol: '${label.name}'", label.position))
 
         if(label.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
@@ -429,8 +429,6 @@ internal fun fixupArrayDatatype(array: ArrayLiteralValue, vardecl: VarDecl, prog
             litval2.addToHeap(program.heap)
             return litval2
         }
-    } else {
-        array.addToHeap(program.heap)
     }
     return array
 }

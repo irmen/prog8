@@ -601,6 +601,8 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
+            if(array.heapId==null)
+                array.addToHeap(program.heap)
             val vardecl = array.parent as? VarDecl
             return if (vardecl!=null) {
                 fixupArrayDatatype(array, vardecl, program)

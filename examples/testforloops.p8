@@ -105,8 +105,9 @@ main {
         }
         c64.CHROUT('\n')
 
-        for uw in warr {
-            c64scr.print_w(uw)
+        word ww
+        for ww in warr {
+            c64scr.print_w(ww)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
@@ -129,7 +130,6 @@ main {
         }
         c64.CHROUT('\n')
 
-        word ww
         for ww in 999 to -999 step -500 {
             c64scr.print_w(ww)
             c64.CHROUT(',')
