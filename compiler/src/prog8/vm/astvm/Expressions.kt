@@ -10,12 +10,11 @@ import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Label
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.vm.RuntimeValue
-import prog8.vm.RuntimeValueRange
+import prog8.vm.*
 
 
-typealias BuiltinfunctionCaller =  (name: String, args: List<RuntimeValue>, flags: StatusFlags) -> RuntimeValue?
-typealias SubroutineCaller =  (sub: Subroutine, args: List<RuntimeValue>, startAtLabel: Label?) -> RuntimeValue?
+typealias BuiltinfunctionCaller =  (name: String, args: List<RuntimeValueNumeric>, flags: StatusFlags) -> RuntimeValueNumeric?
+typealias SubroutineCaller =  (sub: Subroutine, args: List<RuntimeValueNumeric>, startAtLabel: Label?) -> RuntimeValueNumeric?
 
 
 class EvalContext(val program: Program, val mem: Memory, val statusflags: StatusFlags,
@@ -23,34 +22,34 @@ class EvalContext(val program: Program, val mem: Memory, val statusflags: Status
                   val performBuiltinFunction: BuiltinfunctionCaller,
                   val executeSubroutine: SubroutineCaller)
 
-fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
+fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValueBase {
     val constval = expr.constValue(ctx.program)
     if(constval!=null)
-        return RuntimeValue.fromLv(constval)
+        return RuntimeValueNumeric.fromLv(constval)
 
     when(expr) {
-        is NumericLiteralValue -> return RuntimeValue.fromLv(expr)
-        is StringLiteralValue -> return RuntimeValue.fromLv(expr)
-        is ArrayLiteralValue -> return RuntimeValue.fromLv(expr)
+        is NumericLiteralValue -> return RuntimeValueNumeric.fromLv(expr)
+        is StringLiteralValue -> return RuntimeValueString.fromLv(expr)
+        is ArrayLiteralValue -> return RuntimeValueArray.fromLv(expr)
         is PrefixExpression -> {
             return when(expr.operator) {
-                "-" -> evaluate(expr.expression, ctx).neg()
-                "~" -> evaluate(expr.expression, ctx).inv()
-                "not" -> evaluate(expr.expression, ctx).not()
+                "-" -> (evaluate(expr.expression, ctx) as RuntimeValueNumeric).neg()
+                "~" -> (evaluate(expr.expression, ctx) as RuntimeValueNumeric).inv()
+                "not" -> (evaluate(expr.expression, ctx) as RuntimeValueNumeric).not()
                 // unary '+' should have been optimized away
                 else -> throw VmExecutionException("unsupported prefix operator "+expr.operator)
             }
         }
         is BinaryExpression -> {
-            val left = evaluate(expr.left, ctx)
-            val right = evaluate(expr.right, ctx)
+            val left = evaluate(expr.left, ctx) as RuntimeValueNumeric
+            val right = evaluate(expr.right, ctx) as RuntimeValueNumeric
             return when(expr.operator) {
-                "<" -> RuntimeValue(DataType.UBYTE, if (left < right) 1 else 0)
-                "<=" -> RuntimeValue(DataType.UBYTE, if (left <= right) 1 else 0)
-                ">" -> RuntimeValue(DataType.UBYTE, if (left > right) 1 else 0)
-                ">=" -> RuntimeValue(DataType.UBYTE, if (left >= right) 1 else 0)
-                "==" -> RuntimeValue(DataType.UBYTE, if (left == right) 1 else 0)
-                "!=" -> RuntimeValue(DataType.UBYTE, if (left != right) 1 else 0)
+                "<" -> RuntimeValueNumeric(DataType.UBYTE, if (left < right) 1 else 0)
+                "<=" -> RuntimeValueNumeric(DataType.UBYTE, if (left <= right) 1 else 0)
+                ">" -> RuntimeValueNumeric(DataType.UBYTE, if (left > right) 1 else 0)
+                ">=" -> RuntimeValueNumeric(DataType.UBYTE, if (left >= right) 1 else 0)
+                "==" -> RuntimeValueNumeric(DataType.UBYTE, if (left == right) 1 else 0)
+                "!=" -> RuntimeValueNumeric(DataType.UBYTE, if (left != right) 1 else 0)
                 "+" -> left.add(right)
                 "-" -> left.sub(right)
                 "*" -> left.mul(right)
@@ -78,32 +77,36 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
         }
         is ArrayIndexedExpression -> {
             val array = evaluate(expr.identifier, ctx)
-            val index = evaluate(expr.arrayspec.index, ctx)
-            return if(array.array!=null) {
-                val value = array.array[index.integerValue()]
-                RuntimeValue(ArrayElementTypes.getValue(array.type), value)
-            } else {
-                val value = array.str!![index.integerValue()]
-                RuntimeValue(ArrayElementTypes.getValue(array.type), value.toShort())
+            val index = evaluate(expr.arrayspec.index, ctx) as RuntimeValueNumeric
+            return when (array) {
+                is RuntimeValueString -> {
+                    val value = array.str[index.integerValue()]
+                    RuntimeValueNumeric(ArrayElementTypes.getValue(array.type), value.toShort())
+                }
+                is RuntimeValueArray -> {
+                    val value = array.array[index.integerValue()]
+                    RuntimeValueNumeric(ArrayElementTypes.getValue(array.type), value)
+                }
+                else -> throw VmExecutionException("weird type")
             }
         }
         is TypecastExpression -> {
-            return evaluate(expr.expression, ctx).cast(expr.type)
+            return (evaluate(expr.expression, ctx) as RuntimeValueNumeric).cast(expr.type)
         }
         is AddressOf -> {
             // we support: address of heap var -> the heap id
             return try {
                 val heapId = expr.identifier.heapId(ctx.program.namespace)
-                RuntimeValue(DataType.UWORD, heapId)
+                RuntimeValueNumeric(DataType.UWORD, heapId)
             } catch( f: FatalAstException) {
                 // fallback: use the hash of the name, so we have at least *a* value...
                 val address = expr.identifier.hashCode() and 65535
-                RuntimeValue(DataType.UWORD, address)
+                RuntimeValueNumeric(DataType.UWORD, address)
             }
         }
         is DirectMemoryRead -> {
-            val address = evaluate(expr.addressExpression, ctx).wordval!!
-            return RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
+            val address = (evaluate(expr.addressExpression, ctx) as RuntimeValueNumeric).wordval!!
+            return RuntimeValueNumeric(DataType.UBYTE, ctx.mem.getUByte(address))
         }
         is RegisterExpr -> return ctx.runtimeVars.get(ctx.program.namespace, expr.register.name)
         is IdentifierReference -> {
@@ -116,13 +119,13 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
                     else -> {
                         val address = ctx.runtimeVars.getMemoryAddress(variable.definingScope(), variable.name)
                         return when(variable.datatype) {
-                            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
-                            DataType.BYTE -> RuntimeValue(DataType.BYTE, ctx.mem.getSByte(address))
-                            DataType.UWORD -> RuntimeValue(DataType.UWORD, ctx.mem.getUWord(address))
-                            DataType.WORD -> RuntimeValue(DataType.WORD, ctx.mem.getSWord(address))
-                            DataType.FLOAT -> RuntimeValue(DataType.FLOAT, ctx.mem.getFloat(address))
-                            DataType.STR -> RuntimeValue(DataType.STR, str = ctx.mem.getString(address))
-                            DataType.STR_S -> RuntimeValue(DataType.STR_S, str = ctx.mem.getScreencodeString(address))
+                            DataType.UBYTE -> RuntimeValueNumeric(DataType.UBYTE, ctx.mem.getUByte(address))
+                            DataType.BYTE -> RuntimeValueNumeric(DataType.BYTE, ctx.mem.getSByte(address))
+                            DataType.UWORD -> RuntimeValueNumeric(DataType.UWORD, ctx.mem.getUWord(address))
+                            DataType.WORD -> RuntimeValueNumeric(DataType.WORD, ctx.mem.getSWord(address))
+                            DataType.FLOAT -> RuntimeValueNumeric(DataType.FLOAT, ctx.mem.getFloat(address))
+                            DataType.STR -> RuntimeValueString(DataType.STR, ctx.mem.getString(address))
+                            DataType.STR_S -> RuntimeValueString(DataType.STR_S, ctx.mem.getScreencodeString(address)!!)
                             else -> throw VmExecutionException("unexpected datatype $variable")
                         }
                     }
@@ -132,7 +135,7 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
         }
         is FunctionCall -> {
             val sub = expr.target.targetStatement(ctx.program.namespace)
-            val args = expr.arglist.map { evaluate(it, ctx) }
+            val args = expr.arglist.map { evaluate(it, ctx) as RuntimeValueNumeric }
             return when(sub) {
                 is Subroutine -> {
                     val result = ctx.executeSubroutine(sub, args, null)
@@ -158,9 +161,9 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
                 else
                     throw VmExecutionException("couldn't determine datatype")
             }
-            val fromVal = evaluate(expr.from, ctx).integerValue()
-            val toVal = evaluate(expr.to, ctx).integerValue()
-            val stepVal = evaluate(expr.step, ctx).integerValue()
+            val fromVal = (evaluate(expr.from, ctx) as RuntimeValueNumeric).integerValue()
+            val toVal = (evaluate(expr.to, ctx) as RuntimeValueNumeric).integerValue()
+            val stepVal = (evaluate(expr.step, ctx) as RuntimeValueNumeric).integerValue()
             val range = makeRange(fromVal, toVal, stepVal)
             val dt = expr.inferType(ctx.program)
             if(dt.isKnown)

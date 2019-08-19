@@ -13,16 +13,17 @@ import prog8.ast.statements.Statement
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
-import prog8.compiler.HeapValues
-import prog8.vm.RuntimeValue
+import prog8.vm.RuntimeValueArray
+import prog8.vm.RuntimeValueNumeric
+import prog8.vm.RuntimeValueString
 
-class VariablesCreator(private val runtimeVariables: RuntimeVariables, private val heap: HeapValues) : IAstModifyingVisitor {
+class VariablesCreator(private val runtimeVariables: RuntimeVariables) : IAstModifyingVisitor {
 
     override fun visit(program: Program) {
         // define the three registers as global variables
-        runtimeVariables.define(program.namespace, Register.A.name, RuntimeValue(DataType.UBYTE, 0))
-        runtimeVariables.define(program.namespace, Register.X.name, RuntimeValue(DataType.UBYTE, 255))
-        runtimeVariables.define(program.namespace, Register.Y.name, RuntimeValue(DataType.UBYTE, 0))
+        runtimeVariables.define(program.namespace, Register.A.name, RuntimeValueNumeric(DataType.UBYTE, 0))
+        runtimeVariables.define(program.namespace, Register.X.name, RuntimeValueNumeric(DataType.UBYTE, 255))
+        runtimeVariables.define(program.namespace, Register.Y.name, RuntimeValueNumeric(DataType.UBYTE, 0))
 
         val globalpos = Position("<<global>>", 0, 0, 0)
         val vdA = VarDecl(VarDeclType.VAR, DataType.UBYTE, ZeropageWish.DONTCARE, null, Register.A.name, null,
@@ -49,12 +50,12 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
                     if(decl.datatype!=DataType.STRUCT) {
                         val numericLv = decl.value as? NumericLiteralValue
                         val value = if(numericLv!=null) {
-                            RuntimeValue.fromLv(numericLv)
+                            RuntimeValueNumeric.fromLv(numericLv)
                         } else {
                             if(decl.value is StringLiteralValue)
-                                RuntimeValue.fromLv(decl.value as StringLiteralValue)
+                                RuntimeValueString.fromLv(decl.value as StringLiteralValue)
                             else
-                                RuntimeValue.fromLv(decl.value as ArrayLiteralValue)
+                                RuntimeValueArray.fromLv(decl.value as ArrayLiteralValue)
                         }
                         runtimeVariables.define(decl.definingScope(), decl.name, value)
                     }

@@ -5,7 +5,6 @@ import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.*
-import prog8.ast.mangledStructMemberName
 import prog8.ast.statements.*
 
 

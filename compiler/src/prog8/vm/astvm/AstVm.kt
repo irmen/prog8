@@ -10,8 +10,7 @@ import prog8.ast.statements.*
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.Petscii
-import prog8.vm.RuntimeValue
-import prog8.vm.RuntimeValueRange
+import prog8.vm.*
 import java.awt.EventQueue
 import java.io.CharConversionException
 import java.util.*
@@ -72,7 +71,7 @@ class StatusFlags {
 
 
 class RuntimeVariables {
-    fun define(scope: INameScope, name: String, initialValue: RuntimeValue) {
+    fun define(scope: INameScope, name: String, initialValue: RuntimeValueBase) {
         val where = vars.getValue(scope)
         where[name] = initialValue
         vars[scope] = where
@@ -84,7 +83,7 @@ class RuntimeVariables {
         memvars[scope] = where
     }
 
-    fun set(scope: INameScope, name: String, value: RuntimeValue) {
+    fun set(scope: INameScope, name: String, value: RuntimeValueBase) {
         val where = vars.getValue(scope)
         val existing = where[name]
         if(existing==null) {
@@ -98,7 +97,7 @@ class RuntimeVariables {
         vars[scope] = where
     }
 
-    fun get(scope: INameScope, name: String): RuntimeValue {
+    fun get(scope: INameScope, name: String): RuntimeValueBase {
         val where = vars.getValue(scope)
         return where[name] ?: throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
     }
@@ -117,7 +116,7 @@ class RuntimeVariables {
         set(scope2, name2, v1)
     }
 
-    private val vars = mutableMapOf<INameScope, MutableMap<String, RuntimeValue>>().withDefault { mutableMapOf() }
+    private val vars = mutableMapOf<INameScope, MutableMap<String, RuntimeValueBase>>().withDefault { mutableMapOf() }
     private val memvars = mutableMapOf<INameScope, MutableMap<String, Int>>().withDefault { mutableMapOf() }
 }
 
@@ -134,9 +133,9 @@ class AstVm(val program: Program) {
 
     private val rnd = Random(0)
     private val statusFlagsSave = Stack<StatusFlags>()
-    private val registerXsave = Stack<RuntimeValue>()
-    private val registerYsave = Stack<RuntimeValue>()
-    private val registerAsave = Stack<RuntimeValue>()
+    private val registerXsave = Stack<RuntimeValueNumeric>()
+    private val registerYsave = Stack<RuntimeValueNumeric>()
+    private val registerAsave = Stack<RuntimeValueNumeric>()
 
 
     init {
@@ -182,7 +181,7 @@ class AstVm(val program: Program) {
 
     fun run() {
         try {
-            val init = VariablesCreator(runtimeVariables, program.heap)
+            val init = VariablesCreator(runtimeVariables)
             init.visit(program)
 
             // initialize all global variables
@@ -263,11 +262,11 @@ class AstVm(val program: Program) {
 
     class LoopControlBreak : Exception()
     class LoopControlContinue : Exception()
-    class LoopControlReturn(val returnvalue: RuntimeValue?) : Exception()
+    class LoopControlReturn(val returnvalue: RuntimeValueNumeric?) : Exception()
     class LoopControlJump(val identifier: IdentifierReference?, val address: Int?, val generatedLabel: String?) : Exception()
 
 
-    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startAtLabel: Label?=null): RuntimeValue? {
+    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValueNumeric>, startAtLabel: Label?=null): RuntimeValueNumeric? {
         if(sub.isAsmSubroutine) {
             return performSyscall(sub, arguments)
         }
@@ -335,7 +334,7 @@ class AstVm(val program: Program) {
                 val target = stmt.target.targetStatement(program.namespace)
                 when (target) {
                     is Subroutine -> {
-                        val args = evaluate(stmt.arglist)
+                        val args = evaluate(stmt.arglist).map { it as RuntimeValueNumeric }
                         if (target.isAsmSubroutine) {
                             performSyscall(target, args)
                         } else {
@@ -348,7 +347,7 @@ class AstVm(val program: Program) {
                             // swap cannot be implemented as a function, so inline it here
                             executeSwap(stmt)
                         } else {
-                            val args = evaluate(stmt.arglist)
+                            val args = evaluate(stmt.arglist).map { it as RuntimeValueNumeric }
                             performBuiltinFunction(target.name, args, statusflags)
                         }
                     }
@@ -362,7 +361,7 @@ class AstVm(val program: Program) {
                         if(stmt.value==null)
                             null
                         else
-                            evaluate(stmt.value!!, evalCtx)
+                            evaluate(stmt.value!!, evalCtx) as RuntimeValueNumeric
                 throw LoopControlReturn(value)
             }
             is Continue -> throw LoopControlContinue()
@@ -380,10 +379,10 @@ class AstVm(val program: Program) {
                         val identScope = ident.definingScope()
                         when(ident.type){
                             VarDeclType.VAR -> {
-                                var value = runtimeVariables.get(identScope, ident.name)
+                                var value = runtimeVariables.get(identScope, ident.name) as RuntimeValueNumeric
                                 value = when {
-                                    stmt.operator == "++" -> value.add(RuntimeValue(value.type, 1))
-                                    stmt.operator == "--" -> value.sub(RuntimeValue(value.type, 1))
+                                    stmt.operator == "++" -> value.add(RuntimeValueNumeric(value.type, 1))
+                                    stmt.operator == "--" -> value.sub(RuntimeValueNumeric(value.type, 1))
                                     else -> throw VmExecutionException("strange postincdec operator $stmt")
                                 }
                                 runtimeVariables.set(identScope, ident.name, value)
@@ -401,7 +400,7 @@ class AstVm(val program: Program) {
                         }
                     }
                     stmt.target.memoryAddress != null -> {
-                        val addr = evaluate(stmt.target.memoryAddress!!.addressExpression, evalCtx).integerValue()
+                        val addr = (evaluate(stmt.target.memoryAddress!!.addressExpression, evalCtx) as RuntimeValueNumeric).integerValue()
                         val newval = when {
                             stmt.operator == "++" -> mem.getUByte(addr)+1 and 255
                             stmt.operator == "--" -> mem.getUByte(addr)-1 and 255
@@ -411,12 +410,12 @@ class AstVm(val program: Program) {
                     }
                     stmt.target.arrayindexed != null -> {
                         val arrayvar = stmt.target.arrayindexed!!.identifier.targetVarDecl(program.namespace)!!
-                        val arrayvalue = runtimeVariables.get(arrayvar.definingScope(), arrayvar.name)
-                        val index = evaluate(stmt.target.arrayindexed!!.arrayspec.index, evalCtx).integerValue()
+                        val arrayvalue = runtimeVariables.get(arrayvar.definingScope(), arrayvar.name) as RuntimeValueArray
+                        val index = (evaluate(stmt.target.arrayindexed!!.arrayspec.index, evalCtx) as RuntimeValueNumeric).integerValue()
                         val elementType = stmt.target.arrayindexed!!.inferType(program)
                         if(!elementType.isKnown)
                             throw VmExecutionException("unknown/void elt type")
-                        var value = RuntimeValue(elementType.typeOrElse(DataType.BYTE), arrayvalue.array!![index].toInt())
+                        var value = RuntimeValueNumeric(elementType.typeOrElse(DataType.BYTE), arrayvalue.array[index].toInt())
                         value = when {
                             stmt.operator == "++" -> value.inc()
                             stmt.operator == "--" -> value.dec()
@@ -425,10 +424,10 @@ class AstVm(val program: Program) {
                         arrayvalue.array[index] = value.numericValue()
                     }
                     stmt.target.register != null -> {
-                        var value = runtimeVariables.get(program.namespace, stmt.target.register!!.name)
+                        var value = runtimeVariables.get(program.namespace, stmt.target.register!!.name) as RuntimeValueNumeric
                         value = when {
-                            stmt.operator == "++" -> value.add(RuntimeValue(value.type, 1))
-                            stmt.operator == "--" -> value.sub(RuntimeValue(value.type, 1))
+                            stmt.operator == "++" -> value.add(RuntimeValueNumeric(value.type, 1))
+                            stmt.operator == "--" -> value.sub(RuntimeValueNumeric(value.type, 1))
                             else -> throw VmExecutionException("strange postincdec operator $stmt")
                         }
                         runtimeVariables.set(program.namespace, stmt.target.register!!.name, value)
@@ -439,7 +438,7 @@ class AstVm(val program: Program) {
             is Jump -> throw LoopControlJump(stmt.identifier, stmt.address, stmt.generatedLabel)
             is InlineAssembly -> {
                 if (sub is Subroutine) {
-                    val args = sub.parameters.map { runtimeVariables.get(sub, it.name) }
+                    val args = sub.parameters.map { runtimeVariables.get(sub, it.name) as RuntimeValueNumeric }
                     performSyscall(sub, args)
                     throw LoopControlReturn(null)
                 }
@@ -447,7 +446,7 @@ class AstVm(val program: Program) {
             }
             is AnonymousScope -> executeAnonymousScope(stmt)
             is IfStatement -> {
-                val condition = evaluate(stmt.condition, evalCtx)
+                val condition = evaluate(stmt.condition, evalCtx) as RuntimeValueNumeric
                 if (condition.asBoolean)
                     executeAnonymousScope(stmt.truepart)
                 else
@@ -478,7 +477,13 @@ class AstVm(val program: Program) {
                     loopvarDt = dt.typeOrElse(DataType.UBYTE)
                     loopvar = stmt.loopVar!!
                 }
-                val iterator = iterable.iterator()
+                val iterator =
+                        when (iterable) {
+                            is RuntimeValueRange -> iterable.iterator()
+                            is RuntimeValueArray -> iterable.iterator()
+                            is RuntimeValueString -> iterable.iterator()
+                            else -> throw VmExecutionException("not iterable")
+                        }
                 for (loopvalue in iterator) {
                     try {
                         oneForCycle(stmt, loopvarDt, loopvalue, loopvar)
@@ -490,11 +495,11 @@ class AstVm(val program: Program) {
                 }
             }
             is WhileLoop -> {
-                var condition = evaluate(stmt.condition, evalCtx)
+                var condition = evaluate(stmt.condition, evalCtx) as RuntimeValueNumeric
                 while (condition.asBoolean) {
                     try {
                         executeAnonymousScope(stmt.body)
-                        condition = evaluate(stmt.condition, evalCtx)
+                        condition = evaluate(stmt.condition, evalCtx) as RuntimeValueNumeric
                     } catch (b: LoopControlBreak) {
                         break
                     } catch (c: LoopControlContinue) {
@@ -504,7 +509,7 @@ class AstVm(val program: Program) {
             }
             is RepeatLoop -> {
                 do {
-                    val condition = evaluate(stmt.untilCondition, evalCtx)
+                    val condition = evaluate(stmt.untilCondition, evalCtx) as RuntimeValueNumeric
                     try {
                         executeAnonymousScope(stmt.body)
                     } catch (b: LoopControlBreak) {
@@ -515,7 +520,7 @@ class AstVm(val program: Program) {
                 } while (!condition.asBoolean)
             }
             is WhenStatement -> {
-                val condition=evaluate(stmt.condition, evalCtx)
+                val condition=evaluate(stmt.condition, evalCtx) as RuntimeValueNumeric
                 for(choice in stmt.choices) {
                     if(choice.values==null) {
                         // the 'else' choice
@@ -523,7 +528,7 @@ class AstVm(val program: Program) {
                         break
                     } else {
                         val value = choice.values!!.single().constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
-                        val rtval = RuntimeValue.fromLv(value)
+                        val rtval = RuntimeValueNumeric.fromLv(value)
                         if(condition==rtval) {
                             executeAnonymousScope(choice.statements)
                             break
@@ -548,7 +553,7 @@ class AstVm(val program: Program) {
         performAssignment(target2, value1, swap, evalCtx)
     }
 
-    fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: Statement, evalCtx: EvalContext) {
+    fun performAssignment(target: AssignTarget, value: RuntimeValueBase, contextStmt: Statement, evalCtx: EvalContext) {
         val targetIdent = target.identifier
         val targetArrayIndexed = target.arrayindexed
         when {
@@ -558,27 +563,27 @@ class AstVm(val program: Program) {
                 if (decl.type == VarDeclType.MEMORY) {
                     val address = runtimeVariables.getMemoryAddress(decl.definingScope(), decl.name)
                     when (decl.datatype) {
-                        DataType.UBYTE -> mem.setUByte(address, value.byteval!!)
-                        DataType.BYTE -> mem.setSByte(address, value.byteval!!)
-                        DataType.UWORD -> mem.setUWord(address, value.wordval!!)
-                        DataType.WORD -> mem.setSWord(address, value.wordval!!)
-                        DataType.FLOAT -> mem.setFloat(address, value.floatval!!)
-                        DataType.STR -> mem.setString(address, value.str!!)
-                        DataType.STR_S -> mem.setScreencodeString(address, value.str!!)
+                        DataType.UBYTE -> mem.setUByte(address, (value as RuntimeValueNumeric).byteval!!)
+                        DataType.BYTE -> mem.setSByte(address, (value as RuntimeValueNumeric).byteval!!)
+                        DataType.UWORD -> mem.setUWord(address, (value as RuntimeValueNumeric).wordval!!)
+                        DataType.WORD -> mem.setSWord(address, (value as RuntimeValueNumeric).wordval!!)
+                        DataType.FLOAT -> mem.setFloat(address, (value as RuntimeValueNumeric).floatval!!)
+                        DataType.STR -> mem.setString(address, (value as RuntimeValueString).str)
+                        DataType.STR_S -> mem.setScreencodeString(address, (value as RuntimeValueString).str)
                         else -> throw VmExecutionException("weird memaddress type $decl")
                     }
                 } else
                     runtimeVariables.set(decl.definingScope(), decl.name, value)
             }
             target.memoryAddress != null -> {
-                val address = evaluate(target.memoryAddress.addressExpression, evalCtx).wordval!!
-                evalCtx.mem.setUByte(address, value.byteval!!)
+                val address = (evaluate(target.memoryAddress.addressExpression, evalCtx) as RuntimeValueNumeric).wordval!!
+                evalCtx.mem.setUByte(address, (value as RuntimeValueNumeric).byteval!!)
             }
             targetArrayIndexed != null -> {
                 val vardecl = targetArrayIndexed.identifier.targetVarDecl(program.namespace)!!
                 if(vardecl.type==VarDeclType.VAR) {
                     val array = evaluate(targetArrayIndexed.identifier, evalCtx)
-                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx)
+                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx) as RuntimeValueNumeric
                     when (array.type) {
                         DataType.ARRAY_UB -> {
                             if (value.type != DataType.UBYTE)
@@ -607,20 +612,21 @@ class AstVm(val program: Program) {
                         else -> throw VmExecutionException("strange array type ${array.type}")
                     }
                     if (array.type in ArrayDatatypes)
-                        array.array!![index.integerValue()] = value.numericValue()
+                        (array as RuntimeValueArray).array[index.integerValue()] = value.numericValue()
                     else if (array.type in StringDatatypes) {
                         val indexInt = index.integerValue()
                         val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
-                        val newstr = array.str!!.replaceRange(indexInt, indexInt + 1, newchr)
+                        val newstr = (array as RuntimeValueString).str.replaceRange(indexInt, indexInt + 1, newchr)
                         val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
-                        runtimeVariables.set(identScope, ident.name, RuntimeValue(array.type, str = newstr))
+                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(array.type, newstr))
                     }
                 }
                 else {
+                    value as RuntimeValueNumeric
                     val address = (vardecl.value as NumericLiteralValue).number.toInt()
-                    val index = evaluate(targetArrayIndexed.arrayspec.index, evalCtx).integerValue()
+                    val index = (evaluate(targetArrayIndexed.arrayspec.index, evalCtx) as RuntimeValueNumeric).integerValue()
                     val elementType = targetArrayIndexed.inferType(program)
                     if(!elementType.isKnown)
                         throw VmExecutionException("unknown/void array elt type $targetArrayIndexed")
@@ -644,14 +650,14 @@ class AstVm(val program: Program) {
     private fun oneForCycle(stmt: ForLoop, loopvarDt: DataType, loopValue: Number, loopVar: IdentifierReference) {
         // assign the new loop value to the loopvar, and run the code
         performAssignment(AssignTarget(null, loopVar, null, null, loopVar.position),
-                RuntimeValue(loopvarDt, loopValue), stmt.body.statements.first(), evalCtx)
+                RuntimeValueNumeric(loopvarDt, loopValue), stmt.body.statements.first(), evalCtx)
         executeAnonymousScope(stmt.body)
     }
 
     private fun evaluate(args: List<Expression>) = args.map { evaluate(it, evalCtx) }
 
-    private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>): RuntimeValue? {
-        var result: RuntimeValue? = null
+    private fun performSyscall(sub: Subroutine, args: List<RuntimeValueNumeric>): RuntimeValueNumeric? {
+        var result: RuntimeValueNumeric? = null
         when (sub.scopedname) {
             "c64scr.print" -> {
                 // if the argument is an UWORD, consider it to be the "address" of the string (=heapId)
@@ -659,7 +665,7 @@ class AstVm(val program: Program) {
                     val str = program.heap.get(args[0].wordval!!).str!!
                     dialog.canvas.printText(str, true)
                 } else
-                    dialog.canvas.printText(args[0].str!!, true)
+                    throw VmExecutionException("print non-heap string")
             }
             "c64scr.print_ub" -> {
                 dialog.canvas.printText(args[0].byteval!!.toString(), true)
@@ -735,7 +741,7 @@ class AstVm(val program: Program) {
                 val origStr = program.heap.get(heapId).str!!
                 val paddedStr=inputStr.padEnd(origStr.length+1, '\u0000').substring(0, origStr.length)
                 program.heap.updateString(heapId, paddedStr)
-                result = RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000'))
+                result = RuntimeValueNumeric(DataType.UBYTE, paddedStr.indexOf('\u0000'))
             }
             "c64flt.print_f" -> {
                 dialog.canvas.printText(args[0].floatval.toString(), false)
@@ -751,13 +757,13 @@ class AstVm(val program: Program) {
                     Thread.sleep(10)
                 }
                 val char=dialog.keyboardBuffer.pop()
-                result = RuntimeValue(DataType.UBYTE, char.toShort())
+                result = RuntimeValueNumeric(DataType.UBYTE, char.toShort())
             }
             "c64utils.str2uword" -> {
                 val heapId = args[0].wordval!!
                 val argString = program.heap.get(heapId).str!!
                 val numericpart = argString.takeWhile { it.isDigit() }
-                result = RuntimeValue(DataType.UWORD, numericpart.toInt() and 65535)
+                result = RuntimeValueNumeric(DataType.UWORD, numericpart.toInt() and 65535)
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")
         }
@@ -765,120 +771,120 @@ class AstVm(val program: Program) {
         return result
     }
 
-    private fun performBuiltinFunction(name: String, args: List<RuntimeValue>, statusflags: StatusFlags): RuntimeValue? {
+    private fun performBuiltinFunction(name: String, args: List<RuntimeValueBase>, statusflags: StatusFlags): RuntimeValueNumeric? {
         return when (name) {
-            "rnd" -> RuntimeValue(DataType.UBYTE, rnd.nextInt() and 255)
-            "rndw" -> RuntimeValue(DataType.UWORD, rnd.nextInt() and 65535)
-            "rndf" -> RuntimeValue(DataType.FLOAT, rnd.nextDouble())
-            "lsb" -> RuntimeValue(DataType.UBYTE, args[0].integerValue() and 255)
-            "msb" -> RuntimeValue(DataType.UBYTE, (args[0].integerValue() ushr 8) and 255)
-            "sin" -> RuntimeValue(DataType.FLOAT, sin(args[0].numericValue().toDouble()))
+            "rnd" -> RuntimeValueNumeric(DataType.UBYTE, rnd.nextInt() and 255)
+            "rndw" -> RuntimeValueNumeric(DataType.UWORD, rnd.nextInt() and 65535)
+            "rndf" -> RuntimeValueNumeric(DataType.FLOAT, rnd.nextDouble())
+            "lsb" -> RuntimeValueNumeric(DataType.UBYTE, args[0].integerValue() and 255)
+            "msb" -> RuntimeValueNumeric(DataType.UBYTE, (args[0].integerValue() ushr 8) and 255)
+            "sin" -> RuntimeValueNumeric(DataType.FLOAT, sin(args[0].numericValue().toDouble()))
             "sin8" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.BYTE, (127.0 * sin(rad)).toShort())
+                RuntimeValueNumeric(DataType.BYTE, (127.0 * sin(rad)).toShort())
             }
             "sin8u" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toShort())
+                RuntimeValueNumeric(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toShort())
             }
             "sin16" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.BYTE, (32767.0 * sin(rad)).toShort())
+                RuntimeValueNumeric(DataType.BYTE, (32767.0 * sin(rad)).toShort())
             }
             "sin16u" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.UBYTE, (32768.0 + 32767.5 * sin(rad)).toShort())
+                RuntimeValueNumeric(DataType.UBYTE, (32768.0 + 32767.5 * sin(rad)).toShort())
             }
-            "cos" -> RuntimeValue(DataType.FLOAT, cos(args[0].numericValue().toDouble()))
+            "cos" -> RuntimeValueNumeric(DataType.FLOAT, cos(args[0].numericValue().toDouble()))
             "cos8" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.BYTE, (127.0 * cos(rad)).toShort())
+                RuntimeValueNumeric(DataType.BYTE, (127.0 * cos(rad)).toShort())
             }
             "cos8u" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toShort())
+                RuntimeValueNumeric(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toShort())
             }
             "cos16" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.BYTE, (32767.0 * cos(rad)).toShort())
+                RuntimeValueNumeric(DataType.BYTE, (32767.0 * cos(rad)).toShort())
             }
             "cos16u" -> {
                 val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
-                RuntimeValue(DataType.UBYTE, (32768.0 + 32767.5 * cos(rad)).toShort())
+                RuntimeValueNumeric(DataType.UBYTE, (32768.0 + 32767.5 * cos(rad)).toShort())
             }
-            "tan" -> RuntimeValue(DataType.FLOAT, tan(args[0].numericValue().toDouble()))
-            "atan" -> RuntimeValue(DataType.FLOAT, atan(args[0].numericValue().toDouble()))
-            "ln" -> RuntimeValue(DataType.FLOAT, ln(args[0].numericValue().toDouble()))
-            "log2" -> RuntimeValue(DataType.FLOAT, log2(args[0].numericValue().toDouble()))
-            "sqrt" -> RuntimeValue(DataType.FLOAT, sqrt(args[0].numericValue().toDouble()))
-            "sqrt16" -> RuntimeValue(DataType.UBYTE, sqrt(args[0].wordval!!.toDouble()).toInt())
-            "rad" -> RuntimeValue(DataType.FLOAT, Math.toRadians(args[0].numericValue().toDouble()))
-            "deg" -> RuntimeValue(DataType.FLOAT, Math.toDegrees(args[0].numericValue().toDouble()))
-            "round" -> RuntimeValue(DataType.FLOAT, round(args[0].numericValue().toDouble()))
-            "floor" -> RuntimeValue(DataType.FLOAT, floor(args[0].numericValue().toDouble()))
-            "ceil" -> RuntimeValue(DataType.FLOAT, ceil(args[0].numericValue().toDouble()))
+            "tan" -> RuntimeValueNumeric(DataType.FLOAT, tan(args[0].numericValue().toDouble()))
+            "atan" -> RuntimeValueNumeric(DataType.FLOAT, atan(args[0].numericValue().toDouble()))
+            "ln" -> RuntimeValueNumeric(DataType.FLOAT, ln(args[0].numericValue().toDouble()))
+            "log2" -> RuntimeValueNumeric(DataType.FLOAT, log2(args[0].numericValue().toDouble()))
+            "sqrt" -> RuntimeValueNumeric(DataType.FLOAT, sqrt(args[0].numericValue().toDouble()))
+            "sqrt16" -> RuntimeValueNumeric(DataType.UBYTE, sqrt((args[0] as RuntimeValueNumeric).wordval!!.toDouble()).toInt())
+            "rad" -> RuntimeValueNumeric(DataType.FLOAT, Math.toRadians(args[0].numericValue().toDouble()))
+            "deg" -> RuntimeValueNumeric(DataType.FLOAT, Math.toDegrees(args[0].numericValue().toDouble()))
+            "round" -> RuntimeValueNumeric(DataType.FLOAT, round(args[0].numericValue().toDouble()))
+            "floor" -> RuntimeValueNumeric(DataType.FLOAT, floor(args[0].numericValue().toDouble()))
+            "ceil" -> RuntimeValueNumeric(DataType.FLOAT, ceil(args[0].numericValue().toDouble()))
             "rol" -> {
-                val (result, newCarry) = args[0].rol(statusflags.carry)
+                val (result, newCarry) = (args[0] as RuntimeValueNumeric).rol(statusflags.carry)
                 statusflags.carry = newCarry
                 return result
             }
-            "rol2" -> args[0].rol2()
+            "rol2" -> (args[0] as RuntimeValueNumeric).rol2()
             "ror" -> {
-                val (result, newCarry) = args[0].ror(statusflags.carry)
+                val (result, newCarry) = (args[0] as RuntimeValueNumeric).ror(statusflags.carry)
                 statusflags.carry = newCarry
                 return result
             }
-            "ror2" -> args[0].ror2()
-            "lsl" -> args[0].shl()
-            "lsr" -> args[0].shr()
+            "ror2" -> (args[0] as RuntimeValueNumeric).ror2()
+            "lsl" -> (args[0] as RuntimeValueNumeric).shl()
+            "lsr" -> (args[0] as RuntimeValueNumeric).shr()
             "abs" -> {
                 when (args[0].type) {
-                    DataType.UBYTE -> args[0]
-                    DataType.BYTE -> RuntimeValue(DataType.UBYTE, abs(args[0].numericValue().toDouble()))
-                    DataType.UWORD -> args[0]
-                    DataType.WORD -> RuntimeValue(DataType.UWORD, abs(args[0].numericValue().toDouble()))
-                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, abs(args[0].numericValue().toDouble()))
+                    DataType.UBYTE -> (args[0]  as RuntimeValueNumeric)
+                    DataType.BYTE -> RuntimeValueNumeric(DataType.UBYTE, abs(args[0].numericValue().toDouble()))
+                    DataType.UWORD -> (args[0] as RuntimeValueNumeric)
+                    DataType.WORD -> RuntimeValueNumeric(DataType.UWORD, abs(args[0].numericValue().toDouble()))
+                    DataType.FLOAT -> RuntimeValueNumeric(DataType.FLOAT, abs(args[0].numericValue().toDouble()))
                     else -> throw VmExecutionException("strange abs type ${args[0]}")
                 }
             }
             "max" -> {
-                val numbers = args.single().array!!.map { it.toDouble() }
-                RuntimeValue(ArrayElementTypes.getValue(args[0].type), numbers.max())
+                val numbers = (args.single() as RuntimeValueArray).array.map { it.toDouble() }
+                RuntimeValueNumeric(ArrayElementTypes.getValue(args[0].type), numbers.max()!!)
             }
             "min" -> {
-                val numbers = args.single().array!!.map { it.toDouble() }
-                RuntimeValue(ArrayElementTypes.getValue(args[0].type), numbers.min())
+                val numbers = (args.single() as RuntimeValueArray).array.map { it.toDouble() }
+                RuntimeValueNumeric(ArrayElementTypes.getValue(args[0].type), numbers.min()!!)
             }
             "sum" -> {
-                val sum = args.single().array!!.map { it.toDouble() }.sum()
+                val sum = (args.single() as RuntimeValueArray).array.map { it.toDouble() }.sum()
                 when (args[0].type) {
-                    DataType.ARRAY_UB -> RuntimeValue(DataType.UWORD, sum)
-                    DataType.ARRAY_B -> RuntimeValue(DataType.WORD, sum)
-                    DataType.ARRAY_UW -> RuntimeValue(DataType.UWORD, sum)
-                    DataType.ARRAY_W -> RuntimeValue(DataType.WORD, sum)
-                    DataType.ARRAY_F -> RuntimeValue(DataType.FLOAT, sum)
+                    DataType.ARRAY_UB -> RuntimeValueNumeric(DataType.UWORD, sum)
+                    DataType.ARRAY_B -> RuntimeValueNumeric(DataType.WORD, sum)
+                    DataType.ARRAY_UW -> RuntimeValueNumeric(DataType.UWORD, sum)
+                    DataType.ARRAY_W -> RuntimeValueNumeric(DataType.WORD, sum)
+                    DataType.ARRAY_F -> RuntimeValueNumeric(DataType.FLOAT, sum)
                     else -> throw VmExecutionException("weird sum type ${args[0]}")
                 }
             }
             "any" -> {
-                val numbers = args.single().array!!.map { it.toDouble() }
-                RuntimeValue(DataType.UBYTE, if (numbers.any { it != 0.0 }) 1 else 0)
+                val numbers = (args.single() as RuntimeValueArray).array.map { it.toDouble() }
+                RuntimeValueNumeric(DataType.UBYTE, if (numbers.any { it != 0.0 }) 1 else 0)
             }
             "all" -> {
-                val numbers = args.single().array!!.map { it.toDouble() }
-                RuntimeValue(DataType.UBYTE, if (numbers.all { it != 0.0 }) 1 else 0)
+                val numbers = (args.single() as RuntimeValueArray).array.map { it.toDouble() }
+                RuntimeValueNumeric(DataType.UBYTE, if (numbers.all { it != 0.0 }) 1 else 0)
             }
             "swap" ->
                 throw VmExecutionException("swap() cannot be implemented as a function")
             "strlen" -> {
-                val zeroIndex = args[0].str!!.indexOf(0.toChar())
+                val zeroIndex = (args[0] as RuntimeValueString).str.indexOf(0.toChar())
                 if (zeroIndex >= 0)
-                    RuntimeValue(DataType.UBYTE, zeroIndex)
+                    RuntimeValueNumeric(DataType.UBYTE, zeroIndex)
                 else
-                    RuntimeValue(DataType.UBYTE, args[0].str!!.length)
+                    RuntimeValueNumeric(DataType.UBYTE, (args[0] as RuntimeValueString).str.length)
             }
             "memset" -> {
-                val heapId = args[0].wordval!!
+                val heapId = (args[0] as RuntimeValueNumeric).wordval!!
                 val target = program.heap.get(heapId).array ?: throw VmExecutionException("memset target is not an array")
                 val amount = args[1].integerValue()
                 val value = args[2].integerValue()
@@ -888,7 +894,7 @@ class AstVm(val program: Program) {
                 null
             }
             "memsetw" -> {
-                val heapId = args[0].wordval!!
+                val heapId = (args[0] as RuntimeValueNumeric).wordval!!
                 val target = program.heap.get(heapId).array  ?: throw VmExecutionException("memset target is not an array")
                 val amount = args[1].integerValue()
                 val value = args[2].integerValue()
@@ -899,8 +905,8 @@ class AstVm(val program: Program) {
                 null
             }
             "memcopy" -> {
-                val sourceHeapId = args[0].wordval!!
-                val destHeapId = args[1].wordval!!
+                val sourceHeapId = (args[0] as RuntimeValueNumeric).wordval!!
+                val destHeapId = (args[1] as RuntimeValueNumeric).wordval!!
                 val source = program.heap.get(sourceHeapId).array!!
                 val dest = program.heap.get(destHeapId).array!!
                 val amount = args[2].integerValue()
@@ -911,7 +917,7 @@ class AstVm(val program: Program) {
             }
             "mkword" -> {
                 val result = (args[1].integerValue() shl 8) or args[0].integerValue()
-                RuntimeValue(DataType.UWORD, result)
+                RuntimeValueNumeric(DataType.UWORD, result)
             }
             "set_carry" -> {
                 statusflags.carry=true
@@ -934,13 +940,13 @@ class AstVm(val program: Program) {
                 val zero = if(statusflags.zero) 2 else 0
                 val irqd = if(statusflags.irqd) 4 else 0
                 val negative = if(statusflags.negative) 128 else 0
-                RuntimeValue(DataType.UBYTE, carry or zero or irqd or negative)
+                RuntimeValueNumeric(DataType.UBYTE, carry or zero or irqd or negative)
             }
             "rsave" -> {
                 statusFlagsSave.push(statusflags)
-                registerAsave.push(runtimeVariables.get(program.namespace, Register.A.name))
-                registerXsave.push(runtimeVariables.get(program.namespace, Register.X.name))
-                registerYsave.push(runtimeVariables.get(program.namespace, Register.Y.name))
+                registerAsave.push(runtimeVariables.get(program.namespace, Register.A.name) as RuntimeValueNumeric)
+                registerXsave.push(runtimeVariables.get(program.namespace, Register.X.name) as RuntimeValueNumeric)
+                registerYsave.push(runtimeVariables.get(program.namespace, Register.Y.name) as RuntimeValueNumeric)
                 null
             }
             "rrestore" -> {
@@ -955,21 +961,21 @@ class AstVm(val program: Program) {
                 null
             }
             "sort" -> {
-                val array=args.single()
-                array.array!!.sort()
+                val array=args.single() as RuntimeValueArray
+                array.array.sort()
                 null
             }
             "reverse" -> {
-                val array=args.single()
-                array.array!!.reverse()
+                val array=args.single() as RuntimeValueArray
+                array.array.reverse()
                 null
             }
             "sgn" -> {
                 val value = args.single().numericValue().toDouble()
                 when {
-                    value<0.0 -> RuntimeValue(DataType.BYTE, -1)
-                    value==0.0 -> RuntimeValue(DataType.BYTE, 0)
-                    else -> RuntimeValue(DataType.BYTE, 1)
+                    value<0.0 -> RuntimeValueNumeric(DataType.BYTE, -1)
+                    value==0.0 -> RuntimeValueNumeric(DataType.BYTE, 0)
+                    else -> RuntimeValueNumeric(DataType.BYTE, 1)
                 }
             }
             else -> TODO("builtin function $name")
