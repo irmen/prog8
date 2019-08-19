@@ -615,8 +615,7 @@ class AstVm(val program: Program) {
                         val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
-                        program.heap.update(array.heapId!!, newstr)
-                        runtimeVariables.set(identScope, ident.name, RuntimeValue(array.type, str = newstr, heapId = array.heapId))
+                        runtimeVariables.set(identScope, ident.name, RuntimeValue(array.type, str = newstr))
                     }
                 }
                 else {
@@ -735,7 +734,7 @@ class AstVm(val program: Program) {
                 val heapId = args[0].wordval!!
                 val origStr = program.heap.get(heapId).str!!
                 val paddedStr=inputStr.padEnd(origStr.length+1, '\u0000').substring(0, origStr.length)
-                program.heap.update(heapId, paddedStr)
+                program.heap.updateString(heapId, paddedStr)
                 result = RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000'))
             }
             "c64flt.print_f" -> {

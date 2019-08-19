@@ -4,7 +4,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
-import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import java.util.*
 import kotlin.math.abs
@@ -16,8 +15,8 @@ import kotlin.math.pow
  * this runtime value can be used to *execute* the parsed Ast (or another intermediary form)
  * It contains a value of a variable during run time of the program and provides arithmetic operations on the value.
  */
-open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
-                        val array: Array<Number>?=null, val heapId: Int?=null) {
+
+open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null, val array: Array<Number>?=null) {
 
     val byteval: Short?
     val wordval: Int?
@@ -29,34 +28,26 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             return RuntimeValue(literalValue.type, num = literalValue.number)
         }
 
-        fun fromLv(string: StringLiteralValue, heap: HeapValues): RuntimeValue = fromHeapId(string.heapId!!, heap)
-        fun fromLv(array: ArrayLiteralValue, heap: HeapValues): RuntimeValue = fromHeapId(array.heapId!!, heap)
-
-        fun fromHeapId(heapId: Int, heap: HeapValues): RuntimeValue {
-            val value = heap.get(heapId)
-            return when {
-                value.type in StringDatatypes ->
-                    RuntimeValue(value.type, str = value.str!!, heapId = heapId)
-                value.type in ArrayDatatypes ->
-                    if (value.type == DataType.ARRAY_F) {
-                        RuntimeValue(value.type, array = value.doubleArray!!.toList().toTypedArray(), heapId = heapId)
-                    } else {
-                        val array = value.array!!
-                        val resultArray = mutableListOf<Number>()
-                        for(elt in array.withIndex()){
-                            if(elt.value.integer!=null)
-                                resultArray.add(elt.value.integer!!)
-                            else {
-                                TODO("ADDRESSOF ${elt.value}")
-                            }
-                        }
-                        RuntimeValue(value.type, array = resultArray.toTypedArray(), heapId = heapId)
-                        //RuntimeValue(value.type, array = array.map { it.integer!! }.toTypedArray(), heapId = heapId)
-                    }
-                else -> throw IllegalArgumentException("weird value type on heap $value")
-            }
+        fun fromLv(string: StringLiteralValue): RuntimeValue {
+            return RuntimeValue(string.type, str = string.value)
         }
 
+        fun fromLv(array: ArrayLiteralValue): RuntimeValue {
+            return if (array.type == DataType.ARRAY_F) {
+                val doubleArray = array.value.map { (it as NumericLiteralValue).number }.toTypedArray()
+                RuntimeValue(array.type, array = doubleArray)
+            } else {
+                val resultArray = mutableListOf<Number>()
+                for (elt in array.value.withIndex()) {
+                    if (elt.value is NumericLiteralValue)
+                        resultArray.add((elt.value as NumericLiteralValue).number.toInt())
+                    else {
+                        TODO("ADDRESSOF ${elt.value}")
+                    }
+                }
+                RuntimeValue(array.type, array = resultArray.toTypedArray())
+            }
+        }
     }
 
     init {
@@ -129,7 +120,14 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                     "w:%04x".format(wordval)
             }
             DataType.FLOAT -> "f:$floatval"
-            else -> "heap:$heapId"
+            DataType.STR -> "str:$str"
+            DataType.STR_S -> "str_s:$str"
+            DataType.ARRAY_UB -> "array_ub:..."
+            DataType.ARRAY_B -> "array_b:..."
+            DataType.ARRAY_UW -> "array_uw:..."
+            DataType.ARRAY_W -> "array_w:..."
+            DataType.ARRAY_F -> "array_f:..."
+            DataType.STRUCT -> "struct:..."
         }
     }
 
@@ -156,8 +154,6 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is RuntimeValue)
             return false
-        if(type==other.type)
-            return if (type in IterableDatatypes) heapId==other.heapId else compareTo(other)==0
         return compareTo(other)==0      // note: datatype doesn't matter
     }
 

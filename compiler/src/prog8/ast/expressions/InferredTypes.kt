@@ -29,7 +29,7 @@ object InferredTypes {
             return when {
                 datatype!=null -> datatype.toString()
                 isVoid -> "<void>"
-                else -> "<unkonwn>"
+                else -> "<unknown>"
             }
         }
     }

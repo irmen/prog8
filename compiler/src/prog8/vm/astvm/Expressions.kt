@@ -30,8 +30,8 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
 
     when(expr) {
         is NumericLiteralValue -> return RuntimeValue.fromLv(expr)
-        is StringLiteralValue -> return RuntimeValue.fromLv(expr, ctx.program.heap)
-        is ArrayLiteralValue -> return RuntimeValue.fromLv(expr, ctx.program.heap)
+        is StringLiteralValue -> return RuntimeValue.fromLv(expr)
+        is ArrayLiteralValue -> return RuntimeValue.fromLv(expr)
         is PrefixExpression -> {
             return when(expr.operator) {
                 "-" -> evaluate(expr.expression, ctx).neg()
@@ -80,7 +80,7 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
             val array = evaluate(expr.identifier, ctx)
             val index = evaluate(expr.arrayspec.index, ctx)
             return if(array.array!=null) {
-                val value = array.array!![index.integerValue()]
+                val value = array.array[index.integerValue()]
                 RuntimeValue(ArrayElementTypes.getValue(array.type), value)
             } else {
                 val value = array.str!![index.integerValue()]

@@ -52,9 +52,9 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
                             RuntimeValue.fromLv(numericLv)
                         } else {
                             if(decl.value is StringLiteralValue)
-                                RuntimeValue.fromLv(decl.value as StringLiteralValue, heap)
+                                RuntimeValue.fromLv(decl.value as StringLiteralValue)
                             else
-                                RuntimeValue.fromLv(decl.value as ArrayLiteralValue, heap)
+                                RuntimeValue.fromLv(decl.value as ArrayLiteralValue)
                         }
                         runtimeVariables.define(decl.definingScope(), decl.name, value)
                     }
@@ -69,12 +69,4 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
         }
         return super.visit(decl)
     }
-
-//    override fun accept(assignment: Assignment): Statement {
-//        if(assignment is VariableInitializationAssignment) {
-//            println("INIT VAR $assignment")
-//        }
-//        return super.accept(assignment)
-//    }
-
 }

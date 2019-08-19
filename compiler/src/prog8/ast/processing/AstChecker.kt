@@ -889,7 +889,7 @@ internal class AstChecker(private val program: Program,
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argIDt = arg.first.value.inferType(program)
                     if(!argIDt.isKnown) {
-                        throw FatalAstException("can't determine arg dt ${arg.first.value}")
+                        return
                     }
                     val argDt=argIDt.typeOrElse(DataType.STRUCT)
                     if(!(argDt isAssignableTo arg.second.type)) {

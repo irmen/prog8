@@ -117,23 +117,6 @@ class TestRuntimeValue {
     }
 
     @Test
-    fun testEqualityHeapTypes()
-    {
-        assertTrue(sameValueAndType(RuntimeValue(DataType.STR, heapId = 999), RuntimeValue(DataType.STR, heapId = 999)))
-        assertFalse(sameValueAndType(RuntimeValue(DataType.STR, heapId = 999), RuntimeValue(DataType.STR, heapId = 222)))
-
-        assertTrue(sameValueAndType(RuntimeValue(DataType.ARRAY_UB, heapId = 99), RuntimeValue(DataType.ARRAY_UB, heapId = 99)))
-        assertFalse(sameValueAndType(RuntimeValue(DataType.ARRAY_UB, heapId = 99), RuntimeValue(DataType.ARRAY_UB, heapId = 22)))
-
-        assertTrue(sameValueAndType(RuntimeValue(DataType.ARRAY_UW, heapId = 999), RuntimeValue(DataType.ARRAY_UW, heapId = 999)))
-        assertFalse(sameValueAndType(RuntimeValue(DataType.ARRAY_UW, heapId = 999), RuntimeValue(DataType.ARRAY_UW, heapId = 222)))
-
-        assertTrue(sameValueAndType(RuntimeValue(DataType.ARRAY_F, heapId = 999), RuntimeValue(DataType.ARRAY_F, heapId = 999)))
-        assertFalse(sameValueAndType(RuntimeValue(DataType.ARRAY_F, heapId = 999), RuntimeValue(DataType.ARRAY_UW, heapId = 999)))
-        assertFalse(sameValueAndType(RuntimeValue(DataType.ARRAY_F, heapId = 999), RuntimeValue(DataType.ARRAY_F, heapId = 222)))
-    }
-
-    @Test
     fun testGreaterThan(){
         assertTrue(RuntimeValue(DataType.UBYTE, 100) > RuntimeValue(DataType.UBYTE, 99))
         assertTrue(RuntimeValue(DataType.UWORD, 254) > RuntimeValue(DataType.UWORD, 253))

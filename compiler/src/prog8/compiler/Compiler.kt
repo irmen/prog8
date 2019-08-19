@@ -84,8 +84,6 @@ class HeapValues {
         }
 
         override fun hashCode(): Int = Objects.hash(str, array, doubleArray)
-
-        val arraysize: Int = array?.size ?: doubleArray?.size ?: 0
     }
 
     private val heap = mutableMapOf<Int, HeapValue>()
@@ -124,7 +122,7 @@ class HeapValues {
         return newId
     }
 
-    fun update(heapId: Int, str: String) {
+    fun updateString(heapId: Int, str: String) {
         val oldVal = heap[heapId] ?: throw IllegalArgumentException("heapId not found in heap")
         if(oldVal.type in StringDatatypes) {
             if (oldVal.str!!.length != str.length)
@@ -134,16 +132,8 @@ class HeapValues {
         else throw IllegalArgumentException("heap data type mismatch")
     }
 
-    fun update(heapId: Int, heapval: HeapValue) {
-        if(heapId !in heap)
-            throw IllegalArgumentException("heapId not found in heap")
-        heap[heapId] = heapval
-    }
-
     fun get(heapId: Int): HeapValue {
         return heap[heapId] ?:
         throw IllegalArgumentException("heapId $heapId not found in heap")
     }
-
-    fun allEntries() = heap.entries
 }
