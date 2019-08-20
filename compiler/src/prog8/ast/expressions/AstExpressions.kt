@@ -414,12 +414,9 @@ class StructLiteralValue(var values: List<Expression>,
 
 class StringLiteralValue(val type: DataType,     // only string types
                          val value: String,
-                         initHeapId: Int? =null,
+                         var heapId: Int?,
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
-
-    var heapId = initHeapId
-        private set
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -441,8 +438,10 @@ class StringLiteralValue(val type: DataType,     // only string types
     fun addToHeap(heap: HeapValues) {
         if (heapId != null)
             return
-        else
-            heapId = heap.addString(type, value)
+        else {
+            val encodedStr = Petscii.encodePetscii(value, true)
+            heapId = heap.addIntegerArray(DataType.ARRAY_UB, encodedStr.map { IntegerOrAddressOf(it.toInt(), null)}.toTypedArray())
+        }
     }
 }
 

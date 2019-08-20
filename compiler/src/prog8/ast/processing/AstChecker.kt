@@ -965,8 +965,7 @@ internal class AstChecker(private val program: Program,
             } else if(target.datatype in StringDatatypes) {
                 if(target.value is StringLiteralValue) {
                     // check string lengths for non-memory mapped strings
-                    val heapId = (target.value as StringLiteralValue).heapId!!
-                    val stringLen = program.heap.get(heapId).str!!.length
+                    val stringLen = (target.value as StringLiteralValue).value.length
                     val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
                     if (index != null && (index < 0 || index >= stringLen))
                         checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
@@ -1231,7 +1230,7 @@ internal class AstChecker(private val program: Program,
             return correct
         }
 
-        val array = program.heap.get(value.heapId!!)
+        val array = program.heap.get(value.heapId!!)        // TODO use value.array directly?
         if(array.type !in ArrayDatatypes || (array.array==null && array.doubleArray==null))
             throw FatalAstException("should have an array in the heapvar $array")
 

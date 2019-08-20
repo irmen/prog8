@@ -83,8 +83,8 @@ class TestParserNumericLiteralValue {
 
     @Test
     fun testEqualsRef() {
-        assertTrue(StringLiteralValue(DataType.STR, "hello", position = dummyPos) == StringLiteralValue(DataType.STR, "hello", position = dummyPos))
-        assertFalse(StringLiteralValue(DataType.STR, "hello", position = dummyPos) == StringLiteralValue(DataType.STR, "bye", position = dummyPos))
+        assertTrue(StringLiteralValue(DataType.STR, "hello", null, dummyPos) == StringLiteralValue(DataType.STR, "hello", null, dummyPos))
+        assertFalse(StringLiteralValue(DataType.STR, "hello", null, dummyPos) == StringLiteralValue(DataType.STR, "bye", null, dummyPos))
 
         val lvOne = NumericLiteralValue(DataType.UBYTE, 1, dummyPos)
         val lvTwo = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)
@@ -93,9 +93,9 @@ class TestParserNumericLiteralValue {
         val lvTwoR = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)
         val lvThreeR = NumericLiteralValue(DataType.UBYTE, 3, dummyPos)
         val lvFour= NumericLiteralValue(DataType.UBYTE, 4, dummyPos)
-        val lv1 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOne, lvTwo, lvThree), position = dummyPos)
-        val lv2 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvThreeR), position = dummyPos)
-        val lv3 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvFour), position = dummyPos)
+        val lv1 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOne, lvTwo, lvThree), null, dummyPos)
+        val lv2 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvThreeR), null, dummyPos)
+        val lv3 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvFour), null, dummyPos)
         assertEquals(lv1, lv2)
         assertNotEquals(lv1, lv3)
     }

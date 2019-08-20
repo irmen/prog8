@@ -27,10 +27,15 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
+    private val vardeclsToRemove = mutableListOf<VarDecl>()
 
     override fun visit(program: Program) {
         removeUnusedCode(callgraph)
         super.visit(program)
+
+        for(decl in vardeclsToRemove) {
+            decl.definingScope().remove(decl)
+        }
     }
 
     private fun removeUnusedCode(callgraph: CallGraph) {
@@ -165,24 +170,33 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
                 functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            val stringVar = functionCallStatement.arglist.single() as? IdentifierReference
+            val arg = functionCallStatement.arglist.single()
+            val stringVar: IdentifierReference?
+            if(arg is AddressOf) {
+                stringVar = arg.identifier
+            } else {
+                stringVar = arg as? IdentifierReference
+            }
             if(stringVar!=null) {
-                val heapId = stringVar.heapId(program.namespace)
-                val string = program.heap.get(heapId).str!!
-                if(string.length==1) {
-                    val petscii = Petscii.encodePetscii(string, true)[0]
+                val vardecl = stringVar.targetVarDecl(program.namespace)!!
+                val string = vardecl.value!! as StringLiteralValue
+                val encodedString = Petscii.encodePetscii(string.value, true)
+                if(string.value.length==1) {
                     functionCallStatement.arglist.clear()
-                    functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(petscii.toInt(), functionCallStatement.position))
+                    functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(encodedString[0].toInt(), functionCallStatement.position))
                     functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
+                    vardeclsToRemove.add(vardecl)
+                    program.heap.remove(string.heapId!!)
                     optimizationsDone++
                     return functionCallStatement
-                } else if(string.length==2) {
-                    val petscii = Petscii.encodePetscii(string, true)
+                } else if(string.value.length==2) {
                     val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(petscii[0].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(encodedString[0].toInt(), functionCallStatement.position)), functionCallStatement.position))
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(petscii[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(encodedString[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                    vardeclsToRemove.add(vardecl)
+                    program.heap.remove(string.heapId!!)
                     optimizationsDone++
                     return scope
                 }

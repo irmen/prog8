@@ -429,7 +429,7 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
-                litval.stringliteral()!=null -> StringLiteralValue(DataType.STR, unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
+                litval.stringliteral()!=null -> StringLiteralValue(DataType.STR, unescape(litval.stringliteral().text, litval.toPosition()), null, litval.toPosition())
                 litval.charliteral()!=null -> {
                     try {
                         NumericLiteralValue(DataType.UBYTE, Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], litval.toPosition())

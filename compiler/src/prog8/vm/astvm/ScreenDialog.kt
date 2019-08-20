@@ -75,6 +75,10 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         }
     }
 
+    fun printText(text: Iterable<Short>) {
+        text.forEach { printPetscii(it, false) }
+    }
+
     fun printPetscii(char: Short, inverseVideo: Boolean=false) {
         if(char==13.toShort() || char==141.toShort()) {
             cursorX=0

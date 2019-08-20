@@ -662,8 +662,8 @@ class AstVm(val program: Program) {
             "c64scr.print" -> {
                 // if the argument is an UWORD, consider it to be the "address" of the string (=heapId)
                 if (args[0].wordval != null) {
-                    val str = program.heap.get(args[0].wordval!!).str!!
-                    dialog.canvas.printText(str, true)
+                    val encodedStr = program.heap.get(args[0].wordval!!).array!!.map { it.integer!!.toShort() }
+                    dialog.canvas.printText(encodedStr)
                 } else
                     throw VmExecutionException("print non-heap string")
             }
@@ -738,10 +738,11 @@ class AstVm(val program: Program) {
                 }
                 val inputStr = input.joinToString("")
                 val heapId = args[0].wordval!!
-                val origStr = program.heap.get(heapId).str!!
-                val paddedStr=inputStr.padEnd(origStr.length+1, '\u0000').substring(0, origStr.length)
-                program.heap.updateString(heapId, paddedStr)
-                result = RuntimeValueNumeric(DataType.UBYTE, paddedStr.indexOf('\u0000'))
+                val origStrLength = program.heap.get(heapId).array!!.size
+                val encodedStr = Petscii.encodePetscii(inputStr, true).take(origStrLength).toMutableList()
+                while(encodedStr.size<origStrLength)
+                    encodedStr.add(0)
+                result = RuntimeValueNumeric(DataType.UBYTE, encodedStr.indexOf(0))
             }
             "c64flt.print_f" -> {
                 dialog.canvas.printText(args[0].floatval.toString(), false)
@@ -761,8 +762,8 @@ class AstVm(val program: Program) {
             }
             "c64utils.str2uword" -> {
                 val heapId = args[0].wordval!!
-                val argString = program.heap.get(heapId).str!!
-                val numericpart = argString.takeWhile { it.isDigit() }
+                val argString = program.heap.get(heapId).array!!.map { it.integer!!.toChar() }
+                val numericpart = argString.takeWhile { it.isDigit() }.toString()
                 result = RuntimeValueNumeric(DataType.UWORD, numericpart.toInt() and 65535)
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")

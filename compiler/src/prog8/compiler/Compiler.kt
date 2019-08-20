@@ -69,4 +69,3 @@ fun loadAsmIncludeFile(filename: String, source: Path): String {
 internal fun tryGetEmbeddedResource(name: String): InputStream? {
     return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
 }
-
