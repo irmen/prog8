@@ -4,7 +4,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
-import prog8.compiler.HeapValues
 import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
 
@@ -166,7 +165,6 @@ interface INameScope {
 
 class Program(val name: String, val modules: MutableList<Module>) {
     val namespace = GlobalNamespace(modules)
-    val heap = HeapValues()
 
     val definedLoadAddress: Int
         get() = modules.first().loadAddress

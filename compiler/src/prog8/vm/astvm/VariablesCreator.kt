@@ -52,10 +52,17 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables) : IAstMod
                         val value = if(numericLv!=null) {
                             RuntimeValueNumeric.fromLv(numericLv)
                         } else {
-                            if(decl.value is StringLiteralValue)
-                                RuntimeValueString.fromLv(decl.value as StringLiteralValue)
-                            else
-                                RuntimeValueArray.fromLv(decl.value as ArrayLiteralValue)
+                            val strLv = decl.value as? StringLiteralValue
+                            val arrayLv = decl.value as? ArrayLiteralValue
+                            when {
+                                strLv!=null -> {
+                                    RuntimeValueString.fromLv(strLv)
+                                }
+                                arrayLv!=null -> {
+                                    RuntimeValueArray.fromLv(arrayLv)
+                                }
+                                else -> throw VmExecutionException("weird var type")
+                            }
                         }
                         runtimeVariables.define(decl.definingScope(), decl.name, value)
                     }

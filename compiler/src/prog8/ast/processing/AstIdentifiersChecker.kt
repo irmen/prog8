@@ -260,7 +260,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             if (string.value.length !in 1..255)
                 checkResult.add(ExpressionError("string literal length must be between 1 and 255", string.position))
             else {
-                string.addToHeap(program.heap)
+                string.addToHeap()
             }
             return if (vardecl != null)
                 string
@@ -289,7 +289,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         // a referencetype literal value that's not declared as a variable
         // we need to introduce an auto-generated variable for this to be able to refer to the value
         // note: if the var references the same literal value, it is not yet de-duplicated here.
-        array.addToHeap(program.heap)
+        array.addToHeap()
         val scope = array.definingScope()
         val variable = VarDecl.createAuto(array)
         return replaceWithIdentifier(variable, scope, array.parent)
@@ -299,7 +299,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         // a referencetype literal value that's not declared as a variable
         // we need to introduce an auto-generated variable for this to be able to refer to the value
         // note: if the var references the same literal value, it is not yet de-duplicated here.
-        string.addToHeap(program.heap)
+        string.addToHeap()
         val scope = string.definingScope()
         val variable = VarDecl.createAuto(string)
         return replaceWithIdentifier(variable, scope, string.parent)
@@ -340,14 +340,14 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                 // repeat a string a number of times
                 val idt = string.inferType(program)
                 return StringLiteralValue(idt.typeOrElse(DataType.STR),
-                        string.value.repeat(constvalue.number.toInt()), null, expr.position)
+                        string.value.repeat(constvalue.number.toInt()), expr.position)
             }
         }
         if(expr.operator == "+" && operand is StringLiteralValue) {
             // concatenate two strings
             val idt = string.inferType(program)
             return StringLiteralValue(idt.typeOrElse(DataType.STR),
-                    "${string.value}${operand.value}", null, expr.position)
+                    "${string.value}${operand.value}", expr.position)
         }
         return expr
     }
@@ -426,7 +426,7 @@ internal fun fixupArrayDatatype(array: ArrayLiteralValue, vardecl: VarDecl, prog
                     }
             vardecl.value = litval2
             litval2.linkParents(vardecl)
-            litval2.addToHeap(program.heap)
+            litval2.addToHeap()
             return litval2
         }
     }

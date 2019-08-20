@@ -1205,53 +1205,56 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkArrayValues(value: ArrayLiteralValue, type: DataType): Boolean {
-        if(value.heapId==null) {
+        if (value.heapId == null) {
             // hmm weird, array literal that hasn't been moved to the heap yet?
             val array = value.value.mapNotNull { it.constValue(program) }
             val correct: Boolean
-            when(type) {
+            when (type) {
                 DataType.ARRAY_UB -> {
-                    correct=array.all { it.type==DataType.UBYTE && it.number.toInt() in 0..255 }
+                    correct = array.all { it.type == DataType.UBYTE && it.number.toInt() in 0..255 }
                 }
                 DataType.ARRAY_B -> {
-                    correct=array.all { it.type==DataType.BYTE && it.number.toInt() in -128..127 }
+                    correct = array.all { it.type == DataType.BYTE && it.number.toInt() in -128..127 }
                 }
                 DataType.ARRAY_UW -> {
-                    correct=array.all { it.type==DataType.UWORD && it.number.toInt() in 0..65535 }
+                    correct = array.all { it.type == DataType.UWORD && it.number.toInt() in 0..65535 }
                 }
                 DataType.ARRAY_W -> {
-                    correct=array.all { it.type==DataType.WORD && it.number.toInt() in -32768..32767}
+                    correct = array.all { it.type == DataType.WORD && it.number.toInt() in -32768..32767 }
                 }
                 DataType.ARRAY_F -> correct = true
                 else -> throw AstException("invalid array type $type")
             }
-            if(!correct)
+            if (!correct)
                 checkResult.add(ExpressionError("array value out of range for type $type", value.position))
             return correct
         }
 
-        val array = program.heap.get(value.heapId!!)        // TODO use value.array directly?
-        if(array.type !in ArrayDatatypes || (array.array==null && array.doubleArray==null))
-            throw FatalAstException("should have an array in the heapvar $array")
-
+        val array = value.value.map {
+            if(it is NumericLiteralValue)
+                it.number.toInt()
+            else if(it is AddressOf)
+                it.identifier.heapId(program.namespace)
+            else -9999999
+        }
         val correct: Boolean
-        when(type) {
+        when (type) {
             DataType.ARRAY_UB -> {
-                correct= array.array?.all { it.integer!=null && it.integer in 0..255 } ?: false
+                correct = array.all { it in 0..255 }
             }
             DataType.ARRAY_B -> {
-                correct=array.array?.all { it.integer!=null && it.integer in -128..127 } ?: false
+                correct = array.all { it in -128..127 }
             }
             DataType.ARRAY_UW -> {
-                correct=array.array?.all { (it.integer!=null && it.integer in 0..65535)  || it.addressOf!=null} ?: false
+                correct = array.all { (it in 0..65535) }
             }
             DataType.ARRAY_W -> {
-                correct=array.array?.all { it.integer!=null && it.integer in -32768..32767 } ?: false
+                correct = array.all { it in -32768..32767 }
             }
-            DataType.ARRAY_F -> correct = array.doubleArray!=null
+            DataType.ARRAY_F -> correct = true
             else -> throw AstException("invalid array type $type")
         }
-        if(!correct)
+        if (!correct)
             checkResult.add(ExpressionError("array value out of range for type $type", value.position))
         return correct
     }

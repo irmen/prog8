@@ -83,8 +83,8 @@ class TestParserNumericLiteralValue {
 
     @Test
     fun testEqualsRef() {
-        assertTrue(StringLiteralValue(DataType.STR, "hello", null, dummyPos) == StringLiteralValue(DataType.STR, "hello", null, dummyPos))
-        assertFalse(StringLiteralValue(DataType.STR, "hello", null, dummyPos) == StringLiteralValue(DataType.STR, "bye", null, dummyPos))
+        assertTrue(StringLiteralValue(DataType.STR, "hello", dummyPos) == StringLiteralValue(DataType.STR, "hello", dummyPos))
+        assertFalse(StringLiteralValue(DataType.STR, "hello", dummyPos) == StringLiteralValue(DataType.STR, "bye", dummyPos))
 
         val lvOne = NumericLiteralValue(DataType.UBYTE, 1, dummyPos)
         val lvTwo = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)

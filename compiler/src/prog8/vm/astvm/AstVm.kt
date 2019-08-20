@@ -7,7 +7,6 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
-import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.vm.*
@@ -75,6 +74,10 @@ class RuntimeVariables {
         val where = vars.getValue(scope)
         where[name] = initialValue
         vars[scope] = where
+        if(initialValue is RuntimeValueString)
+            byHeapId[initialValue.heapId!!] = initialValue
+        else if(initialValue is RuntimeValueArray)
+            byHeapId[initialValue.heapId!!] = initialValue
     }
 
     fun defineMemory(scope: INameScope, name: String, address: Int) {
@@ -95,7 +98,13 @@ class RuntimeVariables {
             throw VmExecutionException("new value is of different datatype ${value.type} expected ${existing.type} for $name")
         where[name] = value
         vars[scope] = where
+        if(value is RuntimeValueString)
+            byHeapId[value.heapId!!] = value
+        else if(value is RuntimeValueArray)
+            byHeapId[value.heapId!!] = value
     }
+
+    fun getByHeapId(heapId: Int): RuntimeValueBase = byHeapId.getValue(heapId)
 
     fun get(scope: INameScope, name: String): RuntimeValueBase {
         val where = vars.getValue(scope)
@@ -118,6 +127,7 @@ class RuntimeVariables {
 
     private val vars = mutableMapOf<INameScope, MutableMap<String, RuntimeValueBase>>().withDefault { mutableMapOf() }
     private val memvars = mutableMapOf<INameScope, MutableMap<String, Int>>().withDefault { mutableMapOf() }
+    private val byHeapId = mutableMapOf<Int, RuntimeValueBase>()
 }
 
 
@@ -620,7 +630,7 @@ class AstVm(val program: Program) {
                         val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
-                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(array.type, newstr))
+                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(array.type, newstr, array.heapId))
                     }
                 }
                 else {
@@ -662,7 +672,7 @@ class AstVm(val program: Program) {
             "c64scr.print" -> {
                 // if the argument is an UWORD, consider it to be the "address" of the string (=heapId)
                 if (args[0].wordval != null) {
-                    val encodedStr = program.heap.get(args[0].wordval!!).array!!.map { it.integer!!.toShort() }
+                    val encodedStr = getEncodedStringFromRuntimeVars(args[0].wordval!!)
                     dialog.canvas.printText(encodedStr)
                 } else
                     throw VmExecutionException("print non-heap string")
@@ -738,9 +748,9 @@ class AstVm(val program: Program) {
                 }
                 val inputStr = input.joinToString("")
                 val heapId = args[0].wordval!!
-                val origStrLength = program.heap.get(heapId).array!!.size
+                val origStrLength = getEncodedStringFromRuntimeVars(heapId).size
                 val encodedStr = Petscii.encodePetscii(inputStr, true).take(origStrLength).toMutableList()
-                while(encodedStr.size<origStrLength)
+                while(encodedStr.size < origStrLength)
                     encodedStr.add(0)
                 result = RuntimeValueNumeric(DataType.UBYTE, encodedStr.indexOf(0))
             }
@@ -762,14 +772,28 @@ class AstVm(val program: Program) {
             }
             "c64utils.str2uword" -> {
                 val heapId = args[0].wordval!!
-                val argString = program.heap.get(heapId).array!!.map { it.integer!!.toChar() }
-                val numericpart = argString.takeWhile { it.isDigit() }.toString()
+                val argString = getEncodedStringFromRuntimeVars(heapId)
+                val numericpart = argString.takeWhile { it.toChar().isDigit() }.toString()
                 result = RuntimeValueNumeric(DataType.UWORD, numericpart.toInt() and 65535)
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")
         }
 
         return result
+    }
+
+    private fun getEncodedStringFromRuntimeVars(heapId: Int): List<Short> {
+        val stringvar = runtimeVariables.getByHeapId(heapId) as RuntimeValueString
+        return when {
+            stringvar.type==DataType.STR -> Petscii.encodePetscii(stringvar.str, true)
+            stringvar.type==DataType.STR_S -> Petscii.encodeScreencode(stringvar.str, true)
+            else -> throw VmExecutionException("weird string type")
+        }
+    }
+
+    private fun getArrayFromRuntimeVars(heapId: Int): IntArray {
+        val arrayvar = runtimeVariables.getByHeapId(heapId) as RuntimeValueArray
+        return arrayvar.array.map { it.toInt() }.toIntArray()
     }
 
     private fun performBuiltinFunction(name: String, args: List<RuntimeValueBase>, statusflags: StatusFlags): RuntimeValueNumeric? {
@@ -886,30 +910,30 @@ class AstVm(val program: Program) {
             }
             "memset" -> {
                 val heapId = (args[0] as RuntimeValueNumeric).wordval!!
-                val target = program.heap.get(heapId).array ?: throw VmExecutionException("memset target is not an array")
+                val target = getArrayFromRuntimeVars(heapId)
                 val amount = args[1].integerValue()
                 val value = args[2].integerValue()
                 for (i in 0 until amount) {
-                    target[i] = IntegerOrAddressOf(value, null)
+                    target[i] = value
                 }
                 null
             }
             "memsetw" -> {
                 val heapId = (args[0] as RuntimeValueNumeric).wordval!!
-                val target = program.heap.get(heapId).array  ?: throw VmExecutionException("memset target is not an array")
+                val target = getArrayFromRuntimeVars(heapId)
                 val amount = args[1].integerValue()
                 val value = args[2].integerValue()
                 for (i in 0 until amount step 2) {
-                    target[i * 2] = IntegerOrAddressOf(value and 255, null)
-                    target[i * 2 + 1] = IntegerOrAddressOf(value ushr 8, null)
+                    target[i * 2] = value and 255
+                    target[i * 2 + 1] = value ushr 8
                 }
                 null
             }
             "memcopy" -> {
                 val sourceHeapId = (args[0] as RuntimeValueNumeric).wordval!!
                 val destHeapId = (args[1] as RuntimeValueNumeric).wordval!!
-                val source = program.heap.get(sourceHeapId).array!!
-                val dest = program.heap.get(destHeapId).array!!
+                val source = getArrayFromRuntimeVars(sourceHeapId)
+                val dest = getArrayFromRuntimeVars(destHeapId)
                 val amount = args[2].integerValue()
                 for(i in 0 until amount) {
                     dest[i] = source[i]
@@ -982,5 +1006,4 @@ class AstVm(val program: Program) {
             else -> TODO("builtin function $name")
         }
     }
-
 }

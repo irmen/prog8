@@ -615,8 +615,6 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         if(leftVal==null && rightVal==null)
             return expr
 
-        // TODO fix bug in this routine!
-
         // cannot shuffle assiciativity with division!
         if(rightVal!=null) {
             // right value is a constant, see if we can optimize

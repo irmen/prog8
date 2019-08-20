@@ -12,8 +12,6 @@ import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.compiler.HeapValues
-import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
@@ -414,7 +412,6 @@ class StructLiteralValue(var values: List<Expression>,
 
 class StringLiteralValue(val type: DataType,     // only string types
                          val value: String,
-                         var heapId: Int?,
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -435,15 +432,17 @@ class StringLiteralValue(val type: DataType,     // only string types
         return value==other.value && type==other.type
     }
 
-    fun addToHeap(heap: HeapValues) {
-        if (heapId != null)
-            return
-        else {
-            val encodedStr = Petscii.encodePetscii(value, true)
-            heapId = heap.addIntegerArray(DataType.ARRAY_UB, encodedStr.map { IntegerOrAddressOf(it.toInt(), null)}.toTypedArray())
-        }
+    var heapId: Int? = null
+        private set
+
+    fun addToHeap() {
+        if(heapId==null)
+            heapId = ++heapIdSequence
     }
 }
+
+private var heapIdSequence = 0
+
 
 class ArrayLiteralValue(val type: DataType,     // only array types
                         val value: Array<Expression>,
@@ -497,32 +496,9 @@ class ArrayLiteralValue(val type: DataType,     // only array types
         return null    // invalid type conversion from $this to $targettype
     }
 
-    fun addToHeap(heap: HeapValues) {
-        if (heapId != null)
-            return
-        else {
-            if(value.any {it is AddressOf }) {
-                val intArrayWithAddressOfs = value.map {
-                    when (it) {
-                        is AddressOf -> IntegerOrAddressOf(null, it)
-                        is NumericLiteralValue -> IntegerOrAddressOf(it.number.toInt(), null)
-                        else -> throw FatalAstException("invalid datatype in array")
-                    }
-                }
-                heapId = heap.addIntegerArray(type, intArrayWithAddressOfs.toTypedArray())
-            } else {
-                val valuesInArray = value.map { (it as? NumericLiteralValue)?.number }
-                if(null !in valuesInArray) {
-                    heapId = if (type == DataType.ARRAY_F) {
-                        val doubleArray = valuesInArray.map { it!!.toDouble() }.toDoubleArray()
-                        heap.addDoublesArray(doubleArray)
-                    } else {
-                        val integerArray = valuesInArray.map { it!!.toInt() }
-                        heap.addIntegerArray(type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
-                    }
-                }
-            }
-        }
+    fun addToHeap() {
+        if(heapId==null)
+            heapId = ++heapIdSequence
     }
 }
 

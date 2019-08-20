@@ -45,7 +45,7 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
             val array = ArrayLiteralValue(decl.datatype,
                     Array(arraysize) { NumericLiteralValue.optimalInteger(0, decl.position) },
                     null, decl.position)
-            array.addToHeap(program.heap)
+            array.addToHeap()
             decl.value = array
         }
 

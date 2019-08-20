@@ -186,7 +186,6 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                     functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(encodedString[0].toInt(), functionCallStatement.position))
                     functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
                     vardeclsToRemove.add(vardecl)
-                    program.heap.remove(string.heapId!!)
                     optimizationsDone++
                     return functionCallStatement
                 } else if(string.value.length==2) {
@@ -196,7 +195,6 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
                             mutableListOf(NumericLiteralValue.optimalInteger(encodedString[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
                     vardeclsToRemove.add(vardecl)
-                    program.heap.remove(string.heapId!!)
                     optimizationsDone++
                     return scope
                 }

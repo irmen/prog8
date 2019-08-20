@@ -124,8 +124,8 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValueBase {
                             DataType.UWORD -> RuntimeValueNumeric(DataType.UWORD, ctx.mem.getUWord(address))
                             DataType.WORD -> RuntimeValueNumeric(DataType.WORD, ctx.mem.getSWord(address))
                             DataType.FLOAT -> RuntimeValueNumeric(DataType.FLOAT, ctx.mem.getFloat(address))
-                            DataType.STR -> RuntimeValueString(DataType.STR, ctx.mem.getString(address))
-                            DataType.STR_S -> RuntimeValueString(DataType.STR_S, ctx.mem.getScreencodeString(address)!!)
+                            DataType.STR -> RuntimeValueString(DataType.STR, ctx.mem.getString(address), null)
+                            DataType.STR_S -> RuntimeValueString(DataType.STR_S, ctx.mem.getScreencodeString(address)!!, null)
                             else -> throw VmExecutionException("unexpected datatype $variable")
                         }
                     }

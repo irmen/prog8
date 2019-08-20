@@ -575,10 +575,10 @@ class RuntimeValueNumeric(type: DataType, num: Number): RuntimeValueBase(type) {
 }
 
 
-class RuntimeValueString(type: DataType, val str: String): RuntimeValueBase(type) {
+class RuntimeValueString(type: DataType, val str: String, val heapId: Int?): RuntimeValueBase(type) {
     companion object {
         fun fromLv(string: StringLiteralValue): RuntimeValueString {
-            return RuntimeValueString(string.type, str = string.value)
+            return RuntimeValueString(string.type, string.value, string.heapId!!)
         }
     }
 
@@ -610,13 +610,13 @@ class RuntimeValueString(type: DataType, val str: String): RuntimeValueBase(type
 }
 
 
-open class RuntimeValueArray(type: DataType, val array: Array<Number>): RuntimeValueBase(type) {
+open class RuntimeValueArray(type: DataType, val array: Array<Number>, val heapId: Int?): RuntimeValueBase(type) {
 
     companion object {
         fun fromLv(array: ArrayLiteralValue): RuntimeValueArray {
             return if (array.type == DataType.ARRAY_F) {
                 val doubleArray = array.value.map { (it as NumericLiteralValue).number }.toTypedArray()
-                RuntimeValueArray(array.type, array = doubleArray)
+                RuntimeValueArray(array.type, doubleArray, array.heapId!!)
             } else {
                 val resultArray = mutableListOf<Number>()
                 for (elt in array.value.withIndex()) {
@@ -626,7 +626,7 @@ open class RuntimeValueArray(type: DataType, val array: Array<Number>): RuntimeV
                         TODO("ADDRESSOF ${elt.value}")
                     }
                 }
-                RuntimeValueArray(array.type, array = resultArray.toTypedArray())
+                RuntimeValueArray(array.type, resultArray.toTypedArray(), array.heapId!!)
             }
         }
     }
@@ -662,7 +662,7 @@ open class RuntimeValueArray(type: DataType, val array: Array<Number>): RuntimeV
 }
 
 
-class RuntimeValueRange(type: DataType, val range: IntProgression): RuntimeValueArray(type, range.toList().toTypedArray()) {
+class RuntimeValueRange(type: DataType, val range: IntProgression): RuntimeValueArray(type, range.toList().toTypedArray(), null) {
     override fun iterator(): Iterator<Number> {
         return range.iterator()
     }

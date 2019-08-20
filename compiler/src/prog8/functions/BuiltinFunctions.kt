@@ -199,7 +199,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 }
 
 
-class NotConstArgumentException: AstException("not a const argument to a built-in function")        // TODO: ugly, remove throwing exceptions for control flow
+class NotConstArgumentException: AstException("not a const argument to a built-in function")
 
 
 private fun oneDoubleArg(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Number): NumericLiteralValue {

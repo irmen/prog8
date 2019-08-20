@@ -124,7 +124,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         // create the array itself, filled with the fillvalue.
                         val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
                         val refValue = ArrayLiteralValue(decl.datatype, array, position = numericLv.position)
-                        refValue.addToHeap(program.heap)
+                        refValue.addToHeap()
                         decl.value = refValue
                         refValue.parent=decl
                         optimizationsDone++
@@ -146,7 +146,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             // create the array itself, filled with the fillvalue.
                             val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
                             val refValue = ArrayLiteralValue(DataType.ARRAY_F, array, position = litval.position)
-                            refValue.addToHeap(program.heap)
+                            refValue.addToHeap()
                             decl.value = refValue
                             refValue.parent=decl
                             optimizationsDone++
@@ -610,8 +610,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
-            if(array.heapId==null)
-                array.addToHeap(program.heap)
+            array.addToHeap()
             val vardecl = array.parent as? VarDecl
             return if (vardecl!=null) {
                 fixupArrayDatatype(array, vardecl, program)
