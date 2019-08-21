@@ -11,7 +11,8 @@ main {
     uword uw
     &ubyte  membyte=9999
     &uword  memword=9999
-    ubyte[10] barray
+    ubyte[10] ubarray
+    byte[10] bbarray
 
     sub start() {
         lsr(A)
@@ -20,6 +21,10 @@ main {
         rol(A)
         ror2(A)
         rol2(A)
+
+        lsr(bb)
+        lsl(bb)
+
         lsr(membyte)
         lsl(membyte)
         ror(membyte)
@@ -38,12 +43,14 @@ main {
         rol(@(9999))
         ror2(@(9999))
         rol2(@(9999))
-        lsr(barray[1])
-        lsl(barray[1])
-        ror(barray[1])
-        rol(barray[1])
-        ror2(barray[1])
-        rol2(barray[1])
+        lsr(ubarray[1])
+        lsl(ubarray[1])
+        ror(ubarray[1])
+        rol(ubarray[1])
+        ror2(ubarray[1])
+        rol2(ubarray[1])
+        lsr(bbarray[1])
+        lsl(bbarray[1])
 
 
         bb /= 2

@@ -768,7 +768,7 @@ rol(x)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 rol2(x)
-    Like _rol but now as 8-bit or 16-bit rotation.
+    Like ``rol`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
@@ -780,7 +780,7 @@ ror(x)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 ror2(x)
-    Like _ror but now as 8-bit or 16-bit rotation.
+    Like ``ror`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 

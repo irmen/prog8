@@ -1,9 +1,6 @@
 package prog8.ast.expressions
 
-import prog8.ast.IFunctionCall
-import prog8.ast.INameScope
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.processing.IAstModifyingVisitor
@@ -183,7 +180,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
 
 class ArrayIndexedExpression(var identifier: IdentifierReference,
                              val arrayspec: ArrayIndex,
-                             override val position: Position) : Expression() {
+                             override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -252,7 +249,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
 
-class DirectMemoryRead(var addressExpression: Expression, override val position: Position) : Expression() {
+class DirectMemoryRead(var addressExpression: Expression, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -583,7 +580,7 @@ internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
     }
 }
 
-class RegisterExpr(val register: Register, override val position: Position) : Expression() {
+class RegisterExpr(val register: Register, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -601,7 +598,7 @@ class RegisterExpr(val register: Register, override val position: Position) : Ex
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UBYTE)
 }
 
-data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression() {
+data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
     fun targetStatement(namespace: INameScope) =

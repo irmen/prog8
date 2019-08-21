@@ -156,7 +156,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             is IdentifierReference -> asmgen.out("  asl  ${asmgen.asmIdentifierName(what)}")
                             is DirectMemoryRead -> {
                                 if (what.addressExpression is NumericLiteralValue) {
-                                    asmgen.out("  asl  ${(what.addressExpression as NumericLiteralValue).number.toHex()}")
+                                    val number = (what.addressExpression as NumericLiteralValue).number
+                                    asmgen.out("  asl  ${number.toHex()}")
                                 } else {
                                     TODO("lsl memory byte $what")
                                 }
@@ -197,7 +198,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             is IdentifierReference -> asmgen.out("  lsr  ${asmgen.asmIdentifierName(what)}")
                             is DirectMemoryRead -> {
                                 if (what.addressExpression is NumericLiteralValue) {
-                                    asmgen.out("  lsr  ${(what.addressExpression as NumericLiteralValue).number.toHex()}")
+                                    val number = (what.addressExpression as NumericLiteralValue).number
+                                    asmgen.out("  lsr  ${number.toHex()}")
                                 } else {
                                     TODO("lsr memory byte $what")
                                 }
@@ -211,8 +213,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     DataType.BYTE -> {
                         when (what) {
                             is ArrayIndexedExpression -> TODO("lsr sbyte $what")
-                            is DirectMemoryRead -> TODO("lsr sbyte $what")
-                            is RegisterExpr -> TODO("lsr sbyte $what")
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  lda  $variable |  asl  a |  ror  $variable")
@@ -249,10 +249,39 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
-                        TODO("rol ubyte")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("rol ubyte array")
+                            is DirectMemoryRead -> {
+                                if (what.addressExpression is NumericLiteralValue) {
+                                    val number = (what.addressExpression as NumericLiteralValue).number
+                                    asmgen.out("  rol  ${number.toHex()}")
+                                } else {
+                                    TODO("rol memory byte $what")
+                                }
+                            }
+                            is RegisterExpr -> {
+                                when(what.register) {
+                                    Register.A -> asmgen.out("  rol  a")
+                                    Register.X -> asmgen.out("  txa |  rol  a |  tax")
+                                    Register.Y -> asmgen.out("  tya |  rol  a |  tay")
+                                }
+                            }
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  rol  $variable")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     DataType.UWORD -> {
-                        TODO("rol uword")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("rol uword array")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  rol  $variable |  rol  $variable+1")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -263,10 +292,39 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
-                        TODO("rol2 ubyte")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("rol2 ubyte array")
+                            is DirectMemoryRead -> {
+                                if (what.addressExpression is NumericLiteralValue) {
+                                    val number = (what.addressExpression as NumericLiteralValue).number
+                                    asmgen.out("  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}")
+                                } else {
+                                    TODO("rol2 memory byte $what")
+                                }
+                            }
+                            is RegisterExpr -> {
+                                when(what.register) {
+                                    Register.A -> asmgen.out("  cmp  #\$80 |  rol  a  ")
+                                    Register.X -> asmgen.out("  txa  |  cmp  #\$80 |  rol  a  |  tax")
+                                    Register.Y -> asmgen.out("  tya  |  cmp  #\$80 |  rol  a  |  tay")
+                                }
+                            }
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  lda  $variable |  cmp  #\$80 |  rol  a |  sta  $variable")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     DataType.UWORD -> {
-                        TODO("rol2 uword")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("rol2 uword array")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  asl  $variable |  rol  $variable+1 |  bcc  + |  inc  $variable |+  ")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -277,10 +335,39 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
-                        TODO("ror ubyte")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("ror ubyte array")
+                            is DirectMemoryRead -> {
+                                if (what.addressExpression is NumericLiteralValue) {
+                                    val number = (what.addressExpression as NumericLiteralValue).number
+                                    asmgen.out("  ror  ${number.toHex()}")
+                                } else {
+                                    TODO("ror memory byte $what")
+                                }
+                            }
+                            is RegisterExpr -> {
+                                when(what.register) {
+                                    Register.A -> asmgen.out("  ror  a")
+                                    Register.X -> asmgen.out("  txa |  ror  a |  tax")
+                                    Register.Y -> asmgen.out("  tya |  ror  a |  tay")
+                                }
+                            }
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  ror  $variable")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     DataType.UWORD -> {
-                        TODO("ror uword")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("ror uword array")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  ror  $variable+1 |  ror  $variable")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -291,10 +378,38 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
-                        TODO("ror2 ubyte")
-                    }
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("ror2 ubyte array")
+                            is DirectMemoryRead -> {
+                                if (what.addressExpression is NumericLiteralValue) {
+                                    val number = (what.addressExpression as NumericLiteralValue).number
+                                    asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
+                                } else {
+                                    TODO("ror2 memory byte $what")
+                                }
+                            }
+                            is RegisterExpr -> {
+                                when(what.register) {
+                                    Register.A -> asmgen.out("  lsr  a |  bcc  + |  ora  #\$80 |+  ")
+                                    Register.X -> asmgen.out("  txa |  lsr  a |  bcc  + |  ora  #\$80 |+  tax ")
+                                    Register.Y -> asmgen.out("  tya |  lsr  a |  bcc  + |  ora  #\$80 |+  tay ")
+                                }
+                            }
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  $variable")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }                    }
                     DataType.UWORD -> {
-                        TODO("ror2 uword")
+                        when(what) {
+                            is ArrayIndexedExpression -> TODO("ror2 uword array")
+                            is IdentifierReference -> {
+                                val variable = asmgen.asmIdentifierName(what)
+                                asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #\$80 |  sta  $variable+1 |+  ")
+                            }
+                            else -> throw AssemblyError("weird type")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }

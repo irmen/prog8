@@ -37,7 +37,6 @@ sealed class Statement : Node {
     }
 }
 
-
 class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : Statement() {
     override var parent: Node = ParentSentinel
     override fun linkParents(parent: Node) {}
@@ -47,9 +46,7 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override val expensiveToInline = false
 }
 
-
 data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?, val stack: Boolean)
-
 
 class Block(override val name: String,
             val address: Int?,
@@ -792,4 +789,3 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
 }
-
