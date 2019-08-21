@@ -88,32 +88,7 @@ val BuiltinFunctions = mapOf(
                                                         BuiltinFunctionParam("address", IterableDatatypes + DataType.UWORD),
                                                         BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
-    "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE, ::builtinStrlen),
-
-    // TODO clean up these vm-specific functions
-    "vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
-    "vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
-    "vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),
-    "vm_write_char"    to FunctionSignature(false, listOf(BuiltinFunctionParam("char", setOf(DataType.UBYTE))), null),
-    "vm_write_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("string", StringDatatypes)), null),
-    "vm_input_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("intovar", StringDatatypes)), null),
-    "vm_gfx_clearscr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("color", setOf(DataType.UBYTE))), null),
-    "vm_gfx_pixel"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("x", IntegerDatatypes),
-                                                        BuiltinFunctionParam("y", IntegerDatatypes),
-                                                        BuiltinFunctionParam("color", IntegerDatatypes)), null),
-    "vm_gfx_line"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("x1", IntegerDatatypes),
-                                                        BuiltinFunctionParam("y1", IntegerDatatypes),
-                                                        BuiltinFunctionParam("x2", IntegerDatatypes),
-                                                        BuiltinFunctionParam("y2", IntegerDatatypes),
-                                                        BuiltinFunctionParam("color", IntegerDatatypes)), null),
-    "vm_gfx_text"      to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("x", IntegerDatatypes),
-                                                        BuiltinFunctionParam("y", IntegerDatatypes),
-                                                        BuiltinFunctionParam("color", IntegerDatatypes),
-                                                        BuiltinFunctionParam("text", StringDatatypes)),
-                                                        null)
+    "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE, ::builtinStrlen)
 )
 
 fun builtinMax(array: List<Number>): Number = array.maxBy { it.toDouble() }!!
