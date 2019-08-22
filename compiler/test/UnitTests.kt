@@ -19,7 +19,6 @@ import prog8.vm.RuntimeValueNumeric
 import java.io.CharConversionException
 import kotlin.test.*
 
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompiler {
     @Test
@@ -53,7 +52,6 @@ class TestCompiler {
         assertFailsWith<CompilerException> { 65536.toHex()  }
         assertFailsWith<CompilerException> { 65536L.toHex()  }
     }
-
 
     @Test
     fun testFloatToMflpt5() {

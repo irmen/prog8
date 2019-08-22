@@ -25,7 +25,8 @@ class CompilationResult(val success: Boolean,
 
 fun compileProgram(filepath: Path,
                    optimize: Boolean,
-                   writeAssembly: Boolean): CompilationResult {
+                   writeAssembly: Boolean,
+                   outputDir: Path): CompilationResult {
     lateinit var programAst: Program
     var programName: String? = null
 
@@ -102,7 +103,7 @@ fun compileProgram(filepath: Path,
                 // asm generation directly from the Ast, no need for intermediate code
                 val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
                 programAst.anonscopeVarsCleanup()
-                val assembly = AsmGen(programAst, compilerOptions, zeropage).compileToAssembly(optimize)
+                val assembly = AsmGen(programAst, compilerOptions, zeropage, outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name
             }

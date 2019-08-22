@@ -1,5 +1,6 @@
 package prog8
 
+import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
@@ -14,11 +15,8 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-
     printSoftwareHeader("compiler")
 
-    if (args.isEmpty())
-        usage()
     compileMain(args)
 }
 
@@ -30,46 +28,37 @@ internal fun printSoftwareHeader(what: String) {
 
 
 private fun compileMain(args: Array<String>) {
-    var emulatorToStart = ""
-    var moduleFile = ""
-    var writeAssembly = true
-    var optimize = true
-    var launchAstVm = false
-    var watchMode = false
-    for (arg in args) {
-        if(arg=="-emu")
-            emulatorToStart = "x64"
-        else if(arg=="-emu2")
-            emulatorToStart = "x64sc"
-        else if(arg=="-noasm")
-            writeAssembly = false
-        else if(arg=="-noopt")
-            optimize = false
-        else if(arg=="-sim") {
-            launchAstVm = true
-            writeAssembly = false
-            emulatorToStart = ""
-        }
-        else if(arg=="-watch")
-            watchMode = true
-        else if(!arg.startsWith("-"))
-            moduleFile = arg
-        else
-            usage()
+    val cli = CommandLineInterface("prog8compiler")
+    val startEmulator1 by cli.flagArgument("-emu", "auto-start the 'x64' C-64 emulator after successful compilation")
+    val startEmulator2 by cli.flagArgument("-emu2", "auto-start the 'x64sc' C-64 emulator after successful compilation")
+    val outputDir by cli.flagValueArgument("-out", "directory", "directory for output files instead of current directory", ".")
+    val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
+    val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
+    val launchSimulator by cli.flagArgument("-sim", "launch the prog8 virtual machine/simulator after compilation")
+    val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes)")
+    val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
+
+    try {
+        cli.parse(args)
+    } catch (e: Exception) {
+        exitProcess(1)
     }
 
-    if(watchMode) {
-        if(moduleFile.isBlank())
-            usage()
+    val outputPath = Paths.get(outputDir)
+    if(!outputPath.toFile().isDirectory) {
+        System.err.println("Output path doesn't exist")
+        exitProcess(1)
+    }
 
+    if(watchMode && moduleFiles.size<=1) {
         val watchservice = FileSystems.getDefault().newWatchService()
 
         while(true) {
-            val filepath = Paths.get(moduleFile).normalize()
+            val filepath = Paths.get(moduleFiles.single()).normalize()
             println("Continuous watch mode active. Main module: $filepath")
 
             try {
-                val compilationResult = compileProgram(filepath, optimize, writeAssembly)
+                val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, outputDir=outputPath)
                 println("Imported files (now watching:)")
                 for (importedFile in compilationResult.importedFiles) {
                     print("  ")
@@ -90,51 +79,37 @@ private fun compileMain(args: Array<String>) {
         }
 
     } else {
-        if(moduleFile.isBlank())
-            usage()
-
-        val filepath = Paths.get(moduleFile).normalize()
-        val compilationResult: CompilationResult
-
-        try {
-            compilationResult = compileProgram(filepath, optimize, writeAssembly)
-            if(!compilationResult.success)
+        for(filepathRaw in moduleFiles) {
+            val filepath = Paths.get(filepathRaw).normalize()
+            val compilationResult: CompilationResult
+            try {
+                compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, outputDir=outputPath)
+                if(!compilationResult.success)
+                    exitProcess(1)
+            } catch (x: ParsingFailedError) {
                 exitProcess(1)
-        } catch (x: ParsingFailedError) {
-            exitProcess(1)
-        } catch (x: AstException) {
-            exitProcess(1)
-        }
+            } catch (x: AstException) {
+                exitProcess(1)
+            }
 
-        if (launchAstVm) {
-            println("\nLaunching AST-based vm...")
-            val vm = AstVm(compilationResult.programAst)
-            vm.run()
-        }
+            if (launchSimulator) {
+                println("\nLaunching AST-based simulator...")
+                val vm = AstVm(compilationResult.programAst)
+                vm.run()
+            }
 
-        if (emulatorToStart.isNotEmpty()) {
-            if (compilationResult.programName.isEmpty())
-                println("\nCan't start emulator because no program was assembled.")
-            else {
-                println("\nStarting C-64 emulator $emulatorToStart...")
-                val cmdline = listOf(emulatorToStart, "-silent", "-moncommands", "${compilationResult.programName}.vice-mon-list",
-                        "-autostartprgmode", "1", "-autostart-warp", "-autostart", compilationResult.programName + ".prg")
-                val process = ProcessBuilder(cmdline).inheritIO().start()
-                process.waitFor()
+            if (startEmulator1 || startEmulator2) {
+                if (compilationResult.programName.isEmpty())
+                    println("\nCan't start emulator because no program was assembled.")
+                else {
+                    val emulator = if(startEmulator1) "x64" else "x64sc"
+                    println("\nStarting C-64 emulator $emulator...")
+                    val cmdline = listOf(emulator, "-silent", "-moncommands", "${compilationResult.programName}.vice-mon-list",
+                            "-autostartprgmode", "1", "-autostart-warp", "-autostart", compilationResult.programName + ".prg")
+                    val process = ProcessBuilder(cmdline).inheritIO().start()
+                    process.waitFor()
+                }
             }
         }
     }
-}
-
-
-private fun usage() {
-    System.err.println("Missing argument(s):")
-    System.err.println("    [-noasm]        don't create assembly code")
-    System.err.println("    [-noopt]        don't perform any optimizations")
-    System.err.println("    [-emu]          auto-start the 'x64' C-64 emulator after successful compilation")
-    System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
-    System.err.println("    [-sim]          launch the prog8 virtual machine/simulator after compilation")
-    System.err.println("    [-watch]        continuous compilation mode (watches for file changes)")
-    System.err.println("    modulefile      main module file to compile")
-    exitProcess(1)
 }

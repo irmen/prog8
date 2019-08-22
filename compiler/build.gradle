@@ -20,6 +20,7 @@ repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
+    maven { url "https://dl.bintray.com/orangy/maven/" }
 }
 
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
@@ -35,8 +36,8 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
     testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
-
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
+    compile 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.1.0-dev-5'
 }
 
 compileKotlin {

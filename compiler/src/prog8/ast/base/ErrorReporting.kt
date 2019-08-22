@@ -5,7 +5,7 @@ import prog8.parser.ParsingFailedError
 
 fun printErrors(errors: List<Any>, moduleName: String) {
     val reportedMessages = mutableSetOf<String>()
-    print("\u001b[91m")  // bright red
+    System.err.print("\u001b[91m")  // bright red
     errors.forEach {
         val msg = it.toString()
         if(msg !in reportedMessages) {
@@ -13,7 +13,7 @@ fun printErrors(errors: List<Any>, moduleName: String) {
             reportedMessages.add(msg)
         }
     }
-    print("\u001b[0m")  // reset color
+    System.err.print("\u001b[0m")  // reset color
     if(reportedMessages.isNotEmpty())
         throw ParsingFailedError("There are ${reportedMessages.size} errors in module '$moduleName'.")
 }

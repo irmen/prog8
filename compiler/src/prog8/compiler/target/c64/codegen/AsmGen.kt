@@ -14,8 +14,8 @@ import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FunctionSignature
-import java.io.File
 import java.math.RoundingMode
+import java.nio.file.Path
 import java.util.*
 import kotlin.math.absoluteValue
 
@@ -25,7 +25,8 @@ internal class AssemblyError(msg: String) : RuntimeException(msg)
 
 internal class AsmGen(val program: Program,
                       val options: CompilationOptions,
-                      val zeropage: Zeropage) {
+                      val zeropage: Zeropage,
+                      val outputDir: Path) {
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -62,11 +63,12 @@ internal class AsmGen(val program: Program,
             }
         }
 
-        File("${program.name}.asm").printWriter().use {
+        val outputFile = outputDir.resolve("${program.name}.asm").toFile()
+        outputFile.printWriter().use {
             for (line in assemblyLines) { it.println(line) }
         }
 
-        return AssemblyProgram(program.name)
+        return AssemblyProgram(program.name, outputDir)
     }
 
     private fun header() {

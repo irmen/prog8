@@ -94,6 +94,13 @@ Start the compiler with the ``-watch`` argument to enable this.
 It will compile your program and then instead of exiting, it waits for any changes in the module source files.
 As soon as a change happens, the program gets compiled again.
 
+Other options
+^^^^^^^^^^^^^
+There's an option to specify the output directory if you're not happy with the default (the current working directory).
+Also it is possible to specify more than one main module to compile:
+this can be useful to quickly recompile multiple separate programs quickly.
+(compiling in a batch like this is a lot faster than invoking the compiler again once per main file)
+
 
 Module source code files
 ------------------------
