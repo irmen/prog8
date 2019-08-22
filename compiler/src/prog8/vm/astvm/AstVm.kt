@@ -116,8 +116,6 @@ class RuntimeVariables {
         return where[name] ?: throw NoSuchElementException("no such runtime memory-variable: ${scope.name}.$name")
     }
 
-    fun swap(a1: VarDecl, a2: VarDecl) = swap(a1.definingScope(), a1.name, a2.definingScope(), a2.name)
-
     fun swap(scope1: INameScope, name1: String, scope2: INameScope, name2: String) {
         val v1 = get(scope1, name1)
         val v2 = get(scope2, name2)

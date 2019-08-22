@@ -142,8 +142,7 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(forLoop: ForLoop): Statement {
-        val newloopvar = forLoop.loopVar?.accept(this)
-        when(newloopvar) {
+        when(val newloopvar = forLoop.loopVar?.accept(this)) {
             is IdentifierReference -> forLoop.loopVar = newloopvar
             null -> forLoop.loopVar = null
             else -> throw FatalAstException("can't change class of loopvar")
@@ -179,8 +178,7 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(assignTarget: AssignTarget): AssignTarget {
-        val ident = assignTarget.identifier?.accept(this)
-        when (ident) {
+        when (val ident = assignTarget.identifier?.accept(this)) {
             is IdentifierReference -> assignTarget.identifier = ident
             null -> assignTarget.identifier = null
             else -> throw FatalAstException("can't change class of assign target identifier")

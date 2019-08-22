@@ -820,8 +820,7 @@ internal class AsmGen(val program: Program,
     }
 
     internal fun translateArrayIndexIntoA(expr: ArrayIndexedExpression) {
-        val index = expr.arrayspec.index
-        when (index) {
+        when (val index = expr.arrayspec.index) {
             is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
             is RegisterExpr -> {
                 when (index.register) {

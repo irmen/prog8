@@ -120,8 +120,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
             val idt = arglist.inferType(program)
             if(!idt.isKnown)
                 throw FatalAstException("couldn't determine type of iterable $arglist")
-            val dt = idt.typeOrElse(DataType.STRUCT)
-            return when(dt) {
+            return when(val dt = idt.typeOrElse(DataType.STRUCT)) {
                 in NumericDatatypes -> dt
                 in StringDatatypes -> dt
                 in ArrayDatatypes -> ArrayElementTypes.getValue(dt)

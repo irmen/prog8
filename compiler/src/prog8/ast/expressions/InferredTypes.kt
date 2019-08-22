@@ -1,12 +1,12 @@
 package prog8.ast.expressions
 
 import prog8.ast.base.DataType
+import java.util.*
 
 object InferredTypes {
     class InferredType private constructor(val isUnknown: Boolean, val isVoid: Boolean, private var datatype: DataType?) {
         init {
-            if(datatype!=null && (isUnknown || isVoid))
-                throw IllegalArgumentException("invalid combination of args")
+            require(!(datatype!=null && (isUnknown || isVoid))) { "invalid combination of args" }
         }
 
         val isKnown = datatype!=null
@@ -32,6 +32,8 @@ object InferredTypes {
                 else -> "<unknown>"
             }
         }
+
+        override fun hashCode(): Int = Objects.hash(isVoid, datatype)
     }
 
     private val unknownInstance = InferredType.unknown()

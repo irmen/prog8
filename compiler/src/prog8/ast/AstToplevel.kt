@@ -160,7 +160,9 @@ interface INameScope {
     }
 }
 
-interface IAssignable {}
+interface IAssignable {
+    // just a tag for now
+}
 
 
 /*********** Everything starts from here, the Program; zero or more modules *************/

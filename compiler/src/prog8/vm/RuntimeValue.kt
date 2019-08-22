@@ -42,8 +42,7 @@ class RuntimeValueNumeric(type: DataType, num: Number): RuntimeValueBase(type) {
         when (type) {
             DataType.UBYTE -> {
                 val inum = num.toInt()
-                if (inum !in 0..255)
-                    throw IllegalArgumentException("invalid value for ubyte: $inum")
+                require(inum in 0..255) { "invalid value for ubyte: $inum" }
                 byteval = inum.toShort()
                 wordval = null
                 floatval = null
@@ -51,8 +50,7 @@ class RuntimeValueNumeric(type: DataType, num: Number): RuntimeValueBase(type) {
             }
             DataType.BYTE -> {
                 val inum = num.toInt()
-                if (inum !in -128..127)
-                    throw IllegalArgumentException("invalid value for byte: $inum")
+                require(inum in -128..127) { "invalid value for byte: $inum" }
                 byteval = inum.toShort()
                 wordval = null
                 floatval = null
@@ -60,8 +58,7 @@ class RuntimeValueNumeric(type: DataType, num: Number): RuntimeValueBase(type) {
             }
             DataType.UWORD -> {
                 val inum = num.toInt()
-                if (inum !in 0..65535)
-                    throw IllegalArgumentException("invalid value for uword: $inum")
+                require(inum in 0..65535) { "invalid value for uword: $inum" }
                 wordval = inum
                 byteval = null
                 floatval = null
@@ -69,8 +66,7 @@ class RuntimeValueNumeric(type: DataType, num: Number): RuntimeValueBase(type) {
             }
             DataType.WORD -> {
                 val inum = num.toInt()
-                if (inum !in -32768..32767)
-                    throw IllegalArgumentException("invalid value for word: $inum")
+                require(inum in -32768..32767) { "invalid value for word: $inum" }
                 wordval = inum
                 byteval = null
                 floatval = null

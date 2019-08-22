@@ -136,7 +136,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         // removes 'duplicate' assignments that assign the isSameAs target
         val linesToRemove = mutableListOf<Int>()
         var previousAssignmentLine: Int? = null
-        for (i in 0 until statements.size) {
+        for (i in statements.indices) {
             val stmt = statements[i] as? Assignment
             if (stmt != null && stmt.value is NumericLiteralValue) {
                 if (previousAssignmentLine == null) {
@@ -172,10 +172,10 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
             val arg = functionCallStatement.arglist.single()
             val stringVar: IdentifierReference?
-            if(arg is AddressOf) {
-                stringVar = arg.identifier
+            stringVar = if(arg is AddressOf) {
+                arg.identifier
             } else {
-                stringVar = arg as? IdentifierReference
+                arg as? IdentifierReference
             }
             if(stringVar!=null) {
                 val vardecl = stringVar.targetVarDecl(program.namespace)!!

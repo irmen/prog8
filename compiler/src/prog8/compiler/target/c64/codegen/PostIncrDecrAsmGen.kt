@@ -57,8 +57,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 }
             }
             targetMemory!=null -> {
-                val addressExpr = targetMemory.addressExpression
-                when (addressExpr) {
+                when (val addressExpr = targetMemory.addressExpression) {
                     is NumericLiteralValue -> {
                         val what = addressExpr.number.toHex()
                         asmgen.out(if(incr) "  inc  $what" else "  dec  $what")

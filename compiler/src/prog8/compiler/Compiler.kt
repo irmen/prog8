@@ -1,6 +1,5 @@
 package prog8.compiler
 
-import prog8.ast.expressions.AddressOf
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
@@ -23,8 +22,6 @@ enum class ZeropageType {
     FULL,
     DONTUSE
 }
-
-data class IntegerOrAddressOf(val integer: Int?, val addressOf: AddressOf?)
 
 data class CompilationOptions(val output: OutputType,
                               val launcher: LauncherType,

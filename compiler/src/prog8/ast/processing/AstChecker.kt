@@ -1,3 +1,5 @@
+@file:Suppress("DuplicatedCode")
+
 package prog8.ast.processing
 
 import prog8.ast.IFunctionCall
@@ -945,9 +947,8 @@ internal class AstChecker(private val program: Program,
                 if(dt !in NumericDatatypes && dt !in ArrayDatatypes)
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
             }
-        } else if(postIncrDecr.target.memoryAddress != null) {
-            // a memory location can always be ++/--
         }
+        // else if(postIncrDecr.target.memoryAddress != null) { } // a memory location can always be ++/--
         super.visit(postIncrDecr)
     }
 
@@ -1231,11 +1232,11 @@ internal class AstChecker(private val program: Program,
         }
 
         val array = value.value.map {
-            if(it is NumericLiteralValue)
-                it.number.toInt()
-            else if(it is AddressOf)
-                it.identifier.heapId(program.namespace)
-            else -9999999
+            when (it) {
+                is NumericLiteralValue -> it.number.toInt()
+                is AddressOf -> it.identifier.heapId(program.namespace)
+                else -> -9999999
+            }
         }
         val correct: Boolean
         when (type) {

@@ -219,15 +219,8 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             val subroutine = returnStmt.definingSubroutine()!!
             if(subroutine.returntypes.size!=1)
                 return returnStmt  // mismatch in number of return values, error will be printed later.
-            val newValue: Expression
             val lval = returnStmt.value as? NumericLiteralValue
-            if(lval!=null) {
-                newValue = lval.cast(subroutine.returntypes.single())
-            } else {
-                newValue = returnStmt.value!!
-            }
-
-            returnStmt.value = newValue
+            returnStmt.value = lval?.cast(subroutine.returntypes.single()) ?: returnStmt.value!!
         }
         return super.visit(returnStmt)
     }
@@ -236,18 +229,19 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
             val vardecl = array.parent as? VarDecl
-            return if (vardecl!=null) {
-                fixupArrayDatatype(array, vardecl, program)
-            } else if(array.heapId!=null) {
-                // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
-                // (we don't know the desired datatype here exactly so we guess)
-                val datatype = determineArrayDt(array.value)
-                val litval2 = array.cast(datatype)!!
-                litval2.parent = array.parent
-                // finally, replace the literal array by a identifier reference.
-                makeIdentifierFromRefLv(litval2)
-            } else
-                array
+            return when {
+                vardecl!=null -> fixupArrayDatatype(array, vardecl, program)
+                array.heapId!=null -> {
+                    // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
+                    // (we don't know the desired datatype here exactly so we guess)
+                    val datatype = determineArrayDt(array.value)
+                    val litval2 = array.cast(datatype)!!
+                    litval2.parent = array.parent
+                    // finally, replace the literal array by a identifier reference.
+                    makeIdentifierFromRefLv(litval2)
+                }
+                else -> array
+            }
         }
         return array
     }
@@ -272,8 +266,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
     private fun determineArrayDt(array: Array<Expression>): DataType {
         val datatypesInArray = array.map { it.inferType(program) }
-        if(datatypesInArray.isEmpty() || datatypesInArray.any { !it.isKnown })
-            throw IllegalArgumentException("can't determine type of empty array")
+        require(datatypesInArray.isNotEmpty() && datatypesInArray.all { it.isKnown }) { "can't determine type of empty array" }
         val dts = datatypesInArray.map { it.typeOrElse(DataType.STRUCT) }
         return when {
             DataType.FLOAT in dts -> DataType.ARRAY_F
