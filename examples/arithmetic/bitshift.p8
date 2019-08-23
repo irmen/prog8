@@ -15,12 +15,12 @@ main {
     byte[10] bbarray
 
     sub start() {
-        lsr(A)
-        lsl(A)
-        ror(A)
-        rol(A)
-        ror2(A)
-        rol2(A)
+;        lsr(A)
+;        lsl(A)
+;        ror(A)
+;        rol(A)
+;        ror2(A)
+;        rol2(A)
 
         lsr(bb)
         lsl(bb)
@@ -37,12 +37,21 @@ main {
         rol(memword)
         ror2(memword)
         rol2(memword)
+
         lsl(@(9999))
         lsr(@(9999))
         ror(@(9999))
         rol(@(9999))
         ror2(@(9999))
         rol2(@(9999))
+
+        lsl(@(9999+A))
+        lsr(@(9999+A))
+        ror(@(9999+A))
+        rol(@(9999+A))
+        ror2(@(9999+A))
+        rol2(@(9999+A))
+
         lsr(ubarray[1])
         lsl(ubarray[1])
         ror(ubarray[1])

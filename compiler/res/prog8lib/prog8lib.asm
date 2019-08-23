@@ -1671,3 +1671,38 @@ _loop_hi	sty  c64.SCRATCH_ZPREG
 
 		rts	
 		.pend
+
+ror2_mem_b	.proc
+		; -- in-place 8-bit ror of byte at memory location on stack
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  _mod1+1
+		sta  _mod2+1
+		lda  c64.ESTACK_HI,x
+		sta  _mod1+2
+		sta  _mod2+2
+_mod1		lda  $ffff		; modified
+		lsr  a
+		bcc  _mod2
+		ora  #$80
+_mod2		sta  $ffff		; modified
+		rts
+		.pend
+		
+rol2_mem_b	.proc
+		; -- in-place 8-bit rol of byte at memory location on stack
+		;"  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}"
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  _mod1+1
+		sta  _mod2+1
+		lda  c64.ESTACK_HI,x
+		sta  _mod1+2
+		sta  _mod2+2
+_mod1		lda  $ffff		; modified
+		cmp  #$80
+		rol  a
+_mod2		sta  $ffff		; modified
+		rts
+		.pend
+		

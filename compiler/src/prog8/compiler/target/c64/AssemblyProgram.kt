@@ -44,7 +44,6 @@ class AssemblyProgram(val name: String, val outputDir: Path) {
             }
         }
         command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
-        println("ASM COMMAND: $command")  // TODO
 
         val proc = ProcessBuilder(command).inheritIO().start()
         val result = proc.waitFor()

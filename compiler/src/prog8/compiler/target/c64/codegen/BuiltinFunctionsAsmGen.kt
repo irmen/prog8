@@ -121,24 +121,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 translateFunctionArguments(fcall.arglist, func)
                 asmgen.out("  jsr  c64flt.func_$functionName")
             }
-/*
-        TODO this was the old code for bit rotations:
-            Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
-            Opcode.SHR_UBYTE -> AsmFragment(" lsr  $variable+$index", 8)
-            Opcode.SHR_SBYTE -> AsmFragment(" lda  $variable+$index |  asl  a |  ror  $variable+$index")
-            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index * 2 + 1} |  rol  $variable+${index * 2}", 8)
-            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
-            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index * 2 + 1} |  asl  a |  ror  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
-            Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
-            Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
-            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index * 2 + 1} |  rol  $variable+${index * 2}", 8)
-            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
-            Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
-            Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
-            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index * 2 + 1} |  rol  $variable+${index * 2} |  bcc  + |  inc  $variable+${index * 2 + 1} |+", 20)
-            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index * 2 + 1} |  ror  $variable+${index * 2} |  bcc  + |  lda  $variable+${index * 2 + 1} |  ora  #\$80 |  sta  $variable+${index * 2 + 1} |+", 30)
-
- */
             "lsl" -> {
                 // in-place
                 val what = fcall.arglist.single()
@@ -159,12 +141,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  asl  ${number.toHex()}")
                                 } else {
-                                    TODO("lsl memory byte $what")
+                                    asmgen.translateExpression(what.addressExpression)
+                                    asmgen.out("""
+                    inx
+                    lda  $ESTACK_LO_HEX,x
+                    sta  (+) + 1
+                    lda  $ESTACK_HI_HEX,x
+                    sta  (+) + 2
++                   asl  0            ; modified                    
+                                    """)
                                 }
                             }
-                            is ArrayIndexedExpression -> {
-                                TODO("lsl byte array $what")
-                            }
+                            is ArrayIndexedExpression -> TODO("lsl byte array $what")
                             else -> throw AssemblyError("weird type")
                         }
                     }
@@ -201,12 +189,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  lsr  ${number.toHex()}")
                                 } else {
-                                    TODO("lsr memory byte $what")
+                                    asmgen.translateExpression(what.addressExpression)
+                                    asmgen.out("""
+                    inx
+                    lda  $ESTACK_LO_HEX,x
+                    sta  (+) + 1
+                    lda  $ESTACK_HI_HEX,x
+                    sta  (+) + 2
++                   lsr  0            ; modified                    
+                                    """)
                                 }
                             }
-                            is ArrayIndexedExpression -> {
-                                TODO("lsr byte array $what")
-                            }
+                            is ArrayIndexedExpression -> TODO("lsr byte array $what")
                             else -> throw AssemblyError("weird type")
                         }
                     }
@@ -256,7 +250,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  rol  ${number.toHex()}")
                                 } else {
-                                    TODO("rol memory byte $what")
+                                    asmgen.translateExpression(what.addressExpression)
+                                    asmgen.out("""
+                    inx
+                    lda  $ESTACK_LO_HEX,x
+                    sta  (+) + 1
+                    lda  $ESTACK_HI_HEX,x
+                    sta  (+) + 2
++                   rol  0            ; modified                    
+                                    """)
                                 }
                             }
                             is RegisterExpr -> {
@@ -299,7 +301,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}")
                                 } else {
-                                    TODO("rol2 memory byte $what")
+                                    asmgen.translateExpression(what.addressExpression)
+                                    asmgen.out("  jsr  prog8_lib.rol2_mem_b")
                                 }
                             }
                             is RegisterExpr -> {
@@ -342,8 +345,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  ror  ${number.toHex()}")
                                 } else {
-                                    TODO("ror memory byte $what")
-                                }
+                                    asmgen.translateExpression(what.addressExpression)
+                                    asmgen.out("""
+                    inx
+                    lda  $ESTACK_LO_HEX,x
+                    sta  (+) + 1
+                    lda  $ESTACK_HI_HEX,x
+                    sta  (+) + 2
++                   ror  0            ; modified                    
+                                    """)                                }
                             }
                             is RegisterExpr -> {
                                 when(what.register) {
@@ -385,7 +395,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
                                 } else {
-                                    TODO("ror2 memory byte $what")
+                                    asmgen.translateExpression(what.addressExpression)
+                                    asmgen.out("  jsr  prog8_lib.ror2_mem_b")
                                 }
                             }
                             is RegisterExpr -> {
