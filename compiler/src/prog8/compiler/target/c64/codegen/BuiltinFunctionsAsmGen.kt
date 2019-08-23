@@ -152,13 +152,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     """)
                                 }
                             }
-                            is ArrayIndexedExpression -> TODO("lsl byte array $what")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.lsl_array_b")
+                            }
                             else -> throw AssemblyError("weird type")
                         }
                     }
                     in WordDatatypes -> {
                         when (what) {
-                            is ArrayIndexedExpression -> TODO("lsl sbyte $what")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.lsl_array_w")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out(" asl  $variable |  rol  $variable+1")
@@ -200,13 +208,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     """)
                                 }
                             }
-                            is ArrayIndexedExpression -> TODO("lsr byte array $what")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.lsr_array_ub")
+                            }
                             else -> throw AssemblyError("weird type")
                         }
                     }
                     DataType.BYTE -> {
                         when (what) {
-                            is ArrayIndexedExpression -> TODO("lsr sbyte $what")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.lsr_array_b")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  lda  $variable |  asl  a |  ror  $variable")
@@ -216,7 +232,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     DataType.UWORD -> {
                         when (what) {
-                            is ArrayIndexedExpression -> TODO("lsr uword $what")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.lsr_array_uw")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out(" lsr  $variable+1 |  ror  $variable")
@@ -226,7 +246,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     DataType.WORD -> {
                         when (what) {
-                            is ArrayIndexedExpression -> TODO("lsr sword $what")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.lsr_array_w")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  lda  $variable+1 |  asl a  |  ror  $variable+1 |  ror  $variable")
@@ -244,7 +268,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("rol ubyte array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.rol_array_ub")
+                            }
                             is DirectMemoryRead -> {
                                 if (what.addressExpression is NumericLiteralValue) {
                                     val number = (what.addressExpression as NumericLiteralValue).number
@@ -277,7 +305,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     DataType.UWORD -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("rol uword array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.rol_array_uw")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  rol  $variable |  rol  $variable+1")
@@ -295,14 +327,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("rol2 ubyte array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.rol2_array_ub")
+                            }
                             is DirectMemoryRead -> {
                                 if (what.addressExpression is NumericLiteralValue) {
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}")
                                 } else {
                                     asmgen.translateExpression(what.addressExpression)
-                                    asmgen.out("  jsr  prog8_lib.rol2_mem_b")
+                                    asmgen.out("  jsr  prog8_lib.rol2_mem_ub")
                                 }
                             }
                             is RegisterExpr -> {
@@ -321,7 +357,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     DataType.UWORD -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("rol2 uword array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.rol2_array_uw")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  asl  $variable |  rol  $variable+1 |  bcc  + |  inc  $variable |+  ")
@@ -339,7 +379,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("ror ubyte array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.ror_array_ub")
+                            }
                             is DirectMemoryRead -> {
                                 if (what.addressExpression is NumericLiteralValue) {
                                     val number = (what.addressExpression as NumericLiteralValue).number
@@ -371,7 +415,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     DataType.UWORD -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("ror uword array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.ror_array_uw")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  ror  $variable+1 |  ror  $variable")
@@ -389,14 +437,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("ror2 ubyte array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.ror2_array_ub")
+                            }
                             is DirectMemoryRead -> {
                                 if (what.addressExpression is NumericLiteralValue) {
                                     val number = (what.addressExpression as NumericLiteralValue).number
                                     asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
                                 } else {
                                     asmgen.translateExpression(what.addressExpression)
-                                    asmgen.out("  jsr  prog8_lib.ror2_mem_b")
+                                    asmgen.out("  jsr  prog8_lib.ror2_mem_ub")
                                 }
                             }
                             is RegisterExpr -> {
@@ -411,10 +463,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                 asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  $variable")
                             }
                             else -> throw AssemblyError("weird type")
-                        }                    }
+                        }
+                    }
                     DataType.UWORD -> {
                         when(what) {
-                            is ArrayIndexedExpression -> TODO("ror2 uword array")
+                            is ArrayIndexedExpression -> {
+                                asmgen.translateExpression(what.identifier)
+                                asmgen.translateExpression(what.arrayspec.index)
+                                asmgen.out("  jsr  prog8_lib.ror2_array_uw")
+                            }
                             is IdentifierReference -> {
                                 val variable = asmgen.asmIdentifierName(what)
                                 asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #\$80 |  sta  $variable+1 |+  ")

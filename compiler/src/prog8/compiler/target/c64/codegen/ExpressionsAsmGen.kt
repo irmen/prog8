@@ -164,9 +164,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("  lda  $varname  |  sta  ${MachineDefinition.ESTACK_LO_HEX},x  |  dex")
             }
-            DataType.UWORD, DataType.WORD, in ArrayDatatypes, in StringDatatypes -> {
-                // (for arrays and strings, push their address)
+            DataType.UWORD, DataType.WORD -> {
                 asmgen.out("  lda  $varname  |  sta  ${MachineDefinition.ESTACK_LO_HEX},x  |  lda  $varname+1 |  sta  ${MachineDefinition.ESTACK_HI_HEX},x |  dex")
+            }
+            in ArrayDatatypes, in StringDatatypes -> {
+                asmgen.out("  lda  #<$varname  |  sta  ${MachineDefinition.ESTACK_LO_HEX},x  |  lda  #>$varname |  sta  ${MachineDefinition.ESTACK_HI_HEX},x |  dex")
             }
             DataType.FLOAT -> {
                 asmgen.out(" lda  #<$varname |  ldy  #>$varname|  jsr  c64flt.push_float")

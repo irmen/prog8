@@ -1672,37 +1672,90 @@ _loop_hi	sty  c64.SCRATCH_ZPREG
 		rts	
 		.pend
 
-ror2_mem_b	.proc
+ror2_mem_ub	.proc
 		; -- in-place 8-bit ror of byte at memory location on stack
 		inx
 		lda  c64.ESTACK_LO,x
-		sta  _mod1+1
-		sta  _mod2+1
+		sta  c64.SCRATCH_ZPWORD1
 		lda  c64.ESTACK_HI,x
-		sta  _mod1+2
-		sta  _mod2+2
-_mod1		lda  $ffff		; modified
+		sta  c64.SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1),y
 		lsr  a
-		bcc  _mod2
+		bcc  +
 		ora  #$80
-_mod2		sta  $ffff		; modified
++		sta  (c64.SCRATCH_ZPWORD1),y
 		rts
 		.pend
 		
-rol2_mem_b	.proc
+rol2_mem_ub	.proc
 		; -- in-place 8-bit rol of byte at memory location on stack
 		;"  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}"
 		inx
 		lda  c64.ESTACK_LO,x
-		sta  _mod1+1
-		sta  _mod2+1
+		sta  c64.SCRATCH_ZPWORD1
 		lda  c64.ESTACK_HI,x
-		sta  _mod1+2
-		sta  _mod2+2
-_mod1		lda  $ffff		; modified
+		sta  c64.SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1),y
 		cmp  #$80
 		rol  a
-_mod2		sta  $ffff		; modified
+		sta  (c64.SCRATCH_ZPWORD1),y
 		rts
 		.pend
 		
+lsl_array_b	.proc
+		.warn "lsl_array_b"		; TODO
+		.pend
+		
+lsl_array_w	.proc
+		.warn "lsl_array_w"		; TODO
+		.pend
+		
+lsr_array_ub	.proc
+		.warn "lsr_array_ub"		; TODO
+		.pend
+		
+lsr_array_b	.proc
+		.warn "lsr_array_b"		; TODO
+		.pend
+		
+lsr_array_uw	.proc
+		.warn "lsl_array_uw"		; TODO
+		.pend
+		
+lsr_array_w	.proc
+		.warn "lsr_array_w"		; TODO
+		.pend
+		
+rol_array_ub	.proc
+		.warn "rol_array_ub"		; TODO
+		.pend
+		
+rol_array_uw	.proc
+		.warn "rol_array_uw"		; TODO
+		.pend
+		
+rol2_array_ub	.proc
+		.warn "rol2_array_ub"		; TODO
+		.pend
+		
+rol2_array_uw	.proc
+		.warn "rol2_array_uw"		; TODO
+		.pend
+		
+ror_array_ub	.proc
+		.warn "ror_array_ub"		; TODO
+		.pend
+		
+ror_array_uw	.proc
+		.warn "ror_array_uw"		; TODO
+		.pend
+		
+ror2_array_ub	.proc
+		.warn "ror2_array_ub"		; TODO
+		.pend
+		
+ror2_array_uw	.proc
+		.warn "ror2_array_uw"		; TODO
+		.pend

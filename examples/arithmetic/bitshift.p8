@@ -12,7 +12,9 @@ main {
     &ubyte  membyte=9999
     &uword  memword=9999
     ubyte[10] ubarray
+    uword[10] uwarray
     byte[10] bbarray
+    word[10] wwarray
 
     sub start() {
 ;        lsr(A)
@@ -60,6 +62,15 @@ main {
         rol2(ubarray[1])
         lsr(bbarray[1])
         lsl(bbarray[1])
+
+        lsr(uwarray[1])
+        lsl(uwarray[1])
+        ror(uwarray[1])
+        rol(uwarray[1])
+        ror2(uwarray[1])
+        rol2(uwarray[1])
+        lsr(wwarray[1])
+        lsl(wwarray[1])
 
 
         bb /= 2
