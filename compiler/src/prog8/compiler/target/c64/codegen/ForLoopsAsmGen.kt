@@ -15,6 +15,7 @@ import prog8.compiler.toHex
 import kotlin.math.absoluteValue
 
 // todo choose more efficient comparisons to avoid needless lda's
+// todo optimize common case step == 2 / -2
 
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
