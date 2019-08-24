@@ -8,9 +8,13 @@ import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.ForLoop
-import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.toHex
 import kotlin.math.absoluteValue
+
+// todo choose more efficient comparisons to avoid needless lda's
 
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -25,8 +29,6 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                 if(range==null) {
                     translateForOverNonconstRange(stmt, iterableDt.typeOrElse(DataType.STRUCT), stmt.iterable as RangeExpr)
                 } else {
-                    if (range.isEmpty())
-                        throw AssemblyError("empty range")
                     translateForOverConstRange(stmt, iterableDt.typeOrElse(DataType.STRUCT), range)
                 }
             }
@@ -41,68 +43,132 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         val continueLabel = asmgen.makeLabel("for_continue")
-        val counterLabel = asmgen.makeLabel("for_counter")
         asmgen.loopEndLabels.push(endLabel)
         asmgen.loopContinueLabels.push(continueLabel)
-        val stepsize=range.step.constValue(program)?.number
-        when (stepsize) {
-            1 -> {
-                when(iterableDt) {
-                    DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                        if (stmt.loopRegister != null) {
-                            // loop register over range
-                            if(stmt.loopRegister!= Register.A)
-                                throw AssemblyError("can only use A")
-                            asmgen.translateExpression(range.to)
-                            asmgen.translateExpression(range.from)
-                            asmgen.out("""
-                inx
-                lda  ${MachineDefinition.ESTACK_LO_HEX},x
-                sta  $loopLabel+1
-                inx
-                lda  ${MachineDefinition.ESTACK_LO_HEX},x
-                sec
-                sbc  $loopLabel+1
-                adc  #0
-                sta  $counterLabel
-$loopLabel      lda  #0                 ; modified""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                inc  $loopLabel+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        } else {
-                            // loop over byte range via loopvar
-                            val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                            asmgen.translateExpression(range.to)
-                            asmgen.translateExpression(range.from)
-                            asmgen.out("""
-                inx
-                lda  ${MachineDefinition.ESTACK_LO_HEX},x
-                sta  $varname
-                inx
-                lda  ${MachineDefinition.ESTACK_LO_HEX},x
-                sec
-                sbc  $varname
-                adc  #0
-                sta  $counterLabel
-$loopLabel""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                inc  $varname
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        }
-                    }
-                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
+        val stepsize=range.step.constValue(program)!!.number.toInt()
+        when(iterableDt) {
+            DataType.ARRAY_B, DataType.ARRAY_UB -> {
+                if (stepsize==1 || stepsize==-1) {
+
+                    // bytes, step 1 or -1
+
+                    val incdec = if(stepsize==1) "inc" else "dec"
+                    if (stmt.loopRegister != null) {
+                        // loop register over range
+                        if(stmt.loopRegister!= Register.A)
+                            throw AssemblyError("can only use A")
                         asmgen.translateExpression(range.to)
-                        asmgen.out("  inc  ${MachineDefinition.ESTACK_LO_HEX}+1,x |  bne  + |  inc  ${MachineDefinition.ESTACK_HI_HEX}+1,x |+  ")
+                        asmgen.translateExpression(range.from)
+                        asmgen.out("""
+                inx
+                lda  ${ESTACK_LO_HEX},x
+                sta  $loopLabel+1
+$loopLabel      lda  #0                 ; modified""")
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
+$continueLabel  lda  $loopLabel+1
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                beq  $endLabel
+                $incdec  $loopLabel+1
+                jmp  $loopLabel
+$endLabel       inx""")
+                    } else {
+                        // loop over byte range via loopvar
+                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
+                        asmgen.translateExpression(range.to)
+                        asmgen.translateExpression(range.from)
+                        asmgen.out("""
+                inx
+                lda  ${ESTACK_LO_HEX},x
+                sta  $varname
+$loopLabel""")
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
+$continueLabel  lda  $varname
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                beq  $endLabel
+                $incdec  $varname
+                jmp  $loopLabel
+$endLabel       inx""")
+                    }
+                }
+                else {
+
+                    // bytes, step >= 2 or <= -2
+
+                    if (stmt.loopRegister != null) {
+                        // loop register over range
+                        if(stmt.loopRegister!= Register.A)
+                            throw AssemblyError("can only use A")
+                        asmgen.translateExpression(range.to)
+                        asmgen.translateExpression(range.from)
+                        asmgen.out("""
+                inx
+                lda  ${ESTACK_LO_HEX},x
+                sta  $loopLabel+1
+$loopLabel      lda  #0                 ; modified""")
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
+$continueLabel  lda  $loopLabel+1""")
+                        if(stepsize>0) {
+                            asmgen.out("""
+                clc
+                adc  #$stepsize
+                sta  $loopLabel+1
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                bcc  $loopLabel
+                beq  $loopLabel""")
+                        } else {
+                            asmgen.out("""
+                sec
+                sbc  #${stepsize.absoluteValue}
+                sta  $loopLabel+1
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                bcs  $loopLabel""")
+                        }
+                        asmgen.out("""
+$endLabel       inx""")
+                    } else {
+                        // loop over byte range via loopvar
+                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
+                        asmgen.translateExpression(range.to)
+                        asmgen.translateExpression(range.from)
+                        asmgen.out("""
+                inx
+                lda  ${ESTACK_LO_HEX},x
+                sta  $varname
+$loopLabel""")
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
+$continueLabel  lda  $varname""")
+                        if(stepsize>0) {
+                            asmgen.out("""
+                clc
+                adc  #$stepsize
+                sta  $varname
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                bcc  $loopLabel
+                beq  $loopLabel""")
+                        } else {
+                            asmgen.out("""
+                sec
+                sbc  #${stepsize.absoluteValue}
+                sta  $varname
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                bcs  $loopLabel""")
+                        }
+                        asmgen.out("""
+$endLabel       inx""")
+                    }
+                }
+            }
+            DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                when {
+
+                    // words, step 1 or -1
+
+                    stepsize == 1 || stepsize == -1 -> {
+                        asmgen.translateExpression(range.to)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
                         val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
                                 null, range.from, range.position)
@@ -111,81 +177,34 @@ $endLabel""")
                         asmgen.out(loopLabel)
                         asmgen.translate(stmt.body)
                         asmgen.out("""
-                inc  $varname
+                lda  $varname+1
+                cmp  $ESTACK_HI_PLUS1_HEX,x
+                bne  +
+                lda  $varname
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                beq  $endLabel""")
+                        if(stepsize==1) {
+                            asmgen.out("""
++               inc  $varname
                 bne  +
                 inc  $varname+1            
-+               lda  ${MachineDefinition.ESTACK_HI_HEX}+1,x
-                cmp  $varname+1
+                            """)
+                        } else {
+                            asmgen.out("""
++               lda  $varname
                 bne  +
-                lda  ${MachineDefinition.ESTACK_LO_HEX}+1,x
-                cmp  $varname
-                beq  $endLabel
+                dec  $varname+1
++               dec  $varname""")
+                        }
+                        asmgen.out("""
 +               jmp  $loopLabel
 $endLabel       inx""")
                     }
-                    else -> throw AssemblyError("range expression can only be byte or word")
-                }
-            }
-            -1 -> {
-                when(iterableDt){
-                    DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                        if (stmt.loopRegister != null) {
-                            // loop register over range
-                            if(stmt.loopRegister!= Register.A)
-                                throw AssemblyError("can only use A")
-                            asmgen.translateExpression(range.from)
-                            asmgen.translateExpression(range.to)
-                            asmgen.out("""
-                inx
-                lda  ${MachineDefinition.ESTACK_LO_HEX}+1,x
-                sta  $loopLabel+1
-                sec
-                sbc  ${MachineDefinition.ESTACK_LO_HEX},x
-                adc  #0
-                sta  $counterLabel
-                inx
-$loopLabel      lda  #0                 ; modified""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                dec  $loopLabel+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        } else {
-                            // loop over byte range via loopvar
-                            val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                            asmgen.translateExpression(range.from)
-                            asmgen.translateExpression(range.to)
-                            asmgen.out("""
-                inx
-                lda  ${MachineDefinition.ESTACK_LO_HEX}+1,x
-                sta  $varname
-                sec
-                sbc  ${MachineDefinition.ESTACK_LO_HEX},x
-                adc  #0
-                sta  $counterLabel
-                inx
-$loopLabel""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                dec  $varname
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        }
-                    }
-                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    stepsize > 0 -> {
+
+                        // (u)words, step >= 2
+
                         asmgen.translateExpression(range.to)
-                        asmgen.out("""
-                lda  ${MachineDefinition.ESTACK_LO_HEX}+1,x
-                bne  +
-                dec  ${MachineDefinition.ESTACK_HI_HEX}+1,x
-+               dec  ${MachineDefinition.ESTACK_LO_HEX}+1,x                            
-                        """)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
                         val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
                                 null, range.from, range.position)
@@ -193,29 +212,97 @@ $endLabel""")
                         asmgen.translate(assignLoopvar)
                         asmgen.out(loopLabel)
                         asmgen.translate(stmt.body)
-                        asmgen.out("""
+
+                        if (iterableDt == DataType.ARRAY_UW) {
+                            asmgen.out("""
                 lda  $varname
-                bne  +
-                dec  $varname+1
-+               dec  $varname                
-                lda  ${MachineDefinition.ESTACK_HI_HEX}+1,x
+                clc
+                adc  #<$stepsize
+                sta  $varname
+                lda  $varname+1
+                adc  #>$stepsize
+                sta  $varname+1
+                lda  $ESTACK_HI_PLUS1_HEX,x
                 cmp  $varname+1
-                bne  +
-                lda  ${MachineDefinition.ESTACK_LO_HEX}+1,x
-                cmp  $varname
-                beq  $endLabel
-+               jmp  $loopLabel
+                bcc  $endLabel
+                bne  $loopLabel
+                lda  $varname
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                bcc  $endLabel
+                bcs  $loopLabel
 $endLabel       inx""")
+                        } else {
+                            asmgen.out("""
+                lda  $varname
+                clc
+                adc  #<$stepsize
+                sta  $varname
+                lda  $varname+1
+                adc  #>$stepsize
+                sta  $varname+1
+                lda  $ESTACK_LO_PLUS1_HEX,x
+                cmp  $varname
+                lda  $ESTACK_HI_PLUS1_HEX,x
+                sbc  $varname+1
+                bvc  +
+                eor  #$80
++               bpl  $loopLabel                
+$endLabel       inx""")
+                        }
                     }
-                    else -> throw AssemblyError("range expression can only be byte or word")
+                    else -> {
+
+                        // (u)words, step <= -2
+                        asmgen.translateExpression(range.to)
+                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
+                        val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
+                                null, range.from, range.position)
+                        assignLoopvar.linkParents(stmt)
+                        asmgen.translate(assignLoopvar)
+                        asmgen.out(loopLabel)
+                        asmgen.translate(stmt.body)
+
+                        if(iterableDt==DataType.ARRAY_UW) {
+                            asmgen.out("""
+                lda  $varname
+                sec
+                sbc  #<${stepsize.absoluteValue}
+                sta  $varname
+                lda  $varname+1
+                sbc  #>${stepsize.absoluteValue}
+                sta  $varname+1
+                cmp  $ESTACK_HI_PLUS1_HEX,x
+                bcc  $endLabel
+                bne  $loopLabel
+                lda  $varname
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                bcs  $loopLabel
+$endLabel       inx""")
+                        } else {
+                            asmgen.out("""
+                lda  $varname
+                sec
+                sbc  #<${stepsize.absoluteValue}
+                sta  $varname
+                pha
+                lda  $varname+1
+                sbc  #>${stepsize.absoluteValue}
+                sta  $varname+1
+                pla
+                cmp  $ESTACK_LO_PLUS1_HEX,x
+                lda  $varname+1
+                sbc  $ESTACK_HI_PLUS1_HEX,x
+                bvc  +
+                eor  #$80
++               bpl  $loopLabel                
+$endLabel       inx""")
+                        }
+                    }
                 }
             }
-            else -> when (iterableDt) {
-                DataType.ARRAY_UB, DataType.ARRAY_B -> TODO("non-const forloop bytes, step >1: $stepsize")
-                DataType.ARRAY_UW, DataType.ARRAY_W -> TODO("non-const forloop words, step >1: $stepsize")
-                else -> throw AssemblyError("range expression can only be byte or word")
-            }
+            else -> throw AssemblyError("range expression can only be byte or word")
         }
+
         asmgen.loopEndLabels.pop()
         asmgen.loopContinueLabels.pop()
     }
@@ -322,6 +409,8 @@ $endLabel""")
 
     private fun translateForOverConstRange(stmt: ForLoop, iterableDt: DataType, range: IntProgression) {
         // TODO: optimize loop code when the range is < 256 iterations, don't need a separate counter in such cases
+        if (range.isEmpty())
+            throw AssemblyError("empty range")
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         val continueLabel = asmgen.makeLabel("for_continue")
@@ -544,11 +633,59 @@ $endLabel""")
                     }
                     range.step >= 2 -> {
                         // word, step >= 2
-                        TODO("for, word, step>=2")
+                        // note: range.last has already been adjusted by kotlin itself to actually be the last value of the sequence
+                        val lastValue = range.last+range.step
+                        asmgen.out("""
+                lda  #<${range.first}
+                ldy  #>${range.first}
+                sta  $varname
+                sty  $varname+1
+$loopLabel""")
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
+$continueLabel  clc
+                lda  $varname
+                adc  #<${range.step}
+                sta  $varname
+                lda  $varname+1
+                adc  #>${range.step}
+                sta  $varname+1
+                lda  $varname
+                cmp  #<$lastValue
+                bne  +
+                lda  $varname+1
+                cmp  #>$lastValue
+                beq  $endLabel
++               jmp  $loopLabel
+$endLabel""")
                     }
                     else -> {
                         // step <= -2
-                        TODO("for, word, step<=-2")
+                        // note: range.last has already been adjusted by kotlin itself to actually be the last value of the sequence
+                        val lastValue = range.last+range.step
+                        asmgen.out("""
+                lda  #<${range.first}
+                ldy  #>${range.first}
+                sta  $varname
+                sty  $varname+1
+$loopLabel""")
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
+$continueLabel  sec
+                lda  $varname
+                sbc  #<${range.step.absoluteValue}
+                sta  $varname
+                lda  $varname+1
+                sbc  #>${range.step.absoluteValue}
+                sta  $varname+1
+                lda  $varname
+                cmp  #<$lastValue
+                bne  +
+                lda  $varname+1
+                cmp  #>$lastValue
+                beq  $endLabel
++               jmp  $loopLabel
+$endLabel""")
                     }
                 }
             }

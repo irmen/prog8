@@ -43,7 +43,7 @@ dependencies {
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
-        verbose = true
+        // verbose = true
         // freeCompilerArgs += "-XXLanguage:+NewInference"
     }
 }

@@ -106,6 +106,39 @@ main {
         else
             c64scr.print("error in -222>=-222!\n")
 
+        v1 = 1000
+        v2 = 1000
+        if v1==v2
+            c64scr.print("ok: 1000 == 1000\n")
+        else
+            c64scr.print("error in 1000==1000!\n")
+
+        if v1!=v2
+            c64scr.print("error in 1000!=1000!\n")
+        else
+            c64scr.print("ok: 1000 is not != 1000\n")
+
+        if v1<v2
+            c64scr.print("error in 1000<1000!\n")
+        else
+            c64scr.print("ok: 1000 is not < 1000\n")
+
+        if v1<=v2
+            c64scr.print("ok: 1000 <= 1000\n")
+        else
+            c64scr.print("error in 1000<=1000!\n")
+
+        if v1>v2
+            c64scr.print("error in 1000>1000!\n")
+        else
+            c64scr.print("ok: 1000 is not > 1000\n")
+
+        if v1>=v2
+            c64scr.print("ok: 1000 >= 1000\n")
+        else
+            c64scr.print("error in 1000>=1000!\n")
+
+
         ubyte endX = X
         if endX == 255
             c64scr.print("stack x ok!\n")
