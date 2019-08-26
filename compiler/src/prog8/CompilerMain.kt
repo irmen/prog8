@@ -27,6 +27,9 @@ internal fun printSoftwareHeader(what: String) {
 }
 
 
+fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
+
+
 private fun compileMain(args: Array<String>) {
     val cli = CommandLineInterface("prog8compiler")
     val startEmulator1 by cli.flagArgument("-emu", "auto-start the 'x64' C-64 emulator after successful compilation")
@@ -44,7 +47,7 @@ private fun compileMain(args: Array<String>) {
         exitProcess(1)
     }
 
-    val outputPath = Paths.get(outputDir)
+    val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
         System.err.println("Output path doesn't exist")
         exitProcess(1)
@@ -54,7 +57,7 @@ private fun compileMain(args: Array<String>) {
         val watchservice = FileSystems.getDefault().newWatchService()
 
         while(true) {
-            val filepath = Paths.get(moduleFiles.single()).normalize()
+            val filepath = pathFrom(moduleFiles.single()).normalize()
             println("Continuous watch mode active. Main module: $filepath")
 
             try {
@@ -80,7 +83,7 @@ private fun compileMain(args: Array<String>) {
 
     } else {
         for(filepathRaw in moduleFiles) {
-            val filepath = Paths.get(filepathRaw).normalize()
+            val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
                 compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, outputDir=outputPath)

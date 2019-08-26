@@ -9,6 +9,7 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.base.checkImportedValid
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.pathFrom
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -91,18 +92,18 @@ internal fun importModule(program: Program, stream: CharStream, modulePath: Path
 
 private fun discoverImportedModuleFile(name: String, source: Path, position: Position?): Path {
     val fileName = "$name.p8"
-    val locations = mutableListOf(Paths.get(source.parent.toString()))
+    val locations = mutableListOf(source.parent)
 
     val propPath = System.getProperty("prog8.libdir")
     if(propPath!=null)
-        locations.add(Paths.get(propPath))
+        locations.add(pathFrom(propPath))
     val envPath = System.getenv("PROG8_LIBDIR")
     if(envPath!=null)
-        locations.add(Paths.get(envPath))
+        locations.add(pathFrom(envPath))
     locations.add(Paths.get(Paths.get("").toAbsolutePath().toString(), "prog8lib"))
 
     locations.forEach {
-        val file = Paths.get(it.toString(), fileName)
+        val file = pathFrom(it.toString(), fileName)
         if (Files.isReadable(file)) return file
     }
 
