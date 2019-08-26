@@ -46,11 +46,7 @@ without having to to index into the stack?
 
 Bugs
 ^^^^
-There are a few erroneous compiler errors when dealing with certain for loops::
-
-    for bb in [1,2,3]   ;  byte loop variable can only loop over bytes
-    for ww in [1111,3333,555,999]  ; word loop variable can only loop over bytes or words
-    for uw in 20 to 10 step -1  ; 'can't cast BYTE into UWORD'
+Ofcourse there are still bugs to fix ;)
 
 
 Misc

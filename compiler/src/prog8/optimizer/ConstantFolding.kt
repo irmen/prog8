@@ -562,49 +562,79 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             } catch (x: ExpressionError) {
                 return range
             }
-            val newStep: Expression = stepLiteral?.cast(targetDt) ?: range.step
+            val newStep: Expression = try {
+                stepLiteral?.cast(targetDt)?: range.step
+            } catch(ee: ExpressionError) {
+                range.step
+            }
             return RangeExpr(newFrom, newTo, newStep, range.position)
         }
 
+        val forLoop2 = super.visit(forLoop) as ForLoop
+
+        // check if we need to adjust an array literal to the loop variable's datatype
+        val array = forLoop2.iterable as? ArrayLiteralValue
+        if(array!=null) {
+            val loopvarDt: DataType = when {
+                forLoop.loopVar!=null -> forLoop.loopVar!!.inferType(program).typeOrElse(DataType.UBYTE)
+                forLoop.loopRegister!=null -> DataType.UBYTE
+                else -> throw FatalAstException("weird for loop")
+            }
+
+            val arrayType = when(loopvarDt) {
+                DataType.UBYTE -> DataType.ARRAY_UB
+                DataType.BYTE -> DataType.ARRAY_B
+                DataType.UWORD -> DataType.ARRAY_UW
+                DataType.WORD -> DataType.ARRAY_W
+                DataType.FLOAT -> DataType.ARRAY_F
+                else -> throw FatalAstException("invalid array elt type")
+            }
+            val array2 = array.cast(arrayType)
+            if(array2!=null && array2!==array) {
+                forLoop2.iterable = array2
+                array2.linkParents(forLoop2)
+                array2.addToHeap()
+            }
+        }
+
         // adjust the datatype of a range expression in for loops to the loop variable.
-        val resultStmt = super.visit(forLoop) as ForLoop
-        val iterableRange = resultStmt.iterable as? RangeExpr ?: return resultStmt
+        val iterableRange = forLoop2.iterable as? RangeExpr ?: return forLoop2
         val rangeFrom = iterableRange.from as? NumericLiteralValue
         val rangeTo = iterableRange.to as? NumericLiteralValue
-        if(rangeFrom==null || rangeTo==null) return resultStmt
+        if(rangeFrom==null || rangeTo==null) return forLoop2
 
-        val loopvar = resultStmt.loopVar?.targetVarDecl(program.namespace)
+        val loopvar = forLoop2.loopVar?.targetVarDecl(program.namespace)
         if(loopvar!=null) {
             val stepLiteral = iterableRange.step as? NumericLiteralValue
             when(loopvar.datatype) {
                 DataType.UBYTE -> {
                     if(rangeFrom.type!= DataType.UBYTE) {
                         // attempt to translate the iterable into ubyte values
-                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 DataType.BYTE -> {
                     if(rangeFrom.type!= DataType.BYTE) {
                         // attempt to translate the iterable into byte values
-                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 DataType.UWORD -> {
                     if(rangeFrom.type!= DataType.UWORD) {
                         // attempt to translate the iterable into uword values
-                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 DataType.WORD -> {
                     if(rangeFrom.type!= DataType.WORD) {
                         // attempt to translate the iterable into word values
-                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 else -> throw FatalAstException("invalid loopvar datatype $loopvar")
             }
         }
-        return resultStmt
+        return forLoop2
     }
 
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
