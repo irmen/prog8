@@ -1,8 +1,6 @@
 %import c64utils
 %zeropage basicsafe
 
-; TODO implement asm generation for all operation in here
-
 main {
 
     byte bb
@@ -16,13 +14,41 @@ main {
     byte[10] bbarray
     word[10] wwarray
 
+    sub unimplemented() {
+        ; TODO implement these asm routines
+        lsr(ubarray[1])
+        lsl(ubarray[1])
+        ror(ubarray[1])
+        rol(ubarray[1])
+        ror2(ubarray[1])
+        rol2(ubarray[1])
+        lsr(bbarray[1])
+        lsl(bbarray[1])
+
+        lsr(uwarray[1])
+        lsl(uwarray[1])
+        ror(uwarray[1])
+        rol(uwarray[1])
+        ror2(uwarray[1])
+        rol2(uwarray[1])
+        lsr(wwarray[1])
+        lsl(wwarray[1])
+    }
+
     sub start() {
-;        lsr(A)
-;        lsl(A)
-;        ror(A)
-;        rol(A)
-;        ror2(A)
-;        rol2(A)
+        unimplemented()
+        lsr(A)
+        lsl(A)
+        ror(A)
+        rol(A)
+        ror2(A)
+        rol2(A)
+        lsr(Y)
+        lsl(Y)
+        ror(Y)
+        rol(Y)
+        ror2(Y)
+        rol2(Y)
 
         lsr(bb)
         lsl(bb)
@@ -53,25 +79,6 @@ main {
         rol(@(9999+A))
         ror2(@(9999+A))
         rol2(@(9999+A))
-
-        lsr(ubarray[1])
-        lsl(ubarray[1])
-        ror(ubarray[1])
-        rol(ubarray[1])
-        ror2(ubarray[1])
-        rol2(ubarray[1])
-        lsr(bbarray[1])
-        lsl(bbarray[1])
-
-        lsr(uwarray[1])
-        lsl(uwarray[1])
-        ror(uwarray[1])
-        rol(uwarray[1])
-        ror2(uwarray[1])
-        rol2(uwarray[1])
-        lsr(wwarray[1])
-        lsl(wwarray[1])
-
 
         bb /= 2
         bb >>= 1
