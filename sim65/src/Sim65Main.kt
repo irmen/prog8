@@ -1,0 +1,88 @@
+package sim65
+
+import kotlinx.cli.*
+import sim65.components.*
+import sim65.components.Cpu6502.Companion.hexB
+import kotlin.system.exitProcess
+
+
+fun main(args: Array<String>) {
+    printSoftwareHeader()
+    startSimulator(args)
+}
+
+internal fun printSoftwareHeader() {
+    val buildVersion = object {}.javaClass.getResource("/version.txt").readText().trim()
+    println("\nSim65 6502 cpu simulator v$buildVersion by Irmen de Jong (irmen@razorvine.net)")
+    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+}
+
+
+private fun startSimulator(args: Array<String>) {
+    val cli = CommandLineInterface("sim65", printHelpByDefault = false)
+    val enableIllegal by cli.flagArgument("-ill", "enable the illegal instructions")
+
+    try {
+        cli.parse(args)
+    } catch (e: Exception) {
+        exitProcess(1)
+    }
+
+    val bootRom = listOf<UByte>(
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,
+            0x00,0x90,   // NMI vector
+            0x00,0x10,   // RESET vector
+            0x00,0xa0    // IRQ vector
+    ).toTypedArray()
+
+    val cpu = Cpu6502(enableIllegal)
+    cpu.tracing = true
+
+    // create the system bus and add device to it.
+    // note that the order is relevant w.r.t. where reads and writes are going.
+    val bus = Bus()
+    bus.add(cpu)
+    bus.add(Rom(0xff00, 0xffff, bootRom))
+    bus.add(Parallel(0xd000, 0xd001))
+    bus.add(Timer(0xd100, 0xd103))
+    val ram = Ram(0, 0xffff)
+    bus.add(ram)
+
+    bus.reset()
+
+    ram.load("sim65/ram.bin", 0x8000)
+    ram.load("sim65/bcdtest.bin", 0x1000)
+    //ram.dump(0x8000, 0x802f)
+    //cpu.disassemble(ram, 0x8000, 0x802f)
+
+    while(true) {
+        bus.clock()
+        if(cpu.totalCycles > 300)
+            break
+    }
+
+    if(ram.read(0x0400)==0.toShort())
+        println("BCD TEST: OK!")
+    else {
+        val v1 = ram.read(0x0401)
+        val v2 = ram.read(0x0402)
+        println("BCD TEST: FAIL!! value1=${hexB(v1)} value2=${hexB(v2)}")
+    }
+    ram.dump(0x0400, 0x0402)
+
+}

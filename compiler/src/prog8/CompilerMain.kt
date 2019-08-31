@@ -8,7 +8,6 @@ import prog8.parser.ParsingFailedError
 import prog8.vm.astvm.AstVm
 import java.nio.file.FileSystems
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardWatchEventKinds
 import java.util.*
 import kotlin.system.exitProcess
