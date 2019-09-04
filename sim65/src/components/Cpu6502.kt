@@ -8,9 +8,9 @@ interface ICpu {
     fun disassemble(component: MemMappedComponent, from: Address, to: Address) =
             disassemble(component.cloneMem(), component.startAddress, from, to)
 
-    fun dumpState()
     fun clock()
     fun reset()
+    fun step()
 
     var tracing: Boolean
     val totalCycles: Int
@@ -98,17 +98,30 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             Z = (byte and 0b00000010) != 0
             C = (byte and 0b00000001) != 0
         }
+
+        override fun toString(): String {
+            return asByte().toString(2).padStart(8, '0')
+        }
+
+        override fun hashCode(): Int = asByte().toInt()
+
+        override fun equals(other: Any?): Boolean {
+            if(other !is StatusRegister)
+                return false
+            return asByte()==other.asByte()
+        }
     }
 
 
-    private var instrCycles: Int = 0
-    private var A: Int = 0
-    private var X: Int = 0
-    private var Y: Int = 0
-    private var sp: Int = 0
-    private var pc: Address = 0
-    private val status = StatusRegister()
-    private var currentOpcode: Int = 0
+    var instrCycles: Int = 0
+    var A: Int = 0
+    var X: Int = 0
+    var Y: Int = 0
+    var SP: Int = 0
+    var PC: Address = 0
+    val Status = StatusRegister()
+    var currentOpcode: Int = 0
+    var waiting: Boolean = false    // 65c02
     private lateinit var currentInstruction: Instruction
 
     // data byte from the instruction (only set when addr.mode is Accumulator, Immediate or Implied)
@@ -221,30 +234,31 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     override fun reset() {
-        sp = 0xfd
-        pc = readWord(RESET_vector)
+        SP = 0xfd
+        PC = readWord(RESET_vector)
         A = 0
         X = 0
         Y = 0
-        status.C = false
-        status.Z = false
-        status.I = false
-        status.D = false
-        status.B = false
-        status.V = false
-        status.N = false
+        Status.C = false
+        Status.Z = false
+        Status.I = false
+        Status.D = false
+        Status.B = false
+        Status.V = false
+        Status.N = false
         instrCycles = 8
         currentOpcode = 0
         currentInstruction = opcodes[0]
+        waiting = false
     }
 
     override fun clock() {
         if (instrCycles == 0) {
-            currentOpcode = read(pc++)
+            currentOpcode = read(PC++)
             currentInstruction = opcodes[currentOpcode]
 
             if (tracing) {
-                dumpState()
+                printState()
             }
 
             if (!currentInstruction.official && !illegalInstrsAllowed) {
@@ -260,19 +274,25 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         totalCycles++
     }
 
-    override fun dumpState() {
-        println("cycle:$totalCycles - pc=${hexW(pc)} " +
+    override fun step() {
+        // step a whole instruction
+        while(instrCycles>0) clock()        // instruction subcycles
+        clock()   // the actual instruction execution cycle
+    }
+
+    fun printState() {
+        println("cycle:$totalCycles - pc=${hexW(PC)} " +
                 "A=${hexB(A)} " +
                 "X=${hexB(X)} " +
                 "Y=${hexB(Y)} " +
-                "SP=${hexB(sp)} " +
-                " n=" + (if (status.N) "1" else "0") +
-                " v=" + (if (status.V) "1" else "0") +
-                " b=" + (if (status.B) "1" else "0") +
-                " d=" + (if (status.D) "1" else "0") +
-                " i=" + (if (status.I) "1" else "0") +
-                " z=" + (if (status.Z) "1" else "0") +
-                " c=" + (if (status.C) "1" else "0") +
+                "SP=${hexB(SP)} " +
+                " n=" + (if (Status.N) "1" else "0") +
+                " v=" + (if (Status.V) "1" else "0") +
+                " b=" + (if (Status.B) "1" else "0") +
+                " d=" + (if (Status.D) "1" else "0") +
+                " i=" + (if (Status.I) "1" else "0") +
+                " z=" + (if (Status.Z) "1" else "0") +
+                " c=" + (if (Status.C) "1" else "0") +
                 "  icycles=$instrCycles  instr=${hexB(currentOpcode)}:${currentInstruction.mnemonic}"
         )
     }
@@ -306,9 +326,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     private fun amRel() {
         val relative = readPc().toByte()
         fetchedAddress = if (relative >= 0x80)
-            pc - (256 - relative)
+            PC - (256 - relative)
         else
-            pc + relative
+            PC + relative
     }
 
     private fun amAbs() {
@@ -362,7 +382,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         fetchedAddress = Y + (lo or (hi shl 8))
     }
 
-    private fun readPc(): Int = bus.read(pc++).toInt()
+    private fun readPc(): Int = bus.read(PC++).toInt()
 
     private fun pushStackAddr(address: Address) {
         val lo = address and 255
@@ -376,13 +396,13 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun pushStack(data: Int) {
-        write(sp or 0x0100, data)
-        sp = (sp - 1) and 0xff
+        write(SP or 0x0100, data)
+        SP = (SP - 1) and 0xff
     }
 
     private fun popStack(): Int {
-        sp = (sp + 1) and 0xff
-        return read(sp or 0x0100)
+        SP = (SP + 1) and 0xff
+        return read(SP or 0x0100)
     }
 
     private fun popStackAddr(): Address {
@@ -668,113 +688,113 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         } else {
             read(fetchedAddress)
         }
-        if (status.D) {
+        if (Status.D) {
             // BCD add
-            var lo = (A and 0x0f) + (operand and 0x0f) + if (status.C) 1 else 0
+            var lo = (A and 0x0f) + (operand and 0x0f) + if (Status.C) 1 else 0
             if (lo and 0xff > 9) lo += 6
             var hi = (A shr 4) + (operand shr 4) + if (lo > 15) 1 else 0
             if (hi and 0xff > 9) hi += 6
             var result = lo and 0x0f or (hi shl 4)
             result = result and 0xff
-            status.C = hi > 15
-            status.Z = result == 0
-            status.V = false  // BCD never sets overflow flag
-            status.N = false  // BCD is never negative on NMOS 6502 (bug)
+            Status.C = hi > 15
+            Status.Z = result == 0
+            Status.V = false  // BCD never sets overflow flag
+            Status.N = false  // BCD is never negative on NMOS 6502 (bug)
         } else {
             // normal add
-            val result = A + operand + if (status.C) 1 else 0
-            status.C = result > 255
-            status.V = (A xor operand).inv() and (A xor result) and 0x0080 != 0
+            val result = A + operand + if (Status.C) 1 else 0
+            Status.C = result > 255
+            Status.V = (A xor operand).inv() and (A xor result) and 0x0080 != 0
             A = result and 255
-            status.N = (A and 0b10000000) != 0
-            status.Z = A == 0
+            Status.N = (A and 0b10000000) != 0
+            Status.Z = A == 0
         }
     }
 
     private fun iAnd() {
         A = A and fetchedData
-        status.Z = A == 0
-        status.N = (A and 0b10000000) != 0
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) != 0
     }
 
     private fun iAsl() {
         if (currentInstruction.mode == AddrMode.Acc) {
-            status.C = (A and 0b10000000) == 1
+            Status.C = (A and 0b10000000) == 1
             A = (A shl 1) and 255
-            status.Z = A == 0
-            status.N = (A and 0b10000000) == 1
+            Status.Z = A == 0
+            Status.N = (A and 0b10000000) == 1
         } else {
             val data = read(fetchedAddress)
-            status.C = (data and 0b10000000) == 1
+            Status.C = (data and 0b10000000) == 1
             val shifted = (data shl 1) and 255
             write(fetchedAddress, shifted)
-            status.Z = shifted == 0
-            status.N = (shifted and 0b10000000) == 1
+            Status.Z = shifted == 0
+            Status.N = (shifted and 0b10000000) == 1
         }
     }
 
     private fun iBcc() {
-        if (!status.C) pc = fetchedAddress
+        if (!Status.C) PC = fetchedAddress
     }
 
     private fun iBcs() {
-        if (status.C) pc = fetchedAddress
+        if (Status.C) PC = fetchedAddress
     }
 
     private fun iBeq() {
-        if (status.Z) pc = fetchedAddress
+        if (Status.Z) PC = fetchedAddress
     }
 
     private fun iBit() {
-        status.Z = (A and fetchedData) == 0
-        status.V = (fetchedData and 0b01000000) != 0
-        status.N = (fetchedData and 0b10000000) != 0
+        Status.Z = (A and fetchedData) == 0
+        Status.V = (fetchedData and 0b01000000) != 0
+        Status.N = (fetchedData and 0b10000000) != 0
     }
 
     private fun iBmi() {
-        if (status.N) pc = fetchedAddress
+        if (Status.N) PC = fetchedAddress
     }
 
     private fun iBne() {
-        if (!status.Z) pc = fetchedAddress
+        if (!Status.Z) PC = fetchedAddress
     }
 
     private fun iBpl() {
-        if (!status.N) pc = fetchedAddress
+        if (!Status.N) PC = fetchedAddress
     }
 
     private fun iBrk() {
-        pc++
-        status.I = true
-        status.B = true
-        pushStackAddr(pc)
-        pushStack(status)
-        status.B = false
-        pc = readWord(IRQ_vector)
+        PC++
+        Status.I = true
+        Status.B = true
+        pushStackAddr(PC)
+        pushStack(Status)
+        Status.B = false
+        PC = readWord(IRQ_vector)
     }
 
     private fun iBvc() {
-        if (!status.V) pc = fetchedAddress
+        if (!Status.V) PC = fetchedAddress
     }
 
     private fun iBvs() {
-        if (status.V) pc = fetchedAddress
+        if (Status.V) PC = fetchedAddress
     }
 
     private fun iClc() {
-        status.C = false
+        Status.C = false
     }
 
     private fun iCld() {
-        status.D = false
+        Status.D = false
     }
 
     private fun iCli() {
-        status.I = false
+        Status.I = false
     }
 
     private fun iClv() {
-        status.V = false
+        Status.V = false
     }
 
     private fun iCmp() {
@@ -784,9 +804,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
                 } else {
                     read(fetchedAddress)
                 }
-        status.C = A >= fetched
-        status.Z = A == fetched
-        status.N = ((A - fetched) and 0b10000000) == 1
+        Status.C = A >= fetched
+        Status.Z = A == fetched
+        Status.N = ((A - fetched) and 0b10000000) == 1
     }
 
     private fun iCpx() {
@@ -796,9 +816,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
                 } else {
                     read(fetchedAddress)
                 }
-        status.C = X >= fetched
-        status.Z = X == fetched
-        status.N = ((X - fetched) and 0b10000000) == 1
+        Status.C = X >= fetched
+        Status.Z = X == fetched
+        Status.N = ((X - fetched) and 0b10000000) == 1
     }
 
     private fun iCpy() {
@@ -808,28 +828,28 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
                 } else {
                     read(fetchedAddress)
                 }
-        status.C = Y >= fetched
-        status.Z = Y == fetched
-        status.N = ((Y - fetched) and 0b10000000) == 1
+        Status.C = Y >= fetched
+        Status.Z = Y == fetched
+        Status.N = ((Y - fetched) and 0b10000000) == 1
     }
 
     private fun iDec() {
         val data = (read(fetchedAddress) - 1) and 255
         write(fetchedAddress, data)
-        status.Z = data == 0
-        status.N = (data and 0b10000000) == 1
+        Status.Z = data == 0
+        Status.N = (data and 0b10000000) == 1
     }
 
     private fun iDex() {
         X = (X - 1) and 255
-        status.Z = X == 0
-        status.N = (X and 0b10000000) == 1
+        Status.Z = X == 0
+        Status.N = (X and 0b10000000) == 1
     }
 
     private fun iDey() {
         Y = (Y - 1) and 255
-        status.Z = Y == 0
-        status.N = (Y and 0b10000000) == 1
+        Status.Z = Y == 0
+        Status.N = (Y and 0b10000000) == 1
     }
 
     private fun iEor() {
@@ -838,36 +858,36 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         } else {
             A xor read(fetchedAddress)
         }
-        status.Z = A == 0
-        status.N = (A and 0b10000000) == 1
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) == 1
     }
 
     private fun iInc() {
         val data = (read(fetchedAddress) + 1) and 255
         write(fetchedAddress, data)
-        status.Z = data == 0
-        status.N = (data and 0b10000000) == 1
+        Status.Z = data == 0
+        Status.N = (data and 0b10000000) == 1
     }
 
     private fun iInx() {
         X = (X + 1) and 255
-        status.Z = X == 0
-        status.N = (X and 0b10000000) == 1
+        Status.Z = X == 0
+        Status.N = (X and 0b10000000) == 1
     }
 
     private fun iIny() {
         Y = (Y + 1) and 255
-        status.Z = Y == 0
-        status.N = (Y and 0b10000000) == 1
+        Status.Z = Y == 0
+        Status.N = (Y and 0b10000000) == 1
     }
 
     private fun iJmp() {
-        pc = fetchedAddress
+        PC = fetchedAddress
     }
 
     private fun iJsr() {
-        pushStackAddr(pc)
-        pc = fetchedAddress
+        pushStackAddr(PC)
+        PC = fetchedAddress
     }
 
     private fun iLda() {
@@ -875,8 +895,8 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             fetchedData
         else
             read(fetchedAddress)
-        status.Z = A == 0
-        status.N = (A and 0b10000000) == 1
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) == 1
     }
 
     private fun iLdx() {
@@ -884,8 +904,8 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             fetchedData
         else
             read(fetchedAddress)
-        status.Z = X == 0
-        status.N = (X and 0b10000000) == 1
+        Status.Z = X == 0
+        Status.N = (X and 0b10000000) == 1
     }
 
     private fun iLdy() {
@@ -893,23 +913,23 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             fetchedData
         else
             read(fetchedAddress)
-        status.Z = Y == 0
-        status.N = (Y and 0b10000000) == 1
+        Status.Z = Y == 0
+        Status.N = (Y and 0b10000000) == 1
     }
 
     private fun iLsr() {
         if (currentInstruction.mode == AddrMode.Acc) {
-            status.C = (A and 1) == 1
+            Status.C = (A and 1) == 1
             A = A ushr 1
-            status.Z = A == 0
-            status.N = (A and 0b10000000) == 1
+            Status.Z = A == 0
+            Status.N = (A and 0b10000000) == 1
         } else {
             val data = read(fetchedAddress)
-            status.C = (data and 1) == 1
+            Status.C = (data and 1) == 1
             val shifted = data ushr 1
             write(fetchedAddress, shifted)
-            status.Z = shifted == 0
-            status.N = (shifted and 0b10000000) == 1
+            Status.Z = shifted == 0
+            Status.N = (shifted and 0b10000000) == 1
         }
     }
 
@@ -920,8 +940,8 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             A or fetchedData
         else
             A or read(fetchedAddress)
-        status.Z = A == 0
-        status.N = (A and 0b10000000) == 1
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) == 1
     }
 
     private fun iPha() {
@@ -929,60 +949,60 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iPhp() {
-        pushStack(status)
+        pushStack(Status)
     }
 
     private fun iPla() {
         A = popStack()
-        status.Z = A == 0
-        status.N = (A and 0b10000000) == 1
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) == 1
     }
 
     private fun iPlp() {
-        status.fromByte(popStack())
+        Status.fromByte(popStack())
     }
 
     private fun iRol() {
-        val oldCarry = status.C
+        val oldCarry = Status.C
         if (currentInstruction.mode == AddrMode.Acc) {
-            status.C = (A and 0b10000000) == 1
+            Status.C = (A and 0b10000000) == 1
             A = (A shl 1) or (if (oldCarry) 1 else 0)
-            status.Z = A == 0
-            status.N = (A and 0b10000000) == 1
+            Status.Z = A == 0
+            Status.N = (A and 0b10000000) == 1
         } else {
             val data = read(fetchedAddress)
-            status.C = (data and 0b10000000) == 1
+            Status.C = (data and 0b10000000) == 1
             val shifted = (data shl 1) or (if (oldCarry) 1 else 0) and 255
             write(fetchedAddress, shifted)
-            status.Z = shifted == 0
-            status.N = (shifted and 0b10000000) == 1
+            Status.Z = shifted == 0
+            Status.N = (shifted and 0b10000000) == 1
         }
     }
 
     private fun iRor() {
-        val oldCarry = status.C
+        val oldCarry = Status.C
         if (currentInstruction.mode == AddrMode.Acc) {
-            status.C = (A and 1) == 1
+            Status.C = (A and 1) == 1
             A = (A ushr 1) or (if (oldCarry) 0b10000000 else 0)
-            status.Z = A == 0
-            status.N = (A and 0b10000000) == 1
+            Status.Z = A == 0
+            Status.N = (A and 0b10000000) == 1
         } else {
             val data = read(fetchedAddress)
-            status.C = (data and 1) == 1
+            Status.C = (data and 1) == 1
             val shifted = (data ushr 1) or (if (oldCarry) 0b10000000 else 0)
             write(fetchedAddress, shifted)
-            status.Z = shifted == 0
-            status.N = (shifted and 0b10000000) == 1
+            Status.Z = shifted == 0
+            Status.N = (shifted and 0b10000000) == 1
         }
     }
 
     private fun iRti() {
-        status.fromByte(popStack())
-        pc = popStackAddr()
+        Status.fromByte(popStack())
+        PC = popStackAddr()
     }
 
     private fun iRts() {
-        pc = popStackAddr()
+        PC = popStackAddr()
     }
 
     private fun iSbc() {
@@ -991,39 +1011,39 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         } else {
             read(fetchedAddress)
         }
-        if (status.D) {
-            var lo = (A and 0x0f) - (operand and 0x0f) - if (status.C) 0 else 1
+        if (Status.D) {
+            var lo = (A and 0x0f) - (operand and 0x0f) - if (Status.C) 0 else 1
             if (lo and 0x10 != 0) lo -= 6
             var h = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
             if (h and 0x10 != 0) h -= 6
             val result = lo and 0x0f or (h shl 4 and 0xff)
-            status.C = h and 255 < 15
-            status.Z = result == 0
-            status.V = false // BCD never sets overflow flag
-            status.N = false // BCD is never negative on NMOS 6502 (bug)
+            Status.C = h and 255 < 15
+            Status.Z = result == 0
+            Status.V = false // BCD never sets overflow flag
+            Status.N = false // BCD is never negative on NMOS 6502 (bug)
             A = result and 255
         } else {
             // normal sub
             val invertedOperand = operand xor 255
-            val result = A + invertedOperand + if (status.C) 1 else 0
-            status.C = result > 255
-            status.V = (A xor invertedOperand) and (A xor result) and 0x0080 != 0
+            val result = A + invertedOperand + if (Status.C) 1 else 0
+            Status.C = result > 255
+            Status.V = (A xor invertedOperand) and (A xor result) and 0x0080 != 0
             A = result and 255
-            status.N = (A and 0b10000000) != 0
-            status.Z = A == 0
+            Status.N = (A and 0b10000000) != 0
+            Status.Z = A == 0
         }
     }
 
     private fun iSec() {
-        status.C = true
+        Status.C = true
     }
 
     private fun iSed() {
-        status.D = true
+        Status.D = true
     }
 
     private fun iSei() {
-        status.I = true
+        Status.I = true
     }
 
     private fun iSta() {
@@ -1040,36 +1060,36 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     private fun iTax() {
         X = A
-        status.Z = X == 0
-        status.N = (X and 0b10000000) != 0
+        Status.Z = X == 0
+        Status.N = (X and 0b10000000) != 0
     }
 
     private fun iTay() {
         Y = A
-        status.Z = Y == 0
-        status.N = (Y and 0b10000000) != 0
+        Status.Z = Y == 0
+        Status.N = (Y and 0b10000000) != 0
     }
 
     private fun iTsx() {
-        X = status.asByte().toInt()
-        status.Z = X == 0
-        status.N = (X and 0b10000000) != 0
+        X = Status.asByte().toInt()
+        Status.Z = X == 0
+        Status.N = (X and 0b10000000) != 0
     }
 
     private fun iTxa() {
         A = X
-        status.Z = A == 0
-        status.N = (A and 0b10000000) != 0
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) != 0
     }
 
     private fun iTxs() {
-        status.fromByte(X)
+        Status.fromByte(X)
     }
 
     private fun iTya() {
         A = Y
-        status.Z = A == 0
-        status.N = (A and 0b10000000) != 0
+        Status.Z = A == 0
+        Status.N = (A and 0b10000000) != 0
     }
 
     // unofficial/illegal instructions

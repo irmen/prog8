@@ -11,6 +11,9 @@ class Ram(startAddress: Address, endAddress: Address): MemMappedComponent(startA
         memory[address-startAddress] = data
     }
 
+    operator fun get(address: Address) = read(address)
+    operator fun set(address: Address, data: UByte) = write(address, data)
+
     override fun cloneMem(): Array<UByte> = memory.toTypedArray()
 
     override fun clock() { }
