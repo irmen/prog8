@@ -65,8 +65,8 @@ private fun startSimulator(args: Array<String>) {
 
     bus.reset()
 
-    ram.load("sim65/ram.bin", 0x8000)
-    ram.load("sim65/bcdtest.bin", 0x1000)
+    ram.load("sim65/test/testfiles/ram.bin", 0x8000)
+    ram.load("sim65/test/testfiles/bcdtest.bin", 0x1000)
     //ram.dump(0x8000, 0x802f)
     //cpu.disassemble(ram, 0x8000, 0x802f)
 
