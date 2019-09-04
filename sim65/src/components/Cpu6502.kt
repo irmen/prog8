@@ -17,8 +17,7 @@ interface ICpu {
 }
 
 // TODO: add additional cycles to certain instructions and addressing modes
-// TODO: test all opcodes and fix bugs
-
+// TODO: fix sbc and adc with BCD arithmetic.
 
 class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu {
     override var tracing: Boolean = false
@@ -29,6 +28,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         const val NMI_vector = 0xfffa
         const val RESET_vector = 0xfffc
         const val IRQ_vector = 0xfffe
+        const val resetCycles = 8
 
         fun hexW(number: Address, allowSingleByte: Boolean = false): String {
             val msb = number ushr 8
@@ -241,12 +241,12 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         Y = 0
         Status.C = false
         Status.Z = false
-        Status.I = false
+        Status.I = true
         Status.D = false
         Status.B = false
         Status.V = false
         Status.N = false
-        instrCycles = 8
+        instrCycles = resetCycles       // a reset takes time as well
         currentOpcode = 0
         currentInstruction = opcodes[0]
         waiting = false
@@ -276,8 +276,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     override fun step() {
         // step a whole instruction
-        while(instrCycles>0) clock()        // instruction subcycles
+        while(instrCycles>0) clock()        // remaining instruction subcycles from the previous instruction
         clock()   // the actual instruction execution cycle
+        while(instrCycles>0) clock()        // instruction subcycles
     }
 
     fun printState() {
@@ -324,7 +325,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun amRel() {
-        val relative = readPc().toByte()
+        val relative = readPc()
         fetchedAddress = if (relative >= 0x80)
             PC - (256 - relative)
         else
@@ -368,9 +369,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     private fun amIzx() {
         // note: not able to fetch an adress which crosses the page boundary
-        fetchedAddress = readPc() + X
-        val lo = read(fetchedAddress)
-        val hi = read((fetchedAddress + 1) and 255)
+        fetchedAddress = readPc()
+        val lo = read((fetchedAddress + X) and 255)
+        val hi = read((fetchedAddress + X + 1) and 255)
         fetchedAddress = lo or (hi shl 8)
     }
 
@@ -379,7 +380,16 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         fetchedAddress = readPc()
         val lo = read(fetchedAddress)
         val hi = read((fetchedAddress + 1) and 255)
-        fetchedAddress = Y + (lo or (hi shl 8))
+        fetchedAddress = (Y + lo or (hi shl 8)) and 65535
+    }
+
+    private fun getFetched(): Int {
+        return if(currentInstruction.mode==AddrMode.Imm ||
+                currentInstruction.mode==AddrMode.Acc ||
+                currentInstruction.mode==AddrMode.Imp)
+            fetchedData
+        else
+            read(fetchedAddress)
     }
 
     private fun readPc(): Int = bus.read(PC++).toInt()
@@ -408,7 +418,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     private fun popStackAddr(): Address {
         val lo = popStack()
         val hi = popStack()
-        return lo + hi ushr 8
+        return lo or (hi shl 8)
     }
 
     private fun read(address: Address): Int = bus.read(address).toInt()
@@ -683,11 +693,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     // official instructions
 
     private fun iAdc() {
-        val operand = if (currentInstruction.mode == AddrMode.Imm) {
-            fetchedData
-        } else {
-            read(fetchedAddress)
-        }
+        val operand = getFetched()
         if (Status.D) {
             // BCD add
             var lo = (A and 0x0f) + (operand and 0x0f) + if (Status.C) 1 else 0
@@ -712,24 +718,24 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iAnd() {
-        A = A and fetchedData
+        A = A and getFetched()
         Status.Z = A == 0
         Status.N = (A and 0b10000000) != 0
     }
 
     private fun iAsl() {
         if (currentInstruction.mode == AddrMode.Acc) {
-            Status.C = (A and 0b10000000) == 1
+            Status.C = (A and 0b10000000) != 0
             A = (A shl 1) and 255
             Status.Z = A == 0
-            Status.N = (A and 0b10000000) == 1
+            Status.N = (A and 0b10000000) != 0
         } else {
             val data = read(fetchedAddress)
-            Status.C = (data and 0b10000000) == 1
+            Status.C = (data and 0b10000000) != 0
             val shifted = (data shl 1) and 255
             write(fetchedAddress, shifted)
             Status.Z = shifted == 0
-            Status.N = (shifted and 0b10000000) == 1
+            Status.N = (shifted and 0b10000000) != 0
         }
     }
 
@@ -746,9 +752,10 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iBit() {
-        Status.Z = (A and fetchedData) == 0
-        Status.V = (fetchedData and 0b01000000) != 0
-        Status.N = (fetchedData and 0b10000000) != 0
+        val operand = getFetched()
+        Status.Z = (A and operand) == 0
+        Status.V = (operand and 0b01000000) != 0
+        Status.N = (operand and 0b10000000) != 0
     }
 
     private fun iBmi() {
@@ -765,11 +772,10 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     private fun iBrk() {
         PC++
-        Status.I = true
-        Status.B = true
         pushStackAddr(PC)
+        Status.B = true
         pushStack(Status)
-        Status.B = false
+        Status.I = true
         PC = readWord(IRQ_vector)
     }
 
@@ -798,87 +804,68 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iCmp() {
-        val fetched =
-                if (currentInstruction.mode == AddrMode.Imm) {
-                    fetchedData
-                } else {
-                    read(fetchedAddress)
-                }
+        val fetched = getFetched()
         Status.C = A >= fetched
         Status.Z = A == fetched
-        Status.N = ((A - fetched) and 0b10000000) == 1
+        Status.N = ((A - fetched) and 0b10000000) != 0
     }
 
     private fun iCpx() {
-        val fetched =
-                if (currentInstruction.mode == AddrMode.Imm) {
-                    fetchedData
-                } else {
-                    read(fetchedAddress)
-                }
+        val fetched = getFetched()
         Status.C = X >= fetched
         Status.Z = X == fetched
-        Status.N = ((X - fetched) and 0b10000000) == 1
+        Status.N = ((X - fetched) and 0b10000000) != 0
     }
 
     private fun iCpy() {
-        val fetched =
-                if (currentInstruction.mode == AddrMode.Imm) {
-                    fetchedData
-                } else {
-                    read(fetchedAddress)
-                }
+        val fetched = getFetched()
         Status.C = Y >= fetched
         Status.Z = Y == fetched
-        Status.N = ((Y - fetched) and 0b10000000) == 1
+        Status.N = ((Y - fetched) and 0b10000000) != 0
     }
 
     private fun iDec() {
         val data = (read(fetchedAddress) - 1) and 255
         write(fetchedAddress, data)
         Status.Z = data == 0
-        Status.N = (data and 0b10000000) == 1
+        Status.N = (data and 0b10000000) != 0
     }
 
     private fun iDex() {
         X = (X - 1) and 255
         Status.Z = X == 0
-        Status.N = (X and 0b10000000) == 1
+        Status.N = (X and 0b10000000) != 0
     }
 
     private fun iDey() {
         Y = (Y - 1) and 255
         Status.Z = Y == 0
-        Status.N = (Y and 0b10000000) == 1
+        Status.N = (Y and 0b10000000) != 0
     }
 
     private fun iEor() {
-        A = if (currentInstruction.mode == AddrMode.Imm) {
-            A xor fetchedData
-        } else {
-            A xor read(fetchedAddress)
-        }
+        A = A xor getFetched()
         Status.Z = A == 0
-        Status.N = (A and 0b10000000) == 1
+        Status.N = (A and 0b10000000) != 0
     }
 
     private fun iInc() {
         val data = (read(fetchedAddress) + 1) and 255
         write(fetchedAddress, data)
         Status.Z = data == 0
-        Status.N = (data and 0b10000000) == 1
+        Status.N = (data and 0b10000000) != 0
     }
 
     private fun iInx() {
         X = (X + 1) and 255
         Status.Z = X == 0
-        Status.N = (X and 0b10000000) == 1
+        Status.N = (X and 0b10000000) != 0
     }
 
     private fun iIny() {
         Y = (Y + 1) and 255
         Status.Z = Y == 0
-        Status.N = (Y and 0b10000000) == 1
+        Status.N = (Y and 0b10000000) != 0
     }
 
     private fun iJmp() {
@@ -886,35 +873,26 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iJsr() {
-        pushStackAddr(PC)
+        pushStackAddr(PC-1)
         PC = fetchedAddress
     }
 
     private fun iLda() {
-        A = if (currentInstruction.mode == AddrMode.Imm)
-            fetchedData
-        else
-            read(fetchedAddress)
+        A = getFetched()
         Status.Z = A == 0
-        Status.N = (A and 0b10000000) == 1
+        Status.N = (A and 0b10000000) != 0
     }
 
     private fun iLdx() {
-        X = if (currentInstruction.mode == AddrMode.Imm)
-            fetchedData
-        else
-            read(fetchedAddress)
+        X = getFetched()
         Status.Z = X == 0
-        Status.N = (X and 0b10000000) == 1
+        Status.N = (X and 0b10000000) != 0
     }
 
     private fun iLdy() {
-        Y = if (currentInstruction.mode == AddrMode.Imm)
-            fetchedData
-        else
-            read(fetchedAddress)
+        Y = getFetched()
         Status.Z = Y == 0
-        Status.N = (Y and 0b10000000) == 1
+        Status.N = (Y and 0b10000000) != 0
     }
 
     private fun iLsr() {
@@ -922,26 +900,23 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             Status.C = (A and 1) == 1
             A = A ushr 1
             Status.Z = A == 0
-            Status.N = (A and 0b10000000) == 1
+            Status.N = (A and 0b10000000) != 0
         } else {
             val data = read(fetchedAddress)
             Status.C = (data and 1) == 1
             val shifted = data ushr 1
             write(fetchedAddress, shifted)
             Status.Z = shifted == 0
-            Status.N = (shifted and 0b10000000) == 1
+            Status.N = (shifted and 0b10000000) != 0
         }
     }
 
     private fun iNop() {}
 
     private fun iOra() {
-        A = if (currentInstruction.mode == AddrMode.Imm)
-            A or fetchedData
-        else
-            A or read(fetchedAddress)
+        A = A or getFetched()
         Status.Z = A == 0
-        Status.N = (A and 0b10000000) == 1
+        Status.N = (A and 0b10000000) != 0
     }
 
     private fun iPha() {
@@ -949,33 +924,37 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iPhp() {
+        val origBreakflag = Status.B
+        Status.B = true
         pushStack(Status)
+        Status.B = origBreakflag
     }
 
     private fun iPla() {
         A = popStack()
         Status.Z = A == 0
-        Status.N = (A and 0b10000000) == 1
+        Status.N = (A and 0b10000000) != 0
     }
 
     private fun iPlp() {
         Status.fromByte(popStack())
+        Status.B = true  // break is always 1 except when pushing on stack
     }
 
     private fun iRol() {
         val oldCarry = Status.C
         if (currentInstruction.mode == AddrMode.Acc) {
-            Status.C = (A and 0b10000000) == 1
-            A = (A shl 1) or (if (oldCarry) 1 else 0)
+            Status.C = (A and 0b10000000) != 0
+            A = (A shl 1 and 255) or (if (oldCarry) 1 else 0)
             Status.Z = A == 0
-            Status.N = (A and 0b10000000) == 1
+            Status.N = (A and 0b10000000) != 0
         } else {
             val data = read(fetchedAddress)
-            Status.C = (data and 0b10000000) == 1
-            val shifted = (data shl 1) or (if (oldCarry) 1 else 0) and 255
+            Status.C = (data and 0b10000000) != 0
+            val shifted = (data shl 1 and 255) or (if (oldCarry) 1 else 0)
             write(fetchedAddress, shifted)
             Status.Z = shifted == 0
-            Status.N = (shifted and 0b10000000) == 1
+            Status.N = (shifted and 0b10000000) != 0
         }
     }
 
@@ -985,38 +964,36 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             Status.C = (A and 1) == 1
             A = (A ushr 1) or (if (oldCarry) 0b10000000 else 0)
             Status.Z = A == 0
-            Status.N = (A and 0b10000000) == 1
+            Status.N = (A and 0b10000000) != 0
         } else {
             val data = read(fetchedAddress)
             Status.C = (data and 1) == 1
             val shifted = (data ushr 1) or (if (oldCarry) 0b10000000 else 0)
             write(fetchedAddress, shifted)
             Status.Z = shifted == 0
-            Status.N = (shifted and 0b10000000) == 1
+            Status.N = (shifted and 0b10000000) != 0
         }
     }
 
     private fun iRti() {
         Status.fromByte(popStack())
+        Status.B = true  // break is always 1 except when pushing on stack
         PC = popStackAddr()
     }
 
     private fun iRts() {
         PC = popStackAddr()
+        PC = (PC+1) and 0xffff
     }
 
     private fun iSbc() {
-        val operand = if (currentInstruction.mode == AddrMode.Imm) {
-            fetchedData
-        } else {
-            read(fetchedAddress)
-        }
+        val operand = getFetched()
         if (Status.D) {
             var lo = (A and 0x0f) - (operand and 0x0f) - if (Status.C) 0 else 1
             if (lo and 0x10 != 0) lo -= 6
             var h = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
             if (h and 0x10 != 0) h -= 6
-            val result = lo and 0x0f or (h shl 4 and 0xff)
+            val result = lo and 0x0f or ((h shl 4) and 0xff)
             Status.C = h and 255 < 15
             Status.Z = result == 0
             Status.V = false // BCD never sets overflow flag
@@ -1071,7 +1048,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iTsx() {
-        X = Status.asByte().toInt()
+        X = SP
         Status.Z = X == 0
         Status.N = (X and 0b10000000) != 0
     }
@@ -1083,7 +1060,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iTxs() {
-        Status.fromByte(X)
+        SP = X
     }
 
     private fun iTya() {

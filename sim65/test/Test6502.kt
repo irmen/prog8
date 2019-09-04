@@ -1,5 +1,6 @@
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import sim65.components.Cpu6502
 import kotlin.test.*
 
 
@@ -274,7 +275,7 @@ class Test6502 : TestCommon6502() {
         writeMem(memory, 0, listOf(0x6c, 0xff, 0x00))
         mpu.step()
         assertEquals(0x6c00, mpu.PC)
-        assertEquals(5, mpu.totalCycles)
+        assertEquals(5+Cpu6502.resetCycles, mpu.totalCycles)
     }
 
     // ORA Indexed, Indirect (Y)

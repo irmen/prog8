@@ -20,6 +20,10 @@ class Ram(startAddress: Address, endAddress: Address): MemMappedComponent(startA
 
     override fun reset() { memory.fill(0) }
 
+    fun fill(data: UByte) {
+        memory.fill(data)
+    }
+
     fun load(filename: String, address: Address) {
         val bytes = File(filename).readBytes()
         bytes.forEachIndexed { index, byte ->

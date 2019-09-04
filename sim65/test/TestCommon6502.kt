@@ -52,7 +52,11 @@ abstract class TestCommon6502 {
     init {
         bus.add(mpu)
         bus.add(memory)
+        memory.fill(0xaa)
+        memory.write(Cpu6502.RESET_vector, 0)
+        memory.write(Cpu6502.RESET_vector+1, 0)
         mpu.reset()
+        mpu.Status.I = false        // allow interrupts again
     }
 
     companion object {
@@ -79,11 +83,11 @@ abstract class TestCommon6502 {
     fun test_reset_sets_registers_to_initial_states() {
 
         mpu.reset()
-        assertEquals(0xFF, mpu.SP)
+        assertEquals(0xFD, mpu.SP)
         assertEquals(0, mpu.A)
         assertEquals(0, mpu.X)
         assertEquals(0, mpu.Y)
-        assertEquals(Cpu6502.StatusRegister(C = false, Z = false, I = false, D = false, B = true, V = false, N = false), mpu.Status)
+        assertTrue(mpu.Status.I)   // the other status flags are undefined after reset
     }
 
     // ADC Absolute
@@ -1339,10 +1343,9 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
-        // AND (Absolute)
-
     }
+
+    // AND (Absolute)
 
     @Test
     fun test_and_absolute_all_zeros_setting_zero_flag() {
@@ -1371,10 +1374,9 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND (Absolute)
-
     }
+
+    // AND (Absolute)
 
     @Test
     fun test_and_zp_all_zeros_setting_zero_flag() {
@@ -1490,7 +1492,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_and_abs_y_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         // $0000 AND $ABCD,X
@@ -1501,10 +1502,9 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND Indirect, Indexed (X)
-
     }
+
+    // AND Indirect, Indexed (X)
 
     @Test
     fun test_and_ind_indexed_x_all_zeros_setting_zero_flag() {
@@ -1950,11 +1950,11 @@ abstract class TestCommon6502 {
 
         mpu.Status.C = false
         mpu.PC = 0x0050
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         // $0000 BCC -6
         writeMem(memory, 0x0050, listOf(0x90, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -1987,11 +1987,11 @@ abstract class TestCommon6502 {
 
         mpu.Status.C = true
         mpu.PC = 0x0050
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         // $0000 BCS -6
         writeMem(memory, 0x0050, listOf(0xB0, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -2024,11 +2024,11 @@ abstract class TestCommon6502 {
 
         mpu.Status.Z = true
         mpu.PC = 0x0050
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         // $0000 BEQ -6
         writeMem(memory, 0x0050, listOf(0xF0, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -2154,7 +2154,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.N)
 
     }
@@ -2169,7 +2169,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertFalse(mpu.Status.N)
 
     }
@@ -2184,7 +2184,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.V)
 
     }
@@ -2199,7 +2199,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertFalse(mpu.Status.V)
 
     }
@@ -2214,7 +2214,7 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.Z)
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0x0010])
@@ -2231,7 +2231,7 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertFalse(mpu.Status.Z)  // result of AND is non-zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x01, memory[0x0010])
@@ -2248,7 +2248,7 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3, mpu.totalCycles)
+        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.Z)  // result of AND is zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0x0010])
@@ -2274,10 +2274,10 @@ abstract class TestCommon6502 {
         mpu.Status.N = true
         mpu.PC = 0x0050
         // $0000 BMI -6
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         writeMem(memory, 0x0050, listOf(0x30, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -2311,10 +2311,10 @@ abstract class TestCommon6502 {
         mpu.Status.Z = false
         mpu.PC = 0x0050
         // $0050 BNE -6
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         writeMem(memory, 0x0050, listOf(0xD0, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -2348,10 +2348,10 @@ abstract class TestCommon6502 {
         mpu.Status.N = false
         mpu.PC = 0x0050
         // $0050 BPL -6
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         writeMem(memory, 0x0050, listOf(0x10, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -2372,17 +2372,19 @@ abstract class TestCommon6502 {
     fun test_brk_pushes_pc_plus_2_and_status_then_sets_pc_to_irq_vector() {
 
         writeMem(memory, 0xFFFE, listOf(0xCD, 0xAB))
+        mpu.SP = 0xff
+        mpu.Status.I = false
+
         // $C000 BRK
         memory[0xC000] = 0x00
         mpu.PC = 0xC000
         mpu.step()
         assertEquals(0xABCD, mpu.PC)
 
+        assertEquals(0xFC, mpu.SP)
         assertEquals(0xC0, memory[0x1FF])  // PCH
         assertEquals(0x02, memory[0x1FE])  // PCL
-        assertEquals(fBREAK or fUNUSED, memory[0x1FD].toInt())  // Status
-        assertEquals(0xFC, mpu.SP)
-
+        assertEquals(fBREAK or fUNUSED, memory[0x1FD].toInt(), "Status on stack should have no I flag")
         assertEquals(fBREAK or fUNUSED or fINTERRUPT, mpu.Status.asByte().toInt())
     }
 
@@ -2401,11 +2403,11 @@ abstract class TestCommon6502 {
     fun test_bvc_overflow_clear_branches_relative_backward() {
         mpu.Status.V = false
         mpu.PC = 0x0050
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         // $0050 BVC -6
         writeMem(memory, 0x0050, listOf(0x50, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
     }
 
     @Test
@@ -2433,11 +2435,11 @@ abstract class TestCommon6502 {
 
         mpu.Status.V = true
         mpu.PC = 0x0050
-        val rel = (0x06 xor 0xFF + 1)  // two's complement of 6
+        val rel = 256 + (-6)  // two's complement of 6
         // $0050 BVS -6
         writeMem(memory, 0x0050, listOf(0x70, rel.toShort()))
         mpu.step()
-        assertEquals(0x0052 + rel, mpu.PC)
+        assertEquals(0x0052 - 6, mpu.PC)
 
     }
 
@@ -3332,17 +3334,15 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_inx_sets_negative_flag_when_incrementing_above_7F() {
-
         mpu.X = 0x7f
         memory[0x0000] = 0xE8  // => INX
         mpu.step()
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x80, mpu.X)
         assertTrue(mpu.Status.N)
-
-        // INY
-
     }
+
+    // INY
 
     @Test
     fun test_iny_increments_y() {
@@ -3354,7 +3354,6 @@ abstract class TestCommon6502 {
         assertEquals(0x0A, mpu.Y)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
@@ -3412,6 +3411,7 @@ abstract class TestCommon6502 {
     fun test_jsr_pushes_pc_plus_2_and_sets_pc() {
 
         // $C000 JSR $FFD2
+        mpu.SP = 0xFF
         writeMem(memory, 0xC000, listOf(0x20, 0xD2, 0xFF))
         mpu.PC = 0xC000
         mpu.step()
@@ -3419,10 +3419,9 @@ abstract class TestCommon6502 {
         assertEquals(0xFD, mpu.SP)
         assertEquals(0xC0, memory[0x01FF])  // PCH
         assertEquals(0x02, memory[0x01FE])  // PCL+2
-
-        // LDA Absolute
-
     }
+
+    // LDA Absolute
 
     @Test
     fun test_lda_absolute_loads_a_sets_n_flag() {
@@ -4604,21 +4603,22 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xAB, mpu.A)
-        assertEquals(0xAB, memory[0x01FF])
-        assertEquals(0xFE, mpu.SP)
+        assertEquals(0xFC, mpu.SP)
+        assertEquals(0xAB, memory[0x01FD])
     }
 
     // PHP
     @Test
     fun test_php_pushes_processor_status_and_updates_sp() {
         for (flags in 0 until 0x100) {
+            mpu.reset()
             mpu.Status.fromByte(flags or fBREAK or fUNUSED)
             // $0000 PHP
             memory[0x0000] = 0x08
             mpu.step()
             assertEquals(0x0001, mpu.PC)
-            assertEquals((flags or fBREAK or fUNUSED), memory[0x1FF].toInt())
-            assertEquals(0xFE, mpu.SP)
+            assertEquals(0xFC, mpu.SP)
+            assertEquals((flags or fBREAK or fUNUSED), memory[0x1FD].toInt())
         }
 
     }
@@ -4684,7 +4684,6 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
@@ -5442,10 +5441,9 @@ abstract class TestCommon6502 {
         mpu.SP = 0xFC
 
         mpu.step()
-        assertEquals(0xC003, mpu.PC)
-        assertEquals(0xFC, mpu.Status.asByte())
         assertEquals(0xFF, mpu.SP)
-
+        assertEquals(0xFC, mpu.Status.asByte())
+        assertEquals(0xC003, mpu.PC)
     }
 
     @Test
