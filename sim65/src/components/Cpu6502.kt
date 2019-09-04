@@ -16,8 +16,11 @@ interface ICpu {
     val totalCycles: Int
 }
 
-// TODO: add additional cycles to certain instructions and addressing modes
+// TODO: add the optional additional cycles to certain instructions and addressing modes
 // TODO: fix sbc and adc with BCD arithmetic.
+// TODO: add IRQ and NMI signaling.
+// TODO: make a 65c02 variant as well (and re-enable the unit tests for that).
+
 
 class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu {
     override var tracing: Boolean = false
@@ -33,7 +36,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         fun hexW(number: Address, allowSingleByte: Boolean = false): String {
             val msb = number ushr 8
             val lsb = number and 255
-            return if(msb==0 && allowSingleByte)
+            return if (msb == 0 && allowSingleByte)
                 hexB(lsb)
             else
                 hexB(msb) + hexB(lsb)
@@ -106,9 +109,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         override fun hashCode(): Int = asByte().toInt()
 
         override fun equals(other: Any?): Boolean {
-            if(other !is StatusRegister)
+            if (other !is StatusRegister)
                 return false
-            return asByte()==other.asByte()
+            return asByte() == other.asByte()
         }
     }
 
@@ -276,9 +279,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     override fun step() {
         // step a whole instruction
-        while(instrCycles>0) clock()        // remaining instruction subcycles from the previous instruction
+        while (instrCycles > 0) clock()        // remaining instruction subcycles from the previous instruction
         clock()   // the actual instruction execution cycle
-        while(instrCycles>0) clock()        // instruction subcycles
+        while (instrCycles > 0) clock()        // instruction subcycles
     }
 
     fun printState() {
@@ -384,9 +387,9 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun getFetched(): Int {
-        return if(currentInstruction.mode==AddrMode.Imm ||
-                currentInstruction.mode==AddrMode.Acc ||
-                currentInstruction.mode==AddrMode.Imp)
+        return if (currentInstruction.mode == AddrMode.Imm ||
+                currentInstruction.mode == AddrMode.Acc ||
+                currentInstruction.mode == AddrMode.Imp)
             fetchedData
         else
             read(fetchedAddress)
@@ -700,10 +703,10 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             if (lo and 0xff > 9) lo += 6
             var hi = (A shr 4) + (operand shr 4) + if (lo > 15) 1 else 0
             if (hi and 0xff > 9) hi += 6
-            var result = lo and 0x0f or (hi shl 4)
-            result = result and 0xff
+            val result = lo and 0x0f or (hi shl 4)
+            A = result and 0xff
             Status.C = hi > 15
-            Status.Z = result == 0
+            Status.Z = A == 0
             Status.V = false  // BCD never sets overflow flag
             Status.N = false  // BCD is never negative on NMOS 6502 (bug)
         } else {
@@ -873,7 +876,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iJsr() {
-        pushStackAddr(PC-1)
+        pushStackAddr(PC - 1)
         PC = fetchedAddress
     }
 
@@ -983,7 +986,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     private fun iRts() {
         PC = popStackAddr()
-        PC = (PC+1) and 0xffff
+        PC = (PC + 1) and 0xffff
     }
 
     private fun iSbc() {
@@ -991,10 +994,10 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         if (Status.D) {
             var lo = (A and 0x0f) - (operand and 0x0f) - if (Status.C) 0 else 1
             if (lo and 0x10 != 0) lo -= 6
-            var h = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
-            if (h and 0x10 != 0) h -= 6
-            val result = lo and 0x0f or ((h shl 4) and 0xff)
-            Status.C = h and 255 < 15
+            var hi = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
+            if (hi and 0x10 != 0) hi -= 6
+            val result = lo and 0x0f or ((hi shl 4) and 0xff)
+            Status.C = hi and 255 < 15
             Status.Z = result == 0
             Status.V = false // BCD never sets overflow flag
             Status.N = false // BCD is never negative on NMOS 6502 (bug)
