@@ -102,7 +102,6 @@ asmsub  uword2bcd  (uword value @ AY) clobbers(A,Y)  {
 		pla             ; read status register
 		and  #%00000100
 		sta  _had_irqd
-		sei				; disable interrupts because of bcd math
 		sed				; switch to decimal mode
 		lda  #0				; ensure the result is clear
 		sta  bcdbuff+0
@@ -341,6 +340,7 @@ _irq_handler_init
 		dex
 		dex
 		dex
+		cld
 		rts
 
 _irq_handler_end

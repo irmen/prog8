@@ -505,11 +505,10 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x80, mpu.A)
-        assertTrue(mpu.Status.N)
-        assertTrue(mpu.Status.V)
-        assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
+        assertFalse(mpu.Status.Z)
+        assertTrue(mpu.Status.V)
+        assertTrue(mpu.Status.N)
     }
 
     @Test
@@ -547,13 +546,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0004, mpu.PC)
         assertEquals(0x93, mpu.A)
         assertFalse(mpu.Status.N)
-        assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
-
-        // ADC Absolute, X-Indexed
-
+        assertTrue(mpu.Status.V)
     }
+
+    // ADC Absolute, X-Indexed
 
     @Test
     fun test_adc_bcd_off_abs_x_carry_clear_in_accumulator_zeroes() {
@@ -5696,10 +5694,10 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x9a, mpu.A)
-        assertTrue(mpu.Status.N)
-        assertFalse(mpu.Status.V)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
+        assertFalse(mpu.Status.V)
+        assertTrue(mpu.Status.N)
     }
 
     @Test
@@ -5715,17 +5713,18 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x99, mpu.A)
-        assertTrue(mpu.Status.N)
-        assertFalse(mpu.Status.V)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
+        assertFalse(mpu.Status.V)
+        assertTrue(mpu.Status.N)
     }
 
     @Test
     fun test_sbc_bcd_on_immediate_20_minus_0a_carry_unset() {
         mpu.Status.D = true
+        mpu.Status.C = false
         mpu.A = 0x20
-        // $0000 SBC #$00
+        // $0000 SBC #$0a
         writeMem(memory, 0x0000, listOf(0xe9, 0x0a))
         mpu.step()
         assertEquals(0x0002, mpu.PC)

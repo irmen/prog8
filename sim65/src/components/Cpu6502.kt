@@ -702,13 +702,12 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             var lo = (A and 0x0f) + (operand and 0x0f) + if (Status.C) 1 else 0
             if (lo and 0xff > 9) lo += 6
             var hi = (A shr 4) + (operand shr 4) + if (lo > 15) 1 else 0
+            Status.N = (hi and 8) != 0      // strange... other sources say "BCD is never negative on NMOS 6502 (bug)"
+            Status.V = ((((hi shl 4) xor A) and 0x80) !=0) && ((A xor operand) and 0x80)==0   // strange... other sources say "V is never set in BCD mode"
             if (hi and 0xff > 9) hi += 6
-            val result = lo and 0x0f or (hi shl 4)
-            A = result and 0xff
+            A = lo and 0x0f or (hi shl 4) and 0xff
             Status.C = hi > 15
             Status.Z = A == 0
-            Status.V = false  // BCD never sets overflow flag
-            Status.N = false  // BCD is never negative on NMOS 6502 (bug)
         } else {
             // normal add
             val result = A + operand + if (Status.C) 1 else 0
@@ -990,21 +989,22 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iSbc() {
-        val operand = getFetched()
         if (Status.D) {
-            var lo = (A and 0x0f) - (operand and 0x0f) - if (Status.C) 0 else 1
+            val operand = getFetched()
+            var lo: Int
+            var hi: Int
+            lo = (A and 0x0f) - (operand and 0x0f) - if (Status.C) 0 else 1
             if (lo and 0x10 != 0) lo -= 6
-            var hi = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
+            hi = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
             if (hi and 0x10 != 0) hi -= 6
-            val result = lo and 0x0f or ((hi shl 4) and 0xff)
-            Status.C = hi and 255 < 15
-            Status.Z = result == 0
-            Status.V = false // BCD never sets overflow flag
-            Status.N = false // BCD is never negative on NMOS 6502 (bug)
-            A = result and 255
+            A = lo and 0x0f or (hi shl 4) and 0xff
+            Status.C = hi and 0xff < 15
+            Status.V = false  // BCD never sets overflow flag
+            Status.Z = A==0
+            Status.N = (A and 0b10000000) != 0
         } else {
             // normal sub
-            val invertedOperand = operand xor 255
+            val invertedOperand = getFetched() xor 255
             val result = A + invertedOperand + if (Status.C) 1 else 0
             Status.C = result > 255
             Status.V = (A xor invertedOperand) and (A xor result) and 0x0080 != 0
