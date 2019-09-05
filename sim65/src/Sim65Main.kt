@@ -70,19 +70,29 @@ private fun startSimulator(args: Array<String>) {
     //ram.dump(0x8000, 0x802f)
     //cpu.disassemble(ram, 0x8000, 0x802f)
 
-    while(true) {
-        bus.clock()
-        if(cpu.totalCycles > 300)
-            break
+    try {
+        while (true) {
+            bus.clock()
+        }
+    } catch(e: InstructionError) {
+
     }
 
     if(ram.read(0x0400)==0.toShort())
         println("BCD TEST: OK!")
     else {
+        val code = ram.read(0x0400)
         val v1 = ram.read(0x0401)
         val v2 = ram.read(0x0402)
-        println("BCD TEST: FAIL!! value1=${hexB(v1)} value2=${hexB(v2)}")
+        val predictedA = ram.read(0x00fc)
+        val actualA = ram.read(0x00fd)
+        val predictedF = ram.read(0x00fe)
+        val actualF = ram.read(0x00ff)
+        println("BCD TEST: FAIL!! code=${hexB(code)} value1=${hexB(v1)} value2=${hexB(v2)}")
+        println("  predictedA=${hexB(predictedA)}")
+        println("  actualA=${hexB(actualA)}")
+        println("  predictedF=${predictedF.toString(2).padStart(8,'0')}")
+        println("  actualF=${actualF.toString(2).padStart(8,'0')}")
     }
-    ram.dump(0x0400, 0x0402)
 
 }

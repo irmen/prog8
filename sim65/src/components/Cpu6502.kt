@@ -1,6 +1,5 @@
 package sim65.components
 
-
 class InstructionError(msg: String) : RuntimeException(msg)
 
 interface ICpu {
@@ -17,7 +16,6 @@ interface ICpu {
 }
 
 // TODO: add the optional additional cycles to certain instructions and addressing modes
-// TODO: fix sbc and adc with BCD arithmetic.
 // TODO: add IRQ and NMI signaling.
 // TODO: make a 65c02 variant as well (and re-enable the unit tests for that).
 
@@ -699,23 +697,31 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         val operand = getFetched()
         if (Status.D) {
             // BCD add
-            var lo = (A and 0x0f) + (operand and 0x0f) + if (Status.C) 1 else 0
-            if (lo and 0xff > 9) lo += 6
-            var hi = (A shr 4) + (operand shr 4) + if (lo > 15) 1 else 0
-            Status.N = (hi and 8) != 0      // strange... other sources say "BCD is never negative on NMOS 6502 (bug)"
-            Status.V = ((((hi shl 4) xor A) and 0x80) !=0) && ((A xor operand) and 0x80)==0   // strange... other sources say "V is never set in BCD mode"
-            if (hi and 0xff > 9) hi += 6
-            A = lo and 0x0f or (hi shl 4) and 0xff
-            Status.C = hi > 15
-            Status.Z = A == 0
+            // see http://www.6502.org/tutorials/decimal_mode.html
+            // and http://nesdev.com/6502.txt
+            // and https://sourceforge.net/p/vice-emu/code/HEAD/tree/trunk/vice/src/6510core.c#l598
+            // (the implementation below is based on the code used by Vice)
+            var tmp = (A and 0xf) + (operand and 0xf) + (if (Status.C) 1 else 0)
+            if (tmp > 0x9) tmp += 0x6
+            tmp = if (tmp <= 0x0f) {
+                (tmp and 0xf) + (A and 0xf0) + (operand and 0xf0)
+            } else {
+                (tmp and 0xf) + (A and 0xf0) + (operand and 0xf0) + 0x10
+            }
+            Status.Z = ((A + operand + (if (Status.C) 1 else 0)) and 0xff) == 0
+            Status.N = (tmp and 0b10000000) != 0
+            Status.V = ((A xor tmp) and 0x80) != 0 && ((A xor operand) and 0x80) == 0
+            if (tmp > 0x90) tmp += 0x60
+            Status.C = tmp > 0xf0
+            A = tmp and 255
         } else {
             // normal add
-            val result = A + operand + if (Status.C) 1 else 0
-            Status.C = result > 255
-            Status.V = (A xor operand).inv() and (A xor result) and 0x0080 != 0
-            A = result and 255
-            Status.N = (A and 0b10000000) != 0
-            Status.Z = A == 0
+            val tmp = operand + A + if (Status.C) 1 else 0
+            Status.N = (tmp and 0b10000000) != 0
+            Status.Z = (tmp and 255) == 0
+            Status.V = ((A xor operand) and 0x80) == 0 && ((A xor tmp) and 0x80) != 0
+            Status.C = tmp > 255
+            A = tmp and 255
         }
     }
 
@@ -989,29 +995,30 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     }
 
     private fun iSbc() {
+        val operand = getFetched()
+        val tmp = (A - operand - if (Status.C) 0 else 1) and 65535
         if (Status.D) {
-            val operand = getFetched()
-            var lo: Int
-            var hi: Int
-            lo = (A and 0x0f) - (operand and 0x0f) - if (Status.C) 0 else 1
-            if (lo and 0x10 != 0) lo -= 6
-            hi = (A shr 4) - (operand shr 4) - if (lo and 0x10 != 0) 1 else 0
-            if (hi and 0x10 != 0) hi -= 6
-            A = lo and 0x0f or (hi shl 4) and 0xff
-            Status.C = hi and 0xff < 15
-            Status.V = false  // BCD never sets overflow flag
-            Status.Z = A==0
-            Status.N = (A and 0b10000000) != 0
+            // BCD subtract
+            // see http://www.6502.org/tutorials/decimal_mode.html
+            // and http://nesdev.com/6502.txt
+            // and https://sourceforge.net/p/vice-emu/code/HEAD/tree/trunk/vice/src/6510core.c#l1396
+            // (the implementation below is based on the code used by Vice)
+            var tmpA = ((A and 0xf) - (operand and 0xf) - if (Status.C) 0 else 1) and 65535
+            tmpA = if ((tmpA and 0x10) != 0) {
+                ((tmpA - 6) and 0xf) or (A and 0xf0) - (operand and 0xf0) - 0x10
+            } else {
+                (tmpA and 0xf) or (A and 0xf0) - (operand and 0xf0)
+            }
+            if ((tmpA and 0x100) != 0) tmpA -= 0x60
+            A = tmpA and 255
         } else {
-            // normal sub
-            val invertedOperand = getFetched() xor 255
-            val result = A + invertedOperand + if (Status.C) 1 else 0
-            Status.C = result > 255
-            Status.V = (A xor invertedOperand) and (A xor result) and 0x0080 != 0
-            A = result and 255
-            Status.N = (A and 0b10000000) != 0
-            Status.Z = A == 0
+            // normal subtract
+            A = tmp and 255
         }
+        Status.C = tmp < 0x100
+        Status.Z = (tmp and 255) == 0
+        Status.N = (tmp and 0b10000000) != 0
+        Status.V = ((A xor tmp) and 0x80) != 0 && ((A xor operand) and 0x80) != 0
     }
 
     private fun iSec() {

@@ -507,8 +507,8 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-        assertTrue(mpu.Status.V)
         assertTrue(mpu.Status.N)
+        assertTrue(mpu.Status.V)
     }
 
     @Test
@@ -534,6 +534,7 @@ abstract class TestCommon6502 {
 
         mpu.Status.D = true
         mpu.Status.C = false
+        mpu.Status.N = true
         mpu.A = 0x9c
         // $0000 ADC #$9d
         // $0002 ADC #$9d
@@ -545,10 +546,10 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0004, mpu.PC)
         assertEquals(0x93, mpu.A)
-        assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
         assertTrue(mpu.Status.V)
+        assertFalse(mpu.Status.N)
     }
 
     // ADC Absolute, X-Indexed
@@ -5696,8 +5697,8 @@ abstract class TestCommon6502 {
         assertEquals(0x9a, mpu.A)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
-        assertFalse(mpu.Status.V)
         assertTrue(mpu.Status.N)
+        assertFalse(mpu.Status.V)
     }
 
     @Test
@@ -5714,9 +5715,9 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x99, mpu.A)
         assertFalse(mpu.Status.Z)
-        assertFalse(mpu.Status.C)
-        assertFalse(mpu.Status.V)
         assertTrue(mpu.Status.N)
+        assertFalse(mpu.Status.V)
+        assertFalse(mpu.Status.C)
     }
 
     @Test
@@ -5729,10 +5730,10 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x1f, mpu.A)
-        assertFalse(mpu.Status.N)
-        assertFalse(mpu.Status.V)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
+        assertFalse(mpu.Status.N)
+        assertFalse(mpu.Status.V)
     }
 
     // SBC Absolute, X-Indexed
