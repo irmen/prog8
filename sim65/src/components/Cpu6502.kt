@@ -10,6 +10,7 @@ interface ICpu {
     fun clock()
     fun reset()
     fun step()
+    fun breakpoint(address: Address, action: (cpu: ICpu, pc: Address) -> Unit)
 
     var tracing: Boolean
     val totalCycles: Int
@@ -20,7 +21,7 @@ interface ICpu {
 // TODO: make a 65c02 variant as well (and re-enable the unit tests for that).
 
 
-class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu {
+class Cpu6502(private val illegalInstrsAllowed: Boolean, private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     override var tracing: Boolean = false
     override var totalCycles: Int = 0
         private set
@@ -147,6 +148,12 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
             AddrMode.IzY to ::amIzy
     )
 
+    private val breakpoints = mutableMapOf<Address, (cpu: ICpu, pc: Address) -> Unit>()
+
+    override fun breakpoint(address: Address, action: (cpu: ICpu, pc: Address) -> Unit) {
+        breakpoints[address] = action
+    }
+
     override fun disassemble(memory: Array<UByte>, baseAddress: Address, from: Address, to: Address): List<String> {
         var address = from - baseAddress
         val spacing1 = "        "
@@ -255,17 +262,29 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
 
     override fun clock() {
         if (instrCycles == 0) {
-            currentOpcode = read(PC++)
+            currentOpcode = read(PC)
             currentInstruction = opcodes[currentOpcode]
-
-            if (tracing) {
-                printState()
-            }
+            if (tracing) printState()
 
             if (!currentInstruction.official && !illegalInstrsAllowed) {
                 throw InstructionError("illegal instructions not enabled")
             }
 
+            breakpoints[PC]?.let {
+                val oldPC = PC
+                val oldOpcode = currentOpcode
+                it(this, PC)
+                if (PC != oldPC)
+                    return clock()
+                if (oldOpcode != currentOpcode)
+                    currentInstruction = opcodes[currentOpcode]
+            }
+
+            if (currentOpcode == 0 && stopOnBrk) {
+                throw InstructionError("stopped on BRK instruction at ${hexW(PC)}")
+            }
+
+            PC++
             instrCycles = currentInstruction.cycles
             addressingModes.getValue(currentInstruction.mode)()
             currentInstruction.execute()
@@ -342,13 +361,13 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
     private fun amAbsx() {
         val lo = readPc()
         val hi = readPc()
-        fetchedAddress = (X + (lo or (hi shl 8))) and 0xffff
+        fetchedAddress = X + (lo or (hi shl 8)) and 0xffff
     }
 
     private fun amAbsy() {
         val lo = readPc()
         val hi = readPc()
-        fetchedAddress = (Y + (lo or (hi shl 8))) and 0xffff
+        fetchedAddress = Y + (lo or (hi shl 8)) and 0xffff
     }
 
     private fun amInd() {
@@ -381,7 +400,7 @@ class Cpu6502(private val illegalInstrsAllowed: Boolean) : BusComponent(), ICpu 
         fetchedAddress = readPc()
         val lo = read(fetchedAddress)
         val hi = read((fetchedAddress + 1) and 255)
-        fetchedAddress = (Y + lo or (hi shl 8)) and 65535
+        fetchedAddress = Y + (lo or (hi shl 8)) and 65535
     }
 
     private fun getFetched(): Int {

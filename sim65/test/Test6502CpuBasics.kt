@@ -7,7 +7,7 @@ class Test6502CpuBasics {
 
     @Test
     fun testCpuFlagsAfterReset() {
-        val cpu = Cpu6502(true)
+        val cpu = Cpu6502(true, true)
         val bus = Bus()
         bus.add(cpu)
         cpu.reset()
