@@ -13,7 +13,7 @@ interface ICpu {
     fun breakpoint(address: Address, action: (cpu: ICpu, pc: Address) -> Unit)
 
     var tracing: Boolean
-    val totalCycles: Int
+    val totalCycles: Long
 }
 
 // TODO: add the optional additional cycles to certain instructions and addressing modes
@@ -23,7 +23,7 @@ interface ICpu {
 
 class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     override var tracing: Boolean = false
-    override var totalCycles: Int = 0
+    override var totalCycles: Long = 0
         private set
 
     companion object {

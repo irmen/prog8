@@ -1923,7 +1923,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertTrue(mpu.Status.N)
     }
 
@@ -1936,7 +1936,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertFalse(mpu.Status.N)
     }
 
@@ -1949,7 +1949,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertTrue(mpu.Status.V)
     }
 
@@ -1962,7 +1962,7 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertFalse(mpu.Status.V)
     }
 
@@ -1975,7 +1975,7 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertTrue(mpu.Status.Z)
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0x0010])
@@ -1990,7 +1990,7 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertFalse(mpu.Status.Z)  // result of AND is non-zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x01, memory[0x0010])
@@ -2005,7 +2005,7 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles.toInt())
         assertTrue(mpu.Status.Z)  // result of AND is zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0x0010])

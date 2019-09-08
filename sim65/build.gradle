@@ -97,8 +97,11 @@ test {
 
     // Show test results.
     testLogging {
-        events "passed", "skipped", "failed"
+        events "failed"
     }
+    systemProperties['junit.jupiter.execution.parallel.enabled'] = true
+    systemProperties['junit.jupiter.execution.parallel.mode.default'] = 'concurrent'
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 
 

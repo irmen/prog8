@@ -1,63 +1,89 @@
 package sim65
 
 import kotlinx.cli.*
-import sim65.C64KernalStubs.handleBreakpoint
 import sim65.components.*
-import sim65.components.Cpu6502.Companion.IRQ_vector
-import sim65.components.Cpu6502.Companion.RESET_vector
+import sim65.components.Cpu6502.Companion.hexB
 import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-    printSoftwareHeader()
-    startSimulator(args)
+    printSoftwareHeader2()
+    startSimulator2(args)
 }
 
-internal fun printSoftwareHeader() {
+internal fun printSoftwareHeader2() {
     val buildVersion = object {}.javaClass.getResource("/version.txt").readText().trim()
     println("\nSim65 6502 cpu simulator v$buildVersion by Irmen de Jong (irmen@razorvine.net)")
     println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
 }
 
 
-private fun startSimulator(args: Array<String>) {
+private fun startSimulator2(args: Array<String>) {
+    val bootRom = listOf<UByte>(
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,
+            0x00,0x90,   // NMI vector
+            0x00,0x10,   // RESET vector
+            0x00,0xa0    // IRQ vector
+    ).toTypedArray()
 
-    val cpu = Cpu6502(stopOnBrk = false)
-    cpu.tracing = false
-    cpu.breakpoint(0xffd2, ::handleBreakpoint)
-    cpu.breakpoint(0xffe4, ::handleBreakpoint)
-    cpu.breakpoint(0xe16f, ::handleBreakpoint)
+    val cpu = Cpu6502(true)
+    cpu.tracing = true
 
     // create the system bus and add device to it.
     // note that the order is relevant w.r.t. where reads and writes are going.
-    val ram = Ram(0, 0xffff)
-    ram.set(0x02, 0)
-    ram.set(0xa002, 0)
-    ram.set(0xa003, 0x80)
-    ram.set(IRQ_vector, 0x48)
-    ram.set(IRQ_vector+1, 0xff)
-    ram.set(RESET_vector, 0x01)
-    ram.set(RESET_vector+1, 0x08)
-    ram.set(0x01fe, 0xff)
-    ram.set(0x01ff, 0x7f)
-    ram.set(0x8000, 2)
-    ram.set(0xa474, 2)
-    ram.loadPrg("c64tests/nopn")
-    C64KernalStubs.ram = ram
-
     val bus = Bus()
     bus.add(cpu)
+    bus.add(Rom(0xff00, 0xffff, bootRom))
+    bus.add(Parallel(0xd000, 0xd001))
+    bus.add(Timer(0xd100, 0xd103))
+    val ram = Ram(0, 0xffff)
     bus.add(ram)
+
     bus.reset()
 
-    require(cpu.SP==0xfd)
-    require(cpu.Status.asByte().toInt()==0b00100100)
+    ram.load("sim65/test/testfiles/ram.bin", 0x8000)
+    ram.load("sim65/test/testfiles/bcdtest.bin", 0x1000)
+    //ram.dump(0x8000, 0x802f)
+    //cpu.disassemble(ram, 0x8000, 0x802f)
 
     try {
         while (true) {
             bus.clock()
         }
     } catch(e: InstructionError) {
-        println(">>> INSTRUCTION ERROR: ${e.message}")
+
     }
+
+    if(ram[0x0400] ==0.toShort())
+        println("BCD TEST: OK!")
+    else {
+        val code = ram[0x0400]
+        val v1 = ram[0x0401]
+        val v2 = ram[0x0402]
+        val predictedA = ram[0x00fc]
+        val actualA = ram[0x00fd]
+        val predictedF = ram[0x00fe]
+        val actualF = ram[0x00ff]
+        println("BCD TEST: FAIL!! code=${hexB(code)} value1=${hexB(v1)} value2=${hexB(v2)}")
+        println("  predictedA=${hexB(predictedA)}")
+        println("  actualA=${hexB(actualA)}")
+        println("  predictedF=${predictedF.toString(2).padStart(8,'0')}")
+        println("  actualF=${actualF.toString(2).padStart(8,'0')}")
+    }
+
 }
