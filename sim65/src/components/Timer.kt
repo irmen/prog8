@@ -1,29 +1,28 @@
 package sim65.components
 
 class Timer(startAddress: Address, endAddress: Address): MemMappedComponent(startAddress, endAddress) {
-    private var cycle: Long = 0
+    private var counter: Long = 0
 
     init {
         require(endAddress - startAddress + 1 == 4) { "timer needs exactly 4 memory bytes" }
     }
 
     override fun clock() {
-        cycle++
-        if (cycle > 0xffffffff)
-            cycle = 0
+        counter++
+        if (counter > 0xffffffff)
+            counter = 0
+        println("TIMER CLOCK $counter")
     }
 
     override fun reset() {
-        cycle = 0
+        counter = 0
     }
 
     override operator fun get(address: Address): UByte {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("timer read $address")
     }
 
     override operator fun set(address: Address, data: UByte) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("timer write $address = $data")
     }
-
-    override fun cloneMem(): Array<UByte> = TODO("clonemem timer")
 }

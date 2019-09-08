@@ -8,6 +8,7 @@ import sim65.components.InstructionError
 import sim65.components.Ram
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+@Disabled("this test suite takes a long time")
 class Test6502TestSuite {
 
     val cpu: Cpu6502 = Cpu6502(stopOnBrk = false)

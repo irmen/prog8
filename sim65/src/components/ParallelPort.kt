@@ -7,7 +7,7 @@ import sim65.Petscii
  * First address = data byte (8 parallel bits)
  * Second address = control byte (bit 0 high = write byte)
  */
-class Parallel(startAddress: Address, endAddress: Address) : MemMappedComponent(startAddress, endAddress) {
+class ParallelPort(startAddress: Address, endAddress: Address) : MemMappedComponent(startAddress, endAddress) {
     private var dataByte: UByte = 0
 
     init {
@@ -34,6 +34,4 @@ class Parallel(startAddress: Address, endAddress: Address) : MemMappedComponent(
             }
         }
     }
-
-    override fun cloneMem(): Array<UByte> = listOf(dataByte, 0).toTypedArray()
 }

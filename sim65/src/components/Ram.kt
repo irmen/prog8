@@ -2,7 +2,7 @@ package sim65.components
 
 import java.io.File
 
-class Ram(startAddress: Address, endAddress: Address): MemMappedComponent(startAddress, endAddress) {
+class Ram(startAddress: Address, endAddress: Address): MemoryComponent(startAddress, endAddress) {
     private val memory = ShortArray(endAddress-startAddress+1)
 
     override operator fun get(address: Address): UByte = memory[address-startAddress]
@@ -11,7 +11,7 @@ class Ram(startAddress: Address, endAddress: Address): MemMappedComponent(startA
         memory[address-startAddress] = data
     }
 
-    override fun cloneMem(): Array<UByte> = memory.toTypedArray()
+    override fun cloneContents(): Array<UByte> = memory.toTypedArray()
 
     override fun clock() { }
 
