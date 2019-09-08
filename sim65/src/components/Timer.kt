@@ -17,11 +17,11 @@ class Timer(startAddress: Address, endAddress: Address): MemMappedComponent(star
         cycle = 0
     }
 
-    override fun read(address: Address): UByte {
+    override operator fun get(address: Address): UByte {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun write(address: Address, data: UByte) {
+    override operator fun set(address: Address, data: UByte) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 

@@ -1,6 +1,6 @@
 package sim65.components
 
-import sim65.C64Screencodes
+import sim65.Petscii
 
 /**
  * A parallel output device (basically, prints bytes as characters to the screen)
@@ -17,19 +17,19 @@ class Parallel(startAddress: Address, endAddress: Address) : MemMappedComponent(
     override fun clock() {}
     override fun reset() {}
 
-    override fun read(address: Address): UByte {
+    override operator fun get(address: Address): UByte {
         return if (address == startAddress)
             dataByte
         else
             0
     }
 
-    override fun write(address: Address, data: UByte) {
+    override operator fun set(address: Address, data: UByte) {
         if (address == startAddress)
             dataByte = data
         else if (address == endAddress) {
             if ((data.toInt() and 1) == 1) {
-                val char = C64Screencodes.decodeScreencode(listOf(dataByte), false).first()
+                val char = Petscii.decodeScreencode(listOf(dataByte), false).first()
                 println("PARALLEL WRITE: '$char'")
             }
         }

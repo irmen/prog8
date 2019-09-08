@@ -3,6 +3,7 @@ package sim65
 import kotlinx.cli.*
 import sim65.C64KernalStubs.handleBreakpoint
 import sim65.components.*
+import sim65.components.Cpu6502.Companion.IRQ_vector
 import sim65.components.Cpu6502.Companion.RESET_vector
 import kotlin.system.exitProcess
 
@@ -20,41 +21,37 @@ internal fun printSoftwareHeader() {
 
 
 private fun startSimulator(args: Array<String>) {
-    val cli = CommandLineInterface("sim65", printHelpByDefault = false)
-    val enableIllegal by cli.flagArgument("-ill", "enable the illegal instructions")
 
-    try {
-        cli.parse(args)
-    } catch (e: Exception) {
-        exitProcess(1)
-    }
-
-    val cpu = Cpu6502(enableIllegal, stopOnBrk=true)
+    val cpu = Cpu6502(stopOnBrk = false)
     cpu.tracing = false
-
-    // create the system bus and add device to it.
-    // note that the order is relevant w.r.t. where reads and writes are going.
-    val bus = Bus()
-    bus.add(cpu)
-    val ram = Ram(0, 0xffff)
-    ram.set(0xc000, 0xa9)   // lda #0
-    ram.set(0xc001, 0x00)
-    ram.set(0xc002, 0x85)   // sta $02
-    ram.set(0xc003, 0x02)
-    ram.set(0xc004, 0x4c)   // jmp $0816
-    ram.set(0xc005, 0x16)
-    ram.set(0xc006, 0x08)
-    ram.set(RESET_vector, 0x00)
-    ram.set(RESET_vector+1, 0xc0)
-    bus.add(ram)
-
-    ram.loadPrg("c64tests/0start")
-    C64KernalStubs.ram = ram
-
     cpu.breakpoint(0xffd2, ::handleBreakpoint)
     cpu.breakpoint(0xffe4, ::handleBreakpoint)
     cpu.breakpoint(0xe16f, ::handleBreakpoint)
+
+    // create the system bus and add device to it.
+    // note that the order is relevant w.r.t. where reads and writes are going.
+    val ram = Ram(0, 0xffff)
+    ram.set(0x02, 0)
+    ram.set(0xa002, 0)
+    ram.set(0xa003, 0x80)
+    ram.set(IRQ_vector, 0x48)
+    ram.set(IRQ_vector+1, 0xff)
+    ram.set(RESET_vector, 0x01)
+    ram.set(RESET_vector+1, 0x08)
+    ram.set(0x01fe, 0xff)
+    ram.set(0x01ff, 0x7f)
+    ram.set(0x8000, 2)
+    ram.set(0xa474, 2)
+    ram.loadPrg("c64tests/nopn")
+    C64KernalStubs.ram = ram
+
+    val bus = Bus()
+    bus.add(cpu)
+    bus.add(ram)
     bus.reset()
+
+    require(cpu.SP==0xfd)
+    require(cpu.Status.asByte().toInt()==0b00100100)
 
     try {
         while (true) {

@@ -8,7 +8,7 @@ class TestDisassembler {
 
     @Test
     fun testDisassembleAllOpcodes() {
-        val cpu = Cpu6502(true, true)
+        val cpu = Cpu6502(true)
         val memory = Ram(0, 0xffff)
         memory.load("test/testfiles/disassem_instr_test.prg", 0x1000 - 2)
         val result = cpu.disassemble(memory, 0x1000, 0x1221)

@@ -5,14 +5,11 @@ import java.io.File
 class Ram(startAddress: Address, endAddress: Address): MemMappedComponent(startAddress, endAddress) {
     private val memory = ShortArray(endAddress-startAddress+1)
 
-    override fun read(address: Address): UByte = memory[address-startAddress]
+    override operator fun get(address: Address): UByte = memory[address-startAddress]
 
-    override fun write(address: Address, data: UByte) {
+    override operator fun set(address: Address, data: UByte) {
         memory[address-startAddress] = data
     }
-
-    operator fun get(address: Address) = read(address)
-    operator fun set(address: Address, data: UByte) = write(address, data)
 
     override fun cloneMem(): Array<UByte> = memory.toTypedArray()
 

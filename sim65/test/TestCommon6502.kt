@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 abstract class TestCommon6502 {
     // Tests common to 6502-based microprocessors
 
-    val mpu = Cpu6502(true, true)     // TODO make a 65C02 cpu as well and let the subclasses testsuites define the appropriate instance
+    val mpu = Cpu6502(stopOnBrk = false)     // TODO make a 65C02 cpu as well and let the subclasses testsuites define the appropriate instance
     val memory = Ram(0, 0xffff)
     val bus = Bus()
 
@@ -53,8 +53,8 @@ abstract class TestCommon6502 {
         bus.add(mpu)
         bus.add(memory)
         memory.fill(0xaa)
-        memory.write(Cpu6502.RESET_vector, 0)
-        memory.write(Cpu6502.RESET_vector+1, 0)
+        memory[Cpu6502.RESET_vector] = 0
+        memory[Cpu6502.RESET_vector + 1] = 0
         mpu.reset()
         mpu.Status.I = false        // allow interrupts again
     }
@@ -74,7 +74,7 @@ abstract class TestCommon6502 {
     // test helpers
     fun writeMem(memory: MemMappedComponent, startAddress: Address, data: Iterable<UByte>) {
         var addr = startAddress
-        data.forEach { memory.write(addr++, it) }
+        data.forEach { memory[addr++] = it }
     }
 
 
@@ -91,6 +91,7 @@ abstract class TestCommon6502 {
     }
 
     // ADC Absolute
+
     @Test
     fun test_adc_bcd_off_absolute_carry_clear_in_accumulator_zeroes() {
         mpu.A = 0
@@ -218,9 +219,9 @@ abstract class TestCommon6502 {
     }
 
     // ADC Zero Page
+
     @Test
     fun test_adc_bcd_off_zp_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0
         // $0000 ADC $00B0
         writeMem(memory, 0x0000, listOf(0x65, 0xB0))
@@ -231,12 +232,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.Status.C = true
         // $0000 ADC $00B0
@@ -248,12 +247,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         // $0000 ADC $00B0
         writeMem(memory, 0x0000, listOf(0x65, 0xB0))
@@ -264,12 +261,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         // $0000 ADC $00B0
         writeMem(memory, 0x0000, listOf(0x65, 0xB0))
@@ -280,12 +275,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC $00B0
@@ -295,12 +288,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC $00B0
@@ -310,12 +301,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         // $0000 ADC $00B0
@@ -325,12 +314,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_overflow_set_no_carry_80_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x80
         // $0000 ADC $00B0
@@ -340,12 +327,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_overflow_set_on_40_plus_40() {
-
         mpu.A = 0x40
         mpu.Status.V = false
         // $0000 ADC $00B0
@@ -357,14 +342,12 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
-        // ADC Immediate
-
     }
+
+    // ADC Immediate
 
     @Test
     fun test_adc_bcd_off_immediate_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0
         // $0000 ADC #$00
         writeMem(memory, 0x0000, listOf(0x69, 0x00))
@@ -374,12 +357,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.Status.C = true
         // $0000 ADC #$00
@@ -390,12 +371,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         // $0000 ADC #$FE
         writeMem(memory, 0x0000, listOf(0x69, 0xFE))
@@ -405,12 +384,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         // $0000 ADC #$FF
         writeMem(memory, 0x0000, listOf(0x69, 0xFF))
@@ -420,12 +397,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC #$01
@@ -434,12 +409,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC #$FF
@@ -448,12 +421,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         // $0000 ADC #$01
@@ -462,12 +433,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_overflow_set_no_carry_80_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x80
         // $0000 ADC #$FF
@@ -476,12 +445,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_immediate_overflow_set_on_40_plus_40() {
-
         mpu.A = 0x40
         // $0000 ADC #$40
         writeMem(memory, 0x0000, listOf(0x69, 0x40))
@@ -491,12 +458,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_on_immediate_79_plus_00_carry_set() {
-
         mpu.Status.D = true
         mpu.Status.C = true
         mpu.A = 0x79
@@ -513,7 +478,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_adc_bcd_on_immediate_6f_plus_00_carry_set() {
-
         mpu.Status.D = true
         mpu.Status.C = true
         mpu.A = 0x6f
@@ -526,12 +490,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.V)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_on_immediate_9c_plus_9d() {
-
         mpu.Status.D = true
         mpu.Status.C = false
         mpu.Status.N = true
@@ -556,7 +518,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_adc_bcd_off_abs_x_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 ADC $C000,X
@@ -568,12 +529,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.X = 0x03
         mpu.Status.C = true
@@ -586,12 +545,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         mpu.X = 0x03
         // $0000 ADC $C000,X
@@ -603,12 +560,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         mpu.X = 0x03
         // $0000 ADC $C000,X
@@ -620,12 +575,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC $C000,X
@@ -635,12 +588,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC $C000,X
@@ -650,12 +601,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         // $0000 ADC $C000,X
@@ -665,12 +614,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_overflow_set_no_carry_80_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x80
         // $0000 ADC $C000,X
@@ -680,12 +627,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_x_overflow_set_on_40_plus_40() {
-
         mpu.Status.V = false
         mpu.A = 0x40
         mpu.X = 0x03
@@ -698,14 +643,12 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
-        // ADC Absolute, Y-Indexed
-
     }
+
+    // ADC Absolute, Y-Indexed
 
     @Test
     fun test_adc_bcd_off_abs_y_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         // $0000 ADC $C000,Y
@@ -717,12 +660,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.Y = 0x03
         mpu.Status.C = true
@@ -735,12 +676,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         mpu.Y = 0x03
         // $0000 ADC $C000,Y
@@ -752,12 +691,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         mpu.Y = 0x03
         // $0000 ADC $C000,Y
@@ -769,12 +706,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC $C000,Y
@@ -784,12 +719,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         // $0000 ADC $C000,Y
@@ -799,12 +732,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         // $0000 ADC $C000,Y
@@ -814,12 +745,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_overflow_set_no_carry_80_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x80
         // $0000 ADC $C000,Y
@@ -829,12 +758,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_abs_y_overflow_set_on_40_plus_40() {
-
         mpu.Status.V = false
         mpu.A = 0x40
         mpu.Y = 0x03
@@ -847,14 +774,12 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
-        // ADC Zero Page, X-Indexed
-
     }
+
+    // ADC Zero Page, X-Indexed
 
     @Test
     fun test_adc_bcd_off_zp_x_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 ADC $0010,X
@@ -866,12 +791,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.X = 0x03
         mpu.Status.C = true
@@ -884,12 +807,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         mpu.X = 0x03
         // $0000 ADC $0010,X
@@ -901,12 +822,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         mpu.X = 0x03
         // $0000 ADC $0010,X
@@ -918,12 +837,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         mpu.X = 0x03
@@ -934,12 +851,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         mpu.X = 0x03
@@ -950,12 +865,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         mpu.X = 0x03
@@ -966,7 +879,6 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
@@ -982,12 +894,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_zp_x_overflow_set_on_40_plus_40() {
-
         mpu.Status.V = false
         mpu.A = 0x40
         mpu.X = 0x03
@@ -1000,14 +910,12 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
-        // ADC Indirect, Indexed (X)
-
     }
+
+    // ADC Indirect, Indexed (X)
 
     @Test
     fun test_adc_bcd_off_ind_indexed_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 ADC ($0010,X)
@@ -1021,12 +929,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.X = 0x03
         mpu.Status.C = true
@@ -1041,12 +947,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         mpu.X = 0x03
         // $0000 ADC ($0010,X)
@@ -1060,12 +964,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         mpu.X = 0x03
         // $0000 ADC ($0010,X)
@@ -1079,12 +981,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         mpu.X = 0x03
@@ -1097,12 +997,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         mpu.X = 0x03
@@ -1115,12 +1013,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         mpu.X = 0x03
@@ -1133,12 +1029,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_overflow_set_no_carry_80_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x80
         mpu.X = 0x03
@@ -1151,12 +1045,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_ind_indexed_overflow_set_on_40_plus_40() {
-
         mpu.Status.V = false
         mpu.A = 0x40
         mpu.X = 0x03
@@ -1171,14 +1063,12 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertTrue(mpu.Status.V)
         assertFalse(mpu.Status.Z)
-
-        // ADC Indexed, Indirect (Y)
-
     }
+
+    // ADC Indexed, Indirect (Y)
 
     @Test
     fun test_adc_bcd_off_indexed_ind_carry_clear_in_accumulator_zeroes() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         // $0000 ADC ($0010),Y
@@ -1192,12 +1082,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_carry_set_in_accumulator_zero() {
-
         mpu.A = 0
         mpu.Y = 0x03
         mpu.Status.C = true
@@ -1212,12 +1100,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_carry_clear_in_no_carry_clear_out() {
-
         mpu.A = 0x01
         mpu.Y = 0x03
         // $0000 ADC ($0010),Y
@@ -1231,12 +1117,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_carry_clear_in_carry_set_out() {
-
         mpu.A = 0x02
         mpu.Y = 0x03
         // $0000 ADC ($0010),Y
@@ -1250,12 +1134,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_overflow_clr_no_carry_01_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         mpu.Y = 0x03
@@ -1268,12 +1150,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x02, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_overflow_clr_no_carry_01_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x01
         mpu.Y = 0x03
@@ -1286,12 +1166,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_overflow_set_no_carry_7f_plus_01() {
-
         mpu.Status.C = false
         mpu.A = 0x7f
         mpu.Y = 0x03
@@ -1304,12 +1182,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_overflow_set_no_carry_80_plus_ff() {
-
         mpu.Status.C = false
         mpu.A = 0x80
         mpu.Y = 0x03
@@ -1322,12 +1198,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x7f, mpu.A)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_adc_bcd_off_indexed_ind_overflow_set_on_40_plus_40() {
-
         mpu.Status.V = false
         mpu.A = 0x40
         mpu.Y = 0x03
@@ -1348,7 +1222,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_and_absolute_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         // $0000 AND $ABCD
         writeMem(memory, 0x0000, listOf(0x2D, 0xCD, 0xAB))
@@ -1358,12 +1231,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_absolute_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         // $0000 AND $ABCD
         writeMem(memory, 0x0000, listOf(0x2D, 0xCD, 0xAB))
@@ -1379,7 +1250,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_and_zp_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         // $0000 AND $0010
         writeMem(memory, 0x0000, listOf(0x25, 0x10))
@@ -1389,12 +1259,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_zp_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         // $0000 AND $0010
         writeMem(memory, 0x0000, listOf(0x25, 0x10))
@@ -1404,14 +1272,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND (Immediate)
-
     }
+
+    // AND (Immediate)
 
     @Test
     fun test_and_immediate_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         // $0000 AND #$00
         writeMem(memory, 0x0000, listOf(0x29, 0x00))
@@ -1420,12 +1286,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_immediate_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         // $0000 AND #$AA
         writeMem(memory, 0x0000, listOf(0x29, 0xAA))
@@ -1434,14 +1298,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND (Absolute, X-Indexed)
-
     }
+
+    // AND (Absolute, X-Indexed)
 
     @Test
     fun test_and_abs_x_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 AND $ABCD,X
@@ -1452,12 +1314,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_abs_x_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 AND $ABCD,X
@@ -1468,14 +1328,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND (Absolute, Y-Indexed)
-
     }
+
+    // AND (Absolute, Y-Indexed)
 
     @Test
     fun test_and_abs_y_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         // $0000 AND $ABCD,X
@@ -1486,7 +1344,6 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
@@ -1507,7 +1364,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_and_ind_indexed_x_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 AND ($0010,X)
@@ -1520,12 +1376,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_ind_indexed_x_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 AND ($0010,X)
@@ -1538,14 +1392,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND Indexed, Indirect (Y)
-
     }
+
+    // AND Indexed, Indirect (Y)
 
     @Test
     fun test_and_indexed_ind_y_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         // $0000 AND ($0010),Y
@@ -1558,12 +1410,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_indexed_ind_y_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         // $0000 AND ($0010),Y
@@ -1576,14 +1426,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // AND Zero Page, X-Indexed
-
     }
+
+    // AND Zero Page, X-Indexed
 
     @Test
     fun test_and_zp_x_all_zeros_setting_zero_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 AND $0010,X
@@ -1594,12 +1442,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_and_zp_x_all_zeros_and_ones_setting_negative_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 AND $0010,X
@@ -1610,14 +1456,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ASL Accumulator
-
     }
+
+    // ASL Accumulator
 
     @Test
     fun test_asl_accumulator_sets_z_flag() {
-
         mpu.A = 0x00
         // $0000 ASL A
         memory[0x0000] = 0x0A
@@ -1626,12 +1470,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_asl_accumulator_sets_n_flag() {
-
         mpu.A = 0x40
         // $0000 ASL A
         memory[0x0000] = 0x0A
@@ -1640,12 +1482,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_asl_accumulator_shifts_out_zero() {
-
         mpu.A = 0x7F
         // $0000 ASL A
         memory[0x0000] = 0x0A
@@ -1653,12 +1493,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xFE, mpu.A)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_asl_accumulator_shifts_out_one() {
-
         mpu.A = 0xFF
         // $0000 ASL A
         memory[0x0000] = 0x0A
@@ -1666,12 +1504,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xFE, mpu.A)
         assertTrue(mpu.Status.C)
-
     }
 
     @Test
     fun test_asl_accumulator_80_sets_z_flag() {
-
         mpu.A = 0x80
         mpu.Status.Z = false
         // $0000 ASL A
@@ -1680,14 +1516,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
-        // ASL Absolute
-
     }
+
+    // ASL Absolute
 
     @Test
     fun test_asl_absolute_sets_z_flag() {
-
         // $0000 ASL $ABCD
         writeMem(memory, 0x0000, listOf(0x0E, 0xCD, 0xAB))
         memory[0xABCD] = 0x00
@@ -1696,12 +1530,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_asl_absolute_sets_n_flag() {
-
         // $0000 ASL $ABCD
         writeMem(memory, 0x0000, listOf(0x0E, 0xCD, 0xAB))
         memory[0xABCD] = 0x40
@@ -1710,12 +1542,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0xABCD])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_asl_absolute_shifts_out_zero() {
-
         mpu.A = 0xAA
         // $0000 ASL $ABCD
         writeMem(memory, 0x0000, listOf(0x0E, 0xCD, 0xAB))
@@ -1725,12 +1555,10 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0xABCD])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_asl_absolute_shifts_out_one() {
-
         mpu.A = 0xAA
         // $0000 ASL $ABCD
         writeMem(memory, 0x0000, listOf(0x0E, 0xCD, 0xAB))
@@ -1740,14 +1568,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0xABCD])
         assertTrue(mpu.Status.C)
-
-        // ASL Zero Page
-
     }
+
+    // ASL Zero Page
 
     @Test
     fun test_asl_zp_sets_z_flag() {
-
         // $0000 ASL $0010
         writeMem(memory, 0x0000, listOf(0x06, 0x10))
         memory[0x0010] = 0x00
@@ -1756,12 +1582,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_asl_zp_sets_n_flag() {
-
         // $0000 ASL $0010
         writeMem(memory, 0x0000, listOf(0x06, 0x10))
         memory[0x0010] = 0x40
@@ -1770,12 +1594,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0x0010])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_asl_zp_shifts_out_zero() {
-
         mpu.A = 0xAA
         // $0000 ASL $0010
         writeMem(memory, 0x0000, listOf(0x06, 0x10))
@@ -1785,12 +1607,10 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0x0010])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_asl_zp_shifts_out_one() {
-
         mpu.A = 0xAA
         // $0000 ASL $0010
         writeMem(memory, 0x0000, listOf(0x06, 0x10))
@@ -1800,14 +1620,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0x0010])
         assertTrue(mpu.Status.C)
-
-        // ASL Absolute, X-Indexed
-
     }
+
+    // ASL Absolute, X-Indexed
 
     @Test
     fun test_asl_abs_x_indexed_sets_z_flag() {
-
         mpu.X = 0x03
         // $0000 ASL $ABCD,X
         writeMem(memory, 0x0000, listOf(0x1E, 0xCD, 0xAB))
@@ -1817,12 +1635,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_asl_abs_x_indexed_sets_n_flag() {
-
         mpu.X = 0x03
         // $0000 ASL $ABCD,X
         writeMem(memory, 0x0000, listOf(0x1E, 0xCD, 0xAB))
@@ -1832,12 +1648,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_asl_abs_x_indexed_shifts_out_zero() {
-
         mpu.A = 0xAA
         mpu.X = 0x03
         // $0000 ASL $ABCD,X
@@ -1848,12 +1662,10 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_asl_abs_x_indexed_shifts_out_one() {
-
         mpu.A = 0xAA
         mpu.X = 0x03
         // $0000 ASL $ABCD,X
@@ -1864,14 +1676,12 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.C)
-
-        // ASL Zero Page, X-Indexed
-
     }
+
+    // ASL Zero Page, X-Indexed
 
     @Test
     fun test_asl_zp_x_indexed_sets_z_flag() {
-
         mpu.X = 0x03
         // $0000 ASL $0010,X
         writeMem(memory, 0x0000, listOf(0x16, 0x10))
@@ -1881,12 +1691,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_asl_zp_x_indexed_sets_n_flag() {
-
         mpu.X = 0x03
         // $0000 ASL $0010,X
         writeMem(memory, 0x0000, listOf(0x16, 0x10))
@@ -1896,12 +1704,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_asl_zp_x_indexed_shifts_out_zero() {
-
         mpu.X = 0x03
         mpu.A = 0xAA
         // $0000 ASL $0010,X
@@ -1912,12 +1718,10 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_asl_zp_x_indexed_shifts_out_one() {
-
         mpu.X = 0x03
         mpu.A = 0xAA
         // $0000 ASL $0010,X
@@ -1928,25 +1732,21 @@ abstract class TestCommon6502 {
         assertEquals(0xAA, mpu.A)
         assertEquals(0xFE, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.C)
-
-        // BCC
-
     }
+
+    // BCC
 
     @Test
     fun test_bcc_carry_clear_branches_relative_forward() {
-
         mpu.Status.C = false
         // $0000 BCC +6
         writeMem(memory, 0x0000, listOf(0x90, 0x06))
         mpu.step()
         assertEquals(0x0002 + 0x06, mpu.PC)
-
     }
 
     @Test
     fun test_bcc_carry_clear_branches_relative_backward() {
-
         mpu.Status.C = false
         mpu.PC = 0x0050
         val rel = 256 + (-6)  // two's complement of 6
@@ -1954,36 +1754,30 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0x90, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
     fun test_bcc_carry_set_does_not_branch() {
-
         mpu.Status.C = true
         // $0000 BCC +6
         writeMem(memory, 0x0000, listOf(0x90, 0x06))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-
-        // BCS
-
     }
+
+    // BCS
 
     @Test
     fun test_bcs_carry_set_branches_relative_forward() {
-
         mpu.Status.C = true
         // $0000 BCS +6
         writeMem(memory, 0x0000, listOf(0xB0, 0x06))
         mpu.step()
         assertEquals(0x0002 + 0x06, mpu.PC)
-
     }
 
     @Test
     fun test_bcs_carry_set_branches_relative_backward() {
-
         mpu.Status.C = true
         mpu.PC = 0x0050
         val rel = 256 + (-6)  // two's complement of 6
@@ -1991,36 +1785,30 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0xB0, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
     fun test_bcs_carry_clear_does_not_branch() {
-
         mpu.Status.C = false
         // $0000 BCS +6
         writeMem(memory, 0x0000, listOf(0xB0, 0x06))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-
-        // BEQ
-
     }
+
+    // BEQ
 
     @Test
     fun test_beq_zero_set_branches_relative_forward() {
-
         mpu.Status.Z = true
         // $0000 BEQ +6
         writeMem(memory, 0x0000, listOf(0xF0, 0x06))
         mpu.step()
         assertEquals(0x0002 + 0x06, mpu.PC)
-
     }
 
     @Test
     fun test_beq_zero_set_branches_relative_backward() {
-
         mpu.Status.Z = true
         mpu.PC = 0x0050
         val rel = 256 + (-6)  // two's complement of 6
@@ -2028,25 +1816,21 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0xF0, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
     fun test_beq_zero_clear_does_not_branch() {
-
         mpu.Status.Z = false
         // $0000 BEQ +6
         writeMem(memory, 0x0000, listOf(0xF0, 0x06))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-
-        // BIT (Absolute)
-
     }
+
+    // BIT (Absolute)
 
     @Test
     fun test_bit_abs_copies_bit_7_of_memory_to_n_flag_when_0() {
-
         mpu.Status.N = false
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2054,12 +1838,10 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_bit_abs_copies_bit_7_of_memory_to_n_flag_when_1() {
-
         mpu.Status.N = true
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2067,12 +1849,10 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_bit_abs_copies_bit_6_of_memory_to_v_flag_when_0() {
-
         mpu.Status.V = false
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2080,12 +1860,10 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_bit_abs_copies_bit_6_of_memory_to_v_flag_when_1() {
-
         mpu.Status.V = true
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2093,12 +1871,10 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_bit_abs_stores_result_of_and_in_z_preserves_a_when_1() {
-
         mpu.Status.Z = false
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2108,12 +1884,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0xFEED])
-
     }
 
     @Test
     fun test_bit_abs_stores_result_of_and_when_nonzero_in_z_preserves_a() {
-
         mpu.Status.Z = true
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2123,12 +1897,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.Z)  // result of AND is non-zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x01, memory[0xFEED])
-
     }
 
     @Test
     fun test_bit_abs_stores_result_of_and_when_zero_in_z_preserves_a() {
-
         mpu.Status.Z = false
         // $0000 BIT $FEED
         writeMem(memory, 0x0000, listOf(0x2C, 0xED, 0xFE))
@@ -2138,14 +1910,12 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)  // result of AND is zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0xFEED])
-
-        // BIT (Zero Page)
-
     }
+
+    // BIT (Zero Page)
 
     @Test
     fun test_bit_zp_copies_bit_7_of_memory_to_n_flag_when_0() {
-
         mpu.Status.N = false
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2153,14 +1923,12 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_bit_zp_copies_bit_7_of_memory_to_n_flag_when_1() {
-
         mpu.Status.N = true
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2168,14 +1936,12 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_bit_zp_copies_bit_6_of_memory_to_v_flag_when_0() {
-
         mpu.Status.V = false
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2183,14 +1949,12 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.V)
-
     }
 
     @Test
     fun test_bit_zp_copies_bit_6_of_memory_to_v_flag_when_1() {
-
         mpu.Status.V = true
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2198,14 +1962,12 @@ abstract class TestCommon6502 {
         mpu.A = 0xFF
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertFalse(mpu.Status.V)
-
     }
 
     @Test
     fun test_bit_zp_stores_result_of_and_in_z_preserves_a_when_1() {
-
         mpu.Status.Z = false
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2213,16 +1975,14 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.Z)
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0x0010])
-
     }
 
     @Test
     fun test_bit_zp_stores_result_of_and_when_nonzero_in_z_preserves_a() {
-
         mpu.Status.Z = true
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2230,16 +1990,14 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertFalse(mpu.Status.Z)  // result of AND is non-zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x01, memory[0x0010])
-
     }
 
     @Test
     fun test_bit_zp_stores_result_of_and_when_zero_in_z_preserves_a() {
-
         mpu.Status.Z = false
         // $0000 BIT $0010
         writeMem(memory, 0x0000, listOf(0x24, 0x10))
@@ -2247,29 +2005,25 @@ abstract class TestCommon6502 {
         mpu.A = 0x01
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-        assertEquals(3+Cpu6502.resetCycles, mpu.totalCycles)
+        assertEquals(3 + Cpu6502.resetCycles, mpu.totalCycles)
         assertTrue(mpu.Status.Z)  // result of AND is zero
         assertEquals(0x01, mpu.A)
         assertEquals(0x00, memory[0x0010])
-
-        // BMI
-
     }
+
+    // BMI
 
     @Test
     fun test_bmi_negative_set_branches_relative_forward() {
-
         mpu.Status.N = true
         // $0000 BMI +06
         writeMem(memory, 0x0000, listOf(0x30, 0x06))
         mpu.step()
         assertEquals(0x0002 + 0x06, mpu.PC)
-
     }
 
     @Test
     fun test_bmi_negative_set_branches_relative_backward() {
-
         mpu.Status.N = true
         mpu.PC = 0x0050
         // $0000 BMI -6
@@ -2277,36 +2031,30 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0x30, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
     fun test_bmi_negative_clear_does_not_branch() {
-
         mpu.Status.N = false
         // $0000 BEQ +6
         writeMem(memory, 0x0000, listOf(0x30, 0x06))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-
-        // BNE
-
     }
+
+    // BNE
 
     @Test
     fun test_bne_zero_clear_branches_relative_forward() {
-
         mpu.Status.Z = false
         // $0000 BNE +6
         writeMem(memory, 0x0000, listOf(0xD0, 0x06))
         mpu.step()
         assertEquals(0x0002 + 0x06, mpu.PC)
-
     }
 
     @Test
     fun test_bne_zero_clear_branches_relative_backward() {
-
         mpu.Status.Z = false
         mpu.PC = 0x0050
         // $0050 BNE -6
@@ -2314,36 +2062,30 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0xD0, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
     fun test_bne_zero_set_does_not_branch() {
-
         mpu.Status.Z = true
         // $0000 BNE +6
         writeMem(memory, 0x0000, listOf(0xD0, 0x06))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-
-        // BPL
-
     }
+
+    // BPL
 
     @Test
     fun test_bpl_negative_clear_branches_relative_forward() {
-
         mpu.Status.N = false
         // $0000 BPL +06
         writeMem(memory, 0x0000, listOf(0x10, 0x06))
         mpu.step()
         assertEquals(0x0002 + 0x06, mpu.PC)
-
     }
 
     @Test
     fun test_bpl_negative_clear_branches_relative_backward() {
-
         mpu.Status.N = false
         mpu.PC = 0x0050
         // $0050 BPL -6
@@ -2351,29 +2093,24 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0x10, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
     fun test_bpl_negative_set_does_not_branch() {
-
         mpu.Status.N = true
         // $0000 BPL +6
         writeMem(memory, 0x0000, listOf(0x10, 0x06))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
-
-        // BRK
-
     }
+
+    // BRK
 
     @Test
     fun test_brk_pushes_pc_plus_2_and_status_then_sets_pc_to_irq_vector() {
-
         writeMem(memory, 0xFFFE, listOf(0xCD, 0xAB))
         mpu.SP = 0xff
         mpu.Status.I = false
-
         // $C000 BRK
         memory[0xC000] = 0x00
         mpu.PC = 0xC000
@@ -2431,7 +2168,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_bvs_overflow_set_branches_relative_backward() {
-
         mpu.Status.V = true
         mpu.PC = 0x0050
         val rel = 256 + (-6)  // two's complement of 6
@@ -2439,7 +2175,6 @@ abstract class TestCommon6502 {
         writeMem(memory, 0x0050, listOf(0x70, rel.toShort()))
         mpu.step()
         assertEquals(0x0052 - 6, mpu.PC)
-
     }
 
     @Test
@@ -2513,7 +2248,6 @@ abstract class TestCommon6502 {
     @Test
     fun test_cmp_imm_sets_zero_carry_clears_neg_flags_if_equal() {
         // Comparison: A == m
-
         // $0000 CMP #10 , A will be 10
         writeMem(memory, 0x0000, listOf(0xC9, 10))
         mpu.A = 10
@@ -2527,7 +2261,6 @@ abstract class TestCommon6502 {
     @Test
     fun test_cmp_imm_clears_zero_carry_takes_neg_if_less_unsigned() {
         // Comparison: A < m (unsigned)
-
         // $0000 CMP #10 , A will be 1
         writeMem(memory, 0x0000, listOf(0xC9, 10))
         mpu.A = 1
@@ -2536,13 +2269,11 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N) // 0x01-0x0A=0xF7
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_cmp_imm_clears_zero_sets_carry_takes_neg_if_less_signed() {
         // Comparison: A < #nn (signed), A negative
-
         // $0000 CMP #1, A will be -1 (0xFF)
         writeMem(memory, 0x0000, listOf(0xC9, 1))
         mpu.A = 0xFF
@@ -2551,13 +2282,11 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N) // 0xFF-0x01=0xFE
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C) // A>m unsigned
-
     }
 
     @Test
     fun test_cmp_imm_clears_zero_carry_takes_neg_if_less_signed_nega() {
         // Comparison: A < m (signed), A and m both negative
-
         // $0000 CMP #0xFF (-1), A will be -2 (0xFE)
         writeMem(memory, 0x0000, listOf(0xC9, 0xFF))
         mpu.A = 0xFE
@@ -2566,13 +2295,11 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.N) // 0xFE-0xFF=0xFF
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C) // A<m unsigned
-
     }
 
     @Test
     fun test_cmp_imm_clears_zero_sets_carry_takes_neg_if_more_unsigned() {
         // Comparison: A > m (unsigned)
-
         // $0000 CMP #1 , A will be 10
         writeMem(memory, 0x0000, listOf(0xC9, 1))
         mpu.A = 10
@@ -2586,7 +2313,6 @@ abstract class TestCommon6502 {
     @Test
     fun test_cmp_imm_clears_zero_carry_takes_neg_if_more_signed() {
         // Comparison: A > m (signed), memory negative
-
         // $0000 CMP #$FF (-1), A will be 2
         writeMem(memory, 0x0000, listOf(0xC9, 0xFF))
         mpu.A = 2
@@ -2600,7 +2326,6 @@ abstract class TestCommon6502 {
     @Test
     fun test_cmp_imm_clears_zero_carry_takes_neg_if_more_signed_nega() {
         // Comparison: A > m (signed), A and m both negative
-
         // $0000 CMP #$FE (-2), A will be -1 (0xFF)
         writeMem(memory, 0x0000, listOf(0xC9, 0xFE))
         mpu.A = 0xFF
@@ -2612,10 +2337,10 @@ abstract class TestCommon6502 {
     }
 
     // CPX Immediate
+
     @Test
     fun test_cpx_imm_sets_zero_carry_clears_neg_flags_if_equal() {
         // Comparison: X == m
-
         // $0000 CPX #$20
         writeMem(memory, 0x0000, listOf(0xE0, 0x20))
         mpu.X = 0x20
@@ -2627,10 +2352,10 @@ abstract class TestCommon6502 {
     }
 
     // CPY Immediate
+
     @Test
     fun test_cpy_imm_sets_zero_carry_clears_neg_flags_if_equal() {
         // Comparison: Y == m
-
         // $0000 CPY #$30
         writeMem(memory, 0x0000, listOf(0xC0, 0x30))
         mpu.Y = 0x30
@@ -2644,7 +2369,6 @@ abstract class TestCommon6502 {
     // DEC Absolute
     @Test
     fun test_dec_abs_decrements_memory() {
-
         // $0000 DEC 0xABCD
         writeMem(memory, 0x0000, listOf(0xCE, 0xCD, 0xAB))
         memory[0xABCD] = 0x10
@@ -2657,7 +2381,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_abs_below_00_rolls_over_and_sets_negative_flag() {
-
         // $0000 DEC 0xABCD
         writeMem(memory, 0x0000, listOf(0xCE, 0xCD, 0xAB))
         memory[0xABCD] = 0x00
@@ -2670,7 +2393,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_abs_sets_zero_flag_when_decrementing_to_zero() {
-
         // $0000 DEC 0xABCD
         writeMem(memory, 0x0000, listOf(0xCE, 0xCD, 0xAB))
         memory[0xABCD] = 0x01
@@ -2682,9 +2404,9 @@ abstract class TestCommon6502 {
     }
 
     // DEC Zero Page
+
     @Test
     fun test_dec_zp_decrements_memory() {
-
         // $0000 DEC 0x0010
         writeMem(memory, 0x0000, listOf(0xC6, 0x10))
         memory[0x0010] = 0x10
@@ -2693,12 +2415,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0F, memory[0x0010])
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_dec_zp_below_00_rolls_over_and_sets_negative_flag() {
-
         // $0000 DEC 0x0010
         writeMem(memory, 0x0000, listOf(0xC6, 0x10))
         memory[0x0010] = 0x00
@@ -2711,7 +2431,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_zp_sets_zero_flag_when_decrementing_to_zero() {
-
         // $0000 DEC 0x0010
         writeMem(memory, 0x0000, listOf(0xC6, 0x10))
         memory[0x0010] = 0x01
@@ -2723,9 +2442,9 @@ abstract class TestCommon6502 {
     }
 
     // DEC Absolute, X-Indexed
+
     @Test
     fun test_dec_abs_x_decrements_memory() {
-
         // $0000 DEC 0xABCD,X
         writeMem(memory, 0x0000, listOf(0xDE, 0xCD, 0xAB))
         mpu.X = 0x03
@@ -2739,7 +2458,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_abs_x_below_00_rolls_over_and_sets_negative_flag() {
-
         // $0000 DEC 0xABCD,X
         writeMem(memory, 0x0000, listOf(0xDE, 0xCD, 0xAB))
         memory[0xABCD + mpu.X] = 0x00
@@ -2752,7 +2470,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_abs_x_sets_zero_flag_when_decrementing_to_zero() {
-
         // $0000 DEC 0xABCD,X
         writeMem(memory, 0x0000, listOf(0xDE, 0xCD, 0xAB))
         memory[0xABCD + mpu.X] = 0x01
@@ -2764,9 +2481,9 @@ abstract class TestCommon6502 {
     }
 
     // DEC Zero Page, X-Indexed
+
     @Test
     fun test_dec_zp_x_decrements_memory() {
-
         // $0000 DEC 0x0010,X
         writeMem(memory, 0x0000, listOf(0xD6, 0x10))
         mpu.X = 0x03
@@ -2780,7 +2497,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_zp_x_below_00_rolls_over_and_sets_negative_flag() {
-
         // $0000 DEC 0x0010,X
         writeMem(memory, 0x0000, listOf(0xD6, 0x10))
         mpu.X = 0x03
@@ -2794,7 +2510,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dec_zp_x_sets_zero_flag_when_decrementing_to_zero() {
-
         // $0000 DEC 0x0010,X
         writeMem(memory, 0x0000, listOf(0xD6, 0x10))
         mpu.X = 0x03
@@ -2807,6 +2522,7 @@ abstract class TestCommon6502 {
     }
 
     // DEX
+
     @Test
     fun test_dex_decrements_x() {
         mpu.X = 0x10
@@ -2844,6 +2560,7 @@ abstract class TestCommon6502 {
     }
 
     // DEY
+
     @Test
     fun test_dey_decrements_y() {
         mpu.Y = 0x10
@@ -2869,7 +2586,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_dey_sets_zero_flag_when_decrementing_to_zero() {
-
         mpu.Y = 0x01
         // $0000 DEY
         memory[0x0000] = 0x88
@@ -2880,9 +2596,9 @@ abstract class TestCommon6502 {
     }
 
     // EOR Absolute
+
     @Test
     fun test_eor_absolute_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         writeMem(memory, 0x0000, listOf(0x4D, 0xCD, 0xAB))
         memory[0xABCD] = 0xFF
@@ -2891,12 +2607,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0xABCD])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_absolute_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         writeMem(memory, 0x0000, listOf(0x4D, 0xCD, 0xAB))
         memory[0xABCD] = 0xFF
@@ -2906,14 +2620,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Zero Page
-
     }
+
+    // EOR Zero Page
 
     @Test
     fun test_eor_zp_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         writeMem(memory, 0x0000, listOf(0x45, 0x10))
         memory[0x0010] = 0xFF
@@ -2922,12 +2634,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0x0010])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_zp_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         writeMem(memory, 0x0000, listOf(0x45, 0x10))
         memory[0x0010] = 0xFF
@@ -2937,26 +2647,22 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0x0010])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Immediate
-
     }
+
+    // EOR Immediate
 
     @Test
     fun test_eor_immediate_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         writeMem(memory, 0x0000, listOf(0x49, 0xFF))
         mpu.step()
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_immediate_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         writeMem(memory, 0x0000, listOf(0x49, 0xFF))
         mpu.step()
@@ -2964,14 +2670,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Absolute, X-Indexed
-
     }
+
+    // EOR Absolute, X-Indexed
 
     @Test
     fun test_eor_abs_x_indexed_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x5D, 0xCD, 0xAB))
@@ -2981,12 +2685,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_abs_x_indexed_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x5D, 0xCD, 0xAB))
@@ -2997,14 +2699,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Absolute, Y-Indexed
-
     }
+
+    // EOR Absolute, Y-Indexed
 
     @Test
     fun test_eor_abs_y_indexed_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         writeMem(memory, 0x0000, listOf(0x59, 0xCD, 0xAB))
@@ -3014,12 +2714,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0xABCD + mpu.Y])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_abs_y_indexed_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         writeMem(memory, 0x0000, listOf(0x59, 0xCD, 0xAB))
@@ -3030,14 +2728,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD + mpu.Y])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Indirect, Indexed (X)
-
     }
+
+    // EOR Indirect, Indexed (X)
 
     @Test
     fun test_eor_ind_indexed_x_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x41, 0x10))  // => EOR listOf($0010,X)
@@ -3048,12 +2744,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0xABCD])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_ind_indexed_x_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x41, 0x10))  // => EOR listOf($0010,X)
@@ -3065,14 +2759,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Indexed, Indirect (Y)
-
     }
+
+    // EOR Indexed, Indirect (Y)
 
     @Test
     fun test_eor_indexed_ind_y_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         writeMem(memory, 0x0000, listOf(0x51, 0x10))  // => EOR listOf($0010),Y
@@ -3083,12 +2775,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0xABCD + mpu.Y])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_indexed_ind_y_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         writeMem(memory, 0x0000, listOf(0x51, 0x10))  // => EOR listOf($0010),Y
@@ -3100,14 +2790,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD + mpu.Y])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // EOR Zero Page, X-Indexed
-
     }
+
+    // EOR Zero Page, X-Indexed
 
     @Test
     fun test_eor_zp_x_indexed_flips_bits_over_setting_z_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x55, 0x10))
@@ -3117,12 +2805,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertEquals(0xFF, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_eor_zp_x_indexed_flips_bits_over_setting_n_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x55, 0x10))
@@ -3133,14 +2819,12 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // INC Absolute
-
     }
+
+    // INC Absolute
 
     @Test
     fun test_inc_abs_increments_memory() {
-
         writeMem(memory, 0x0000, listOf(0xEE, 0xCD, 0xAB))
         memory[0xABCD] = 0x09
         mpu.step()
@@ -3148,12 +2832,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0A, memory[0xABCD])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_abs_increments_memory_rolls_over_and_sets_zero_flag() {
-
         writeMem(memory, 0x0000, listOf(0xEE, 0xCD, 0xAB))
         memory[0xABCD] = 0xFF
         mpu.step()
@@ -3161,12 +2843,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_abs_sets_negative_flag_when_incrementing_above_7F() {
-
         writeMem(memory, 0x0000, listOf(0xEE, 0xCD, 0xAB))
         memory[0xABCD] = 0x7F
         mpu.step()
@@ -3174,14 +2854,12 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0xABCD])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
-        // INC Zero Page
-
     }
+
+    // INC Zero Page
 
     @Test
     fun test_inc_zp_increments_memory() {
-
         writeMem(memory, 0x0000, listOf(0xE6, 0x10))
         memory[0x0010] = 0x09
         mpu.step()
@@ -3189,12 +2867,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0A, memory[0x0010])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_zp_increments_memory_rolls_over_and_sets_zero_flag() {
-
         writeMem(memory, 0x0000, listOf(0xE6, 0x10))
         memory[0x0010] = 0xFF
         mpu.step()
@@ -3202,12 +2878,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_zp_sets_negative_flag_when_incrementing_above_7F() {
-
         writeMem(memory, 0x0000, listOf(0xE6, 0x10))
         memory[0x0010] = 0x7F
         mpu.step()
@@ -3215,14 +2889,12 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0x0010])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
-        // INC Absolute, X-Indexed
-
     }
+
+    // INC Absolute, X-Indexed
 
     @Test
     fun test_inc_abs_x_increments_memory() {
-
         writeMem(memory, 0x0000, listOf(0xFE, 0xCD, 0xAB))
         mpu.X = 0x03
         memory[0xABCD + mpu.X] = 0x09
@@ -3231,12 +2903,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0A, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_abs_x_increments_memory_rolls_over_and_sets_zero_flag() {
-
         writeMem(memory, 0x0000, listOf(0xFE, 0xCD, 0xAB))
         mpu.X = 0x03
         memory[0xABCD + mpu.X] = 0xFF
@@ -3245,12 +2915,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_abs_x_sets_negative_flag_when_incrementing_above_7F() {
-
         writeMem(memory, 0x0000, listOf(0xFE, 0xCD, 0xAB))
         mpu.X = 0x03
         memory[0xABCD + mpu.X] = 0x7F
@@ -3259,14 +2927,12 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
-        // INC Zero Page, X-Indexed
-
     }
+
+    // INC Zero Page, X-Indexed
 
     @Test
     fun test_inc_zp_x_increments_memory() {
-
         writeMem(memory, 0x0000, listOf(0xF6, 0x10))
         mpu.X = 0x03
         memory[0x0010 + mpu.X] = 0x09
@@ -3275,12 +2941,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0A, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_zp_x_increments_memory_rolls_over_and_sets_zero_flag() {
-
         writeMem(memory, 0x0000, listOf(0xF6, 0x10))
         memory[0x0010 + mpu.X] = 0xFF
         mpu.step()
@@ -3288,12 +2952,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inc_zp_x_sets_negative_flag_when_incrementing_above_7F() {
-
         writeMem(memory, 0x0000, listOf(0xF6, 0x10))
         memory[0x0010 + mpu.X] = 0x7F
         mpu.step()
@@ -3301,14 +2963,12 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
-        // INX
-
     }
+
+    // INX
 
     @Test
     fun test_inx_increments_x() {
-
         mpu.X = 0x09
         memory[0x0000] = 0xE8  // => INX
         mpu.step()
@@ -3316,19 +2976,16 @@ abstract class TestCommon6502 {
         assertEquals(0x0A, mpu.X)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_inx_above_FF_rolls_over_and_sets_zero_flag() {
-
         mpu.X = 0xFF
         memory[0x0000] = 0xE8  // => INX
         mpu.step()
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x00, mpu.X)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
@@ -3345,7 +3002,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_iny_increments_y() {
-
         mpu.Y = 0x09
         memory[0x0000] = 0xC8  // => INY
         mpu.step()
@@ -3357,58 +3013,49 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_iny_above_FF_rolls_over_and_sets_zero_flag() {
-
         mpu.Y = 0xFF
         memory[0x0000] = 0xC8  // => INY
         mpu.step()
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x00, mpu.Y)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_iny_sets_negative_flag_when_incrementing_above_7F() {
-
         mpu.Y = 0x7f
         memory[0x0000] = 0xC8  // => INY
         mpu.step()
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x80, mpu.Y)
         assertTrue(mpu.Status.N)
-
-        // JMP Absolute
-
     }
+
+    // JMP Absolute
 
     @Test
     fun test_jmp_abs_jumps_to_absolute_address() {
-
         // $0000 JMP $ABCD
         writeMem(memory, 0x0000, listOf(0x4C, 0xCD, 0xAB))
         mpu.step()
         assertEquals(0xABCD, mpu.PC)
-
-        // JMP Indirect
-
     }
+
+    // JMP Indirect
 
     @Test
     fun test_jmp_ind_jumps_to_indirect_address() {
-
         // $0000 JMP ($ABCD)
         writeMem(memory, 0x0000, listOf(0x6C, 0x00, 0x02))
         writeMem(memory, 0x0200, listOf(0xCD, 0xAB))
         mpu.step()
         assertEquals(0xABCD, mpu.PC)
-
-        // JSR
-
     }
+
+    // JSR
 
     @Test
     fun test_jsr_pushes_pc_plus_2_and_sets_pc() {
-
         // $C000 JSR $FFD2
         mpu.SP = 0xFF
         writeMem(memory, 0xC000, listOf(0x20, 0xD2, 0xFF))
@@ -3424,7 +3071,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_lda_absolute_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         // $0000 LDA $ABCD
         writeMem(memory, 0x0000, listOf(0xAD, 0xCD, 0xAB))
@@ -3434,12 +3080,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_lda_absolute_loads_a_sets_z_flag() {
-
         mpu.A = 0xFF
         // $0000 LDA $ABCD
         writeMem(memory, 0x0000, listOf(0xAD, 0xCD, 0xAB))
@@ -3449,14 +3093,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDA Zero Page
-
     }
+
+    // LDA Zero Page
 
     @Test
     fun test_lda_zp_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         // $0000 LDA $0010
         writeMem(memory, 0x0000, listOf(0xA5, 0x10))
@@ -3466,12 +3108,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_lda_zp_loads_a_sets_z_flag() {
-
         mpu.A = 0xFF
         // $0000 LDA $0010
         writeMem(memory, 0x0000, listOf(0xA5, 0x10))
@@ -3481,14 +3121,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDA Immediate
-
     }
+
+    // LDA Immediate
 
     @Test
     fun test_lda_immediate_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         // $0000 LDA #$80
         writeMem(memory, 0x0000, listOf(0xA9, 0x80))
@@ -3497,12 +3135,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_lda_immediate_loads_a_sets_z_flag() {
-
         mpu.A = 0xFF
         // $0000 LDA #$00
         writeMem(memory, 0x0000, listOf(0xA9, 0x00))
@@ -3511,14 +3147,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDA Absolute, X-Indexed
-
     }
+
+    // LDA Absolute, X-Indexed
 
     @Test
     fun test_lda_abs_x_indexed_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 LDA $ABCD,X
@@ -3529,12 +3163,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_lda_abs_x_indexed_loads_a_sets_z_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 LDA $ABCD,X
@@ -3545,12 +3177,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lda_abs_x_indexed_does_not_page_wrap() {
-
         mpu.A = 0
         mpu.X = 0xFF
         // $0000 LDA $0080,X
@@ -3559,14 +3189,12 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x42, mpu.A)
-
-        // LDA Absolute, Y-Indexed
-
     }
+
+    // LDA Absolute, Y-Indexed
 
     @Test
     fun test_lda_abs_y_indexed_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         // $0000 LDA $ABCD,Y
@@ -3577,12 +3205,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_lda_abs_y_indexed_loads_a_sets_z_flag() {
-
         mpu.A = 0xFF
         mpu.Y = 0x03
         // $0000 LDA $ABCD,Y
@@ -3593,12 +3219,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lda_abs_y_indexed_does_not_page_wrap() {
-
         mpu.A = 0
         mpu.Y = 0xFF
         // $0000 LDA $0080,X
@@ -3607,14 +3231,12 @@ abstract class TestCommon6502 {
         mpu.step()
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x42, mpu.A)
-
-        // LDA Indirect, Indexed (X)
-
     }
+
+    // LDA Indirect, Indexed (X)
 
     @Test
     fun test_lda_ind_indexed_x_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 LDA ($0010,X)
@@ -3627,12 +3249,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_lda_ind_indexed_x_loads_a_sets_z_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 LDA ($0010,X)
@@ -3645,14 +3265,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDA Indexed, Indirect (Y)
-
     }
+
+    // LDA Indexed, Indirect (Y)
 
     @Test
     fun test_lda_indexed_ind_y_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         // $0000 LDA ($0010),Y
@@ -3665,12 +3283,24 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
+    }
 
+    @Test
+    fun test_lda_indexed_ind_y_correct_index() {
+        mpu.A = 0x00
+        mpu.Y = 0xf3
+        // $0000 LDA ($0010),Y
+        // $0010 Vector to $ABCD
+        writeMem(memory, 0x0000, listOf(0xB1, 0x10))
+        writeMem(memory, 0x0010, listOf(0xCD, 0xAB))
+        memory[0xABCD + mpu.Y] = 0x80
+        mpu.step()
+        assertEquals(0x0002, mpu.PC)
+        assertEquals(0x80, mpu.A)
     }
 
     @Test
     fun test_lda_indexed_ind_y_loads_a_sets_z_flag() {
-
         mpu.A = 0x00
         mpu.Y = 0x03
         // $0000 LDA ($0010),Y
@@ -3683,14 +3313,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDA Zero Page, X-Indexed
-
     }
+
+    // LDA Zero Page, X-Indexed
 
     @Test
     fun test_lda_zp_x_indexed_loads_a_sets_n_flag() {
-
         mpu.A = 0x00
         mpu.X = 0x03
         // $0000 LDA $10,X
@@ -3701,12 +3329,22 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
+    }
 
+    @Test
+    fun test_lda_zp_x_indexed_correct_index() {
+        mpu.A = 0x00
+        mpu.X = 0xf3
+        // $0000 LDA $10,X
+        writeMem(memory, 0x0000, listOf(0xB5, 0x10))
+        memory[(0x0010 + mpu.X) and 255] = 0x80
+        mpu.step()
+        assertEquals(0x0002, mpu.PC)
+        assertEquals(0x80, mpu.A)
     }
 
     @Test
     fun test_lda_zp_x_indexed_loads_a_sets_z_flag() {
-
         mpu.A = 0xFF
         mpu.X = 0x03
         // $0000 LDA $10,X
@@ -3717,14 +3355,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDX Absolute
-
     }
+
+    // LDX Absolute
 
     @Test
     fun test_ldx_absolute_loads_x_sets_n_flag() {
-
         mpu.X = 0x00
         // $0000 LDX $ABCD
         writeMem(memory, 0x0000, listOf(0xAE, 0xCD, 0xAB))
@@ -3734,12 +3370,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.X)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldx_absolute_loads_x_sets_z_flag() {
-
         mpu.X = 0xFF
         // $0000 LDX $ABCD
         writeMem(memory, 0x0000, listOf(0xAE, 0xCD, 0xAB))
@@ -3749,14 +3383,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.X)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDX Zero Page
-
     }
+
+    // LDX Zero Page
 
     @Test
     fun test_ldx_zp_loads_x_sets_n_flag() {
-
         mpu.X = 0x00
         // $0000 LDX $0010
         writeMem(memory, 0x0000, listOf(0xA6, 0x10))
@@ -3766,12 +3398,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.X)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldx_zp_loads_x_sets_z_flag() {
-
         mpu.X = 0xFF
         // $0000 LDX $0010
         writeMem(memory, 0x0000, listOf(0xA6, 0x10))
@@ -3781,14 +3411,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.X)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDX Immediate
-
     }
+
+    // LDX Immediate
 
     @Test
     fun test_ldx_immediate_loads_x_sets_n_flag() {
-
         mpu.X = 0x00
         // $0000 LDX #$80
         writeMem(memory, 0x0000, listOf(0xA2, 0x80))
@@ -3797,12 +3425,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.X)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldx_immediate_loads_x_sets_z_flag() {
-
         mpu.X = 0xFF
         // $0000 LDX #$00
         writeMem(memory, 0x0000, listOf(0xA2, 0x00))
@@ -3811,14 +3437,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.X)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDX Absolute, Y-Indexed
-
     }
+
+    // LDX Absolute, Y-Indexed
 
     @Test
     fun test_ldx_abs_y_indexed_loads_x_sets_n_flag() {
-
         mpu.X = 0x00
         mpu.Y = 0x03
         // $0000 LDX $ABCD,Y
@@ -3829,12 +3453,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.X)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldx_abs_y_indexed_loads_x_sets_z_flag() {
-
         mpu.X = 0xFF
         mpu.Y = 0x03
         // $0000 LDX $ABCD,Y
@@ -3845,14 +3467,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.X)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDX Zero Page, Y-Indexed
-
     }
+
+    // LDX Zero Page, Y-Indexed
 
     @Test
     fun test_ldx_zp_y_indexed_loads_x_sets_n_flag() {
-
         mpu.X = 0x00
         mpu.Y = 0x03
         // $0000 LDX $0010,Y
@@ -3863,12 +3483,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.X)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldx_zp_y_indexed_loads_x_sets_z_flag() {
-
         mpu.X = 0xFF
         mpu.Y = 0x03
         // $0000 LDX $0010,Y
@@ -3879,14 +3497,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.X)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDY Absolute
-
     }
+
+    // LDY Absolute
 
     @Test
     fun test_ldy_absolute_loads_y_sets_n_flag() {
-
         mpu.Y = 0x00
         // $0000 LDY $ABCD
         writeMem(memory, 0x0000, listOf(0xAC, 0xCD, 0xAB))
@@ -3896,12 +3512,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.Y)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldy_absolute_loads_y_sets_z_flag() {
-
         mpu.Y = 0xFF
         // $0000 LDY $ABCD
         writeMem(memory, 0x0000, listOf(0xAC, 0xCD, 0xAB))
@@ -3911,14 +3525,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.Y)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDY Zero Page
-
     }
+
+    // LDY Zero Page
 
     @Test
     fun test_ldy_zp_loads_y_sets_n_flag() {
-
         mpu.Y = 0x00
         // $0000 LDY $0010
         writeMem(memory, 0x0000, listOf(0xA4, 0x10))
@@ -3928,12 +3540,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.Y)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldy_zp_loads_y_sets_z_flag() {
-
         mpu.Y = 0xFF
         // $0000 LDY $0010
         writeMem(memory, 0x0000, listOf(0xA4, 0x10))
@@ -3943,14 +3553,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.Y)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDY Immediate
-
     }
+
+    // LDY Immediate
 
     @Test
     fun test_ldy_immediate_loads_y_sets_n_flag() {
-
         mpu.Y = 0x00
         // $0000 LDY #$80
         writeMem(memory, 0x0000, listOf(0xA0, 0x80))
@@ -3959,12 +3567,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.Y)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldy_immediate_loads_y_sets_z_flag() {
-
         mpu.Y = 0xFF
         // $0000 LDY #$00
         writeMem(memory, 0x0000, listOf(0xA0, 0x00))
@@ -3973,14 +3579,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.Y)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDY Absolute, X-Indexed
-
     }
+
+    // LDY Absolute, X-Indexed
 
     @Test
     fun test_ldy_abs_x_indexed_loads_x_sets_n_flag() {
-
         mpu.Y = 0x00
         mpu.X = 0x03
         // $0000 LDY $ABCD,X
@@ -3991,12 +3595,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.Y)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldy_abs_x_indexed_loads_x_sets_z_flag() {
-
         mpu.Y = 0xFF
         mpu.X = 0x03
         // $0000 LDY $ABCD,X
@@ -4007,14 +3609,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.Y)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LDY Zero Page, X-Indexed
-
     }
+
+    // LDY Zero Page, X-Indexed
 
     @Test
     fun test_ldy_zp_x_indexed_loads_x_sets_n_flag() {
-
         mpu.Y = 0x00
         mpu.X = 0x03
         // $0000 LDY $0010,X
@@ -4025,12 +3625,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.Y)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ldy_zp_x_indexed_loads_x_sets_z_flag() {
-
         mpu.Y = 0xFF
         mpu.X = 0x03
         // $0000 LDY $0010,X
@@ -4041,14 +3639,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.Y)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
-        // LSR Accumulator
-
     }
+
+    // LSR Accumulator
 
     @Test
     fun test_lsr_accumulator_rotates_in_zero_not_carry() {
-
         mpu.Status.C = true
         // $0000 LSR A
         memory[0x0000] = (0x4A)
@@ -4059,12 +3655,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_accumulator_sets_carry_and_zero_flags_after_rotation() {
-
         mpu.Status.C = false
         // $0000 LSR A
         memory[0x0000] = (0x4A)
@@ -4075,12 +3669,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_accumulator_rotates_bits_right() {
-
         mpu.Status.C = true
         // $0000 LSR A
         memory[0x0000] = (0x4A)
@@ -4091,14 +3683,12 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
-        // LSR Absolute
-
     }
+
+    // LSR Absolute
 
     @Test
     fun test_lsr_absolute_rotates_in_zero_not_carry() {
-
         mpu.Status.C = true
         // $0000 LSR $ABCD
         writeMem(memory, 0x0000, listOf(0x4E, 0xCD, 0xAB))
@@ -4109,12 +3699,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_absolute_sets_carry_and_zero_flags_after_rotation() {
-
         mpu.Status.C = false
         // $0000 LSR $ABCD
         writeMem(memory, 0x0000, listOf(0x4E, 0xCD, 0xAB))
@@ -4125,12 +3713,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_absolute_rotates_bits_right() {
-
         mpu.Status.C = true
         // $0000 LSR $ABCD
         writeMem(memory, 0x0000, listOf(0x4E, 0xCD, 0xAB))
@@ -4141,14 +3727,12 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
-        // LSR Zero Page
-
     }
+
+    // LSR Zero Page
 
     @Test
     fun test_lsr_zp_rotates_in_zero_not_carry() {
-
         mpu.Status.C = true
         // $0000 LSR $0010
         writeMem(memory, 0x0000, listOf(0x46, 0x10))
@@ -4159,12 +3743,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_zp_sets_carry_and_zero_flags_after_rotation() {
-
         mpu.Status.C = false
         // $0000 LSR $0010
         writeMem(memory, 0x0000, listOf(0x46, 0x10))
@@ -4175,12 +3757,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_zp_rotates_bits_right() {
-
         mpu.Status.C = true
         // $0000 LSR $0010
         writeMem(memory, 0x0000, listOf(0x46, 0x10))
@@ -4191,14 +3771,12 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
-        // LSR Absolute, X-Indexed
-
     }
+
+    // LSR Absolute, X-Indexed
 
     @Test
     fun test_lsr_abs_x_indexed_rotates_in_zero_not_carry() {
-
         mpu.Status.C = true
         mpu.X = 0x03
         // $0000 LSR $ABCD,X
@@ -4210,12 +3788,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_abs_x_indexed_sets_c_and_z_flags_after_rotation() {
-
         mpu.Status.C = false
         mpu.X = 0x03
         // $0000 LSR $ABCD,X
@@ -4227,12 +3803,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_abs_x_indexed_rotates_bits_right() {
-
         mpu.Status.C = true
         // $0000 LSR $ABCD,X
         writeMem(memory, 0x0000, listOf(0x5E, 0xCD, 0xAB))
@@ -4243,14 +3817,12 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
-        // LSR Zero Page, X-Indexed
-
     }
+
+    // LSR Zero Page, X-Indexed
 
     @Test
     fun test_lsr_zp_x_indexed_rotates_in_zero_not_carry() {
-
         mpu.Status.C = true
         mpu.X = 0x03
         // $0000 LSR $0010,X
@@ -4262,12 +3834,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_zp_x_indexed_sets_carry_and_zero_flags_after_rotation() {
-
         mpu.Status.C = false
         mpu.X = 0x03
         // $0000 LSR $0010,X
@@ -4279,12 +3849,10 @@ abstract class TestCommon6502 {
         assertTrue(mpu.Status.Z)
         assertTrue(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_lsr_zp_x_indexed_rotates_bits_right() {
-
         mpu.Status.C = true
         mpu.X = 0x03
         // $0000 LSR $0010,X
@@ -4296,26 +3864,22 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.C)
         assertFalse(mpu.Status.N)
-
-        // NOP
-
     }
+
+    // NOP
 
     @Test
     fun test_nop_does_nothing() {
-
         // $0000 NOP
         memory[0x0000] = 0xEA
         mpu.step()
         assertEquals(0x0001, mpu.PC)
-
-        // ORA Absolute
-
     }
+
+    // ORA Absolute
 
     @Test
     fun test_ora_absolute_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         // $0000 ORA $ABCD
@@ -4325,12 +3889,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_absolute_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         // $0000 ORA $ABCD
@@ -4341,14 +3903,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Zero Page
-
     }
+
+    // ORA Zero Page
 
     @Test
     fun test_ora_zp_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         // $0000 ORA $0010
@@ -4358,12 +3918,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_zp_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         // $0000 ORA $0010
@@ -4374,14 +3932,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Immediate
-
     }
+
+    // ORA Immediate
 
     @Test
     fun test_ora_immediate_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         // $0000 ORA #$00
@@ -4390,12 +3946,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_immediate_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         // $0000 ORA #$82
@@ -4405,14 +3959,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Absolute, X
-
     }
+
+    // ORA Absolute, X
 
     @Test
     fun test_ora_abs_x_indexed_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         mpu.X = 0x03
@@ -4423,12 +3975,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_abs_x_indexed_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         mpu.X = 0x03
@@ -4440,14 +3990,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Absolute, Y
-
     }
+
+    // ORA Absolute, Y
 
     @Test
     fun test_ora_abs_y_indexed_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         mpu.Y = 0x03
@@ -4458,12 +4006,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_abs_y_indexed_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         mpu.Y = 0x03
@@ -4475,14 +4021,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Indirect, Indexed (X)
-
     }
+
+    // ORA Indirect, Indexed (X)
 
     @Test
     fun test_ora_ind_indexed_x_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         mpu.X = 0x03
@@ -4495,12 +4039,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_ind_indexed_x_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         mpu.X = 0x03
@@ -4514,14 +4056,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Indexed, Indirect (Y)
-
     }
+
+    // ORA Indexed, Indirect (Y)
 
     @Test
     fun test_ora_indexed_ind_y_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         mpu.Y = 0x03
@@ -4534,12 +4074,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_indexed_ind_y_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         mpu.Y = 0x03
@@ -4553,14 +4091,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // ORA Zero Page, X
-
     }
+
+    // ORA Zero Page, X
 
     @Test
     fun test_ora_zp_x_indexed_zeroes_or_zeros_sets_z_flag() {
-
         mpu.Status.Z = false
         mpu.A = 0x00
         mpu.X = 0x03
@@ -4571,12 +4107,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_ora_zp_x_indexed_turns_bits_on_sets_n_flag() {
-
         mpu.Status.N = false
         mpu.A = 0x03
         mpu.X = 0x03
@@ -4588,14 +4122,12 @@ abstract class TestCommon6502 {
         assertEquals(0x83, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
-        // PHA
-
     }
+
+    // PHA
 
     @Test
     fun test_pha_pushes_a_and_updates_sp() {
-
         mpu.A = 0xAB
         // $0000 PHA
         memory[0x0000] = 0x48
@@ -4607,6 +4139,7 @@ abstract class TestCommon6502 {
     }
 
     // PHP
+
     @Test
     fun test_php_pushes_processor_status_and_updates_sp() {
         for (flags in 0 until 0x100) {
@@ -4619,13 +4152,12 @@ abstract class TestCommon6502 {
             assertEquals(0xFC, mpu.SP)
             assertEquals((flags or fBREAK or fUNUSED), memory[0x1FD].toInt())
         }
-
     }
 
     // PLA
+
     @Test
     fun test_pla_pulls_top_byte_from_stack_into_a_and_updates_sp() {
-
         // $0000 PLA
         memory[0x0000] = 0x68
         memory[0x01FF] = 0xAB
@@ -4634,14 +4166,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xAB, mpu.A)
         assertEquals(0xFF, mpu.SP)
-
-        // PLP
-
     }
+
+    // PLP
 
     @Test
     fun test_plp_pulls_top_byte_from_stack_into_flags_and_updates_sp() {
-
         // $0000 PLP
         memory[0x0000] = 0x28
         memory[0x01FF] = 0xBA  // must have BREAK and UNUSED set
@@ -4650,14 +4180,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xBA, mpu.Status.asByte())
         assertEquals(0xFF, mpu.SP)
-
-        // ROL Accumulator
-
     }
+
+    // ROL Accumulator
 
     @Test
     fun test_rol_accumulator_zero_and_carry_zero_sets_z_flag() {
-
         mpu.A = 0x00
         mpu.Status.C = false
         // $0000 ROL A
@@ -4667,12 +4195,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_accumulator_80_and_carry_zero_sets_z_flag() {
-
         mpu.A = 0x80
         mpu.Status.C = false
         mpu.Status.Z = false
@@ -4687,7 +4213,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_rol_accumulator_zero_and_carry_one_clears_z_flag() {
-
         mpu.A = 0x00
         mpu.Status.C = true
         // $0000 ROL A
@@ -4697,12 +4222,10 @@ abstract class TestCommon6502 {
         assertEquals(0x01, mpu.A)
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_accumulator_sets_n_flag() {
-
         mpu.A = 0x40
         mpu.Status.C = true
         // $0000 ROL A
@@ -4712,12 +4235,10 @@ abstract class TestCommon6502 {
         assertEquals(0x81, mpu.A)
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_rol_accumulator_shifts_out_zero() {
-
         mpu.A = 0x7F
         mpu.Status.C = false
         // $0000 ROL A
@@ -4726,12 +4247,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xFE, mpu.A)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_rol_accumulator_shifts_out_one() {
-
         mpu.A = 0xFF
         mpu.Status.C = false
         // $0000 ROL A
@@ -4740,14 +4259,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0xFE, mpu.A)
         assertTrue(mpu.Status.C)
-
-        // ROL Absolute
-
     }
+
+    // ROL Absolute
 
     @Test
     fun test_rol_absolute_zero_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         // $0000 ROL $ABCD
         writeMem(memory, 0x0000, listOf(0x2E, 0xCD, 0xAB))
@@ -4757,12 +4274,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_absolute_80_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         mpu.Status.Z = false
         // $0000 ROL $ABCD
@@ -4773,12 +4288,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_absolute_zero_and_carry_one_clears_z_flag() {
-
         mpu.A = 0x00
         mpu.Status.C = true
         // $0000 ROL $ABCD
@@ -4789,12 +4302,10 @@ abstract class TestCommon6502 {
         assertEquals(0x01, memory[0xABCD])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_absolute_sets_n_flag() {
-
         mpu.Status.C = true
         // $0000 ROL $ABCD
         writeMem(memory, 0x0000, listOf(0x2E, 0xCD, 0xAB))
@@ -4804,12 +4315,10 @@ abstract class TestCommon6502 {
         assertEquals(0x81, memory[0xABCD])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_rol_absolute_shifts_out_zero() {
-
         mpu.Status.C = false
         // $0000 ROL $ABCD
         writeMem(memory, 0x0000, listOf(0x2E, 0xCD, 0xAB))
@@ -4818,12 +4327,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0xFE, memory[0xABCD])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_rol_absolute_shifts_out_one() {
-
         mpu.Status.C = false
         // $0000 ROL $ABCD
         writeMem(memory, 0x0000, listOf(0x2E, 0xCD, 0xAB))
@@ -4832,14 +4339,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0xFE, memory[0xABCD])
         assertTrue(mpu.Status.C)
-
-        // ROL Zero Page
-
     }
+
+    // ROL Zero Page
 
     @Test
     fun test_rol_zp_zero_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         // $0000 ROL $0010
         writeMem(memory, 0x0000, listOf(0x26, 0x10))
@@ -4849,12 +4354,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_zp_80_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         mpu.Status.Z = false
         // $0000 ROL $0010
@@ -4865,12 +4368,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_zp_zero_and_carry_one_clears_z_flag() {
-
         mpu.A = 0x00
         mpu.Status.C = true
         // $0000 ROL $0010
@@ -4881,12 +4382,10 @@ abstract class TestCommon6502 {
         assertEquals(0x01, memory[0x0010])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_zp_sets_n_flag() {
-
         mpu.Status.C = true
         // $0000 ROL $0010
         writeMem(memory, 0x0000, listOf(0x26, 0x10))
@@ -4896,12 +4395,10 @@ abstract class TestCommon6502 {
         assertEquals(0x81, memory[0x0010])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_rol_zp_shifts_out_zero() {
-
         mpu.Status.C = false
         // $0000 ROL $0010
         writeMem(memory, 0x0000, listOf(0x26, 0x10))
@@ -4910,12 +4407,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0xFE, memory[0x0010])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_rol_zp_shifts_out_one() {
-
         mpu.Status.C = false
         // $0000 ROL $0010
         writeMem(memory, 0x0000, listOf(0x26, 0x10))
@@ -4924,14 +4419,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0xFE, memory[0x0010])
         assertTrue(mpu.Status.C)
-
-        // ROL Absolute, X-Indexed
-
     }
+
+    // ROL Absolute, X-Indexed
 
     @Test
     fun test_rol_abs_x_indexed_zero_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         mpu.X = 0x03
         // $0000 ROL $ABCD,X
@@ -4942,12 +4435,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_abs_x_indexed_80_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         mpu.Status.Z = false
         mpu.X = 0x03
@@ -4959,12 +4450,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_abs_x_indexed_zero_and_carry_one_clears_z_flag() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROL $ABCD,X
@@ -4975,12 +4464,10 @@ abstract class TestCommon6502 {
         assertEquals(0x01, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_abs_x_indexed_sets_n_flag() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROL $ABCD,X
@@ -4991,12 +4478,10 @@ abstract class TestCommon6502 {
         assertEquals(0x81, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_rol_abs_x_indexed_shifts_out_zero() {
-
         mpu.X = 0x03
         mpu.Status.C = false
         // $0000 ROL $ABCD,X
@@ -5006,12 +4491,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0xFE, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_rol_abs_x_indexed_shifts_out_one() {
-
         mpu.X = 0x03
         mpu.Status.C = false
         // $0000 ROL $ABCD,X
@@ -5021,14 +4504,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0xFE, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.C)
-
-        // ROL Zero Page, X-Indexed
-
     }
+
+    // ROL Zero Page, X-Indexed
 
     @Test
     fun test_rol_zp_x_indexed_zero_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         mpu.X = 0x03
         writeMem(memory, 0x0000, listOf(0x36, 0x10))
@@ -5039,12 +4520,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_zp_x_indexed_80_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         mpu.Status.Z = false
         mpu.X = 0x03
@@ -5056,12 +4535,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_zp_x_indexed_zero_and_carry_one_clears_z_flag() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         writeMem(memory, 0x0000, listOf(0x36, 0x10))
@@ -5072,12 +4549,10 @@ abstract class TestCommon6502 {
         assertEquals(0x01, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_rol_zp_x_indexed_sets_n_flag() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROL $0010,X
@@ -5088,12 +4563,10 @@ abstract class TestCommon6502 {
         assertEquals(0x81, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.N)
         assertFalse(mpu.Status.Z)
-
     }
 
     @Test
     fun test_rol_zp_x_indexed_shifts_out_zero() {
-
         mpu.X = 0x03
         mpu.Status.C = false
         // $0000 ROL $0010,X
@@ -5103,12 +4576,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0xFE, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_rol_zp_x_indexed_shifts_out_one() {
-
         mpu.X = 0x03
         mpu.Status.C = false
         // $0000 ROL $0010,X
@@ -5118,14 +4589,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0xFE, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.C)
-
-        // ROR Accumulator
-
     }
+
+    // ROR Accumulator
 
     @Test
     fun test_ror_accumulator_zero_and_carry_zero_sets_z_flag() {
-
         mpu.A = 0x00
         mpu.Status.C = false
         // $0000 ROR A
@@ -5135,12 +4604,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, mpu.A)
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_accumulator_zero_and_carry_one_rotates_in_sets_n_flags() {
-
         mpu.A = 0x00
         mpu.Status.C = true
         // $0000 ROR A
@@ -5150,12 +4617,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, mpu.A)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_accumulator_shifts_out_zero() {
-
         mpu.A = 0x02
         mpu.Status.C = true
         // $0000 ROR A
@@ -5164,12 +4629,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x81, mpu.A)
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_ror_accumulator_shifts_out_one() {
-
         mpu.A = 0x03
         mpu.Status.C = true
         // $0000 ROR A
@@ -5178,14 +4641,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0001, mpu.PC)
         assertEquals(0x81, mpu.A)
         assertTrue(mpu.Status.C)
-
-        // ROR Absolute
-
     }
+
+    // ROR Absolute
 
     @Test
     fun test_ror_absolute_zero_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         // $0000 ROR $ABCD
         writeMem(memory, 0x0000, listOf(0x6E, 0xCD, 0xAB))
@@ -5195,12 +4656,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_absolute_zero_and_carry_one_rotates_in_sets_n_flags() {
-
         mpu.Status.C = true
         // $0000 ROR $ABCD
         writeMem(memory, 0x0000, listOf(0x6E, 0xCD, 0xAB))
@@ -5210,12 +4669,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0xABCD])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_absolute_shifts_out_zero() {
-
         mpu.Status.C = true
         // $0000 ROR $ABCD
         writeMem(memory, 0x0000, listOf(0x6E, 0xCD, 0xAB))
@@ -5224,12 +4681,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x81, memory[0xABCD])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_ror_absolute_shifts_out_one() {
-
         mpu.Status.C = true
         // $0000 ROR $ABCD
         writeMem(memory, 0x0000, listOf(0x6E, 0xCD, 0xAB))
@@ -5238,14 +4693,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x81, memory[0xABCD])
         assertTrue(mpu.Status.C)
-
-        // ROR Zero Page
-
     }
+
+    // ROR Zero Page
 
     @Test
     fun test_ror_zp_zero_and_carry_zero_sets_z_flag() {
-
         mpu.Status.C = false
         // $0000 ROR $0010
         writeMem(memory, 0x0000, listOf(0x66, 0x10))
@@ -5255,12 +4708,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_zp_zero_and_carry_one_rotates_in_sets_n_flags() {
-
         mpu.Status.C = true
         // $0000 ROR $0010
         writeMem(memory, 0x0000, listOf(0x66, 0x10))
@@ -5270,12 +4721,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0x0010])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_zp_zero_absolute_shifts_out_zero() {
-
         mpu.Status.C = true
         // $0000 ROR $0010
         writeMem(memory, 0x0000, listOf(0x66, 0x10))
@@ -5284,12 +4733,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x81, memory[0x0010])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_ror_zp_shifts_out_one() {
-
         mpu.Status.C = true
         // $0000 ROR $0010
         writeMem(memory, 0x0000, listOf(0x66, 0x10))
@@ -5298,14 +4745,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x81, memory[0x0010])
         assertTrue(mpu.Status.C)
-
-        // ROR Absolute, X-Indexed
-
     }
+
+    // ROR Absolute, X-Indexed
 
     @Test
     fun test_ror_abs_x_indexed_zero_and_carry_zero_sets_z_flag() {
-
         mpu.X = 0x03
         mpu.Status.C = false
         // $0000 ROR $ABCD,X
@@ -5316,12 +4761,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_abs_x_indexed_z_and_c_1_rotates_in_sets_n_flags() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROR $ABCD,X
@@ -5332,12 +4775,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_abs_x_indexed_shifts_out_zero() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROR $ABCD,X
@@ -5347,12 +4788,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x81, memory[0xABCD + mpu.X])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_ror_abs_x_indexed_shifts_out_one() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROR $ABCD,X
@@ -5362,14 +4801,12 @@ abstract class TestCommon6502 {
         assertEquals(0x0003, mpu.PC)
         assertEquals(0x81, memory[0xABCD + mpu.X])
         assertTrue(mpu.Status.C)
-
-        // ROR Zero Page, X-Indexed
-
     }
+
+    // ROR Zero Page, X-Indexed
 
     @Test
     fun test_ror_zp_x_indexed_zero_and_carry_zero_sets_z_flag() {
-
         mpu.X = 0x03
         mpu.Status.C = false
         // $0000 ROR $0010,X
@@ -5380,12 +4817,10 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.Z)
         assertFalse(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_zp_x_indexed_zero_and_carry_one_rotates_in_sets_n_flags() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROR $0010,X
@@ -5396,12 +4831,10 @@ abstract class TestCommon6502 {
         assertEquals(0x80, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.N)
-
     }
 
     @Test
     fun test_ror_zp_x_indexed_zero_absolute_shifts_out_zero() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROR $0010,X
@@ -5411,12 +4844,10 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x81, memory[0x0010 + mpu.X])
         assertFalse(mpu.Status.C)
-
     }
 
     @Test
     fun test_ror_zp_x_indexed_shifts_out_one() {
-
         mpu.X = 0x03
         mpu.Status.C = true
         // $0000 ROR $0010,X
@@ -5426,19 +4857,16 @@ abstract class TestCommon6502 {
         assertEquals(0x0002, mpu.PC)
         assertEquals(0x81, memory[0x0010 + mpu.X])
         assertTrue(mpu.Status.C)
-
-        // RTI
-
     }
+
+    // RTI
 
     @Test
     fun test_rti_restores_status_and_pc_and_updates_sp() {
-
         // $0000 RTI
         memory[0x0000] = 0x40
         writeMem(memory, 0x01FD, listOf(0xFC, 0x03, 0xC0))  // Status, PCL, PCH
         mpu.SP = 0xFC
-
         mpu.step()
         assertEquals(0xFF, mpu.SP)
         assertEquals(0xFC, mpu.Status.asByte())
@@ -5447,51 +4875,45 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_rti_forces_break_and_unused_flags_high() {
-
         // $0000 RTI
         memory[0x0000] = 0x40
         writeMem(memory, 0x01FD, listOf(0x00, 0x03, 0xC0))  // Status, PCL, PCH
         mpu.SP = 0xFC
-
         mpu.step()
         assertTrue(mpu.Status.B)
         // assertEquals(fUNUSED, mpu.Status.asByte().toInt() and fUNUSED)
     }
 
     // RTS
+
     @Test
     fun test_rts_restores_pc_and_increments_then_updates_sp() {
-
         // $0000 RTS
         memory[0x0000] = 0x60
         writeMem(memory, 0x01FE, listOf(0x03, 0xC0))  // PCL, PCH
         mpu.PC = 0x0000
         mpu.SP = 0xFD
-
         mpu.step()
         assertEquals(0xC004, mpu.PC)
         assertEquals(0xFF, mpu.SP)
-
     }
 
     @Test
     fun test_rts_wraps_around_top_of_memory() {
-
         // $1000 RTS
         memory[0x1000] = 0x60
         writeMem(memory, 0x01FE, listOf(0xFF, 0xFF))  // PCL, PCH
         mpu.PC = 0x1000
         mpu.SP = 0xFD
-
         mpu.step()
         assertEquals(0x0000, mpu.PC)
         assertEquals(0xFF, mpu.SP)
     }
 
     // SBC Absolute
+
     @Test
     fun test_sbc_abs_all_zeros_and_no_borrow_is_zero() {
-
         mpu.Status.D = false
         mpu.Status.C = true  // borrow = 0
         mpu.A = 0x00
@@ -5551,6 +4973,7 @@ abstract class TestCommon6502 {
     }
 
     // SBC Zero Page
+
     @Test
     fun test_sbc_zp_all_zeros_and_no_borrow_is_zero() {
         mpu.Status.D = false
@@ -5964,7 +5387,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_sbc_ind_y_downto_zero_no_borrow_sets_z_clears_n() {
-
         mpu.Status.D = false
         mpu.Status.C = true  // borrow = 0
         mpu.A = 0x01
@@ -5978,12 +5400,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.C)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_sbc_ind_y_downto_zero_with_borrow_sets_z_clears_n() {
-
         mpu.Status.D = false
         mpu.Status.C = false  // borrow = 1
         mpu.A = 0x01
@@ -5997,12 +5417,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.C)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_sbc_ind_y_downto_four_with_borrow_clears_z_n() {
-
         mpu.Status.D = false
         mpu.Status.C = false  // borrow = 1
         mpu.A = 0x07
@@ -6016,14 +5434,12 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
-
-        // SBC Zero Page, X-Indexed
-
     }
+
+    // SBC Zero Page, X-Indexed
 
     @Test
     fun test_sbc_zp_x_all_zeros_and_no_borrow_is_zero() {
-
         mpu.Status.D = false
         mpu.Status.C = true  // borrow = 0
         mpu.A = 0x00
@@ -6036,12 +5452,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.C)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_sbc_zp_x_downto_zero_no_borrow_sets_z_clears_n() {
-
         mpu.Status.D = false
         mpu.Status.C = true  // borrow = 0
         mpu.A = 0x01
@@ -6054,12 +5468,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.C)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_sbc_zp_x_downto_zero_with_borrow_sets_z_clears_n() {
-
         mpu.Status.D = false
         mpu.Status.C = false  // borrow = 1
         mpu.A = 0x01
@@ -6072,12 +5484,10 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertTrue(mpu.Status.C)
         assertTrue(mpu.Status.Z)
-
     }
 
     @Test
     fun test_sbc_zp_x_downto_four_with_borrow_clears_z_n() {
-
         mpu.Status.D = false
         mpu.Status.C = false  // borrow = 1
         mpu.A = 0x07
@@ -6090,28 +5500,24 @@ abstract class TestCommon6502 {
         assertFalse(mpu.Status.N)
         assertFalse(mpu.Status.Z)
         assertTrue(mpu.Status.C)
-
-        // SEC
-
     }
+
+    // SEC
 
     @Test
     fun test_sec_sets_carry_flag() {
-
         mpu.Status.C = false
         // $0000 SEC
         memory[0x0000] = 0x038
         mpu.step()
         assertEquals(0x0001, mpu.PC)
         assertTrue(mpu.Status.C)
-
-        // SED
-
     }
+
+    // SED
 
     @Test
     fun test_sed_sets_decimal_mode_flag() {
-
         mpu.Status.D = false
         // $0000 SED
         memory[0x0000] = 0xF8
@@ -6136,7 +5542,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_sta_absolute_stores_a_leaves_a_and_n_flag_unchanged() {
-
         val flags = 0xFF and fNEGATIVE.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0xFF
@@ -6148,12 +5553,10 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD])
         assertEquals(0xFF, mpu.A)
         assertEquals(flags, mpu.Status.asByte().toInt())
-
     }
 
     @Test
     fun test_sta_absolute_stores_a_leaves_a_and_z_flag_unchanged() {
-
         val flags = 0xFF and fZERO.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0x00
@@ -6165,14 +5568,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0xABCD])
         assertEquals(0x00, mpu.A)
         assertEquals(flags, mpu.Status.asByte().toInt())
-
-        // STA Zero Page
-
     }
+
+    // STA Zero Page
 
     @Test
     fun test_sta_zp_stores_a_leaves_a_and_n_flag_unchanged() {
-
         val flags = 0xFF and fNEGATIVE.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0xFF
@@ -6184,12 +5585,10 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0x0010])
         assertEquals(0xFF, mpu.A)
         assertEquals(flags, mpu.Status.asByte().toInt())
-
     }
 
     @Test
     fun test_sta_zp_stores_a_leaves_a_and_z_flag_unchanged() {
-
         val flags = 0xFF and fZERO.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0x00
@@ -6201,14 +5600,12 @@ abstract class TestCommon6502 {
         assertEquals(0x00, memory[0x0010])
         assertEquals(0x00, mpu.A)
         assertEquals(flags, mpu.Status.asByte().toInt())
-
-        // STA Absolute, X-Indexed
-
     }
+
+    // STA Absolute, X-Indexed
 
     @Test
     fun test_sta_abs_x_indexed_stores_a_leaves_a_and_n_flag_unchanged() {
-
         val flags = 0xFF and fNEGATIVE.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0xFF
@@ -6221,12 +5618,10 @@ abstract class TestCommon6502 {
         assertEquals(0xFF, memory[0xABCD + mpu.X])
         assertEquals(0xFF, mpu.A)
         assertEquals(flags, mpu.Status.asByte().toInt())
-
     }
 
     @Test
     fun test_sta_abs_x_indexed_stores_a_leaves_a_and_z_flag_unchanged() {
-
         val flags = 0xFF and fZERO.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0x00
@@ -6245,7 +5640,6 @@ abstract class TestCommon6502 {
 
     @Test
     fun test_sta_abs_y_indexed_stores_a_leaves_a_and_n_flag_unchanged() {
-
         val flags = 0xFF and fNEGATIVE.inv()
         mpu.Status.fromByte(flags)
         mpu.A = 0xFF
