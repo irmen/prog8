@@ -34,7 +34,7 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
 
         fun hexW(number: Address, allowSingleByte: Boolean = false): String {
             val msb = number ushr 8
-            val lsb = number and 255
+            val lsb = number and 0xff
             return if (msb == 0 && allowSingleByte)
                 hexB(lsb)
             else
@@ -332,20 +332,20 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
 
     private fun amZpx() {
         // note: zeropage index will not leave Zp when page boundray is crossed
-        fetchedAddress = (readPc() + X) and 255
+        fetchedAddress = (readPc() + X) and 0xff
     }
 
     private fun amZpy() {
         // note: zeropage index will not leave Zp when page boundray is crossed
-        fetchedAddress = (readPc() + Y) and 255
+        fetchedAddress = (readPc() + Y) and 0xff
     }
 
     private fun amRel() {
         val relative = readPc()
-        fetchedAddress = if (relative >= 0x80)
-            PC - (256 - relative)
-        else
-            PC + relative
+        fetchedAddress = if (relative >= 0x80) {
+            PC - (256 - relative) and 0xffff
+        } else
+            PC + relative and 0xffff
     }
 
     private fun amAbs() {
@@ -386,8 +386,8 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     private fun amIzx() {
         // note: not able to fetch an adress which crosses the page boundary
         fetchedAddress = readPc()
-        val lo = read((fetchedAddress + X) and 255)
-        val hi = read((fetchedAddress + X + 1) and 255)
+        val lo = read((fetchedAddress + X) and 0xff)
+        val hi = read((fetchedAddress + X + 1) and 0xff)
         fetchedAddress = lo or (hi shl 8)
     }
 
@@ -395,23 +395,22 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
         // note: not able to fetch an adress which crosses the page boundary
         fetchedAddress = readPc()
         val lo = read(fetchedAddress)
-        val hi = read((fetchedAddress + 1) and 255)
-        fetchedAddress = Y + (lo or (hi shl 8)) and 65535
+        val hi = read((fetchedAddress + 1) and 0xff)
+        fetchedAddress = Y + (lo or (hi shl 8)) and 0xffff
     }
 
-    private fun getFetched(): Int {
-        return if (currentInstruction.mode == AddrMode.Imm ||
-                currentInstruction.mode == AddrMode.Acc ||
-                currentInstruction.mode == AddrMode.Imp)
-            fetchedData
-        else
-            read(fetchedAddress)
-    }
+    private fun getFetched() =
+            if (currentInstruction.mode == AddrMode.Imm ||
+                    currentInstruction.mode == AddrMode.Acc ||
+                    currentInstruction.mode == AddrMode.Imp)
+                fetchedData
+            else
+                read(fetchedAddress)
 
     private fun readPc(): Int = bus.read(PC++).toInt()
 
     private fun pushStackAddr(address: Address) {
-        val lo = address and 255
+        val lo = address and 0xff
         val hi = (address ushr 8)
         pushStack(hi)
         pushStack(lo)
@@ -717,26 +716,26 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
             // and https://sourceforge.net/p/vice-emu/code/HEAD/tree/trunk/vice/src/6510core.c#l598
             // (the implementation below is based on the code used by Vice)
             var tmp = (A and 0xf) + (operand and 0xf) + (if (Status.C) 1 else 0)
-            if (tmp > 0x9) tmp += 0x6
+            if (tmp > 9) tmp += 6
             tmp = if (tmp <= 0x0f) {
                 (tmp and 0xf) + (A and 0xf0) + (operand and 0xf0)
             } else {
                 (tmp and 0xf) + (A and 0xf0) + (operand and 0xf0) + 0x10
             }
-            Status.Z = ((A + operand + (if (Status.C) 1 else 0)) and 0xff) == 0
-            Status.N = (tmp and 0b10000000) != 0
-            Status.V = ((A xor tmp) and 0x80) != 0 && ((A xor operand) and 0x80) == 0
-            if (tmp > 0x90) tmp += 0x60
-            Status.C = tmp > 0xf0
-            A = tmp and 255
+            Status.Z = A + operand + (if (Status.C) 1 else 0) and 0xff == 0
+            Status.N = tmp and 0b10000000 != 0
+            Status.V = (A xor tmp) and 0x80 != 0 && (A xor operand) and 0b10000000 == 0
+            if (tmp and 0x1f0 > 0x90) tmp += 0x60
+            Status.C = tmp > 0xf0     // original: (tmp and 0xff0) > 0xf0
+            A = tmp and 0xff
         } else {
             // normal add
             val tmp = operand + A + if (Status.C) 1 else 0
             Status.N = (tmp and 0b10000000) != 0
-            Status.Z = (tmp and 255) == 0
-            Status.V = ((A xor operand) and 0x80) == 0 && ((A xor tmp) and 0x80) != 0
-            Status.C = tmp > 255
-            A = tmp and 255
+            Status.Z = (tmp and 0xff) == 0
+            Status.V = (A xor operand).inv() and (A xor tmp) and 0b10000000 != 0
+            Status.C = tmp > 0xff
+            A = tmp and 0xff
         }
     }
 
@@ -749,13 +748,13 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     private fun iAsl() {
         if (currentInstruction.mode == AddrMode.Acc) {
             Status.C = (A and 0b10000000) != 0
-            A = (A shl 1) and 255
+            A = (A shl 1) and 0xff
             Status.Z = A == 0
             Status.N = (A and 0b10000000) != 0
         } else {
             val data = read(fetchedAddress)
             Status.C = (data and 0b10000000) != 0
-            val shifted = (data shl 1) and 255
+            val shifted = (data shl 1) and 0xff
             write(fetchedAddress, shifted)
             Status.Z = shifted == 0
             Status.N = (shifted and 0b10000000) != 0
@@ -848,20 +847,20 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     }
 
     private fun iDec() {
-        val data = (read(fetchedAddress) - 1) and 255
+        val data = (read(fetchedAddress) - 1) and 0xff
         write(fetchedAddress, data)
         Status.Z = data == 0
         Status.N = (data and 0b10000000) != 0
     }
 
     private fun iDex() {
-        X = (X - 1) and 255
+        X = (X - 1) and 0xff
         Status.Z = X == 0
         Status.N = (X and 0b10000000) != 0
     }
 
     private fun iDey() {
-        Y = (Y - 1) and 255
+        Y = (Y - 1) and 0xff
         Status.Z = Y == 0
         Status.N = (Y and 0b10000000) != 0
     }
@@ -873,20 +872,20 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     }
 
     private fun iInc() {
-        val data = (read(fetchedAddress) + 1) and 255
+        val data = (read(fetchedAddress) + 1) and 0xff
         write(fetchedAddress, data)
         Status.Z = data == 0
         Status.N = (data and 0b10000000) != 0
     }
 
     private fun iInx() {
-        X = (X + 1) and 255
+        X = (X + 1) and 0xff
         Status.Z = X == 0
         Status.N = (X and 0b10000000) != 0
     }
 
     private fun iIny() {
-        Y = (Y + 1) and 255
+        Y = (Y + 1) and 0xff
         Status.Z = Y == 0
         Status.N = (Y and 0b10000000) != 0
     }
@@ -968,13 +967,13 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
         val oldCarry = Status.C
         if (currentInstruction.mode == AddrMode.Acc) {
             Status.C = (A and 0b10000000) != 0
-            A = (A shl 1 and 255) or (if (oldCarry) 1 else 0)
+            A = (A shl 1 and 0xff) or (if (oldCarry) 1 else 0)
             Status.Z = A == 0
             Status.N = (A and 0b10000000) != 0
         } else {
             val data = read(fetchedAddress)
             Status.C = (data and 0b10000000) != 0
-            val shifted = (data shl 1 and 255) or (if (oldCarry) 1 else 0)
+            val shifted = (data shl 1 and 0xff) or (if (oldCarry) 1 else 0)
             write(fetchedAddress, shifted)
             Status.Z = shifted == 0
             Status.N = (shifted and 0b10000000) != 0
@@ -1011,29 +1010,29 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
 
     private fun iSbc() {
         val operand = getFetched()
-        val tmp = (A - operand - if (Status.C) 0 else 1) and 65535
+        val tmp = (A - operand - if (Status.C) 0 else 1) and 0xffff
+        Status.V = (A xor operand) and (A xor tmp) and 0b10000000 != 0
         if (Status.D) {
             // BCD subtract
             // see http://www.6502.org/tutorials/decimal_mode.html
             // and http://nesdev.com/6502.txt
             // and https://sourceforge.net/p/vice-emu/code/HEAD/tree/trunk/vice/src/6510core.c#l1396
             // (the implementation below is based on the code used by Vice)
-            var tmpA = ((A and 0xf) - (operand and 0xf) - if (Status.C) 0 else 1) and 65535
+            var tmpA = ((A and 0xf) - (operand and 0xf) - if (Status.C) 0 else 1) and 0xffff
             tmpA = if ((tmpA and 0x10) != 0) {
                 ((tmpA - 6) and 0xf) or (A and 0xf0) - (operand and 0xf0) - 0x10
             } else {
                 (tmpA and 0xf) or (A and 0xf0) - (operand and 0xf0)
             }
             if ((tmpA and 0x100) != 0) tmpA -= 0x60
-            A = tmpA and 255
+            A = tmpA and 0xff
         } else {
             // normal subtract
-            A = tmp and 255
+            A = tmp and 0xff
         }
         Status.C = tmp < 0x100
-        Status.Z = (tmp and 255) == 0
+        Status.Z = (tmp and 0xff) == 0
         Status.N = (tmp and 0b10000000) != 0
-        Status.V = ((A xor tmp) and 0x80) != 0 && ((A xor operand) and 0x80) != 0
     }
 
     private fun iSec() {
