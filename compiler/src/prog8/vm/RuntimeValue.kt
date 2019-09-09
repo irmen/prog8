@@ -8,7 +8,7 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
 import prog8.compiler.target.c64.Petscii
 import prog8.vm.astvm.VmExecutionException
-import java.util.*
+import java.util.Objects
 import kotlin.math.abs
 import kotlin.math.pow
 

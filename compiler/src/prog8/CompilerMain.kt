@@ -9,7 +9,7 @@ import prog8.vm.astvm.AstVm
 import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
-import java.util.*
+import java.time.LocalDateTime
 import kotlin.system.exitProcess
 
 
@@ -67,7 +67,7 @@ private fun compileMain(args: Array<String>) {
                     println(importedFile)
                     importedFile.parent.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
                 }
-                println("${Date()}: Waiting for file changes.")
+                println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")
                 val event = watchservice.take()
                 for(changed in event.pollEvents()) {
                     val changedPath = changed.context() as Path

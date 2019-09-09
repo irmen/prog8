@@ -6,7 +6,7 @@ import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.awt.image.BufferedImage
-import java.util.*
+import java.util.ArrayDeque
 import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.Timer
@@ -18,7 +18,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     private val g2d = image.graphics as Graphics2D
     private var cursorX: Int=0
     private var cursorY: Int=0
-    val keyboardBuffer: Deque<Char> = LinkedList()
+    val keyboardBuffer = ArrayDeque<Char>()
 
     init {
         val size = Dimension(image.width * SCALING, image.height * SCALING)

@@ -17,7 +17,6 @@ import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.vm.RuntimeValue
 import java.io.File
-import java.util.*
 import kotlin.math.abs
 
 

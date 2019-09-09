@@ -13,7 +13,7 @@ import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
-import java.util.*
+import java.util.Objects
 import kotlin.math.abs
 
 

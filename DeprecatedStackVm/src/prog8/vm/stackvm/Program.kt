@@ -12,8 +12,8 @@ import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.opcodesWithVarArgument
 import prog8.vm.RuntimeValue
 import java.io.File
-import java.util.*
 import java.util.regex.Pattern
+
 
 class Program (val name: String,
                val program: MutableList<Instruction>,

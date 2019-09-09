@@ -12,7 +12,7 @@ import prog8.compiler.target.c64.Petscii
 import prog8.vm.*
 import java.awt.EventQueue
 import java.io.CharConversionException
-import java.util.*
+import java.util.ArrayDeque
 import kotlin.NoSuchElementException
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.*
@@ -140,10 +140,10 @@ class AstVm(val program: Program) {
     var rtcOffset = bootTime
 
     private val rnd = Random(0)
-    private val statusFlagsSave = Stack<StatusFlags>()
-    private val registerXsave = Stack<RuntimeValueNumeric>()
-    private val registerYsave = Stack<RuntimeValueNumeric>()
-    private val registerAsave = Stack<RuntimeValueNumeric>()
+    private val statusFlagsSave = ArrayDeque<StatusFlags>()
+    private val registerXsave = ArrayDeque<RuntimeValueNumeric>()
+    private val registerYsave = ArrayDeque<RuntimeValueNumeric>()
+    private val registerAsave = ArrayDeque<RuntimeValueNumeric>()
 
 
     init {

@@ -1,7 +1,8 @@
 package prog8.ast.expressions
 
+import java.util.Objects
 import prog8.ast.base.DataType
-import java.util.*
+
 
 object InferredTypes {
     class InferredType private constructor(val isUnknown: Boolean, val isVoid: Boolean, private var datatype: DataType?) {

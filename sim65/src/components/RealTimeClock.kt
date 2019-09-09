@@ -1,6 +1,8 @@
 package sim65.components
 
-import java.util.*
+import java.time.LocalDate
+import java.time.LocalTime
+
 
 /**
  * A real-time clock (time of day clock).
@@ -17,8 +19,6 @@ import java.util.*
  */
 class RealTimeClock(startAddress: Address, endAddress: Address) : MemMappedComponent(startAddress, endAddress) {
 
-    val calendar = Calendar.getInstance()
-
     init {
         require(endAddress - startAddress + 1 == 9) { "rtc needs exactly 9 memory bytes" }
     }
@@ -32,44 +32,29 @@ class RealTimeClock(startAddress: Address, endAddress: Address) : MemMappedCompo
     }
 
     override operator fun get(address: Address): UByte {
-        when (address - startAddress) {
+        return when (address - startAddress) {
             0 -> {
-                val year = calendar.get(Calendar.YEAR)
-                return (year and 255).toShort()
+                val year = LocalDate.now().year
+                (year and 255).toShort()
             }
             1 -> {
-                val year = calendar.get(Calendar.YEAR)
-                return (year ushr 8).toShort()
+                val year = LocalDate.now().year
+                (year ushr 8).toShort()
             }
-            2 -> {
-                val month = calendar.get(Calendar.MONTH) + 1
-                return month.toShort()
-            }
-            3 -> {
-                val day = calendar.get(Calendar.DAY_OF_MONTH)
-                return day.toShort()
-            }
-            4 -> {
-                val hour = calendar.get(Calendar.HOUR_OF_DAY)
-                return hour.toShort()
-            }
-            5 -> {
-                val minute = calendar.get(Calendar.MINUTE)
-                return minute.toShort()
-            }
-            6 -> {
-                val second = calendar.get(Calendar.SECOND)
-                return second.toShort()
-            }
+            2 -> LocalDate.now().monthValue.toShort()
+            3 -> LocalDate.now().dayOfMonth.toShort()
+            4 -> LocalTime.now().hour.toShort()
+            5 -> LocalTime.now().minute.toShort()
+            6 -> LocalTime.now().second.toShort()
             7 -> {
-                val ms = calendar.get(Calendar.MILLISECOND)
-                return (ms and 255).toShort()
+                val ms = LocalTime.now().nano / 1000
+                (ms and 255).toShort()
             }
             8 -> {
-                val ms = calendar.get(Calendar.MILLISECOND)
-                return (ms ushr 8).toShort()
+                val ms = LocalTime.now().nano / 1000
+                (ms ushr 8).toShort()
             }
-            else -> return 0
+            else -> 0
         }
     }
 
