@@ -58,9 +58,9 @@ class Test6502TestSuite {
             fail("test hangs")
         } catch (e: InstructionError) {
             println(">>> INSTRUCTION ERROR: ${e.message}")
-        } catch (le: LoadNextPart) {
+        } catch (le: KernalLoadNextPart) {
             return  // test ok
-        } catch (ie: InputRequired) {
+        } catch (ie: KernalInputRequired) {
             fail("test failed")
         }
         fail("test failed")

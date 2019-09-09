@@ -8,11 +8,18 @@ package sim65.components
  *  02    24 bits interval value, bits 8-15 (mid)
  *  03    24 bits interval value, bits 16-23  (hi)
  */
-class Timer(startAddress: Address, endAddress: Address) : MemMappedComponent(startAddress, endAddress) {
+class Timer(startAddress: Address, endAddress: Address, val cpu: Cpu6502) : MemMappedComponent(startAddress, endAddress) {
     private var counter: Int = 0
     private var interval: Int = 0
-    private var enabled = false
     private var nmi = false
+    private var enabled = false
+        set(value) {
+            if(value && !field) {
+                // timer is set to enabled (was disabled) - reset the counter
+                counter = 0
+            }
+            field = value
+        }
 
     init {
         require(endAddress - startAddress + 1 == 4) { "timer needs exactly 4 memory bytes" }
@@ -23,9 +30,9 @@ class Timer(startAddress: Address, endAddress: Address) : MemMappedComponent(sta
             counter++
             if (counter == interval) {
                 if (nmi)
-                    println("TODO: timer causes CPU nmi $counter") // TODO
+                    cpu.nmi(this)
                 else
-                    println("TODO: timer causes CPU irq $counter")  // TODO
+                    cpu.irq(this)
                 counter = 0
             }
         }
@@ -63,13 +70,8 @@ class Timer(startAddress: Address, endAddress: Address) : MemMappedComponent(sta
         when (address - startAddress) {
             0 -> {
                 val i = data.toInt()
-                val newEnabled = (i and 0b00000001) != 0
+                enabled = (i and 0b00000001) != 0
                 nmi = (i and 0b00000010) != 0
-                if(newEnabled && !enabled) {
-                    // timer is set to enabled (was disabled) - reset the counter
-                    counter = 0
-                }
-                enabled = newEnabled
             }
             1 -> {
                 interval = (interval and 0x7fffff00) or data.toInt()

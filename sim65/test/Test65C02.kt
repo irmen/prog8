@@ -1,6 +1,7 @@
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import sim65.components.Cpu65C02
 import kotlin.test.*
 
 
@@ -40,9 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-@Disabled("there is no 65C02 cpu implementation at this time")          // TODO create a 65c02 cpu!
+@Disabled("there is no 65C02 cpu implementation at this time")   // TODO create a 65c02 cpu and enable this again
 class Test65C02 : TestCommon6502() {
     //  CMOS 65C02 Tests
+    override fun createCpu() = Cpu65C02(false)
 
     // Reset
 
@@ -1535,6 +1537,7 @@ class Test65C02 : TestCommon6502() {
 
     @Test
     fun test_wai_sets_waiting() {
+        mpu as Cpu65C02
         assertFalse(mpu.waiting)
         // $0240 WAI
         memory[0x0204] = 0xcb

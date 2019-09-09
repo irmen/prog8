@@ -2,29 +2,14 @@ package sim65.components
 
 class InstructionError(msg: String) : RuntimeException(msg)
 
-interface ICpu {
-    fun disassemble(memory: Array<UByte>, baseAddress: Address, from: Address, to: Address): List<String>
-    fun disassemble(component: MemoryComponent, from: Address, to: Address) =
-            disassemble(component.cloneContents(), component.startAddress, from, to)
-
-    fun clock()
-    fun reset()
-    fun step()
-    fun breakpoint(address: Address, action: (cpu: ICpu, pc: Address) -> Unit)
-
-    var tracing: Boolean
-    val totalCycles: Long
-}
 
 // TODO: implement the illegal opcodes, see http://www.ffd2.com/fridge/docs/6502-NMOS.extra.opcodes
 // TODO: add the optional additional cycles to certain instructions and addressing modes
-// TODO: add IRQ and NMI signaling.
-// TODO: make a 65c02 variant as well (and re-enable the unit tests for that).
 
 
-class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
-    override var tracing: Boolean = false
-    override var totalCycles: Long = 0
+open class Cpu6502(private val stopOnBrk: Boolean) : BusComponent() {
+    var tracing: Boolean = false
+    var totalCycles: Long = 0
         private set
 
     companion object {
@@ -128,8 +113,10 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     var PC: Address = 0
     val Status = StatusRegister()
     var currentOpcode: Int = 0
-    var waiting: Boolean = false    // 65c02
     private lateinit var currentInstruction: Instruction
+
+    // has an interrupt been requested?
+    private var pendingInterrupt: Pair<Boolean, BusComponent>? = null
 
     // data byte from the instruction (only set when addr.mode is Accumulator, Immediate or Implied)
     private var fetchedData: Int = 0
@@ -153,13 +140,16 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
             AddrMode.IzY to ::amIzy
     )
 
-    private val breakpoints = mutableMapOf<Address, (cpu: ICpu, pc: Address) -> Unit>()
+    private val breakpoints = mutableMapOf<Address, (cpu: Cpu6502, pc: Address) -> Unit>()
 
-    override fun breakpoint(address: Address, action: (cpu: ICpu, pc: Address) -> Unit) {
+    fun breakpoint(address: Address, action: (cpu: Cpu6502, pc: Address) -> Unit) {
         breakpoints[address] = action
     }
 
-    override fun disassemble(memory: Array<UByte>, baseAddress: Address, from: Address, to: Address): List<String> {
+    fun disassemble(component: MemoryComponent, from: Address, to: Address) =
+            disassemble(component.cloneContents(), component.startAddress, from, to)
+
+    fun disassemble(memory: Array<UByte>, baseAddress: Address, from: Address, to: Address): List<String> {
         var address = from - baseAddress
         val spacing1 = "        "
         val spacing2 = "     "
@@ -258,27 +248,35 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
         instrCycles = resetCycles       // a reset takes time as well
         currentOpcode = 0
         currentInstruction = opcodes[0]
-        waiting = false
     }
 
     override fun clock() {
         if (instrCycles == 0) {
-            currentOpcode = read(PC)
-            currentInstruction = opcodes[currentOpcode]
-            if (tracing) printState()
+            if (pendingInterrupt != null) {
+                // NMI or IRQ interrupt.
+                // handled by the BRK instruction logic.
+                currentOpcode = 0
+                currentInstruction = opcodes[0]
+            } else {
+                // no interrupt, continue with next instruction
+                currentOpcode = read(PC)
+                currentInstruction = opcodes[currentOpcode]
 
-            breakpoints[PC]?.let {
-                val oldPC = PC
-                val oldOpcode = currentOpcode
-                it(this, PC)
-                if (PC != oldPC)
-                    return clock()
-                if (oldOpcode != currentOpcode)
-                    currentInstruction = opcodes[currentOpcode]
-            }
+                if (tracing) printState()
 
-            if (currentOpcode == 0 && stopOnBrk) {
-                throw InstructionError("stopped on BRK instruction at ${hexW(PC)}")
+                breakpoints[PC]?.let {
+                    val oldPC = PC
+                    val oldOpcode = currentOpcode
+                    it(this, PC)
+                    if (PC != oldPC)
+                        return clock()
+                    if (oldOpcode != currentOpcode)
+                        currentInstruction = opcodes[currentOpcode]
+                }
+
+                if (currentOpcode == 0 && stopOnBrk) {
+                    throw InstructionError("stopped on BRK instruction at ${hexW(PC)}")
+                }
             }
 
             PC++
@@ -291,11 +289,20 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
         totalCycles++
     }
 
-    override fun step() {
+    fun step() {
         // step a whole instruction
         while (instrCycles > 0) clock()        // remaining instruction subcycles from the previous instruction
         clock()   // the actual instruction execution cycle
         while (instrCycles > 0) clock()        // instruction subcycles
+    }
+
+    fun nmi(source: BusComponent) {
+        pendingInterrupt = Pair(true, source)
+    }
+
+    fun irq(source: BusComponent) {
+        if (!Status.I)
+            pendingInterrupt = Pair(false, source)
     }
 
     fun printState() {
@@ -794,12 +801,21 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     }
 
     private fun iBrk() {
-        PC++
-        pushStackAddr(PC)
-        Status.B = true
+        // handle BRK ('software interrupt') or a real hardware IRQ
+        val interrupt = pendingInterrupt
+        val nmi = interrupt?.first == true
+        if (interrupt != null) {
+            pushStackAddr(PC - 1)
+        } else {
+            PC++
+            pushStackAddr(PC)
+        }
+        Status.B = interrupt == null
         pushStack(Status)
-        Status.I = true
-        PC = readWord(IRQ_vector)
+        Status.I = true     // interrupts are now disabled
+        // NMOS 6502 doesn't clear the D flag (CMOS version does...)
+        PC = readWord(if (nmi) NMI_vector else IRQ_vector)
+        pendingInterrupt = null
     }
 
     private fun iBvc() {
@@ -1167,5 +1183,4 @@ class Cpu6502(private val stopOnBrk: Boolean) : BusComponent(), ICpu {
     private fun iXaa() {
         TODO("xaa - ('illegal' instruction)")
     }
-
 }

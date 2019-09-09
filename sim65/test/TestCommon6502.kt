@@ -45,9 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 abstract class TestCommon6502 {
     // Tests common to 6502-based microprocessors
 
-    val mpu = Cpu6502(stopOnBrk = false)     // TODO make a 65C02 cpu as well and let the subclasses testsuites define the appropriate instance
+    val mpu = createCpu()
     val memory = Ram(0, 0xffff)
     val bus = Bus()
+
+    abstract fun createCpu(): Cpu6502
 
     init {
         bus.add(mpu)

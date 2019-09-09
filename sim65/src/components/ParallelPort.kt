@@ -8,7 +8,7 @@ import sim65.Petscii
  * Second address = control byte (bit 0 high = write byte)
  */
 class ParallelPort(startAddress: Address, endAddress: Address) : MemMappedComponent(startAddress, endAddress) {
-    private var dataByte: UByte = 0
+    var dataByte: UByte = 0
 
     init {
         require(endAddress - startAddress + 1 == 2) { "parallel needs exactly 2 memory bytes (data + control)" }

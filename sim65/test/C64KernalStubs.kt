@@ -1,13 +1,11 @@
 import sim65.Petscii
 import sim65.components.Address
 import sim65.components.Cpu6502
-import sim65.components.ICpu
 import sim65.components.Ram
 
 class C64KernalStubs(private val ram: Ram) {
 
-    fun handleBreakpoint(cpu: ICpu, pc: Address) {
-        cpu as Cpu6502
+    fun handleBreakpoint(cpu: Cpu6502, pc: Address) {
         when(pc) {
             0xffd2 -> {
                 // CHROUT
@@ -21,7 +19,7 @@ class C64KernalStubs(private val ram: Ram) {
             }
             0xffe4 -> {
                 // GETIN
-                throw InputRequired()
+                throw KernalInputRequired()
 //                print("[Input required:] ")
 //                val s = readLine()
 //                if(s.isNullOrEmpty())
@@ -31,7 +29,7 @@ class C64KernalStubs(private val ram: Ram) {
 //                cpu.currentOpcode = 0x60    // rts to end the stub
             }
             0xe16f -> {
-                throw LoadNextPart()
+                throw KernalLoadNextPart()
                 // LOAD/VERIFY
 //                val loc = ram[0xbb].toInt() or (ram[0xbc].toInt() shl 8)
 //                val len = ram[0xb7].toInt()
@@ -44,6 +42,6 @@ class C64KernalStubs(private val ram: Ram) {
     }
 }
 
-class LoadNextPart: Exception()
-class InputRequired: Exception()
+internal class KernalLoadNextPart: Exception()
+internal class KernalInputRequired: Exception()
 
