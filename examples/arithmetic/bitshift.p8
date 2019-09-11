@@ -9,10 +9,10 @@ main {
     uword uw
     &ubyte  membyte=9999
     &uword  memword=9999
-    ubyte[10] ubarray
-    uword[10] uwarray
-    byte[10] bbarray
-    word[10] wwarray
+    ubyte[] ubarray = [8,8,8]
+    uword[] uwarray = [8200, 8200, 8200]
+    byte[] bbarray = [8,8,8]
+    word[] wwarray = [8200, 8200, 8200]
 
     sub unimplemented() {
         ; TODO implement these asm routines
