@@ -7,7 +7,6 @@
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
-      <module fileurl="file://$PROJECT_DIR$/sim65/sim65.iml" filepath="$PROJECT_DIR$/sim65/sim65.iml" />
     </modules>
   </component>
 </project>

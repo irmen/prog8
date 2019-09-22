@@ -15,28 +15,199 @@ c64utils {
 		const   uword  ESTACK_HI	= $cf00
 
 
-; ----- utility functions ----
+; ----- number conversions to decimal strings
 
-asmsub  ubyte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ X, ubyte @ A  {
-	; ---- A to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
-	%asm {{
-		ldy  #$2f
-		ldx  #$3a
-		sec
--               iny
-		sbc  #100
-		bcs  -
--               dex
-		adc  #10
-		bmi  -
-		adc  #$2f
-		rts
+asmsub  ubyte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
+	; ---- A to decimal string in Y/A/X  (100s in Y, 10s in A, 1s in X)
+    %asm {{
+        ldy  #uword2decimal.ASCII_0_OFFSET
+        bne  uword2decimal.hex_try200
+        rts
 	}}
 }
 
-asmsub  byte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ X, ubyte @ A  {
-	; ---- A (signed byte) to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
-	;      note: the '-' is not part of the conversion here if it's a negative number
+asmsub  uword2decimal  (uword value @ AY) -> ubyte @Y, ubyte @A, ubyte @X  {
+    ;  ---- convert 16 bit uword in A/Y to decimal
+    ;  output in uword2decimal.decTenThousands, decThousands, decHundreds, decTens, decOnes
+    ;  (these are terminated by a zero byte so they can be easily printed)
+    ;  also returns Y = 100's, A = 10's, X = 1's
+
+    %asm {{
+
+;Convert 16 bit Hex to Decimal (0-65535) Rev 2
+;By Omegamatrix    Further optimizations by tepples
+; routine from http://forums.nesdev.com/viewtopic.php?f=2&t=11341&start=15
+
+;HexToDec99
+; start in A
+; end with A = 10's, decOnes (also in X)
+
+;HexToDec255
+; start in A
+; end with Y = 100's, A = 10's, decOnes (also in X)
+
+;HexToDec999
+; start with A = high byte, Y = low byte
+; end with Y = 100's, A = 10's, decOnes (also in X)
+; requires 1 extra temp register on top of decOnes, could combine
+; these two if HexToDec65535 was eliminated...
+
+;HexToDec65535
+; start with A/Y (low/high) as 16 bit value
+; end with decTenThousand, decThousand, Y = 100's, A = 10's, decOnes (also in X)
+; (irmen: I store Y and A in decHundreds and decTens too, so all of it can be easily printed)
+
+
+ASCII_0_OFFSET 	= $30
+temp       	    = c64.SCRATCH_ZPB1	; byte in zeropage
+hexHigh      	= c64.SCRATCH_ZPWORD1	; byte in zeropage
+hexLow       	= c64.SCRATCH_ZPWORD1+1	; byte in zeropage
+
+
+HexToDec65535; SUBROUTINE
+    sty    hexHigh               ;3  @9
+    sta    hexLow                ;3  @12
+    tya
+    tax                          ;2  @14
+    lsr    a                     ;2  @16
+    lsr    a                     ;2  @18   integer divide 1024 (result 0-63)
+
+    cpx    #$A7                  ;2  @20   account for overflow of multiplying 24 from 43,000 ($A7F8) onward,
+    adc    #1                    ;2  @22   we can just round it to $A700, and the divide by 1024 is fine...
+
+    ;at this point we have a number 1-65 that we have to times by 24,
+    ;add to original sum, and Mod 1024 to get a remainder 0-999
+
+
+    sta    temp                  ;3  @25
+    asl    a                     ;2  @27
+    adc    temp                  ;3  @30  x3
+    tay                          ;2  @32
+    lsr    a                     ;2  @34
+    lsr    a                     ;2  @36
+    lsr    a                     ;2  @38
+    lsr    a                     ;2  @40
+    lsr    a                     ;2  @42
+    tax                          ;2  @44
+    tya                          ;2  @46
+    asl    a                     ;2  @48
+    asl    a                     ;2  @50
+    asl    a                     ;2  @52
+    clc                          ;2  @54
+    adc    hexLow                ;3  @57
+    sta    hexLow                ;3  @60
+    txa                          ;2  @62
+    adc    hexHigh               ;3  @65
+    sta    hexHigh               ;3  @68
+    ror    a                     ;2  @70
+    lsr    a                     ;2  @72
+    tay                          ;2  @74    integer divide 1,000 (result 0-65)
+
+    lsr    a                     ;2  @76    split the 1,000 and 10,000 digit
+    tax                          ;2  @78
+    lda    ShiftedBcdTab,x       ;4  @82
+    tax                          ;2  @84
+    rol    a                     ;2  @86
+    and    #$0F                  ;2  @88
+    ora    #ASCII_0_OFFSET
+    sta    decThousands          ;3  @91
+    txa                          ;2  @93
+    lsr    a                     ;2  @95
+    lsr    a                     ;2  @97
+    lsr    a                     ;2  @99
+    ora    #ASCII_0_OFFSET
+    sta    decTenThousands       ;3  @102
+
+    lda    hexLow                ;3  @105
+    cpy    temp                  ;3  @108
+    bmi    _doSubtract           ;2³ @110/111
+    beq    _useZero               ;2³ @112/113
+    adc    #23 + 24              ;2  @114
+_doSubtract
+    sbc    #23                   ;2  @116
+    sta    hexLow                ;3  @119
+_useZero
+    lda    hexHigh               ;3  @122
+    sbc    #0                    ;2  @124
+
+Start100s
+    and    #$03                  ;2  @126
+    tax                          ;2  @128   0,1,2,3
+    cmp    #2                    ;2  @130
+    rol    a                     ;2  @132   0,2,5,7
+    ora    #ASCII_0_OFFSET
+    tay                          ;2  @134   Y = Hundreds digit
+
+    lda    hexLow                ;3  @137
+    adc    Mod100Tab,x           ;4  @141    adding remainder of 256, 512, and 256+512 (all mod 100)
+    bcs    hex_doSub200             ;2³ @143/144
+
+hex_try200
+    cmp    #200                  ;2  @145
+    bcc    hex_try100               ;2³ @147/148
+hex_doSub200
+    iny                          ;2  @149
+    iny                          ;2  @151
+    sbc    #200                  ;2  @153
+hex_try100
+    cmp    #100                  ;2  @155
+    bcc    HexToDec99            ;2³ @157/158
+    iny                          ;2  @159
+    sbc    #100                  ;2  @161
+
+HexToDec99; SUBROUTINE
+    lsr    a                     ;2  @163
+    tax                          ;2  @165
+    lda    ShiftedBcdTab,x       ;4  @169
+    tax                          ;2  @171
+    rol    a                     ;2  @173
+    and    #$0F                  ;2  @175
+    ora    #ASCII_0_OFFSET
+    sta    decOnes               ;3  @178
+    txa                          ;2  @180
+    lsr    a                     ;2  @182
+    lsr    a                     ;2  @184
+    lsr    a                     ;2  @186
+    ora    #ASCII_0_OFFSET
+
+    ; irmen: load X with ones, and store Y and A too, for easy printing afterwards
+    sty  decHundreds
+    sta  decTens
+    ldx  decOnes
+    rts                          ;6  @192   Y=hundreds, A = tens digit, X=ones digit
+
+
+HexToDec999; SUBROUTINE
+    sty    hexLow                ;3  @9
+    jmp    Start100s             ;3  @12
+
+Mod100Tab
+    .byte 0,56,12,56+12
+
+ShiftedBcdTab
+    .byte $00,$01,$02,$03,$04,$08,$09,$0A,$0B,$0C
+    .byte $10,$11,$12,$13,$14,$18,$19,$1A,$1B,$1C
+    .byte $20,$21,$22,$23,$24,$28,$29,$2A,$2B,$2C
+    .byte $30,$31,$32,$33,$34,$38,$39,$3A,$3B,$3C
+    .byte $40,$41,$42,$43,$44,$48,$49,$4A,$4B,$4C
+
+decTenThousands   	.byte  0
+decThousands    	.byte  0
+decHundreds		.byte  0
+decTens			.byte  0
+decOnes   		.byte  0
+			.byte  0		; zero-terminate the decimal output string
+
+    }}
+}
+
+
+; ----- utility functions ----
+
+
+asmsub  byte2decimal  (byte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
+	; ---- A (signed byte) to decimal string in Y/A/X  (100s in Y, 10s in A, 1s in X)
+	;      note: if the number is negative, you have to deal with the '-' yourself!
 	%asm {{
 		cmp  #0
 		bpl  +
@@ -48,7 +219,7 @@ asmsub  byte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ X, ubyte @ A  {
 }
 
 asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
-	; ---- A to hex string in AY (first hex char in A, second hex char in Y)
+	; ---- A to hex petscii string in AY (first hex char in A, second hex char in Y)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
 		pha
@@ -69,7 +240,6 @@ _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as
 	}}
 }
 
-
 asmsub  uword2hex  (uword value @ AY) clobbers(A,Y)  {
 	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string 'uword2hex.output' (0-terminated)
 	%asm {{
@@ -86,91 +256,6 @@ asmsub  uword2hex  (uword value @ AY) clobbers(A,Y)  {
 output	.text  "0000", $00      ; 0-terminated output buffer (to make printing easier)
 	}}
 }
-
-asmsub  uword2bcd  (uword value @ AY) clobbers(A,Y)  {
-	; Convert an 16 bit binary value to BCD
-	;
-	; This function converts a 16 bit binary value in A/Y into a 24 bit BCD. It
-	; works by transferring one bit a time from the source and adding it
-	; into a BCD value that is being doubled on each iteration. As all the
-	; arithmetic is being done in BCD the result is a binary to decimal
-	; conversion.
-	%asm {{
-		sta  c64.SCRATCH_ZPB1
-		sty  c64.SCRATCH_ZPREG
-		php
-		pla             ; read status register
-		and  #%00000100
-		sta  _had_irqd
-		sed				; switch to decimal mode
-		lda  #0				; ensure the result is clear
-		sta  bcdbuff+0
-		sta  bcdbuff+1
-		sta  bcdbuff+2
-		ldy  #16			; the number of source bits
-
--		asl  c64.SCRATCH_ZPB1		; shift out one bit
-		rol  c64.SCRATCH_ZPREG
-		lda  bcdbuff+0		; and add into result
-		adc  bcdbuff+0
-		sta  bcdbuff+0
-		lda  bcdbuff+1		; propagating any carry
-		adc  bcdbuff+1
-		sta  bcdbuff+1
-		lda  bcdbuff+2		; ... thru whole result
-		adc  bcdbuff+2
-		sta  bcdbuff+2
-		dey				; and repeat for next bit
-		bne  -
-		cld				; back to binary
-		lda  _had_irqd
-		bne  +
-		cli				; enable interrupts again (only if they were enabled before)
-+		rts
-_had_irqd  .byte  0
-bcdbuff  .byte  0,0,0
-	}}
-}
-
-
-asmsub  uword2decimal  (uword value @ AY) clobbers(A) -> ubyte @ Y  {
-	; ---- convert 16 bit uword in A/Y into 0-terminated decimal string into memory  'uword2decimal.output'
-	;      returns length of resulting string in Y
-	%asm {{
-		jsr  uword2bcd
-		lda  uword2bcd.bcdbuff+2
-		clc
-		adc  #'0'
-		sta  output
-		ldy  #1
-		lda  uword2bcd.bcdbuff+1
-		jsr  +
-		lda  uword2bcd.bcdbuff+0
-
-+		pha
-		lsr  a
-		lsr  a
-		lsr  a
-		lsr  a
-		clc
-		adc  #'0'
-		sta  output,y
-		iny
-		pla
-		and  #$0f
-		adc  #'0'
-		sta  output,y
-		iny
-		lda  #0
-		sta  output,y
-		rts
-
-output  .text  "00000", $00     ; 0 terminated
-
-	}}
-
-}
-
 
 asmsub str2uword(str string @ AY) -> uword @ AY {
 	; -- returns the unsigned word value of the string number argument in AY
@@ -226,7 +311,6 @@ _result_times_10     ; (W*4 + W)*2
 	}}
 }
 
-
 asmsub str2word(str string @ AY) -> word @ AY {
 	; -- returns the signed word value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
@@ -281,7 +365,6 @@ _digit		cmp  #10
 _negative	.byte  0
 	}}
 }
-
 
 asmsub  set_irqvec_excl() clobbers(A)  {
 	%asm {{
@@ -372,7 +455,6 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 		}}
 }
 
-
 asmsub  restore_irqvec() {
 	%asm {{
 		sei
@@ -388,7 +470,6 @@ asmsub  restore_irqvec() {
 		rts
 	}}
 }
-
 
 asmsub  set_rasterirq(uword rasterpos @ AY) clobbers(A) {
 	%asm {{
@@ -454,9 +535,7 @@ _raster_irq_handler
 }
 
 
-
 }  ; ------ end of block c64utils
-
 
 
 
@@ -479,7 +558,6 @@ asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
         }}
 
 }
-
 
 asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
@@ -520,7 +598,6 @@ _loop		sta  c64.Colors,y
 		rts
         }}
 }
-
 
 asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
@@ -582,7 +659,6 @@ _scroll_screen  ; scroll the screen memory
 	}}
 }
 
-
 asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
@@ -635,7 +711,6 @@ _scroll_screen  ; scroll the screen memory
 	}}
 }
 
-
 asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
@@ -687,7 +762,6 @@ _scroll_screen  ; scroll the screen memory
 		rts
 	}}
 }
-
 
 asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character down
@@ -742,7 +816,6 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
@@ -761,7 +834,6 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 	}}
 }
 
-
 asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
@@ -770,15 +842,14 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		pha
 		tya
 		jsr  c64.CHROUT
-		txa
-		jsr  c64.CHROUT
 		pla
+		jsr  c64.CHROUT
+		txa
 		jsr  c64.CHROUT
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 	}}
 }
-
 
 asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
@@ -788,15 +859,14 @@ asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
 _print_byte_digits
 		pha
 		cpy  #'0'
-		bne  _print_hundreds
-		cpx  #'0'
-		bne  _print_tens
-		jmp  _end
-_print_hundreds	tya
+		beq  +
+		tya
 		jsr  c64.CHROUT
-_print_tens	txa
-		jsr  c64.CHROUT
-_end		pla
++       pla
+        cmp  #'0'
+        beq  +
+        jsr  c64.CHROUT
++       txa
 		jsr  c64.CHROUT
 		ldx  c64.SCRATCH_ZPREGX
 		rts
@@ -820,7 +890,6 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-
 asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -838,7 +907,6 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		rts
 	}}
 }
-
 
 asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
@@ -861,7 +929,6 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-
 asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
@@ -873,7 +940,6 @@ asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 		jmp  print_ubbin
 	}}
 }
-
 
 asmsub print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
@@ -888,51 +954,44 @@ asmsub print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-
 asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
+	    stx  c64.SCRATCH_ZPREGX
 		jsr  c64utils.uword2decimal
 		ldy  #0
--		lda  c64utils.uword2decimal.output,y
+-		lda  c64utils.uword2decimal.decTenThousands,y
+        beq  +
 		jsr  c64.CHROUT
 		iny
-		cpy  #5
 		bne  -
++		ldx  c64.SCRATCH_ZPREGX
 		rts
 	}}
 }
 
-
 asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
+	    stx  c64.SCRATCH_ZPREGX
 		jsr  c64utils.uword2decimal
 		ldy  #0
-		lda  c64utils.uword2decimal.output
+-		lda  c64utils.uword2decimal.decTenThousands,y
+		beq  _allzero
 		cmp  #'0'
-		bne  _pr_decimal
+		bne  _gotdigit
 		iny
-		lda  c64utils.uword2decimal.output+1
-		cmp  #'0'
-		bne  _pr_decimal
-		iny
-		lda  c64utils.uword2decimal.output+2
-		cmp  #'0'
-		bne  _pr_decimal
-		iny
-		lda  c64utils.uword2decimal.output+3
-		cmp  #'0'
-		bne  _pr_decimal
-		iny
+		bne  -
 
-_pr_decimal
-		lda  c64utils.uword2decimal.output,y
+_gotdigit
 		jsr  c64.CHROUT
 		iny
-		cpy  #5
-		bcc  _pr_decimal
+		lda  c64utils.uword2decimal.decTenThousands,y
+		bne  _gotdigit
 		rts
+_allzero
+        lda  #'0'
+        jmp  c64.CHROUT
 	}}
 }
 

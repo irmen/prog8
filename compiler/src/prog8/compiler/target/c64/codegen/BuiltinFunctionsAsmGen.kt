@@ -550,6 +550,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                 }
             }
+            "rsave" -> {
+                // save cpu status flag and all registers A, X, Y.
+                // see http://6502.org/tutorials/register_preservation.html
+                asmgen.out(" php |  sta  ${C64Zeropage.SCRATCH_REG} | pha  | txa  | pha  | tya  | pha  | lda  ${C64Zeropage.SCRATCH_REG}")
+            }
+            "rrestore" -> {
+                // restore all registers and cpu status flag
+                asmgen.out(" pla |  tay |  pla |  tax |  pla |  plp")
+            }
             else -> {
                 translateFunctionArguments(fcall.arglist, func)
                 asmgen.out("  jsr  prog8_lib.func_$functionName")
