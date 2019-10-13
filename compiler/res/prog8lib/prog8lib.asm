@@ -1417,7 +1417,7 @@ _l3		ldy  c64.SCRATCH_ZPB1		;where the largest value shall be put
 		rts
 		.pend
 
-		
+
 sort_b		.proc
 		; 8bit signed sort
 		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
@@ -1471,7 +1471,7 @@ _sort_loop	ldy  c64.SCRATCH_ZPB1    	;start of subroutine sort
 		sta  _work3+1
 		dey
 		jmp  _l2
-_l1		dey  
+_l1		dey
 		dey
 		beq  _l3
 		iny
@@ -1506,12 +1506,12 @@ _l3		ldy  c64.SCRATCH_ZPB1           ;where the largest value shall be put
 		dec  c64.SCRATCH_ZPB1           ;end of the shorter sequence still left
 		dec  c64.SCRATCH_ZPB1
 		bne  _sort_loop           ;start working with the shorter sequence
-		rts		
+		rts
 _work1	.byte  0
 _work3	.word  0
 		.pend
 
-		
+
 sort_w		.proc
 		; 16bit signed sort
 		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
@@ -1532,7 +1532,7 @@ _sort_loop	ldy  c64.SCRATCH_ZPB1    	;start of subroutine sort
 		sta  _work3+1
 		dey
 		jmp  _l2
-_l1		dey  
+_l1		dey
 		dey
 		beq  _l3
 		lda  (c64.SCRATCH_ZPWORD1),y
@@ -1543,7 +1543,7 @@ _l1		dey
 		sbc  c64.SCRATCH_ZPWORD2+1
 		bvc  +
 		eor  #$80
-+		bmi  _l1		
++		bmi  _l1
 _l2		sty  _work1          		;index of potentially largest value
 		lda  (c64.SCRATCH_ZPWORD1),y
 		sta  c64.SCRATCH_ZPWORD2          ;potentially largest value
@@ -1568,12 +1568,12 @@ _l3		ldy  c64.SCRATCH_ZPB1           ;where the largest value shall be put
 		dec  c64.SCRATCH_ZPB1           ;end of the shorter sequence still left
 		dec  c64.SCRATCH_ZPB1
 		bne  _sort_loop           ;start working with the shorter sequence
-		rts		
+		rts
 _work1	.byte  0
 _work3	.word  0
-		.pend		
-		
-		
+		.pend
+
+
 reverse_b	.proc
 		; --- reverse an array of bytes (in-place)
 		; inputs:  pointer to array in c64.SCRATCH_ZPWORD1, length in A
@@ -1607,7 +1607,7 @@ _loop		sty  c64.SCRATCH_ZPREG
 		rts
 		.pend
 
-		
+
 reverse_w	.proc
 		; --- reverse an array of words (in-place)
 		; inputs:  pointer to array in c64.SCRATCH_ZPWORD1, length in A
@@ -1669,7 +1669,7 @@ _loop_hi	sty  c64.SCRATCH_ZPREG
 		dey
 		bne  _loop_hi
 
-		rts	
+		rts
 		.pend
 
 ror2_mem_ub	.proc
@@ -1687,7 +1687,7 @@ ror2_mem_ub	.proc
 +		sta  (c64.SCRATCH_ZPWORD1),y
 		rts
 		.pend
-		
+
 rol2_mem_ub	.proc
 		; -- in-place 8-bit rol of byte at memory location on stack
 		;"  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}"
@@ -1703,59 +1703,59 @@ rol2_mem_ub	.proc
 		sta  (c64.SCRATCH_ZPWORD1),y
 		rts
 		.pend
-		
+
 lsl_array_b	.proc
 		.warn "lsl_array_b"		; TODO
 		.pend
-		
+
 lsl_array_w	.proc
 		.warn "lsl_array_w"		; TODO
 		.pend
-		
+
 lsr_array_ub	.proc
 		.warn "lsr_array_ub"		; TODO
 		.pend
-		
+
 lsr_array_b	.proc
 		.warn "lsr_array_b"		; TODO
 		.pend
-		
+
 lsr_array_uw	.proc
-		.warn "lsl_array_uw"		; TODO
+		.warn "lsr_array_uw"		; TODO
 		.pend
-		
+
 lsr_array_w	.proc
 		.warn "lsr_array_w"		; TODO
 		.pend
-		
+
 rol_array_ub	.proc
 		.warn "rol_array_ub"		; TODO
 		.pend
-		
+
 rol_array_uw	.proc
 		.warn "rol_array_uw"		; TODO
 		.pend
-		
+
 rol2_array_ub	.proc
 		.warn "rol2_array_ub"		; TODO
 		.pend
-		
+
 rol2_array_uw	.proc
 		.warn "rol2_array_uw"		; TODO
 		.pend
-		
+
 ror_array_ub	.proc
 		.warn "ror_array_ub"		; TODO
 		.pend
-		
+
 ror_array_uw	.proc
 		.warn "ror_array_uw"		; TODO
 		.pend
-		
+
 ror2_array_ub	.proc
 		.warn "ror2_array_ub"		; TODO
 		.pend
-		
+
 ror2_array_uw	.proc
 		.warn "ror2_array_uw"		; TODO
 		.pend

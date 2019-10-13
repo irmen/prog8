@@ -103,7 +103,7 @@ fun compileProgram(filepath: Path,
                 // asm generation directly from the Ast, no need for intermediate code
                 val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
                 programAst.anonscopeVarsCleanup()
-                val assembly = AsmGen(programAst, compilerOptions, zeropage, outputDir).compileToAssembly(optimize)
+                val assembly = AsmGen(programAst, zeropage, compilerOptions, outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name
             }

@@ -25,10 +25,10 @@ import kotlin.math.absoluteValue
 internal class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-internal class AsmGen(val program: Program,
-                      val options: CompilationOptions,
-                      val zeropage: Zeropage,
-                      val outputDir: Path) {
+internal class AsmGen(private val program: Program,
+                      private val zeropage: Zeropage,
+                      private val options: CompilationOptions,
+                      private val outputDir: Path) {
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)

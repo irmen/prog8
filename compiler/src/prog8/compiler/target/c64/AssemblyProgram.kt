@@ -5,7 +5,7 @@ import prog8.compiler.OutputType
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
-class AssemblyProgram(val name: String, val outputDir: Path) {
+class AssemblyProgram(val name: String, outputDir: Path) {
     private val assemblyFile = outputDir.resolve("$name.asm")
     private val prgFile = outputDir.resolve("$name.prg")
     private val binFile = outputDir.resolve("$name.bin")

@@ -1,6 +1,16 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
+    <inspection_tool class="DuplicatedCode" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <Languages>
+        <language minSize="100" isEnabled="false" name="JavaScript" />
+        <language isEnabled="false" name="Groovy" />
+        <language isEnabled="false" name="Style Sheets" />
+        <language minSize="70" name="Kotlin" />
+        <language isEnabled="false" name="TypeScript" />
+        <language isEnabled="false" name="ActionScript" />
+      </Languages>
+    </inspection_tool>
     <inspection_tool class="SpellCheckingInspection" enabled="true" level="TYPO" enabled_by_default="true">
       <option name="processCode" value="false" />
       <option name="processLiterals" value="true" />

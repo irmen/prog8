@@ -21,7 +21,7 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
         else mem[address]
     }
 
-    fun getUByte_DMA(address: Int): Short {
+    fun getUByteDirectly(address: Int): Short {
         return mem[address]
     }
 
@@ -39,7 +39,7 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
                 else value
     }
 
-    fun setUByte_DMA(address: Int, value: Short) {
+    fun setUByteDirectly(address: Int, value: Short) {
         if(value !in 0..255)
             throw VmExecutionException("ubyte value out of range $value")
         mem[address] = value

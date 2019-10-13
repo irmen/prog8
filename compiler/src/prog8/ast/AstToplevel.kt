@@ -176,7 +176,7 @@ class Program(val name: String, val modules: MutableList<Module>) {
     var actualLoadAddress: Int = 0
 
     fun entrypoint(): Subroutine? {
-        val mainBlocks = modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
+        val mainBlocks = allBlocks().filter { it.name=="main" }
         if(mainBlocks.size > 1)
             throw FatalAstException("more than one 'main' block")
         return if(mainBlocks.isEmpty()) {

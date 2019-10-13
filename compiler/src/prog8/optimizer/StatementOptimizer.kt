@@ -16,8 +16,8 @@ import kotlin.math.floor
 
 
 /*
-    TODO: analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
-    TODO: proper inlining of small subroutines (correctly renaming/relocating all variables in them and refs to those as well, or restrict to subs without variables?)
+    TODO: remove unreachable code?
+    TODO: proper inlining of tiny subroutines (correctly renaming/relocating all variables in them and refs to those as well, or restrict to subs without variables?)
 */
 
 

@@ -121,7 +121,7 @@ private fun executeImportDirective(program: Program, import: Directive, source: 
     if(existing!=null)
         return null
 
-    val resource = tryGetEmbeddedResource(moduleName+".p8")
+    val resource = tryGetEmbeddedResource("$moduleName.p8")
     val importedModule =
         if(resource!=null) {
             // load the module from the embedded resource

@@ -11,7 +11,7 @@ import kotlin.math.log2
 import kotlin.math.pow
 
 /*
-    todo advanced expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
+    todo add more expression optimizations
 
     Also see  https://egorbo.com/peephole-optimizations.html
 
