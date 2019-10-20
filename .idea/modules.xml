@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/DeprecatedStackVm/DeprecatedStackVm.iml" filepath="$PROJECT_DIR$/DeprecatedStackVm/DeprecatedStackVm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/OldCodeGen/OldCodeGen.iml" filepath="$PROJECT_DIR$/OldCodeGen/OldCodeGen.iml" />
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />

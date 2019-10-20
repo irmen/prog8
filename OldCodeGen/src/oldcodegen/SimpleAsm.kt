@@ -1,4 +1,7 @@
-package compiler.target.c64.codegen
+package oldcodegen
+
+/** OLD STACK-VM CODE GEN -- NO LONGER USED **/
+
 
 import prog8.compiler.CompilerException
 import prog8.compiler.intermediate.Instruction
