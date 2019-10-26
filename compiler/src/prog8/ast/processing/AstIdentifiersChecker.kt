@@ -7,7 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.AssemblyProgram
+import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 
 
@@ -66,7 +66,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
-        if(decl.name in AssemblyProgram.opcodeNames)
+        if(decl.name in CompilationTarget.machine.opcodeNames)
             checkResult.add(NameError("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position))
 
         // is it a struct variable? then define all its struct members as mangled names,
@@ -103,7 +103,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     }
 
     override fun visit(subroutine: Subroutine): Statement {
-        if(subroutine.name in AssemblyProgram.opcodeNames) {
+        if(subroutine.name in CompilationTarget.machine.opcodeNames) {
             checkResult.add(NameError("can't use a cpu opcode name as a symbol: '${subroutine.name}'", subroutine.position))
         } else if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
@@ -164,7 +164,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     }
 
     override fun visit(label: Label): Statement {
-        if(label.name in AssemblyProgram.opcodeNames)
+        if(label.name in CompilationTarget.machine.opcodeNames)
             checkResult.add(NameError("can't use a cpu opcode name as a symbol: '${label.name}'", label.position))
 
         if(label.name in BuiltinFunctions) {

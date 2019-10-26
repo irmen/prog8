@@ -2,8 +2,11 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.base.AstException
-import prog8.compiler.CompilationResult
-import prog8.compiler.compileProgram
+import prog8.compiler.*
+import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.parser.ParsingFailedError
 import prog8.vm.astvm.AstVm
 import java.nio.file.FileSystems
@@ -38,12 +41,31 @@ private fun compileMain(args: Array<String>) {
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
     val launchSimulator by cli.flagArgument("-sim", "launch the prog8 virtual machine/simulator after compilation")
     val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes)")
+    val compilationTarget by cli.flagValueArgument("-target", "compilationtgt", "target output of the compiler, one of: c64, clang. default=c64", "c64")
     val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
 
     try {
         cli.parse(args)
     } catch (e: Exception) {
         exitProcess(1)
+    }
+
+    when(compilationTarget) {
+        "c64" -> {
+            with(CompilationTarget) {
+                name = "c64"
+                machine = C64MachineDefinition
+                encodeString = { str -> Petscii.encodePetscii(str, true) }
+                asmGenerator = ::AsmGen
+            }
+        }
+        "clang" -> {
+            TODO("clang target")
+        }
+        else -> {
+            System.err.println("invalid compilation target")
+            exitProcess(1)
+        }
     }
 
     val outputPath = pathFrom(outputDir)
@@ -96,7 +118,7 @@ private fun compileMain(args: Array<String>) {
 
             if (launchSimulator) {
                 println("\nLaunching AST-based simulator...")
-                val vm = AstVm(compilationResult.programAst)
+                val vm = AstVm(compilationResult.programAst, compilationTarget)
                 vm.run()
             }
 

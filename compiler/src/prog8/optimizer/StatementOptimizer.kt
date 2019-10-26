@@ -9,8 +9,7 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.c64.codegen.AssemblyError
+import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
@@ -180,7 +179,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             if(stringVar!=null) {
                 val vardecl = stringVar.targetVarDecl(program.namespace)!!
                 val string = vardecl.value!! as StringLiteralValue
-                val encodedString = Petscii.encodePetscii(string.value, true)
+                val encodedString = CompilationTarget.encodeString(string.value)
                 if(string.value.length==1) {
                     functionCallStatement.arglist.clear()
                     functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(encodedString[0].toInt(), functionCallStatement.position))
@@ -430,7 +429,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         }
         val targetIDt = assignment.target.inferType(program, assignment)
         if(!targetIDt.isKnown)
-            throw AssemblyError("can't infer type of assignment target")
+            throw FatalAstException("can't infer type of assignment target")
         val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {

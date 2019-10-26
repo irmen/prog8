@@ -7,9 +7,7 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.fixupArrayDatatype
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
-import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
-import prog8.compiler.target.c64.codegen.AssemblyError
+import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
@@ -140,7 +138,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     } else {
                         // arraysize initializer is a single int, and we know the size.
                         val fillvalue = litval.number.toDouble()
-                        if (fillvalue < FLOAT_MAX_NEGATIVE || fillvalue > FLOAT_MAX_POSITIVE)
+                        if (fillvalue < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.machine.FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval.position))
                         else {
                             // create the array itself, filled with the fillvalue.
@@ -184,7 +182,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     copy.parent = identifier.parent
                     copy
                 }
-                cval.type in PassByReferenceDatatypes -> throw AssemblyError("pass-by-reference type should not be considered a constant")
+                cval.type in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
                 else -> identifier
             }
         } catch (ax: AstException) {

@@ -1,7 +1,7 @@
 package prog8.compiler.target.c64.codegen
 
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
 
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations

@@ -1,6 +1,6 @@
 package prog8.vm.astvm
 
-import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
 
@@ -80,7 +80,7 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
     }
 
     fun setFloat(address: Int, value: Double) {
-        val mflpt5 = MachineDefinition.Mflpt5.fromNumber(value)
+        val mflpt5 = C64MachineDefinition.Mflpt5.fromNumber(value)
         setUByte(address, mflpt5.b0)
         setUByte(address+1, mflpt5.b1)
         setUByte(address+2, mflpt5.b2)
@@ -89,7 +89,7 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
     }
 
     fun getFloat(address: Int): Double {
-        return MachineDefinition.Mflpt5(getUByte(address), getUByte(address + 1), getUByte(address + 2),
+        return C64MachineDefinition.Mflpt5(getUByte(address), getUByte(address + 1), getUByte(address + 2),
                 getUByte(address + 3), getUByte(address + 4)).toDouble()
     }
 

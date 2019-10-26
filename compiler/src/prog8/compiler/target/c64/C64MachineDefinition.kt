@@ -4,18 +4,19 @@ import prog8.compiler.CompilationOptions
 import prog8.compiler.CompilerException
 import prog8.compiler.Zeropage
 import prog8.compiler.ZeropageType
+import prog8.compiler.target.IMachineDefinition
 import java.awt.Color
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
-object MachineDefinition {
+object C64MachineDefinition: IMachineDefinition {
 
     // 5-byte cbm MFLPT format limitations:
-    const val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
-    const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
-
+    override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
+    override val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
+    override val FLOAT_MEM_SIZE = 5
     const val BASIC_LOAD_ADDRESS = 0x0801
     const val RAW_LOAD_ADDRESS = 0xc000
 
@@ -29,6 +30,19 @@ object MachineDefinition {
     const val ESTACK_HI_HEX         = "\$cf00"
     const val ESTACK_HI_PLUS1_HEX   = "\$cf01"
     const val ESTACK_HI_PLUS2_HEX   = "\$cf02"
+
+    override fun getZeropage(compilerOptions: CompilationOptions) = C64Zeropage(compilerOptions)
+
+    // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
+    override val opcodeNames = setOf("adc", "ahx", "alr", "anc", "and", "ane", "arr", "asl", "asr", "axs", "bcc", "bcs",
+            "beq", "bge", "bit", "blt", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
+            "cld", "cli", "clv", "cmp", "cpx", "cpy", "dcm", "dcp", "dec", "dex", "dey",
+            "eor", "gcc", "gcs", "geq", "gge", "glt", "gmi", "gne", "gpl", "gvc", "gvs",
+            "inc", "ins", "inx", "iny", "isb", "isc", "jam", "jmp", "jsr", "lae", "las",
+            "lax", "lda", "lds", "ldx", "ldy", "lsr", "lxa", "nop", "ora", "pha", "php",
+            "pla", "plp", "rla", "rol", "ror", "rra", "rti", "rts", "sax", "sbc", "sbx",
+            "sec", "sed", "sei", "sha", "shl", "shr", "shs", "shx", "shy", "slo", "sre",
+            "sta", "stx", "sty", "tas", "tax", "tay", "tsx", "txa", "txs", "tya", "xaa")
 
 
     class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
@@ -110,8 +124,6 @@ object MachineDefinition {
     data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short) {
 
         companion object {
-            const val MemorySize = 5
-
             val zero = Mflpt5(0, 0, 0, 0, 0)
             fun fromNumber(num: Number): Mflpt5 {
                 // see https://en.wikipedia.org/wiki/Microsoft_Binary_Format
@@ -231,7 +243,6 @@ object MachineDefinition {
         g.dispose()
         return bcopy
     }
-
 
     val colorPalette = listOf(         // this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
             Color(0x000000),  // 0 = black

@@ -10,8 +10,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.CompilationOptions
-import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
-import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
+import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import java.io.File
 
@@ -1136,7 +1135,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || it > CompilationTarget.machine.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }

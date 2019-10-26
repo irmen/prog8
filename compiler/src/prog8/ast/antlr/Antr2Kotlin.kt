@@ -7,7 +7,7 @@ import prog8.ast.Module
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.CompilationTarget
 import prog8.parser.CustomLexer
 import prog8.parser.prog8Parser
 import java.io.CharConversionException
@@ -432,7 +432,8 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                 litval.stringliteral()!=null -> StringLiteralValue(DataType.STR, unescape(litval.stringliteral().text, litval.toPosition()), litval.toPosition())
                 litval.charliteral()!=null -> {
                     try {
-                        NumericLiteralValue(DataType.UBYTE, Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], litval.toPosition())
+                        NumericLiteralValue(DataType.UBYTE, CompilationTarget.encodeString(
+                                unescape(litval.charliteral().text, litval.toPosition()))[0], litval.toPosition())
                     } catch (ce: CharConversionException) {
                         throw SyntaxError(ce.message ?: ce.toString(), litval.toPosition())
                     }

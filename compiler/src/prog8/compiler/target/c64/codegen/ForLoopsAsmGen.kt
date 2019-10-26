@@ -8,10 +8,11 @@ import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.ForLoop
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.toHex
+import prog8.compiler.AssemblyError
 import kotlin.math.absoluteValue
 
 // todo choose more efficient comparisons to avoid needless lda's

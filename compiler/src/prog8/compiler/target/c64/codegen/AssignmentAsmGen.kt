@@ -7,8 +7,13 @@ import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.VarDecl
-import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.toHex
+import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
@@ -79,9 +84,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     val indexValue = index.number.toInt() * ArrayElementTypes.getValue(arrayDt).memorySize()
                     when (arrayDt) {
                         DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
-                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  dex")
+                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
                         DataType.ARRAY_UW, DataType.ARRAY_W ->
-                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  lda  $arrayVarName+$indexValue+1 |  sta  ${MachineDefinition.ESTACK_HI_HEX},x | dex")
+                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x | dex")
                         DataType.ARRAY_F ->
                             asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
                         else ->
@@ -124,21 +129,21 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             target.register!=null -> {
                 if(target.register== Register.X)
                     throw AssemblyError("can't pop into X register - use variable instead")
-                asmgen.out(" inx | ld${target.register.name.toLowerCase()}  ${MachineDefinition.ESTACK_LO_HEX},x ")
+                asmgen.out(" inx | ld${target.register.name.toLowerCase()}  $ESTACK_LO_HEX,x ")
             }
             targetIdent!=null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
                 val targetDt = targetIdent.inferType(program).typeOrElse(DataType.STRUCT)
                 when(targetDt) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        asmgen.out(" inx | lda  ${MachineDefinition.ESTACK_LO_HEX},x  | sta  $targetName")
+                        asmgen.out(" inx | lda  $ESTACK_LO_HEX,x  | sta  $targetName")
                     }
                     DataType.UWORD, DataType.WORD -> {
                         asmgen.out("""
                             inx
-                            lda  ${MachineDefinition.ESTACK_LO_HEX},x
+                            lda  $ESTACK_LO_HEX,x
                             sta  $targetName
-                            lda  ${MachineDefinition.ESTACK_HI_HEX},x
+                            lda  $ESTACK_HI_HEX,x
                             sta  $targetName+1
                         """)
                     }
@@ -153,14 +158,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             target.memoryAddress!=null -> {
-                asmgen.out("  inx  | ldy  ${MachineDefinition.ESTACK_LO_HEX},x")
+                asmgen.out("  inx  | ldy  $ESTACK_LO_HEX,x")
                 storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
             }
             target.arrayindexed!=null -> {
                 val arrayDt = target.arrayindexed!!.identifier.targetVarDecl(program.namespace)!!.datatype
                 val arrayVarName = asmgen.asmIdentifierName(target.arrayindexed!!.identifier)
                 asmgen.translateExpression(target.arrayindexed!!.arrayspec.index)
-                asmgen.out("  inx |  lda  ${MachineDefinition.ESTACK_LO_HEX},x")
+                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithIndexA(arrayDt, arrayVarName)
             }
             else -> throw AssemblyError("weird assignment target $target")
@@ -225,9 +230,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                asmgen.out("  lda  $sourceName |  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  lda  $sourceName+1 |  sta  ${MachineDefinition.ESTACK_HI_HEX},x |  dex")
+                asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
                 asmgen.translateExpression(index)
-                asmgen.out("  inx |  lda  ${MachineDefinition.ESTACK_LO_HEX},x")
+                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
@@ -285,9 +290,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
                 val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
-                asmgen.out("  lda  $sourceName |  sta  ${MachineDefinition.ESTACK_LO_HEX},x |  dex")
+                asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
                 asmgen.translateExpression(index)
-                asmgen.out("  inx |  lda  ${MachineDefinition.ESTACK_LO_HEX},x")
+                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
             target.memoryAddress != null -> {
@@ -303,8 +308,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(addressExpr)
                         asmgen.out("""
      inx
-     lda  ${MachineDefinition.ESTACK_LO_HEX},x
-     ldy  ${MachineDefinition.ESTACK_HI_HEX},x
+     lda  $ESTACK_LO_HEX,x
+     ldy  $ESTACK_HI_HEX,x
      sta  (+) +1
      sty  (+) +2
      lda  $sourceName
@@ -361,9 +366,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     is RegisterExpr -> {
                         when(register) {
-                            Register.A -> asmgen.out("  sta  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            Register.X -> asmgen.out("  stx  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            Register.Y -> asmgen.out("  sty  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
+                            Register.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            Register.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            Register.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
                         }
                         when(index.register) {
                             Register.A -> {}
@@ -372,20 +377,20 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         }
                         asmgen.out("""
                             tay
-                            lda  ${MachineDefinition.C64Zeropage.SCRATCH_B1}
+                            lda  ${C64Zeropage.SCRATCH_B1}
                             sta  $targetName,y
                             """)
                     }
                     is IdentifierReference -> {
                         when(register) {
-                            Register.A -> asmgen.out("  sta  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            Register.X -> asmgen.out("  stx  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            Register.Y -> asmgen.out("  sty  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
+                            Register.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            Register.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            Register.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
                         }
                         asmgen.out("""
                             lda  ${asmgen.asmIdentifierName(index)}
                             tay
-                            lda  ${MachineDefinition.C64Zeropage.SCRATCH_B1}
+                            lda  ${C64Zeropage.SCRATCH_B1}
                             sta  $targetName,y
                         """)
                     }
@@ -394,15 +399,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(index)
                         asmgen.restoreRegister(register)
                         when(register) {
-                            Register.A -> asmgen.out("  sta  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            Register.X -> asmgen.out("  stx  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            Register.Y -> asmgen.out("  sty  ${MachineDefinition.C64Zeropage.SCRATCH_B1}")
+                            Register.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            Register.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            Register.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
                         }
                         asmgen.out("""
                             inx
-                            lda  ${MachineDefinition.ESTACK_LO_HEX},x
+                            lda  $ESTACK_LO_HEX,x
                             tay
-                            lda  ${MachineDefinition.C64Zeropage.SCRATCH_B1}
+                            lda  ${C64Zeropage.SCRATCH_B1}
                             sta  $targetName,y  
                         """)
                     }
@@ -423,29 +428,29 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 when(register) {
                     Register.A -> asmgen.out("""
                         ldy  $targetName
-                        sty  ${MachineDefinition.C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1}
                         ldy  $targetName+1
-                        sty  ${MachineDefinition.C64Zeropage.SCRATCH_W1+1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
                         ldy  #0
-                        sta  (${MachineDefinition.C64Zeropage.SCRATCH_W1}),y
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
                         """)
                     Register.X -> asmgen.out("""
                         txa
                         ldy  $targetName
-                        sty  ${MachineDefinition.C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1}
                         ldy  $targetName+1
-                        sty  ${MachineDefinition.C64Zeropage.SCRATCH_W1+1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
                         ldy  #0
-                        sta  (${MachineDefinition.C64Zeropage.SCRATCH_W1}),y
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
                         """)
                     Register.Y -> asmgen.out("""
                         tya
                         ldy  $targetName
-                        sty  ${MachineDefinition.C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1}
                         ldy  $targetName+1
-                        sty  ${MachineDefinition.C64Zeropage.SCRATCH_W1+1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
                         ldy  #0
-                        sta  (${MachineDefinition.C64Zeropage.SCRATCH_W1}),y
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
                         """)
                 }
             }
@@ -460,9 +465,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 asmgen.out("""
      inx
-     lda  ${MachineDefinition.ESTACK_LO_HEX},x
+     lda  $ESTACK_LO_HEX,x
      sta  (+) +1
-     lda  ${MachineDefinition.ESTACK_HI_HEX},x
+     lda  $ESTACK_HI_HEX,x
      sta  (+) +2
 +    sty  ${65535.toHex()}      ; modified              
                             """)
@@ -502,7 +507,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
-                    lda  ${MachineDefinition.ESTACK_LO_HEX},x
+                    lda  $ESTACK_LO_HEX,x
                     asl  a
                     tay
                     lda  #<${word.toHex()}
@@ -537,7 +542,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
-                    ldy  ${MachineDefinition.ESTACK_LO_HEX},x
+                    ldy  $ESTACK_LO_HEX,x
                     lda  #${byte.toHex()}
                     sta  $targetName,y
                 """)
@@ -567,7 +572,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     val index = targetArrayIdx.arrayspec.index
                     val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
                     if(index is NumericLiteralValue) {
-                        val indexValue = index.number.toInt() * MachineDefinition.Mflpt5.MemorySize
+                        val indexValue = index.number.toInt() * C64MachineDefinition.FLOAT_MEM_SIZE
                         asmgen.out("""
                             lda  #0
                             sta  $targetName+$indexValue
@@ -580,11 +585,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(index)
                         asmgen.out("""
                         inx
-                        lda  ${MachineDefinition.ESTACK_LO_HEX},x
+                        lda  $ESTACK_LO_HEX,x
                         asl  a
                         asl  a
                         clc
-                        adc  ${MachineDefinition.ESTACK_LO_HEX},x
+                        adc  $ESTACK_LO_HEX,x
                         tay
                         lda  #0
                         sta  $targetName,y
@@ -620,7 +625,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     val index = targetArrayIdx.arrayspec.index
                     val arrayVarName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
                     if(index is NumericLiteralValue) {
-                        val indexValue = index.number.toInt() * MachineDefinition.Mflpt5.MemorySize
+                        val indexValue = index.number.toInt() * C64MachineDefinition.FLOAT_MEM_SIZE
                         asmgen.out("""
                             lda  $constFloat
                             sta  $arrayVarName+$indexValue
@@ -636,11 +641,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     } else {
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
                         asmgen.out("""
-                            sta  ${MachineDefinition.C64Zeropage.SCRATCH_REG}
+                            sta  ${C64Zeropage.SCRATCH_REG}
                             asl  a
                             asl  a
                             clc
-                            adc  ${MachineDefinition.C64Zeropage.SCRATCH_REG}
+                            adc  ${C64Zeropage.SCRATCH_REG}
                             tay
                             lda  $constFloat
                             sta  $arrayVarName,y
@@ -726,13 +731,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private fun popAndWriteArrayvalueWithIndexA(arrayDt: DataType, variablename: String) {
         when (arrayDt) {
             DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
-                asmgen.out("  tay |  inx |  lda  ${MachineDefinition.ESTACK_LO_HEX},x  | sta  $variablename,y")
+                asmgen.out("  tay |  inx |  lda  $ESTACK_LO_HEX,x  | sta  $variablename,y")
             DataType.ARRAY_UW, DataType.ARRAY_W ->
-                asmgen.out("  asl  a |  tay |  inx |  lda  ${MachineDefinition.ESTACK_LO_HEX},x |  sta  $variablename,y |  lda  ${MachineDefinition.ESTACK_HI_HEX},x |  sta $variablename+1,y")
+                asmgen.out("  asl  a |  tay |  inx |  lda  $ESTACK_LO_HEX,x |  sta  $variablename,y |  lda  $ESTACK_HI_HEX,x |  sta $variablename+1,y")
             DataType.ARRAY_F ->
                 // index * 5 is done in the subroutine that's called
                 asmgen.out("""
-                    sta  ${MachineDefinition.ESTACK_LO_HEX},x
+                    sta  $ESTACK_LO_HEX,x
                     dex
                     lda  #<$variablename
                     ldy  #>$variablename

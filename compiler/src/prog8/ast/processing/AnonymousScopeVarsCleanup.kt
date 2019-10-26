@@ -1,9 +1,8 @@
-package prog8.compiler.target.c64.codegen
+package prog8.ast.processing
 
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.NameError
-import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Statement
 import prog8.ast.statements.VarDecl

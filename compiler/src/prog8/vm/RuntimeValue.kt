@@ -6,7 +6,7 @@ import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
-import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.CompilationTarget
 import prog8.vm.astvm.VmExecutionException
 import java.util.Objects
 import kotlin.math.abs
@@ -594,7 +594,7 @@ class RuntimeValueString(type: DataType, val str: String, val heapId: Int?): Run
         return type == other.type && str == other.str
     }
 
-    fun iterator(): Iterator<Number> = Petscii.encodePetscii(str, true).iterator()
+    fun iterator(): Iterator<Number> = CompilationTarget.encodeString(str).iterator()
 
     override fun numericValue(): Number {
         throw VmExecutionException("string is not a number")

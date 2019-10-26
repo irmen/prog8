@@ -7,8 +7,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
-import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.toHex
+import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
@@ -139,7 +142,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                                 asmgen.translateExpression(value)
                                 asmgen.out("""
             inx                        
-            lda  ${MachineDefinition.ESTACK_LO_HEX},x
+            lda  $ESTACK_LO_HEX,x
             beq  +
             sec  
             bcs  ++
@@ -166,9 +169,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         else -> {
                             asmgen.translateExpression(value)
                             when(register) {
-                                RegisterOrPair.A -> asmgen.out("  inx | lda  ${MachineDefinition.ESTACK_LO_HEX},x")
+                                RegisterOrPair.A -> asmgen.out("  inx | lda  $ESTACK_LO_HEX,x")
                                 RegisterOrPair.X -> throw AssemblyError("can't pop into X register - use a variable instead")
-                                RegisterOrPair.Y -> asmgen.out("  inx | ldy  ${MachineDefinition.ESTACK_LO_HEX},x")
+                                RegisterOrPair.Y -> asmgen.out("  inx | ldy  $ESTACK_LO_HEX,x")
                                 else -> throw AssemblyError("cannot assign to register pair")
                             }
                         }
@@ -211,7 +214,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                             if (register == RegisterOrPair.AX || register == RegisterOrPair.XY)
                                 throw AssemblyError("can't use X register here - use a variable")
                             else if (register == RegisterOrPair.AY)
-                                asmgen.out("  inx |  lda  ${MachineDefinition.ESTACK_LO_HEX},x  |  ldy  ${MachineDefinition.ESTACK_HI_HEX},x")
+                                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x  |  ldy  $ESTACK_HI_HEX,x")
                         }
                     }
                 }

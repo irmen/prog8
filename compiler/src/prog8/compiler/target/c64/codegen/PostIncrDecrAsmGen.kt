@@ -6,8 +6,10 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.RegisterExpr
 import prog8.ast.statements.PostIncrDecr
-import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.toHex
+import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
+
 
 internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {
     internal fun translate(stmt: PostIncrDecr) {
@@ -119,7 +121,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
     }
 
     private fun incrDecrArrayvalueWithIndexA(incr: Boolean, arrayDt: DataType, arrayVarName: String) {
-        asmgen.out("  stx  ${MachineDefinition.C64Zeropage.SCRATCH_REG_X} |  tax")
+        asmgen.out("  stx  ${C64Zeropage.SCRATCH_REG_X} |  tax")
         when(arrayDt) {
             DataType.STR, DataType.STR_S,
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
@@ -142,7 +144,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
             }
             else -> throw AssemblyError("weird array dt")
         }
-        asmgen.out("  ldx  ${MachineDefinition.C64Zeropage.SCRATCH_REG_X}")
+        asmgen.out("  ldx  ${C64Zeropage.SCRATCH_REG_X}")
     }
 
 }

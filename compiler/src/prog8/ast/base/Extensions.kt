@@ -4,7 +4,6 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.processing.*
 import prog8.compiler.CompilationOptions
-import prog8.compiler.target.c64.codegen.AnonymousScopeVarsCleanup
 import prog8.optimizer.FlattenAnonymousScopesAndRemoveNops
 
 

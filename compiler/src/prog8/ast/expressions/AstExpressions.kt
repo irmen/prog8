@@ -9,7 +9,7 @@ import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
@@ -549,8 +549,8 @@ class RangeExpr(var from: Expression,
         val toString = to as? StringLiteralValue
         if(fromString!=null && toString!=null ) {
             // string range -> int range over petscii values
-            fromVal = Petscii.encodePetscii(fromString.value, true)[0].toInt()
-            toVal = Petscii.encodePetscii(toString.value, true)[0].toInt()
+            fromVal = CompilationTarget.encodeString(fromString.value)[0].toInt()
+            toVal = CompilationTarget.encodeString(toString.value)[0].toInt()
         } else {
             val fromLv = from as? NumericLiteralValue
             val toLv = to as? NumericLiteralValue

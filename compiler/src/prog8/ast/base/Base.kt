@@ -1,7 +1,8 @@
 package prog8.ast.base
 
 import prog8.ast.Node
-import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.CompilationTarget
+
 
 /**************************** AST Data classes ****************************/
 
@@ -58,7 +59,7 @@ enum class DataType {
         return when(this) {
             in ByteDatatypes -> 1
             in WordDatatypes -> 2
-            FLOAT -> MachineDefinition.Mflpt5.MemorySize
+            FLOAT -> CompilationTarget.machine.FLOAT_MEM_SIZE
             in PassByReferenceDatatypes -> 2
             else -> -9999999
         }

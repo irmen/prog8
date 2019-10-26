@@ -7,7 +7,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.vm.*
 import java.awt.EventQueue
@@ -129,7 +129,7 @@ class RuntimeVariables {
 }
 
 
-class AstVm(val program: Program) {
+class AstVm(val program: Program, compilationTarget: String) {
 
     val mem = Memory(::memread, ::memwrite)
     val statusflags = StatusFlags()
@@ -147,6 +147,8 @@ class AstVm(val program: Program) {
 
 
     init {
+        require(compilationTarget == "c64") {"using the AstVm only works for the C64 compiler target"}
+
         // observe the jiffyclock and screen matrix
         mem.observe(0xa0, 0xa1, 0xa2)
         for(i in 1024..2023)
@@ -643,7 +645,7 @@ class AstVm(val program: Program) {
                         DataType.BYTE -> mem.setSByte(address+index, value.byteval!!)
                         DataType.UWORD -> mem.setUWord(address+index*2, value.wordval!!)
                         DataType.WORD -> mem.setSWord(address+index*2, value.wordval!!)
-                        DataType.FLOAT -> mem.setFloat(address+index* MachineDefinition.Mflpt5.MemorySize, value.floatval!!)
+                        DataType.FLOAT -> mem.setFloat(address+index* C64MachineDefinition.FLOAT_MEM_SIZE, value.floatval!!)
                         else -> throw VmExecutionException("strange array elt type $elementType")
                     }
                 }

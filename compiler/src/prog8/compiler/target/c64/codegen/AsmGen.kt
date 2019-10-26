@@ -7,10 +7,12 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*
+import prog8.compiler.target.IAssemblyGenerator
+import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.c64.AssemblyProgram
-import prog8.compiler.target.c64.MachineDefinition
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FunctionSignature
@@ -22,13 +24,10 @@ import java.util.ArrayDeque
 import kotlin.math.absoluteValue
 
 
-internal class AssemblyError(msg: String) : RuntimeException(msg)
-
-
 internal class AsmGen(private val program: Program,
-                      private val zeropage: Zeropage,
-                      private val options: CompilationOptions,
-                      private val outputDir: Path) {
+             private val zeropage: Zeropage,
+             private val options: CompilationOptions,
+             private val outputDir: Path): IAssemblyGenerator {
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -43,7 +42,7 @@ internal class AsmGen(private val program: Program,
     internal val loopEndLabels = ArrayDeque<String>()
     internal val loopContinueLabels = ArrayDeque<String>()
 
-    internal fun compileToAssembly(optimize: Boolean): AssemblyProgram {
+    override fun compileToAssembly(optimize: Boolean): IAssemblyProgram {
         assemblyLines.clear()
         loopEndLabels.clear()
         loopContinueLabels.clear()
@@ -84,7 +83,7 @@ internal class AsmGen(private val program: Program,
         program.actualLoadAddress = program.definedLoadAddress
         if (program.actualLoadAddress == 0)   // fix load address
             program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
-                MachineDefinition.BASIC_LOAD_ADDRESS else MachineDefinition.RAW_LOAD_ADDRESS
+                C64MachineDefinition.BASIC_LOAD_ADDRESS else C64MachineDefinition.RAW_LOAD_ADDRESS
 
         when {
             options.launcher == LauncherType.BASIC -> {
@@ -145,7 +144,7 @@ internal class AsmGen(private val program: Program,
         // the global list of all floating point constants for the whole program
         out("; global float constants")
         for (flt in globalFloatConsts) {
-            val mflpt5 = MachineDefinition.Mflpt5.fromNumber(flt.key)
+            val mflpt5 = C64MachineDefinition.Mflpt5.fromNumber(flt.key)
             val floatFill = makeFloatFill(mflpt5)
             val floatvalue = flt.key
             out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
@@ -198,7 +197,7 @@ internal class AsmGen(private val program: Program,
         } else assemblyLines.add(fragment)
     }
 
-    private fun makeFloatFill(flt: MachineDefinition.Mflpt5): String {
+    private fun makeFloatFill(flt: C64MachineDefinition.Mflpt5): String {
         val b0 = "$" + flt.b0.toString(16).padStart(2, '0')
         val b1 = "$" + flt.b1.toString(16).padStart(2, '0')
         val b2 = "$" + flt.b2.toString(16).padStart(2, '0')
@@ -304,7 +303,7 @@ internal class AsmGen(private val program: Program,
                 val array = (decl.value as ArrayLiteralValue).value
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
-                    makeFloatFill(MachineDefinition.Mflpt5.fromNumber(number))
+                    makeFloatFill(C64MachineDefinition.Mflpt5.fromNumber(number))
                 }
                 out(decl.name)
                 for (f in array.zip(floatFills))
@@ -425,7 +424,7 @@ internal class AsmGen(private val program: Program,
 
     internal fun getFloatConst(number: Double): String {
         // try to match the ROM float constants to save memory
-        val mflpt5 = MachineDefinition.Mflpt5.fromNumber(number)
+        val mflpt5 = C64MachineDefinition.Mflpt5.fromNumber(number)
         val floatbytes = shortArrayOf(mflpt5.b0, mflpt5.b1, mflpt5.b2, mflpt5.b3, mflpt5.b4)
         when {
             floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_ZERO"
