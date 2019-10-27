@@ -7,6 +7,8 @@ import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.codegen.AsmGen
+import prog8.compiler.target.clang.ClangGen
+import prog8.compiler.target.clang.ClangMachineDefinition
 import prog8.parser.ParsingFailedError
 import prog8.vm.astvm.AstVm
 import java.nio.file.FileSystems
@@ -60,7 +62,12 @@ private fun compileMain(args: Array<String>) {
             }
         }
         "clang" -> {
-            TODO("clang target")
+            with(CompilationTarget) {
+                name = "clang"
+                machine = ClangMachineDefinition
+                encodeString = { str -> str.toByteArray().map { it.toShort()} }
+                asmGenerator = ::ClangGen
+            }
         }
         else -> {
             System.err.println("invalid compilation target")
