@@ -716,7 +716,7 @@ func_sin8	.proc
 		lda  _sinecos8,y
 		sta  c64.ESTACK_LO+1,x
 		rts
-_sinecos8	.char  127 * sin(range(256+64) * rad(360.0/256.0))
+_sinecos8	.char  trunc(127.0 * sin(range(256+64) * rad(360.0/256.0)))
 		.pend
 
 func_sin8u	.proc
@@ -724,7 +724,7 @@ func_sin8u	.proc
 		lda  _sinecos8u,y
 		sta  c64.ESTACK_LO+1,x
 		rts
-_sinecos8u	.byte  128 + 127.5 * sin(range(256+64) * rad(360.0/256.0))
+_sinecos8u	.byte  trunc(128.0 + 127.5 * sin(range(256+64) * rad(360.0/256.0)))
 		.pend
 
 func_sin16	.proc
@@ -735,7 +735,7 @@ func_sin16	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 
-_  :=  32767 * sin(range(256+64) * rad(360.0/256.0))
+_  :=  trunc(32767.0 * sin(range(256+64) * rad(360.0/256.0)))
 _sinecos8lo     .byte  <_
 _sinecos8hi     .byte  >_
 		.pend
@@ -748,7 +748,7 @@ func_sin16u	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 
-_  :=  32768 + 32767.5 * sin(range(256+64) * rad(360.0/256.0))
+_  :=  trunc(32768.0 + 32767.5 * sin(range(256+64) * rad(360.0/256.0)))
 _sinecos8ulo     .byte  <_
 _sinecos8uhi     .byte  >_
 		.pend
