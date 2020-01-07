@@ -31,15 +31,14 @@ dependencies {
     implementation project(':parser')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     // implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    // runtime "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    runtime 'org.antlr:antlr4-runtime:4.7.2'
-    runtime project(':parser')
+    implementation 'org.antlr:antlr4-runtime:4.7.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.1.0-dev-5'
+    implementation project(':parser')
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
     testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
-    compile 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.1.0-dev-5'
 }
 
 compileKotlin {
@@ -85,8 +84,8 @@ artifacts {
 
 
 shadowJar {
-    baseName = 'prog8compiler'
-    version = prog8version
+    archiveBaseName = 'prog8compiler'
+    archiveVersion = prog8version
     // minimize()
 }
 
