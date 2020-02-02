@@ -11,6 +11,7 @@ import prog8.compiler.target.clang.ClangGen
 import prog8.compiler.target.clang.ClangMachineDefinition
 import prog8.parser.ParsingFailedError
 import prog8.vm.astvm.AstVm
+import java.io.IOException
 import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
@@ -36,8 +37,7 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 private fun compileMain(args: Array<String>) {
     val cli = CommandLineInterface("prog8compiler")
-    val startEmulator1 by cli.flagArgument("-emu", "auto-start the 'x64' C-64 emulator after successful compilation")
-    val startEmulator2 by cli.flagArgument("-emu2", "auto-start the 'x64sc' C-64 emulator after successful compilation")
+    val startEmulator by cli.flagArgument("-emu", "auto-start the Vice C-64 emulator after successful compilation")
     val outputDir by cli.flagValueArgument("-out", "directory", "directory for output files instead of current directory", ".")
     val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
@@ -129,16 +129,24 @@ private fun compileMain(args: Array<String>) {
                 vm.run()
             }
 
-            if (startEmulator1 || startEmulator2) {
+            if (startEmulator) {
                 if (compilationResult.programName.isEmpty())
                     println("\nCan't start emulator because no program was assembled.")
-                else {
-                    val emulator = if(startEmulator1) "x64" else "x64sc"
-                    println("\nStarting C-64 emulator $emulator...")
-                    val cmdline = listOf(emulator, "-silent", "-moncommands", "${compilationResult.programName}.vice-mon-list",
-                            "-autostartprgmode", "1", "-autostart-warp", "-autostart", compilationResult.programName + ".prg")
-                    val process = ProcessBuilder(cmdline).inheritIO().start()
-                    process.waitFor()
+                else if(startEmulator) {
+                    for(emulator in listOf("x64sc", "x64")) {
+                        println("\nStarting C-64 emulator $emulator...")
+                        val cmdline = listOf(emulator, "-silent", "-moncommands", "${compilationResult.programName}.vice-mon-list",
+                                "-autostartprgmode", "1", "-autostart-warp", "-autostart", compilationResult.programName + ".prg")
+                        val processb = ProcessBuilder(cmdline).inheritIO()
+                        val process: Process
+                        try {
+                            process=processb.start()
+                        } catch(x: IOException) {
+                            continue  // try the next emulator executable
+                        }
+                        process.waitFor()
+                        break
+                    }
                 }
             }
         }
