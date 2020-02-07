@@ -8,10 +8,8 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.c64.Petscii
 import prog8.vm.*
 import java.awt.EventQueue
-import java.io.CharConversionException
 import java.util.ArrayDeque
 import kotlin.NoSuchElementException
 import kotlin.concurrent.fixedRateTimer
@@ -184,7 +182,7 @@ class AstVm(val program: Program, compilationTarget: String) {
         if(address in 1024..2023) {
             // write to the screen matrix
             val scraddr = address-1024
-            dialog.canvas.setChar(scraddr % 40, scraddr / 40, value, 1)
+            dialog.canvas.setScreenChar(scraddr % 40, scraddr / 40, value, 1)
         }
         return value
     }
@@ -240,7 +238,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                     }
                 }
             }
-            dialog.canvas.printText("\n<program ended>", true)
+            dialog.canvas.printAsciiText("\n<program ended>")
             println("PROGRAM EXITED!")
             dialog.title = "PROGRAM EXITED"
         } catch (tx: VmTerminationException) {
@@ -357,7 +355,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                             // swap cannot be implemented as a function, so inline it here
                             executeSwap(stmt)
                         } else {
-                            val args = evaluate(stmt.arglist).map { it as RuntimeValueNumeric }
+                            val args = evaluate(stmt.arglist)
                             performBuiltinFunction(target.name, args, statusflags)
                         }
                     }
@@ -625,7 +623,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                         (array as RuntimeValueArray).array[index.integerValue()] = value.numericValue()
                     else if (array.type in StringDatatypes) {
                         val indexInt = index.integerValue()
-                        val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
+                        val newchr = value.numericValue().toChar().toString()
                         val newstr = (array as RuntimeValueString).str.replaceRange(indexInt, indexInt + 1, newchr)
                         val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
@@ -672,48 +670,48 @@ class AstVm(val program: Program, compilationTarget: String) {
             "c64scr.print" -> {
                 // if the argument is an UWORD, consider it to be the "address" of the string (=heapId)
                 if (args[0].wordval != null) {
-                    val encodedStr = getEncodedStringFromRuntimeVars(args[0].wordval!!)
-                    dialog.canvas.printText(encodedStr)
+                    val string = getAsciiStringFromRuntimeVars(args[0].wordval!!)
+                    dialog.canvas.printAsciiText(string)
                 } else
                     throw VmExecutionException("print non-heap string")
             }
             "c64scr.print_ub" -> {
-                dialog.canvas.printText(args[0].byteval!!.toString(), true)
+                dialog.canvas.printAsciiText(args[0].byteval!!.toString())
             }
             "c64scr.print_ub0" -> {
-                dialog.canvas.printText("%03d".format(args[0].byteval!!), true)
+                dialog.canvas.printAsciiText("%03d".format(args[0].byteval!!))
             }
             "c64scr.print_b" -> {
-                dialog.canvas.printText(args[0].byteval!!.toString(), true)
+                dialog.canvas.printAsciiText(args[0].byteval!!.toString())
             }
             "c64scr.print_uw" -> {
-                dialog.canvas.printText(args[0].wordval!!.toString(), true)
+                dialog.canvas.printAsciiText(args[0].wordval!!.toString())
             }
             "c64scr.print_uw0" -> {
-                dialog.canvas.printText("%05d".format(args[0].wordval!!), true)
+                dialog.canvas.printAsciiText("%05d".format(args[0].wordval!!))
             }
             "c64scr.print_w" -> {
-                dialog.canvas.printText(args[0].wordval!!.toString(), true)
+                dialog.canvas.printAsciiText(args[0].wordval!!.toString())
             }
             "c64scr.print_ubhex" -> {
                 val number = args[0].byteval!!
                 val prefix = if (args[1].asBoolean) "$" else ""
-                dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", true)
+                dialog.canvas.printAsciiText("$prefix${number.toString(16).padStart(2, '0')}")
             }
             "c64scr.print_uwhex" -> {
                 val number = args[0].wordval!!
                 val prefix = if (args[1].asBoolean) "$" else ""
-                dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", true)
+                dialog.canvas.printAsciiText("$prefix${number.toString(16).padStart(4, '0')}")
             }
             "c64scr.print_uwbin" -> {
                 val number = args[0].wordval!!
                 val prefix = if (args[1].asBoolean) "%" else ""
-                dialog.canvas.printText("$prefix${number.toString(2).padStart(16, '0')}", true)
+                dialog.canvas.printAsciiText("$prefix${number.toString(2).padStart(16, '0')}")
             }
             "c64scr.print_ubbin" -> {
                 val number = args[0].byteval!!
                 val prefix = if (args[1].asBoolean) "%" else ""
-                dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", true)
+                dialog.canvas.printAsciiText("$prefix${number.toString(2).padStart(8, '0')}")
             }
             "c64scr.clear_screenchars" -> {
                 dialog.canvas.clearScreen(6)
@@ -722,7 +720,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                 dialog.canvas.clearScreen(args[0].integerValue().toShort())
             }
             "c64scr.setcc" -> {
-                dialog.canvas.setChar(args[0].integerValue(), args[1].integerValue(), args[2].integerValue().toShort(), args[3].integerValue().toShort())
+                dialog.canvas.setScreenChar(args[0].integerValue(), args[1].integerValue(), args[2].integerValue().toShort(), args[3].integerValue().toShort())
             }
             "c64scr.plot" -> {
                 dialog.canvas.setCursorPos(args[0].integerValue(), args[1].integerValue())
@@ -738,27 +736,23 @@ class AstVm(val program: Program, compilationTarget: String) {
                         break
                     else {
                         input.add(char)
-                        val printChar = try {
-                            Petscii.encodePetscii("" + char, true).first()
-                        } catch (cv: CharConversionException) {
-                            0x3f.toShort()
-                        }
-                        dialog.canvas.printPetscii(printChar)
+                        dialog.canvas.printAscii(char)
                     }
                 }
-                val inputStr = input.joinToString("")
+                var inputStr = input.joinToString("")
+                val inputLength = inputStr.length
                 val heapId = args[0].wordval!!
-                val origStrLength = getEncodedStringFromRuntimeVars(heapId).size
-                val encodedStr = Petscii.encodePetscii(inputStr, true).take(origStrLength).toMutableList()
-                while(encodedStr.size < origStrLength)
-                    encodedStr.add(0)
-                result = RuntimeValueNumeric(DataType.UBYTE, encodedStr.indexOf(0))
+                val origStrLength = getAsciiStringFromRuntimeVars(heapId).length
+                while(inputStr.length < origStrLength) {
+                    inputStr += '\u0000'
+                }
+                result = RuntimeValueNumeric(DataType.UBYTE, inputLength)
             }
             "c64flt.print_f" -> {
-                dialog.canvas.printText(args[0].floatval.toString(), false)
+                dialog.canvas.printAsciiText(args[0].floatval.toString())
             }
             "c64.CHROUT" -> {
-                dialog.canvas.printPetscii(args[0].byteval!!)
+                dialog.canvas.printAscii(args[0].byteval!!.toChar())
             }
             "c64.CLEARSCR" -> {
                 dialog.canvas.clearScreen(6)
@@ -770,9 +764,16 @@ class AstVm(val program: Program, compilationTarget: String) {
                 val char=dialog.keyboardBuffer.pop()
                 result = RuntimeValueNumeric(DataType.UBYTE, char.toShort())
             }
+            "c64.GETIN" -> {
+                Thread.sleep(1)
+                result = if(dialog.keyboardBuffer.isEmpty())
+                    RuntimeValueNumeric(DataType.UBYTE, 0)
+                else
+                    RuntimeValueNumeric(DataType.UBYTE, dialog.keyboardBuffer.pop().toShort())
+            }
             "c64utils.str2uword" -> {
                 val heapId = args[0].wordval!!
-                val argString = getEncodedStringFromRuntimeVars(heapId)
+                val argString = getAsciiStringFromRuntimeVars(heapId)
                 val numericpart = argString.takeWhile { it.toChar().isDigit() }.toString()
                 result = RuntimeValueNumeric(DataType.UWORD, numericpart.toInt() and 65535)
             }
@@ -782,11 +783,10 @@ class AstVm(val program: Program, compilationTarget: String) {
         return result
     }
 
-    private fun getEncodedStringFromRuntimeVars(heapId: Int): List<Short> {
+    private fun getAsciiStringFromRuntimeVars(heapId: Int): String {
         val stringvar = runtimeVariables.getByHeapId(heapId) as RuntimeValueString
-        return when {
-            stringvar.type==DataType.STR -> Petscii.encodePetscii(stringvar.str, true)
-            stringvar.type==DataType.STR_S -> Petscii.encodeScreencode(stringvar.str, true)
+        return when (stringvar.type) {
+            DataType.STR, DataType.STR_S -> stringvar.str
             else -> throw VmExecutionException("weird string type")
         }
     }

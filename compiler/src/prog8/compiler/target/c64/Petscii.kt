@@ -1058,7 +1058,7 @@ object Petscii {
                 0.toShort()
             else {
                 val case = if (lowercase) "lower" else "upper"
-                throw CharConversionException("no ${case}case Petscii character for '$it'")
+                throw CharConversionException("no ${case}case Petscii character for '$it' (${it.toShort()})")
             }
         }
     }
@@ -1076,7 +1076,7 @@ object Petscii {
                 0.toShort()
             else {
                 val case = if (lowercase) "lower" else "upper"
-                throw CharConversionException("no ${case}Screencode character for '$it'")
+                throw CharConversionException("no ${case}Screencode character for '$it' (${it.toShort()})")
             }
         }
     }

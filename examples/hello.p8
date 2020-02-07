@@ -23,7 +23,7 @@ main {
 
         ; use indexed loop to write characters
         str bye = "Goodbye!\n"
-        for char in 0 to len(bye)
+        for char in 0 to len(bye)-1
             c64.CHROUT(bye[char])
 
 
@@ -40,6 +40,8 @@ main {
         c64.CHROUT(':')
         c64flt.print_f(clock_seconds)
         c64.CHROUT('\n')
+
+        c64scr.print("bye!\n")
     }
 
 }

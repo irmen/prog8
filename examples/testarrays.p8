@@ -1,10 +1,15 @@
+%import c64lib
 %import c64flt
 %zeropage basicsafe
 %option enable_floats
 
 main {
 
+    ; this is only a parser/compiler test, there's no actual working program
+
     sub start() {
+        c64scr.print("this is only a parser/compiler test\n")
+        return
 
         str  s1 = "irmen"
         str_s  s2 = "hello"

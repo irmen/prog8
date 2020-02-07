@@ -6,6 +6,7 @@ import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.awt.image.BufferedImage
+import java.io.CharConversionException
 import java.util.ArrayDeque
 import javax.swing.JFrame
 import javax.swing.JPanel
@@ -63,28 +64,22 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.drawLine(x1, y1, x2, y2)
     }
 
-    fun printText(text: String, lowercase: Boolean, inverseVideo: Boolean=false) {
+    fun printAsciiText(text: String) {
         val t2 = text.substringBefore(0.toChar())
         val lines = t2.split('\n')
         for(line in lines.withIndex()) {
-            val petscii = Petscii.encodePetscii(line.value, lowercase)
-            petscii.forEach { printPetscii(it, inverseVideo) }
-            if(line.index<lines.size-1) {
-                printPetscii(13)    // newline
-            }
+            line.value.forEach { printAscii(it) }
+            if(line.index<lines.size-1)
+                printAscii('\n')
         }
     }
 
-    fun printText(text: Iterable<Short>) {
-        text.forEach { printPetscii(it, false) }
-    }
-
-    fun printPetscii(char: Short, inverseVideo: Boolean=false) {
-        if(char==13.toShort() || char==141.toShort()) {
+    fun printAscii(char: Char) {
+        if(char=='\n' || char=='\u008d') {
             cursorX=0
             cursorY++
         } else {
-            setPetscii(cursorX, cursorY, char, 1, inverseVideo)
+            setAsciiChar(cursorX, cursorY, char, 1)
             cursorX++
             if (cursorX >= (SCREENWIDTH / 8)) {
                 cursorY++
@@ -105,28 +100,32 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         }
     }
 
-    fun writeTextAt(x: Int, y: Int, text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
+    fun writeAsciiTextAt(x: Int, y: Int, text: String, color: Short) {
         val colorIdx = (color % C64MachineDefinition.colorPalette.size).toShort()
         var xx=x
         for(clearx in xx until xx+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
-        for(sc in Petscii.encodePetscii(text, lowercase)) {
-            if(sc==0.toShort())
+        for(c in text) {
+            if(c=='\u0000')
                 break
-            setPetscii(xx++, y, sc, colorIdx, inverseVideo)
+            setAsciiChar(xx++, y, c, colorIdx)
         }
     }
 
-    fun setPetscii(x: Int, y: Int, petscii: Short, color: Short, inverseVideo: Boolean) {
+    fun setAsciiChar(x: Int, y: Int, char: Char, color: Short) {
         g2d.clearRect(8*x, 8*y, 8, 8)
         val colorIdx = (color % C64MachineDefinition.colorPalette.size).toShort()
-        val screencode = Petscii.petscii2scr(petscii, inverseVideo)
+        val screencode = try {
+            Petscii.encodeScreencode(char.toString(), true)[0]
+        } catch (x: CharConversionException) {
+            '?'.toShort()
+        }
         val coloredImage = C64MachineDefinition.Charset.getColoredChar(screencode, colorIdx)
         g2d.drawImage(coloredImage, 8*x, 8*y , null)
     }
 
-    fun setChar(x: Int, y: Int, screencode: Short, color: Short) {
+    fun setScreenChar(x: Int, y: Int, screencode: Short, color: Short) {
         g2d.clearRect(8*x, 8*y, 8, 8)
         val colorIdx = (color % C64MachineDefinition.colorPalette.size).toShort()
         val coloredImage = C64MachineDefinition.Charset.getColoredChar(screencode, colorIdx)

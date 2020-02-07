@@ -33,6 +33,7 @@ dependencies {
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation 'org.antlr:antlr4-runtime:4.7.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.1.0-dev-5'
+    // implementation 'net.razorvine:ksim65:1.6'
     implementation project(':parser')
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
