@@ -10,7 +10,7 @@ main {
         c64.VMCSB |= 2  ; switch to lowercase charset
 
         str s1 = "HELLO hello 1234 @[/]\n"
-        str s2 = "HELLO hello 1234 @[/]\n"   ; TODO as c64scr
+        str s2 = "HELLO hello 1234 @[/]\n" as c64sc
 
         c64scr.print("\n\n\n\nString output via print:\n")
         c64scr.print(s1)

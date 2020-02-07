@@ -11,9 +11,9 @@
     <orderEntry type="jdk" jdkName="openjdk-11" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="library" name="antlr-runtime-4.7.2" level="project" />
     <orderEntry type="module" module-name="parser" />
     <orderEntry type="library" name="unittest-libs" level="project" />
     <orderEntry type="library" name="kotlinx-cli-jvm-0.1.0-dev-5" level="project" />
+    <orderEntry type="library" name="antlr-runtime-4.8" level="project" />
   </component>
 </module>
