@@ -206,18 +206,9 @@ internal class AsmGen(private val program: Program,
         return "$b0, $b1, $b2, $b3, $b4"
     }
 
-    private fun encodeStr(str: String, dt: DataType): List<Short> {
-        return when(dt) {
-            DataType.STR -> {
-                val bytes = Petscii.encodePetscii(str, true)
-                bytes.plus(0)
-            }
-            DataType.STR_S -> {
-                val bytes = Petscii.encodeScreencode(str, true)
-                bytes.plus(0)
-            }
-            else -> throw AssemblyError("invalid str type")
-        }
+    private fun encodeStr(str: String): List<Short> {
+         val bytes = Petscii.encodePetscii(str, true)
+         return bytes.plus(0)
     }
 
     private fun zeropagevars2asm(statements: List<Statement>) {
@@ -254,10 +245,9 @@ internal class AsmGen(private val program: Program,
             DataType.WORD -> out("${decl.name}\t.sint  0")
             DataType.FLOAT -> out("${decl.name}\t.byte  0,0,0,0,0  ; float")
             DataType.STRUCT -> {}       // is flattened
-            DataType.STR, DataType.STR_S -> {
+            DataType.STR -> {
                 val string = (decl.value as StringLiteralValue).value
-                val encoded = encodeStr(string, decl.datatype)
-                outputStringvar(decl, encoded)
+                outputStringvar(decl, encodeStr(string))
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -340,8 +330,8 @@ internal class AsmGen(private val program: Program,
 
         // special treatment for string types: merge strings that are identical
         val encodedstringVars = normalVars
-                .filter {it.datatype in StringDatatypes }
-                .map { it to encodeStr((it.value as StringLiteralValue).value, it.datatype) }
+                .filter {it.datatype == DataType.STR }
+                .map { it to encodeStr((it.value as StringLiteralValue).value) }
                 .groupBy({it.second}, {it.first})
         for((encoded, variables) in encodedstringVars) {
             variables.dropLast(1).forEach { out(it.name) }
@@ -350,7 +340,7 @@ internal class AsmGen(private val program: Program,
         }
 
         // non-string variables
-        normalVars.filter{ it.datatype !in StringDatatypes}.sortedBy { it.datatype }.forEach {
+        normalVars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
             if(it.scopedname !in allocatedZeropageVariables)
                 vardecl2asm(it)
         }
@@ -510,7 +500,7 @@ internal class AsmGen(private val program: Program,
     internal fun readAndPushArrayvalueWithIndexA(arrayDt: DataType, variable: IdentifierReference) {
         val variablename = asmIdentifierName(variable)
         when (arrayDt) {
-            DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
+            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B ->
                 out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  dex")
             DataType.ARRAY_UW, DataType.ARRAY_W ->
                 out("  asl  a |  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  lda  $variablename+1,y |  sta  $ESTACK_HI_HEX,x | dex")

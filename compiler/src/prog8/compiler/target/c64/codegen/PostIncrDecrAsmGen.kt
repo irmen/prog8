@@ -123,7 +123,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
     private fun incrDecrArrayvalueWithIndexA(incr: Boolean, arrayDt: DataType, arrayVarName: String) {
         asmgen.out("  stx  ${C64Zeropage.SCRATCH_REG_X} |  tax")
         when(arrayDt) {
-            DataType.STR, DataType.STR_S,
+            DataType.STR,
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 asmgen.out(if(incr) "  inc  $arrayVarName,x" else "  dec  $arrayVarName,x")
             }

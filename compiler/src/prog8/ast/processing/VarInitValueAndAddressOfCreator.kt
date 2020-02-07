@@ -103,14 +103,14 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
     private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<Expression>, parent: Statement) {
         // functions that accept UWORD and are given an array type, or string, will receive the AddressOf (memory location) of that value instead.
         for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
-            if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type in StringDatatypes) {
+            if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type == DataType.STR) {
                 if(argparam.second is AddressOf)
                     continue
                 val idref = argparam.second as? IdentifierReference
                 val strvalue = argparam.second as? StringLiteralValue
                 if(idref!=null) {
                     val variable = idref.targetVarDecl(program.namespace)
-                    if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
+                    if(variable!=null && variable.datatype in IterableDatatypes) {
                         val pointerExpr = AddressOf(idref, idref.position)
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr

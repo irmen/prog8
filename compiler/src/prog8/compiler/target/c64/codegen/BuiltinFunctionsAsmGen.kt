@@ -85,7 +85,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 outputPushAddressAndLenghtOfArray(fcall.arglist[0])
                 val dt = fcall.arglist.single().inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
-                    DataType.ARRAY_UB, DataType.STR_S, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
+                    DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
                     DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
                     DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw")
                     DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
@@ -97,7 +97,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 outputPushAddressAndLenghtOfArray(fcall.arglist[0])
                 val dt = fcall.arglist.single().inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
-                    DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR_S, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
+                    DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
                     DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
                     DataType.ARRAY_F -> asmgen.out("  jsr  c64flt.func_${functionName}_f")
                     else -> throw AssemblyError("weird type $dt")

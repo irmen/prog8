@@ -83,7 +83,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     val arrayVarName = asmgen.asmIdentifierName(arrayExpr.identifier)
                     val indexValue = index.number.toInt() * ArrayElementTypes.getValue(arrayDt).memorySize()
                     when (arrayDt) {
-                        DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
+                        DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B ->
                             asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
                         DataType.ARRAY_UW, DataType.ARRAY_W ->
                             asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x | dex")
@@ -730,7 +730,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private fun popAndWriteArrayvalueWithIndexA(arrayDt: DataType, variablename: String) {
         when (arrayDt) {
-            DataType.STR, DataType.STR_S, DataType.ARRAY_UB, DataType.ARRAY_B ->
+            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B ->
                 asmgen.out("  tay |  inx |  lda  $ESTACK_LO_HEX,x  | sta  $variablename,y")
             DataType.ARRAY_UW, DataType.ARRAY_W ->
                 asmgen.out("  asl  a |  tay |  inx |  lda  $ESTACK_LO_HEX,x |  sta  $variablename,y |  lda  $ESTACK_HI_HEX,x |  sta $variablename+1,y")

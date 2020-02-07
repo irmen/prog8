@@ -228,9 +228,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         // we have a special rule for some types.
         // strings are assignable to UWORD, for example, and vice versa
-        if(argType in StringDatatypes && paramType==DataType.UWORD)
+        if(argType==DataType.STR && paramType==DataType.UWORD)
             return true
-        if(argType==DataType.UWORD && paramType in StringDatatypes)
+        if(argType==DataType.UWORD && paramType == DataType.STR)
             return true
 
         return false

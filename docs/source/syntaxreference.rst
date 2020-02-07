@@ -268,8 +268,6 @@ type identifier  type                     storage size       example var declara
 ``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
-``str_s``        string (screencodes)     varies             ``str_s myvar = "hello."``
-                                                             implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================
 
 **arrays:** you can split an array initializer list over several lines if you want. When an initialization

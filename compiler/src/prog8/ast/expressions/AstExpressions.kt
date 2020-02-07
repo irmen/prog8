@@ -197,7 +197,7 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
         val target = identifier.targetStatement(program.namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
-                in StringDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
+                DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
                 in ArrayDatatypes -> InferredTypes.knownFor(ArrayElementTypes.getValue(target.datatype))
                 else -> InferredTypes.unknown()
             }
@@ -524,7 +524,6 @@ class RangeExpr(var from: Expression,
             fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.ARRAY_UB)
             fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.ARRAY_UW)
             fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(DataType.STR)
-            fromDt istype DataType.STR_S && toDt istype DataType.STR_S -> InferredTypes.knownFor(DataType.STR_S)
             fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.ARRAY_W)
             fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.ARRAY_B)
             else -> InferredTypes.knownFor(DataType.ARRAY_UB)

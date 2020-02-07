@@ -3,7 +3,6 @@ package prog8.ast
 import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
 import prog8.ast.base.NumericDatatypes
-import prog8.ast.base.StringDatatypes
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstVisitor
@@ -79,7 +78,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     private fun datatypeString(dt: DataType): String {
         return when(dt) {
             in NumericDatatypes -> dt.toString().toLowerCase()
-            in StringDatatypes -> dt.toString().toLowerCase()
+            DataType.STR -> dt.toString().toLowerCase()
             DataType.ARRAY_UB -> "ubyte["
             DataType.ARRAY_B -> "byte["
             DataType.ARRAY_UW -> "uword["

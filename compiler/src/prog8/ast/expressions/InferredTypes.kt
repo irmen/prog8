@@ -46,7 +46,6 @@ object InferredTypes {
             DataType.WORD to InferredType.known(DataType.WORD),
             DataType.FLOAT to InferredType.known(DataType.FLOAT),
             DataType.STR to InferredType.known(DataType.STR),
-            DataType.STR_S to InferredType.known(DataType.STR_S),
             DataType.ARRAY_UB to InferredType.known(DataType.ARRAY_UB),
             DataType.ARRAY_B to InferredType.known(DataType.ARRAY_B),
             DataType.ARRAY_UW to InferredType.known(DataType.ARRAY_UW),

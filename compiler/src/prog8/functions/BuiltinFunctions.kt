@@ -88,7 +88,7 @@ val BuiltinFunctions = mapOf(
                                                         BuiltinFunctionParam("address", IterableDatatypes + DataType.UWORD),
                                                         BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
-    "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE, ::builtinStrlen)
+    "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen)
 )
 
 fun builtinMax(array: List<Number>): Number = array.maxBy { it.toDouble() }!!
@@ -121,8 +121,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
             if(!idt.isKnown)
                 throw FatalAstException("couldn't determine type of iterable $arglist")
             return when(val dt = idt.typeOrElse(DataType.STRUCT)) {
-                in NumericDatatypes -> dt
-                in StringDatatypes -> dt
+                DataType.STR, in NumericDatatypes -> dt
                 in ArrayDatatypes -> ArrayElementTypes.getValue(dt)
                 else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
             }
@@ -145,8 +144,8 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
         }
         "max", "min" -> {
             when(val dt = datatypeFromIterableArg(args.single())) {
+                DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
                 in NumericDatatypes -> InferredTypes.knownFor(dt)
-                in StringDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
                 in ArrayDatatypes -> InferredTypes.knownFor(ArrayElementTypes.getValue(dt))
                 else -> InferredTypes.unknown()
             }
@@ -159,7 +158,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
                 DataType.ARRAY_UB, DataType.ARRAY_UW -> InferredTypes.knownFor(DataType.UWORD)
                 DataType.ARRAY_B, DataType.ARRAY_W -> InferredTypes.knownFor(DataType.WORD)
                 DataType.ARRAY_F -> InferredTypes.knownFor(DataType.FLOAT)
-                in StringDatatypes -> InferredTypes.knownFor(DataType.UWORD)
+                DataType.STR -> InferredTypes.knownFor(DataType.UWORD)
                 else -> InferredTypes.unknown()
             }
         }
@@ -232,7 +231,7 @@ private fun builtinStrlen(args: List<Expression>, position: Position, program: P
     if (args.size != 1)
         throw SyntaxError("strlen requires one argument", position)
     val argument = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(argument.type !in StringDatatypes)
+    if(argument.type != DataType.STR)
         throw SyntaxError("strlen must have string argument", position)
 
     throw NotConstArgumentException()       // this function is not considering the string argument a constant
@@ -269,7 +268,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
                 throw CompilerException("array length exceeds byte limit ${target.position}")
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)
         }
-        in StringDatatypes -> {
+        DataType.STR -> {
             val refLv = target.value as StringLiteralValue
             if(refLv.value.length>255)
                 throw CompilerException("string length exceeds byte limit ${refLv.position}")

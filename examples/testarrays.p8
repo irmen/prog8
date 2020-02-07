@@ -11,8 +11,9 @@ main {
         c64scr.print("this is only a parser/compiler test\n")
         return
 
-        str  s1 = "irmen"
-        str_s  s2 = "hello"
+        str  s1 = "hello"
+        str  s2 = "screencodes" ; TODO as c64sc
+
         &str  ms1 = $c000
 
 
@@ -37,7 +38,6 @@ main {
         ; read array
         A=s1[2]
         ub=s1[2]
-        ub=s2[2]
         bb=barray[2]
         ub=ubarray[2]
         ww=warray[2]
@@ -52,8 +52,7 @@ main {
         fl=mflarray[2]
 
         A=s1[A]
-        ub=s2[A]
-        ub=s2[A]
+        ub=s1[A]
         bb=barray[A]
         ub=ubarray[A]
         ww=warray[A]
@@ -69,7 +68,6 @@ main {
 
         A=s1[bb]
         ub=s1[bb]
-        ub=s2[bb]
         bb=barray[bb]
         ub=ubarray[bb]
         ww=warray[bb]
@@ -85,7 +83,6 @@ main {
 
         A=s1[bb*3]
         ub=s1[bb*3]
-        ub=s2[bb*3]
         bb=barray[bb*3]
         ub=ubarray[bb*3]
         ww=warray[bb*3]
@@ -104,7 +101,6 @@ main {
         barray[2]--
         s1[2] = A
         s1[2] = ub
-        s2[2] = ub
         barray[2] = bb
         ubarray[2] = ub
         warray[2] = ww
@@ -121,7 +117,6 @@ main {
         mflarray[2] = fl
 
         s1[A] = ub
-        s2[A] = ub
         barray[A] = bb
         ubarray[A] = ub
         warray[A] = ww
@@ -129,7 +124,6 @@ main {
         flarray[A] = fl
 
         s1[bb] = ub
-        s2[bb] = ub
         barray[bb] = bb
         ubarray[bb] = ub
         warray[bb] = ww
@@ -137,7 +131,6 @@ main {
         flarray[bb] = fl
 
         s1[bb*3] = ub
-        s2[bb*3] = ub
         barray[bb*3] = bb
         ubarray[bb*3] = ub
         warray[bb*3] = ww

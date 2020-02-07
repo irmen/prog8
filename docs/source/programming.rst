@@ -271,9 +271,8 @@ Strings
 Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
-Strings in your source code files will be encoded (translated from ASCII/UTF-8) into either CBM PETSCII or C-64 screencodes.
-PETSCII is the default choice. If you need screencodes (also called 'poke' codes) instead,
-you have to use the ``str_s`` variants of the string type identifier.
+Strings in your source code files will be encoded (translated from ASCII/UTF-8) into the byte-encoding
+that is used on the target platform. For the C-64, this is CBM PETSCII.
 
 You can concatenate two string literals using '+' (not very useful though) or repeat
 a string literal a given number of times using '*'::

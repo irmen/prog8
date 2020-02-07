@@ -1,5 +1,3 @@
-@file:Suppress("DuplicatedCode")
-
 package prog8.ast.processing
 
 import prog8.ast.IFunctionCall
@@ -125,7 +123,7 @@ internal class AstChecker(private val program: Program,
         } else {
             if (forLoop.loopRegister != null) {
                 // loop register
-                if (iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_B && iterableDt !in StringDatatypes)
+                if (iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_B && iterableDt != DataType.STR)
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
                 if(forLoop.loopRegister!=Register.A)
                     checkResult.add(ExpressionError("it's only possible to use A as a loop register", forLoop.position))
@@ -137,11 +135,11 @@ internal class AstChecker(private val program: Program,
                 } else {
                     when (loopvar.datatype) {
                         DataType.UBYTE -> {
-                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
+                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
                                 checkResult.add(ExpressionError("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position))
                         }
                         DataType.UWORD -> {
-                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt !in StringDatatypes &&
+                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
                                     iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
                                 checkResult.add(ExpressionError("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position))
                         }
@@ -245,7 +243,7 @@ internal class AstChecker(private val program: Program,
                 }
                 else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
-                            && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
+                            && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
                         err("parameter '${param.first.name}' should be (u)word/address")
                 }
                 else if(param.second.statusflag!=null) {
@@ -260,7 +258,7 @@ internal class AstChecker(private val program: Program,
                 }
                 else if(ret.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (ret.first.value != DataType.UWORD && ret.first.value != DataType.WORD
-                            && ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes && ret.first.value != DataType.FLOAT)
+                            && ret.first.value != DataType.STR && ret.first.value !in ArrayDatatypes && ret.first.value != DataType.FLOAT)
                         err("return value #${ret.first.index + 1} should be (u)word/address")
                 }
                 else if(ret.second.statusflag!=null) {
@@ -411,7 +409,7 @@ internal class AstChecker(private val program: Program,
             }
         }
         val targetDt = assignTarget.inferType(program, assignment).typeOrElse(DataType.STR)
-        if(targetDt in StringDatatypes || targetDt in ArrayDatatypes)
+        if(targetDt in IterableDatatypes)
             checkResult.add(SyntaxError("cannot assign to a string or array type", assignTarget.position))
 
         if (assignment is Assignment) {
@@ -447,7 +445,7 @@ internal class AstChecker(private val program: Program,
         if(variable==null)
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
         else {
-            if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes && variable.datatype!=DataType.STRUCT)
+            if(variable.datatype !in ArrayDatatypes && variable.datatype != DataType.STR && variable.datatype!=DataType.STRUCT)
                 checkResult.add(ExpressionError("invalid pointer-of operand type", addressOf.position))
         }
         super.visit(addressOf)
@@ -876,10 +874,10 @@ internal class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("swap requires args of numerical type", position))
                 }
                 else if(target.name=="all" || target.name=="any") {
-                    if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype in StringDatatypes) {
+                    if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype == DataType.STR) {
                         checkResult.add(ExpressionError("any/all on a string is useless (is always true unless the string is empty)", position))
                     }
-                    if(args[0].inferType(program).typeOrElse(DataType.STR) in StringDatatypes) {
+                    if(args[0].inferType(program).typeOrElse(DataType.STR) == DataType.STR) {
                         checkResult.add(ExpressionError("any/all on a string is useless (is always true unless the string is empty)", position))
                     }
                 }
@@ -896,7 +894,7 @@ internal class AstChecker(private val program: Program,
                     val argDt=argIDt.typeOrElse(DataType.STRUCT)
                     if(!(argDt isAssignableTo arg.second.type)) {
                         // for asm subroutines having STR param it's okay to provide a UWORD (address value)
-                        if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt == DataType.UWORD))
+                        if(!(target.isAsmSubroutine && arg.second.type == DataType.STR && argDt == DataType.UWORD))
                             checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position))
                     }
 
@@ -963,7 +961,7 @@ internal class AstChecker(private val program: Program,
                 val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
-            } else if(target.datatype in StringDatatypes) {
+            } else if(target.datatype == DataType.STR) {
                 if(target.value is StringLiteralValue) {
                     // check string lengths for non-memory mapped strings
                     val stringLen = (target.value as StringLiteralValue).value.length
@@ -1047,19 +1045,15 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteralValue) : Boolean {
-        fun err(msg: String): Boolean {
-            checkResult.add(ExpressionError(msg, value.position))
-            return false
-        }
-        return when (targetDt) {
-            in StringDatatypes -> {
-                return if (value.value.length > 255)
-                    err("string length must be 0-255")
-                else
-                    true
+        return if (targetDt == DataType.STR) {
+            if (value.value.length > 255) {
+                checkResult.add(ExpressionError("string length must be 0-255", value.position))
+                false
             }
-            else -> false
+            else
+                true
         }
+        else false
     }
 
     private fun checkValueTypeAndRangeArray(targetDt: DataType, struct: StructDecl?,
@@ -1069,7 +1063,7 @@ internal class AstChecker(private val program: Program,
             return false
         }
         when (targetDt) {
-            in StringDatatypes -> return err("string value expected")
+            DataType.STR -> return err("string value expected")
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arraysize (of all constant values), or a range
                 if(value.type==targetDt) {
@@ -1276,7 +1270,6 @@ internal class AstChecker(private val program: Program,
             DataType.UWORD -> sourceDatatype== DataType.UBYTE || sourceDatatype== DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype== DataType.STR
-            DataType.STR_S -> sourceDatatype== DataType.STR_S
             DataType.STRUCT -> {
                 if(sourceDatatype==DataType.STRUCT) {
                     val structLv = sourceValue as StructLiteralValue

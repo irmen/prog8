@@ -577,7 +577,6 @@ class AstVm(val program: Program, compilationTarget: String) {
                         DataType.WORD -> mem.setSWord(address, (value as RuntimeValueNumeric).wordval!!)
                         DataType.FLOAT -> mem.setFloat(address, (value as RuntimeValueNumeric).floatval!!)
                         DataType.STR -> mem.setString(address, (value as RuntimeValueString).str)
-                        DataType.STR_S -> mem.setScreencodeString(address, (value as RuntimeValueString).str)
                         else -> throw VmExecutionException("weird memaddress type $decl")
                     }
                 } else
@@ -613,7 +612,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                             if (value.type != DataType.FLOAT)
                                 throw VmExecutionException("new value is of different datatype ${value.type} for $array")
                         }
-                        DataType.STR, DataType.STR_S -> {
+                        DataType.STR -> {
                             if (value.type !in ByteDatatypes)
                                 throw VmExecutionException("new value is of different datatype ${value.type} for $array")
                         }
@@ -621,7 +620,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                     }
                     if (array.type in ArrayDatatypes)
                         (array as RuntimeValueArray).array[index.integerValue()] = value.numericValue()
-                    else if (array.type in StringDatatypes) {
+                    else if (array.type == DataType.STR) {
                         val indexInt = index.integerValue()
                         val newchr = value.numericValue().toChar().toString()
                         val newstr = (array as RuntimeValueString).str.replaceRange(indexInt, indexInt + 1, newchr)
@@ -783,13 +782,8 @@ class AstVm(val program: Program, compilationTarget: String) {
         return result
     }
 
-    private fun getAsciiStringFromRuntimeVars(heapId: Int): String {
-        val stringvar = runtimeVariables.getByHeapId(heapId) as RuntimeValueString
-        return when (stringvar.type) {
-            DataType.STR, DataType.STR_S -> stringvar.str
-            else -> throw VmExecutionException("weird string type")
-        }
-    }
+    private fun getAsciiStringFromRuntimeVars(heapId: Int): String =
+            (runtimeVariables.getByHeapId(heapId) as RuntimeValueString).str
 
     private fun getArrayFromRuntimeVars(heapId: Int): IntArray {
         val arrayvar = runtimeVariables.getByHeapId(heapId) as RuntimeValueArray

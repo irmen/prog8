@@ -126,7 +126,7 @@ memoryvardecl: ADDRESS_OF varinitializer;
 
 structdecl: 'struct' identifier '{' EOL vardecl ( EOL vardecl)* EOL? '}' EOL;
 
-datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_s' ;
+datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' ;
 
 arrayindex:  '[' expression ']' ;
 

@@ -318,7 +318,7 @@ $endLabel       inx""")
         val iterableName = asmgen.asmIdentifierName(ident)
         val decl = ident.targetVarDecl(program.namespace)!!
         when(iterableDt) {
-            DataType.STR, DataType.STR_S -> {
+            DataType.STR -> {
                 if(stmt.loopRegister!=null && stmt.loopRegister!= Register.A)
                     throw AssemblyError("can only use A")
                 asmgen.out("""

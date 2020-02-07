@@ -63,12 +63,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         return super.visit(decl)
                     }
                 }
-                in StringDatatypes -> {
-                    // nothing to do for strings
-                }
-                DataType.STRUCT -> {
-                    // struct defintions don't have anything else in them
-                }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                     val numericLv = decl.value as? NumericLiteralValue
                     val rangeExpr = decl.value as? RangeExpr
@@ -154,6 +148,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 }
                 else -> {
                     // nothing to do for this type
+                    // this includes strings and structs
                 }
             }
         }

@@ -577,13 +577,7 @@ class RuntimeValueString(type: DataType, val str: String, val heapId: Int?): Run
         }
     }
 
-    override fun toString(): String {
-        return when (type) {
-            DataType.STR -> "str:$str"
-            DataType.STR_S -> "str_s:$str"
-            else -> "???"
-        }
-    }
+    override fun toString(): String = if(type==DataType.STR) "str:$str"  else "???"
 
     override fun hashCode(): Int = Objects.hash(type, str)
 
