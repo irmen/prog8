@@ -4,7 +4,6 @@ TODO
 
 - @"zzz"  screencode encoded strings  + add this to docs too
 - add 'void' keyword to explicitly ignore subroutine return values
-- allow:  for bb in [1,2,3]  + docs?
 
 
 Memory Block Operations integrated in language?

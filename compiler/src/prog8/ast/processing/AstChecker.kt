@@ -144,7 +144,6 @@ internal class AstChecker(private val program: Program,
                                 checkResult.add(ExpressionError("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position))
                         }
                         DataType.BYTE -> {
-                            // TODO fix this, it should allow:  for bb in [1,2,3]
                             if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
                                 checkResult.add(ExpressionError("byte loop variable can only loop over bytes", forLoop.position))
                         }
@@ -1200,6 +1199,10 @@ internal class AstChecker(private val program: Program,
             when (it) {
                 is NumericLiteralValue -> it.number.toInt()
                 is AddressOf -> it.identifier.heapId(program.namespace)
+                is TypecastExpression -> {
+                    val constVal = it.expression.constValue(program)
+                    constVal?.cast(it.type)?.number?.toInt() ?: -9999999
+                }
                 else -> -9999999
             }
         }

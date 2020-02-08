@@ -63,7 +63,27 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
-    override fun inferType(program: Program): InferredTypes.InferredType = expression.inferType(program)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        val inferred = expression.inferType(program)
+        return when(operator) {
+            "+" -> inferred
+            "~", "not" -> {
+                when(inferred.typeOrElse(DataType.STRUCT)) {
+                    in ByteDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
+                    in WordDatatypes -> InferredTypes.knownFor(DataType.UWORD)
+                    else -> inferred
+                }
+            }
+            "-" -> {
+                when(inferred.typeOrElse(DataType.STRUCT)) {
+                    in ByteDatatypes -> InferredTypes.knownFor(DataType.BYTE)
+                    in WordDatatypes -> InferredTypes.knownFor(DataType.WORD)
+                    else -> inferred
+                }
+            }
+            else -> throw FatalAstException("weird prefix expression operator")
+        }
+    }
 
     override fun toString(): String {
         return "Prefix($operator $expression)"

@@ -235,10 +235,12 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                 // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
                 // (we don't know the desired datatype here exactly so we guess)
                 val datatype = determineArrayDt(array.value)
-                val litval2 = array.cast(datatype)!!
-                litval2.parent = array.parent
-                // finally, replace the literal array by a identifier reference.
-                makeIdentifierFromRefLv(litval2)
+                val litval2 = array.cast(datatype)
+                if(litval2!=null) {
+                    litval2.parent = array.parent
+                    // finally, replace the literal array by a identifier reference.
+                    makeIdentifierFromRefLv(litval2)
+                } else array
             }
         }
         return array
@@ -366,10 +368,15 @@ internal fun fixupArrayEltDatatypes(array: ArrayLiteralValue, program: Program):
 
     // convert values and array type
     val elementType = ArrayElementTypes.getValue(dt)
-    val values = array.value.map { (it as NumericLiteralValue).cast(elementType) as Expression}.toTypedArray()
-    val array2 = ArrayLiteralValue(dt, values, array.position)
-    array2.linkParents(array.parent)
-    return array2
+    val allNumerics = array.value.all { it is NumericLiteralValue }
+    if(allNumerics) {
+        val values = array.value.map { (it as NumericLiteralValue).cast(elementType) as Expression }.toTypedArray()
+        val array2 = ArrayLiteralValue(dt, values, array.position)
+        array2.linkParents(array.parent)
+        return array2
+    }
+
+    return array
 }
 
 internal fun fixupArrayEltDatatypesFromVardecl(array: ArrayLiteralValue, vardecl: VarDecl): ArrayLiteralValue {
