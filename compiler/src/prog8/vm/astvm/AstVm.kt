@@ -750,7 +750,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                 dialog.canvas.printAsciiText(args[0].floatval.toString())
             }
             "c64.CHROUT" -> {
-                dialog.canvas.printAsciiText(args[0].byteval!!.toChar().toString())
+                dialog.canvas.printPetsciiChar(args[0].byteval!!)
             }
             "c64.CLEARSCR" -> {
                 dialog.canvas.clearScreen(6)
