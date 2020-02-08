@@ -41,12 +41,12 @@ interface IAstVisitor {
 
     fun visit(functionCall: FunctionCall) {
         functionCall.target.accept(this)
-        functionCall.arglist.forEach { it.accept(this) }
+        functionCall.args.forEach { it.accept(this) }
     }
 
     fun visit(functionCallStatement: FunctionCallStatement) {
         functionCallStatement.target.accept(this)
-        functionCallStatement.arglist.forEach { it.accept(this) }
+        functionCallStatement.args.forEach { it.accept(this) }
     }
 
     fun visit(identifier: IdentifierReference) {

@@ -171,13 +171,13 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
 
         return try {
             val cval = identifier.constValue(program) ?: return identifier
-            return when {
-                cval.type in NumericDatatypes -> {
+            return when (cval.type) {
+                in NumericDatatypes -> {
                     val copy = NumericLiteralValue(cval.type, cval.number, identifier.position)
                     copy.parent = identifier.parent
                     copy
                 }
-                cval.type in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
+                in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
                 else -> identifier
             }
         } catch (ax: AstException) {
@@ -208,12 +208,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             val builtinFunction = BuiltinFunctions[functionCall.target.nameInSource.single()]
             if(builtinFunction!=null) {
                 // match the arguments of a builtin function signature.
-                for(arg in functionCall.arglist.withIndex().zip(builtinFunction.parameters)) {
+                for(arg in functionCall.args.withIndex().zip(builtinFunction.parameters)) {
                     val possibleDts = arg.second.possibleDatatypes
                     val argConst = arg.first.value.constValue(program)
                     if(argConst!=null && argConst.type !in possibleDts) {
                         val convertedValue = argConst.cast(possibleDts.first())
-                        functionCall.arglist[arg.first.index] = convertedValue
+                        functionCall.args[arg.first.index] = convertedValue
                         optimizationsDone++
                     }
                 }
@@ -224,12 +224,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         val subroutine = functionCall.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
-            for(arg in functionCall.arglist.withIndex().zip(subroutine.parameters)) {
+            for(arg in functionCall.args.withIndex().zip(subroutine.parameters)) {
                 val expectedDt = arg.second.type
                 val argConst = arg.first.value.constValue(program)
                 if(argConst!=null && argConst.type!=expectedDt) {
                     val convertedValue = argConst.cast(expectedDt)
-                    functionCall.arglist[arg.first.index] = convertedValue
+                    functionCall.args[arg.first.index] = convertedValue
                     optimizationsDone++
                 }
             }
@@ -258,27 +258,27 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             val subexpr = prefixExpr.expression
             if (subexpr is NumericLiteralValue) {
                 // accept prefixed literal values (such as -3, not true)
-                return when {
-                    prefixExpr.operator == "+" -> subexpr
-                    prefixExpr.operator == "-" -> when {
-                        subexpr.type in IntegerDatatypes -> {
+                return when (prefixExpr.operator) {
+                    "+" -> subexpr
+                    "-" -> when (subexpr.type) {
+                        in IntegerDatatypes -> {
                             optimizationsDone++
                             NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
                         }
-                        subexpr.type == DataType.FLOAT -> {
+                        DataType.FLOAT -> {
                             optimizationsDone++
                             NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
                     }
-                    prefixExpr.operator == "~" -> when {
-                        subexpr.type in IntegerDatatypes -> {
+                    "~" -> when (subexpr.type) {
+                        in IntegerDatatypes -> {
                             optimizationsDone++
                             NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                     }
-                    prefixExpr.operator == "not" -> {
+                    "not" -> {
                         optimizationsDone++
                         NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
                     }

@@ -39,7 +39,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         when (functionName) {
             "msb" -> {
-                val arg = fcall.arglist.single()
+                val arg = fcall.args.single()
                 if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
                     throw AssemblyError("msb required word argument")
                 if (arg is NumericLiteralValue)
@@ -53,12 +53,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
             }
             "mkword" -> {
-                translateFunctionArguments(fcall.arglist, func)
+                translateFunctionArguments(fcall.args, func)
                 asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
             }
             "abs" -> {
-                translateFunctionArguments(fcall.arglist, func)
-                val dt = fcall.arglist.single().inferType(program)
+                translateFunctionArguments(fcall.args, func)
+                val dt = fcall.args.single().inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
                     in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
@@ -67,8 +67,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
             }
             "swap" -> {
-                val first = fcall.arglist[0]
-                val second = fcall.arglist[1]
+                val first = fcall.args[0]
+                val second = fcall.args[1]
                 asmgen.translateExpression(first)
                 asmgen.translateExpression(second)
                 // pop in reverse order
@@ -78,12 +78,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 asmgen.assignFromEvalResult(secondTarget)
             }
             "strlen" -> {
-                outputPushAddressOfIdentifier(fcall.arglist[0])
+                outputPushAddressOfIdentifier(fcall.args[0])
                 asmgen.out("  jsr  prog8_lib.func_strlen")
             }
             "min", "max", "sum" -> {
-                outputPushAddressAndLenghtOfArray(fcall.arglist[0])
-                val dt = fcall.arglist.single().inferType(program)
+                outputPushAddressAndLenghtOfArray(fcall.args[0])
+                val dt = fcall.args.single().inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
                     DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
@@ -94,8 +94,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
             }
             "any", "all" -> {
-                outputPushAddressAndLenghtOfArray(fcall.arglist[0])
-                val dt = fcall.arglist.single().inferType(program)
+                outputPushAddressAndLenghtOfArray(fcall.args[0])
+                val dt = fcall.args.single().inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
                     DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
@@ -104,8 +104,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
             }
             "sgn" -> {
-                translateFunctionArguments(fcall.arglist, func)
-                val dt = fcall.arglist.single().inferType(program)
+                translateFunctionArguments(fcall.args, func)
+                val dt = fcall.args.single().inferType(program)
                 when(dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub")
                     DataType.BYTE -> asmgen.out("  jsr  math.sign_b")
@@ -119,12 +119,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
             "rdnf" -> {
-                translateFunctionArguments(fcall.arglist, func)
+                translateFunctionArguments(fcall.args, func)
                 asmgen.out("  jsr  c64flt.func_$functionName")
             }
             "lsl" -> {
                 // in-place
-                val what = fcall.arglist.single()
+                val what = fcall.args.single()
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> {
@@ -180,7 +180,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             "lsr" -> {
                 // in-place
-                val what = fcall.arglist.single()
+                val what = fcall.args.single()
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
@@ -264,7 +264,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             "rol" -> {
                 // in-place
-                val what = fcall.arglist.single()
+                val what = fcall.args.single()
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
@@ -323,7 +323,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             "rol2" -> {
                 // in-place
-                val what = fcall.arglist.single()
+                val what = fcall.args.single()
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
@@ -375,7 +375,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             "ror" -> {
                 // in-place
-                val what = fcall.arglist.single()
+                val what = fcall.args.single()
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
@@ -433,7 +433,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             "ror2" -> {
                 // in-place
-                val what = fcall.arglist.single()
+                val what = fcall.args.single()
                 val dt = what.inferType(program)
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE -> {
@@ -484,7 +484,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
             }
             "sort" -> {
-                val variable = fcall.arglist.single()
+                val variable = fcall.args.single()
                 if(variable is IdentifierReference) {
                     val decl = variable.targetVarDecl(program.namespace)!!
                     val varName = asmgen.asmIdentifierName(variable)
@@ -520,7 +520,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     throw AssemblyError("weird type")
             }
             "reverse" -> {
-                val variable = fcall.arglist.single()
+                val variable = fcall.args.single()
                 if (variable is IdentifierReference) {
                     val decl = variable.targetVarDecl(program.namespace)!!
                     val varName = asmgen.asmIdentifierName(variable)
@@ -561,7 +561,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 asmgen.out(" pla |  tay |  pla |  tax |  pla |  plp")
             }
             else -> {
-                translateFunctionArguments(fcall.arglist, func)
+                translateFunctionArguments(fcall.args, func)
                 asmgen.out("  jsr  prog8_lib.func_$functionName")
             }
         }

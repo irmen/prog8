@@ -196,9 +196,9 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     private fun printout(call: IFunctionCall) {
         call.target.accept(this)
         output("(")
-        for(arg in call.arglist) {
+        for(arg in call.args) {
             arg.accept(this)
-            if(arg!==call.arglist.last())
+            if(arg!==call.args.last())
                 output(", ")
         }
         output(")")

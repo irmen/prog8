@@ -78,7 +78,7 @@ internal class TypecastsAdder(private val program: Program): IAstModifyingVisito
         // see if a typecast is needed to convert the arguments into the required parameter's type
         when(val sub = call.target.targetStatement(scope)) {
             is Subroutine -> {
-                for(arg in sub.parameters.zip(call.arglist.withIndex())) {
+                for(arg in sub.parameters.zip(call.args.withIndex())) {
                     val argItype = arg.second.value.inferType(program)
                     if(argItype.isKnown) {
                         val argtype = argItype.typeOrElse(DataType.STRUCT)
@@ -87,7 +87,7 @@ internal class TypecastsAdder(private val program: Program): IAstModifyingVisito
                             if (argtype isAssignableTo requiredType) {
                                 val typecasted = TypecastExpression(arg.second.value, requiredType, true, arg.second.value.position)
                                 typecasted.linkParents(arg.second.value.parent)
-                                call.arglist[arg.second.index] = typecasted
+                                call.args[arg.second.index] = typecasted
                             }
                             // if they're not assignable, we'll get a proper error later from the AstChecker
                         }
@@ -98,7 +98,7 @@ internal class TypecastsAdder(private val program: Program): IAstModifyingVisito
                 val func = BuiltinFunctions.getValue(sub.name)
                 if(func.pure) {
                     // non-pure functions don't get automatic typecasts because sometimes they act directly on their parameters
-                    for (arg in func.parameters.zip(call.arglist.withIndex())) {
+                    for (arg in func.parameters.zip(call.args.withIndex())) {
                         val argItype = arg.second.value.inferType(program)
                         if (argItype.isKnown) {
                             val argtype = argItype.typeOrElse(DataType.STRUCT)
@@ -108,7 +108,7 @@ internal class TypecastsAdder(private val program: Program): IAstModifyingVisito
                                 if (argtype isAssignableTo possibleType) {
                                     val typecasted = TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position)
                                     typecasted.linkParents(arg.second.value.parent)
-                                    call.arglist[arg.second.index] = typecasted
+                                    call.args[arg.second.index] = typecasted
                                     break
                                 }
                             }

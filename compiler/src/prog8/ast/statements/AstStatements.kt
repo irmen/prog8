@@ -477,16 +477,16 @@ class Jump(val address: Int?,
 }
 
 class FunctionCallStatement(override var target: IdentifierReference,
-                            override var arglist: MutableList<Expression>,
+                            override var args: MutableList<Expression>,
                             override val position: Position) : Statement(), IFunctionCall {
     override lateinit var parent: Node
     override val expensiveToInline
-            get() = arglist.any { it !is NumericLiteralValue }
+            get() = args.any { it !is NumericLiteralValue }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         target.linkParents(this)
-        arglist.forEach { it.linkParents(this) }
+        args.forEach { it.linkParents(this) }
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)

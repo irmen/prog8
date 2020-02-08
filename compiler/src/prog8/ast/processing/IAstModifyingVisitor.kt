@@ -52,7 +52,7 @@ interface IAstModifyingVisitor {
             functionCall.target = newtarget
         else
             throw FatalAstException("cannot change class of function call target")
-        functionCall.arglist = functionCall.arglist.map { it.accept(this) }.toMutableList()
+        functionCall.args = functionCall.args.map { it.accept(this) }.toMutableList()
         return functionCall
     }
 
@@ -62,7 +62,7 @@ interface IAstModifyingVisitor {
             functionCallStatement.target = newtarget
         else
             throw FatalAstException("cannot change class of function call target")
-        functionCallStatement.arglist = functionCallStatement.arglist.map { it.accept(this) }.toMutableList()
+        functionCallStatement.args = functionCallStatement.args.map { it.accept(this) }.toMutableList()
         return functionCallStatement
     }
 

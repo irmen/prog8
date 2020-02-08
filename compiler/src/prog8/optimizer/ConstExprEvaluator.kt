@@ -54,15 +54,15 @@ class ConstExprEvaluator {
 
     private fun logicalxor(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot compute $left locical-bitxor $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.fromBoolean((left.number.toInt() != 0) xor (right.number.toInt() != 0), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue.fromBoolean((left.number.toInt() != 0) xor (right.number.toDouble() != 0.0), left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.fromBoolean((left.number.toInt() != 0) xor (right.number.toInt() != 0), left.position)
+                DataType.FLOAT -> NumericLiteralValue.fromBoolean((left.number.toInt() != 0) xor (right.number.toDouble() != 0.0), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.fromBoolean((left.number.toDouble() != 0.0) xor (right.number.toInt() != 0), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue.fromBoolean((left.number.toDouble() != 0.0) xor (right.number.toDouble() != 0.0), left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.fromBoolean((left.number.toDouble() != 0.0) xor (right.number.toInt() != 0), left.position)
+                DataType.FLOAT -> NumericLiteralValue.fromBoolean((left.number.toDouble() != 0.0) xor (right.number.toDouble() != 0.0), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -71,15 +71,15 @@ class ConstExprEvaluator {
 
     private fun logicalor(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot compute $left locical-or $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 || right.number.toInt() != 0, left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 || right.number.toDouble() != 0.0, left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 || right.number.toInt() != 0, left.position)
+                DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 || right.number.toDouble() != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 || right.number.toInt() != 0, left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 || right.number.toDouble() != 0.0, left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 || right.number.toInt() != 0, left.position)
+                DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 || right.number.toDouble() != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -88,15 +88,15 @@ class ConstExprEvaluator {
 
     private fun logicaland(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot compute $left locical-and $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 && right.number.toInt() != 0, left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 && right.number.toDouble() != 0.0, left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 && right.number.toInt() != 0, left.position)
+                DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toInt() != 0 && right.number.toDouble() != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 && right.number.toInt() != 0, left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 && right.number.toDouble() != 0.0, left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 && right.number.toInt() != 0, left.position)
+                DataType.FLOAT -> NumericLiteralValue.fromBoolean(left.number.toDouble() != 0.0 && right.number.toDouble() != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -144,15 +144,15 @@ class ConstExprEvaluator {
 
     private fun power(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot calculate $left ** $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt().toDouble().pow(right.number.toInt()), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt().toDouble().pow(right.number.toDouble()), left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt().toDouble().pow(right.number.toInt()), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt().toDouble().pow(right.number.toDouble()), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble().pow(right.number.toInt()), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble().pow(right.number.toDouble()), left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble().pow(right.number.toInt()), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble().pow(right.number.toDouble()), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -161,15 +161,15 @@ class ConstExprEvaluator {
 
     private fun plus(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot add $left and $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() + right.number.toInt(), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() + right.number.toDouble(), left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() + right.number.toInt(), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() + right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() + right.number.toInt(), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() + right.number.toDouble(), left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() + right.number.toInt(), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() + right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -178,15 +178,15 @@ class ConstExprEvaluator {
 
     private fun minus(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot subtract $left and $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() - right.number.toInt(), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() - right.number.toDouble(), left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() - right.number.toInt(), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() - right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() - right.number.toInt(), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() - right.number.toDouble(), left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() - right.number.toInt(), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() - right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -195,15 +195,15 @@ class ConstExprEvaluator {
 
     private fun multiply(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot multiply ${left.type} and ${right.type}"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() * right.number.toInt(), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() * right.number.toDouble(), left.position)
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() * right.number.toInt(), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() * right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() * right.number.toInt(), left.position)
-                right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() * right.number.toDouble(), left.position)
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() * right.number.toInt(), left.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() * right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
@@ -215,25 +215,25 @@ class ConstExprEvaluator {
 
     private fun divide(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot divide $left by $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> {
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
                     val result: Int = left.number.toInt() / right.number.toInt()
                     NumericLiteralValue.optimalNumeric(result, left.position)
                 }
-                right.type == DataType.FLOAT -> {
+                DataType.FLOAT -> {
                     if(right.number.toDouble()==0.0) divideByZeroError(right.position)
                     NumericLiteralValue(DataType.FLOAT, left.number.toInt() / right.number.toDouble(), left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> {
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
                     NumericLiteralValue(DataType.FLOAT, left.number.toDouble() / right.number.toInt(), left.position)
                 }
-                right.type == DataType.FLOAT -> {
+                DataType.FLOAT -> {
                     if(right.number.toDouble()==0.0) divideByZeroError(right.position)
                     NumericLiteralValue(DataType.FLOAT, left.number.toDouble() / right.number.toDouble(), left.position)
                 }
@@ -245,24 +245,24 @@ class ConstExprEvaluator {
 
     private fun remainder(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         val error = "cannot compute remainder of $left by $right"
-        return when {
-            left.type in IntegerDatatypes -> when {
-                right.type in IntegerDatatypes -> {
+        return when (left.type) {
+            in IntegerDatatypes -> when (right.type) {
+                in IntegerDatatypes -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
                     NumericLiteralValue.optimalNumeric(left.number.toInt().toDouble() % right.number.toInt().toDouble(), left.position)
                 }
-                right.type == DataType.FLOAT -> {
+                DataType.FLOAT -> {
                     if(right.number.toDouble()==0.0) divideByZeroError(right.position)
                     NumericLiteralValue(DataType.FLOAT, left.number.toInt() % right.number.toDouble(), left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
-            left.type == DataType.FLOAT -> when {
-                right.type in IntegerDatatypes -> {
+            DataType.FLOAT -> when (right.type) {
+                in IntegerDatatypes -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
                     NumericLiteralValue(DataType.FLOAT, left.number.toDouble() % right.number.toInt(), left.position)
                 }
-                right.type == DataType.FLOAT -> {
+                DataType.FLOAT -> {
                     if(right.number.toDouble()==0.0) divideByZeroError(right.position)
                     NumericLiteralValue(DataType.FLOAT, left.number.toDouble() % right.number.toDouble(), left.position)
                 }

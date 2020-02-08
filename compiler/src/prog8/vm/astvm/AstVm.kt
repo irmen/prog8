@@ -339,10 +339,9 @@ class AstVm(val program: Program, compilationTarget: String) {
                 // should have been defined already when the program started
             }
             is FunctionCallStatement -> {
-                val target = stmt.target.targetStatement(program.namespace)
-                when (target) {
+                when (val target = stmt.target.targetStatement(program.namespace)) {
                     is Subroutine -> {
-                        val args = evaluate(stmt.arglist).map { it as RuntimeValueNumeric }
+                        val args = evaluate(stmt.args).map { it as RuntimeValueNumeric }
                         if (target.isAsmSubroutine) {
                             performSyscall(target, args)
                         } else {
@@ -355,7 +354,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                             // swap cannot be implemented as a function, so inline it here
                             executeSwap(stmt)
                         } else {
-                            val args = evaluate(stmt.arglist)
+                            val args = evaluate(stmt.args)
                             performBuiltinFunction(target.name, args, statusflags)
                         }
                     }
@@ -388,18 +387,18 @@ class AstVm(val program: Program, compilationTarget: String) {
                         when(ident.type){
                             VarDeclType.VAR -> {
                                 var value = runtimeVariables.get(identScope, ident.name) as RuntimeValueNumeric
-                                value = when {
-                                    stmt.operator == "++" -> value.add(RuntimeValueNumeric(value.type, 1))
-                                    stmt.operator == "--" -> value.sub(RuntimeValueNumeric(value.type, 1))
+                                value = when (stmt.operator) {
+                                    "++" -> value.add(RuntimeValueNumeric(value.type, 1))
+                                    "--" -> value.sub(RuntimeValueNumeric(value.type, 1))
                                     else -> throw VmExecutionException("strange postincdec operator $stmt")
                                 }
                                 runtimeVariables.set(identScope, ident.name, value)
                             }
                             VarDeclType.MEMORY -> {
                                 val addr=ident.value!!.constValue(program)!!.number.toInt()
-                                val newval = when {
-                                    stmt.operator == "++" -> mem.getUByte(addr)+1 and 255
-                                    stmt.operator == "--" -> mem.getUByte(addr)-1 and 255
+                                val newval = when (stmt.operator) {
+                                    "++" -> mem.getUByte(addr)+1 and 255
+                                    "--" -> mem.getUByte(addr)-1 and 255
                                     else -> throw VmExecutionException("strange postincdec operator $stmt")
                                 }
                                 mem.setUByte(addr,newval.toShort())
@@ -409,9 +408,9 @@ class AstVm(val program: Program, compilationTarget: String) {
                     }
                     stmt.target.memoryAddress != null -> {
                         val addr = (evaluate(stmt.target.memoryAddress!!.addressExpression, evalCtx) as RuntimeValueNumeric).integerValue()
-                        val newval = when {
-                            stmt.operator == "++" -> mem.getUByte(addr)+1 and 255
-                            stmt.operator == "--" -> mem.getUByte(addr)-1 and 255
+                        val newval = when (stmt.operator) {
+                            "++" -> mem.getUByte(addr)+1 and 255
+                            "--" -> mem.getUByte(addr)-1 and 255
                             else -> throw VmExecutionException("strange postincdec operator $stmt")
                         }
                         mem.setUByte(addr,newval.toShort())
@@ -424,18 +423,18 @@ class AstVm(val program: Program, compilationTarget: String) {
                         if(!elementType.isKnown)
                             throw VmExecutionException("unknown/void elt type")
                         var value = RuntimeValueNumeric(elementType.typeOrElse(DataType.BYTE), arrayvalue.array[index].toInt())
-                        value = when {
-                            stmt.operator == "++" -> value.inc()
-                            stmt.operator == "--" -> value.dec()
+                        value = when (stmt.operator) {
+                            "++" -> value.inc()
+                            "--" -> value.dec()
                             else -> throw VmExecutionException("strange postincdec operator $stmt")
                         }
                         arrayvalue.array[index] = value.numericValue()
                     }
                     stmt.target.register != null -> {
                         var value = runtimeVariables.get(program.namespace, stmt.target.register!!.name) as RuntimeValueNumeric
-                        value = when {
-                            stmt.operator == "++" -> value.add(RuntimeValueNumeric(value.type, 1))
-                            stmt.operator == "--" -> value.sub(RuntimeValueNumeric(value.type, 1))
+                        value = when (stmt.operator) {
+                            "++" -> value.add(RuntimeValueNumeric(value.type, 1))
+                            "--" -> value.sub(RuntimeValueNumeric(value.type, 1))
                             else -> throw VmExecutionException("strange postincdec operator $stmt")
                         }
                         runtimeVariables.set(program.namespace, stmt.target.register!!.name, value)
@@ -551,8 +550,8 @@ class AstVm(val program: Program, compilationTarget: String) {
     }
 
     private fun executeSwap(swap: FunctionCallStatement) {
-        val v1 = swap.arglist[0]
-        val v2 = swap.arglist[1]
+        val v1 = swap.args[0]
+        val v2 = swap.args[1]
         val value1 = evaluate(v1, evalCtx)
         val value2 = evaluate(v2, evalCtx)
         val target1 = AssignTarget.fromExpr(v1)
@@ -773,7 +772,7 @@ class AstVm(val program: Program, compilationTarget: String) {
             "c64utils.str2uword" -> {
                 val heapId = args[0].wordval!!
                 val argString = getAsciiStringFromRuntimeVars(heapId)
-                val numericpart = argString.takeWhile { it.toChar().isDigit() }.toString()
+                val numericpart = argString.takeWhile { it.isDigit() }
                 result = RuntimeValueNumeric(DataType.UWORD, numericpart.toInt() and 65535)
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")

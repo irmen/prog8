@@ -169,7 +169,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
                 functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            val arg = functionCallStatement.arglist.single()
+            val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference?
             stringVar = if(arg is AddressOf) {
                 arg.identifier
@@ -181,8 +181,8 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                 val string = vardecl.value!! as StringLiteralValue
                 if(string.value.length==1) {
                     val firstCharEncoded = CompilationTarget.encodeString(string.value)[0]
-                    functionCallStatement.arglist.clear()
-                    functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(firstCharEncoded.toInt(), functionCallStatement.position))
+                    functionCallStatement.args.clear()
+                    functionCallStatement.args.add(NumericLiteralValue.optimalInteger(firstCharEncoded.toInt(), functionCallStatement.position))
                     functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
                     vardeclsToRemove.add(vardecl)
                     optimizationsDone++
@@ -209,7 +209,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
                 optimizationsDone++
-                return FunctionCallStatement(first.identifier, functionCallStatement.arglist, functionCallStatement.position)
+                return FunctionCallStatement(first.identifier, functionCallStatement.args, functionCallStatement.position)
             }
             if(first is ReturnFromIrq || first is Return) {
                 optimizationsDone++
@@ -229,7 +229,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
                 optimizationsDone++
-                return FunctionCall(first.identifier, functionCall.arglist, functionCall.position)
+                return FunctionCall(first.identifier, functionCall.args, functionCall.position)
             }
             if(first is Return && first.value!=null) {
                 val constval = first.value?.constValue(program)

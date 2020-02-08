@@ -50,7 +50,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     override fun visit(functionCall: FunctionCall): Expression {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0]=="lsb") {
             // lsb(...) is just an alias for type cast to ubyte, so replace with "... as ubyte"
-            val typecast = TypecastExpression(functionCall.arglist.single(), DataType.UBYTE, false, functionCall.position)
+            val typecast = TypecastExpression(functionCall.args.single(), DataType.UBYTE, false, functionCall.position)
             typecast.linkParents(functionCall.parent)
             return super.visit(typecast)
         }

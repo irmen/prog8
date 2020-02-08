@@ -37,7 +37,7 @@ interface Node {
 
 interface IFunctionCall {
     var target: IdentifierReference
-    var arglist: MutableList<Expression>
+    var args: MutableList<Expression>
 }
 
 interface INameScope {
@@ -243,8 +243,7 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
             }
         }
         // lookup something from the module.
-        val stmt = localContext.definingModule().lookup(scopedName, localContext)
-        return when (stmt) {
+        return when (val stmt = localContext.definingModule().lookup(scopedName, localContext)) {
             is Label, is VarDecl, is Block, is Subroutine -> stmt
             null -> null
             else -> throw NameError("wrong identifier target: $stmt", stmt.position)

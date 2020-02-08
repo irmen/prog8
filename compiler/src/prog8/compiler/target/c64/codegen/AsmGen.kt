@@ -356,14 +356,14 @@ internal class AsmGen(private val program: Program,
 
     private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
         val array = (decl.value as ArrayLiteralValue).value
-        return when {
-            decl.datatype == DataType.ARRAY_UB ->
+        return when (decl.datatype) {
+            DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
                     val number = (it as NumericLiteralValue).number.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
-            decl.datatype== DataType.ARRAY_UW -> array.map {
+            DataType.ARRAY_UW -> array.map {
                 if(it is NumericLiteralValue) {
                     "$" + it.number.toInt().toString(16).padStart(4, '0')
                 } else {

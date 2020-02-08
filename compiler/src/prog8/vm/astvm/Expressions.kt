@@ -134,7 +134,7 @@ fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValueBase {
         }
         is FunctionCall -> {
             val sub = expr.target.targetStatement(ctx.program.namespace)
-            val args = expr.arglist.map { evaluate(it, ctx) as RuntimeValueNumeric }
+            val args = expr.args.map { evaluate(it, ctx) as RuntimeValueNumeric }
             return when(sub) {
                 is Subroutine -> {
                     val result = ctx.executeSubroutine(sub, args, null)

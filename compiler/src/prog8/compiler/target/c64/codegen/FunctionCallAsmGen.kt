@@ -23,8 +23,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             asmgen.out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
 
         val subName = asmgen.asmIdentifierName(stmt.target)
-        if(stmt.arglist.isNotEmpty()) {
-            for(arg in sub.parameters.withIndex().zip(stmt.arglist)) {
+        if(stmt.args.isNotEmpty()) {
+            for(arg in sub.parameters.withIndex().zip(stmt.args)) {
                 translateFuncArguments(arg.first, arg.second, sub)
             }
         }

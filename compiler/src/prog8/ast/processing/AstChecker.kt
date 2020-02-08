@@ -505,9 +505,9 @@ internal class AstChecker(private val program: Program,
                         decl.datatype in NumericDatatypes -> {
                             // initialize numeric var with value zero by default.
                             val litVal =
-                                    when {
-                                        decl.datatype in ByteDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
-                                        decl.datatype in WordDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
+                                    when (decl.datatype) {
+                                        in ByteDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
+                                        in WordDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
                                         else -> NumericLiteralValue(decl.datatype, 0.0, decl.position)
                                     }
                             litVal.parent = decl
@@ -817,14 +817,14 @@ internal class AstChecker(private val program: Program,
 
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
-            checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
+            checkFunctionCall(targetStatement, functionCall.args, functionCall.position)
         super.visit(functionCall)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
-            checkFunctionCall(targetStatement, functionCallStatement.arglist, functionCallStatement.position)
+            checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
         if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
             if(targetStatement.returntypes.size==1)
                 printWarning("result value of subroutine call is discarded", functionCallStatement.position)
@@ -834,7 +834,7 @@ internal class AstChecker(private val program: Program,
 
         if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
-            if(functionCallStatement.arglist.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
+            if(functionCallStatement.args.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                 checkResult.add(ExpressionError("can't use that as argument to a in-place modifying function", functionCallStatement.position))
             }
         }

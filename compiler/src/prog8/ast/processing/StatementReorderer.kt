@@ -13,8 +13,8 @@ private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, 
     val identifierName = identifier.nameInSource.single()
     val targetVar = identifier.targetVarDecl(program.namespace)!!
     val struct = targetVar.struct!!
-    when {
-        structAssignment.value is IdentifierReference -> {
+    when (structAssignment.value) {
+        is IdentifierReference -> {
             val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
             if (sourceVar.struct == null)
                 throw FatalAstException("can only assign arrays or structs to structs")
@@ -39,7 +39,7 @@ private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, 
                 assign
             }
         }
-        structAssignment.value is StructLiteralValue -> {
+        is StructLiteralValue -> {
             throw IllegalArgumentException("not going to flatten a structLv assignment here")
         }
         else -> throw FatalAstException("strange struct value")

@@ -657,14 +657,14 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 }
 
 class FunctionCall(override var target: IdentifierReference,
-                   override var arglist: MutableList<Expression>,
+                   override var args: MutableList<Expression>,
                    override val position: Position) : Expression(), IFunctionCall {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         target.linkParents(this)
-        arglist.forEach { it.linkParents(this) }
+        args.forEach { it.linkParents(this) }
     }
 
     override fun constValue(program: Program) = constValue(program, true)
@@ -679,7 +679,7 @@ class FunctionCall(override var target: IdentifierReference,
             if(func!=null) {
                 val exprfunc = func.constExpressionFunc
                 if(exprfunc!=null)
-                    resultValue = exprfunc(arglist, position, program)
+                    resultValue = exprfunc(args, position, program)
                 else if(func.returntype==null)
                     throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used here because it doesn't return a value", position)
             }
@@ -705,7 +705,7 @@ class FunctionCall(override var target: IdentifierReference,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifiers(vararg name: String): Boolean = target.referencesIdentifiers(*name) || arglist.any{it.referencesIdentifiers(*name)}
+    override fun referencesIdentifiers(vararg name: String): Boolean = target.referencesIdentifiers(*name) || args.any{it.referencesIdentifiers(*name)}
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         val constVal = constValue(program ,false)
@@ -718,7 +718,7 @@ class FunctionCall(override var target: IdentifierReference,
                         target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
                     return InferredTypes.void() // these have no return value
                 }
-                return builtinFunctionReturnType(target.nameInSource[0], this.arglist, program)
+                return builtinFunctionReturnType(target.nameInSource[0], this.args, program)
             }
             is Subroutine -> {
                 if(stmt.returntypes.isEmpty())

@@ -79,11 +79,11 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
             parentStatement = parentStatement.parent
         val targetStatement = functionCall.target.targetSubroutine(program.namespace)
         if(targetStatement!=null) {
-            addAddressOfExprIfNeeded(targetStatement, functionCall.arglist, parentStatement)
+            addAddressOfExprIfNeeded(targetStatement, functionCall.args, parentStatement)
         } else {
             val builtinFunc = BuiltinFunctions[functionCall.target.nameInSource.joinToString (".")]
             if(builtinFunc!=null)
-                addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCall.arglist, parentStatement)
+                addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCall.args, parentStatement)
         }
         return functionCall
     }
@@ -91,11 +91,11 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
     override fun visit(functionCallStatement: FunctionCallStatement): Statement {
         val targetStatement = functionCallStatement.target.targetSubroutine(program.namespace)
         if(targetStatement!=null) {
-            addAddressOfExprIfNeeded(targetStatement, functionCallStatement.arglist, functionCallStatement)
+            addAddressOfExprIfNeeded(targetStatement, functionCallStatement.args, functionCallStatement)
         } else {
             val builtinFunc = BuiltinFunctions[functionCallStatement.target.nameInSource.joinToString (".")]
             if(builtinFunc!=null)
-                addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCallStatement.arglist, functionCallStatement)
+                addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCallStatement.args, functionCallStatement)
         }
         return functionCallStatement
     }
