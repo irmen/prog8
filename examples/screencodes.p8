@@ -9,8 +9,8 @@ main {
 
         c64.VMCSB |= 2  ; switch to lowercase charset
 
-        str s1 = "HELLO hello 1234 @[/]\n"
-        str s2 = c64scr("HELLO hello 1234 @[/]\n")
+        str s1 = "HELLO hello 1234 @[/]\n"      ; regular strings have default encoding (petscii on c64)
+        str s2 = @"HELLO hello 1234 @[/]\n"     ; TODO @-strings for alternate encoding (screencode on c64)
 
         c64scr.print("\n\n\n\nString output via print:\n")
         c64scr.print(s1)

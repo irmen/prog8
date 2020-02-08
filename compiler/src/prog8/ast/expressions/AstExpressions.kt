@@ -435,12 +435,10 @@ class StringLiteralValue(val value: String,
 
 class ArrayLiteralValue(val type: DataType,     // only array types
                         val value: Array<Expression>,
-                        initHeapId: Int? =null,
                         override val position: Position) : Expression() {
     override lateinit var parent: Node
 
-    var heapId = initHeapId
-        private set
+    val heapId = ++heapIdSequence
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -468,9 +466,9 @@ class ArrayLiteralValue(val type: DataType,     // only array types
             val castArray = value.map{
                 val num = it as? NumericLiteralValue
                 if(num==null) {
-                    // an array of UWORDs could possibly also contain AddressOfs
+                    // an array of UWORDs could possibly also contain AddressOfs, other stuff can't be casted
                     if (elementType != DataType.UWORD || it !is AddressOf)
-                        throw FatalAstException("weird array element $it")
+                        return null
                     it
                 } else {
                     try {
@@ -483,11 +481,6 @@ class ArrayLiteralValue(val type: DataType,     // only array types
             return ArrayLiteralValue(targettype, castArray, position = position)
         }
         return null    // invalid type conversion from $this to $targettype
-    }
-
-    fun addToHeap() {
-        if(heapId==null)
-            heapId = ++heapIdSequence
     }
 }
 
@@ -642,7 +635,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         return when (value) {
             is IdentifierReference -> value.heapId(namespace)
             is StringLiteralValue -> value.heapId
-            is ArrayLiteralValue -> value.heapId ?: throw FatalAstException("array is not on the heap: $value")
+            is ArrayLiteralValue -> value.heapId
             else -> throw FatalAstException("requires a reference value")
         }
     }

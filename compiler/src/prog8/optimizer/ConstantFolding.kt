@@ -5,7 +5,8 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
-import prog8.ast.processing.fixupArrayDatatype
+import prog8.ast.processing.fixupArrayEltDatatypesFromVardecl
+import prog8.ast.processing.fixupArrayEltDatatypes
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
@@ -116,7 +117,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         // create the array itself, filled with the fillvalue.
                         val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
                         val refValue = ArrayLiteralValue(decl.datatype, array, position = numericLv.position)
-                        refValue.addToHeap()
                         decl.value = refValue
                         refValue.parent=decl
                         optimizationsDone++
@@ -138,7 +138,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             // create the array itself, filled with the fillvalue.
                             val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
                             val refValue = ArrayLiteralValue(DataType.ARRAY_F, array, position = litval.position)
-                            refValue.addToHeap()
                             decl.value = refValue
                             refValue.parent=decl
                             optimizationsDone++
@@ -586,7 +585,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             if(array2!=null && array2!==array) {
                 forLoop2.iterable = array2
                 array2.linkParents(forLoop2)
-                array2.addToHeap()
             }
         }
 
@@ -633,13 +631,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
-            array.addToHeap()
             val vardecl = array.parent as? VarDecl
             return if (vardecl!=null) {
-                fixupArrayDatatype(array, vardecl, program)
+                fixupArrayEltDatatypesFromVardecl(array, vardecl)
             } else {
                 // it's not an array associated with a vardecl, attempt to guess the data type from the array values
-                fixupArrayDatatype(array, program)
+                fixupArrayEltDatatypes(array, program)
             }
         }
         return array

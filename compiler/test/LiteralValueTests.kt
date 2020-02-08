@@ -93,9 +93,9 @@ class TestParserNumericLiteralValue {
         val lvTwoR = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)
         val lvThreeR = NumericLiteralValue(DataType.UBYTE, 3, dummyPos)
         val lvFour= NumericLiteralValue(DataType.UBYTE, 4, dummyPos)
-        val lv1 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOne, lvTwo, lvThree), null, dummyPos)
-        val lv2 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvThreeR), null, dummyPos)
-        val lv3 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvFour), null, dummyPos)
+        val lv1 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOne, lvTwo, lvThree), dummyPos)
+        val lv2 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
+        val lv3 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
         assertEquals(lv1, lv2)
         assertNotEquals(lv1, lv3)
     }

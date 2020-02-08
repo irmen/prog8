@@ -605,7 +605,7 @@ open class RuntimeValueArray(type: DataType, val array: Array<Number>, val heapI
         fun fromLv(array: ArrayLiteralValue): RuntimeValueArray {
             return if (array.type == DataType.ARRAY_F) {
                 val doubleArray = array.value.map { (it as NumericLiteralValue).number }.toTypedArray()
-                RuntimeValueArray(array.type, doubleArray, array.heapId!!)
+                RuntimeValueArray(array.type, doubleArray, array.heapId)
             } else {
                 val resultArray = mutableListOf<Number>()
                 for (elt in array.value.withIndex()) {
@@ -615,7 +615,7 @@ open class RuntimeValueArray(type: DataType, val array: Array<Number>, val heapI
                         resultArray.add((elt.hashCode()))  // ...poor man's implementation of ADDRESSOF(array), it probably won't work very well
                     }
                 }
-                RuntimeValueArray(array.type, resultArray.toTypedArray(), array.heapId!!)
+                RuntimeValueArray(array.type, resultArray.toTypedArray(), array.heapId)
             }
         }
     }

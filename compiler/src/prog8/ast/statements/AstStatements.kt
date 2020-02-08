@@ -198,9 +198,6 @@ class VarDecl(val type: VarDeclType,
         }
 
         fun createAuto(array: ArrayLiteralValue): VarDecl {
-            if(array.heapId==null)
-                throw FatalAstException("can only create autovar for an array that has a heapid  $array")
-
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val declaredType = ArrayElementTypes.getValue(array.type)
             val arraysize = ArrayIndex.forArray(array)

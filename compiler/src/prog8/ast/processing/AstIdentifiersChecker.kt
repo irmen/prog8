@@ -229,18 +229,16 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
             val vardecl = array.parent as? VarDecl
-            return when {
-                vardecl!=null -> fixupArrayDatatype(array, vardecl, program)
-                array.heapId!=null -> {
-                    // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
-                    // (we don't know the desired datatype here exactly so we guess)
-                    val datatype = determineArrayDt(array.value)
-                    val litval2 = array.cast(datatype)!!
-                    litval2.parent = array.parent
-                    // finally, replace the literal array by a identifier reference.
-                    makeIdentifierFromRefLv(litval2)
-                }
-                else -> array
+            return if(vardecl!=null)
+                fixupArrayEltDatatypesFromVardecl(array, vardecl)
+            else {
+                // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
+                // (we don't know the desired datatype here exactly so we guess)
+                val datatype = determineArrayDt(array.value)
+                val litval2 = array.cast(datatype)!!
+                litval2.parent = array.parent
+                // finally, replace the literal array by a identifier reference.
+                makeIdentifierFromRefLv(litval2)
             }
         }
         return array
@@ -279,7 +277,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         // a referencetype literal value that's not declared as a variable
         // we need to introduce an auto-generated variable for this to be able to refer to the value
         // note: if the var references the same literal value, it is not yet de-duplicated here.
-        array.addToHeap()
         val scope = array.definingScope()
         val variable = VarDecl.createAuto(array)
         return replaceWithIdentifier(variable, scope, array.parent)
@@ -352,7 +349,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
 }
 
-internal fun fixupArrayDatatype(array: ArrayLiteralValue, program: Program): ArrayLiteralValue {
+internal fun fixupArrayEltDatatypes(array: ArrayLiteralValue, program: Program): ArrayLiteralValue {
     val dts = array.value.map {it.inferType(program).typeOrElse(DataType.STRUCT)}.toSet()
     if(dts.any { it !in NumericDatatypes }) {
         return array
@@ -370,50 +367,22 @@ internal fun fixupArrayDatatype(array: ArrayLiteralValue, program: Program): Arr
     // convert values and array type
     val elementType = ArrayElementTypes.getValue(dt)
     val values = array.value.map { (it as NumericLiteralValue).cast(elementType) as Expression}.toTypedArray()
-    val array2 = ArrayLiteralValue(dt, values, array.heapId, array.position)
+    val array2 = ArrayLiteralValue(dt, values, array.position)
     array2.linkParents(array.parent)
     return array2
 }
 
-internal fun fixupArrayDatatype(array: ArrayLiteralValue, vardecl: VarDecl, program: Program): ArrayLiteralValue {
-    if(array.heapId!=null) {
-        val arrayDt = array.type
-        if(arrayDt!=vardecl.datatype) {
-            // fix the datatype of the array (also on the heap) to match the vardecl
-            val litval2 =
-                    try {
-                        val result = array.cast(vardecl.datatype)
-                        if(result==null) {
-                            val constElements = array.value.mapNotNull { it.constValue(program) }
-                            val elementDts = constElements.map { it.type }
-                            if(DataType.FLOAT in elementDts) {
-                                array.cast(DataType.ARRAY_F) ?: ArrayLiteralValue(DataType.ARRAY_F, array.value, array.heapId, array.position)
-                            } else {
-                                val numbers = constElements.map { it.number.toInt() }
-                                val minValue = numbers.min()!!
-                                val maxValue = numbers.max()!!
-                                if (minValue >= 0) {
-                                    // only positive values, so uword or ubyte
-                                    val dt = if(maxValue<256) DataType.ARRAY_UB else DataType.ARRAY_UW
-                                    array.cast(dt) ?: ArrayLiteralValue(dt, array.value, array.heapId, array.position)
-                                } else {
-                                    // negative value present, so word or byte
-                                    val dt = if(minValue >= -128 && maxValue<=127) DataType.ARRAY_B else DataType.ARRAY_W
-                                    array.cast(dt) ?: ArrayLiteralValue(dt, array.value, array.heapId, array.position)
-                                }
-                            }
-                        }
-                        else result
-                    } catch(x: ExpressionError) {
-                        // couldn't cast permanently.
-                        // instead, simply adjust the array type and trust the AstChecker to report the exact error
-                        ArrayLiteralValue(vardecl.datatype, array.value, array.heapId, array.position)
-                    }
-            vardecl.value = litval2
-            litval2.linkParents(vardecl)
-            litval2.addToHeap()
-            return litval2
+internal fun fixupArrayEltDatatypesFromVardecl(array: ArrayLiteralValue, vardecl: VarDecl): ArrayLiteralValue {
+    val arrayDt = array.type
+    if(arrayDt!=vardecl.datatype) {
+        // fix the datatype of the array (also on the heap) to match the vardecl
+        val cast = array.cast(vardecl.datatype)
+        if (cast != null) {
+            vardecl.value = cast
+            cast.linkParents(vardecl)
+            return cast
         }
+        // can't be casted yet, attempt again later
     }
     return array
 }

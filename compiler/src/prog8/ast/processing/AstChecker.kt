@@ -694,9 +694,6 @@ internal class AstChecker(private val program: Program,
         checkValueTypeAndRangeArray(array.type, null, arrayspec, array)
 
         super.visit(array)
-
-        if(array.heapId==null && array.parent !is IFunctionCall)
-            throw FatalAstException("array should have been moved to heap at ${array.position}")
     }
 
     override fun visit(string: StringLiteralValue) {
@@ -824,6 +821,7 @@ internal class AstChecker(private val program: Program,
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
         if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
+            // TODO add 'void' keyword to make this explicit
             if(targetStatement.returntypes.size==1)
                 printWarning("result value of subroutine call is discarded", functionCallStatement.position)
             else
@@ -1198,31 +1196,6 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkArrayValues(value: ArrayLiteralValue, type: DataType): Boolean {
-        if (value.heapId == null) {
-            // hmm weird, array literal that hasn't been moved to the heap yet?
-            val array = value.value.mapNotNull { it.constValue(program) }
-            val correct: Boolean
-            when (type) {
-                DataType.ARRAY_UB -> {
-                    correct = array.all { it.type == DataType.UBYTE && it.number.toInt() in 0..255 }
-                }
-                DataType.ARRAY_B -> {
-                    correct = array.all { it.type == DataType.BYTE && it.number.toInt() in -128..127 }
-                }
-                DataType.ARRAY_UW -> {
-                    correct = array.all { it.type == DataType.UWORD && it.number.toInt() in 0..65535 }
-                }
-                DataType.ARRAY_W -> {
-                    correct = array.all { it.type == DataType.WORD && it.number.toInt() in -32768..32767 }
-                }
-                DataType.ARRAY_F -> correct = true
-                else -> throw AstException("invalid array type $type")
-            }
-            if (!correct)
-                checkResult.add(ExpressionError("array value out of range for type $type", value.position))
-            return correct
-        }
-
         val array = value.value.map {
             when (it) {
                 is NumericLiteralValue -> it.number.toInt()

@@ -261,7 +261,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                printWarning("condition is always true", ifStatement.position)
+                printWarning("condition is always true", ifStatement.position)  // TODO don't warn this if the condition is just the single value 'true'
                 optimizationsDone++
                 ifStatement.truepart
             } else {
@@ -310,7 +310,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> print a warning, and optimize into body + jump (if there are no continue and break statements)
-                printWarning("condition is always true", whileLoop.position)
+                printWarning("condition is always true", whileLoop.position)  // TODO don't warn this if the condition is just the single value 'true'
                 if(hasContinueOrBreak(whileLoop.body))
                     return whileLoop
                 val label = Label("_prog8_back", whileLoop.condition.position)
@@ -336,7 +336,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only the statement block (if there are no continue and break statements)
-                printWarning("condition is always true", repeatLoop.position)
+                printWarning("condition is always true", repeatLoop.position)  // TODO don't warn this if the condition is just the single value 'true'
                 if(hasContinueOrBreak(repeatLoop.body))
                     repeatLoop
                 else {
