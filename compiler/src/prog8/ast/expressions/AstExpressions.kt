@@ -407,9 +407,13 @@ class StructLiteralValue(var values: List<Expression>,
     }
 }
 
+private var heapIdSequence = 0   // unique ids for strings and arrays "on the heap"
+
 class StringLiteralValue(val value: String,
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
+
+    val heapId = ++heapIdSequence
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -427,18 +431,7 @@ class StringLiteralValue(val value: String,
             return false
         return value==other.value
     }
-
-    var heapId: Int? = null
-        private set
-
-    fun addToHeap() {
-        if(heapId==null)
-            heapId = ++heapIdSequence
-    }
 }
-
-private var heapIdSequence = 0
-
 
 class ArrayLiteralValue(val type: DataType,     // only array types
                         val value: Array<Expression>,
@@ -648,7 +641,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         val value = (node as? VarDecl)?.value ?: throw FatalAstException("requires a reference value")
         return when (value) {
             is IdentifierReference -> value.heapId(namespace)
-            is StringLiteralValue -> value.heapId ?: throw FatalAstException("string is not on the heap: $value")
+            is StringLiteralValue -> value.heapId
             is ArrayLiteralValue -> value.heapId ?: throw FatalAstException("array is not on the heap: $value")
             else -> throw FatalAstException("requires a reference value")
         }

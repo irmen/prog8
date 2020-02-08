@@ -573,7 +573,7 @@ class RuntimeValueNumeric(type: DataType, num: Number): RuntimeValueBase(type) {
 class RuntimeValueString(val str: String, val heapId: Int?): RuntimeValueBase(DataType.STR) {
     companion object {
         fun fromLv(string: StringLiteralValue): RuntimeValueString {
-            return RuntimeValueString(string.value, string.heapId!!)
+            return RuntimeValueString(string.value, string.heapId)
         }
     }
 

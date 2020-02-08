@@ -253,9 +253,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             // intern the string; move it into the heap
             if (string.value.length !in 1..255)
                 checkResult.add(ExpressionError("string literal length must be between 1 and 255", string.position))
-            else {
-                string.addToHeap()
-            }
             return if (vardecl != null)
                 string
             else
@@ -292,7 +289,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         // a referencetype literal value that's not declared as a variable
         // we need to introduce an auto-generated variable for this to be able to refer to the value
         // note: if the var references the same literal value, it is not yet de-duplicated here.
-        string.addToHeap()
         val scope = string.definingScope()
         val variable = VarDecl.createAuto(string)
         return replaceWithIdentifier(variable, scope, string.parent)
