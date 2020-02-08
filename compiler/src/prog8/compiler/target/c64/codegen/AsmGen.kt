@@ -206,7 +206,7 @@ internal class AsmGen(private val program: Program,
         return "$b0, $b1, $b2, $b3, $b4"
     }
 
-    private fun encodeStr(str: String): List<Short> {
+    private fun petscii(str: String): List<Short> {
          val bytes = Petscii.encodePetscii(str, true)
          return bytes.plus(0)
     }
@@ -247,7 +247,7 @@ internal class AsmGen(private val program: Program,
             DataType.STRUCT -> {}       // is flattened
             DataType.STR -> {
                 val string = (decl.value as StringLiteralValue).value
-                outputStringvar(decl, encodeStr(string))
+                outputStringvar(decl, petscii(string))
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -331,7 +331,7 @@ internal class AsmGen(private val program: Program,
         // special treatment for string types: merge strings that are identical
         val encodedstringVars = normalVars
                 .filter {it.datatype == DataType.STR }
-                .map { it to encodeStr((it.value as StringLiteralValue).value) }
+                .map { it to petscii((it.value as StringLiteralValue).value) }
                 .groupBy({it.second}, {it.first})
         for((encoded, variables) in encodedstringVars) {
             variables.dropLast(1).forEach { out(it.name) }

@@ -1,7 +1,7 @@
 package prog8.vm.astvm
 
+import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
 
 class Memory(private val readObserver: (address: Int, value: Short) -> Short,
@@ -94,23 +94,21 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
     }
 
     fun setString(address: Int, str: String) {
-        // lowercase PETSCII
-        val petscii = Petscii.encodePetscii(str, true)
+        val encoded = CompilationTarget.encodeString(str)
         var addr = address
-        for (c in petscii) setUByte(addr++, c)
+        for (c in encoded) setUByte(addr++, c)
         setUByte(addr, 0)
     }
 
     fun getString(strAddress: Int): String {
-        // lowercase PETSCII
-        val petscii = mutableListOf<Short>()
+        val encoded = mutableListOf<Short>()
         var addr = strAddress
         while(true) {
             val byte = getUByte(addr++)
             if(byte==0.toShort()) break
-            petscii.add(byte)
+            encoded.add(byte)
         }
-        return Petscii.decodePetscii(petscii, true)
+        return CompilationTarget.decodeString(encoded)
     }
 
     fun clear() {
@@ -120,25 +118,5 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
     fun copy(from: Int, to: Int, numbytes: Int) {
         for(i in 0 until numbytes)
             setUByte(to+i, getUByte(from+i))
-    }
-
-    fun getScreencodeString(strAddress: Int): String? {
-        // lowercase Screencodes
-        val screencodes = mutableListOf<Short>()
-        var addr = strAddress
-        while(true) {
-            val byte = getUByte(addr++)
-            if(byte==0.toShort()) break
-            screencodes.add(byte)
-        }
-        return Petscii.decodeScreencode(screencodes, true)
-    }
-
-    fun setScreencodeString(address: Int, str: String) {
-        // lowercase screencodes
-        val screencodes = Petscii.encodeScreencode(str, true)
-        var addr = address
-        for (c in screencodes) setUByte(addr++, c)
-        setUByte(addr, 0)
     }
 }

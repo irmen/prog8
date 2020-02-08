@@ -6,7 +6,6 @@ import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.awt.image.BufferedImage
-import java.io.CharConversionException
 import java.util.ArrayDeque
 import javax.swing.JFrame
 import javax.swing.JPanel
@@ -66,20 +65,18 @@ class BitmapScreenPanel : KeyListener, JPanel() {
 
     fun printAsciiText(text: String) {
         val t2 = text.substringBefore(0.toChar())
-        val lines = t2.split('\n')
-        for(line in lines.withIndex()) {
-            line.value.forEach { printAscii(it) }
-            if(line.index<lines.size-1)
-                printAscii('\n')
-        }
+        val petscii = Petscii.encodePetscii(t2, true)
+        petscii.forEach { printPetsciiChar(it) }
     }
 
-    fun printAscii(char: Char) {
-        if(char=='\n' || char=='\u008d') {
+    fun printPetsciiChar(petscii: Short) {
+        if(petscii in listOf(0x0d.toShort(), 0x8d.toShort())) {
+            // Return and shift-Return
             cursorX=0
             cursorY++
         } else {
-            setAsciiChar(cursorX, cursorY, char, 1)
+            val scr = Petscii.petscii2scr(petscii, false)
+            setScreenChar(cursorX, cursorY, scr, 1)
             cursorX++
             if (cursorX >= (SCREENWIDTH / 8)) {
                 cursorY++
@@ -98,31 +95,6 @@ class BitmapScreenPanel : KeyListener, JPanel() {
             graphics.color=color
             cursorY--
         }
-    }
-
-    fun writeAsciiTextAt(x: Int, y: Int, text: String, color: Short) {
-        val colorIdx = (color % C64MachineDefinition.colorPalette.size).toShort()
-        var xx=x
-        for(clearx in xx until xx+text.length) {
-            g2d.clearRect(8*clearx, 8*y, 8, 8)
-        }
-        for(c in text) {
-            if(c=='\u0000')
-                break
-            setAsciiChar(xx++, y, c, colorIdx)
-        }
-    }
-
-    fun setAsciiChar(x: Int, y: Int, char: Char, color: Short) {
-        g2d.clearRect(8*x, 8*y, 8, 8)
-        val colorIdx = (color % C64MachineDefinition.colorPalette.size).toShort()
-        val screencode = try {
-            Petscii.encodeScreencode(char.toString(), true)[0]
-        } catch (x: CharConversionException) {
-            '?'.toShort()
-        }
-        val coloredImage = C64MachineDefinition.Charset.getColoredChar(screencode, colorIdx)
-        g2d.drawImage(coloredImage, 8*x, 8*y , null)
     }
 
     fun setScreenChar(x: Int, y: Int, screencode: Short, color: Short) {

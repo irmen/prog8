@@ -179,20 +179,21 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             if(stringVar!=null) {
                 val vardecl = stringVar.targetVarDecl(program.namespace)!!
                 val string = vardecl.value!! as StringLiteralValue
-                val encodedString = CompilationTarget.encodeString(string.value)
                 if(string.value.length==1) {
+                    val firstCharEncoded = CompilationTarget.encodeString(string.value)[0]
                     functionCallStatement.arglist.clear()
-                    functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(encodedString[0].toInt(), functionCallStatement.position))
+                    functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(firstCharEncoded.toInt(), functionCallStatement.position))
                     functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
                     vardeclsToRemove.add(vardecl)
                     optimizationsDone++
                     return functionCallStatement
                 } else if(string.value.length==2) {
+                    val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2))
                     val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(encodedString[0].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[0].toInt(), functionCallStatement.position)), functionCallStatement.position))
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(encodedString[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
                     vardeclsToRemove.add(vardecl)
                     optimizationsDone++
                     return scope

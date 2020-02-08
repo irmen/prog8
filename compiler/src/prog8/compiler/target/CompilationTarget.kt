@@ -10,6 +10,7 @@ internal interface CompilationTarget {
         lateinit var name: String
         lateinit var machine: IMachineDefinition
         lateinit var encodeString: (str: String) -> List<Short>
+        lateinit var decodeString: (bytes: List<Short>) -> String
         lateinit var asmGenerator: (Program, Zeropage, CompilationOptions, Path) -> IAssemblyGenerator
     }
 }
