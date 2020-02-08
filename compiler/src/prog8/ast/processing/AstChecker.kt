@@ -700,7 +700,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(string: StringLiteralValue) {
-        checkValueTypeAndRangeString(string.type, string)
+        checkValueTypeAndRangeString(DataType.STR, string)
         super.visit(string)
         if(string.heapId==null)
             throw FatalAstException("string should have been moved to heap at ${string.position}")

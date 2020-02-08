@@ -626,7 +626,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                         val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
-                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(array.type, newstr, array.heapId))
+                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(newstr, array.heapId))
                     }
                 }
                 else {

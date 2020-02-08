@@ -331,16 +331,12 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         if(constvalue!=null) {
             if (expr.operator == "*") {
                 // repeat a string a number of times
-                val idt = string.inferType(program)
-                return StringLiteralValue(idt.typeOrElse(DataType.STR),
-                        string.value.repeat(constvalue.number.toInt()), expr.position)
+                return StringLiteralValue(string.value.repeat(constvalue.number.toInt()), expr.position)
             }
         }
         if(expr.operator == "+" && operand is StringLiteralValue) {
             // concatenate two strings
-            val idt = string.inferType(program)
-            return StringLiteralValue(idt.typeOrElse(DataType.STR),
-                    "${string.value}${operand.value}", expr.position)
+            return StringLiteralValue("${string.value}${operand.value}", expr.position)
         }
         return expr
     }

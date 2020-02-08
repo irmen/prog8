@@ -369,8 +369,8 @@ class TestPetscii {
         assertTrue(ten <= ten)
         assertFalse(ten < ten)
 
-        val abc = StringLiteralValue(DataType.STR, "abc", Position("", 0, 0, 0))
-        val abd = StringLiteralValue(DataType.STR, "abd", Position("", 0, 0, 0))
+        val abc = StringLiteralValue("abc", Position("", 0, 0, 0))
+        val abd = StringLiteralValue("abd", Position("", 0, 0, 0))
         assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)

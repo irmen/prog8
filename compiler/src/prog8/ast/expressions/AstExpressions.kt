@@ -407,8 +407,7 @@ class StructLiteralValue(var values: List<Expression>,
     }
 }
 
-class StringLiteralValue(val type: DataType,     // only string types
-                         val value: String,
+class StringLiteralValue(val value: String,
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -420,13 +419,13 @@ class StringLiteralValue(val type: DataType,     // only string types
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun toString(): String = "'${escape(value)}'"
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.STR)
     operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
-    override fun hashCode(): Int = Objects.hash(value, type)
+    override fun hashCode(): Int = value.hashCode()
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is StringLiteralValue)
             return false
-        return value==other.value && type==other.type
+        return value==other.value
     }
 
     var heapId: Int? = null

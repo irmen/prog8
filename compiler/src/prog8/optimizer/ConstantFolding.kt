@@ -146,6 +146,19 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         }
                     }
                 }
+                DataType.STR -> {
+                    TODO("$decl")
+//                    if(functionCall.target.nameInSource == listOf("c64scr")) {
+//                        val parent = functionCall.parent
+//                        if(parent is VarDecl && parent.datatype==DataType.STR && functionCall.args.size == 1) {
+//                            val str = functionCall.args[0] as IdentifierReference
+//                            if(str!=null) {
+//                                val decl = str.targetVarDecl(functionCall.definingScope())
+//                                TODO("$decl")
+//                            }
+//                        }
+//                    }
+                }
                 else -> {
                     // nothing to do for this type
                     // this includes strings and structs
