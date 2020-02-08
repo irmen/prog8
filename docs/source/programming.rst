@@ -282,10 +282,10 @@ a string literal a given number of times using '*'::
 
 
 .. caution::
-    It's probably best that you don't change strings after they're created.
+    Avoid changing strings after they've been created.
     This is because if your program exits and is restarted (without loading it again),
-    it will then operate on the changed strings instead of the original ones.
-    The same is true for arrays by the way.
+    it will then start working with the changed strings instead of the original ones.
+    The same is true for arrays.
 
 
 Structs

@@ -302,7 +302,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
         }
     }
 
-    val asBooleanValue: Boolean = number!=0
+    val asBooleanValue: Boolean = number.toDouble() != 0.0
 
     override fun linkParents(parent: Node) {
         this.parent = parent
