@@ -30,21 +30,20 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 Rapid edit-compile-run-debug cycle:
 
-- use modern PC to work on 
+- use modern PC to work on
 - quick compilation times (seconds)
-- option to automatically run the program in the Vice emulator  
+- option to automatically run the program in the Vice emulator
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 - virtual machine that can execute compiled code directy on the host system,
-  without having to actually convert it to assembly to run on a real 6502 
+  without having to actually convert it to assembly to run on a real 6502
 
 It is mainly targeted at the Commodore-64 machine at this time.
 Contributions to add support for other 8-bit (or other?!) machines are welcome.
 
 Documentation/manual
 --------------------
-See https://prog8.readthedocs.io/
-
+This describes the language, but also how to build and run the compiler. See https://prog8.readthedocs.io/
 
 Required tools
 --------------
