@@ -2,8 +2,8 @@
 TODO
 ====
 
+- option to load library files from a directory instead of the embedded ones
 - @"zzz"  screencode encoded strings  + add this to docs too
-- add 'void' keyword to explicitly ignore subroutine return values
 
 
 Memory Block Operations integrated in language?

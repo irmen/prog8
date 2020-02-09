@@ -607,8 +607,8 @@ Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^
 
 The arguments in parentheses after the function name, should match the parameters in the subroutine definition.
-It is possible to not store the return value but the compiler
-will issue a warning then telling you the result values of a subroutine call are discarded.
+If you want to ignore a return value of a subroutine, you should prefix the call with the ``void`` keyword.
+Otherwise the compiler will issue a warning about discarding a result value.
 
 .. caution::
     Note that due to the way parameters are processed by the compiler,

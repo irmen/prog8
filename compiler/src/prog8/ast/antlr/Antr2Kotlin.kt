@@ -264,11 +264,12 @@ private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
 
 
 private fun prog8Parser.Functioncall_stmtContext.toAst(): Statement {
+    val void = this.VOID() != null
     val location = scoped_identifier().toAst()
     return if(expression_list() == null)
-        FunctionCallStatement(location, mutableListOf(), toPosition())
+        FunctionCallStatement(location, mutableListOf(), void, toPosition())
     else
-        FunctionCallStatement(location, expression_list().toAst().toMutableList(), toPosition())
+        FunctionCallStatement(location, expression_list().toAst().toMutableList(), void, toPosition())
 }
 
 

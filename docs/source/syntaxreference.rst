@@ -451,14 +451,17 @@ Subroutine / function calls
 
 You call a subroutine like this::
 
-        [ result = ]  subroutinename_or_address ( [argument...] )
+        [ void / result = ] subroutinename_or_address ( [argument...] )
 
         ; example:
         resultvariable = subroutine(arg1, arg2, arg3)
+        void noresultvaluesub(arg)
+
 
 Arguments are separated by commas. The argument list can also be empty if the subroutine
-takes no parameters.  If the subroutine returns a value, you can still omit the assignment to
-a result variable (but the compiler will warn you about discarding the result of the call).
+takes no parameters.  If the subroutine returns a value, usually you assign it to a variable.
+If you're not interested in the return value, prefix the function call with the ``void`` keyword.
+Otherwise the compiler will warn you about discarding the result of the call.
 
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code or referencing

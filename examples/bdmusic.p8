@@ -13,7 +13,7 @@ sub start() {
     c64.MVOL = 15
 
     c64scr.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
-    c64.CHRIN()
+    void c64.CHRIN()
     c64.CLEARSCR()
 
     while(true) {

@@ -473,6 +473,7 @@ class Jump(val address: Int?,
 
 class FunctionCallStatement(override var target: IdentifierReference,
                             override var args: MutableList<Expression>,
+                            val void: Boolean,
                             override val position: Position) : Statement(), IFunctionCall {
     override lateinit var parent: Node
     override val expensiveToInline

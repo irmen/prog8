@@ -819,12 +819,11 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
-        if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
-            // TODO add 'void' keyword to make this explicit
+        if(!functionCallStatement.void && targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
             if(targetStatement.returntypes.size==1)
-                printWarning("result value of subroutine call is discarded", functionCallStatement.position)
+                printWarning("result value of subroutine call is discarded (use void?)", functionCallStatement.position)
             else
-                printWarning("result values of subroutine call are discarded", functionCallStatement.position)
+                printWarning("result values of subroutine call are discarded (use void?)", functionCallStatement.position)
         }
 
         if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {

@@ -14,7 +14,7 @@ main {
 
         c64.VMCSB |= 2  ; switch lowercase chars
         c64scr.print("Please introduce yourself: ")
-        c64scr.input_chars(name)
+        void c64scr.input_chars(name)
         c64scr.print("\n\nHello, ")
         c64scr.print(name)
         c64scr.print(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
@@ -27,7 +27,7 @@ main {
             if attempts_left>1
                 c64scr.print("es")
             c64scr.print(" left.\nWhat is your next guess? ")
-            c64scr.input_chars(input)
+            void c64scr.input_chars(input)
             ubyte guess = lsb(c64utils.str2uword(input))
 
             if guess==secretnumber {

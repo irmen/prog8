@@ -19,6 +19,7 @@ COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
 WS :  [ \t] -> skip ;
 EOL :  [\r\n]+ ;
 // WS2 : '\\' EOL -> skip;
+VOID: 'void';
 NAME :  [a-zA-Z_][a-zA-Z0-9_]* ;
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
@@ -183,10 +184,9 @@ directmemory : '@' '(' expression ')';
 addressof : <assoc=right> ADDRESS_OF scoped_identifier ;
 
 
-functioncall :	scoped_identifier '(' expression_list? ')'  ;
+functioncall : scoped_identifier '(' expression_list? ')'  ;
 
-
-functioncall_stmt :  scoped_identifier '(' expression_list? ')'	;
+functioncall_stmt : VOID? scoped_identifier '(' expression_list? ')'  ;
 
 expression_list :
 	expression (',' EOL? expression)*           // you can split the expression list over several lines

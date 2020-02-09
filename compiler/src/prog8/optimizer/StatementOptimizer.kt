@@ -191,9 +191,11 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                     val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2))
                     val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[0].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[0].toInt(), functionCallStatement.position)),
+                            functionCallStatement.void, functionCallStatement.position))
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[1].toInt(), functionCallStatement.position)),
+                            functionCallStatement.void, functionCallStatement.position))
                     vardeclsToRemove.add(vardecl)
                     optimizationsDone++
                     return scope
@@ -209,7 +211,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
                 optimizationsDone++
-                return FunctionCallStatement(first.identifier, functionCallStatement.args, functionCallStatement.position)
+                return FunctionCallStatement(first.identifier, functionCallStatement.args, functionCallStatement.void, functionCallStatement.position)
             }
             if(first is ReturnFromIrq || first is Return) {
                 optimizationsDone++
@@ -518,7 +520,8 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                                 val scope = AnonymousScope(mutableListOf(), assignment.position)
                                 var numshifts = cv.toInt()
                                 while (numshifts > 0) {
-                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position), mutableListOf(bexpr.left), assignment.position))
+                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position),
+                                            mutableListOf(bexpr.left), true, assignment.position))
                                     numshifts--
                                 }
                                 optimizationsDone++
@@ -539,7 +542,8 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                                 val scope = AnonymousScope(mutableListOf(), assignment.position)
                                 var numshifts = cv.toInt()
                                 while (numshifts > 0) {
-                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position), mutableListOf(bexpr.left), assignment.position))
+                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position),
+                                            mutableListOf(bexpr.left), true, assignment.position))
                                     numshifts--
                                 }
                                 optimizationsDone++
