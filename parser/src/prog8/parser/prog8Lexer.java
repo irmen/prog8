@@ -1,4 +1,4 @@
-// Generated from /home/irmen/Projects/prog8/parser/antlr/prog8.g4 by ANTLR 4.8
+// Generated from prog8.g4 by ANTLR 4.8
 
 package prog8.parser;
 
