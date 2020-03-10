@@ -89,6 +89,7 @@ statement :
 	| branch_stmt
 	| subroutine
 	| asmsubroutine
+	| romsubroutine
 	| inlineasm
 	| returnstmt
 	| forloop
@@ -256,11 +257,14 @@ sub_params :  vardecl (',' EOL? vardecl)* ;
 sub_returns :  datatype (',' EOL? datatype)*  ;
 
 asmsubroutine :
-    'asmsub' identifier '(' asmsub_params? ')'  EOL?
-    asmsub_clobbers? asmsub_returns?  (asmsub_address  | statement_block )
+    'asmsub' asmsub_decl  statement_block
     ;
 
-asmsub_address :  '=' address=integerliteral  ;
+romsubroutine :
+    'romsub' integerliteral '=' asmsub_decl
+    ;
+
+asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 

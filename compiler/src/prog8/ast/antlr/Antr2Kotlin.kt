@@ -202,6 +202,9 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
     val asmsubstmt = asmsubroutine()?.toAst()
     if(asmsubstmt!=null) return asmsubstmt
 
+    val romsubstmt = romsubroutine()?.toAst()
+    if(romsubstmt!=null) return romsubstmt
+
     val whenstmt = whenstmt()?.toAst()
     if(whenstmt!=null) return whenstmt
 
@@ -215,19 +218,42 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
 }
 
 private fun prog8Parser.AsmsubroutineContext.toAst(): Statement {
+    val subdecl = asmsub_decl().toAst()
+    val statements = statement_block()?.toAst() ?: mutableListOf()
+    return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
+            subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
+            subdecl.asmClobbers, null, true, statements, toPosition())
+}
+
+private fun prog8Parser.RomsubroutineContext.toAst(): Statement {
+    val subdecl = asmsub_decl().toAst()
+    val address = integerliteral().toAst().number.toInt()
+    return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
+            subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
+            subdecl.asmClobbers, address, true, mutableListOf(), toPosition())
+}
+
+
+private class AsmsubDecl(val name: String,
+                         val parameters: List<SubroutineParameter>,
+                         val returntypes: List<DataType>,
+                         val asmParameterRegisters: List<RegisterOrStatusflag>,
+                         val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
+                         val asmClobbers: Set<Register>)
+
+
+private fun prog8Parser.Asmsub_declContext.toAst(): AsmsubDecl {
     val name = identifier().text
-    val address = asmsub_address()?.address?.toAst()?.number?.toInt()
     val params = asmsub_params()?.toAst() ?: emptyList()
     val returns = asmsub_returns()?.toAst() ?: emptyList()
+    val clobbers = asmsub_clobbers()?.clobber()?.toAst() ?: emptySet()
     val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.position) }
-    val normalReturnvalues = returns.map { it.type }
+    val normalReturntypes = returns.map { it.type }
     val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
     val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
-    val clobbers = asmsub_clobbers()?.clobber()?.toAst() ?: emptySet()
-    val statements = statement_block()?.toAst() ?: mutableListOf()
-    return Subroutine(name, normalParameters, normalReturnvalues,
-            paramRegisters, returnRegisters, clobbers, address, true, statements, toPosition())
+    return AsmsubDecl(name, normalParameters, normalReturntypes, paramRegisters, returnRegisters, clobbers)
 }
+
 
 private class AsmSubroutineParameter(name: String,
                                      type: DataType,

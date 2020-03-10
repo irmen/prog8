@@ -464,9 +464,9 @@ If you're not interested in the return value, prefix the function call with the 
 Otherwise the compiler will warn you about discarding the result of the call.
 
 Normal subroutines can only return zero or one return values.
-However, the special ``asmsub`` routines (implemented in assembly code or referencing
-a routine in kernel ROM) can return more than one return values, for instance a status
-in the carry bit and a number in A, or a 16-bit value in A/Y registers.
+However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
+(referencing a routine in kernel ROM) can return more than one return value.
+For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
 It is not possible to process the results of a call to these kind of routines
 directly from the language, because only single value assignments are possible.
 You can still call the subroutine and not store the results.
@@ -494,9 +494,34 @@ and can have nothing following it. The close curly brace must be on its own line
 The parameters is a (possibly empty) comma separated list of "<datatype> <parametername>" pairs specifying the input parameters.
 The return type has to be specified if the subroutine returns a value.
 
-.. todo::
-    asmsub with assigning memory address to refer to predefined ROM subroutines
-    asmsub with a regular body to precisely control what registers are used to call the subroutine
+
+Assembly /  ROM subroutines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Subroutines implemented in ROM are usually defined by compiler library files, with the following syntax::
+
+    romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> clobbers() -> ubyte @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
+
+This defines the ``LOAD`` subroutine at ROM memory address $FFD5, taking arguments in all three registers A, X and Y,
+and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
+what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
+
+
+Subroutines that are implemented purely in assembly code and which have an assembly calling convention (i.e.
+the parameters are strictly passed via cpu registers), are defined like this::
+
+    asmsub  FREADS32() clobbers(A,X,Y)  {
+        %asm {{
+            lda  $62
+            eor  #$ff
+            asl  a
+            lda  #0
+            ldx  #$a0
+            jmp  $bc4f
+        }}
+    }
+
+the statement body of such a subroutine should consist of just an inline assembly block.
 
 
 Expressions
