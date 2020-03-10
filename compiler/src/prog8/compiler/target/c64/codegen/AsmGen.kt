@@ -206,8 +206,8 @@ internal class AsmGen(private val program: Program,
         return "$b0, $b1, $b2, $b3, $b4"
     }
 
-    private fun petscii(str: String): List<Short> {
-         val bytes = Petscii.encodePetscii(str, true)
+    private fun encode(str: String, altEncoding: Boolean): List<Short> {
+         val bytes = if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
          return bytes.plus(0)
     }
 
@@ -246,8 +246,8 @@ internal class AsmGen(private val program: Program,
             DataType.FLOAT -> out("${decl.name}\t.byte  0,0,0,0,0  ; float")
             DataType.STRUCT -> {}       // is flattened
             DataType.STR -> {
-                val string = (decl.value as StringLiteralValue).value
-                outputStringvar(decl, petscii(string))
+                val str = decl.value as StringLiteralValue
+                outputStringvar(decl, encode(str.value, str.altEncoding))
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -331,7 +331,10 @@ internal class AsmGen(private val program: Program,
         // special treatment for string types: merge strings that are identical
         val encodedstringVars = normalVars
                 .filter {it.datatype == DataType.STR }
-                .map { it to petscii((it.value as StringLiteralValue).value) }
+                .map {
+                    val str = it.value as StringLiteralValue
+                    it to encode(str.value, str.altEncoding)
+                }
                 .groupBy({it.second}, {it.first})
         for((encoded, variables) in encodedstringVars) {
             variables.dropLast(1).forEach { out(it.name) }

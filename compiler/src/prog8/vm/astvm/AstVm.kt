@@ -575,7 +575,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                         DataType.UWORD -> mem.setUWord(address, (value as RuntimeValueNumeric).wordval!!)
                         DataType.WORD -> mem.setSWord(address, (value as RuntimeValueNumeric).wordval!!)
                         DataType.FLOAT -> mem.setFloat(address, (value as RuntimeValueNumeric).floatval!!)
-                        DataType.STR -> mem.setString(address, (value as RuntimeValueString).str)
+                        DataType.STR -> mem.setString(address, (value as RuntimeValueString).str, value.altEncoding)
                         else -> throw VmExecutionException("weird memaddress type $decl")
                     }
                 } else
@@ -626,7 +626,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                         val ident = contextStmt.definingScope().lookup(targetArrayIndexed.identifier.nameInSource, contextStmt) as? VarDecl
                                 ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                         val identScope = ident.definingScope()
-                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(newstr, array.heapId))
+                        runtimeVariables.set(identScope, ident.name, RuntimeValueString(newstr, false, array.heapId))
                     }
                 }
                 else {

@@ -93,14 +93,14 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
                 getUByte(address + 3), getUByte(address + 4)).toDouble()
     }
 
-    fun setString(address: Int, str: String) {
-        val encoded = CompilationTarget.encodeString(str)
+    fun setString(address: Int, str: String, altEncoding: Boolean) {
+        val encoded = CompilationTarget.encodeString(str, altEncoding)
         var addr = address
         for (c in encoded) setUByte(addr++, c)
         setUByte(addr, 0)
     }
 
-    fun getString(strAddress: Int): String {
+    fun getString(strAddress: Int, altEncoding: Boolean): String {
         val encoded = mutableListOf<Short>()
         var addr = strAddress
         while(true) {
@@ -108,7 +108,7 @@ class Memory(private val readObserver: (address: Int, value: Short) -> Short,
             if(byte==0.toShort()) break
             encoded.add(byte)
         }
-        return CompilationTarget.decodeString(encoded)
+        return CompilationTarget.decodeString(encoded, altEncoding)
     }
 
     fun clear() {

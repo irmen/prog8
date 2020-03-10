@@ -180,7 +180,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                 val vardecl = stringVar.targetVarDecl(program.namespace)!!
                 val string = vardecl.value!! as StringLiteralValue
                 if(string.value.length==1) {
-                    val firstCharEncoded = CompilationTarget.encodeString(string.value)[0]
+                    val firstCharEncoded = CompilationTarget.encodeString(string.value, string.altEncoding)[0]
                     functionCallStatement.args.clear()
                     functionCallStatement.args.add(NumericLiteralValue.optimalInteger(firstCharEncoded.toInt(), functionCallStatement.position))
                     functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
@@ -188,7 +188,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                     optimizationsDone++
                     return functionCallStatement
                 } else if(string.value.length==2) {
-                    val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2))
+                    val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2), string.altEncoding)
                     val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
                             mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[0].toInt(), functionCallStatement.position)),

@@ -326,12 +326,12 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         if(constvalue!=null) {
             if (expr.operator == "*") {
                 // repeat a string a number of times
-                return StringLiteralValue(string.value.repeat(constvalue.number.toInt()), expr.position)
+                return StringLiteralValue(string.value.repeat(constvalue.number.toInt()), string.altEncoding, expr.position)
             }
         }
         if(expr.operator == "+" && operand is StringLiteralValue) {
             // concatenate two strings
-            return StringLiteralValue("${string.value}${operand.value}", expr.position)
+            return StringLiteralValue("${string.value}${operand.value}", string.altEncoding, expr.position)
         }
         return expr
     }

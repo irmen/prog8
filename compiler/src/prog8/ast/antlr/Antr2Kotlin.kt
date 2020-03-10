@@ -380,8 +380,13 @@ private fun prog8Parser.DirectiveContext.toAst() : Directive =
         Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
 
 
-private fun prog8Parser.DirectiveargContext.toAst() : DirectiveArg =
-        DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toInt(), toPosition())
+private fun prog8Parser.DirectiveargContext.toAst() : DirectiveArg {
+    val str = stringliteral()
+    if(str?.ALT_STRING_ENCODING() != null)
+        throw AstException("${toPosition()} can't use alternate string encodings for directive arguments")
+
+    return DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toInt(), toPosition())
+}
 
 
 private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
@@ -456,11 +461,13 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
-                litval.stringliteral()!=null -> StringLiteralValue(unescape(litval.stringliteral().text, litval.toPosition()), litval.toPosition())
+                litval.stringliteral()!=null -> litval.stringliteral().toAst()
                 litval.charliteral()!=null -> {
                     try {
+                        val cc=litval.charliteral()
                         NumericLiteralValue(DataType.UBYTE, CompilationTarget.encodeString(
-                                unescape(litval.charliteral().text, litval.toPosition()))[0], litval.toPosition())
+                                unescape(litval.charliteral().SINGLECHAR().text, litval.toPosition()),
+                                litval.charliteral().ALT_STRING_ENCODING()!=null)[0], litval.toPosition())
                     } catch (ce: CharConversionException) {
                         throw SyntaxError(ce.message ?: ce.toString(), litval.toPosition())
                     }
@@ -517,6 +524,10 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
 
     throw FatalAstException(text)
 }
+
+
+private fun prog8Parser.StringliteralContext.toAst(): StringLiteralValue =
+    StringLiteralValue(unescape(this.STRING().text, toPosition()), ALT_STRING_ENCODING()!=null, toPosition())
 
 
 private fun prog8Parser.ArrayindexedContext.toAst(): ArrayIndexedExpression {

@@ -430,6 +430,7 @@ class StructLiteralValue(var values: List<Expression>,
 private var heapIdSequence = 0   // unique ids for strings and arrays "on the heap"
 
 class StringLiteralValue(val value: String,
+                         val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -445,11 +446,11 @@ class StringLiteralValue(val value: String,
     override fun toString(): String = "'${escape(value)}'"
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.STR)
     operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
-    override fun hashCode(): Int = value.hashCode()
+    override fun hashCode(): Int = Objects.hash(value, altEncoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is StringLiteralValue)
             return false
-        return value==other.value
+        return value==other.value && altEncoding == other.altEncoding
     }
 }
 
@@ -552,9 +553,9 @@ class RangeExpr(var from: Expression,
         val fromString = from as? StringLiteralValue
         val toString = to as? StringLiteralValue
         if(fromString!=null && toString!=null ) {
-            // string range -> int range over petscii values
-            fromVal = CompilationTarget.encodeString(fromString.value)[0].toInt()
-            toVal = CompilationTarget.encodeString(toString.value)[0].toInt()
+            // string range -> int range over character values
+            fromVal = CompilationTarget.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
+            toVal = CompilationTarget.encodeString(toString.value, fromString.altEncoding)[0].toInt()
         } else {
             val fromLv = from as? NumericLiteralValue
             val toLv = to as? NumericLiteralValue

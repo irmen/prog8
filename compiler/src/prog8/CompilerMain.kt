@@ -55,8 +55,12 @@ private fun compileMain(args: Array<String>) {
             with(CompilationTarget) {
                 name = "c64"
                 machine = C64MachineDefinition
-                encodeString = { str -> Petscii.encodePetscii(str, true) }
-                decodeString = { bytes -> Petscii.decodePetscii(bytes, true) }
+                encodeString = { str, altEncoding ->
+                    if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+                }
+                decodeString = { bytes, altEncoding ->
+                    if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+                }
                 asmGenerator = ::AsmGen
             }
         }

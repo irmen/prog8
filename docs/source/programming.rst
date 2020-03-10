@@ -188,9 +188,11 @@ Values will usually be part of an expression or assignment statement::
     12345                 ; integer number
     $aa43                 ; hex integer number
     %100101               ; binary integer number (% is also remainder operator so be careful)
-    "Hi, I am a string"   ; text string
-    'a'                   ; petscii value (byte) for the letter a
     -33.456e52            ; floating point number
+    "Hi, I am a string"   ; text string, encoded with compiler target default encoding
+    'a'                   ; byte value (ubyte) for the letter a
+    @"Alternate"          ; text string, encoded with alternate encoding
+    @'a'                  ; byte value of the letter a, using alternate encoding
 
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
@@ -271,8 +273,12 @@ Strings
 Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
-Strings in your source code files will be encoded (translated from ASCII/UTF-8) into the byte-encoding
-that is used on the target platform. For the C-64, this is CBM PETSCII.
+Strings in your source code files will be encoded (translated from ASCII/UTF-8) into bytes via the
+default encoding that is used on the target platform. For the C-64, this is CBM PETSCII.
+Alternate-encoding strings (prefixed with ``@``) will be encoded via the alternate encoding for the
+platform (if defined). For the C-64, that is SCREEN CODES (also known as POKE codes).
+This @-prefix can also be used for character byte values.
+
 
 You can concatenate two string literals using '+' (not very useful though) or repeat
 a string literal a given number of times using '*'::
