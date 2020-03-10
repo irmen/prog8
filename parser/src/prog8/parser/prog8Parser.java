@@ -184,11 +184,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_module; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitModule(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ModuleContext module() throws RecognitionException {
@@ -262,11 +257,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_modulestatement; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitModulestatement(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ModulestatementContext modulestatement() throws RecognitionException {
@@ -329,11 +319,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_block; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitBlock(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final BlockContext block() throws RecognitionException {
@@ -455,11 +440,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_statement; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStatement(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StatementContext statement() throws RecognitionException {
@@ -672,11 +652,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_labeldef; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitLabeldef(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final LabeldefContext labeldef() throws RecognitionException {
@@ -713,11 +688,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_unconditionaljump; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitUnconditionaljump(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final UnconditionaljumpContext unconditionaljump() throws RecognitionException {
@@ -773,11 +743,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_directive; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitDirective(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final DirectiveContext directive() throws RecognitionException {
@@ -865,11 +830,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_directivearg; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitDirectivearg(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final DirectiveargContext directivearg() throws RecognitionException {
@@ -934,11 +894,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_vardecl; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitVardecl(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final VardeclContext vardecl() throws RecognitionException {
@@ -1008,11 +963,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_structvardecl; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStructvardecl(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StructvardeclContext structvardecl() throws RecognitionException {
@@ -1049,11 +999,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_varinitializer; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitVarinitializer(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final VarinitializerContext varinitializer() throws RecognitionException {
@@ -1092,11 +1037,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_structvarinitializer; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStructvarinitializer(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StructvarinitializerContext structvarinitializer() throws RecognitionException {
@@ -1132,11 +1072,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_constdecl; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitConstdecl(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ConstdeclContext constdecl() throws RecognitionException {
@@ -1171,11 +1106,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_memoryvardecl; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitMemoryvardecl(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final MemoryvardeclContext memoryvardecl() throws RecognitionException {
@@ -1219,11 +1149,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_structdecl; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStructdecl(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StructdeclContext structdecl() throws RecognitionException {
@@ -1294,11 +1219,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_datatype; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitDatatype(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final DatatypeContext datatype() throws RecognitionException {
@@ -1339,11 +1259,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_arrayindex; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitArrayindex(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ArrayindexContext arrayindex() throws RecognitionException {
@@ -1382,11 +1297,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_assignment; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAssignment(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final AssignmentContext assignment() throws RecognitionException {
@@ -1426,11 +1336,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_augassignment; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAugassignment(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final AugassignmentContext augassignment() throws RecognitionException {
@@ -1485,11 +1390,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_assign_target; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAssign_target(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Assign_targetContext assign_target() throws RecognitionException {
@@ -1549,11 +1449,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_postincrdecr; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitPostincrdecr(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final PostincrdecrContext postincrdecr() throws RecognitionException {
@@ -1636,11 +1531,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_expression; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitExpression(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ExpressionContext expression() throws RecognitionException {
@@ -2269,11 +2159,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_typecast; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitTypecast(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final TypecastContext typecast() throws RecognitionException {
@@ -2310,11 +2195,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_arrayindexed; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitArrayindexed(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ArrayindexedContext arrayindexed() throws RecognitionException {
@@ -2348,11 +2228,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_directmemory; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitDirectmemory(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final DirectmemoryContext directmemory() throws RecognitionException {
@@ -2391,11 +2266,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_addressof; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAddressof(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final AddressofContext addressof() throws RecognitionException {
@@ -2432,11 +2302,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_functioncall; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitFunctioncall(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final FunctioncallContext functioncall() throws RecognitionException {
@@ -2487,11 +2352,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_functioncall_stmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitFunctioncall_stmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Functioncall_stmtContext functioncall_stmt() throws RecognitionException {
@@ -2555,11 +2415,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_expression_list; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitExpression_list(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Expression_listContext expression_list() throws RecognitionException {
@@ -2618,11 +2473,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_returnstmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitReturnstmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ReturnstmtContext returnstmt() throws RecognitionException {
@@ -2661,11 +2511,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_breakstmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitBreakstmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final BreakstmtContext breakstmt() throws RecognitionException {
@@ -2694,11 +2539,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_continuestmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitContinuestmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ContinuestmtContext continuestmt() throws RecognitionException {
@@ -2728,11 +2568,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_identifier; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitIdentifier(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final IdentifierContext identifier() throws RecognitionException {
@@ -2765,11 +2600,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_scoped_identifier; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitScoped_identifier(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Scoped_identifierContext scoped_identifier() throws RecognitionException {
@@ -2817,11 +2647,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_register; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitRegister(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final RegisterContext register() throws RecognitionException {
@@ -2859,11 +2684,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_registerorpair; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitRegisterorpair(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final RegisterorpairContext registerorpair() throws RecognitionException {
@@ -2901,11 +2721,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_statusregister; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStatusregister(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StatusregisterContext statusregister() throws RecognitionException {
@@ -2950,11 +2765,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_integerliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitIntegerliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final IntegerliteralContext integerliteral() throws RecognitionException {
@@ -3003,11 +2813,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_wordsuffix; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitWordsuffix(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final WordsuffixContext wordsuffix() throws RecognitionException {
@@ -3036,11 +2841,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_booleanliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitBooleanliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final BooleanliteralContext booleanliteral() throws RecognitionException {
@@ -3088,11 +2888,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_arrayliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitArrayliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ArrayliteralContext arrayliteral() throws RecognitionException {
@@ -3182,11 +2977,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_structliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStructliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StructliteralContext structliteral() throws RecognitionException {
@@ -3267,11 +3057,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_stringliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStringliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final StringliteralContext stringliteral() throws RecognitionException {
@@ -3301,11 +3086,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_charliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitCharliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final CharliteralContext charliteral() throws RecognitionException {
@@ -3335,11 +3115,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_floatliteral; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitFloatliteral(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final FloatliteralContext floatliteral() throws RecognitionException {
@@ -3389,11 +3164,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_literalvalue; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitLiteralvalue(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final LiteralvalueContext literalvalue() throws RecognitionException {
@@ -3476,11 +3246,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_inlineasm; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitInlineasm(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final InlineasmContext inlineasm() throws RecognitionException {
@@ -3524,11 +3289,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_subroutine; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitSubroutine(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final SubroutineContext subroutine() throws RecognitionException {
@@ -3593,11 +3353,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_sub_return_part; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitSub_return_part(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Sub_return_partContext sub_return_part() throws RecognitionException {
@@ -3638,11 +3393,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_statement_block; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitStatement_block(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Statement_blockContext statement_block() throws RecognitionException {
@@ -3762,11 +3512,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_sub_params; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitSub_params(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Sub_paramsContext sub_params() throws RecognitionException {
@@ -3832,11 +3577,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_sub_returns; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitSub_returns(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Sub_returnsContext sub_returns() throws RecognitionException {
@@ -3911,11 +3651,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsubroutine; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsubroutine(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final AsmsubroutineContext asmsubroutine() throws RecognitionException {
@@ -4013,11 +3748,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsub_address; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsub_address(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Asmsub_addressContext asmsub_address() throws RecognitionException {
@@ -4058,11 +3788,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsub_params; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsub_params(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Asmsub_paramsContext asmsub_params() throws RecognitionException {
@@ -4128,11 +3853,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsub_param; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsub_param(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Asmsub_paramContext asmsub_param() throws RecognitionException {
@@ -4198,11 +3918,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsub_clobbers; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsub_clobbers(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Asmsub_clobbersContext asmsub_clobbers() throws RecognitionException {
@@ -4252,11 +3967,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_clobber; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitClobber(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ClobberContext clobber() throws RecognitionException {
@@ -4312,11 +4022,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsub_returns; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsub_returns(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Asmsub_returnsContext asmsub_returns() throws RecognitionException {
@@ -4384,11 +4089,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_asmsub_return; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitAsmsub_return(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Asmsub_returnContext asmsub_return() throws RecognitionException {
@@ -4467,11 +4167,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_if_stmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitIf_stmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final If_stmtContext if_stmt() throws RecognitionException {
@@ -4606,11 +4301,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_else_part; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitElse_part(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Else_partContext else_part() throws RecognitionException {
@@ -4732,11 +4422,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_branch_stmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitBranch_stmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final Branch_stmtContext branch_stmt() throws RecognitionException {
@@ -4864,11 +4549,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_branchcondition; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitBranchcondition(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final BranchconditionContext branchcondition() throws RecognitionException {
@@ -4922,11 +4602,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_forloop; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitForloop(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final ForloopContext forloop() throws RecognitionException {
@@ -5066,11 +4741,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_whileloop; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitWhileloop(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final WhileloopContext whileloop() throws RecognitionException {
@@ -5188,11 +4858,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_repeatloop; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitRepeatloop(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final RepeatloopContext repeatloop() throws RecognitionException {
@@ -5315,11 +4980,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_whenstmt; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitWhenstmt(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final WhenstmtContext whenstmt() throws RecognitionException {
@@ -5425,11 +5085,6 @@ public class prog8Parser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_when_choice; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof prog8Visitor ) return ((prog8Visitor<? extends T>)visitor).visitWhen_choice(this);
-			else return visitor.visitChildren(this);
-		}
 	}
 
 	public final When_choiceContext when_choice() throws RecognitionException {
