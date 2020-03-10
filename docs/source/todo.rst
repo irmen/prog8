@@ -3,7 +3,6 @@ TODO
 ====
 
 - option to load library files from a directory instead of the embedded ones
-- @"zzz"  screencode encoded strings  + add this to docs too
 
 
 Memory Block Operations integrated in language?
