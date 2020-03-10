@@ -1,8 +1,8 @@
 .idea/workspace.xml
 .idea/discord.xml
-/build/
-/dist/
-/output/
+build/
+dist/
+output/
 .*cache/
 *.directory
 *.prg
@@ -12,8 +12,8 @@
 *.vice-mon-list
 docs/build
 out/
-**/*.interp
-**/*.tokens
+parser/**/*.interp
+parser/**/*.tokens
 
 *.py[cod]
 *.egg
@@ -28,5 +28,4 @@ parsetab.py
 .attach_pid*
 
 .gradle
-build/
 /prog8compiler.jar

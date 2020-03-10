@@ -34,7 +34,7 @@ compileJava {
 
 generateGrammarSource {
     outputDirectory = file("src/prog8/parser")
-    arguments += ["-no-listener","-no-visitor"]
+    arguments += ["-no-listener","-visitor"]
 }
 
 sourceSets {
