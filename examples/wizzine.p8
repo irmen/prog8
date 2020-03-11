@@ -56,7 +56,7 @@ irq {
         c64.MSIGX=0
 
 
-        for spri in 7 to 0 step -1 {
+        for spri in 7 downto 0 {
             uword @zp x = sin8u(angle*2-spri*16) as uword + 50
             ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(lsb(x), y)

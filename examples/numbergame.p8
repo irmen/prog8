@@ -19,7 +19,7 @@ main {
         c64scr.print(name)
         c64scr.print(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
-        for attempts_left in 10 to 1 step -1 {
+        for attempts_left in 10 downto 1 {
 
             c64scr.print("\nYou have ")
             c64scr.print_ub(attempts_left)

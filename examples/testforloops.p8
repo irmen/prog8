@@ -71,7 +71,7 @@ main {
         count = 0
         total = 0
         c64scr.print("a in range step -1: ")
-        for A in 20 to 10 step -1 {
+        for A in 20 downto 10 {
             aa=A
             count++
             total += aa
@@ -151,7 +151,7 @@ main {
         total = 0
         endub1=101
         c64scr.print("a in ncrange step -1: ")
-        for A in endub1 to 95 step -1 {
+        for A in endub1 downto 95 {
             aa=A
             count++
             total += aa
@@ -272,7 +272,7 @@ main {
         count = 0
         total = 0
         c64scr.print("ubyte var in range step -1: ")
-        for ub in 20 to 10 step -1 {
+        for ub in 20 downto 10 step -1 {
             count++
             total += ub
         }
@@ -346,7 +346,7 @@ main {
         total = 0
         endub1=101
         c64scr.print("ubyte var in ncrange step -1: ")
-        for ub in endub1 to 95 step -1 {
+        for ub in endub1 downto 95 {
             count++
             total += ub
         }
@@ -414,7 +414,7 @@ main {
         count = 0
         total = 0
         c64scr.print("byte var in arrayliteral: ")
-        for bb in [1,3,5,99] {
+        for bb in [1,3,5,99] {          ; TODO now gives compiler error, fix byte var array literal conversion
             count++
             total += bb
         }
@@ -450,7 +450,7 @@ main {
         count = 0
         total = 0
         c64scr.print("byte var in range step -1: ")
-        for bb in 20 to 10 step -1 {
+        for bb in 20 downto 10 {
             count++
             total += bb
         }
@@ -524,7 +524,7 @@ main {
         total = 0
         endb1=101
         c64scr.print("byte var in ncrange step -1: ")
-        for bb in endb1 to 95 step -1 {
+        for bb in endb1 downto 95 {
             count++
             total += bb
         }
@@ -645,7 +645,7 @@ main {
         count = 0
         totaluw = 0
         c64scr.print("uword var in range step -1: ")
-        for uw in 2000 to 1500 step -1 {
+        for uw in 2000 downto 1500 {
             count++
             totaluw += uw
         }
@@ -718,7 +718,7 @@ main {
         count = 0
         totaluw = 0
         c64scr.print("uword var in ncrange step -1: ")
-        for uw in enduw1 to 16500 step -1 {
+        for uw in enduw1 downto 16500 {
             count++
             totaluw += uw
         }
@@ -790,7 +790,7 @@ main {
         count = 0
         total = 0
         c64scr.print("word var in arrayliteral: ")
-        for ww in [1111,3333,555,999] {
+        for ww in [1111,3333,555,999] {     ; TODO now compiler error, fix word var array literal conversion
             count++
             total += ww
         }
@@ -826,7 +826,7 @@ main {
         count = 0
         total = 0
         c64scr.print("word var in range step -1: ")
-        for ww in 1000 to -500 step -1 {
+        for ww in 1000 downto -500 {
             count++
             total += ww
         }
@@ -899,7 +899,7 @@ main {
         count = 0
         total = 0
         c64scr.print("word var in ncrange step -1: ")
-        for ww in endw1 to 16500 step -1 {
+        for ww in endw1 downto 16500 {
             count++
             total += ww
         }
@@ -967,7 +967,7 @@ main {
     sub wait_input() {
         c64scr.print("enter to continue:")
         str input = "                                        "
-        c64scr.input_chars(input)
+        void c64scr.input_chars(input)
         c64scr.print("\n\n")
     }
 }

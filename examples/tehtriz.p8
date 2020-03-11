@@ -319,19 +319,19 @@ waitkey:
         c64scr.setcc(boardOffsetX-1, boardOffsetY+boardHeight, 124, 12)
         c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY+boardHeight, 126, 12)
         ubyte i
-        for i in boardOffsetX+boardWidth-1 to boardOffsetX step -1 {
+        for i in boardOffsetX+boardWidth-1 downto boardOffsetX {
             c64scr.setcc(i, boardOffsetY-3, 255, 0)           ; invisible barrier
             c64scr.setcc(i, boardOffsetY+boardHeight, 69, 11)
         }
-        for i in boardOffsetY+boardHeight-1 to boardOffsetY step -1 {
+        for i in boardOffsetY+boardHeight-1 downto boardOffsetY {
             c64scr.setcc(boardOffsetX-1, i, 89, 11)
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
         ubyte[] colors = [6,8,7,5,4]
-        for i in len(colors)-1 to 0 step -1 {
+        for i in len(colors)-1 downto 0 {
             ubyte x
-            for x in 5 to 0 step -1 {
+            for x in 5 downto 0 {
                 c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])
             }
         }
@@ -352,7 +352,7 @@ waitkey:
         const ubyte nextBlockXpos = 29
         const ubyte nextBlockYpos = 5
         ubyte x
-        for x in nextBlockXpos+3 to nextBlockXpos step -1 {
+        for x in nextBlockXpos+3 downto nextBlockXpos {
             c64scr.setcc(x, nextBlockYpos, ' ', 0)
             c64scr.setcc(x, nextBlockYpos+1, ' ', 0)
         }
@@ -368,7 +368,7 @@ waitkey:
         const ubyte holdBlockXpos = 7
         const ubyte holdBlockYpos = 6
         ubyte x
-        for x in holdBlockXpos+3 to holdBlockXpos step -1 {
+        for x in holdBlockXpos+3 downto holdBlockXpos {
             c64scr.setcc(x, holdBlockYpos, '@', 0)
             c64scr.setcc(x, holdBlockYpos+1, '@', 0)
         }
@@ -383,7 +383,7 @@ waitkey:
 
     sub drawBlock(ubyte x, ubyte y, ubyte character) {
         ubyte i
-        for i in 15 to 0 step -1 {
+        for i in 15 downto 0 {
             ubyte c=blocklogic.currentBlock[i]
             if c
                 c64scr.setcc((i&3)+x, (i/4)+y, character, c)
@@ -532,7 +532,7 @@ blocklogic {
 
     sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
         ubyte i
-        for i in 15 to 0 step -1 {
+        for i in 15 downto 0 {
             if currentBlock[i] and c64scr.getchr(xpos + (i&3), ypos+i/4)!=32
                 return false
         }
@@ -558,7 +558,7 @@ blocklogic {
     sub collapse(ubyte ypos) {
         while(ypos>main.startYpos+1) {
             ubyte x
-            for x in main.boardOffsetX+main.boardWidth-1 to main.boardOffsetX step -1 {
+            for x in main.boardOffsetX+main.boardWidth-1 downto main.boardOffsetX {
                 ubyte char = c64scr.getchr(x, ypos-1)
                 ubyte color = c64scr.getclr(x, ypos-1)
                 c64scr.setcc(x, ypos, char, color)

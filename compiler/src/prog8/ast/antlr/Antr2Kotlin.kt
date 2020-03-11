@@ -503,7 +503,8 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
     if(funcall!=null) return funcall
 
     if (rangefrom!=null && rangeto!=null) {
-        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, 1, toPosition())
+        val defaultstep = if(rto.text == "to") 1 else -1
+        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, defaultstep, toPosition())
         return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 

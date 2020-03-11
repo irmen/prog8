@@ -138,7 +138,7 @@ main {
         ; (simple bubble sort as it's only 8 items to sort)
         ubyte i
         ubyte i1
-        for i in 6 to 0 step -1 {
+        for i in 6 downto 0 {
             for i1 in 0 to i {
                 ubyte i2 = i1+1
                 if(rotatedz[i1] > rotatedz[i2]) {

@@ -341,9 +341,16 @@ The following names are reserved, they have a special meaning::
 Range expression
 ^^^^^^^^^^^^^^^^
 
-A special value is the *range expression* ( ``<startvalue>  to  <endvalue>`` )
-which represents a range of numbers or characters,
-from the starting value to (and including) the ending value.
+A special value is the *range expression* which represents a range of numbers or characters,
+from the starting value to (and including) the ending value::
+
+    <start>  to  <end>   [ step  <step> ]
+    <start>  downto  <end>   [ step  <step> ]
+
+You an provide a step value if you need something else than the default increment which is one (or,
+in case of downto, a decrement of one).   Because a step of minus one is so common you can just use
+the downto variant to avoid having to specify the step as well.
+
 If used in the place of a literal value, it expands into the actual array of values::
 
 	byte[] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
