@@ -713,9 +713,13 @@ sum(x)
 
 sort(array)
     Sort the array in ascending order (in-place)
+    Note: sorting a floating-point array is not supported right now, as a general sorting routine for this will
+    be extremely slow. Either build one yourself or find another solution that doesn't require sorting
+    floating point values.
 
 reverse(array)
-    Reverse the values in the array (in-place). Can be used after sort() to sort an array in descending order.
+    Reverse the values in the array (in-place). Supports all data types including floats.
+    Can be used after sort() to sort an array in descending order.
 
 len(x)
     Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).

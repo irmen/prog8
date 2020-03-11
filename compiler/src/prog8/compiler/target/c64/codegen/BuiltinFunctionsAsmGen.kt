@@ -512,7 +512,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             """)
                             asmgen.out(if(decl.datatype==DataType.ARRAY_UW) "  jsr  prog8_lib.sort_uw" else "  jsr  prog8_lib.sort_w")
                         }
-                        DataType.ARRAY_F -> TODO("sort floats (consider another solution if possible - this will be very slow, if ever implemented)")
+                        DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
                         else -> throw AssemblyError("weird type")
                     }
                 }

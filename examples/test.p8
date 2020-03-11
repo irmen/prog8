@@ -117,6 +117,8 @@ main {
 
         float[]  fa = [1.1, 2.2, 3.3, 4.4, 5.5]
         reverse(fa)
+        sort(uww3)
+        sort(fa)
         for ub in 0 to len(fa)-1 {
             c64flt.print_f(fa[ub])
             c64scr.print(",")

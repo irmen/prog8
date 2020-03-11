@@ -826,10 +826,18 @@ internal class AstChecker(private val program: Program,
                 printWarning("result values of subroutine call are discarded (use void?)", functionCallStatement.position)
         }
 
+        if(functionCallStatement.target.nameInSource.last() == "sort") {
+            // sort is not supported on float arrays
+            val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
+            if(idref!=null && idref.inferType(program).istype(DataType.ARRAY_F)) {
+                checkResult.add(ExpressionError("sorting a floating point array is not supported", functionCallStatement.args.first().position))
+            }
+        }
+
         if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
             if(functionCallStatement.args.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
-                checkResult.add(ExpressionError("can't use that as argument to a in-place modifying function", functionCallStatement.position))
+                checkResult.add(ExpressionError("can't use that as argument to a in-place modifying function", functionCallStatement.args.first().position))
             }
         }
         super.visit(functionCallStatement)
