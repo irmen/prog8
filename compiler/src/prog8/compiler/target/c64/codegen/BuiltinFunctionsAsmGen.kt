@@ -546,7 +546,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                 jsr  prog8_lib.reverse_w
                             """)
                         }
-                        DataType.ARRAY_F -> TODO("reverse floats (consider another solution if possible - this will be quite slow, if ever implemented)")
+                        DataType.ARRAY_F -> {
+                            asmgen.out("""
+                                lda  #<$varName
+                                ldy  #>$varName
+                                sta  ${C64Zeropage.SCRATCH_W1}
+                                sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                lda  #$numElements
+                                jsr  prog8_lib.reverse_f
+                            """)
+                        }
                         else -> throw AssemblyError("weird type")
                     }
                 }

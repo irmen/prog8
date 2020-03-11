@@ -16,7 +16,7 @@ import kotlin.math.floor
 
 /*
     TODO: remove unreachable code?
-    TODO: proper inlining of tiny subroutines (correctly renaming/relocating all variables in them and refs to those as well, or restrict to subs without variables?)
+    TODO: proper inlining of tiny subroutines (at first, restrict to subs without parameters and variables in them, and build it up from there: correctly renaming/relocating all variables in them and refs to those as well)
 */
 
 
@@ -263,7 +263,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                printWarning("condition is always true", ifStatement.position)  // TODO don't warn this if the condition is just the single value 'true'
+                printWarning("condition is always true", ifStatement.position)
                 optimizationsDone++
                 ifStatement.truepart
             } else {

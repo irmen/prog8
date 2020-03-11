@@ -13,7 +13,7 @@ import kotlin.math.pow
 /*
     todo add more expression optimizations
 
-    Also see  https://egorbo.com/peephole-optimizations.html
+    Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
  */
 

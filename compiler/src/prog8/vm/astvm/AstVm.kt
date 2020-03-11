@@ -222,7 +222,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                     when {
                         jx.generatedLabel != null -> {
                             val label = entrypoint.getLabelOrVariable(jx.generatedLabel) as Label
-                            TODO("generatedlabel $label")
+                            TODO("astvm handle generatedlabel $label")
                         }
                         jx.identifier != null -> {
                             when (val jumptarget = entrypoint.lookup(jx.identifier.nameInSource, jx.identifier.parent)) {
@@ -359,7 +359,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                         }
                     }
                     else -> {
-                        TODO("weird call $target")
+                        throw VmExecutionException("weird call target $target")
                     }
                 }
             }
@@ -467,7 +467,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                     BranchCondition.NE, BranchCondition.NZ -> if(statusflags.zero) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
                     BranchCondition.MI, BranchCondition.NEG -> if(statusflags.negative) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
                     BranchCondition.PL, BranchCondition.POS -> if(statusflags.negative) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
-                    BranchCondition.VS, BranchCondition.VC -> TODO("overflow status")
+                    BranchCondition.VS, BranchCondition.VC -> TODO("astvm branch on overflow status")
                 }
             }
             is ForLoop -> {
@@ -544,7 +544,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                 }
             }
             else -> {
-                TODO("implement $stmt")
+                TODO("astvm implement statement $stmt")
             }
         }
     }
@@ -649,7 +649,7 @@ class AstVm(val program: Program, compilationTarget: String) {
             target.register != null -> {
                 runtimeVariables.set(program.namespace, target.register.name, value)
             }
-            else -> TODO("assign $target")
+            else -> TODO("assign weird target $target")
         }
     }
 
@@ -775,7 +775,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                 val numericpart = argString.takeWhile { it.isDigit() }
                 result = RuntimeValueNumeric(DataType.UWORD, numericpart.toInt() and 65535)
             }
-            else -> TODO("syscall  ${sub.scopedname} $sub")
+            else -> TODO("astvm implement syscall  ${sub.scopedname} $sub")
         }
 
         return result
@@ -996,7 +996,7 @@ class AstVm(val program: Program, compilationTarget: String) {
                     else -> RuntimeValueNumeric(DataType.BYTE, 1)
                 }
             }
-            else -> TODO("builtin function $name")
+            else -> TODO("astvm implement builtin function $name")
         }
     }
 }

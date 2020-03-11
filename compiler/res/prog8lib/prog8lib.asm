@@ -1577,96 +1577,182 @@ _work3	.word  0
 reverse_b	.proc
 		; --- reverse an array of bytes (in-place)
 		; inputs:  pointer to array in c64.SCRATCH_ZPWORD1, length in A
-_left_index = c64.SCRATCH_ZPWORD2
-_right_index = c64.SCRATCH_ZPWORD2+1
-		pha
+_index_right = c64.SCRATCH_ZPWORD2
+_index_left = c64.SCRATCH_ZPWORD2+1
+_loop_count = c64.SCRATCH_ZPREG
+		sta  _loop_count
+		lsr  _loop_count
 		sec
 		sbc  #1
-		sta  _left_index
+		sta  _index_right
 		lda  #0
+		sta  _index_left
+_loop		ldy  _index_right
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		ldy  _index_left
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _index_right
+		sta  (c64.SCRATCH_ZPWORD1),y
+		pla
+		ldy  _index_left
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _index_left
+		dec  _index_right
+		dec  _loop_count
+		bne  _loop
+		rts
+		.pend
+
+
+reverse_f	.proc
+		; --- reverse an array of floats
+_left_index = c64.SCRATCH_ZPWORD2
+_right_index = c64.SCRATCH_ZPWORD2+1
+_loop_count = c64.SCRATCH_ZPREG
+		pha
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG		; *5 because float
+		sec
+		sbc  #5
 		sta  _right_index
+		lda  #0
+		sta  _left_index
 		pla
 		lsr  a
-		tay
-_loop		sty  c64.SCRATCH_ZPREG
+		sta  _loop_count
+_loop		; push the left indexed float on the stack
 		ldy  _left_index
 		lda  (c64.SCRATCH_ZPWORD1),y
 		pha
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		; copy right index float to left index float
 		ldy  _right_index
 		lda  (c64.SCRATCH_ZPWORD1),y
 		ldy  _left_index
 		sta  (c64.SCRATCH_ZPWORD1),y
-		pla
-		ldy  _right_index
-		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _left_index
 		inc  _right_index
-		dec  _left_index
-		ldy  c64.SCRATCH_ZPREG
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _left_index
+		inc  _right_index
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _left_index
+		inc  _right_index
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _left_index
+		inc  _right_index
+		ldy  _right_index
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ldy  _left_index
+		sta  (c64.SCRATCH_ZPWORD1),y
+		; pop the float off the stack into the right index float
+		ldy  _right_index
+		pla
+		sta  (c64.SCRATCH_ZPWORD1),y
 		dey
+		pla
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		pla
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		pla
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		pla
+		sta  (c64.SCRATCH_ZPWORD1),y
+		inc  _left_index
+		lda  _right_index
+		sec
+		sbc  #9
+		sta  _right_index
+		dec  _loop_count
 		bne  _loop
 		rts
+
 		.pend
 
 
 reverse_w	.proc
 		; --- reverse an array of words (in-place)
 		; inputs:  pointer to array in c64.SCRATCH_ZPWORD1, length in A
-_left_index = c64.SCRATCH_ZPWORD2
-_right_index = c64.SCRATCH_ZPWORD2+1
+_index_first = c64.SCRATCH_ZPWORD2
+_index_second = c64.SCRATCH_ZPWORD2+1
+_loop_count = c64.SCRATCH_ZPREG
 		pha
 		asl  a     ; *2 because words
 		sec
 		sbc  #2
-		sta  _left_index
+		sta  _index_first
 		lda  #0
-		sta  _right_index
+		sta  _index_second
 		pla
 		lsr  a
 		pha
-		tay
+		sta  _loop_count
 		; first reverse the lsbs
-_loop_lo	sty  c64.SCRATCH_ZPREG
-		ldy  _left_index
+_loop_lo	ldy  _index_first
 		lda  (c64.SCRATCH_ZPWORD1),y
 		pha
-		ldy  _right_index
+		ldy  _index_second
 		lda  (c64.SCRATCH_ZPWORD1),y
-		ldy  _left_index
+		ldy  _index_first
 		sta  (c64.SCRATCH_ZPWORD1),y
 		pla
-		ldy  _right_index
+		ldy  _index_second
 		sta  (c64.SCRATCH_ZPWORD1),y
-		inc  _right_index
-		inc  _right_index
-		dec  _left_index
-		dec  _left_index
-		ldy  c64.SCRATCH_ZPREG
-		dey
+		inc  _index_second
+		inc  _index_second
+		dec  _index_first
+		dec  _index_first
+		dec  _loop_count
 		bne  _loop_lo
 		; now reverse the msbs
-		dec  _right_index
-		inc  _left_index
-		inc  _left_index
-		inc  _left_index
+		dec  _index_second
+		inc  _index_first
+		inc  _index_first
+		inc  _index_first
 		pla
-		tay
-_loop_hi	sty  c64.SCRATCH_ZPREG
-		ldy  _left_index
+		sta  _loop_count
+_loop_hi	ldy  _index_first
 		lda  (c64.SCRATCH_ZPWORD1),y
 		pha
-		ldy  _right_index
+		ldy  _index_second
 		lda  (c64.SCRATCH_ZPWORD1),y
-		ldy  _left_index
+		ldy  _index_first
 		sta  (c64.SCRATCH_ZPWORD1),y
 		pla
-		ldy  _right_index
+		ldy  _index_second
 		sta  (c64.SCRATCH_ZPWORD1),y
-		dec  _right_index
-		dec  _right_index
-		inc  _left_index
-		inc  _left_index
-		ldy  c64.SCRATCH_ZPREG
-		dey
+		dec  _index_second
+		dec  _index_second
+		inc  _index_first
+		inc  _index_first
+		dec  _loop_count
 		bne  _loop_hi
 
 		rts
