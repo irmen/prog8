@@ -22,7 +22,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
 
     override fun visit(assignment: Assignment): Statement {
         if (assignment.aug_op != null)
-            throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
+            throw AstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
         return super.visit(assignment)
     }
 

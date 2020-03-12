@@ -424,7 +424,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
 
     override fun visit(assignment: Assignment): Statement {
         if(assignment.aug_op!=null)
-            throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
+            throw AstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
 
         if(assignment.target isSameAs assignment.value) {
             if(assignment.target.isNotMemory(program.namespace)) {

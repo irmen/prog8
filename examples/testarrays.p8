@@ -12,7 +12,7 @@ main {
         return
 
         str  s1 = "hello"
-        str  s2 = "screencodes" ; TODO as c64sc
+        str  s2 = @"screencodes"
 
         &str  ms1 = $c000
 

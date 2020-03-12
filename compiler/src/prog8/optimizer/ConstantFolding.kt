@@ -5,8 +5,6 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
-import prog8.ast.processing.fixupArrayEltDatatypesFromVardecl
-import prog8.ast.processing.fixupArrayEltDatatypes
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
@@ -76,11 +74,11 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program).typeOrElse(DataType.UBYTE)
                             if(eltType in ByteDatatypes) {
-                                decl.value = ArrayLiteralValue(decl.datatype,
+                                decl.value = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
                                         constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),
                                         position = decl.value!!.position)
                             } else {
-                                decl.value = ArrayLiteralValue(decl.datatype,
+                                decl.value = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
                                         constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }.toTypedArray(),
                                         position = decl.value!!.position)
                             }
@@ -116,7 +114,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         }
                         // create the array itself, filled with the fillvalue.
                         val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
-                        val refValue = ArrayLiteralValue(decl.datatype, array, position = numericLv.position)
+                        val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                         decl.value = refValue
                         refValue.parent=decl
                         optimizationsDone++
@@ -137,7 +135,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         else {
                             // create the array itself, filled with the fillvalue.
                             val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
-                            val refValue = ArrayLiteralValue(DataType.ARRAY_F, array, position = litval.position)
+                            val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_F), array, position = litval.position)
                             decl.value = refValue
                             refValue.parent=decl
                             optimizationsDone++
@@ -629,14 +627,18 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     }
 
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
+        // because constant folding can result in arrays that are now suddenly capable
+        // of telling the type of all their elements (for instance, when they contained -2 which
+        // was a prefix expression earlier), we recalculate the array's datatype.
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
-            val vardecl = array.parent as? VarDecl
-            return if (vardecl!=null) {
-                fixupArrayEltDatatypesFromVardecl(array, vardecl)
-            } else {
-                // it's not an array associated with a vardecl, attempt to guess the data type from the array values
-                fixupArrayEltDatatypes(array, program)
+            if(array.type.isKnown)
+                return array
+            val arrayDt = array.guessDatatype(program)
+            if(arrayDt.isKnown) {
+                val newArray = arrayLiteral.cast(arrayDt.typeOrElse(DataType.STRUCT))
+                if(newArray!=null)
+                    return newArray
             }
         }
         return array

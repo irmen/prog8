@@ -414,7 +414,7 @@ main {
         count = 0
         total = 0
         c64scr.print("byte var in arrayliteral: ")
-        for bb in [1,3,5,99] {          ; TODO now gives compiler error, fix byte var array literal conversion
+        for bb in [1,3,5,99] {
             count++
             total += bb
         }
@@ -790,7 +790,7 @@ main {
         count = 0
         total = 0
         c64scr.print("word var in arrayliteral: ")
-        for ww in [1111,3333,555,999] {     ; TODO now compiler error, fix word var array literal conversion
+        for ww in [1111,3333,555,999] {
             count++
             total += ww
         }

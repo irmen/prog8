@@ -5,10 +5,7 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
-import prog8.ast.statements.ArrayIndex
-import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
@@ -454,7 +451,7 @@ class StringLiteralValue(val value: String,
     }
 }
 
-class ArrayLiteralValue(val type: DataType,     // only array types
+class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred because not all array literals hava a known type yet
                         val value: Array<Expression>,
                         override val position: Position) : Expression() {
     override lateinit var parent: Node
@@ -470,7 +467,8 @@ class ArrayLiteralValue(val type: DataType,     // only array types
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun toString(): String = "$value"
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
+    override fun inferType(program: Program): InferredTypes.InferredType = if(type.isUnknown) type else guessDatatype(program)
+
     operator fun compareTo(other: ArrayLiteralValue): Int = throw ExpressionError("cannot order compare arrays", position)
     override fun hashCode(): Int = Objects.hash(value, type)
     override fun equals(other: Any?): Boolean {
@@ -479,8 +477,36 @@ class ArrayLiteralValue(val type: DataType,     // only array types
         return type==other.type && value.contentEquals(other.value)
     }
 
+    fun guessDatatype(program: Program): InferredTypes.InferredType {
+        // Educated guess of the desired array literal's datatype.
+        // If it's inside a for loop, assume the data type of the loop variable is what we want.
+        val forloop = parent as? ForLoop
+        if(forloop != null)  {
+            val loopvarDt = forloop.loopVarDt(program)
+            if(loopvarDt.isKnown) {
+                return if(loopvarDt.typeOrElse(DataType.STRUCT) !in ElementArrayTypes)
+                    InferredTypes.InferredType.unknown()
+                else
+                    InferredTypes.InferredType.known(ElementArrayTypes.getValue(loopvarDt.typeOrElse(DataType.STRUCT)))
+            }
+        }
+
+        // otherwise, select the "biggegst" datatype based on the elements in the array.
+        val datatypesInArray = value.map { it.inferType(program) }
+        require(datatypesInArray.isNotEmpty() && datatypesInArray.all { it.isKnown }) { "can't determine type of empty array" }
+        val dts = datatypesInArray.map { it.typeOrElse(DataType.STRUCT) }
+        return when {
+            DataType.FLOAT in dts -> InferredTypes.InferredType.known(DataType.ARRAY_F)
+            DataType.WORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_W)
+            DataType.UWORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
+            DataType.BYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_B)
+            DataType.UBYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UB)
+            else -> InferredTypes.InferredType.unknown()
+        }
+    }
+
     fun cast(targettype: DataType): ArrayLiteralValue? {
-        if(type==targettype)
+        if(type.istype(targettype))
             return this
         if(targettype in ArrayDatatypes) {
             val elementType = ArrayElementTypes.getValue(targettype)
@@ -499,7 +525,7 @@ class ArrayLiteralValue(val type: DataType,     // only array types
                     }
                 }
             }.toTypedArray()
-            return ArrayLiteralValue(targettype, castArray, position = position)
+            return ArrayLiteralValue(InferredTypes.InferredType.known(targettype), castArray, position = position)
         }
         return null    // invalid type conversion from $this to $targettype
     }

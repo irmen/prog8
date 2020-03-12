@@ -225,22 +225,34 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(returnStmt)
     }
 
+
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {
             val vardecl = array.parent as? VarDecl
-            return if(vardecl!=null)
-                fixupArrayEltDatatypesFromVardecl(array, vardecl)
+            // adjust the datatype of the array (to an educated guess)
+            if(vardecl!=null) {
+                val arrayDt = array.type
+                if(!arrayDt.istype(vardecl.datatype)) {
+                    val cast = array.cast(vardecl.datatype)
+                    if (cast != null) {
+                        vardecl.value = cast
+                        cast.linkParents(vardecl)
+                        return cast
+                    }
+                }
+                return array
+            }
             else {
-                // fix the datatype of the array (also on the heap) to the 'biggest' datatype in the array
-                // (we don't know the desired datatype here exactly so we guess)
-                val datatype = determineArrayDt(array.value)
-                val litval2 = array.cast(datatype)
-                if(litval2!=null) {
-                    litval2.parent = array.parent
-                    // finally, replace the literal array by a identifier reference.
-                    makeIdentifierFromRefLv(litval2)
-                } else array
+                val arrayDt = array.guessDatatype(program)
+                if(arrayDt.isKnown) {
+                    // this array literal is part of an expression, turn it into an identifier reference
+                    val litval2 = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
+                    return if (litval2 != null) {
+                        litval2.parent = array.parent
+                        makeIdentifierFromRefLv(litval2)
+                    } else array
+                }
             }
         }
         return array
@@ -259,20 +271,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
                 makeIdentifierFromRefLv(string)  // replace the literal string by a identifier reference.
         }
         return string
-    }
-
-    private fun determineArrayDt(array: Array<Expression>): DataType {
-        val datatypesInArray = array.map { it.inferType(program) }
-        require(datatypesInArray.isNotEmpty() && datatypesInArray.all { it.isKnown }) { "can't determine type of empty array" }
-        val dts = datatypesInArray.map { it.typeOrElse(DataType.STRUCT) }
-        return when {
-            DataType.FLOAT in dts -> DataType.ARRAY_F
-            DataType.WORD in dts -> DataType.ARRAY_W
-            DataType.UWORD in dts -> DataType.ARRAY_UW
-            DataType.BYTE in dts -> DataType.ARRAY_B
-            DataType.UBYTE in dts -> DataType.ARRAY_UB
-            else -> throw IllegalArgumentException("can't determine type of array")
-        }
     }
 
     private fun makeIdentifierFromRefLv(array: ArrayLiteralValue): IdentifierReference {
@@ -349,47 +347,4 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         }
     }
 
-}
-
-internal fun fixupArrayEltDatatypes(array: ArrayLiteralValue, program: Program): ArrayLiteralValue {
-    val dts = array.value.map {it.inferType(program).typeOrElse(DataType.STRUCT)}.toSet()
-    if(dts.any { it !in NumericDatatypes }) {
-        return array
-    }
-    val dt = when {
-        DataType.FLOAT in dts -> DataType.ARRAY_F
-        DataType.WORD in dts -> DataType.ARRAY_W
-        DataType.UWORD in dts -> DataType.ARRAY_UW
-        DataType.BYTE in dts -> DataType.ARRAY_B
-        else -> DataType.ARRAY_UB
-    }
-    if(dt==array.type)
-        return array
-
-    // convert values and array type
-    val elementType = ArrayElementTypes.getValue(dt)
-    val allNumerics = array.value.all { it is NumericLiteralValue }
-    if(allNumerics) {
-        val values = array.value.map { (it as NumericLiteralValue).cast(elementType) as Expression }.toTypedArray()
-        val array2 = ArrayLiteralValue(dt, values, array.position)
-        array2.linkParents(array.parent)
-        return array2
-    }
-
-    return array
-}
-
-internal fun fixupArrayEltDatatypesFromVardecl(array: ArrayLiteralValue, vardecl: VarDecl): ArrayLiteralValue {
-    val arrayDt = array.type
-    if(arrayDt!=vardecl.datatype) {
-        // fix the datatype of the array (also on the heap) to match the vardecl
-        val cast = array.cast(vardecl.datatype)
-        if (cast != null) {
-            vardecl.value = cast
-            cast.linkParents(vardecl)
-            return cast
-        }
-        // can't be casted yet, attempt again later
-    }
-    return array
 }

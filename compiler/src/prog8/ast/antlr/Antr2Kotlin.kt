@@ -476,7 +476,7 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                     val array = litval.arrayliteral().toAst()
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
                     // the ConstantFold takes care of that and converts the type if needed.
-                    ArrayLiteralValue(DataType.ARRAY_UB, array, position = litval.toPosition())
+                    ArrayLiteralValue(InferredTypes.InferredType.unknown(), array, position = litval.toPosition())
                 }
                 litval.structliteral()!=null -> {
                     val values = litval.structliteral().expression().map { it.toAst() }

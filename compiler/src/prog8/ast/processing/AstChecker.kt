@@ -686,11 +686,13 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(array: ArrayLiteralValue) {
-        if(!compilerOptions.floats && array.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
-            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", array.position))
+        if(array.type.isKnown) {
+            if (!compilerOptions.floats && array.type.typeOrElse(DataType.STRUCT) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+                checkResult.add(SyntaxError("floating point used, but that is not enabled via options", array.position))
+            }
+            val arrayspec = ArrayIndex.forArray(array)
+            checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), null, arrayspec, array)
         }
-        val arrayspec = ArrayIndex.forArray(array)
-        checkValueTypeAndRangeArray(array.type, null, arrayspec, array)
 
         super.visit(array)
     }
@@ -1064,11 +1066,15 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError(msg, value.position))
             return false
         }
+
+        if(value.type.isUnknown)
+            return err("attempt to check values of array with as yet unknown datatype")
+
         when (targetDt) {
             DataType.STR -> return err("string value expected")
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arraysize (of all constant values), or a range
-                if(value.type==targetDt) {
+                if(value.type.istype(targetDt)) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.size()
@@ -1090,7 +1096,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word arraysize, or a range
-                if(value.type==targetDt) {
+                if(value.type.istype(targetDt)) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.size()
@@ -1112,7 +1118,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arraysize
-                if(value.type==targetDt) {
+                if(value.type.istype(targetDt)) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySize = value.value.size
@@ -1138,7 +1144,7 @@ internal class AstChecker(private val program: Program,
                 return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }
             DataType.STRUCT -> {
-                if(value.type in ArrayDatatypes) {
+                if(value.type.typeOrElse(DataType.STRUCT) in ArrayDatatypes) {
                     if(value.value.size != struct!!.numberOfElements)
                         return err("number of values is not the same as the number of members in the struct")
                     for(elt in value.value.zip(struct.statements)) {

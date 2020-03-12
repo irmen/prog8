@@ -126,6 +126,13 @@ val ArrayElementTypes = mapOf(
         DataType.ARRAY_W to DataType.WORD,
         DataType.ARRAY_UW to DataType.UWORD,
         DataType.ARRAY_F to DataType.FLOAT)
+val ElementArrayTypes = mapOf(
+        DataType.BYTE to DataType.ARRAY_B,
+        DataType.UBYTE to DataType.ARRAY_UB,
+        DataType.WORD to DataType.ARRAY_W,
+        DataType.UWORD to DataType.ARRAY_UW,
+        DataType.FLOAT to DataType.ARRAY_F
+)
 
 // find the parent node of a specific type or interface
 // (useful to figure out in what namespace/block something is defined, etc)

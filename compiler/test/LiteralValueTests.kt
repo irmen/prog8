@@ -5,6 +5,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
 import kotlin.test.assertEquals
@@ -96,9 +97,9 @@ class TestParserNumericLiteralValue {
         val lvTwoR = NumericLiteralValue(DataType.UBYTE, 2, dummyPos)
         val lvThreeR = NumericLiteralValue(DataType.UBYTE, 3, dummyPos)
         val lvFour= NumericLiteralValue(DataType.UBYTE, 4, dummyPos)
-        val lv1 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOne, lvTwo, lvThree), dummyPos)
-        val lv2 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
-        val lv3 = ArrayLiteralValue(DataType.ARRAY_UB, arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
+        val lv1 = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOne, lvTwo, lvThree), dummyPos)
+        val lv2 = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
+        val lv3 = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
         assertEquals(lv1, lv2)
         assertNotEquals(lv1, lv3)
     }

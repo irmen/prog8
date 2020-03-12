@@ -42,7 +42,7 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
         if(decl.isArray && decl.value==null) {
             // array datatype without initialization value, add list of zeros
             val arraysize = decl.arraysize!!.size()!!
-            val array = ArrayLiteralValue(decl.datatype,
+            val array = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
                     Array(arraysize) { NumericLiteralValue.optimalInteger(0, decl.position) },
                     decl.position)
             decl.value = array
