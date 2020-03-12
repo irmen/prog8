@@ -68,13 +68,7 @@ main {
         c64scr.print("v1 = v2 = 0\n")
         compare()
 
-        ubyte endX = X
-        if endX == 255
-            c64scr.print("\nstack x ok!\n")
-        else
-            c64scr.print("\nerror: stack x != 255 !\n")
-
-
+        check_eval_stack()
         return
 
     sub compare() {
@@ -115,4 +109,12 @@ main {
 
     }
 
+    sub check_eval_stack() {
+        c64scr.print("stack x=")
+        c64scr.print_ub(X)
+        if X==255
+            c64scr.print(" ok\n")
+        else
+            c64scr.print(" error!\n")
+    }
 }

@@ -960,8 +960,7 @@ main {
         else
             c64scr.print("fail!!!\n")
 
-        ubyte xx=X
-        c64scr.print_uw(xx)
+        check_eval_stack()
     }
 
     sub wait_input() {
@@ -969,5 +968,14 @@ main {
         str input = "                                        "
         void c64scr.input_chars(input)
         c64scr.print("\n\n")
+    }
+
+
+    sub check_eval_stack() {
+        if X!=255 {
+            c64scr.print("stack x=")
+            c64scr.print_ub(X)
+            c64scr.print(" error!\n")
+        }
     }
 }

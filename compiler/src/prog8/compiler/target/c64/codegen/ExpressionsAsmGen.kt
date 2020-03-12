@@ -158,7 +158,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     private fun translateExpression(expr: RegisterExpr) {
         when(expr.register) {
             Register.A -> asmgen.out(" sta  $ESTACK_LO_HEX,x | dex")
-            Register.X -> throw AssemblyError("cannot push X - use a variable instead of the X register")
+            Register.X -> asmgen.out(" txa |  sta  $ESTACK_LO_HEX,x | dex")
             Register.Y -> asmgen.out(" tya |  sta  $ESTACK_LO_HEX,x | dex")
         }
     }

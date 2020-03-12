@@ -9,22 +9,27 @@ main {
         div_ubyte(0, 1, 0)
         div_ubyte(100, 6, 16)
         div_ubyte(255, 2, 127)
+        check_eval_stack()
 
         div_byte(0, 1, 0)
         div_byte(100, -6, -16)
         div_byte(127, -2, -63)
+        check_eval_stack()
 
         div_uword(0,1,0)
         div_uword(40000,500,80)
         div_uword(43211,2,21605)
+        check_eval_stack()      ; TODO fix stack error  (caused by print_uw)
 
         div_word(0,1,0)
         div_word(-20000,500,-40)
         div_word(-2222,2,-1111)
+        check_eval_stack()      ; TODO fix stack error  (caused by print_w)
 
         div_float(0,1,0)
         div_float(999.9,111.0,9.008108108108107)
 
+        check_eval_stack()      ; TODO should no longer give error once the above is fixed
     }
 
     sub div_ubyte(ubyte a1, ubyte a2, ubyte c) {
@@ -64,7 +69,7 @@ main {
         else
             c64scr.print("err! ")
         c64scr.print("uword ")
-        c64scr.print_uw(a1)
+        c64scr.print_uw(a1)     ; TODO print_uw causes X stack error
         c64scr.print(" / ")
         c64scr.print_uw(a2)
         c64scr.print(" = ")
@@ -79,7 +84,7 @@ main {
         else
             c64scr.print("err! ")
         c64scr.print("word ")
-        c64scr.print_w(a1)
+        c64scr.print_w(a1)     ; TODO print_w causes X stack error
         c64scr.print(" / ")
         c64scr.print_w(a2)
         c64scr.print(" = ")
@@ -101,5 +106,13 @@ main {
         c64scr.print(" = ")
         c64flt.print_f(r)
         c64.CHROUT('\n')
+    }
+
+    sub check_eval_stack() {
+        if X!=255 {
+            c64scr.print("x=")
+            c64scr.print_ub(X)
+            c64scr.print(" error!\n")
+        }
     }
 }

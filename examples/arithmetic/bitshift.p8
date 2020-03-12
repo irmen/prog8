@@ -36,7 +36,8 @@ main {
     }
 
     sub start() {
-        unimplemented()
+        ; TODO unimplemented()
+
         lsr(A)
         lsl(A)
         ror(A)
@@ -73,7 +74,7 @@ main {
         ror2(@(9999))
         rol2(@(9999))
 
-        lsl(@(9999+A))
+        lsl(@(9999+A))      ; TODO optimizer generates invalid code here -> crash
         lsr(@(9999+A))
         ror(@(9999+A))
         rol(@(9999+A))
@@ -107,5 +108,17 @@ main {
         ror(uw)
         rol2(uw)
         ror2(uw)
+
+        check_eval_stack()
     }
+
+    sub check_eval_stack() {
+        c64scr.print("x=")
+        c64scr.print_ub(X)
+        if X==255
+            c64scr.print(" ok\n")
+        else
+            c64scr.print(" error!\n")
+    }
+
 }

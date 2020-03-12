@@ -24,6 +24,8 @@ main {
         c64scr.print("number of primes (expected 54): ")
         c64scr.print_ub(amount)
         c64.CHROUT('\n')
+
+        check_eval_stack()
     }
 
 
@@ -45,5 +47,15 @@ main {
             multiple += candidate_prime
         }
         return candidate_prime
+    }
+
+
+
+    sub check_eval_stack() {
+        if X!=255 {
+            c64scr.print("stack x=")
+            c64scr.print_ub(X)
+            c64scr.print(" error!\n")
+        }
     }
 }

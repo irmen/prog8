@@ -40,6 +40,8 @@ newgame:
         spawnNextBlock()
 
 waitkey:
+        check_eval_stack()          ; TODO fix stack error
+
         if c64.TIME_LO>=(60-4*speedlevel) {
             c64.TIME_LO = 0
 
@@ -389,6 +391,16 @@ waitkey:
                 c64scr.setcc((i&3)+x, (i/4)+y, character, c)
         }
     }
+
+
+    sub check_eval_stack() {
+        if X!=255 {
+            c64scr.print("stack x=")
+            c64scr.print_ub(X)
+            c64scr.print(" error!\n")
+        }
+    }
+
 }
 
 

@@ -975,6 +975,7 @@ asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 	%asm {{
 	    stx  c64.SCRATCH_ZPREGX
 		jsr  c64utils.uword2decimal
+		ldx  c64.SCRATCH_ZPREGX
 		ldy  #0
 -		lda  c64utils.uword2decimal.decTenThousands,y
 		beq  _allzero

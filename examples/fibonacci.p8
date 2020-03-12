@@ -15,6 +15,8 @@ main {
             c64scr.print_uw(fib_next())
             c64.CHROUT('\n')
         }
+
+        check_eval_stack()      ; TODO fix stack error
     }
 
     sub fib_setup() {
@@ -31,4 +33,13 @@ main {
         current = new
         return prev
     }
+
+    sub check_eval_stack() {
+        if X!=255 {
+            c64scr.print("stack x=")
+            c64scr.print_ub(X)
+            c64scr.print(" error!\n")
+        }
+    }
+
 }

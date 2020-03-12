@@ -52,5 +52,17 @@ main {
 
         c64flt.print_f(0.0)
         c64.CHROUT('\n')
+
+        check_eval_stack()
     }
+
+
+    sub check_eval_stack() {
+        if X!=255 {
+            c64scr.print("stack x=")
+            c64scr.print_ub(X)
+            c64scr.print(" error!\n")
+        }
+    }
+
 }
