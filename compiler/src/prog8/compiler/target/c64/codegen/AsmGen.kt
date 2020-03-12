@@ -14,6 +14,7 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FunctionSignature
 import java.math.RoundingMode
@@ -178,7 +179,7 @@ internal class AsmGen(private val program: Program,
 
     internal fun makeLabel(postfix: String): String {
         generatedLabelSequenceNumber++
-        return "_prog8_label_${generatedLabelSequenceNumber}_$postfix"
+        return "${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
     }
 
     private fun outputSourceLine(node: Node) {
