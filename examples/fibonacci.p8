@@ -16,7 +16,7 @@ main {
             c64.CHROUT('\n')
         }
 
-        check_eval_stack()      ; TODO fix stack error
+        check_eval_stack()
     }
 
     sub fib_setup() {

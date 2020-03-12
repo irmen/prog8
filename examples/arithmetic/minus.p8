@@ -10,20 +10,17 @@ main {
         minus_ubyte(200, 0, 200)
         minus_ubyte(200, 100, 100)
         minus_ubyte(100, 200, 156)
-        check_eval_stack()
 
         minus_byte(0, 0, 0)
         minus_byte(100, 100, 0)
         minus_byte(50, -50, 100)
         minus_byte(0, -30, 30)
         minus_byte(-30, 0, -30)
-        check_eval_stack()
 
         minus_uword(0,0,0)
         minus_uword(50000,0, 50000)
         minus_uword(50000,20000,30000)
         minus_uword(20000,50000,35536)
-        check_eval_stack()      ; TODO fix stack error
 
         minus_word(0,0,0)
         minus_word(1000,1000,0)
@@ -31,13 +28,12 @@ main {
         minus_word(1000,500,500)
         minus_word(0,-3333,3333)
         minus_word(-3333,0,-3333)
-        check_eval_stack()      ; TODO fix stack error
 
         minus_float(0,0,0)
         minus_float(2.5,1.5,1.0)
         minus_float(-1.5,3.5,-5.0)
 
-        check_eval_stack()      ; TODO fix stack error
+        check_eval_stack()
     }
 
     sub minus_ubyte(ubyte a1, ubyte a2, ubyte c) {

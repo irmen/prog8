@@ -58,7 +58,7 @@ main {
         c64scr.print_w(-0)
         c64.CHROUT('\n')
 
-        check_eval_stack()          ; TODO fix stack error
+        check_eval_stack()
 
     }
 

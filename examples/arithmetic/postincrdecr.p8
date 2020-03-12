@@ -32,8 +32,6 @@ main {
         warr[1]++
         flarr[1] ++
 
-        check_eval_stack()
-
         check_ub(ub, 201)
         Y=100
         Y++
@@ -53,8 +51,6 @@ main {
         check_uw(uwarr[1], 2001)
         check_w(warr[1], -999)
 
-        check_eval_stack()
-
         c64scr.print("--\n")
         ub--
         bb--
@@ -67,8 +63,6 @@ main {
         warr[1]--
         flarr[1] --
         check_ub(ub, 200)
-
-        check_eval_stack()
 
         Y=100
         Y--
@@ -148,11 +142,10 @@ main {
 
 
     sub check_eval_stack() {
-        c64scr.print("x=")
-        c64scr.print_ub(X)
-        if X==255
-            c64scr.print(" ok\n")
-        else
+        if X!=255 {
+            c64scr.print("x=")
+            c64scr.print_ub(X)
             c64scr.print(" error!\n")
+        }
     }
 }

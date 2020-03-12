@@ -30,7 +30,7 @@ main {
         c64scr.print("reversed\n")
         print_arrays()
 
-        check_eval_stack()      ; TODO fix stack error
+        check_eval_stack()
         return
 
 

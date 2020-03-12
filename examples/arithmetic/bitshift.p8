@@ -36,7 +36,7 @@ main {
     }
 
     sub start() {
-        ; TODO unimplemented()
+        ; TODO call this too:   unimplemented()
 
         lsr(A)
         lsl(A)

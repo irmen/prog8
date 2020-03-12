@@ -4,8 +4,7 @@ TODO
 
 - option to load library files from a directory instead of the embedded ones
 - exit('message', returncode) function to immediately exit the program with this message (restores stack)
-- fix stack clobbering issue in postincr decr (see the arithmetic example of this)
-- vector inc/dec/add/sub/lsl/asl/mul/div
+- vector inc/dec/add/sub/lsl/asl/mul/div...?
 
 
 Memory Block Operations integrated in language?

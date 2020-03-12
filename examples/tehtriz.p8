@@ -40,7 +40,7 @@ newgame:
         spawnNextBlock()
 
 waitkey:
-        check_eval_stack()          ; TODO fix stack error
+        check_eval_stack()
 
         if c64.TIME_LO>=(60-4*speedlevel) {
             c64.TIME_LO = 0
