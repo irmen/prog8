@@ -7,88 +7,87 @@ import prog8.compiler.CompilerException
 import kotlin.math.*
 
 
-class BuiltinFunctionParam(val name: String, val possibleDatatypes: Set<DataType>)
+class FParam(val name: String, val possibleDatatypes: Set<DataType>)
 
 
 typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteralValue
 
 
-class FunctionSignature(val pure: Boolean,      // does it have side effects?
-                        val parameters: List<BuiltinFunctionParam>,
-                        val returntype: DataType?,
-                        val constExpressionFunc: ConstExpressionCaller? = null)
+class FSignature(val pure: Boolean,      // does it have side effects?
+                 val parameters: List<FParam>,
+                 val returntype: DataType?,
+                 val constExpressionFunc: ConstExpressionCaller? = null)
 
 
 val BuiltinFunctions = mapOf(
         // this set of function have no return value and operate in-place:
-    "rol"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "ror"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "rol2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
-    "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
-    "sort"        to FunctionSignature(false, listOf(BuiltinFunctionParam("array", ArrayDatatypes)), null),
-    "reverse"     to FunctionSignature(false, listOf(BuiltinFunctionParam("array", ArrayDatatypes)), null),
+    "rol"         to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "ror"         to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "rol2"        to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "ror2"        to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "lsl"         to FSignature(false, listOf(FParam("item", IntegerDatatypes)), null),
+    "lsr"         to FSignature(false, listOf(FParam("item", IntegerDatatypes)), null),
+    "sort"        to FSignature(false, listOf(FParam("array", ArrayDatatypes)), null),
+    "reverse"     to FSignature(false, listOf(FParam("array", ArrayDatatypes)), null),
         // these few have a return value depending on the argument(s):
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
-    "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
+    "max"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
+    "min"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
+    "sum"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
+    "abs"         to FSignature(true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
+    "len"         to FSignature(true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
         // normal functions follow:
-    "sgn"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
-    "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
-    "sin8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
-    "sin8u"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
-    "sin16"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
-    "sin16u"      to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinSin16u ),
-    "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::cos) },
-    "cos8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
-    "cos8u"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinCos8u ),
-    "cos16"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
-    "cos16u"      to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinCos16u ),
-    "tan"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::tan) },
-    "atan"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::atan) },
-    "ln"          to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::log) },
-    "log2"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, ::log2) },
-    "sqrt16"      to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()).toInt() } },
-    "sqrt"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sqrt) },
-    "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toRadians) },
-    "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toDegrees) },
-    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
-    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
-    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
-    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
-    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
-    "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 }},
-    "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255}},
-    "mkword"      to FunctionSignature(true, listOf(
-                                                        BuiltinFunctionParam("lsb", setOf(DataType.UBYTE)),
-                                                        BuiltinFunctionParam("msb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
-    "rnd"         to FunctionSignature(true, emptyList(), DataType.UBYTE),
-    "rndw"        to FunctionSignature(true, emptyList(), DataType.UWORD),
-    "rndf"        to FunctionSignature(true, emptyList(), DataType.FLOAT),
-    "rsave"       to FunctionSignature(false, emptyList(), null),
-    "rrestore"    to FunctionSignature(false, emptyList(), null),
-    "set_carry"   to FunctionSignature(false, emptyList(), null),
-    "clear_carry" to FunctionSignature(false, emptyList(), null),
-    "set_irqd"    to FunctionSignature(false, emptyList(), null),
-    "clear_irqd"  to FunctionSignature(false, emptyList(), null),
-    "read_flags"  to FunctionSignature(false, emptyList(), DataType.UBYTE),
-    "swap"        to FunctionSignature(false, listOf(BuiltinFunctionParam("first", NumericDatatypes), BuiltinFunctionParam("second", NumericDatatypes)), null),
-    "memcopy"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("from", IterableDatatypes + DataType.UWORD),
-                                                        BuiltinFunctionParam("to", IterableDatatypes + DataType.UWORD),
-                                                        BuiltinFunctionParam("numbytes", setOf(DataType.UBYTE))), null),
-    "memset"      to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("address", IterableDatatypes + DataType.UWORD),
-                                                        BuiltinFunctionParam("numbytes", setOf(DataType.UWORD)),
-                                                        BuiltinFunctionParam("bytevalue", ByteDatatypes)), null),
-    "memsetw"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("address", IterableDatatypes + DataType.UWORD),
-                                                        BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
-                                                        BuiltinFunctionParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
-    "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen)
+    "sgn"         to FSignature(true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
+    "sin"         to FSignature(true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
+    "sin8"        to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
+    "sin8u"       to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
+    "sin16"       to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
+    "sin16u"      to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinSin16u ),
+    "cos"         to FSignature(true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::cos) },
+    "cos8"        to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
+    "cos8u"       to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinCos8u ),
+    "cos16"       to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
+    "cos16u"      to FSignature(true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinCos16u ),
+    "tan"         to FSignature(true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::tan) },
+    "atan"        to FSignature(true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::atan) },
+    "ln"          to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::log) },
+    "log2"        to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, ::log2) },
+    "sqrt16"      to FSignature(true, listOf(FParam("value", setOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()).toInt() } },
+    "sqrt"        to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sqrt) },
+    "rad"         to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toRadians) },
+    "deg"         to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toDegrees) },
+    "round"       to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
+    "floor"       to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
+    "ceil"        to FSignature(true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
+    "any"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
+    "all"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
+    "lsb"         to FSignature(true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 }},
+    "msb"         to FSignature(true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255}},
+    "mkword"      to FSignature(true, listOf(FParam("lsb", setOf(DataType.UBYTE)), FParam("msb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
+    "rnd"         to FSignature(true, emptyList(), DataType.UBYTE),
+    "rndw"        to FSignature(true, emptyList(), DataType.UWORD),
+    "rndf"        to FSignature(true, emptyList(), DataType.FLOAT),
+    "exit"        to FSignature(false, listOf(FParam("returnvalue", setOf(DataType.UBYTE))), null),
+    "rsave"       to FSignature(false, emptyList(), null),
+    "rrestore"    to FSignature(false, emptyList(), null),
+    "set_carry"   to FSignature(false, emptyList(), null),
+    "clear_carry" to FSignature(false, emptyList(), null),
+    "set_irqd"    to FSignature(false, emptyList(), null),
+    "clear_irqd"  to FSignature(false, emptyList(), null),
+    "read_flags"  to FSignature(false, emptyList(), DataType.UBYTE),
+    "swap"        to FSignature(false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
+    "memcopy"     to FSignature(false, listOf(
+                            FParam("from", IterableDatatypes + DataType.UWORD),
+                            FParam("to", IterableDatatypes + DataType.UWORD),
+                            FParam("numbytes", setOf(DataType.UBYTE))), null),
+    "memset"      to FSignature(false, listOf(
+                            FParam("address", IterableDatatypes + DataType.UWORD),
+                            FParam("numbytes", setOf(DataType.UWORD)),
+                            FParam("bytevalue", ByteDatatypes)), null),
+    "memsetw"     to FSignature(false, listOf(
+                            FParam("address", IterableDatatypes + DataType.UWORD),
+                            FParam("numwords", setOf(DataType.UWORD)),
+                            FParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
+    "strlen"      to FSignature(true, listOf(FParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen)
 )
 
 fun builtinMax(array: List<Number>): Number = array.maxBy { it.toDouble() }!!

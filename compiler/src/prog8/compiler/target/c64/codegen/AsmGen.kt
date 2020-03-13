@@ -16,7 +16,7 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
-import prog8.functions.FunctionSignature
+import prog8.functions.FSignature
 import java.math.RoundingMode
 import java.nio.file.Path
 import java.time.LocalDate
@@ -97,11 +97,15 @@ internal class AsmGen(private val program: Program,
                 out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
+                out("  tsx")
+                out("  stx  prog8_lib.orig_stackpointer")
                 out("  jsr  prog8_lib.init_system")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
+                out("  tsx")
+                out("  stx  prog8_lib.orig_stackpointer")
                 out("  jsr  prog8_lib.init_system")
             }
             options.output == OutputType.RAW -> {
@@ -138,7 +142,6 @@ internal class AsmGen(private val program: Program,
                 out("  jmp  (c64.RESET_VEC)\t; cold reset")
             }
         }
-        out("")
     }
 
     private fun footer() {
@@ -840,7 +843,7 @@ internal class AsmGen(private val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateFunctioncallExpression(functionCall: FunctionCall, signature: FunctionSignature) =
+    internal fun translateFunctioncallExpression(functionCall: FunctionCall, signature: FSignature) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature)
 
     internal fun translateFunctionCall(functionCall: FunctionCall) =

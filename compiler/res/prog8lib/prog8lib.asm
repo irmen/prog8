@@ -651,6 +651,18 @@ greatereq_w	.proc
 		bmi  equal_b._equal_b_false
 		.pend
 
+
+orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
+
+func_exit	.proc
+		; -- immediately exit the program with a return code in the A register
+		lda  c64.ESTACK_LO+1,x
+		ldx  orig_stackpointer
+		txs
+		rts		; return to original caller
+		.pend
+
+
 func_read_flags	.proc
 		; -- put the processor status register on the stack
 		php

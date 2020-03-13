@@ -16,19 +16,19 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.compiler.toHex
 import prog8.compiler.AssemblyError
-import prog8.functions.FunctionSignature
+import prog8.functions.FSignature
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
-    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FunctionSignature) {
+    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FSignature) {
         translateFunctioncall(fcall, func, false)
     }
 
-    internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FunctionSignature) {
+    internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FSignature) {
         translateFunctioncall(fcall, func, true)
     }
 
-    private fun translateFunctioncall(fcall: IFunctionCall, func: FunctionSignature, discardResult: Boolean) {
+    private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean) {
         val functionName = fcall.target.nameInSource.last()
         if (discardResult) {
             if (func.pure)
@@ -603,7 +603,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     """)
     }
 
-    private fun translateFunctionArguments(args: MutableList<Expression>, signature: FunctionSignature) {
+    private fun translateFunctionArguments(args: MutableList<Expression>, signature: FSignature) {
         args.forEach {
             asmgen.translateExpression(it)
         }

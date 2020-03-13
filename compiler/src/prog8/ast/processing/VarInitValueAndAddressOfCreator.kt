@@ -9,7 +9,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.CompilerException
 import prog8.functions.BuiltinFunctions
-import prog8.functions.FunctionSignature
+import prog8.functions.FSignature
 
 
 internal class VarInitValueAndAddressOfCreator(private val program: Program): IAstModifyingVisitor {
@@ -129,7 +129,7 @@ internal class VarInitValueAndAddressOfCreator(private val program: Program): IA
         }
     }
 
-    private fun addAddressOfExprIfNeededForBuiltinFuncs(signature: FunctionSignature, args: MutableList<Expression>, parent: Statement) {
+    private fun addAddressOfExprIfNeededForBuiltinFuncs(signature: FSignature, args: MutableList<Expression>, parent: Statement) {
         // val paramTypesForAddressOf = PassByReferenceDatatypes + DataType.UWORD
         for(arg in args.withIndex().zip(signature.parameters)) {
             val argvalue = arg.first.value

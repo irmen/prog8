@@ -836,6 +836,10 @@ rrestore()
 read_flags()
     Returns the current value of the CPU status register.
 
+exit(returncode)
+    Immediately stops the program and exits it, with the returncode in the A register.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
 
 
 Library routines
