@@ -1049,7 +1049,7 @@ internal class AstChecker(private val program: Program,
     private fun visitStatements(statements: List<Statement>) {
         for((index, stmt) in statements.withIndex()) {
             if(stmt is FunctionCallStatement && stmt.target.nameInSource.last()=="exit") {
-                if(index < statements.size-1) {
+                if(index < statements.lastIndex) {
                     printWarning("unreachable code", statements[index+1].position, "exit call above never returns")
                 }
             }

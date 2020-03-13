@@ -21,9 +21,17 @@ main {
         c64scr.print("sp2:")
         print_stackpointer()
         exit(65)
-        sub3()          ; TODO  remove the code in optimizer
-        sub3()          ; TODO  remove the code in optimizer
-        sub3()          ; TODO  remove the code in optimizer
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
+        sub3()
     }
 
     sub sub3() {

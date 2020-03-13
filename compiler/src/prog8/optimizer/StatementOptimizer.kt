@@ -116,6 +116,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
             return NopStatement.insteadOf(subroutine)
         }
 
+        visitStatements(subroutine.statements)
         return subroutine
     }
 
@@ -564,6 +565,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
         }
+        visitStatements(scope.statements)
         return super.visit(scope)
     }
 
@@ -571,11 +573,23 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         // remove duplicate labels
         val stmts = label.definingScope().statements
         val startIdx = stmts.indexOf(label)
-        if(startIdx<(stmts.size-1) && stmts[startIdx+1] == label)
+        if(startIdx< stmts.lastIndex && stmts[startIdx+1] == label)
             return NopStatement.insteadOf(label)
 
         return super.visit(label)
     }
+
+
+    private fun visitStatements(statements: MutableList<Statement>) {
+        // remove all statements following the call to exit()
+        val exitCallIndex = statements.indexOfFirst { it is FunctionCallStatement && it.target.nameInSource.last()=="exit" }
+        if(exitCallIndex>=0) {
+            while(exitCallIndex < statements.lastIndex) {
+                statements.removeAt(statements.lastIndex)
+            }
+        }
+    }
+
 }
 
 
