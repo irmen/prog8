@@ -327,6 +327,8 @@ internal class AstChecker(private val program: Program,
                 err("Pass-by-reference types (str, array) cannot occur as a parameter type directly. Instead, use an uword for their address, or access the variable from the outer scope directly.")
             }
         }
+
+        visitStatements(subroutine.statements)
     }
 
     override fun visit(repeatLoop: RepeatLoop) {
@@ -1036,6 +1038,20 @@ internal class AstChecker(private val program: Program,
                     checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
                 if(decl.datatype !in NumericDatatypes)
                     checkResult.add(SyntaxError("structs can only contain numerical types", decl.position))
+            }
+        }
+    }
+
+    override fun visit(scope: AnonymousScope) {
+        visitStatements(scope.statements)
+    }
+
+    private fun visitStatements(statements: List<Statement>) {
+        for((index, stmt) in statements.withIndex()) {
+            if(stmt is FunctionCallStatement && stmt.target.nameInSource.last()=="exit") {
+                if(index < statements.size-1) {
+                    printWarning("unreachable code", statements[index+1].position, "exit call above never returns")
+                }
             }
         }
     }

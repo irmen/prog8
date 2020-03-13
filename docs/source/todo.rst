@@ -3,7 +3,6 @@ TODO
 ====
 
 - option to load library files from a directory instead of the embedded ones
-- compiler warning 'unreachable code' for statement following an exit() function call
 - code optimizer: remove all statements following an exit() function call
 - vector inc/dec/add/sub/mul/div...?
         arrayvar++ / arrayvar-- / arrayvar += 2 / arrayvar -= 2 / arrayvar *= 3 / arrayvar /= 3
