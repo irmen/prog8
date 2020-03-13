@@ -313,7 +313,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
      sta  (+) +1
      sty  (+) +2
      lda  $sourceName
-+    sta  ${65535.toHex()}      ; modified              
++    sta  ${'$'}ffff      ; modified              
                             """)
                     }
                 }
@@ -469,7 +469,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
      sta  (+) +1
      lda  $ESTACK_HI_HEX,x
      sta  (+) +2
-+    sty  ${65535.toHex()}      ; modified              
++    sty  ${'$'}ffff      ; modified              
                             """)
             }
         }

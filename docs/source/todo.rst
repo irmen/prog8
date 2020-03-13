@@ -4,7 +4,8 @@ TODO
 
 - option to load library files from a directory instead of the embedded ones
 - exit('message', returncode) function to immediately exit the program with this message (restores stack)
-- vector inc/dec/add/sub/lsl/asl/mul/div...?
+- vector inc/dec/add/sub/mul/div...?
+        arrayvar++ / arrayvar-- / arrayvar += 2 / arrayvar -= 2 / arrayvar *= 3 / arrayvar /= 3
 
 
 Memory Block Operations integrated in language?

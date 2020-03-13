@@ -149,7 +149,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  (+) + 1
                     lda  $ESTACK_HI_HEX,x
                     sta  (+) + 2
-+                   asl  0            ; modified                    
++                   asl  ${'$'}ffff            ; modified                    
                                     """)
                                 }
                             }
@@ -205,7 +205,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  (+) + 1
                     lda  $ESTACK_HI_HEX,x
                     sta  (+) + 2
-+                   lsr  0            ; modified                    
++                   lsr  ${'$'}ffff            ; modified                    
                                     """)
                                 }
                             }
@@ -286,7 +286,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  (+) + 1
                     lda  $ESTACK_HI_HEX,x
                     sta  (+) + 2
-+                   rol  0            ; modified                    
++                   rol  ${'$'}ffff            ; modified                    
                                     """)
                                 }
                             }
@@ -397,7 +397,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  (+) + 1
                     lda  $ESTACK_HI_HEX,x
                     sta  (+) + 2
-+                   ror  0            ; modified                    
++                   ror  ${'$'}ffff            ; modified                    
                                     """)                                }
                             }
                             is RegisterExpr -> {

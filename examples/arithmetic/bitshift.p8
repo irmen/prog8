@@ -74,7 +74,7 @@ main {
         ror2(@(9999))
         rol2(@(9999))
 
-        lsl(@(9999+A))      ; TODO optimizer generates invalid code here -> crash
+        lsl(@(9999+A))
         lsr(@(9999+A))
         ror(@(9999+A))
         rol(@(9999+A))
