@@ -996,6 +996,11 @@ class AstVm(val program: Program, compilationTarget: String) {
                     else -> RuntimeValueNumeric(DataType.BYTE, 1)
                 }
             }
+            "exit" -> {
+                val rv = args.single().numericValue()
+                dialog.canvas.printAsciiText("\n<program ended with exit($rv)>")
+                throw VmTerminationException("program ended with exit($rv)")
+            }
             else -> TODO("astvm implement builtin function $name")
         }
     }

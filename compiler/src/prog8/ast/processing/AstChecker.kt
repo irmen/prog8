@@ -1054,6 +1054,8 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+
+        // TODO warn about unreachable code following a return statement???
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {

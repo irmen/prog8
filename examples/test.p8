@@ -20,9 +20,9 @@ main {
     sub sub2() {
         c64scr.print("sp2:")
         print_stackpointer()
-        exit(65)
-        sub3()
-        sub3()
+        return
+        sub3()      ; TODO warning about unreachable code
+        sub3()      ; TODO remove statements after a return
         sub3()
         sub3()
         sub3()
@@ -40,9 +40,6 @@ main {
     }
 
     sub print_stackpointer() {
-        %asm {{
-            tsx
-        }}
         c64scr.print_ub(X)      ; prints stack pointer
         c64.CHROUT('\n')
     }

@@ -588,6 +588,8 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                 statements.removeAt(statements.lastIndex)
             }
         }
+
+        // TODO remove all statements following a 'return' statement ???
     }
 
 }
