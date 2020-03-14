@@ -1,6 +1,5 @@
 package prog8.ast.processing
 
-import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Module
 import prog8.ast.Program
@@ -1048,14 +1047,14 @@ internal class AstChecker(private val program: Program,
 
     private fun visitStatements(statements: List<Statement>) {
         for((index, stmt) in statements.withIndex()) {
-            if(stmt is FunctionCallStatement && stmt.target.nameInSource.last()=="exit") {
-                if(index < statements.lastIndex) {
-                    printWarning("unreachable code", statements[index+1].position, "exit call above never returns")
-                }
-            }
-        }
+            if(stmt is FunctionCallStatement
+                    && stmt.target.nameInSource.last()=="exit"
+                    && index < statements.lastIndex)
+                printWarning("unreachable code", statements[index+1].position, "exit call above never returns")
 
-        // TODO warn about unreachable code following a return statement???
+            if(stmt is Return && index < statements.lastIndex)
+                printWarning("unreachable code", statements[index+1].position, "return statement above")
+        }
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {

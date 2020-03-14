@@ -581,15 +581,16 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
 
 
     private fun visitStatements(statements: MutableList<Statement>) {
-        // remove all statements following the call to exit()
-        val exitCallIndex = statements.indexOfFirst { it is FunctionCallStatement && it.target.nameInSource.last()=="exit" }
-        if(exitCallIndex>=0) {
-            while(exitCallIndex < statements.lastIndex) {
-                statements.removeAt(statements.lastIndex)
-            }
-        }
-
-        // TODO remove all statements following a 'return' statement ???
+        // TODO remove all unreachable code statements after call to exit() or a return
+        // this is not yet correct because we still have nested subroutines
+//        val exitCallIndex = statements.indexOfFirst { it is FunctionCallStatement && it.target.nameInSource.last()=="exit" }
+//        if(exitCallIndex>=0) {
+//            while(exitCallIndex < statements.lastIndex) {
+//                val stmt  = statements[exitCallIndex+1]
+//                println("after exit() removing: $stmt")
+//                statements.removeAt(exitCallIndex+1)
+//            }
+//        }
     }
 
 }

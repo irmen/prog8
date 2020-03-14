@@ -95,7 +95,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         module.statements.addAll(0, directives)
 
         for(pos in addReturns) {
-            println(pos)
             val returnStmt = Return(null, pos.first.position)
             returnStmt.linkParents(pos.first as Node)
             pos.first.statements.add(pos.second, returnStmt)
