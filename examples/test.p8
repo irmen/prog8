@@ -1,8 +1,18 @@
 %zeropage basicsafe
 
-main 23232323 {
+main {
 
     sub start() {
+        if A>Y {
+            label1:
+            Y=0
+            goto label1
+        } else {
+            label2:
+            Y=1
+            goto label2
+        }
+
         c64scr.print("spstart:")
         print_stackpointer()
         sub1()

@@ -750,7 +750,7 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun translate(stmt: Label) {
-        out(stmt.name)
+        out("_${stmt.name}")        // underscore prefix to make sure it's a local label
     }
 
     private fun translate(scope: AnonymousScope) {
@@ -819,7 +819,14 @@ internal class AsmGen(private val program: Program,
 
     private fun getJumpTarget(jmp: Jump): String {
         return when {
-            jmp.identifier!=null -> asmIdentifierName(jmp.identifier)
+            jmp.identifier!=null -> {
+                val target = jmp.identifier.targetStatement(program.namespace)
+                val asmName = asmIdentifierName(jmp.identifier)
+                if(target is Label)
+                    "_$asmName"  // prefix with underscore to jump to local label
+                else
+                    asmName
+            }
             jmp.generatedLabel!=null -> jmp.generatedLabel
             jmp.address!=null -> jmp.address.toHex()
             else -> "????"
