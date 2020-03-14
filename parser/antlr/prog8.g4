@@ -68,7 +68,16 @@ ARRAYSIG :
 
 module :  (directive | block | EOL)* EOF ;
 
-block:	identifier integerliteral? statement_block EOL ;
+block:	identifier integerliteral? '{' EOL (block_statement | EOL) * '}' EOL ;
+
+
+block_statement:
+	directive
+	| variabledeclaration
+	| subroutinedeclaration
+	| inlineasm
+	;
+
 
 statement :
 	directive
