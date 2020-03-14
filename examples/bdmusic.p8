@@ -34,26 +34,27 @@ sub start() {
             delay()
         }
     }
+}
 
-    sub delay() {
-        ubyte d
-        for d in 0 to 12 {
-            while(c64.RASTER!=0) {
-                ; tempo delay synced to screen refresh
-            }
+sub delay() {
+    ubyte d
+    for d in 0 to 12 {
+        while(c64.RASTER!=0) {
+            ; tempo delay synced to screen refresh
         }
     }
-
-    sub print_notes(ubyte n1, ubyte n2) {
-        c64.CHROUT('\n')
-        c64scr.plot(n1/2, 24)
-        c64.COLOR=7
-        c64.CHROUT('Q')
-        c64scr.plot(n2/2, 24)
-        c64.COLOR=4
-        c64.CHROUT('Q')
-    }
 }
+
+sub print_notes(ubyte n1, ubyte n2) {
+    c64.CHROUT('\n')
+    c64scr.plot(n1/2, 24)
+    c64.COLOR=7
+    c64.CHROUT('Q')
+    c64scr.plot(n2/2, 24)
+    c64.COLOR=4
+    c64.CHROUT('Q')
+}
+
 
     ; details about the boulderdash music can be found here:
     ; https://www.elmerproductions.com/sp/peterb/sounds.html#Theme%20tune

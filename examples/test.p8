@@ -27,10 +27,6 @@ main {
         c64scr.print("sp2:")
         sub3()
 
-        sub blerp() {
-            ;-- keep this!
-        }
-
         sub3()
         sub3()
         sub3()

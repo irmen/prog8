@@ -71,7 +71,7 @@ main {
         check_eval_stack()
         return
 
-    sub compare() {
+        sub compare() {
         c64scr.print("  ==  !=  <   >   <=  >=\n")
 
         if v1==v2
@@ -105,7 +105,6 @@ main {
         c64.CHROUT('\n')
 
     }
-
 
     }
 
