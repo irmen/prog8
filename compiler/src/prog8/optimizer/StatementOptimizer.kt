@@ -15,7 +15,7 @@ import kotlin.math.floor
 
 
 /*
-    TODO: remove unreachable code?
+    TODO: remove unreachable code after return and exit()
     TODO: proper inlining of tiny subroutines (at first, restrict to subs without parameters and variables in them, and build it up from there: correctly renaming/relocating all variables in them and refs to those as well)
 */
 

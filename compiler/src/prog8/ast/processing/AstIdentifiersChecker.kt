@@ -165,9 +165,15 @@ internal class AstIdentifiersChecker(private val program: Program,
             // the builtin functions can't be redefined
             errors.err("builtin function cannot be redefined", label.position)
         } else {
-            val existing = program.namespace.lookup(listOf(label.name), label)
-            if (existing != null && existing !== label)
-                nameError(label.name, label.position, existing)
+            val existing = label.definingSubroutine()?.getAllLabels(label.name) ?: emptyList()
+            for(el in existing) {
+                if(el === label || el.name != label.name)
+                    continue
+                else {
+                    nameError(label.name, label.position, el)
+                    break
+                }
+            }
         }
         return super.visit(label)
     }

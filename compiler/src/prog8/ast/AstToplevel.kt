@@ -158,6 +158,30 @@ interface INameScope {
         if(!statements.remove(stmt))
             throw FatalAstException("stmt to remove wasn't found in scope")
     }
+
+    fun getAllLabels(label: String): List<Label> {
+        val result = mutableListOf<Label>()
+
+        fun find(scope: INameScope) {
+            scope.statements.forEach {
+                when(it) {
+                    is Label -> result.add(it)
+                    is INameScope -> find(it)
+                    is IfStatement -> {
+                        find(it.truepart)
+                        find(it.elsepart)
+                    }
+                    is RepeatLoop -> find(it.body)
+                    is ForeverLoop -> find(it.body)
+                    is WhileLoop -> find(it.body)
+                    is WhenStatement -> it.choices.forEach { choice->find(choice.statements) }
+                }
+            }
+        }
+
+        find(this)
+        return result
+    }
 }
 
 interface IAssignable {
