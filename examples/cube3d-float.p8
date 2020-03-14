@@ -19,7 +19,7 @@ main {
 
     sub start()  {
         float time=0.0
-        while true {
+        forever {
             rotate_vertices(time)
             c64scr.clear_screenchars(32)
             draw_edges()
@@ -78,7 +78,7 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 0.1 {
-                persp = (5.0+rz)/height
+                persp = (5.0+rz)/(height as float)
                 sx = rotatedx[i] / persp + width/2.0 as ubyte
                 sy = rotatedy[i] / persp + height/2.0 as ubyte
                 c64scr.setcc(sx, sy, 46, i+2)
@@ -88,7 +88,7 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 0.1 {
-                persp = (5.0+rz)/height
+                persp = (5.0+rz)/(height as float)
                 sx = rotatedx[i] / persp + width/2.0 as ubyte
                 sy = rotatedy[i] / persp + height/2.0 as ubyte
                 c64scr.setcc(sx, sy, 81, i+2)

@@ -46,7 +46,7 @@ main {
 
             if dx >= dy {
                 ; TODO fix assembler problem when defining label here
-                while true {
+                forever {
                     c64scr.setcc(x, y, 42, 5)
                     if x==x2
                         return
@@ -59,7 +59,7 @@ main {
                 }
             } else {
                 ; TODO fix assembler problem when defining label here
-                while true {
+                forever {
                     c64scr.setcc(x, y, 42, 5)
                     if y == y2
                         return

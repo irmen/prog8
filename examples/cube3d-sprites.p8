@@ -82,7 +82,7 @@ main {
         uword angley
         uword anglez
         word rz=33
-        while true {
+        forever {
             c64.TIME_LO=0
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             position_sprites()

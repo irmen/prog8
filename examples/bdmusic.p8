@@ -16,7 +16,7 @@ sub start() {
     void c64.CHRIN()
     c64.CLEARSCR()
 
-    while true {
+    forever {
         uword note
         for note in notes {
             ubyte note1 = lsb(note)

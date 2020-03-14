@@ -11,7 +11,7 @@ main {
         float t
         ubyte color
 
-        while true {
+        forever {
             float x = sin(t)
             float y = cos(t*1.1356)
             ubyte xx=(x * width/2.2) + width/2.0 as ubyte

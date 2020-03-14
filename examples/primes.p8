@@ -12,7 +12,7 @@ main {
         ; calculate primes
         c64scr.print("prime numbers up to 255:\n\n")
         ubyte amount=0
-        while true {
+        forever {
             ubyte prime = find_next_prime()
             if prime==0
                 break
