@@ -8,9 +8,8 @@ import prog8.compiler.target.CompilationTarget
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
 import prog8.optimizer.simplifyExpressions
+import prog8.parser.ModuleImporter
 import prog8.parser.ParsingFailedError
-import prog8.parser.importLibraryModule
-import prog8.parser.importModule
 import prog8.parser.moduleName
 import java.nio.file.Path
 import kotlin.system.measureTimeMillis
@@ -31,13 +30,37 @@ fun compileProgram(filepath: Path,
 
     var importedFiles: List<Path> = emptyList()
     var success=false
+    val compilerMessages = mutableListOf<CompilerMessage>()
+    val alreadyReportedMessages = mutableSetOf<String>()
+
+    fun handleCompilerMessages() {
+        compilerMessages.forEach {
+            when(it.severity) {
+                MessageSeverity.ERROR -> System.err.print("\u001b[91m")  // bright red
+                MessageSeverity.WARNING -> System.err.print("\u001b[93m")  // bright yellow
+            }
+            val msg = "${it.position} ${it.severity} ${it.message}".trim()
+            if(msg !in alreadyReportedMessages) {
+                System.err.println(msg)
+                alreadyReportedMessages.add(msg)
+            }
+            System.err.print("\u001b[0m")  // reset color
+        }
+        val numErrors = compilerMessages.count { it.severity==MessageSeverity.ERROR }
+        compilerMessages.clear()
+        if(numErrors>0)
+            throw ParsingFailedError("There are $numErrors errors.")
+    }
 
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
+            val importer = ModuleImporter(compilerMessages)
+
             println("Parsing...")
             programAst = Program(moduleName(filepath.fileName), mutableListOf())
-            importModule(programAst, filepath)
+            importer.importModule(programAst, filepath)
+            handleCompilerMessages()
 
             importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map{ it.source }
 
@@ -47,19 +70,20 @@ fun compileProgram(filepath: Path,
 
             // if we're producing a PRG or BASIC program, include the c64utils and c64lib libraries
             if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG) {
-                importLibraryModule(programAst, "c64lib")
-                importLibraryModule(programAst, "c64utils")
+                importer.importLibraryModule(programAst, "c64lib")
+                importer.importLibraryModule(programAst, "c64utils")
             }
 
             // always import prog8lib and math
-            importLibraryModule(programAst, "math")
-            importLibraryModule(programAst, "prog8lib")
-
+            importer.importLibraryModule(programAst, "math")
+            importer.importLibraryModule(programAst, "prog8lib")
+            handleCompilerMessages()
 
             // perform initial syntax checks and constant folding
             println("Syntax check...")
             val time1 = measureTimeMillis {
-                programAst.checkIdentifiers()
+                programAst.checkIdentifiers(compilerMessages)
+                handleCompilerMessages()
                 programAst.makeForeverLoops()
             }
 
@@ -71,38 +95,47 @@ fun compileProgram(filepath: Path,
             val time3 = measureTimeMillis {
                 programAst.removeNopsFlattenAnonScopes()
                 programAst.reorderStatements()
-                programAst.addTypecasts()
+                programAst.addTypecasts(compilerMessages)
+                handleCompilerMessages()
             }
             //println(" time3: $time3")
             val time4 = measureTimeMillis {
-                programAst.checkValid(compilerOptions)          // check if tree is valid
+                programAst.checkValid(compilerOptions, compilerMessages)          // check if tree is valid
+                handleCompilerMessages()
             }
             //println(" time4: $time4")
 
-            programAst.checkIdentifiers()
+            programAst.checkIdentifiers(compilerMessages)
+            handleCompilerMessages()
+
             if (optimize) {
                 // optimize the parse tree
                 println("Optimizing...")
                 while (true) {
                     // keep optimizing expressions and statements until no more steps remain
                     val optsDone1 = programAst.simplifyExpressions()
-                    val optsDone2 = programAst.optimizeStatements()
+                    val optsDone2 = programAst.optimizeStatements(compilerMessages)
+                    handleCompilerMessages()
                     if (optsDone1 + optsDone2 == 0)
                         break
                 }
             }
 
-            programAst.addTypecasts()
+            programAst.addTypecasts(compilerMessages)
+            handleCompilerMessages()
             programAst.removeNopsFlattenAnonScopes()
-            programAst.checkValid(compilerOptions)          // check if final tree is valid
-            programAst.checkRecursion()         // check if there are recursive subroutine calls
+            programAst.checkValid(compilerOptions, compilerMessages)          // check if final tree is valid
+            handleCompilerMessages()
+            programAst.checkRecursion(compilerMessages)         // check if there are recursive subroutine calls
+            handleCompilerMessages()
 
             // printAst(programAst)
 
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code
                 val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
-                programAst.anonscopeVarsCleanup()
+                programAst.anonscopeVarsCleanup(compilerMessages)
+                handleCompilerMessages()
                 val assembly = CompilationTarget.asmGenerator(programAst, zeropage, compilerOptions, outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name

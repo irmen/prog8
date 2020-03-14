@@ -1,19 +1,13 @@
 package prog8.ast.processing
 
 import prog8.ast.Program
-import prog8.ast.base.AstException
-import prog8.ast.base.NameError
+import prog8.ast.base.CompilerMessage
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Statement
 import prog8.ast.statements.VarDecl
 
-class AnonymousScopeVarsCleanup(val program: Program): IAstModifyingVisitor {
-    private val checkResult: MutableList<AstException> = mutableListOf()
+class AnonymousScopeVarsCleanup(val program: Program, compilerMessages: MutableList<CompilerMessage>): IAstModifyingVisitor, ErrorReportingVisitor(compilerMessages) {
     private val varsToMove: MutableMap<AnonymousScope, List<VarDecl>> = mutableMapOf()
-
-    fun result(): List<AstException> {
-        return checkResult
-    }
 
     override fun visit(program: Program) {
         varsToMove.clear()
@@ -25,7 +19,7 @@ class AnonymousScopeVarsCleanup(val program: Program): IAstModifyingVisitor {
             decls.forEach {
                 val existing = existingVariables[it.name]
                 if (existing!=null) {
-                    checkResult.add(NameError("variable ${it.name} already defined in subroutine ${sub.name} at ${existing.position}", it.position))
+                    err("variable ${it.name} already defined in subroutine ${sub.name} at ${existing.position}", it.position)
                     conflicts = true
                 }
             }

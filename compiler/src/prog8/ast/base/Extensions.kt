@@ -17,17 +17,15 @@ internal fun Program.removeNopsFlattenAnonScopes() {
 }
 
 
-internal fun Program.checkValid(compilerOptions: CompilationOptions) {
-    val checker = AstChecker(this, compilerOptions)
+internal fun Program.checkValid(compilerOptions: CompilationOptions, compilerMessages: MutableList<CompilerMessage>) {
+    val checker = AstChecker(this, compilerOptions, compilerMessages)
     checker.visit(this)
-    printErrors(checker.result(), name)
 }
 
 
-internal fun Program.anonscopeVarsCleanup() {
-    val mover = AnonymousScopeVarsCleanup(this)
+internal fun Program.anonscopeVarsCleanup(compilerMessages: MutableList<CompilerMessage>) {
+    val mover = AnonymousScopeVarsCleanup(this, compilerMessages)
     mover.visit(this)
-    printErrors(mover.result(), name)
 }
 
 
@@ -39,32 +37,30 @@ internal fun Program.reorderStatements() {
     checker.visit(this)
 }
 
-internal fun Program.addTypecasts() {
-    val caster = TypecastsAdder(this)
+internal fun Program.addTypecasts(compilerMessages: MutableList<CompilerMessage>) {
+    val caster = TypecastsAdder(this, compilerMessages)
     caster.visit(this)
 }
 
-internal fun Module.checkImportedValid() {
-    val checker = ImportedModuleDirectiveRemover()
+internal fun Module.checkImportedValid(compilerMessages: MutableList<CompilerMessage>) {
+    val checker = ImportedModuleDirectiveRemover(compilerMessages)
     checker.visit(this)
 }
 
-internal fun Program.checkRecursion() {
-    val checker = AstRecursionChecker(namespace)
+internal fun Program.checkRecursion(compilerMessages: MutableList<CompilerMessage>) {
+    val checker = AstRecursionChecker(namespace, compilerMessages)
     checker.visit(this)
-    printErrors(checker.result(), name)
+    checker.processMessages(name)
 }
 
 
-internal fun Program.checkIdentifiers() {
-    val checker = AstIdentifiersChecker(this)
+internal fun Program.checkIdentifiers(compilerMessages: MutableList<CompilerMessage>) {
+    val checker = AstIdentifiersChecker(this, compilerMessages)
     checker.visit(this)
 
     if(modules.map {it.name}.toSet().size != modules.size) {
         throw FatalAstException("modules should all be unique")
     }
-
-    printErrors(checker.result(), name)
 }
 
 

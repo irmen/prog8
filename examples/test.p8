@@ -1,6 +1,6 @@
 %zeropage basicsafe
 
-main {
+main 23232323 {
 
     sub start() {
         c64scr.print("spstart:")

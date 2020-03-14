@@ -1,37 +1,17 @@
 package prog8.ast.base
 
-import prog8.parser.ParsingFailedError
 
-
-fun printErrors(errors: List<Any>, moduleName: String) {
-    val reportedMessages = mutableSetOf<String>()
-    System.err.print("\u001b[91m")  // bright red
-    errors.forEach {
-        val msg = it.toString()
-        if(msg !in reportedMessages) {
-            System.err.println(msg)
-            reportedMessages.add(msg)
-        }
-    }
-    System.err.print("\u001b[0m")  // reset color
-    if(reportedMessages.isNotEmpty())
-        throw ParsingFailedError("There are ${reportedMessages.size} errors in module '$moduleName'.")
+enum class MessageSeverity {
+    WARNING,
+    ERROR
 }
 
 
-fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
-    print("\u001b[93m")  // bright yellow
-    print("$position Warning: $msg")
-    if(detailInfo==null)
-        print("\n")
-    else
-        println(": $detailInfo\n")
-    print("\u001b[0m")  // normal
-}
+class CompilerMessage(val severity: MessageSeverity, val message: String, val position: Position?)
 
 
-fun printWarning(msg: String) {
+fun printWarning(message: String, position: Position? = null) {
     print("\u001b[93m")  // bright yellow
-    print("Warning: $msg")
-    print("\u001b[0m\n")  // normal
+    val msg = "$position Warning: $message".trim()
+    print("\n\u001b[0m")  // normal
 }

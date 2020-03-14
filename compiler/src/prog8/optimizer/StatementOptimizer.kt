@@ -6,6 +6,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.processing.ErrorReportingVisitor
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
@@ -20,7 +21,8 @@ import kotlin.math.floor
 */
 
 
-internal class StatementOptimizer(private val program: Program) : IAstModifyingVisitor {
+internal class StatementOptimizer(private val program: Program,
+                                  compilerMessages: MutableList<CompilerMessage>) : IAstModifyingVisitor, ErrorReportingVisitor(compilerMessages) {
     var optimizationsDone: Int = 0
         private set
 
@@ -80,13 +82,13 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars()) {
                 optimizationsDone++
-                printWarning("removing empty block '${block.name}'", block.position)
+                warn("removing empty block '${block.name}'", block.position)
                 return NopStatement.insteadOf(block)
             }
 
             if (block !in callgraph.usedSymbols) {
                 optimizationsDone++
-                printWarning("removing unused block '${block.name}'", block.position)
+                warn("removing unused block '${block.name}'", block.position)
                 return NopStatement.insteadOf(block)  // remove unused block
             }
         }
@@ -99,7 +101,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         val forceOutput = "force_output" in subroutine.definingBlock().options()
         if(subroutine.asmAddress==null && !forceOutput) {
             if(subroutine.containsNoCodeNorVars()) {
-                printWarning("removing empty subroutine '${subroutine.name}'", subroutine.position)
+                warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
                 optimizationsDone++
                 return NopStatement.insteadOf(subroutine)
             }
@@ -111,7 +113,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         }
 
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {
-            printWarning("removing unused subroutine '${subroutine.name}'", subroutine.position)
+            warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
             optimizationsDone++
             return NopStatement.insteadOf(subroutine)
         }
@@ -124,7 +126,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         val forceOutput = "force_output" in decl.definingBlock().options()
         if(decl !in callgraph.usedSymbols && !forceOutput) {
             if(decl.type == VarDeclType.VAR)
-                printWarning("removing unused variable ${decl.type} '${decl.name}'", decl.position)
+                warn("removing unused variable ${decl.type} '${decl.name}'", decl.position)
             optimizationsDone++
             return NopStatement.insteadOf(decl)
         }
@@ -161,7 +163,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in pureBuiltinFunctions) {
-                printWarning("statement has no effect (function return value is discarded)", functionCallStatement.position)
+                warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
                 optimizationsDone++
                 return NopStatement.insteadOf(functionCallStatement)
             }
@@ -264,12 +266,12 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                printWarning("condition is always true", ifStatement.position)
+                warn("condition is always true", ifStatement.position)
                 optimizationsDone++
                 ifStatement.truepart
             } else {
                 // always false -> keep only else-part
-                printWarning("condition is always false", ifStatement.position)
+                warn("condition is always false", ifStatement.position)
                 optimizationsDone++
                 ifStatement.elsepart
             }
@@ -313,12 +315,12 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> print a warning, and optimize into a forever-loop
-                printWarning("condition is always true", whileLoop.condition.position)
+                warn("condition is always true", whileLoop.condition.position)
                 optimizationsDone++
                 ForeverLoop(whileLoop.body, whileLoop.position)
             } else {
                 // always false -> remove the while statement altogether
-                printWarning("condition is always false", whileLoop.condition.position)
+                warn("condition is always false", whileLoop.condition.position)
                 optimizationsDone++
                 NopStatement.insteadOf(whileLoop)
             }
@@ -332,7 +334,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only the statement block (if there are no continue and break statements)
-                printWarning("condition is always true", repeatLoop.untilCondition.position)
+                warn("condition is always true", repeatLoop.untilCondition.position)
                 if(hasContinueOrBreak(repeatLoop.body))
                     repeatLoop
                 else {
@@ -341,7 +343,7 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                 }
             } else {
                 // always false -> print a warning, and optimize into a forever loop
-                printWarning("condition is always false", repeatLoop.untilCondition.position)
+                warn("condition is always false", repeatLoop.untilCondition.position)
                 optimizationsDone++
                 ForeverLoop(repeatLoop.body, repeatLoop.position)
             }

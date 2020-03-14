@@ -224,8 +224,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(value!=null) {
                     if(rightDt in IntegerDatatypes) {
                         val amount = value.number.toInt()
-                        if(amount in powersOfTwo)
-                            printWarning("${expr.right.position} multiplication by power of 2 should have been optimized into a left shift instruction: $amount")
                         when(rightDt) {
                             DataType.UBYTE -> {
                                 if(amount in optimizedByteMultiplications) {

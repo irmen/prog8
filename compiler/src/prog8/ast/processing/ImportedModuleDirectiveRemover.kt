@@ -1,11 +1,11 @@
 package prog8.ast.processing
 
 import prog8.ast.Module
-import prog8.ast.base.printWarning
+import prog8.ast.base.CompilerMessage
 import prog8.ast.statements.Directive
 import prog8.ast.statements.Statement
 
-internal class ImportedModuleDirectiveRemover : IAstModifyingVisitor {
+internal class ImportedModuleDirectiveRemover(compilerMessages: MutableList<CompilerMessage>) : IAstModifyingVisitor, ErrorReportingVisitor(compilerMessages) {
     /**
      * Most global directives don't apply for imported modules, so remove them
      */
@@ -18,7 +18,7 @@ internal class ImportedModuleDirectiveRemover : IAstModifyingVisitor {
             val stmt = sourceStmt.accept(this)
             if(stmt is Directive && stmt.parent is Module) {
                 if(stmt.directive in moduleLevelDirectives) {
-                    printWarning("ignoring module directive because it was imported", stmt.position, stmt.directive)
+                    warn("ignoring module directive because it was imported", stmt.position)
                     continue
                 }
             }

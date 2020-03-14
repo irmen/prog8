@@ -1,21 +1,22 @@
 package prog8.ast.processing
 
 import prog8.ast.INameScope
-import prog8.ast.base.AstException
+import prog8.ast.base.CompilerMessage
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 
 
-internal class AstRecursionChecker(private val namespace: INameScope) : IAstVisitor {
+internal class AstRecursionChecker(private val namespace: INameScope,
+                                   compilerMessages: MutableList<CompilerMessage>) : IAstVisitor, ErrorReportingVisitor(compilerMessages) {
     private val callGraph = DirectedGraph<INameScope>()
 
-    internal fun result(): List<AstException> {
+    fun processMessages(modulename: String) {
         val cycle = callGraph.checkForCycle()
         if(cycle.isEmpty())
-            return emptyList()
+            return
         val chain = cycle.joinToString(" <-- ") { "${it.name} at ${it.position}" }
-        return listOf(AstException("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) $chain"))
+        err("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) $chain", null)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
@@ -43,7 +44,6 @@ internal class AstRecursionChecker(private val namespace: INameScope) : IAstVisi
         }
         super.visit(functionCall)
     }
-
 
     private class DirectedGraph<VT> {
         private val graph = mutableMapOf<VT, MutableSet<VT>>()

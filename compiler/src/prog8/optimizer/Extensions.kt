@@ -2,6 +2,7 @@ package prog8.optimizer
 
 import prog8.ast.Program
 import prog8.ast.base.AstException
+import prog8.ast.base.CompilerMessage
 import prog8.parser.ParsingFailedError
 
 
@@ -27,8 +28,8 @@ internal fun Program.constantFold() {
 }
 
 
-internal fun Program.optimizeStatements(): Int {
-    val optimizer = StatementOptimizer(this)
+internal fun Program.optimizeStatements(compilerMessages: MutableList<CompilerMessage>): Int {
+    val optimizer = StatementOptimizer(this, compilerMessages)
     optimizer.visit(this)
     modules.forEach { it.linkParents(this.namespace) }   // re-link in final configuration
 
