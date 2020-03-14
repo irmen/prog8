@@ -597,8 +597,8 @@ You can use a single statement, or a statement block like in the example below::
 	}
 
 
-repeat--until loop
-^^^^^^^^^^^^^^^^^^
+repeat-until loop
+^^^^^^^^^^^^^^^^^
 
 Until the given condition is true (1), repeat the given statement(s).
 You can use a single statement, or a statement block like in the example below::
@@ -608,6 +608,19 @@ You can use a single statement, or a statement block like in the example below::
 		break		; break out of the loop
 		continue	; immediately enter next iteration
 	} until  <condition>
+
+
+forever loop
+^^^^^^^^^^^^
+
+Simply run the code in a loop, forever. It's the same as a while true or until false loop,
+or just a jump back to a previous label. You can still break out of this loop as well, if you want::
+
+    forever {
+        ; .. do stuff
+        if something
+            break        ; you can exit the loop if you want
+    }
 
 
 Conditional Execution and Jumps

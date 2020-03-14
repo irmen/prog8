@@ -407,6 +407,10 @@ Iterating with a floating point variable is not supported. If you want to loop o
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.
 
+The *forever*-loop is used to simply run a piece of code in a loop, forever. You can still
+break out of this loop if desired. A "while true" or "until false" loop is equivalent to
+a forever-loop.
+
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 
 .. attention::

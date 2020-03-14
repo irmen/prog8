@@ -211,6 +211,9 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
     val whileloop = whileloop()?.toAst()
     if(whileloop!=null) return whileloop
 
+    val foreverloop = foreverloop()?.toAst()
+    if(foreverloop!=null) return foreverloop
+
     val breakstmt = breakstmt()?.toAst()
     if(breakstmt!=null) return breakstmt
 
@@ -590,6 +593,13 @@ private fun prog8Parser.WhileloopContext.toAst(): WhileLoop {
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
     return WhileLoop(condition, scope, toPosition())
+}
+
+private fun prog8Parser.ForeverloopContext.toAst(): ForeverLoop {
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val scope = AnonymousScope(statements, statement_block()?.toPosition()
+            ?: statement().toPosition())
+    return ForeverLoop(scope, toPosition())
 }
 
 private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {

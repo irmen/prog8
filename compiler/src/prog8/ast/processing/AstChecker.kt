@@ -347,7 +347,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignment: Assignment) {
-
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)

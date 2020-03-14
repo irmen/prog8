@@ -687,6 +687,19 @@ class WhileLoop(var condition: Expression,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
 
+class ForeverLoop(var body: AnonymousScope, override val position: Position) : Statement() {
+    override lateinit var parent: Node
+    override val expensiveToInline = true
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        body.linkParents(this)
+    }
+
+    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+}
+
 class RepeatLoop(var body: AnonymousScope,
                  var untilCondition: Expression,
                  override val position: Position) : Statement() {

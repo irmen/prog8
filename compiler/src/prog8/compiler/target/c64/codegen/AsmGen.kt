@@ -602,11 +602,13 @@ internal class AsmGen(private val program: Program,
             is Continue -> out("  jmp  ${loopContinueLabels.peek()}")
             is Break -> out("  jmp  ${loopEndLabels.peek()}")
             is WhileLoop -> translate(stmt)
+            is ForeverLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
             is WhenStatement -> translate(stmt)
             is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
             is AnonymousScope -> translate(stmt)
             is Block -> throw AssemblyError("block should have been handled elsewhere")
+            else -> TODO("no translation for $stmt")
         }
     }
 
@@ -630,6 +632,19 @@ internal class AsmGen(private val program: Program,
             DataType.FLOAT -> throw AssemblyError("conditional value should be an integer (boolean)")
             else -> throw AssemblyError("non-numerical dt")
         }
+    }
+
+    private fun translate(stmt: ForeverLoop) {
+        val foreverLabel = makeLabel("forever")
+        val endLabel = makeLabel("foreverend")
+        loopEndLabels.push(endLabel)
+        loopContinueLabels.push(foreverLabel)
+        out(foreverLabel)
+        translate(stmt.body)
+        out("  jmp  $foreverLabel")
+        out(endLabel)
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
     }
 
     private fun translate(stmt: WhileLoop) {

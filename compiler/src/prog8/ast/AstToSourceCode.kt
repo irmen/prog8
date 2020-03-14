@@ -331,6 +331,11 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         whileLoop.body.accept(this)
     }
 
+    override fun visit(foreverLoop: ForeverLoop) {
+        output("forever ")
+        foreverLoop.body.accept(this)
+    }
+
     override fun visit(repeatLoop: RepeatLoop) {
         output("repeat ")
         repeatLoop.body.accept(this)

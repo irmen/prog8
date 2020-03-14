@@ -312,20 +312,12 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
         val constvalue = whileLoop.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
-                // always true -> print a warning, and optimize into body + jump (if there are no continue and break statements)
+                // always true -> print a warning, and optimize into a forever-loop
                 printWarning("condition is always true", whileLoop.condition.position)
-                if(hasContinueOrBreak(whileLoop.body))
-                    return whileLoop
-                val backLabelName = "_prog8_back${whileLoop.position.line}"
-                val label = Label(backLabelName, whileLoop.condition.position)
-                whileLoop.body.statements.add(0, label)
-                whileLoop.body.statements.add(Jump(null,
-                        IdentifierReference(listOf(backLabelName), whileLoop.condition.position),
-                        null, whileLoop.condition.position))
                 optimizationsDone++
-                return whileLoop.body
+                ForeverLoop(whileLoop.body, whileLoop.position)
             } else {
-                // always false -> ditch whole statement
+                // always false -> remove the while statement altogether
                 printWarning("condition is always false", whileLoop.condition.position)
                 optimizationsDone++
                 NopStatement.insteadOf(whileLoop)
@@ -348,18 +340,10 @@ internal class StatementOptimizer(private val program: Program) : IAstModifyingV
                     repeatLoop.body
                 }
             } else {
-                // always false -> print a warning, and optimize into body + jump (if there are no continue and break statements)
+                // always false -> print a warning, and optimize into a forever loop
                 printWarning("condition is always false", repeatLoop.untilCondition.position)
-                if(hasContinueOrBreak(repeatLoop.body))
-                    return repeatLoop
-                val backLabelName = "_prog8_back${repeatLoop.position.line}"
-                val label = Label(backLabelName, repeatLoop.untilCondition.position)
-                repeatLoop.body.statements.add(0, label)
-                repeatLoop.body.statements.add(Jump(null,
-                        IdentifierReference(listOf(backLabelName), repeatLoop.untilCondition.position),
-                        null, repeatLoop.untilCondition.position))
                 optimizationsDone++
-                return repeatLoop.body
+                ForeverLoop(repeatLoop.body, repeatLoop.position)
             }
         }
         return repeatLoop

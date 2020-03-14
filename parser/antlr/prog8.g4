@@ -95,6 +95,7 @@ statement :
 	| forloop
 	| whileloop
 	| repeatloop
+	| foreverloop
 	| whenstmt
 	| breakstmt
 	| continuestmt
@@ -312,6 +313,8 @@ forloop :  'for' (register | identifier) 'in' expression EOL? (statement | state
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 
 repeatloop:  'repeat' (statement | statement_block) EOL? 'until' expression ;
+
+foreverloop:  'forever' EOL? (statement | statement_block) ;
 
 whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
 

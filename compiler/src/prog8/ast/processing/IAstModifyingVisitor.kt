@@ -158,6 +158,11 @@ interface IAstModifyingVisitor {
         return whileLoop
     }
 
+    fun visit(foreverLoop: ForeverLoop): Statement {
+        foreverLoop.body = foreverLoop.body.accept(this) as AnonymousScope
+        return foreverLoop
+    }
+
     fun visit(repeatLoop: RepeatLoop): Statement {
         repeatLoop.untilCondition = repeatLoop.untilCondition.accept(this)
         repeatLoop.body = repeatLoop.body.accept(this) as AnonymousScope

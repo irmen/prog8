@@ -60,6 +60,7 @@ fun compileProgram(filepath: Path,
             println("Syntax check...")
             val time1 = measureTimeMillis {
                 programAst.checkIdentifiers()
+                programAst.makeForeverLoops()
             }
 
             //println(" time1: $time1")

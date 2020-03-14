@@ -47,7 +47,6 @@ internal fun Program.addTypecasts() {
 internal fun Module.checkImportedValid() {
     val checker = ImportedModuleDirectiveRemover()
     checker.visit(this)
-    printErrors(checker.result(), name)
 }
 
 internal fun Program.checkRecursion() {
@@ -66,4 +65,10 @@ internal fun Program.checkIdentifiers() {
     }
 
     printErrors(checker.result(), name)
+}
+
+
+internal fun Program.makeForeverLoops() {
+    val checker = MakeForeverLoops()
+    checker.visit(this)
 }

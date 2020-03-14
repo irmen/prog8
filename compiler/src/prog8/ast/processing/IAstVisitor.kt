@@ -112,6 +112,10 @@ interface IAstVisitor {
         whileLoop.body.accept(this)
     }
 
+    fun visit(foreverLoop: ForeverLoop) {
+        foreverLoop.body.accept(this)
+    }
+
     fun visit(repeatLoop: RepeatLoop) {
         repeatLoop.untilCondition.accept(this)
         repeatLoop.body.accept(this)
