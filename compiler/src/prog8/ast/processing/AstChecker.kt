@@ -1066,6 +1066,8 @@ internal class AstChecker(private val program: Program,
 
             if(stmt is Return && index < statements.lastIndex)
                 errors.warn("unreachable code, return statement above", statements[index+1].position)
+
+            stmt.accept(this)
         }
     }
 

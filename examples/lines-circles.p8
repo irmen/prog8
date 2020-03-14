@@ -24,8 +24,6 @@ main {
         line(20, 4, 10, 24)
         line(39, 16, 12, 0)
 
-            ; TODO fix crash arg type incompatible c64scr.setcc(x0, y0 + radius, 81, 1)
-
         sub line(ubyte x1, ubyte y1, ubyte x2, ubyte y2) {
             byte d = 0
             ubyte dx = abs(x2 - x1)
