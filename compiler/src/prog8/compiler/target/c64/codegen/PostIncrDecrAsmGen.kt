@@ -6,9 +6,9 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.RegisterExpr
 import prog8.ast.statements.PostIncrDecr
-import prog8.compiler.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
+import prog8.compiler.toHex
 
 
 internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {

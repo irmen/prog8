@@ -17,14 +17,14 @@ internal fun Program.removeNopsFlattenAnonScopes() {
 }
 
 
-internal fun Program.checkValid(compilerOptions: CompilationOptions, compilerMessages: MutableList<CompilerMessage>) {
-    val checker = AstChecker(this, compilerOptions, compilerMessages)
+internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {
+    val checker = AstChecker(this, compilerOptions, errors)
     checker.visit(this)
 }
 
 
-internal fun Program.anonscopeVarsCleanup(compilerMessages: MutableList<CompilerMessage>) {
-    val mover = AnonymousScopeVarsCleanup(this, compilerMessages)
+internal fun Program.anonscopeVarsCleanup(errors: ErrorReporter) {
+    val mover = AnonymousScopeVarsCleanup(errors)
     mover.visit(this)
 }
 
@@ -37,25 +37,25 @@ internal fun Program.reorderStatements() {
     checker.visit(this)
 }
 
-internal fun Program.addTypecasts(compilerMessages: MutableList<CompilerMessage>) {
-    val caster = TypecastsAdder(this, compilerMessages)
+internal fun Program.addTypecasts(errors: ErrorReporter) {
+    val caster = TypecastsAdder(this, errors)
     caster.visit(this)
 }
 
-internal fun Module.checkImportedValid(compilerMessages: MutableList<CompilerMessage>) {
-    val checker = ImportedModuleDirectiveRemover(compilerMessages)
+internal fun Module.checkImportedValid(errors: ErrorReporter) {
+    val checker = ImportedModuleDirectiveRemover(errors)
     checker.visit(this)
 }
 
-internal fun Program.checkRecursion(compilerMessages: MutableList<CompilerMessage>) {
-    val checker = AstRecursionChecker(namespace, compilerMessages)
+internal fun Program.checkRecursion(errors: ErrorReporter) {
+    val checker = AstRecursionChecker(namespace, errors)
     checker.visit(this)
     checker.processMessages(name)
 }
 
 
-internal fun Program.checkIdentifiers(compilerMessages: MutableList<CompilerMessage>) {
-    val checker = AstIdentifiersChecker(this, compilerMessages)
+internal fun Program.checkIdentifiers(errors: ErrorReporter) {
+    val checker = AstIdentifiersChecker(this, errors)
     checker.visit(this)
 
     if(modules.map {it.name}.toSet().size != modules.size) {

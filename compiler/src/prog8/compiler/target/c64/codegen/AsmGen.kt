@@ -11,8 +11,8 @@ import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
@@ -21,7 +21,7 @@ import java.math.RoundingMode
 import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.ArrayDeque
+import java.util.*
 import kotlin.math.absoluteValue
 
 
@@ -229,7 +229,9 @@ internal class AsmGen(private val program: Program,
                         && variable.datatype != DataType.FLOAT
                         && options.zeropage != ZeropageType.DONTUSE) {
                     try {
-                        val address = zeropage.allocate(fullName, variable.datatype, null)
+                        val errors = ErrorReporter()
+                        val address = zeropage.allocate(fullName, variable.datatype, null, errors)
+                        errors.handle()
                         out("${variable.name} = $address\t; auto zp ${variable.datatype}")
                         // make sure we add the var to the set of zpvars for this block
                         allocatedZeropageVariables[fullName] = Pair(address, variable.datatype)

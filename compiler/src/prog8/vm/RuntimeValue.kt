@@ -7,7 +7,7 @@ import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
 import prog8.vm.astvm.VmExecutionException
-import java.util.Objects
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.pow
 

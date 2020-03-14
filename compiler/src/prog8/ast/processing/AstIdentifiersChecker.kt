@@ -12,12 +12,12 @@ import prog8.functions.BuiltinFunctions
 
 
 internal class AstIdentifiersChecker(private val program: Program,
-                                     compilerMessages: MutableList<CompilerMessage>) : IAstModifyingVisitor, ErrorReportingVisitor(compilerMessages) {
+                                     private val errors: ErrorReporter) : IAstModifyingVisitor {
     private var blocks = mutableMapOf<String, Block>()
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     private fun nameError(name: String, position: Position, existing: Statement) {
-        err("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position)
+        errors.err("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position)
     }
 
     override fun visit(module: Module) {
@@ -53,15 +53,15 @@ internal class AstIdentifiersChecker(private val program: Program,
 
     override fun visit(decl: VarDecl): Statement {
         // first, check if there are datatype errors on the vardecl
-        decl.datatypeErrors.forEach { err(it.message, it.position) }
+        decl.datatypeErrors.forEach { errors.err(it.message, it.position) }
 
         // now check the identifier
         if(decl.name in BuiltinFunctions)
             // the builtin functions can't be redefined
-            err("builtin function cannot be redefined", decl.position)
+            errors.err("builtin function cannot be redefined", decl.position)
 
         if(decl.name in CompilationTarget.machine.opcodeNames)
-            err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
+            errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
         // is it a struct variable? then define all its struct members as mangled names,
         //    and include the original decl as well.
@@ -70,7 +70,7 @@ internal class AstIdentifiersChecker(private val program: Program,
                 return super.visit(decl)    // don't do this multiple times
 
             if(decl.struct==null) {
-                err("undefined struct type", decl.position)
+                errors.err("undefined struct type", decl.position)
                 return super.visit(decl)
             }
 
@@ -78,7 +78,7 @@ internal class AstIdentifiersChecker(private val program: Program,
                 return super.visit(decl)     // a non-numeric member, not supported. proper error is given by AstChecker later
 
             if(decl.value is NumericLiteralValue) {
-                err("you cannot initialize a struct using a single value", decl.position)
+                errors.err("you cannot initialize a struct using a single value", decl.position)
                 return super.visit(decl)
             }
 
@@ -98,10 +98,10 @@ internal class AstIdentifiersChecker(private val program: Program,
 
     override fun visit(subroutine: Subroutine): Statement {
         if(subroutine.name in CompilationTarget.machine.opcodeNames) {
-            err("can't use a cpu opcode name as a symbol: '${subroutine.name}'", subroutine.position)
+            errors.err("can't use a cpu opcode name as a symbol: '${subroutine.name}'", subroutine.position)
         } else if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
-            err("builtin function cannot be redefined", subroutine.position)
+            errors.err("builtin function cannot be redefined", subroutine.position)
         } else {
             // already reported elsewhere:
             // if (subroutine.parameters.any { it.name in BuiltinFunctions })
@@ -151,7 +151,7 @@ internal class AstIdentifiersChecker(private val program: Program,
             }
 
             if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {
-                err("asmsub can only contain inline assembly (%asm)", subroutine.position)
+                errors.err("asmsub can only contain inline assembly (%asm)", subroutine.position)
             }
         }
         return super.visit(subroutine)
@@ -159,11 +159,11 @@ internal class AstIdentifiersChecker(private val program: Program,
 
     override fun visit(label: Label): Statement {
         if(label.name in CompilationTarget.machine.opcodeNames)
-            err("can't use a cpu opcode name as a symbol: '${label.name}'", label.position)
+            errors.err("can't use a cpu opcode name as a symbol: '${label.name}'", label.position)
 
         if(label.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
-            err("builtin function cannot be redefined", label.position)
+            errors.err("builtin function cannot be redefined", label.position)
         } else {
             val existing = program.namespace.lookup(listOf(label.name), label)
             if (existing != null && existing !== label)
@@ -179,7 +179,7 @@ internal class AstIdentifiersChecker(private val program: Program,
         // additional interation count variable in their scope.
         if(forLoop.loopRegister!=null) {
             if(forLoop.loopRegister == Register.X)
-                warn("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
+                errors.warn("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
         } else {
             val loopVar = forLoop.loopVar
             if (loopVar != null) {
@@ -203,7 +203,7 @@ internal class AstIdentifiersChecker(private val program: Program,
 
     override fun visit(assignTarget: AssignTarget): AssignTarget {
         if(assignTarget.register== Register.X)
-            warn("writing to the X register is dangerous, because it's used as an internal pointer", assignTarget.position)
+            errors.warn("writing to the X register is dangerous, because it's used as an internal pointer", assignTarget.position)
         return super.visit(assignTarget)
     }
 
@@ -258,7 +258,7 @@ internal class AstIdentifiersChecker(private val program: Program,
             val vardecl = string.parent as? VarDecl
             // intern the string; move it into the heap
             if (string.value.length !in 1..255)
-                err("string literal length must be between 1 and 255", string.position)
+                errors.err("string literal length must be between 1 and 255", string.position)
             return if (vardecl != null)
                 string
             else
@@ -297,7 +297,7 @@ internal class AstIdentifiersChecker(private val program: Program,
         for(member in structDecl.statements){
             val decl = member as? VarDecl
             if(decl!=null && decl.datatype !in NumericDatatypes)
-                err("structs can only contain numerical types", decl.position)
+                errors.err("structs can only contain numerical types", decl.position)
         }
 
         return super.visit(structDecl)

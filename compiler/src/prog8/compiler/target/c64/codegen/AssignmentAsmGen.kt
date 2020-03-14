@@ -7,12 +7,12 @@ import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.VarDecl
-import prog8.compiler.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.toHex
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {

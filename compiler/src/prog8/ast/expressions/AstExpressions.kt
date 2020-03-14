@@ -10,7 +10,7 @@ import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
-import java.util.Objects
+import java.util.*
 import kotlin.math.abs
 
 

@@ -30,37 +30,19 @@ fun compileProgram(filepath: Path,
 
     var importedFiles: List<Path> = emptyList()
     var success=false
-    val compilerMessages = mutableListOf<CompilerMessage>()
-    val alreadyReportedMessages = mutableSetOf<String>()
 
-    fun handleCompilerMessages() {
-        compilerMessages.forEach {
-            when(it.severity) {
-                MessageSeverity.ERROR -> System.err.print("\u001b[91m")  // bright red
-                MessageSeverity.WARNING -> System.err.print("\u001b[93m")  // bright yellow
-            }
-            val msg = "${it.position} ${it.severity} ${it.message}".trim()
-            if(msg !in alreadyReportedMessages) {
-                System.err.println(msg)
-                alreadyReportedMessages.add(msg)
-            }
-            System.err.print("\u001b[0m")  // reset color
-        }
-        val numErrors = compilerMessages.count { it.severity==MessageSeverity.ERROR }
-        compilerMessages.clear()
-        if(numErrors>0)
-            throw ParsingFailedError("There are $numErrors errors.")
-    }
+    val errors = ErrorReporter()
 
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val importer = ModuleImporter(compilerMessages)
+            val importer = ModuleImporter(errors)
+            errors.handle()
 
             println("Parsing...")
             programAst = Program(moduleName(filepath.fileName), mutableListOf())
             importer.importModule(programAst, filepath)
-            handleCompilerMessages()
+            errors.handle()
 
             importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map{ it.source }
 
@@ -77,13 +59,13 @@ fun compileProgram(filepath: Path,
             // always import prog8lib and math
             importer.importLibraryModule(programAst, "math")
             importer.importLibraryModule(programAst, "prog8lib")
-            handleCompilerMessages()
+            errors.handle()
 
             // perform initial syntax checks and constant folding
             println("Syntax check...")
             val time1 = measureTimeMillis {
-                programAst.checkIdentifiers(compilerMessages)
-                handleCompilerMessages()
+                programAst.checkIdentifiers(errors)
+                errors.handle()
                 programAst.makeForeverLoops()
             }
 
@@ -95,18 +77,18 @@ fun compileProgram(filepath: Path,
             val time3 = measureTimeMillis {
                 programAst.removeNopsFlattenAnonScopes()
                 programAst.reorderStatements()
-                programAst.addTypecasts(compilerMessages)
-                handleCompilerMessages()
+                programAst.addTypecasts(errors)
+                errors.handle()
             }
             //println(" time3: $time3")
             val time4 = measureTimeMillis {
-                programAst.checkValid(compilerOptions, compilerMessages)          // check if tree is valid
-                handleCompilerMessages()
+                programAst.checkValid(compilerOptions, errors)          // check if tree is valid
+                errors.handle()
             }
             //println(" time4: $time4")
 
-            programAst.checkIdentifiers(compilerMessages)
-            handleCompilerMessages()
+            programAst.checkIdentifiers(errors)
+            errors.handle()
 
             if (optimize) {
                 // optimize the parse tree
@@ -114,28 +96,28 @@ fun compileProgram(filepath: Path,
                 while (true) {
                     // keep optimizing expressions and statements until no more steps remain
                     val optsDone1 = programAst.simplifyExpressions()
-                    val optsDone2 = programAst.optimizeStatements(compilerMessages)
-                    handleCompilerMessages()
+                    val optsDone2 = programAst.optimizeStatements(errors)
+                    errors.handle()
                     if (optsDone1 + optsDone2 == 0)
                         break
                 }
             }
 
-            programAst.addTypecasts(compilerMessages)
-            handleCompilerMessages()
+            programAst.addTypecasts(errors)
+            errors.handle()
             programAst.removeNopsFlattenAnonScopes()
-            programAst.checkValid(compilerOptions, compilerMessages)          // check if final tree is valid
-            handleCompilerMessages()
-            programAst.checkRecursion(compilerMessages)         // check if there are recursive subroutine calls
-            handleCompilerMessages()
+            programAst.checkValid(compilerOptions, errors)          // check if final tree is valid
+            errors.handle()
+            programAst.checkRecursion(errors)         // check if there are recursive subroutine calls
+            errors.handle()
 
             // printAst(programAst)
 
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code
                 val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
-                programAst.anonscopeVarsCleanup(compilerMessages)
-                handleCompilerMessages()
+                programAst.anonscopeVarsCleanup(errors)
+                errors.handle()
                 val assembly = CompilationTarget.asmGenerator(programAst, zeropage, compilerOptions, outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name

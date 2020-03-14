@@ -2,15 +2,9 @@ package prog8.ast.processing
 
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-
-
-abstract class ErrorReportingVisitor(private val compilerMessages: MutableList<CompilerMessage>) {
-    internal fun err(msg: String, position: Position?) = compilerMessages.add(CompilerMessage(MessageSeverity.ERROR, msg, position))
-    internal fun warn(msg: String, position: Position?) = compilerMessages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
-}
 
 
 interface IAstModifyingVisitor {

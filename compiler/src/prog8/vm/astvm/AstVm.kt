@@ -10,7 +10,7 @@ import prog8.ast.statements.*
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.vm.*
 import java.awt.EventQueue
-import java.util.ArrayDeque
+import java.util.*
 import kotlin.NoSuchElementException
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.*

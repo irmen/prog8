@@ -3,8 +3,8 @@ package prog8.ast.processing
 import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Program
-import prog8.ast.base.CompilerMessage
 import prog8.ast.base.DataType
+import prog8.ast.base.ErrorReporter
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -12,7 +12,7 @@ import prog8.functions.BuiltinFunctions
 
 
 internal class TypecastsAdder(private val program: Program,
-                              compilerMessages: MutableList<CompilerMessage>): IAstModifyingVisitor, ErrorReportingVisitor(compilerMessages) {
+                              private val errors: ErrorReporter): IAstModifyingVisitor {
     // Make sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
     // (this includes function call arguments)
 
@@ -125,7 +125,7 @@ internal class TypecastsAdder(private val program: Program,
     override fun visit(typecast: TypecastExpression): Expression {
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
-            warn("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
+            errors.warn("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
         }
         return super.visit(typecast)
     }

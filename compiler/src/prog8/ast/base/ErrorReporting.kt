@@ -1,17 +1,39 @@
 package prog8.ast.base
 
+import prog8.parser.ParsingFailedError
 
-enum class MessageSeverity {
-    WARNING,
-    ERROR
+
+class ErrorReporter {
+    private enum class MessageSeverity {
+        WARNING,
+        ERROR
+    }
+    private class CompilerMessage(val severity: MessageSeverity, val message: String, val position: Position?)
+
+    private val messages = mutableListOf<CompilerMessage>()
+    private val alreadyReportedMessages = mutableSetOf<String>()
+
+    fun err(msg: String, position: Position?) = messages.add(CompilerMessage(MessageSeverity.ERROR, msg, position))
+    fun warn(msg: String, position: Position?) = messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
+
+    fun handle() {
+        messages.forEach {
+            when(it.severity) {
+                MessageSeverity.ERROR -> System.err.print("\u001b[91m")  // bright red
+                MessageSeverity.WARNING -> System.err.print("\u001b[93m")  // bright yellow
+            }
+            val msg = "${it.position} ${it.severity} ${it.message}".trim()
+            if(msg !in alreadyReportedMessages) {
+                System.err.println(msg)
+                alreadyReportedMessages.add(msg)
+            }
+            System.err.print("\u001b[0m")  // reset color
+        }
+        val numErrors = messages.count { it.severity==MessageSeverity.ERROR }
+        messages.clear()
+        if(numErrors>0)
+            throw ParsingFailedError("There are $numErrors errors.")
+    }
 }
 
 
-class CompilerMessage(val severity: MessageSeverity, val message: String, val position: Position?)
-
-
-fun printWarning(message: String, position: Position? = null) {
-    print("\u001b[93m")  // bright yellow
-    val msg = "$position Warning: $message".trim()
-    print("\n\u001b[0m")  // normal
-}

@@ -4,7 +4,7 @@ import org.antlr.v4.runtime.*
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.antlr.toAst
-import prog8.ast.base.CompilerMessage
+import prog8.ast.base.ErrorReporter
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.base.checkImportedValid
@@ -34,7 +34,7 @@ internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexe
 internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 
 
-internal class ModuleImporter(private val compilerMessages: MutableList<CompilerMessage>) {
+internal class ModuleImporter(private val errors: ErrorReporter) {
 
     internal fun importModule(program: Program, filePath: Path): Module {
         print("importing '${moduleName(filePath.fileName)}'")
@@ -58,10 +58,10 @@ internal class ModuleImporter(private val compilerMessages: MutableList<Compiler
         val import = Directive("%import", listOf(
                 DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0, 0))
         ), Position("<<<implicit-import>>>", 0, 0, 0))
-        return executeImportDirective(program, import, Paths.get(""), compilerMessages)
+        return executeImportDirective(program, import, Paths.get(""))
     }
 
-    internal fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
+    private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
         val moduleName = moduleName(modulePath.fileName)
         val lexer = CustomLexer(modulePath, stream)
         val lexerErrors = LexerErrorListener()
@@ -87,7 +87,7 @@ internal class ModuleImporter(private val compilerMessages: MutableList<Compiler
         lines.asSequence()
                 .mapIndexed { i, it -> Pair(i, it) }
                 .filter { (it.second as? Directive)?.directive == "%import" }
-                .forEach { executeImportDirective(program, it.second as Directive, modulePath, compilerMessages) }
+                .forEach { executeImportDirective(program, it.second as Directive, modulePath) }
 
         moduleAst.statements = lines
         return moduleAst
@@ -113,8 +113,7 @@ internal class ModuleImporter(private val compilerMessages: MutableList<Compiler
         throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: $locations)")
     }
 
-    private fun executeImportDirective(program: Program, import: Directive, source: Path,
-                                       compilerMessages: MutableList<CompilerMessage>): Module? {
+    private fun executeImportDirective(program: Program, import: Directive, source: Path): Module? {
         if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
             throw SyntaxError("invalid import directive", import.position)
         val moduleName = import.args[0].name!!
@@ -141,7 +140,7 @@ internal class ModuleImporter(private val compilerMessages: MutableList<Compiler
                     importModule(program, modulePath)
                 }
 
-        importedModule.checkImportedValid(compilerMessages)
+        importedModule.checkImportedValid(errors)
         return importedModule
     }
 

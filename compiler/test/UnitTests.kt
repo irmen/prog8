@@ -6,6 +6,7 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
+import prog8.ast.base.ErrorReporter
 import prog8.ast.base.Position
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
@@ -124,31 +125,34 @@ class TestCompiler {
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestZeropage {
+
+    private val errors = ErrorReporter()
+
     @Test
     fun testNames() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false))
 
-        zp.allocate("", DataType.UBYTE, null)
-        zp.allocate("", DataType.UBYTE, null)
-        zp.allocate("varname", DataType.UBYTE, null)
+        zp.allocate("", DataType.UBYTE, null, errors)
+        zp.allocate("", DataType.UBYTE, null, errors)
+        zp.allocate("varname", DataType.UBYTE, null, errors)
         assertFailsWith<AssertionError> {
-            zp.allocate("varname", DataType.UBYTE, null)
+            zp.allocate("varname", DataType.UBYTE, null, errors)
         }
-        zp.allocate("varname2", DataType.UBYTE, null)
+        zp.allocate("varname2", DataType.UBYTE, null, errors)
     }
 
     @Test
     fun testZpFloatEnable() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertFailsWith<CompilerException> {
-            zp.allocate("", DataType.FLOAT, null)
+            zp.allocate("", DataType.FLOAT, null, errors)
         }
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true))
         assertFailsWith<CompilerException> {
-            zp2.allocate("", DataType.FLOAT, null)
+            zp2.allocate("", DataType.FLOAT, null, errors)
         }
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true))
-        zp3.allocate("", DataType.FLOAT, null)
+        zp3.allocate("", DataType.FLOAT, null, errors)
     }
 
     @Test
@@ -173,7 +177,7 @@ class TestZeropage {
         println(zp.free)
         assertEquals(0, zp.available())
         assertFailsWith<CompilerException> {
-            zp.allocate("", DataType.BYTE, null)
+            zp.allocate("", DataType.BYTE, null, errors)
         }
     }
 
@@ -218,19 +222,19 @@ class TestZeropage {
 
         assertFailsWith<ZeropageDepletedError> {
             // in regular zp there aren't 5 sequential bytes free
-            zp.allocate("", DataType.FLOAT, null)
+            zp.allocate("", DataType.FLOAT, null, errors)
         }
 
         for (i in 0 until zp.available()) {
-            val loc = zp.allocate("", DataType.UBYTE, null)
+            val loc = zp.allocate("", DataType.UBYTE, null, errors)
             assertTrue(loc > 0)
         }
         assertEquals(0, zp.available())
         assertFailsWith<ZeropageDepletedError> {
-            zp.allocate("", DataType.UBYTE, null)
+            zp.allocate("", DataType.UBYTE, null, errors)
         }
         assertFailsWith<ZeropageDepletedError> {
-            zp.allocate("", DataType.UWORD, null)
+            zp.allocate("", DataType.UWORD, null, errors)
         }
     }
 
@@ -238,29 +242,29 @@ class TestZeropage {
     fun testFullAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertEquals(238, zp.available())
-        val loc = zp.allocate("", DataType.UWORD, null)
+        val loc = zp.allocate("", DataType.UWORD, null, errors)
         assertTrue(loc > 3)
         assertFalse(loc in zp.free)
         val num = zp.available() / 2
 
         for(i in 0..num-4) {
-            zp.allocate("", DataType.UWORD, null)
+            zp.allocate("", DataType.UWORD, null, errors)
         }
         assertEquals(6,zp.available())
 
         assertFailsWith<ZeropageDepletedError> {
             // can't allocate because no more sequential bytes, only fragmented
-            zp.allocate("", DataType.UWORD, null)
+            zp.allocate("", DataType.UWORD, null, errors)
         }
 
         for(i in 0..5) {
-            zp.allocate("", DataType.UBYTE, null)
+            zp.allocate("", DataType.UBYTE, null, errors)
         }
 
         assertEquals(0, zp.available())
         assertFailsWith<ZeropageDepletedError> {
             // no more space
-            zp.allocate("", DataType.UBYTE, null)
+            zp.allocate("", DataType.UBYTE, null, errors)
         }
     }
 
@@ -268,16 +272,16 @@ class TestZeropage {
     fun testEfficientAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true))
         assertEquals(16, zp.available())
-        assertEquals(0x04, zp.allocate("", DataType.WORD, null))
-        assertEquals(0x06, zp.allocate("", DataType.UBYTE, null))
-        assertEquals(0x0a, zp.allocate("", DataType.UBYTE, null))
-        assertEquals(0x94, zp.allocate("", DataType.UWORD, null))
-        assertEquals(0xa7, zp.allocate("", DataType.UWORD, null))
-        assertEquals(0xa9, zp.allocate("", DataType.UWORD, null))
-        assertEquals(0xb5, zp.allocate("", DataType.UWORD, null))
-        assertEquals(0xf7, zp.allocate("", DataType.UWORD, null))
-        assertEquals(0x0e, zp.allocate("", DataType.UBYTE, null))
-        assertEquals(0xf9, zp.allocate("", DataType.UBYTE, null))
+        assertEquals(0x04, zp.allocate("", DataType.WORD, null, errors))
+        assertEquals(0x06, zp.allocate("", DataType.UBYTE, null, errors))
+        assertEquals(0x0a, zp.allocate("", DataType.UBYTE, null, errors))
+        assertEquals(0x94, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xa7, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xa9, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xb5, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xf7, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0x0e, zp.allocate("", DataType.UBYTE, null, errors))
+        assertEquals(0xf9, zp.allocate("", DataType.UBYTE, null, errors))
         assertEquals(0, zp.available())
     }
 }

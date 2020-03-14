@@ -15,7 +15,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     fun available() = if(options.zeropage==ZeropageType.DONTUSE) 0 else free.size
 
-    fun allocate(scopedname: String, datatype: DataType, position: Position?): Int {
+    fun allocate(scopedname: String, datatype: DataType, position: Position?, errors: ErrorReporter): Int {
         assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"isSameAs scopedname can't be allocated twice"}
 
         if(options.zeropage==ZeropageType.DONTUSE)
@@ -28,9 +28,9 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                     DataType.FLOAT -> {
                         if (options.floats) {
                             if(position!=null)
-                                printWarning("allocated a large value (float) in zeropage", position)
+                                errors.warn("allocated a large value (float) in zeropage", position)
                             else
-                                printWarning("$scopedname: allocated a large value (float) in zeropage")
+                                errors.warn("$scopedname: allocated a large value (float) in zeropage", null)
                             5
                         } else throw CompilerException("floating point option not enabled")
                     }

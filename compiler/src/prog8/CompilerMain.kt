@@ -2,7 +2,8 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.base.AstException
-import prog8.compiler.*
+import prog8.compiler.CompilationResult
+import prog8.compiler.compileProgram
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
