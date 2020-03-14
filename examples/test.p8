@@ -1,4 +1,3 @@
-%import c64flt
 %zeropage basicsafe
 
 main {

@@ -14,6 +14,11 @@ main {
         for r in 3 to 12 step 3 {
             circle(r)
         }
+        line(5,3, 30,3)
+        line(5,3, 5, 24)
+        line(30,3,30,24)
+        line(5,24,30,24)
+
         line(1, 10, 38, 24)
         line(1, 20, 38, 2)
         line(20, 4, 10, 24)
@@ -27,22 +32,10 @@ main {
             ubyte dy = abs(y2 - y1)
             ubyte dx2 = 2 * dx
             ubyte dy2 = 2 * dy
-            byte ix = sgn(x2-x1)
-            byte iy = sgn(y2-y1)
+            byte ix = sgn(x2 as byte - x1 as byte)
+            byte iy = sgn(y2 as byte - y1 as byte)
             ubyte x = x1
             ubyte y = y1
-
-            ; TODO fix sgn
-            if x1<x2
-                ix=1
-            else
-                ix=-1
-
-            ; TODO fix sgn
-            if y1<y2
-                iy=1
-            else
-                iy=-1
 
             if dx >= dy {
                 ; TODO fix assembler problem when defining label here

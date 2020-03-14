@@ -2,6 +2,9 @@
 TODO
 ====
 
+- remove statements after an exit() or return
+- fix warnings about that unreachable code?
+
 - option to load library files from a directory instead of the embedded ones
 
 

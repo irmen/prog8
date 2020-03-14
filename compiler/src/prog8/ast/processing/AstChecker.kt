@@ -814,6 +814,14 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCall.args, functionCall.position)
+
+        // warn about sgn(unsigned) this is likely a mistake
+        if(functionCall.target.nameInSource.last()=="sgn") {
+            val sgnArgType = functionCall.args.first().inferType(program)
+            if(sgnArgType.istype(DataType.UBYTE) || sgnArgType.istype(DataType.UWORD))
+                printWarning("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCall.args.first().position)
+        }
+
         super.visit(functionCall)
     }
 
