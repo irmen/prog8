@@ -66,21 +66,13 @@ ARRAYSIG :
     ;
 
 
-module :  (modulestatement | EOL)* EOF ;
-
-modulestatement:  directive | block ;
+module :  (directive | block | EOL)* EOF ;
 
 block:	identifier integerliteral? statement_block EOL ;
 
 statement :
 	directive
-	| varinitializer
-	| structvarinitializer
-	| vardecl
-	| structvardecl
-	| constdecl
-	| memoryvardecl
-	| structdecl
+	| variabledeclaration
 	| assignment
 	| augassignment
 	| unconditionaljump
@@ -88,9 +80,7 @@ statement :
 	| functioncall_stmt
 	| if_stmt
 	| branch_stmt
-	| subroutine
-	| asmsubroutine
-	| romsubroutine
+	| subroutinedeclaration
 	| inlineasm
 	| returnstmt
 	| forloop
@@ -101,6 +91,24 @@ statement :
 	| continuestmt
 	| labeldef
 	;
+
+
+variabledeclaration :
+	varinitializer
+	| structvarinitializer
+	| vardecl
+	| structvardecl
+	| constdecl
+	| memoryvardecl
+	| structdecl
+    ;
+
+
+subroutinedeclaration :
+	subroutine
+	| asmsubroutine
+	| romsubroutine
+    ;
 
 
 labeldef :  identifier ':'  ;
