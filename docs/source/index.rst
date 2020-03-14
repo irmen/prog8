@@ -143,6 +143,7 @@ Design principles and features
   still able to directly use memory addresses, CPU registers and ROM subroutines,
   and inline assembly to have full control when every cycle or byte matters
 - Arbitrary number of subroutine parameters (constrained only by available memory)
+- Nested subroutines can access variables from outer scopes, this avoids the need and overhead to pass everything via parameters
 - Complex nested expressions are possible
 - Values are typed. Types supported include signed and unsigned bytes and words, arrays, strings and floats.
 - No dynamic memory allocation or sizing! All variables stay fixed size as determined at compile time.
@@ -158,7 +159,7 @@ Design principles and features
 - The compiler tries to optimize the program and generated code, but hand-tuning of the
   performance or space-critical parts will likely still be required. This is supported by
   the ability to easily write embedded assembly code directly in the program source code.
-- There are many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
+- There are many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
 
 
 .. _requirements:
@@ -167,26 +168,25 @@ Required tools
 --------------
 
 `64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
-A recent .exe version of this tool for Windows can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
-For other platforms it is very easy to compile it yourself (make ; make install).
+It's very easy to compile yourself.
+A recent precompiled .exe for Windows can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
 
-A **Java runtime (jre or jdk), version 8 or newer**  is required to run the packaged compiler.
-If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK instead
-and for Windows it's possible to get that as well. Check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ for
-downloads.
+A **Java runtime (jre or jdk), version 8 or newer**  is required to run the prog8 compiler itself.
+If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK instead.
+Fnd for Windows it's possible to get that as well. Check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ .
 
-Finally: a **C-64 emulator** (or a real C-64 ofcourse) to run the programs on. The compiler assumes the presence
-of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
+Finally: a **C-64 emulator** (or a real C-64 ofcourse) can be nice to test and run your programs on.
+The compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
 
 .. important::
     **Building the compiler itself:** (*Only needed if you have not downloaded a pre-built 'fat-jar'*)
 
-    (re)building the compiler itself requires a recent Kotlin SDK.
-    The compiler is developed using the `IntelliJ IDEA <https://www.jetbrains.com/idea/>`_
-    IDE from Jetbrains, with the Kotlin plugin (free community edition of this IDE is available).
-    But a bare Kotlin SDK installation should work just as well.
+    (Re)building the compiler itself requires a recent Kotlin SDK.
+    The compiler is developed using `IntelliJ IDEA <https://www.jetbrains.com/idea/>`_ ,
+    but only a Kotlin SDK installation should work as well, because the gradle tool is
+    used to compile everything from the commandline.
 
-    Instructions on how to obtain a working compiler are in :ref:`building_compiler`.
+    Instructions on how to obtain a prebuilt compiler are in :ref:`building_compiler`.
 
 
 .. toctree::

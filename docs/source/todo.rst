@@ -11,7 +11,7 @@ Memory Block Operations integrated in language?
 array/string memory block operations?
 
 - vector inc/dec/add/sub/mul/div...?  (on array or string):
-        arrayvar++ / arrayvar-- / arrayvar += 2 / arrayvar -= 2 / arrayvar *= 3 / arrayvar /= 3
+  ``arrayvar++ / arrayvar-- / arrayvar += 2 / arrayvar -= 2 / arrayvar *= 3 / arrayvar /= 3``
 
 - array operations
   copy (from another array with the same length), shift-N(left,right), rotate-N(left,right)

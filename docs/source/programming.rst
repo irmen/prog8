@@ -12,57 +12,56 @@ Elements of a program
 ---------------------
 
 Program
-	Consists of one or more *modules*.
+    Consists of one or more *modules*.
 
 Module
-	A file on disk with the ``.p8`` suffix. It contains *directives* and *code blocks*.
-	Whitespace and indentation in the source code are arbitrary and can be tabs or spaces or both.
-	You can also add *comments* to the source code.
-	One moudule file can *import* others, and also import *library modules*.
+    A file on disk with the ``.p8`` suffix. It can contain *directives* and *code blocks*.
+    Whitespace and indentation in the source code are arbitrary and can be mixed tabs or spaces.
+    A module file can *import* other modules, including *library modules*.
 
 Comments
-	Everything after a semicolon ``;`` is a comment and is ignored by the compiler.
-	If the whole line is just a comment, it will be copied into the resulting assembly source code.
-	This makes it easier to understand and relate the generated code. Examples::
-
-		A = 42    ; set the initial value to 42
-		; next is the code that...
+    Everything after a semicolon ``;`` is a comment and is ignored by the compiler.
+    If the whole line is just a comment, this line will be copied into the resulting assembly source code for reference.
 
 Directive
-	These are special instructions for the compiler, to change how it processes the code
-	and what kind of program it creates. A directive is on its own line in the file, and
-	starts with ``%``, optionally followed by some arguments.
+    These are special instructions for the compiler, to change how it processes the code
+    and what kind of program it creates. A directive is on its own line in the file, and
+    starts with ``%``, optionally followed by some arguments.
 
 Code block
-	A block of actual program code. It defines a *scope* (also known as 'namespace') and
-	can contain Prog8 *code*, *variable declarations* and *subroutines*.
-	More details about this below: :ref:`blocks`.
+    A block of actual program code. It has a starting address in memory,
+    and defines a *scope* (also known as 'namespace').
+    It contains variables and subroutines.
+    More details about this below: :ref:`blocks`.
 
 Variable declarations
-	The data that the code works on is stored in variables ('named values that can change').
-	The compiler allocates the required memory for them.
-	There is *no dynamic memory allocation*. The storage size of all variables
-	is fixed and is determined at compile time.
-	Variable declarations tend to appear at the top of the code block that uses them.
-	They define the name and type of the variable, and its initial value.
-	Prog8 supports a small list of data types, including special 'memory mapped' types
-	that don't allocate storage but instead point to a fixed location in the address space.
+    The data that the code works on is stored in variables ('named values that can change').
+    The compiler allocates the required memory for them.
+    There is *no dynamic memory allocation*. The storage size of all variables
+    is fixed and is determined at compile time.
+    Variable declarations tend to appear at the top of the code block that uses them.
+    They define the name and type of the variable, and its initial value.
+    Prog8 supports a small list of data types, including special 'memory mapped' types
+    that don't allocate storage but instead point to a fixed location in the address space.
 
 Code
-	These are the instructions that make up the program's logic. There are different kinds of instructions
-	('statements' is a better name):
+    These are the instructions that make up the program's logic.
+    Code can only occur inside a subroutine.
+    There are different kinds of instructions ('statements' is a better name) such as:
 
-	- value assignment
-	- looping  (for, while, repeat, unconditional jumps)
-	- conditional execution (if - then - else, when, and conditional jumps)
-	- subroutine calls
-	- label definition
+    - value assignment
+    - looping  (for, while, repeat, unconditional jumps)
+    - conditional execution (if - then - else, when, and conditional jumps)
+    - subroutine calls
+    - label definition
 
 Subroutine
     Defines a piece of code that can be called by its name from different locations in your code.
     It accepts parameters and can return a value (optional).
     It can define its own variables, and it is even possible to define subroutines nested inside other subroutines.
     Their contents is scoped accordingly.
+    Nested subroutines can access the variables from outer scopes.
+    This removes the need and overhead to pass everything via parameters.
 
 Label
     This is a named position in your code where you can jump to from another place.
@@ -90,16 +89,20 @@ Scope
 Blocks, Scopes, and accessing Symbols
 -------------------------------------
 
-**Blocks** are the top level separate pieces of code and data of your program. They are combined
-into a single output program.  No code or data can occur outside a block. Here's an example::
+**Blocks** are the top level separate pieces of code and data of your program. They have a
+starting address in memory and will be combined together into a single output program.
+They can only contain *directives*, *variable declarations*, *subroutines* and *inline assembly code*.
+Your actual program code can only exist inside these subroutines.
+(except the occasional inline assembly)
 
-	main $c000 {
-		; this is code inside the block...
-	}
+Here's an example::
 
+    main $c000 {
+        ; this is code inside the block...
+    }
 
 The name of a block must be unique in your entire program.
-Also be careful when importing other modules; blocks in your own code cannot have
+Be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
 If you omit both the name and address, the entire block is *ignored* by the compiler (and a warning is displayed).
@@ -109,7 +112,7 @@ want to work on later, because the contents of the ignored block are not fully p
 The address can be used to place a block at a specific location in memory.
 Usually it is omitted, and the compiler will automatically choose the location (usually immediately after
 the previous block in memory).
-The address must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$200`` is the cpu stack).
+It must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$1ff`` is the cpu stack).
 
 
 .. _scopes:
@@ -133,14 +136,13 @@ Scopes are created using either of these two statements:
 - subroutines   (nested named scope)
 
 .. note::
-    In contrast to many other programming languages, a new scope is *not* created inside
+    Unlike many other programming languages, a new scope is *not* created inside
     for, while and repeat statements, nor for the if statement and branching conditionals.
-    This is a bit restrictive because you have to think harder about what variables you
-    want to use inside a subroutine. But it is done precisely for this reason; memory in the
-    target system is very limited and it would be a waste to allocate a lot of variables.
-
-    Right now the prog8 compiler is not advanced enough to be able to 'share' or 'overlap'
-    variables intelligently by itself. So for now, it's something the programmer has to think about.
+    This can be a bit restrictive because as a programmer you have to think harder about what variables you
+    want to use inside a subroutine. But it is done precisely for this reason: memory in prog8's
+    target systems is usually very limited and it would be a waste to allocate a lot of variables.
+    The prog8 compiler is not yet advanced enough to be able to share or overlap
+    variables intelligently. So for now that is something the programmer has to think about.
 
 
 Program Start and Entry Point
@@ -159,19 +161,18 @@ taking no parameters and having no return value.
 
 As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call)::
 
-	main {
-	    sub start ()  {
-	        ; program entrypoint code here
-	        return
-	    }
-	}
+    main {
+        sub start ()  {
+            ; program entrypoint code here
+            return
+        }
+    }
 
 
 The ``main`` module is always relocated to the start of your programs
 address space, and the ``start`` subroutine (the entrypoint) will be on the
 first address. This will also be the address that the BASIC loader program (if generated)
 calls with the SYS statement.
-
 
 
 

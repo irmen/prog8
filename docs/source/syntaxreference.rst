@@ -172,13 +172,13 @@ Code blocks
 -----------
 
 A named block of actual program code. Itefines a *scope* (also known as 'namespace') and
-can contain Prog8 *code*, *directives*, *variable declarations* and *subroutines*::
+can only contain *directives*, *variable declarations*, *subroutines* or *inline assembly*::
 
     <blockname> [<address>] {
         <directives>
         <variables>
-        <statements>
         <subroutines>
+        <inline asm>
     }
 
 The <blockname> must be a valid identifier.
@@ -189,7 +189,6 @@ Also read :ref:`blocks`.  Here is an example of a code block, to be loaded at ``
 	main $c000 {
 		; this is code inside the block...
 	}
-
 
 
 Labels
