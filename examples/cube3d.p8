@@ -22,7 +22,7 @@ main {
         uword angley
         uword anglez
         word rz=33
-        while(true) {
+        while true {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             c64scr.clear_screenchars(32)
             draw_edges()
@@ -30,9 +30,11 @@ main {
             angley+=433
             anglez+=907
             c64scr.plot(0,0)
-            c64scr.print("3d cube! (integer) ")
+            c64scr.print("3d cube! ")
             c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/frame")
+            c64scr.print(" jiffies/fr = ")
+            c64scr.print_ub(60/c64.TIME_LO)
+            c64scr.print(" fps")
             c64.TIME_LO=0
         }
     }

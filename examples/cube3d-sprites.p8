@@ -82,7 +82,7 @@ main {
         uword angley
         uword anglez
         word rz=33
-        while(true) {
+        while true {
             c64.TIME_LO=0
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             position_sprites()
@@ -92,7 +92,9 @@ main {
             c64scr.plot(0,0)
             c64scr.print("3d cube! (sprites) ")
             c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/frame ")
+            c64scr.print(" jiffies/fr = ")
+            c64scr.print_ub(60/c64.TIME_LO)
+            c64scr.print(" fps")
         }
     }
 

@@ -16,7 +16,7 @@ sub start() {
     void c64.CHRIN()
     c64.CLEARSCR()
 
-    while(true) {
+    while true {
         uword note
         for note in notes {
             ubyte note1 = lsb(note)
@@ -39,7 +39,7 @@ sub start() {
 sub delay() {
     ubyte d
     for d in 0 to 12 {
-        while(c64.RASTER!=0) {
+        while c64.RASTER!=0 {
             ; tempo delay synced to screen refresh
         }
     }

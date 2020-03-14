@@ -246,7 +246,7 @@ waitkey:
         c64scr.print("────────────────────────")
         c64.CHROUT('K')
 
-        while(c64.GETIN()!=133) {
+        while c64.GETIN()!=133 {
             ; endless loop until user presses F1 to restart the game
         }
     }
@@ -568,7 +568,7 @@ blocklogic {
     }
 
     sub collapse(ubyte ypos) {
-        while(ypos>main.startYpos+1) {
+        while ypos>main.startYpos+1 {
             ubyte x
             for x in main.boardOffsetX+main.boardWidth-1 downto main.boardOffsetX {
                 ubyte char = c64scr.getchr(x, ypos-1)

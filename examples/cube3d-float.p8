@@ -19,7 +19,7 @@ main {
 
     sub start()  {
         float time=0.0
-        while(true) {
+        while true {
             rotate_vertices(time)
             c64scr.clear_screenchars(32)
             draw_edges()
@@ -27,7 +27,9 @@ main {
             c64scr.plot(0,0)
             c64scr.print("3d cube! (float) ")
             c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/frame")
+            c64scr.print(" jiffies/fr = ")
+            c64scr.print_ub(60/c64.TIME_LO)
+            c64scr.print(" fps")
             c64.TIME_LO=0
         }
     }
