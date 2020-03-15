@@ -1,5 +1,6 @@
 [![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)](https://saythanks.io/to/irmen)
 [![Build Status](https://travis-ci.org/irmen/prog8.svg?branch=master)](https://travis-ci.org/irmen/prog8)
+[![Documentation](https://readthedocs.org/projects/prog8/badge/?version=latest)](https://prog8.readthedocs.io/)
 
 Prog8 - Structured Programming Language for 8-bit 6502/6510 microprocessors
 ===========================================================================
@@ -43,7 +44,7 @@ Contributions to add support for other 8-bit (or other?!) machines are welcome.
 
 Documentation/manual
 --------------------
-This describes the language, but also how to build and run the compiler. See https://prog8.readthedocs.io/
+https://prog8.readthedocs.io/
 
 Required tools
 --------------
