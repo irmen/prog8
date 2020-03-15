@@ -23,7 +23,7 @@ main {
         print_stackpointer()
         exit(33)
         sub3()      ; TODO warning about unreachable code
-        sub3()      ; TODO remove statements after a return
+        sub3()      ; TODO remove statements after a return/exit
         c64scr.print("sp2:")
         c64scr.print("sp2:")
         sub3()
