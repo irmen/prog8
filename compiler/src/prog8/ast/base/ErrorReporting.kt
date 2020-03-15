@@ -17,6 +17,8 @@ class ErrorReporter {
     fun warn(msg: String, position: Position?) = messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
 
     fun handle() {
+        var numErrors = 0
+        var numWarnings = 0
         messages.forEach {
             when(it.severity) {
                 MessageSeverity.ERROR -> System.err.print("\u001b[91m")  // bright red
@@ -26,14 +28,17 @@ class ErrorReporter {
             if(msg !in alreadyReportedMessages) {
                 System.err.println(msg)
                 alreadyReportedMessages.add(msg)
+                when(it.severity) {
+                    MessageSeverity.WARNING -> numWarnings++
+                    MessageSeverity.ERROR -> numErrors++
+                }
             }
             System.err.print("\u001b[0m")  // reset color
         }
-        val numErrors = messages.count { it.severity==MessageSeverity.ERROR }
         messages.clear()
         if(numErrors>0)
-            throw ParsingFailedError("There are $numErrors errors.")
+            throw ParsingFailedError("There are $numErrors errors and $numWarnings warnings.")
     }
+
+    fun isEmpty() = messages.isEmpty()
 }
-
-

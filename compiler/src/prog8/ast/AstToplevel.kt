@@ -270,7 +270,7 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
         return when (val stmt = localContext.definingModule().lookup(scopedName, localContext)) {
             is Label, is VarDecl, is Block, is Subroutine -> stmt
             null -> null
-            else -> throw NameError("wrong identifier target: $stmt", stmt.position)
+            else -> throw SyntaxError("wrong identifier target: $stmt", stmt.position)
         }
     }
 }

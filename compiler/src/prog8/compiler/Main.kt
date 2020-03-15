@@ -71,7 +71,8 @@ fun compileProgram(filepath: Path,
 
             //println(" time1: $time1")
             val time2 = measureTimeMillis {
-                programAst.constantFold()
+                programAst.constantFold(errors)
+                errors.handle()
             }
             //println(" time2: $time2")
             val time3 = measureTimeMillis {

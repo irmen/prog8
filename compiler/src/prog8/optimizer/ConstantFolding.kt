@@ -11,24 +11,14 @@ import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
 
-class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
+class ConstantFolding(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
-    var errors : MutableList<AstException> = mutableListOf()
-    private val reportedErrorMessages = mutableSetOf<String>()
-
-    fun addError(x: AstException) {
-        // check that we don't add the isSameAs error more than once
-        if(x.toString() !in reportedErrorMessages) {
-            reportedErrorMessages.add(x.toString())
-            errors.add(x)
-        }
-    }
 
     override fun visit(decl: VarDecl): Statement {
         // the initializer value can't refer to the variable itself (recursive definition)
         // TODO: use call tree for this?
         if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
-            errors.add(ExpressionError("recursive var declaration", decl.position))
+            errors.err("recursive var declaration", decl.position)
             return decl
         }
 
@@ -69,7 +59,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         // convert the initializer range expression to an actual array
                         val declArraySize = decl.arraysize?.size()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
-                            errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
+                            errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
                         val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program).typeOrElse(DataType.UBYTE)
@@ -88,7 +78,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         }
                     }
                     if(numericLv!=null && numericLv.type== DataType.FLOAT)
-                        errors.add(ExpressionError("arraysize requires only integers here", numericLv.position))
+                        errors.err("arraysize requires only integers here", numericLv.position)
                     val size = decl.arraysize?.size() ?: return decl
                     if (rangeExpr==null && numericLv!=null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
@@ -96,19 +86,19 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         when(decl.datatype){
                             DataType.ARRAY_UB -> {
                                 if(fillvalue !in 0..255)
-                                    errors.add(ExpressionError("ubyte value overflow", numericLv.position))
+                                    errors.err("ubyte value overflow", numericLv.position)
                             }
                             DataType.ARRAY_B -> {
                                 if(fillvalue !in -128..127)
-                                    errors.add(ExpressionError("byte value overflow", numericLv.position))
+                                    errors.err("byte value overflow", numericLv.position)
                             }
                             DataType.ARRAY_UW -> {
                                 if(fillvalue !in 0..65535)
-                                    errors.add(ExpressionError("uword value overflow", numericLv.position))
+                                    errors.err("uword value overflow", numericLv.position)
                             }
                             DataType.ARRAY_W -> {
                                 if(fillvalue !in -32768..32767)
-                                    errors.add(ExpressionError("word value overflow", numericLv.position))
+                                    errors.err("word value overflow", numericLv.position)
                             }
                             else -> {}
                         }
@@ -131,7 +121,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         // arraysize initializer is a single int, and we know the size.
                         val fillvalue = litval.number.toDouble()
                         if (fillvalue < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.machine.FLOAT_MAX_POSITIVE)
-                            errors.add(ExpressionError("float value overflow", litval.position))
+                            errors.err("float value overflow", litval.position)
                         else {
                             // create the array itself, filled with the fillvalue.
                             val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
@@ -178,7 +168,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 else -> identifier
             }
         } catch (ax: AstException) {
-            addError(ax)
+            errors.err("unhandled AST error: $ax", identifier.position)
             identifier
         }
     }
@@ -189,7 +179,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return try {
             functionCall.constValue(program) ?: functionCall
         } catch (ax: AstException) {
-            addError(ax)
+            errors.err("unhandled AST error: $ax", functionCall.position)
             functionCall
         }
     }
@@ -284,7 +274,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             }
             return prefixExpr
         } catch (ax: AstException) {
-            addError(ax)
+            errors.err("unhandled AST error: $ax", expr.position)
             expr
         }
     }
@@ -344,7 +334,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 else -> expr
             }
         } catch (ax: AstException) {
-            addError(ax)
+            errors.err("unhandled AST error: $ax", expr.position)
             expr
         }
     }

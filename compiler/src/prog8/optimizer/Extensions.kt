@@ -1,30 +1,20 @@
 package prog8.optimizer
 
 import prog8.ast.Program
-import prog8.ast.base.AstException
 import prog8.ast.base.ErrorReporter
-import prog8.parser.ParsingFailedError
 
 
-internal fun Program.constantFold() {
-    val optimizer = ConstantFolding(this)
-    try {
-        optimizer.visit(this)
-    } catch (ax: AstException) {
-        optimizer.addError(ax)
-    }
+internal fun Program.constantFold(errors: ErrorReporter) {
+    val optimizer = ConstantFolding(this, errors)
+    optimizer.visit(this)
 
-    while(optimizer.errors.isEmpty() && optimizer.optimizationsDone>0) {
+    while(errors.isEmpty() && optimizer.optimizationsDone>0) {
         optimizer.optimizationsDone = 0
         optimizer.visit(this)
     }
 
-    if(optimizer.errors.isNotEmpty()) {
-        optimizer.errors.forEach { System.err.println(it) }
-        throw ParsingFailedError("There are ${optimizer.errors.size} errors.")
-    } else {
+    if(errors.isEmpty())
         modules.forEach { it.linkParents(namespace) }   // re-link in final configuration
-    }
 }
 
 
