@@ -14,10 +14,10 @@ main {
         for r in 3 to 12 step 3 {
             circle(r)
         }
-        line(5,3, 30,3)
-        line(5,3, 5, 24)
-        line(30,3,30,24)
-        line(5,24,30,24)
+        ;line(5,3, 30,3)
+        ;line(5,3, 5, 24)
+        ;line(30,3,30,24)
+        ;line(5,24,30,24)
 
         line(1, 10, 38, 24)
         line(1, 20, 38, 2)
@@ -40,10 +40,10 @@ main {
                     c64scr.setcc(x, y, 42, 5)
                     if x==x2
                         return
-                    x += ix
+                    x += ix as ubyte
                     d += dy2
                     if d > dx {
-                        y += iy
+                        y += iy as ubyte
                         d -= dx2
                     }
                 }
@@ -52,10 +52,10 @@ main {
                     c64scr.setcc(x, y, 42, 5)
                     if y == y2
                         return
-                    y += iy
+                    y += iy as ubyte
                     d += dx2
                     if d > dy {
-                        x += ix
+                        x += ix as ubyte
                         d -= dy2
                     }
                 }
