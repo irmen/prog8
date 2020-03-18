@@ -9,7 +9,7 @@ import prog8.ast.statements.*
 
 interface IAstModifyingVisitor {
     fun visit(program: Program) {
-        program.modules.forEach { visit(it) }
+        program.modules.forEach { it.accept(this) }
     }
 
     fun visit(module: Module) {

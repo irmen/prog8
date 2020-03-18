@@ -3,6 +3,8 @@ package prog8.ast
 import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
@@ -175,6 +177,7 @@ interface INameScope {
                     is ForeverLoop -> find(it.body)
                     is WhileLoop -> find(it.body)
                     is WhenStatement -> it.choices.forEach { choice->find(choice.statements) }
+                    else -> { /* do nothing */ }
                 }
             }
         }
@@ -191,7 +194,7 @@ interface IAssignable {
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
 
-class Program(val name: String, val modules: MutableList<Module>) {
+class Program(val name: String, val modules: MutableList<Module>): Node {
     val namespace = GlobalNamespace(modules)
 
     val definedLoadAddress: Int
@@ -211,6 +214,17 @@ class Program(val name: String, val modules: MutableList<Module>) {
     }
 
     fun allBlocks(): List<Block> = modules.flatMap { it.statements.filterIsInstance<Block>() }
+
+    override val position: Position = Position.DUMMY
+    override var parent: Node
+        get() = throw FatalAstException("program has no parent")
+        set(value) = throw FatalAstException("can't set parent of program")
+
+    override fun linkParents(parent: Node) {
+        modules.forEach {
+            it.linkParents(this)
+        }
+    }
 }
 
 class Module(override val name: String,
@@ -218,6 +232,7 @@ class Module(override val name: String,
              override val position: Position,
              val isLibraryModule: Boolean,
              val source: Path) : Node, INameScope {
+
     override lateinit var parent: Node
     lateinit var program: Program
     val importedBy = mutableListOf<Module>()
@@ -233,7 +248,11 @@ class Module(override val name: String,
     override fun definingScope(): INameScope = program.namespace
 
     override fun toString() = "Module(name=$name, pos=$position, lib=$isLibraryModule)"
+
+    fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+    fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
+
 
 class GlobalNamespace(val modules: List<Module>): Node, INameScope {
     override val name = "<<<global>>>"

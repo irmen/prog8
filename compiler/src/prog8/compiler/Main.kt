@@ -44,7 +44,7 @@ fun compileProgram(filepath: Path,
             importer.importModule(programAst, filepath)
             errors.handle()
 
-            importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map{ it.source }
+            importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
 
             val compilerOptions = determineCompilationOptions(programAst)
             if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
