@@ -5,6 +5,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
+import prog8.ast.processing.IGenericAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
@@ -251,6 +252,7 @@ class Module(override val name: String,
 
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
 }
 
 
