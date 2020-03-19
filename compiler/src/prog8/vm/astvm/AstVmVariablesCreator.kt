@@ -8,8 +8,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
-import prog8.ast.processing.IAstModifyingVisitor
-import prog8.ast.statements.Statement
+import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
@@ -17,10 +16,10 @@ import prog8.vm.RuntimeValueArray
 import prog8.vm.RuntimeValueNumeric
 import prog8.vm.RuntimeValueString
 
-class VariablesCreator(private val runtimeVariables: RuntimeVariables) : IAstModifyingVisitor {
+class AstVmVariablesCreator(private val runtimeVariables: RuntimeVariables) : IAstVisitor {
 
     override fun visit(program: Program) {
-        // define the three registers as global variables
+        // define the three registers as global variables, and set their initial values
         runtimeVariables.define(program.namespace, Register.A.name, RuntimeValueNumeric(DataType.UBYTE, 0))
         runtimeVariables.define(program.namespace, Register.X.name, RuntimeValueNumeric(DataType.UBYTE, 255))
         runtimeVariables.define(program.namespace, Register.Y.name, RuntimeValueNumeric(DataType.UBYTE, 0))
@@ -42,7 +41,7 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables) : IAstMod
         super.visit(program)
     }
 
-    override fun visit(decl: VarDecl): Statement {
+    override fun visit(decl: VarDecl) {
         // if the decl is part of a struct, just skip it
         if(decl.parent !is StructDecl) {
             when (decl.type) {
@@ -75,6 +74,6 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables) : IAstMod
                 }
             }
         }
-        return super.visit(decl)
+        super.visit(decl)
     }
 }

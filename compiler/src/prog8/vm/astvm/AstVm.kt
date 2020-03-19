@@ -189,7 +189,7 @@ class AstVm(val program: Program, compilationTarget: String) {
 
     fun run() {
         try {
-            val init = VariablesCreator(runtimeVariables)
+            val init = AstVmVariablesCreator(runtimeVariables)
             init.visit(program)
 
             // initialize all global variables
