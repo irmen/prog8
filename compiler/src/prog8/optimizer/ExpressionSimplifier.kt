@@ -17,7 +17,7 @@ import kotlin.math.pow
 
  */
 
-internal class SimplifyExpressions(private val program: Program) : IAstModifyingVisitor {
+internal class ExpressionSimplifier(private val program: Program) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
 
     override fun visit(assignment: Assignment): Statement {

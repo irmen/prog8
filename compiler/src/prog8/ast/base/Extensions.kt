@@ -4,7 +4,7 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.processing.*
 import prog8.compiler.CompilationOptions
-import prog8.optimizer.FlattenAnonymousScopesAndRemoveNops
+import prog8.optimizer.FlattenAnonymousScopesAndNopRemover
 
 
 // the name of the subroutine that should be called for every block to initialize its variables
@@ -16,9 +16,10 @@ internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: Err
     checker.visit(this)
 }
 
-internal fun Program.anonscopeVarsCleanup(errors: ErrorReporter) {
-    val mover = MoveAnonScopeVarsToSubroutine(errors)
+internal fun Program.moveAnonScopeVarsToSubroutine(errors: ErrorReporter) {
+    val mover = AnonScopeVarsToSubroutineMover(errors)
     mover.visit(this)
+    mover.applyModifications()
 }
 
 internal fun Program.reorderStatements() {
@@ -56,12 +57,12 @@ internal fun Program.checkIdentifiers(errors: ErrorReporter) {
 }
 
 internal fun Program.makeForeverLoops() {
-    val checker = MakeForeverLoops()
+    val checker = ForeverLoopsMaker()
     checker.visit(this)
     checker.applyModifications()
 }
 
 internal fun Program.removeNopsFlattenAnonScopes() {
-    val flattener = FlattenAnonymousScopesAndRemoveNops()
+    val flattener = FlattenAnonymousScopesAndNopRemover()
     flattener.visit(this)
 }

@@ -7,21 +7,21 @@ import prog8.ast.statements.RepeatLoop
 import prog8.ast.statements.WhileLoop
 
 
-internal class MakeForeverLoops: AstWalker() {
-    override fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<AstModification> {
+internal class ForeverLoopsMaker: AstWalker() {
+    override fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
         val numeric = repeatLoop.untilCondition as? NumericLiteralValue
         if(numeric!=null && numeric.number.toInt() == 0) {
             val forever = ForeverLoop(repeatLoop.body, repeatLoop.position)
-            return listOf(AstModification.Replace(repeatLoop, forever, parent))
+            return listOf(IAstModification.Replace(repeatLoop, forever, parent))
         }
         return emptyList()
     }
 
-    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<AstModification> {
+    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
         val numeric = whileLoop.condition as? NumericLiteralValue
         if(numeric!=null && numeric.number.toInt() != 0) {
             val forever = ForeverLoop(whileLoop.body, whileLoop.position)
-            return listOf(AstModification.Replace(whileLoop, forever, parent))
+            return listOf(IAstModification.Replace(whileLoop, forever, parent))
         }
         return emptyList()
     }

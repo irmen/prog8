@@ -4,12 +4,30 @@
 main {
 
     sub start() {
+        ubyte x11=44
+        byte bb0=99
+
+        A=x11
+
 
         while true {
             A=99
         }
 
         repeat {
+            ubyte x1
+
+            x1=A
+            A=x1
+
+            if  A==44 {
+                ubyte y1
+                A=y1
+            } else {
+                byte bb1=99
+                bb1 += A
+                bb0=bb1
+            }
             A=44
         } until false
 

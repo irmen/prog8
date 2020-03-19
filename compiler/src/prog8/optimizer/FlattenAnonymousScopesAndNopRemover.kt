@@ -8,7 +8,7 @@ import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.NopStatement
 import prog8.ast.statements.Statement
 
-internal class FlattenAnonymousScopesAndRemoveNops: IAstVisitor {
+internal class FlattenAnonymousScopesAndNopRemover: IAstVisitor {
     private var scopesToFlatten = mutableListOf<INameScope>()
     private val nopStatements = mutableListOf<NopStatement>()
 

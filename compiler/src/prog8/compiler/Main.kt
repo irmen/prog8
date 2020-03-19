@@ -117,7 +117,7 @@ fun compileProgram(filepath: Path,
             if(writeAssembly) {
                 // asm generation directly from the Ast, no need for intermediate code
                 val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
-                programAst.anonscopeVarsCleanup(errors)
+                programAst.moveAnonScopeVarsToSubroutine(errors)
                 errors.handle()
                 val assembly = CompilationTarget.asmGenerator(programAst, zeropage, compilerOptions, outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
