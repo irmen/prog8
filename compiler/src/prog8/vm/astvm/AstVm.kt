@@ -543,6 +543,17 @@ class AstVm(val program: Program, compilationTarget: String) {
                     }
                 }
             }
+            is ForeverLoop -> {
+                while(true) {
+                    try {
+                        executeAnonymousScope(stmt.body)
+                    } catch (b: LoopControlBreak) {
+                        break
+                    } catch (c: LoopControlContinue) {
+                        continue
+                    }
+                }
+            }
             else -> {
                 TODO("astvm implement statement $stmt")
             }
