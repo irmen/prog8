@@ -6,7 +6,7 @@ import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Statement
 import prog8.ast.statements.VarDecl
 
-class AnonymousScopeVarsCleanup(private val errors: ErrorReporter): IAstModifyingVisitor {
+class MoveAnonScopeVarsToSubroutine(private val errors: ErrorReporter): IAstModifyingVisitor {
     private val varsToMove: MutableMap<AnonymousScope, List<VarDecl>> = mutableMapOf()
 
     override fun visit(program: Program) {

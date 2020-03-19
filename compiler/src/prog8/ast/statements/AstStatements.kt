@@ -5,13 +5,13 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
-import prog8.ast.processing.IGenericAstModifyingVisitor
+import prog8.ast.processing.AstWalker
 
 
 sealed class Statement : Node {
     abstract fun accept(visitor: IAstModifyingVisitor) : Statement
     abstract fun accept(visitor: IAstVisitor)
-    abstract fun accept(visitor: IGenericAstModifyingVisitor, parent: Node)
+    abstract fun accept(visitor: AstWalker, parent: Node)
 
     fun makeScopedName(name: String): String {
         // easy way out is to always return the full scoped name.
@@ -46,7 +46,7 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override fun linkParents(parent: Node) {}
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
     override val expensiveToInline = false
 }
@@ -69,7 +69,7 @@ class Block(override val name: String,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "Block(name=$name, address=$address, ${statements.size} statements)"
@@ -89,7 +89,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 data class DirectiveArg(val str: String?, val name: String?, val int: Int?, override val position: Position) : Node {
@@ -110,7 +110,7 @@ data class Label(val name: String, override val position: Position) : Statement(
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "Label(name=$name, pos=$position)"
@@ -128,7 +128,7 @@ open class Return(var value: Expression?, override val position: Position) : Sta
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "Return($value, pos=$position)"
@@ -154,7 +154,7 @@ class Continue(override val position: Position) : Statement() {
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class Break(override val position: Position) : Statement() {
@@ -167,7 +167,7 @@ class Break(override val position: Position) : Statement() {
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 
@@ -245,7 +245,7 @@ class VarDecl(val type: VarDeclType,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     val scopedname: String by lazy { makeScopedName(name) }
 
@@ -308,7 +308,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
         index = index.accept(visitor)
     }
     fun accept(visitor: IAstVisitor) = index.accept(visitor)
-    fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = index.accept(visitor, parent)
+    fun accept(visitor: AstWalker, parent: Node) = index.accept(visitor, parent)
 
     override fun toString(): String {
         return("ArrayIndex($index, pos=$position)")
@@ -330,7 +330,7 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
@@ -358,7 +358,7 @@ data class AssignTarget(val register: Register?,
 
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     companion object {
         fun fromExpr(expr: Expression): AssignTarget {
@@ -457,7 +457,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "PostIncrDecr(op: $operator, target: $target, pos=$position)"
@@ -478,7 +478,7 @@ class Jump(val address: Int?,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
@@ -501,7 +501,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "FunctionCallStatement(target=$target, pos=$position)"
@@ -518,7 +518,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class AnonymousScope(override var statements: MutableList<Statement>,
@@ -544,7 +544,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class NopStatement(override val position: Position): Statement() {
@@ -557,7 +557,7 @@ class NopStatement(override val position: Position): Statement() {
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     companion object {
         fun insteadOf(stmt: Statement): NopStatement {
@@ -600,7 +600,7 @@ class Subroutine(override val name: String,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
@@ -641,7 +641,7 @@ class IfStatement(var condition: Expression,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
 }
 
@@ -661,7 +661,7 @@ class BranchStatement(var condition: BranchCondition,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
 }
 
@@ -682,7 +682,7 @@ class ForLoop(val loopRegister: Register?,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
         return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
@@ -709,7 +709,7 @@ class WhileLoop(var condition: Expression,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class ForeverLoop(var body: AnonymousScope, override val position: Position) : Statement() {
@@ -723,7 +723,7 @@ class ForeverLoop(var body: AnonymousScope, override val position: Position) : S
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class RepeatLoop(var body: AnonymousScope,
@@ -740,7 +740,7 @@ class RepeatLoop(var body: AnonymousScope,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class WhenStatement(var condition: Expression,
@@ -774,7 +774,7 @@ class WhenStatement(var condition: Expression,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 class WhenChoice(var values: List<Expression>?,           // if null,  this is the 'else' part
@@ -794,7 +794,7 @@ class WhenChoice(var values: List<Expression>?,           // if null,  this is t
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
-    fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
 
@@ -815,7 +815,7 @@ class StructDecl(override val name: String,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
-    override fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     fun nameOfFirstMember() = (statements.first() as VarDecl).name
 }
@@ -834,5 +834,5 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
-    fun accept(visitor: IGenericAstModifyingVisitor, parent: Node) = visitor.visit(this, parent)
+    fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }

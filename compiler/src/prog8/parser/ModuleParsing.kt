@@ -140,7 +140,7 @@ internal class ModuleImporter(private val errors: ErrorReporter) {
                     importModule(program, modulePath)
                 }
 
-        importedModule.checkImportedValid(errors)
+        importedModule.checkImportedValid()
         return importedModule
     }
 

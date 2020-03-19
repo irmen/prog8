@@ -8,45 +8,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
 
-private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, program: Program): List<Assignment> {
-    val identifier = structAssignment.target.identifier!!
-    val identifierName = identifier.nameInSource.single()
-    val targetVar = identifier.targetVarDecl(program.namespace)!!
-    val struct = targetVar.struct!!
-    when (structAssignment.value) {
-        is IdentifierReference -> {
-            val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
-            if (sourceVar.struct == null)
-                throw FatalAstException("can only assign arrays or structs to structs")
-            // struct memberwise copy
-            val sourceStruct = sourceVar.struct!!
-            if(sourceStruct!==targetVar.struct) {
-                // structs are not the same in assignment
-                return listOf()     // error will be printed elsewhere
-            }
-            return struct.statements.zip(sourceStruct.statements).map { member ->
-                val targetDecl = member.first as VarDecl
-                val sourceDecl = member.second as VarDecl
-                if(targetDecl.name != sourceDecl.name)
-                    throw FatalAstException("struct member mismatch")
-                val mangled = mangledStructMemberName(identifierName, targetDecl.name)
-                val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-                val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
-                val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
-                val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
-                        null, sourceIdref, member.second.position)
-                assign.linkParents(structAssignment)
-                assign
-            }
-        }
-        is StructLiteralValue -> {
-            throw IllegalArgumentException("not going to flatten a structLv assignment here")
-        }
-        else -> throw FatalAstException("strange struct value")
-    }
-}
-
-
 internal class StatementReorderer(private val program: Program): IAstModifyingVisitor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
@@ -254,4 +215,44 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
         return assg
     }
+
+
+    private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, program: Program): List<Assignment> {
+        val identifier = structAssignment.target.identifier!!
+        val identifierName = identifier.nameInSource.single()
+        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val struct = targetVar.struct!!
+        when (structAssignment.value) {
+            is IdentifierReference -> {
+                val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
+                if (sourceVar.struct == null)
+                    throw FatalAstException("can only assign arrays or structs to structs")
+                // struct memberwise copy
+                val sourceStruct = sourceVar.struct!!
+                if(sourceStruct!==targetVar.struct) {
+                    // structs are not the same in assignment
+                    return listOf()     // error will be printed elsewhere
+                }
+                return struct.statements.zip(sourceStruct.statements).map { member ->
+                    val targetDecl = member.first as VarDecl
+                    val sourceDecl = member.second as VarDecl
+                    if(targetDecl.name != sourceDecl.name)
+                        throw FatalAstException("struct member mismatch")
+                    val mangled = mangledStructMemberName(identifierName, targetDecl.name)
+                    val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+                    val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
+                    val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
+                    val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                            null, sourceIdref, member.second.position)
+                    assign.linkParents(structAssignment)
+                    assign
+                }
+            }
+            is StructLiteralValue -> {
+                throw IllegalArgumentException("not going to flatten a structLv assignment here")
+            }
+            else -> throw FatalAstException("strange struct value")
+        }
+    }
+
 }

@@ -8,13 +8,7 @@ import prog8.optimizer.FlattenAnonymousScopesAndRemoveNops
 
 
 // the name of the subroutine that should be called for every block to initialize its variables
-internal const val initvarsSubName="prog8_init_vars"
-
-
-internal fun Program.removeNopsFlattenAnonScopes() {
-    val flattener = FlattenAnonymousScopesAndRemoveNops()
-    flattener.visit(this)
-}
+internal const val initvarsSubName = "prog8_init_vars"
 
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {
@@ -22,12 +16,10 @@ internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: Err
     checker.visit(this)
 }
 
-
 internal fun Program.anonscopeVarsCleanup(errors: ErrorReporter) {
-    val mover = AnonymousScopeVarsCleanup(errors)
+    val mover = MoveAnonScopeVarsToSubroutine(errors)
     mover.visit(this)
 }
-
 
 internal fun Program.reorderStatements() {
     val initvalueCreator = VarInitValueAndAddressOfCreator(this)
@@ -42,9 +34,10 @@ internal fun Program.addTypecasts(errors: ErrorReporter) {
     caster.visit(this)
 }
 
-internal fun Module.checkImportedValid(errors: ErrorReporter) {
-    val checker = ImportedModuleDirectiveRemover(errors)
-    checker.visit(this)
+internal fun Module.checkImportedValid() {
+    val imr = ImportedModuleDirectiveRemover()
+    imr.visit(this, this.parent)
+    imr.applyModifications()
 }
 
 internal fun Program.checkRecursion(errors: ErrorReporter) {
@@ -53,18 +46,22 @@ internal fun Program.checkRecursion(errors: ErrorReporter) {
     checker.processMessages(name)
 }
 
-
 internal fun Program.checkIdentifiers(errors: ErrorReporter) {
     val checker = AstIdentifiersChecker(this, errors)
     checker.visit(this)
 
-    if(modules.map {it.name}.toSet().size != modules.size) {
+    if (modules.map { it.name }.toSet().size != modules.size) {
         throw FatalAstException("modules should all be unique")
     }
 }
 
-
 internal fun Program.makeForeverLoops() {
     val checker = MakeForeverLoops()
     checker.visit(this)
+    checker.applyModifications()
+}
+
+internal fun Program.removeNopsFlattenAnonScopes() {
+    val flattener = FlattenAnonymousScopesAndRemoveNops()
+    flattener.visit(this)
 }

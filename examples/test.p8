@@ -5,6 +5,15 @@ main {
 
     sub start() {
 
+        while true {
+            A=99
+        }
+
+        repeat {
+            A=44
+        } until false
+
+
         c64scr.print("spstart:")
         print_stackpointer()
         sub1()
