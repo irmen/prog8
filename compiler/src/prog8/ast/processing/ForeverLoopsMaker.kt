@@ -12,7 +12,7 @@ internal class ForeverLoopsMaker: AstWalker() {
         val numeric = repeatLoop.untilCondition as? NumericLiteralValue
         if(numeric!=null && numeric.number.toInt() == 0) {
             val forever = ForeverLoop(repeatLoop.body, repeatLoop.position)
-            return listOf(IAstModification.Replace(repeatLoop, forever, parent))
+            return listOf(IAstModification.ReplaceStmt(repeatLoop, forever, parent))
         }
         return emptyList()
     }
@@ -21,7 +21,7 @@ internal class ForeverLoopsMaker: AstWalker() {
         val numeric = whileLoop.condition as? NumericLiteralValue
         if(numeric!=null && numeric.number.toInt() != 0) {
             val forever = ForeverLoop(whileLoop.body, whileLoop.position)
-            return listOf(IAstModification.Replace(whileLoop, forever, parent))
+            return listOf(IAstModification.ReplaceStmt(whileLoop, forever, parent))
         }
         return emptyList()
     }

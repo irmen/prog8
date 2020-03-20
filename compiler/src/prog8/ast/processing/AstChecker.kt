@@ -446,7 +446,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(decl: VarDecl) {
         fun err(msg: String, position: Position?=null) {
-            err(msg, position ?: decl.position)
+            errors.err(msg, position ?: decl.position)
         }
 
         // the initializer value can't refer to the variable itself (recursive definition)

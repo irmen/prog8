@@ -5,6 +5,7 @@ TODO
 - remove statements after an exit() or return
 - fix warnings about that unreachable code?
 
+- aliases for imported symbols for example perhaps '%alias print = c64scr.print'
 - option to load library files from a directory instead of the embedded ones
 
 

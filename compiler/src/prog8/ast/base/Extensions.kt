@@ -33,6 +33,7 @@ internal fun Program.reorderStatements() {
 internal fun Program.addTypecasts(errors: ErrorReporter) {
     val caster = TypecastsAdder(this, errors)
     caster.visit(this)
+    caster.applyModifications()
 }
 
 internal fun Module.checkImportedValid() {
