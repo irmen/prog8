@@ -179,10 +179,11 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
             // struct assignments will be flattened (if it's not a struct literal)
             if (valuetype == DataType.STRUCT && targettype == DataType.STRUCT) {
-                if (assg.value is StructLiteralValue)
-                    return assg  // do NOT flatten it at this point!! (the compiler will take care if it, later, if needed)
-
-                val assignments = flattenStructAssignmentFromIdentifier(assg, program)    //   'structvar1 = structvar2'
+                val assignments = if (assg.value is StructLiteralValue) {
+                    flattenStructAssignmentFromStructLiteral(assg, program)    //  'structvar = { ..... } '
+                } else {
+                    flattenStructAssignmentFromIdentifier(assg, program)    //   'structvar1 = structvar2'
+                }
                 return if (assignments.isEmpty()) {
                     // something went wrong (probably incompatible struct types)
                     // we'll get an error later from the AstChecker
@@ -216,6 +217,20 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return assg
     }
 
+    private fun flattenStructAssignmentFromStructLiteral(structAssignment: Assignment, program: Program): List<Assignment> {
+        val identifier = structAssignment.target.identifier!!
+        val identifierName = identifier.nameInSource.single()
+        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val struct = targetVar.struct!!
+
+        val slv = structAssignment.value as? StructLiteralValue
+        if(slv==null || slv.values.size != struct.numberOfElements)
+            return emptyList()      // this error should be reported
+
+
+        println("STRUCT={...}  ${structAssignment.position}")
+        return emptyList()  // TODO
+    }
 
     private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, program: Program): List<Assignment> {
         val identifier = structAssignment.target.identifier!!

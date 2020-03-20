@@ -13,7 +13,9 @@ main {
 
     sub start() {
         Color c = {1,2,3}
-        c= {1,2,3}
+        Color c2 = {3,4,5}
+        c=c2
+        c= {1,2,3}          ; TODO fix compiler crash AssemblyError: struct literal value assignment should have been flattened
     }
 
  }

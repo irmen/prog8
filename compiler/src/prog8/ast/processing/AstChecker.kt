@@ -356,14 +356,24 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val sourceIdent = assignment.value as? IdentifierReference
         val targetIdent = assignment.target.identifier
-        if(sourceIdent!=null && targetIdent!=null) {
-            val sourceVar = sourceIdent.targetVarDecl(program.namespace)
+        if(targetIdent!=null) {
             val targetVar = targetIdent.targetVarDecl(program.namespace)
-            if(sourceVar?.struct!=null && targetVar?.struct!=null) {
-                if(sourceVar.struct!==targetVar.struct)
-                    errors.err("assignment of different struct types", assignment.position)
+            if(targetVar?.struct != null) {
+                val sourceStructLv = assignment.value as? StructLiteralValue
+                if (sourceStructLv != null) {
+                    if (sourceStructLv.values.size != targetVar.struct?.numberOfElements)
+                        errors.err("number of elements doesn't match struct definition", sourceStructLv.position)
+                } else {
+                    val sourceIdent = assignment.value as? IdentifierReference
+                    if (sourceIdent != null) {
+                        val sourceVar = sourceIdent.targetVarDecl(program.namespace)
+                        if (sourceVar?.struct != null) {
+                            if (sourceVar.struct !== targetVar.struct)
+                                errors.err("assignment of different struct types", assignment.position)
+                        }
+                    }
+                }
             }
         }
 

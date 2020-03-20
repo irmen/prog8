@@ -3,9 +3,9 @@ package prog8.ast.expressions
 import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
+import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
-import prog8.ast.processing.AstWalker
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
