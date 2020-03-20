@@ -14,7 +14,7 @@ docs/build
 out/
 parser/**/*.interp
 parser/**/*.tokens
-
+parser/**/*.java
 *.py[cod]
 *.egg
 *.egg-info
