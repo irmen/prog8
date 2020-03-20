@@ -12,8 +12,8 @@ main {
     }
 
     sub start() {
-        ; Color c = [1,2,3]       ; TODO fix compiler error
         Color c = {1,2,3}
+        c= {1,2,3}
     }
 
  }

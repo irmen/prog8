@@ -82,6 +82,11 @@ internal class AstIdentifiersChecker(private val program: Program,
                 return super.visit(decl)
             }
 
+            if(decl.value !is StructLiteralValue) {
+                errors.err("requires struct literal value to initialize a struct variable", decl.value?.position ?: decl.position)
+                return super.visit(decl)
+            }
+
             val decls = decl.flattenStructMembers()
             decls.add(decl)
             val result = AnonymousScope(decls, decl.position)
