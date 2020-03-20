@@ -168,7 +168,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                     memberValue
             }
 
-            class Replacer(val targetStructLv: StructLiteralValue, val typecastValues: List<Expression>) : IAstModification {
+            class StructLvValueReplacer(val targetStructLv: StructLiteralValue, val typecastValues: List<Expression>) : IAstModification {
                 override fun perform() {
                     targetStructLv.values = typecastValues
                     typecastValues.forEach { it.linkParents(targetStructLv) }
@@ -176,7 +176,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             }
 
             return if(structLv.values.zip(newValues).any { (v1, v2) -> v1 !== v2})
-                listOf(Replacer(structLv, newValues))
+                listOf(StructLvValueReplacer(structLv, newValues))
             else
                 emptyList()
         }

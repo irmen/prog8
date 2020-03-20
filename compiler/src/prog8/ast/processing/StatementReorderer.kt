@@ -225,11 +225,17 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
         val slv = structAssignment.value as? StructLiteralValue
         if(slv==null || slv.values.size != struct.numberOfElements)
-            return emptyList()      // this error should be reported
+            throw FatalAstException("element count mismatch")
 
-
-        println("STRUCT={...}  ${structAssignment.position}")
-        return emptyList()  // TODO
+        return struct.statements.zip(slv.values).map { (targetDecl, sourceValue) ->
+            targetDecl as VarDecl
+            val mangled = mangledStructMemberName(identifierName, targetDecl.name)
+            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                    null, sourceValue, sourceValue.position)
+            assign.linkParents(structAssignment)
+            assign
+        }
     }
 
     private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, program: Program): List<Assignment> {

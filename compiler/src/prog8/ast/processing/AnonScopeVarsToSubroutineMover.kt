@@ -22,14 +22,14 @@ class AnonScopeVarsToSubroutineMover(val errors: ErrorReporter): AstWalker() {
                 }
             }
             if(!conflicts)
-                return listOf(MoveVardecl(decls, scope, sub))
+                return listOf(MoveVardecls(decls, scope, sub))
         }
         return emptyList()
     }
 
-    private class MoveVardecl(val decls: Collection<VarDecl>,
-                              val scope: AnonymousScope,
-                              val sub: Subroutine) : IAstModification {
+    private class MoveVardecls(val decls: Collection<VarDecl>,
+                               val scope: AnonymousScope,
+                               val sub: Subroutine) : IAstModification {
         override fun perform() {
             decls.forEach { scope.remove(it) }
             sub.statements.addAll(0, decls)
