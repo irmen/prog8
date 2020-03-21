@@ -11,7 +11,7 @@ import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
 
-class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
+internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
 
     override fun visit(decl: VarDecl): Statement {

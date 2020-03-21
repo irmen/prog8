@@ -27,11 +27,7 @@ internal fun Program.optimizeStatements(errors: ErrorReporter): Int {
 }
 
 internal fun Program.simplifyExpressions() : Int {
-    val opti = ExpressionSimplifier2(this)
+    val opti = ExpressionSimplifier(this)
     opti.visit(this)
-    opti.applyModifications()
-
-    val optimizer = ExpressionSimplifier(this)
-    optimizer.visit(this)
-    return opti.optimizationsDone + optimizer.optimizationsDone
+    return opti.applyModifications()
 }

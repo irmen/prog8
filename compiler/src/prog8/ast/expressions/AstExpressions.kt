@@ -110,7 +110,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         when {
             node===left -> left = replacement
             node===right -> right = replacement
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace, no child $node")
         }
     }
 
@@ -226,8 +226,11 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is IdentifierReference && node===identifier)
-        identifier = replacement
+        when {
+            node===identifier -> identifier = replacement as IdentifierReference
+            node===arrayspec.index -> arrayspec.index = replacement as Expression
+            else -> throw FatalAstException("invalid replace")
+        }
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null

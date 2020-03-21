@@ -1,5 +1,6 @@
 package prog8.ast.processing
 
+import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -66,11 +67,11 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
             parentStatement = parentStatement.parent
         val targetStatement = functionCall.target.targetSubroutine(program.namespace)
         if(targetStatement!=null) {
-            return addAddressOfExprIfNeeded(targetStatement, functionCall.args, parentStatement)
+            return addAddressOfExprIfNeeded(targetStatement, functionCall.args, functionCall)
         } else {
             val builtinFunc = BuiltinFunctions[functionCall.target.nameInSource.joinToString (".")]
             if(builtinFunc!=null)
-                return addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCall.args, parentStatement)
+                return addAddressOfExprIfNeededForBuiltinFuncs(builtinFunc, functionCall.args, functionCall)
         }
         return emptyList()
     }
@@ -88,10 +89,10 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
         return emptyList()
     }
 
-    private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<Expression>, parent: Statement): Iterable<IAstModification> {
+    private fun addAddressOfExprIfNeeded(subroutine: Subroutine, args: MutableList<Expression>, parent: IFunctionCall): Iterable<IAstModification> {
         // functions that accept UWORD and are given an array type, or string, will receive the AddressOf (memory location) of that value instead.
         val replacements = mutableListOf<IAstModification>()
-        for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
+        for(argparam in subroutine.parameters.withIndex().zip(args)) {
             if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type == DataType.STR) {
                 if(argparam.second is AddressOf)
                     continue
@@ -100,9 +101,9 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
                     val variable = idref.targetVarDecl(program.namespace)
                     if(variable!=null && variable.datatype in IterableDatatypes) {
                         replacements += IAstModification.ReplaceNode(
-                                arglist[argparam.first.index],
+                                args[argparam.first.index],
                                 AddressOf(idref, idref.position),
-                                parent)
+                                parent as Node)
                     }
                 }
             }
@@ -110,19 +111,21 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
         return replacements
     }
 
-    private fun addAddressOfExprIfNeededForBuiltinFuncs(signature: FSignature, args: MutableList<Expression>, parent: Statement): Iterable<IAstModification> {
+    private fun addAddressOfExprIfNeededForBuiltinFuncs(signature: FSignature, args: MutableList<Expression>, parent: IFunctionCall): Iterable<IAstModification> {
         // val paramTypesForAddressOf = PassByReferenceDatatypes + DataType.UWORD
+        val replacements = mutableListOf<IAstModification>()
         for(arg in args.withIndex().zip(signature.parameters)) {
             val argvalue = arg.first.value
             val argDt = argvalue.inferType(program)
             if(argDt.typeOrElse(DataType.UBYTE) in PassByReferenceDatatypes && DataType.UWORD in arg.second.possibleDatatypes) {
                 if(argvalue !is IdentifierReference)
                     throw CompilerException("pass-by-reference parameter isn't an identifier? $argvalue")
-                val addrOf = AddressOf(argvalue, argvalue.position)
-                args[arg.first.index] = addrOf
-                addrOf.linkParents(parent)
+                replacements += IAstModification.ReplaceNode(
+                        args[arg.first.index],
+                        AddressOf(argvalue, argvalue.position),
+                        parent as Node)
             }
         }
-        return emptyList()
+        return replacements
     }
 }

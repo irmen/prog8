@@ -48,6 +48,14 @@ interface IAstModification {
             replacement.parent = parent
         }
     }
+
+    class SwapOperands(val expr: BinaryExpression): IAstModification {
+        override fun perform() {
+            val tmp = expr.left
+            expr.left = expr.right
+            expr.right = tmp
+        }
+    }
 }
 
 
@@ -146,10 +154,13 @@ abstract class AstWalker {
         for (it in mods) modifications += Triple(it, node, parent)
     }
 
-    fun applyModifications() {
+    fun applyModifications(): Int {
         modifications.forEach {
             it.first.perform()
         }
+        val amount = modifications.size
+        modifications.clear()
+        return amount
     }
 
     fun visit(program: Program) {

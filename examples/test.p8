@@ -1,32 +1,13 @@
 %import c64utils
-%import c64flt
-%option enable_floats
+;%import c64flt
+;%option enable_floats
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        str meuk = "hello"
-        ubyte bb1 = 99
-        ubyte key=c64.GETIN()
-        ubyte[] zzzz = [1,2,3]
+        str input="???????"
 
-        A = 9.0 as ubyte as uword as ubyte as ubyte
-        A = Y as ubyte
-        A = @(&bb1)
-        A = len(meuk)
-        A = msb(meuk)
-        ; A = strlen(meuk)
-        func(meuk, zzzz)
-        func(zzzz, "zzzz")
-        func("hello2", meuk)
-    }
-
-    sub func(uword addr1, uword addr2) {
-        c64scr.print_uwhex(addr1, 1)
-        c64.CHROUT('\n')
-        c64scr.print_uwhex(addr2, 1)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
+        ubyte guess = lsb(c64utils.str2uword(input))
     }
 }

@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
-import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.Assignment
 import kotlin.math.abs
 import kotlin.math.log2
@@ -20,8 +19,9 @@ import kotlin.math.pow
  */
 
 
-class ExpressionSimplifier2(private val program: Program): AstWalker() {
-    var optimizationsDone = 0
+internal class ExpressionSimplifier(private val program: Program) : AstWalker() {
+    private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
+    private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if (assignment.aug_op != null)
@@ -34,171 +34,103 @@ class ExpressionSimplifier2(private val program: Program): AstWalker() {
 
         // try to statically convert a literal value into one of the desired type
         val literal = typecast.expression as? NumericLiteralValue
-        if(literal!=null) {
+        if (literal != null) {
             val newLiteral = literal.cast(typecast.type)
-            if(newLiteral!==literal) {
-                optimizationsDone++
+            if (newLiteral !== literal)
                 mods += IAstModification.ReplaceNode(typecast.expression, newLiteral, typecast)
-            }
         }
 
         // remove redundant nested typecasts:
         // if the typecast casts a value to the same type, remove the cast.
         // if the typecast contains another typecast, remove the inner typecast.
         val subTypecast = typecast.expression as? TypecastExpression
-        if(subTypecast!=null) {
+        if (subTypecast != null) {
             mods += IAstModification.ReplaceNode(typecast.expression, subTypecast.expression, typecast)
         } else {
-            if(typecast.expression.inferType(program).istype(typecast.type))
+            if (typecast.expression.inferType(program).istype(typecast.type))
                 mods += IAstModification.ReplaceNode(typecast, typecast.expression, parent)
         }
 
-        optimizationsDone += mods.size
         return mods
     }
-}
 
-
-
-internal class ExpressionSimplifier(private val program: Program) : IAstModifyingVisitor {
-    var optimizationsDone: Int = 0
-
-    override fun visit(expr: PrefixExpression): Expression {
+    override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if (expr.operator == "+") {
             // +X --> X
-            optimizationsDone++
-            return expr.expression.accept(this)
+            return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
         } else if (expr.operator == "not") {
-            (expr.expression as? BinaryExpression)?.let {
-                // NOT (...)  ->   invert  ...
-                when (it.operator) {
-                    "<" -> {
-                        it.operator = ">="
-                        optimizationsDone++
-                        return it
-                    }
-                    ">" -> {
-                        it.operator = "<="
-                        optimizationsDone++
-                        return it
-                    }
-                    "<=" -> {
-                        it.operator = ">"
-                        optimizationsDone++
-                        return it
-                    }
-                    ">=" -> {
-                        it.operator = "<"
-                        optimizationsDone++
-                        return it
-                    }
-                    "==" -> {
-                        it.operator = "!="
-                        optimizationsDone++
-                        return it
-                    }
-                    "!=" -> {
-                        it.operator = "=="
-                        optimizationsDone++
-                        return it
-                    }
-                    else -> {
-                    }
+            when(expr.expression) {
+                is PrefixExpression -> {
+                    // NOT(NOT(...)) -> ...
+                    val pe = expr.expression as PrefixExpression
+                    if(pe.operator == "not")
+                        return listOf(IAstModification.ReplaceNode(expr, pe.expression, parent))
                 }
+                is BinaryExpression -> {
+                    // NOT (xxxx)  ->   invert the xxxx
+                    val be = expr.expression as BinaryExpression
+                    val newExpr = when (be.operator) {
+                        "<" -> BinaryExpression(be.left, ">=", be.right, be.position)
+                        ">" -> BinaryExpression(be.left, "<=", be.right, be.position)
+                        "<=" -> BinaryExpression(be.left, ">", be.right, be.position)
+                        ">=" -> BinaryExpression(be.left, "<", be.right, be.position)
+                        "==" -> BinaryExpression(be.left, "!=", be.right, be.position)
+                        "!=" -> BinaryExpression(be.left, "==", be.right, be.position)
+                        else -> null
+                    }
+
+                    if (newExpr != null)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                }
+                else -> return emptyList()
             }
         }
-        return super.visit(expr)
+        return emptyList()
     }
 
-    override fun visit(expr: BinaryExpression): Expression {
-        super.visit(expr)
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftVal = expr.left.constValue(program)
         val rightVal = expr.right.constValue(program)
-        val constTrue = NumericLiteralValue.fromBoolean(true, expr.position)
-        val constFalse = NumericLiteralValue.fromBoolean(false, expr.position)
 
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
-        if(!leftIDt.isKnown || !rightIDt.isKnown)
+        if (!leftIDt.isKnown || !rightIDt.isKnown)
             throw FatalAstException("can't determine datatype of both expression operands $expr")
 
-        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
-        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
-        if (leftDt != rightDt) {
-            // try to convert a datatype into the other (where ddd
-            if (adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
-                optimizationsDone++
-                return expr
-            }
-        }
 
-        // Value <associativeoperator> X -->  X <associativeoperator> Value
-        if (leftVal != null && expr.operator in associativeOperators && rightVal == null) {
-            val tmp = expr.left
-            expr.left = expr.right
-            expr.right = tmp
-            optimizationsDone++
-            return expr
-        }
+        // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
+        if (leftVal != null && expr.operator in associativeOperators && rightVal == null)
+            return listOf(IAstModification.SwapOperands(expr))
 
         // X + (-A)  -->  X - A
         if (expr.operator == "+" && (expr.right as? PrefixExpression)?.operator == "-") {
-            expr.operator = "-"
-            expr.right = (expr.right as PrefixExpression).expression
-            optimizationsDone++
-            return expr
+            return listOf(IAstModification.ReplaceNode(
+                    expr,
+                    BinaryExpression(expr.left, "-", (expr.right as PrefixExpression).expression, expr.position),
+                    parent
+            ))
         }
 
         // (-A) + X  -->  X - A
         if (expr.operator == "+" && (expr.left as? PrefixExpression)?.operator == "-") {
-            expr.operator = "-"
-            val newRight = (expr.left as PrefixExpression).expression
-            expr.left = expr.right
-            expr.right = newRight
-            optimizationsDone++
-            return expr
-        }
-
-        // X + (-value)  -->  X - value
-        if (expr.operator == "+" && rightVal != null) {
-            val rv = rightVal.number.toDouble()
-            if (rv < 0.0) {
-                expr.operator = "-"
-                expr.right = NumericLiteralValue(rightVal.type, -rv, rightVal.position)
-                optimizationsDone++
-                return expr
-            }
-        }
-
-        // (-value) + X  -->  X - value
-        if (expr.operator == "+" && leftVal != null) {
-            val lv = leftVal.number.toDouble()
-            if (lv < 0.0) {
-                expr.operator = "-"
-                expr.right = NumericLiteralValue(leftVal.type, -lv, leftVal.position)
-                optimizationsDone++
-                return expr
-            }
+            return listOf(IAstModification.ReplaceNode(
+                    expr,
+                    BinaryExpression(expr.right, "-", (expr.left as PrefixExpression).expression, expr.position),
+                    parent
+            ))
         }
 
         // X - (-A)  -->  X + A
         if (expr.operator == "-" && (expr.right as? PrefixExpression)?.operator == "-") {
-            expr.operator = "+"
-            expr.right = (expr.right as PrefixExpression).expression
-            optimizationsDone++
-            return expr
+            return listOf(IAstModification.ReplaceNode(
+                    expr,
+                    BinaryExpression(expr.left, "+", (expr.right as PrefixExpression).expression, expr.position),
+                    parent
+            ))
         }
 
-        // X - (-value)  -->  X + value
-        if (expr.operator == "-" && rightVal != null) {
-            val rv = rightVal.number.toDouble()
-            if (rv < 0.0) {
-                expr.operator = "+"
-                expr.right = NumericLiteralValue(rightVal.type, -rv, rightVal.position)
-                optimizationsDone++
-                return expr
-            }
-        }
+        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
+        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
 
         if (expr.operator == "+" || expr.operator == "-"
                 && leftVal == null && rightVal == null
@@ -207,127 +139,108 @@ internal class ExpressionSimplifier(private val program: Program) : IAstModifyin
             val rightBinExpr = expr.right as? BinaryExpression
             if (leftBinExpr?.operator == "*") {
                 if (expr.operator == "+") {
-                    // Y*X + X  ->  X*(Y - 1)
-                    // X*Y + X  ->  X*(Y - 1)
+                    // Y*X + X  ->  X*(Y + 1)
+                    // X*Y + X  ->  X*(Y + 1)
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
-                    if(y!=null) {
+                    if (y != null) {
                         val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue(leftDt, 1, y.position), y.position)
-                        return BinaryExpression(x, "*", yPlus1, x.position)
+                        val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
                 } else {
                     // Y*X - X  ->  X*(Y - 1)
                     // X*Y - X  ->  X*(Y - 1)
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
-                    if(y!=null) {
+                    if (y != null) {
                         val yMinus1 = BinaryExpression(y, "-", NumericLiteralValue(leftDt, 1, y.position), y.position)
-                        return BinaryExpression(x, "*", yMinus1, x.position)
+                        val newExpr = BinaryExpression(x, "*", yMinus1, x.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
                 }
-            }
-            else if(rightBinExpr?.operator=="*") {
-                if(expr.operator=="+") {
+            } else if (rightBinExpr?.operator == "*") {
+                if (expr.operator == "+") {
                     // X + Y*X  ->  X*(Y + 1)
                     // X + X*Y  ->  X*(Y + 1)
                     val x = expr.left
                     val y = determineY(x, rightBinExpr)
-                    if(y!=null) {
+                    if (y != null) {
                         val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue.optimalInteger(1, y.position), y.position)
-                        return BinaryExpression(x, "*", yPlus1, x.position)
-                    }
-                } else {
-                    // X - Y*X  ->  X*(1 - Y)
-                    // X - X*Y  ->  X*(1 - Y)
-                    val x = expr.left
-                    val y = determineY(x, rightBinExpr)
-                    if(y!=null) {
-                        val oneMinusY = BinaryExpression(NumericLiteralValue.optimalInteger(1, y.position), "-", y, y.position)
-                        return BinaryExpression(x, "*", oneMinusY, x.position)
+                        val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
                 }
             }
         }
 
-
-        // simplify when a term is constant and determines the outcome
-        when (expr.operator) {
+        // simplify when a term is constant and directly determines the outcome
+        val constTrue = NumericLiteralValue.fromBoolean(true, expr.position)
+        val constFalse = NumericLiteralValue.fromBoolean(false, expr.position)
+        val newExpr: Expression? = when (expr.operator) {
             "or" -> {
-                if ((leftVal != null && leftVal.asBooleanValue) || (rightVal != null && rightVal.asBooleanValue)) {
-                    optimizationsDone++
-                    return constTrue
-                }
-                if (leftVal != null && !leftVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.right
-                }
-                if (rightVal != null && !rightVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.left
-                }
+                if ((leftVal != null && leftVal.asBooleanValue) || (rightVal != null && rightVal.asBooleanValue))
+                    constTrue
+                else if (leftVal != null && !leftVal.asBooleanValue)
+                    expr.right
+                else if (rightVal != null && !rightVal.asBooleanValue)
+                    expr.left
+                else
+                    null
             }
             "and" -> {
-                if ((leftVal != null && !leftVal.asBooleanValue) || (rightVal != null && !rightVal.asBooleanValue)) {
-                    optimizationsDone++
-                    return constFalse
-                }
-                if (leftVal != null && leftVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.right
-                }
-                if (rightVal != null && rightVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.left
-                }
+                if ((leftVal != null && !leftVal.asBooleanValue) || (rightVal != null && !rightVal.asBooleanValue))
+                    constFalse
+                else if (leftVal != null && leftVal.asBooleanValue)
+                    expr.right
+                else if (rightVal != null && rightVal.asBooleanValue)
+                    expr.left
+                else
+                    null
             }
             "xor" -> {
-                if (leftVal != null && !leftVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.right
-                }
-                if (rightVal != null && !rightVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.left
-                }
-                if (leftVal != null && leftVal.asBooleanValue) {
-                    optimizationsDone++
-                    return PrefixExpression("not", expr.right, expr.right.position)
-                }
-                if (rightVal != null && rightVal.asBooleanValue) {
-                    optimizationsDone++
-                    return PrefixExpression("not", expr.left, expr.left.position)
-                }
+                if (leftVal != null && !leftVal.asBooleanValue)
+                    expr.right
+                else if (rightVal != null && !rightVal.asBooleanValue)
+                    expr.left
+                else if (leftVal != null && leftVal.asBooleanValue)
+                    PrefixExpression("not", expr.right, expr.right.position)
+                else if (rightVal != null && rightVal.asBooleanValue)
+                    PrefixExpression("not", expr.left, expr.left.position)
+                else
+                    null
             }
             "|", "^" -> {
-                if (leftVal != null && !leftVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.right
-                }
-                if (rightVal != null && !rightVal.asBooleanValue) {
-                    optimizationsDone++
-                    return expr.left
-                }
+                if (leftVal != null && !leftVal.asBooleanValue)
+                    expr.right
+                else if (rightVal != null && !rightVal.asBooleanValue)
+                    expr.left
+                else
+                    null
             }
             "&" -> {
-                if (leftVal != null && !leftVal.asBooleanValue) {
-                    optimizationsDone++
-                    return constFalse
-                }
-                if (rightVal != null && !rightVal.asBooleanValue) {
-                    optimizationsDone++
-                    return constFalse
-                }
+                if (leftVal != null && !leftVal.asBooleanValue)
+                    constFalse
+                else if (rightVal != null && !rightVal.asBooleanValue)
+                    constFalse
+                else
+                    null
             }
-            "*" -> return optimizeMultiplication(expr, leftVal, rightVal)
-            "/" -> return optimizeDivision(expr, leftVal, rightVal)
-            "+" -> return optimizeAdd(expr, leftVal, rightVal)
-            "-" -> return optimizeSub(expr, leftVal, rightVal)
-            "**" -> return optimizePower(expr, leftVal, rightVal)
-            "%" -> return optimizeRemainder(expr, leftVal, rightVal)
-            ">>" -> return optimizeShiftRight(expr, rightVal)
-            "<<" -> return optimizeShiftLeft(expr, rightVal)
+            "*" -> optimizeMultiplication(expr, leftVal, rightVal)
+            "/" -> optimizeDivision(expr, leftVal, rightVal)
+            "+" -> optimizeAdd(expr, leftVal, rightVal)
+            "-" -> optimizeSub(expr, leftVal, rightVal)
+            "**" -> optimizePower(expr, leftVal, rightVal)
+            "%" -> optimizeRemainder(expr, leftVal, rightVal)
+            ">>" -> optimizeShiftRight(expr, rightVal)
+            "<<" -> optimizeShiftLeft(expr, rightVal)
+            else -> null
         }
-        return expr
+
+        if(newExpr != null)
+            return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+
+        return emptyList()
     }
 
     private fun determineY(x: Expression, subBinExpr: BinaryExpression): Expression? {
@@ -338,302 +251,180 @@ internal class ExpressionSimplifier(private val program: Program) : IAstModifyin
         }
     }
 
-    private fun adjustDatatypes(expr: BinaryExpression,
-                                leftConstVal: NumericLiteralValue?, leftDt: DataType,
-                                rightConstVal: NumericLiteralValue?, rightDt: DataType): Boolean {
+    private fun optimizeAdd(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if (leftVal == null && rightVal == null)
+            return null
 
-        fun adjust(value: NumericLiteralValue, targetDt: DataType): Pair<Boolean, NumericLiteralValue>{
-            if(value.type==targetDt)
-                return Pair(false, value)
-            when(value.type) {
-                DataType.UBYTE -> {
-                    if (targetDt == DataType.BYTE) {
-                        if(value.number.toInt() < 127)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toShort(), value.position))
-                    }
-                    else if (targetDt == DataType.UWORD || targetDt == DataType.WORD)
-                        return Pair(true, NumericLiteralValue(targetDt, value.number.toInt(), value.position))
-                }
-                DataType.BYTE -> {
-                    if (targetDt == DataType.UBYTE) {
-                        if(value.number.toInt() >= 0)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toInt(), value.position))
-                    }
-                    else if (targetDt == DataType.UWORD) {
-                        if(value.number.toInt() >= 0)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toInt(), value.position))
-                    }
-                    else if (targetDt == DataType.WORD) return Pair(true, NumericLiteralValue(targetDt, value.number.toInt(), value.position))
-                }
-                DataType.UWORD -> {
-                    if (targetDt == DataType.UBYTE) {
-                        if(value.number.toInt() <= 255)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toShort(), value.position))
-                    }
-                    else if (targetDt == DataType.BYTE) {
-                        if(value.number.toInt() <= 127)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toShort(), value.position))
-                    }
-                    else if (targetDt == DataType.WORD) {
-                        if(value.number.toInt() <= 32767)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toInt(), value.position))
-                    }
-                }
-                DataType.WORD -> {
-                    if (targetDt == DataType.UBYTE) {
-                        if(value.number.toInt() in 0..255)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toShort(), value.position))
-                    }
-                    else if (targetDt == DataType.BYTE) {
-                        if(value.number.toInt() in -128..127)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toShort(), value.position))
-                    }
-                    else if (targetDt == DataType.UWORD) {
-                        if(value.number.toInt() >= 0)
-                            return Pair(true, NumericLiteralValue(targetDt, value.number.toShort(), value.position))
-                    }
-                }
-                else -> {}
-            }
-            return Pair(false, value)
-        }
-
-        if(leftConstVal==null && rightConstVal!=null) {
-            if(leftDt largerThan rightDt) {
-                val (adjusted, newValue) = adjust(rightConstVal, leftDt)
-                if (adjusted) {
-                    expr.right = newValue
-                    optimizationsDone++
-                    return true
-                }
-            }
-            return false
-        } else if(leftConstVal!=null && rightConstVal==null) {
-            if(rightDt largerThan leftDt) {
-                val (adjusted, newValue) = adjust(leftConstVal, rightDt)
-                if (adjusted) {
-                    expr.left = newValue
-                    optimizationsDone++
-                    return true
-                }
-            }
-            return false
-        } else {
-            return false    // two const values, don't adjust (should have been const-folded away)
-        }
-    }
-
-    private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
-
-    private fun reorderAssociative(expr: BinaryExpression, leftVal: NumericLiteralValue?): ReorderedAssociativeBinaryExpr {
-        if(expr.operator in associativeOperators && leftVal!=null) {
-            // swap left and right so that right is always the constant
-            val tmp = expr.left
-            expr.left = expr.right
-            expr.right = tmp
-            optimizationsDone++
-            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(program), leftVal)
-        }
-        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(program))
-    }
-
-    private fun optimizeAdd(pexpr: BinaryExpression, pleftVal: NumericLiteralValue?, prightVal: NumericLiteralValue?): Expression {
-        if(pleftVal==null && prightVal==null)
-            return pexpr
-
-        val (expr, _, rightVal) = reorderAssociative(pexpr, pleftVal)
-        if(rightVal!=null) {
+        val (expr2, _, rightVal2) = reorderAssociative(expr, leftVal)
+        if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
-            val rightConst: NumericLiteralValue = rightVal
-            when(rightConst.number.toDouble()) {
+            val rightConst: NumericLiteralValue = rightVal2
+            when (rightConst.number.toDouble()) {
                 0.0 -> {
                     // left
-                    optimizationsDone++
-                    return expr.left
+                    return expr2.left
                 }
             }
         }
         // no need to check for left val constant (because of associativity)
 
-        return expr
+        return null
     }
 
-    private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
-        if(leftVal==null && rightVal==null)
-            return expr
+    private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if (leftVal == null && rightVal == null)
+            return null
 
-        if(rightVal!=null) {
+        if (rightVal != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
-            when(rightConst.number.toDouble()) {
+            when (rightConst.number.toDouble()) {
                 0.0 -> {
                     // left
-                    optimizationsDone++
                     return expr.left
                 }
             }
         }
-        if(leftVal!=null) {
+        if (leftVal != null) {
             // left value is a constant, see if we can optimize
-            when(leftVal.number.toDouble()) {
+            when (leftVal.number.toDouble()) {
                 0.0 -> {
                     // -right
-                    optimizationsDone++
                     return PrefixExpression("-", expr.right, expr.position)
                 }
             }
         }
 
-        return expr
+        return null
     }
 
-    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
-        if(leftVal==null && rightVal==null)
-            return expr
+    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if (leftVal == null && rightVal == null)
+            return null
 
-        if(rightVal!=null) {
+        if (rightVal != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
-            when(rightConst.number.toDouble()) {
+            when (rightConst.number.toDouble()) {
                 -3.0 -> {
                     // -1/(left*left*left)
-                    optimizationsDone++
                     return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
                             BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position),
                             expr.position)
                 }
                 -2.0 -> {
                     // -1/(left*left)
-                    optimizationsDone++
                     return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
                             BinaryExpression(expr.left, "*", expr.left, expr.position),
                             expr.position)
                 }
                 -1.0 -> {
                     // -1/left
-                    optimizationsDone++
                     return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
                             expr.left, expr.position)
                 }
                 0.0 -> {
                     // 1
-                    optimizationsDone++
                     return NumericLiteralValue(rightConst.type, 1, expr.position)
                 }
                 0.5 -> {
                     // sqrt(left)
-                    optimizationsDone++
                     return FunctionCall(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
                 }
                 1.0 -> {
                     // left
-                    optimizationsDone++
                     return expr.left
                 }
                 2.0 -> {
                     // left*left
-                    optimizationsDone++
                     return BinaryExpression(expr.left, "*", expr.left, expr.position)
                 }
                 3.0 -> {
                     // left*left*left
-                    optimizationsDone++
                     return BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position)
                 }
             }
         }
-        if(leftVal!=null) {
+        if (leftVal != null) {
             // left value is a constant, see if we can optimize
-            when(leftVal.number.toDouble()) {
+            when (leftVal.number.toDouble()) {
                 -1.0 -> {
                     // -1
-                    optimizationsDone++
                     return NumericLiteralValue(DataType.FLOAT, -1.0, expr.position)
                 }
                 0.0 -> {
                     // 0
-                    optimizationsDone++
                     return NumericLiteralValue(leftVal.type, 0, expr.position)
                 }
                 1.0 -> {
                     //1
-                    optimizationsDone++
                     return NumericLiteralValue(leftVal.type, 1, expr.position)
                 }
 
             }
         }
 
-        return expr
+        return null
     }
 
-    private fun optimizeRemainder(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
-        if(leftVal==null && rightVal==null)
-            return expr
+    private fun optimizeRemainder(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if (leftVal == null && rightVal == null)
+            return null
 
         // simplify assignments  A = B <operator> C
 
         val cv = rightVal?.number?.toInt()?.toDouble()
-        when(expr.operator) {
+        when (expr.operator) {
             "%" -> {
                 if (cv == 1.0) {
-                    optimizationsDone++
                     return NumericLiteralValue(expr.inferType(program).typeOrElse(DataType.STRUCT), 0, expr.position)
                 } else if (cv == 2.0) {
-                    optimizationsDone++
                     expr.operator = "&"
                     expr.right = NumericLiteralValue.optimalInteger(1, expr.position)
-                    return expr
+                    return null
                 }
             }
         }
-        return expr
+        return null
 
     }
 
-    private val powersOfTwo = (1 .. 16).map { (2.0).pow(it) }.toSet()
-    private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
-
-    private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
-        if(leftVal==null && rightVal==null)
-            return expr
+    private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if (leftVal == null && rightVal == null)
+            return null
 
         // cannot shuffle assiciativity with division!
-        if(rightVal!=null) {
+        if (rightVal != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
             val cv = rightConst.number.toDouble()
             val leftIDt = expr.left.inferType(program)
-            if(!leftIDt.isKnown)
-                return expr
+            if (!leftIDt.isKnown)
+                return null
             val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
-            when(cv) {
+            when (cv) {
                 -1.0 -> {
                     //  '/' -> -left
                     if (expr.operator == "/") {
-                        optimizationsDone++
                         return PrefixExpression("-", expr.left, expr.position)
                     }
                 }
                 1.0 -> {
                     //  '/' -> left
                     if (expr.operator == "/") {
-                        optimizationsDone++
                         return expr.left
                     }
                 }
                 in powersOfTwo -> {
-                    if(leftDt in IntegerDatatypes) {
+                    if (leftDt in IntegerDatatypes) {
                         // divided by a power of two => shift right
-                        optimizationsDone++
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
                 in negativePowersOfTwo -> {
-                    if(leftDt in IntegerDatatypes) {
+                    if (leftDt in IntegerDatatypes) {
                         // divided by a negative power of two => negate, then shift right
-                        optimizationsDone++
                         val numshifts = log2(-cv).toInt()
                         return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
@@ -641,171 +432,167 @@ internal class ExpressionSimplifier(private val program: Program) : IAstModifyin
             }
 
             if (leftDt == DataType.UBYTE) {
-                if(abs(rightConst.number.toDouble()) >= 256.0) {
-                    optimizationsDone++
+                if (abs(rightConst.number.toDouble()) >= 256.0) {
                     return NumericLiteralValue(DataType.UBYTE, 0, expr.position)
                 }
-            }
-            else if (leftDt == DataType.UWORD) {
-                if(abs(rightConst.number.toDouble()) >= 65536.0) {
-                    optimizationsDone++
+            } else if (leftDt == DataType.UWORD) {
+                if (abs(rightConst.number.toDouble()) >= 65536.0) {
                     return NumericLiteralValue(DataType.UBYTE, 0, expr.position)
                 }
             }
         }
 
-        if(leftVal!=null) {
+        if (leftVal != null) {
             // left value is a constant, see if we can optimize
-            when(leftVal.number.toDouble()) {
+            when (leftVal.number.toDouble()) {
                 0.0 -> {
                     // 0
-                    optimizationsDone++
                     return NumericLiteralValue(leftVal.type, 0, expr.position)
                 }
             }
         }
 
-        return expr
+        return null
     }
 
-    private fun optimizeMultiplication(pexpr: BinaryExpression, pleftVal: NumericLiteralValue?, prightVal: NumericLiteralValue?): Expression {
-        if(pleftVal==null && prightVal==null)
-            return pexpr
+    private fun optimizeMultiplication(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if (leftVal == null && rightVal == null)
+            return null
 
-        val (expr, _, rightVal) = reorderAssociative(pexpr, pleftVal)
-        if(rightVal!=null) {
+        val (expr2, _, rightVal2) = reorderAssociative(expr, leftVal)
+        if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
-            val leftValue: Expression = expr.left
-            val rightConst: NumericLiteralValue = rightVal
-            when(val cv = rightConst.number.toDouble()) {
+            val leftValue: Expression = expr2.left
+            val rightConst: NumericLiteralValue = rightVal2
+            when (val cv = rightConst.number.toDouble()) {
                 -1.0 -> {
                     // -left
-                    optimizationsDone++
                     return PrefixExpression("-", leftValue, expr.position)
                 }
                 0.0 -> {
                     // 0
-                    optimizationsDone++
                     return NumericLiteralValue(rightConst.type, 0, expr.position)
                 }
                 1.0 -> {
                     // left
-                    optimizationsDone++
-                    return expr.left
+                    return expr2.left
                 }
                 in powersOfTwo -> {
-                    if(leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
+                    if (leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
                         // times a power of two => shift left
-                        optimizationsDone++
                         val numshifts = log2(cv).toInt()
-                        return BinaryExpression(expr.left, "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                        return BinaryExpression(expr2.left, "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
                 in negativePowersOfTwo -> {
-                    if(leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
+                    if (leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
-                        optimizationsDone++
                         val numshifts = log2(-cv).toInt()
-                        return BinaryExpression(PrefixExpression("-", expr.left, expr.position), "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                        return BinaryExpression(PrefixExpression("-", expr2.left, expr.position), "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }
         }
         // no need to check for left val constant (because of associativity)
 
-        return expr
+        return null
     }
 
-    private fun optimizeShiftLeft(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression {
-        if(amountLv==null)
-            return expr
+    private fun optimizeShiftLeft(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression? {
+        if (amountLv == null)
+            return null
 
-        val amount=amountLv.number.toInt()
-        if(amount==0) {
-            optimizationsDone++
+        val amount = amountLv.number.toInt()
+        if (amount == 0) {
             return expr.left
         }
         val targetDt = expr.left.inferType(program).typeOrElse(DataType.STRUCT)
-        when(targetDt) {
+        when (targetDt) {
             DataType.UBYTE, DataType.BYTE -> {
-                if(amount>=8) {
-                    optimizationsDone++
+                if (amount >= 8) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)
                 }
             }
             DataType.UWORD, DataType.WORD -> {
-                if(amount>=16) {
-                    optimizationsDone++
+                if (amount >= 16) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)
-                }
-                else if(amount>=8) {
-                    optimizationsDone++
-                    val lsb=TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
-                    if(amount==8) {
+                } else if (amount >= 8) {
+                    val lsb = TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
+                    if (amount == 8) {
                         return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(NumericLiteralValue.optimalInteger(0, expr.position), lsb), expr.position)
                     }
-                    val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount-8, expr.position), expr.position)
+                    val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
                     return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(NumericLiteralValue.optimalInteger(0, expr.position), shifted), expr.position)
                 }
             }
-            else -> {}
+            else -> {
+            }
         }
-        return expr
+        return null
     }
 
-    private fun optimizeShiftRight(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression {
-        if(amountLv==null)
-            return expr
+    private fun optimizeShiftRight(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression? {
+        if (amountLv == null)
+            return null
 
-        val amount=amountLv.number.toInt()
-        if(amount==0) {
-            optimizationsDone++
+        val amount = amountLv.number.toInt()
+        if (amount == 0) {
             return expr.left
         }
         val targetDt = expr.left.inferType(program).typeOrElse(DataType.STRUCT)
-        when(targetDt) {
+        when (targetDt) {
             DataType.UBYTE -> {
-                if(amount>=8) {
-                    optimizationsDone++
+                if (amount >= 8) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)
                 }
             }
             DataType.BYTE -> {
-                if(amount>8) {
+                if (amount > 8) {
                     expr.right = NumericLiteralValue.optimalInteger(8, expr.right.position)
-                    return expr
+                    return null
                 }
             }
             DataType.UWORD -> {
-                if(amount>=16) {
-                    optimizationsDone++
+                if (amount >= 16) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)
-                }
-                else if(amount>=8) {
-                    optimizationsDone++
-                    val msb=FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    if(amount==8)
+                } else if (amount >= 8) {
+                    val msb = FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                    if (amount == 8)
                         return msb
-                    return BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount-8, expr.position), expr.position)
+                    return BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
                 }
             }
             DataType.WORD -> {
-                if(amount>16) {
+                if (amount > 16) {
                     expr.right = NumericLiteralValue.optimalInteger(16, expr.right.position)
-                    return expr
-                } else if(amount>=8) {
-                    optimizationsDone++
+                    return null
+                } else if (amount >= 8) {
                     val msbAsByte = TypecastExpression(
                             FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position),
                             DataType.BYTE,
                             true, expr.position)
-                    if(amount==8)
+                    if (amount == 8)
                         return msbAsByte
-                    return BinaryExpression(msbAsByte, ">>", NumericLiteralValue.optimalInteger(amount-8, expr.position), expr.position)
+                    return BinaryExpression(msbAsByte, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
                 }
             }
-            else -> {}
+            else -> {
+            }
         }
-        return expr
+        return null
     }
+
+    private fun reorderAssociative(expr: BinaryExpression, leftVal: NumericLiteralValue?): ReorderedAssociativeBinaryExpr {
+        if (expr.operator in associativeOperators && leftVal != null) {
+            // swap left and right so that right is always the constant
+            val tmp = expr.left
+            expr.left = expr.right
+            expr.right = tmp
+            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(program), leftVal)
+        }
+        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(program))
+    }
+
+    private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
+
 }
