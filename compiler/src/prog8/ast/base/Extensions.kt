@@ -23,8 +23,9 @@ internal fun Program.moveAnonScopeVarsToSubroutine(errors: ErrorReporter) {
 }
 
 internal fun Program.reorderStatements() {
-    val initvalueCreator = VarInitValueAndAddressOfCreator(this)
+    val initvalueCreator = VarInitValueCreator(this)
     initvalueCreator.visit(this)
+    initvalueCreator.applyModifications()
 
     val checker = StatementReorderer(this)
     checker.visit(this)

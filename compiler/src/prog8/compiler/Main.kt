@@ -81,6 +81,7 @@ fun compileProgram(filepath: Path,
                 programAst.addTypecasts(errors)
                 errors.handle()
             }
+
             //println(" time3: $time3")
             val time4 = measureTimeMillis {
                 programAst.checkValid(compilerOptions, errors)          // check if tree is valid

@@ -338,7 +338,7 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
 }
 
 // This is a special class so the compiler can see if the assignments are for initializing the vars in the scope,
-// or just a regular assignment. It may optimize the initialization step from this.
+// or just a regular assignment. It could optimize the initialization step from this.
 class VariableInitializationAssignment(target: AssignTarget, aug_op: String?, value: Expression, position: Position)
     : Assignment(target, aug_op, value, position)
 

@@ -5,29 +5,27 @@
 
 main {
 
-    struct Color {
-        uword red
-        uword green
-        uword blue
+    sub start() {
+        str meuk = "hello"
+        ubyte bb1 = 99
+        ubyte key=c64.GETIN()
+        ubyte[] zzzz = [1,2,3]
+
+        A = len(meuk)
+        A = msb(meuk)
+        ; A = strlen(meuk)
+        func(meuk, zzzz)
+        func(zzzz, "zzzz")
+        func("hello2", meuk)
     }
 
-    sub start() {
-        Color c = {1,2,3}
-        Color c2 = {3,4,5}
-        c=c2
-        c64scr.print_uw(c.red)
+    sub func(uword addr1, uword addr2) {
+        c64scr.print_uwhex(addr1, 1)
         c64.CHROUT('\n')
-        c64scr.print_uw(c.green)
+        c64scr.print_uwhex(addr2, 1)
         c64.CHROUT('\n')
-        c64scr.print_uw(c.blue)
-        c64.CHROUT('\n')
-        c= {111,222,333}
-        c64scr.print_uw(c.red)
-        c64.CHROUT('\n')
-        c64scr.print_uw(c.green)
-        c64.CHROUT('\n')
-        c64scr.print_uw(c.blue)
         c64.CHROUT('\n')
     }
+
 
  }

@@ -41,6 +41,18 @@ interface IAstModification {
             newExpr.linkParents(parent)
         }
     }
+
+    class Insert(val after: Statement?, val stmt: Statement, val parent: Node) : IAstModification {
+        override fun perform() {
+            if(parent is INameScope) {
+                val idx = if(after==null) 0 else parent.statements.indexOf(after)
+                parent.statements.add(idx, stmt)
+                stmt.linkParents(parent)
+            } else {
+                throw FatalAstException("parent of an insert modification is not an INameScope")
+            }
+        }
+    }
 }
 
 
