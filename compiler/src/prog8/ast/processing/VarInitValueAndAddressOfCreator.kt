@@ -23,17 +23,16 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
             // array datatype without initialization value, add list of zeros
             val arraysize = decl.arraysize!!.size()!!
             val zero = decl.asDefaultValueDecl(decl).value!!
-            return listOf(IAstModification.ReplaceExpr(
+            return listOf(IAstModification.SetExpression(           // can't use replaceNode here because value is null
                     { newExpr -> decl.value = newExpr },
                     ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
                             Array(arraysize) { zero },
                             decl.position),
-                    decl
-            ))
+                    decl))
         }
 
-        if(decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes) {
-            val declvalue = decl.value!!
+        val declvalue = decl.value
+        if(decl.type == VarDeclType.VAR && declvalue != null && decl.datatype in NumericDatatypes) {
             val value =
                     if(declvalue is NumericLiteralValue)
                         declvalue.cast(decl.datatype)
@@ -49,8 +48,8 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
             val zero = decl.asDefaultValueDecl(decl).value!!
             return listOf(
                     IAstModification.Insert(decl, initvalue, parent),
-                    IAstModification.ReplaceExpr(
-                            { newExpr -> decl.value = newExpr },
+                    IAstModification.ReplaceNode(
+                            declvalue,
                             zero,
                             decl
                     )
@@ -100,11 +99,10 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
                 if(idref!=null) {
                     val variable = idref.targetVarDecl(program.namespace)
                     if(variable!=null && variable.datatype in IterableDatatypes) {
-                        replacements += IAstModification.ReplaceExpr(
-                                { newExpr -> arglist[argparam.first.index] = newExpr },
+                        replacements += IAstModification.ReplaceNode(
+                                arglist[argparam.first.index],
                                 AddressOf(idref, idref.position),
-                                parent
-                        )
+                                parent)
                     }
                 }
             }

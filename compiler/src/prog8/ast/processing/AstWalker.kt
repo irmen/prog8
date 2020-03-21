@@ -23,19 +23,7 @@ interface IAstModification {
         }
     }
 
-    class ReplaceStmt(val statement: Statement, val replacement: Statement, val parent: Node) : IAstModification {
-        override fun perform() {
-            if(parent is INameScope) {
-                val idx = parent.statements.indexOf(statement)
-                parent.statements[idx] = replacement
-                replacement.linkParents(parent)
-            } else {
-                throw FatalAstException("parent of a replace modification is not an INameScope")
-            }
-        }
-    }
-
-    class ReplaceExpr(val setter: (newExpr: Expression) -> Unit, val newExpr: Expression, val parent: Node) : IAstModification {
+    class SetExpression(val setter: (newExpr: Expression) -> Unit, val newExpr: Expression, val parent: Node) : IAstModification {
         override fun perform() {
             setter(newExpr)
             newExpr.linkParents(parent)
@@ -51,6 +39,13 @@ interface IAstModification {
             } else {
                 throw FatalAstException("parent of an insert modification is not an INameScope")
             }
+        }
+    }
+
+    class ReplaceNode(val node: Node, val replacement: Node, val parent: Node) : IAstModification {
+        override fun perform() {
+            parent.replaceChildNode(node, replacement)
+            replacement.parent = parent
         }
     }
 }

@@ -36,6 +36,8 @@ interface Node {
             return this
         throw FatalAstException("scope missing from $this")
     }
+
+    fun replaceChildNode(node: Node, replacement: Node)
 }
 
 interface IFunctionCall {
@@ -226,6 +228,12 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
             it.linkParents(this)
         }
     }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(node is Module && replacement is Module)
+        val idx = modules.indexOf(node)
+        modules[idx] = replacement
+    }
 }
 
 class Module(override val name: String,
@@ -247,6 +255,11 @@ class Module(override val name: String,
     }
 
     override fun definingScope(): INameScope = program.namespace
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(node is Statement && replacement is Statement)
+        val idx = statements.indexOf(node)
+        statements[idx] = replacement
+    }
 
     override fun toString() = "Module(name=$name, pos=$position, lib=$isLibraryModule)"
 
@@ -264,6 +277,10 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
 
     override fun linkParents(parent: Node) {
         modules.forEach { it.linkParents(this) }
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("cannot replace anything in the namespace")
     }
 
     override fun lookup(scopedName: List<String>, localContext: Node): Statement? {

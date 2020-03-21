@@ -26,14 +26,10 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.typeOrElse(DataType.STRUCT), rightDt.typeOrElse(DataType.STRUCT), expr.left, expr.right)
             if(toFix!=null) {
                 return when {
-                    toFix===expr.left -> listOf(IAstModification.ReplaceExpr(
-                            { newExpr -> expr.left = newExpr },
-                            TypecastExpression(expr.left, commonDt, true, expr.left.position),
-                            expr))
-                    toFix===expr.right -> listOf(IAstModification.ReplaceExpr(
-                            { newExpr ->  expr.right = newExpr },
-                            TypecastExpression(expr.right, commonDt, true, expr.right.position),
-                            expr))
+                    toFix===expr.left -> listOf(IAstModification.ReplaceNode(
+                            expr.left, TypecastExpression(expr.left, commonDt, true, expr.left.position), expr))
+                    toFix===expr.right -> listOf(IAstModification.ReplaceNode(
+                            expr.right, TypecastExpression(expr.right, commonDt, true, expr.right.position), expr))
                     else -> throw FatalAstException("confused binary expression side")
                 }
             }
@@ -50,8 +46,8 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             val valuetype = valueItype.typeOrElse(DataType.STRUCT)
             if (valuetype != targettype) {
                 if (valuetype isAssignableTo targettype)
-                    return listOf(IAstModification.ReplaceExpr(
-                            { newExpr -> assignment.value=newExpr },
+                    return listOf(IAstModification.ReplaceNode(
+                            assignment.value,
                             TypecastExpression(assignment.value, targettype, true, assignment.value.position),
                             assignment))
             }
@@ -78,8 +74,8 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                         val requiredType = arg.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
-                                return listOf(IAstModification.ReplaceExpr(
-                                        { newExpr -> call.args[arg.second.index] = newExpr },
+                                return listOf(IAstModification.ReplaceNode(
+                                        call.args[arg.second.index],
                                         TypecastExpression(arg.second.value, requiredType, true, arg.second.value.position),
                                         call as Node))
                             }
@@ -100,11 +96,10 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                                 continue
                             for (possibleType in arg.first.possibleDatatypes) {
                                 if (argtype isAssignableTo possibleType) {
-                                    return listOf(IAstModification.ReplaceExpr(
-                                            { newExpr -> call.args[arg.second.index] = newExpr },
+                                    return listOf(IAstModification.ReplaceNode(
+                                            call.args[arg.second.index],
                                             TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position),
-                                            call as Node
-                                    ))
+                                            call as Node))
                                 }
                             }
                         }
@@ -131,11 +126,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         if(dt.isKnown && dt.typeOrElse(DataType.UWORD)!=DataType.UWORD) {
             val typecast = (memread.addressExpression as? NumericLiteralValue)?.cast(DataType.UWORD)
                     ?: TypecastExpression(memread.addressExpression, DataType.UWORD, true, memread.addressExpression.position)
-            return listOf(IAstModification.ReplaceExpr(
-                    { newExpr -> memread.addressExpression = newExpr },
-                    typecast,
-                    memread
-            ))
+            return listOf(IAstModification.ReplaceNode(memread.addressExpression, typecast, memread))
         }
         return emptyList()
     }
@@ -146,11 +137,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         if(dt.isKnown && dt.typeOrElse(DataType.UWORD)!=DataType.UWORD) {
             val typecast = (memwrite.addressExpression as? NumericLiteralValue)?.cast(DataType.UWORD)
                     ?: TypecastExpression(memwrite.addressExpression, DataType.UWORD, true, memwrite.addressExpression.position)
-            return listOf(IAstModification.ReplaceExpr(
-                    { newExpr -> memwrite.addressExpression = newExpr },
-                    typecast,
-                    memwrite
-            ))
+            return listOf(IAstModification.ReplaceNode(memwrite.addressExpression, typecast, memwrite))
         }
         return emptyList()
     }

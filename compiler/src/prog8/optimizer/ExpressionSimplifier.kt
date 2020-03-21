@@ -1,11 +1,13 @@
 package prog8.optimizer
 
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.processing.AstWalker
+import prog8.ast.processing.IAstModification
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.Assignment
-import prog8.ast.statements.Statement
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -17,68 +19,49 @@ import kotlin.math.pow
 
  */
 
-internal class ExpressionSimplifier(private val program: Program) : IAstModifyingVisitor {
-    var optimizationsDone: Int = 0
 
-    override fun visit(assignment: Assignment): Statement {
+class ExpressionSimplifier2(private val program: Program): AstWalker() {
+    var optimizationsDone = 0
+
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if (assignment.aug_op != null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
-        return super.visit(assignment)
+        return emptyList()
     }
 
-    override fun visit(memread: DirectMemoryRead): Expression {
-        // @( &thing )  -->  thing
-        val addrOf = memread.addressExpression as? AddressOf
-        if(addrOf!=null)
-            return super.visit(addrOf.identifier)
-        return super.visit(memread)
-    }
-
-    override fun visit(typecast: TypecastExpression): Expression {
-        var tc = typecast
+    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+        val mods = mutableListOf<IAstModification>()
 
         // try to statically convert a literal value into one of the desired type
-        val literal = tc.expression as? NumericLiteralValue
+        val literal = typecast.expression as? NumericLiteralValue
         if(literal!=null) {
-            val newLiteral = literal.cast(tc.type)
+            val newLiteral = literal.cast(typecast.type)
             if(newLiteral!==literal) {
                 optimizationsDone++
-                return newLiteral
+                mods += IAstModification.ReplaceNode(typecast.expression, newLiteral, typecast)
             }
         }
 
-        // remove redundant typecasts
-        while(true) {
-            val expr = tc.expression
-            if(expr !is TypecastExpression || expr.type!=tc.type) {
-                val assignment = typecast.parent as? Assignment
-                if(assignment!=null) {
-                    val targetDt = assignment.target.inferType(program, assignment)
-                    if(tc.expression.inferType(program)==targetDt) {
-                        optimizationsDone++
-                        return tc.expression
-                    }
-                }
-
-                val subTc = tc.expression as? TypecastExpression
-                if(subTc!=null) {
-                    // if the previous typecast was casting to a 'bigger' type, just ignore that one
-                    // if the previous typecast was casting to a similar type, ignore that one
-                    if(subTc.type largerThan tc.type || subTc.type equalsSize tc.type) {
-                        subTc.type = tc.type
-                        subTc.parent = tc.parent
-                        optimizationsDone++
-                        return subTc
-                    }
-                }
-
-                return super.visit(tc)
-            }
-
-            optimizationsDone++
-            tc = expr
+        // remove redundant nested typecasts:
+        // if the typecast casts a value to the same type, remove the cast.
+        // if the typecast contains another typecast, remove the inner typecast.
+        val subTypecast = typecast.expression as? TypecastExpression
+        if(subTypecast!=null) {
+            mods += IAstModification.ReplaceNode(typecast.expression, subTypecast.expression, typecast)
+        } else {
+            if(typecast.expression.inferType(program).istype(typecast.type))
+                mods += IAstModification.ReplaceNode(typecast, typecast.expression, parent)
         }
+
+        optimizationsDone += mods.size
+        return mods
     }
+}
+
+
+
+internal class ExpressionSimplifier(private val program: Program) : IAstModifyingVisitor {
+    var optimizationsDone: Int = 0
 
     override fun visit(expr: PrefixExpression): Expression {
         if (expr.operator == "+") {

@@ -11,6 +11,9 @@ main {
         ubyte key=c64.GETIN()
         ubyte[] zzzz = [1,2,3]
 
+        A = 9.0 as ubyte as uword as ubyte as ubyte
+        A = Y as ubyte
+        A = @(&bb1)
         A = len(meuk)
         A = msb(meuk)
         ; A = strlen(meuk)
@@ -26,6 +29,4 @@ main {
         c64.CHROUT('\n')
         c64.CHROUT('\n')
     }
-
-
- }
+}

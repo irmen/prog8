@@ -58,6 +58,11 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         expression.linkParents(this)
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(node === expression && replacement is Expression)
+        expression = replacement
+    }
+
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -98,6 +103,15 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         this.parent = parent
         left.linkParents(this)
         right.linkParents(this)
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is Expression)
+        when {
+            node===left -> left = replacement
+            node===right -> right = replacement
+            else -> throw FatalAstException("invalid replace")
+        }
     }
 
     override fun toString(): String {
@@ -211,6 +225,11 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
         arrayspec.linkParents(this)
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is IdentifierReference && node===identifier)
+        identifier = replacement
+    }
+
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -243,6 +262,11 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         expression.linkParents(this)
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is Expression && node===expression)
+        expression = replacement
+    }
+
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -269,6 +293,11 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
         identifier.parent=this
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is IdentifierReference && node===identifier)
+        identifier = replacement
+    }
+
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UWORD)
@@ -283,6 +312,11 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun linkParents(parent: Node) {
         this.parent = parent
         this.addressExpression.linkParents(this)
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is Expression && node===addressExpression)
+        addressExpression = replacement
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -336,6 +370,10 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
     }
 
     override fun referencesIdentifiers(vararg name: String) = false
@@ -427,6 +465,10 @@ class StructLiteralValue(var values: List<Expression>,
         values.forEach { it.linkParents(this) }
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
+    }
+
     override fun constValue(program: Program): NumericLiteralValue?  = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -452,6 +494,11 @@ class StringLiteralValue(val value: String,
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
+    }
+
     override fun referencesIdentifiers(vararg name: String) = false
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -480,6 +527,13 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         this.parent = parent
         value.forEach {it.linkParents(this)}
     }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is Expression)
+        val idx = value.indexOf(node)
+        value[idx] = replacement
+    }
+
     override fun referencesIdentifiers(vararg name: String) = value.any { it.referencesIdentifiers(*name) }
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -564,6 +618,16 @@ class RangeExpr(var from: Expression,
         step.linkParents(this)
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is Expression)
+        when {
+            from===node -> from=replacement
+            to===node -> to=replacement
+            step===node -> step=replacement
+            else -> throw FatalAstException("invalid replacement")
+        }
+    }
+
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -640,6 +704,10 @@ class RegisterExpr(val register: Register, override val position: Position) : Ex
         this.parent = parent
     }
 
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
+    }
+
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -667,6 +735,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
     }
 
     override fun constValue(program: Program): NumericLiteralValue? {
@@ -723,6 +795,15 @@ class FunctionCall(override var target: IdentifierReference,
         this.parent = parent
         target.linkParents(this)
         args.forEach { it.linkParents(this) }
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===target)
+            target=replacement as IdentifierReference
+        else {
+            val idx = args.indexOf(node)
+            args[idx] = replacement as Expression
+        }
     }
 
     override fun constValue(program: Program) = constValue(program, true)
