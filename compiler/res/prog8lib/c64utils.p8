@@ -565,14 +565,9 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	%asm {{
 		ldy  #0
 _loop		sta  c64.Screen,y
-		sta  c64.Screen+1,y
 		sta  c64.Screen+$0100,y
-		sta  c64.Screen+$0101,y
 		sta  c64.Screen+$0200,y
-		sta  c64.Screen+$0201,y
 		sta  c64.Screen+$02e8,y
-		sta  c64.Screen+$02e9,y
-		iny
 		iny
 		bne  _loop
 		rts
@@ -585,14 +580,9 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	%asm {{
 		ldy  #0
 _loop		sta  c64.Colors,y
-		sta  c64.Colors+1,y
 		sta  c64.Colors+$0100,y
-		sta  c64.Colors+$0101,y
 		sta  c64.Colors+$0200,y
-		sta  c64.Colors+$0201,y
 		sta  c64.Colors+$02e8,y
-		sta  c64.Colors+$02e9,y
-		iny
 		iny
 		bne  _loop
 		rts

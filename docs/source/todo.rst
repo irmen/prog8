@@ -4,9 +4,18 @@ TODO
 
 - remove statements after an exit() or return
 - fix warnings about that unreachable code?
+- why are some programs for example cube3d increasing in size when compiling with optimizations???
+
+- create real assembly routines for the bresenham line and circle code
+- also add assembly routines in c64scr for drawing rectangles (filled/open)
+- add these routines for bitmap screen modes as well
+- add a turtle example once we have highres drawing routines
 
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print'
 - option to load library files from a directory instead of the embedded ones
+
+
+
 
 
 Memory Block Operations integrated in language?

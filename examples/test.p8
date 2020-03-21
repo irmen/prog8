@@ -6,8 +6,9 @@
 main {
 
     sub start() {
-        str input="???????"
+        c64scr.clear_screen('*',7)
+        c64.CHRIN()
+        c64scr.clear_screen('.',2)
 
-        ubyte guess = lsb(c64utils.str2uword(input))
     }
 }

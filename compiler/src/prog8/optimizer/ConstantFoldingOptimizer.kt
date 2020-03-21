@@ -156,32 +156,22 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
         if(forloop!=null && identifier===forloop.loopVar)
             return identifier
 
-        return try {
-            val cval = identifier.constValue(program) ?: return identifier
-            return when (cval.type) {
-                in NumericDatatypes -> {
-                    val copy = NumericLiteralValue(cval.type, cval.number, identifier.position)
-                    copy.parent = identifier.parent
-                    copy
-                }
-                in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
-                else -> identifier
+        val cval = identifier.constValue(program) ?: return identifier
+        return when (cval.type) {
+            in NumericDatatypes -> {
+                val copy = NumericLiteralValue(cval.type, cval.number, identifier.position)
+                copy.parent = identifier.parent
+                copy
             }
-        } catch (ax: AstException) {
-            errors.err("unhandled AST error: $ax", identifier.position)
-            identifier
+            in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
+            else -> identifier
         }
     }
 
     override fun visit(functionCall: FunctionCall): Expression {
         super.visit(functionCall)
         typeCastConstArguments(functionCall)
-        return try {
-            functionCall.constValue(program) ?: functionCall
-        } catch (ax: AstException) {
-            errors.err("unhandled AST error: $ax", functionCall.position)
-            functionCall
-        }
+        return functionCall.constValue(program) ?: functionCall
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement): Statement {
@@ -237,46 +227,41 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
      * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
      */
     override fun visit(expr: PrefixExpression): Expression {
-        return try {
-            val prefixExpr=super.visit(expr)
-            if(prefixExpr !is PrefixExpression)
-                return prefixExpr
-
-            val subexpr = prefixExpr.expression
-            if (subexpr is NumericLiteralValue) {
-                // accept prefixed literal values (such as -3, not true)
-                return when (prefixExpr.operator) {
-                    "+" -> subexpr
-                    "-" -> when (subexpr.type) {
-                        in IntegerDatatypes -> {
-                            optimizationsDone++
-                            NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
-                        }
-                        DataType.FLOAT -> {
-                            optimizationsDone++
-                            NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position)
-                        }
-                        else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
-                    }
-                    "~" -> when (subexpr.type) {
-                        in IntegerDatatypes -> {
-                            optimizationsDone++
-                            NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
-                        }
-                        else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
-                    }
-                    "not" -> {
-                        optimizationsDone++
-                        NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
-                    }
-                    else -> throw ExpressionError(prefixExpr.operator, subexpr.position)
-                }
-            }
+        val prefixExpr=super.visit(expr)
+        if(prefixExpr !is PrefixExpression)
             return prefixExpr
-        } catch (ax: AstException) {
-            errors.err("unhandled AST error: $ax", expr.position)
-            expr
+
+        val subexpr = prefixExpr.expression
+        if (subexpr is NumericLiteralValue) {
+            // accept prefixed literal values (such as -3, not true)
+            return when (prefixExpr.operator) {
+                "+" -> subexpr
+                "-" -> when (subexpr.type) {
+                    in IntegerDatatypes -> {
+                        optimizationsDone++
+                        NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
+                    }
+                    DataType.FLOAT -> {
+                        optimizationsDone++
+                        NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position)
+                    }
+                    else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
+                }
+                "~" -> when (subexpr.type) {
+                    in IntegerDatatypes -> {
+                        optimizationsDone++
+                        NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
+                    }
+                    else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
+                }
+                "not" -> {
+                    optimizationsDone++
+                    NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
+                }
+                else -> throw ExpressionError(prefixExpr.operator, subexpr.position)
+            }
         }
+        return prefixExpr
     }
 
     /**
@@ -297,45 +282,40 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
      *        (X + c1) - c2  ->  X + (c1-c2)
      */
     override fun visit(expr: BinaryExpression): Expression {
-        return try {
-            super.visit(expr)
+        super.visit(expr)
 
-            if(expr.left is StringLiteralValue || expr.left is ArrayLiteralValue
-                    || expr.right is StringLiteralValue || expr.right is ArrayLiteralValue)
-                throw FatalAstException("binexpr with reference litval instead of numeric")
+        if(expr.left is StringLiteralValue || expr.left is ArrayLiteralValue
+                || expr.right is StringLiteralValue || expr.right is ArrayLiteralValue)
+            throw FatalAstException("binexpr with reference litval instead of numeric")
 
-            val leftconst = expr.left.constValue(program)
-            val rightconst = expr.right.constValue(program)
+        val leftconst = expr.left.constValue(program)
+        val rightconst = expr.right.constValue(program)
 
-            val subExpr: BinaryExpression? = when {
-                leftconst!=null -> expr.right as? BinaryExpression
-                rightconst!=null -> expr.left as? BinaryExpression
-                else -> null
+        val subExpr: BinaryExpression? = when {
+            leftconst!=null -> expr.right as? BinaryExpression
+            rightconst!=null -> expr.left as? BinaryExpression
+            else -> null
+        }
+        if(subExpr!=null) {
+            val subleftconst = subExpr.left.constValue(program)
+            val subrightconst = subExpr.right.constValue(program)
+            if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
+                // try reordering.
+                return groupTwoConstsTogether(expr, subExpr,
+                        leftconst != null, rightconst != null,
+                        subleftconst != null, subrightconst != null)
             }
-            if(subExpr!=null) {
-                val subleftconst = subExpr.left.constValue(program)
-                val subrightconst = subExpr.right.constValue(program)
-                if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
-                    // try reordering.
-                    return groupTwoConstsTogether(expr, subExpr,
-                            leftconst != null, rightconst != null,
-                            subleftconst != null, subrightconst != null)
-                }
+        }
+
+        // const fold when both operands are a const
+        return when {
+            leftconst != null && rightconst != null -> {
+                optimizationsDone++
+                val evaluator = ConstExprEvaluator()
+                evaluator.evaluate(leftconst, expr.operator, rightconst)
             }
 
-            // const fold when both operands are a const
-            return when {
-                leftconst != null && rightconst != null -> {
-                    optimizationsDone++
-                    val evaluator = ConstExprEvaluator()
-                    evaluator.evaluate(leftconst, expr.operator, rightconst)
-                }
-
-                else -> expr
-            }
-        } catch (ax: AstException) {
-            errors.err("unhandled AST error: $ax", expr.position)
-            expr
+            else -> expr
         }
     }
 
