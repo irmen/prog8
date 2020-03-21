@@ -375,7 +375,16 @@ Initial values across multiple runs of the program
 
 When declaring values with an initial value, this value will be set into the variable each time
 the program reaches the declaration again. This can be in loops, multiple subroutine calls,
-or even multiple invocations of the entire program.  If you omit an initial value, it will
+or even multiple invocations of the entire program.
+
+.. sidebar::
+    Zeroing not for ZP
+
+    If a variable gets allocated in zero-page, it will *not* be set to zero for you at
+    the start of the program. Instead, it will simply be whatever the last value in that zero page
+    location was. Code should not depend on the uninitialized starting value of such variables.
+
+If you omit an initial value, it will
 be set to zero *but only for the first run of the program*. A second run will utilize the last value
 where it left off (but your code will be a bit smaller because no initialization instructions
 are generated)
@@ -386,15 +395,6 @@ a second run.
 If you do modify them in-place, you should take care yourself that they work as
 expected when the program is restarted.
 (This is an optimization choice to avoid having to store two copies of every string and array)
-
-.. caution::
-   variables that get allocated in zero-page will *not* have a zero starting value when you omit
-   the variable's initialization. They'll be whatever the last value in that zero page
-   location was. So it's best to don't depend on the uninitialized starting value!
-
-.. warning::
-    this behavior may change in a future version so that subsequent runs always
-    use the same initial values
 
 
 Loops
