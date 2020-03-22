@@ -196,7 +196,8 @@ enum class ZeropageWish {
     NOT_IN_ZEROPAGE
 }
 
-class VarDecl(val type: VarDeclType,
+
+open class VarDecl(val type: VarDeclType,
               private val declaredDatatype: DataType,
               val zeropage: ZeropageWish,
               var arraysize: ArrayIndex?,
@@ -306,6 +307,11 @@ class VarDecl(val type: VarDeclType,
         return result
     }
 }
+
+// a vardecl used only for subroutine parameters
+class ParameterVarDecl(name: String, declaredDatatype: DataType, position: Position)
+    : VarDecl(VarDeclType.VAR, declaredDatatype, ZeropageWish.NOT_IN_ZEROPAGE, null, name, null, null, false, true, position)
+
 
 class ArrayIndex(var index: Expression, override val position: Position) : Node {
     override lateinit var parent: Node

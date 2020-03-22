@@ -36,7 +36,8 @@ main {
     }
 
     sub start() {
-        ; TODO call this too:   unimplemented()
+        ; TODO call this once implemented:
+        ;  unimplemented()
 
         lsr(A)
         lsl(A)
@@ -113,12 +114,11 @@ main {
     }
 
     sub check_eval_stack() {
-        c64scr.print("x=")
-        c64scr.print_ub(X)
-        if X==255
-            c64scr.print(" ok\n")
-        else
+        if X!=255 {
+            c64scr.print("x=")
+            c64scr.print_ub(X)
             c64scr.print(" error!\n")
+        }
     }
 
 }

@@ -2,6 +2,9 @@
 TODO
 ====
 
+- fix manderbrot compiler issue
+
+
 - remove statements after an exit() or return
 - fix warnings about that unreachable code?
 

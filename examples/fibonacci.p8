@@ -12,8 +12,8 @@ main {
         }
     }
 
-    uword fib_prev = 0          ; TODO fix initialization of block-global vars (outside of a subroutine)
-    uword fib_current = 1       ; TODO fix initialization of block-global vars (outside of a subroutine)
+    uword fib_prev = 0
+    uword fib_current = 1
 
     sub fib_next() -> uword {
         uword new = fib_current + fib_prev

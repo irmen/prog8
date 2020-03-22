@@ -5,11 +5,13 @@
 
 main {
 
-    sub subje() {
-        ubyte yy=33     ; TODO reinitialize var here
-        ubyte zz        ; TODO reinitialize var here
+    sub subje(ubyte arg1) {
+        ubyte yy=33
+        ubyte zz
         ubyte[5] array1 = [1,2,3,4,5]
 
+        c64scr.print_ub(arg1)
+        c64.CHROUT(',')
         c64scr.print_ub(yy)
         c64.CHROUT(',')
         c64scr.print_ub(zz)
@@ -22,10 +24,10 @@ main {
     sub start() {
         ubyte zz2
         A=zz2
-        subje()
-        subje()
-        subje()
-        subje()
+        subje(111)
+        subje(112)
+        subje(113)
+        subje(114)
         return
 
 ;        ubyte ub1
