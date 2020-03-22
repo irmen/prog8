@@ -3,6 +3,8 @@ package prog8.compiler.target
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.VarDeclType
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.AnonymousScope
@@ -11,6 +13,14 @@ import prog8.ast.statements.VarDecl
 
 
 class AsmVariablePreparer(val program: Program, val errors: ErrorReporter): AstWalker() {
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        if(decl.value==null && decl.type==VarDeclType.VAR && decl.datatype in NumericDatatypes) {
+            // a numeric vardecl without an initial value is initialized with zero.
+            decl.value = decl.zeroElementValue()
+        }
+        return emptyList()
+    }
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         val decls = scope.statements.filterIsInstance<VarDecl>()

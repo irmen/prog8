@@ -2,44 +2,23 @@
 %zeropage basicsafe
 
 ; This example computes the first 20 values of the Fibonacci sequence.
-; It uses the feature that variables that don't have an initialization value,
-; will retain their previous value over multiple invocations of the program or subroutine.
-; This is extremely handy for the Fibonacci sequence because it is defined
-; in terms of 'the next value is the sum of the previous two values'
 
 main {
     sub start() {
         c64scr.print("fibonacci sequence\n")
-        fib_setup()
         for A in 0 to 20 {
             c64scr.print_uw(fib_next())
             c64.CHROUT('\n')
         }
-
-        check_eval_stack()
     }
 
-    sub fib_setup() {
-        ; (re)start the sequence
-        main.fib_next.prev=0
-        main.fib_next.current=1
-    }
+    uword fib_prev = 0          ; TODO fix initialization of block-global vars (outside of a subroutine)
+    uword fib_current = 1       ; TODO fix initialization of block-global vars (outside of a subroutine)
 
     sub fib_next() -> uword {
-        uword prev              ; no init value so will retain previous value
-        uword current           ; no init value so will retain previous value
-        uword new = current + prev
-        prev = current
-        current = new
-        return prev
+        uword new = fib_current + fib_prev
+        fib_prev = fib_current
+        fib_current = new
+        return fib_prev
     }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("stack x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

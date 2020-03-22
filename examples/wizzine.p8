@@ -46,8 +46,9 @@ main {
 
 irq {
 
+    ubyte angle
+
     sub irq() {
-        ubyte angle     ; no initialization value so it keeps the previous one.
         ubyte @zp spri
 
         c64.EXTCOL--

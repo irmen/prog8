@@ -8,15 +8,12 @@ import prog8.compiler.Zeropage
 import java.nio.file.Path
 
 
-typealias InitialValues = Map<Block, Map<String, VarDecl>>
-
-
 internal interface CompilationTarget {
     companion object {
         lateinit var name: String
         lateinit var machine: IMachineDefinition
         lateinit var encodeString: (str: String, altEncoding: Boolean) -> List<Short>
         lateinit var decodeString: (bytes: List<Short>, altEncoding: Boolean) -> String
-        lateinit var asmGenerator: (Program, Zeropage, InitialValues, CompilationOptions, Path) -> IAssemblyGenerator
+        lateinit var asmGenerator: (Program, Zeropage, CompilationOptions, Path) -> IAssemblyGenerator
     }
 }

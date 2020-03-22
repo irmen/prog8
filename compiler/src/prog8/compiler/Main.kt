@@ -120,11 +120,9 @@ fun compileProgram(filepath: Path,
                 val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
                 programAst.prepareAsmVariables(errors)
                 errors.handle()
-                val initialValues = programAst.gatherInitialValues()
                 val assembly = CompilationTarget.asmGenerator(
                         programAst,
                         zeropage,
-                        initialValues,
                         compilerOptions,
                         outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)

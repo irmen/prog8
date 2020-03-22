@@ -9,7 +9,6 @@ import prog8.ast.statements.*
 import prog8.compiler.*
 import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
-import prog8.compiler.target.InitialValues
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
@@ -28,7 +27,6 @@ import kotlin.math.absoluteValue
 
 internal class AsmGen(private val program: Program,
                       private val zeropage: Zeropage,
-                      private val initialValues: InitialValues,
                       private val options: CompilationOptions,
                       private val outputDir: Path): IAssemblyGenerator {
 
@@ -44,6 +42,7 @@ internal class AsmGen(private val program: Program,
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     internal val loopEndLabels = ArrayDeque<String>()
     internal val loopContinueLabels = ArrayDeque<String>()
+    internal val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
 
     override fun compileToAssembly(optimize: Boolean): IAssemblyProgram {
         assemblyLines.clear()
@@ -127,8 +126,11 @@ internal class AsmGen(private val program: Program,
 
         out("  ldx  #\$ff\t; init estack pointer")
 
-        out("  ; initialize the variables in each block")
-        program.allBlocks().filter { it in initialValues }.forEach { out("  jsr  ${it.name}.prog8_init_vars") }
+        out("  ; initialize the variables in each block that has globals")
+        program.allBlocks().forEach {
+            if(it.statements.filterIsInstance<VarDecl>().any { vd->vd.value!=null && vd.type==VarDeclType.VAR && vd.datatype in NumericDatatypes})
+                out("  jsr  ${it.name}.prog8_init_vars")
+        }
 
         out("  clc")
         when (zeropage.exitProgramStrategy) {
@@ -175,10 +177,10 @@ internal class AsmGen(private val program: Program,
 
         // if any global vars need to be initialized, generate a subroutine that does this
         // it will be called from program init.
-        if(block in initialValues) {
+        if(block in blockLevelVarInits) {
             out("prog8_init_vars\t.proc\n")
-            initialValues.getValue(block).forEach { (scopedName, decl) ->
-                val scopedFullName = scopedName.split('.')
+            blockLevelVarInits.getValue(block).forEach { decl ->
+                val scopedFullName = decl.makeScopedName(decl.name).split('.')
                 require(scopedFullName.first()==block.name)
                 val target = AssignTarget(null, IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
                 val assign = Assignment(target, null, decl.value!!, decl.position)
@@ -314,7 +316,7 @@ internal class AsmGen(private val program: Program,
                             (decl.value as ArrayLiteralValue).value
                         else {
                             // no init value, use zeros
-                            val zero = decl.asDefaultValueDecl(decl.parent).value!!
+                            val zero = decl.zeroElementValue()
                             Array(decl.arraysize!!.size()!!) { zero }
                         }
                 val floatFills = array.map {
@@ -389,7 +391,7 @@ internal class AsmGen(private val program: Program,
                     (decl.value as ArrayLiteralValue).value
                 else {
                     // no array init value specified, use a list of zeros
-                    val zero = decl.asDefaultValueDecl(decl.parent).value!!
+                    val zero = decl.zeroElementValue()
                     Array(decl.arraysize!!.size()!!) { zero }
                 }
         return when (decl.datatype) {
@@ -416,7 +418,7 @@ internal class AsmGen(private val program: Program,
                     (decl.value as ArrayLiteralValue).value
                 else {
                     // no array init value specified, use a list of zeros
-                    val zero = decl.asDefaultValueDecl(decl.parent).value!!
+                    val zero = decl.zeroElementValue()
                     Array(decl.arraysize!!.size()!!) { zero }
                 }
         return when (decl.datatype) {
@@ -602,7 +604,8 @@ internal class AsmGen(private val program: Program,
     internal fun translate(stmt: Statement) {
         outputSourceLine(stmt)
         when(stmt) {
-            is VarDecl, is StructDecl, is NopStatement -> {}
+            is VarDecl -> translate(stmt)
+            is StructDecl, is NopStatement -> {}
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
             is Subroutine -> translateSubroutine(stmt)
@@ -816,6 +819,27 @@ internal class AsmGen(private val program: Program,
                 out(trueLabel)
                 translate(stmt.truepart)
                 out(endLabel)
+            }
+        }
+    }
+
+    private fun translate(stmt: VarDecl) {
+        if(stmt.value!=null && stmt.type==VarDeclType.VAR && stmt.datatype in NumericDatatypes) {
+            // generate an assignment statement to (re)initialize the variable's value.
+            // if the vardecl is not in a subroutine however, we have to initialize it globally.
+            if(stmt.definingSubroutine()==null) {
+                val block = stmt.definingBlock()
+                var inits = blockLevelVarInits[block]
+                if(inits==null) {
+                    inits = mutableSetOf()
+                    blockLevelVarInits[block] = inits
+                }
+                inits.add(stmt)
+            } else {
+                val target = AssignTarget(null, IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
+                val assign = Assignment(target, null, stmt.value!!, stmt.position)
+                assign.linkParents(stmt.parent)
+                translate(assign)
             }
         }
     }

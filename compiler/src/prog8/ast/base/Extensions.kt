@@ -6,7 +6,6 @@ import prog8.ast.processing.*
 import prog8.ast.statements.Block
 import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilationOptions
-import prog8.compiler.target.AsmInitialValuesGatherer
 import prog8.compiler.target.AsmVariablePreparer
 import prog8.optimizer.FlattenAnonymousScopesAndNopRemover
 
@@ -20,12 +19,6 @@ internal fun Program.prepareAsmVariables(errors: ErrorReporter) {
     val mover = AsmVariablePreparer(this, errors)
     mover.visit(this)
     mover.applyModifications()
-}
-
-internal fun Program.gatherInitialValues(): Map<Block, Map<String, VarDecl>> {
-    val gather = AsmInitialValuesGatherer(this)
-    gather.visit(this)
-    return gather.initialValues
 }
 
 internal fun Program.reorderStatements() {

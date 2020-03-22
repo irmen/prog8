@@ -376,6 +376,9 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        if(assignment.value.inferType(program) != assignment.target.inferType(program, assignment))
+            errors.err("assignment value is of different type as the target", assignment.value.position)
+
         super.visit(assignment)
     }
 
@@ -502,37 +505,12 @@ internal class AstChecker(private val program: Program,
                     if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE || decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
                         err("struct can not be in zeropage")
                 }
-                if (decl.value == null) {
-                    when {
-                        decl.datatype in NumericDatatypes -> {
-                            // initialize numeric var with value zero by default.
-                            val litVal =
-                                    when (decl.datatype) {
-                                        in ByteDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
-                                        in WordDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
-                                        else -> NumericLiteralValue(decl.datatype, 0.0, decl.position)
-                                    }
-                            litVal.parent = decl
-                            decl.value = litVal
-                        }
-                        decl.datatype == DataType.STRUCT -> {
-                            // structs may be initialized with an array, but it's okay to not initialize them as well.
-                        }
-                        decl.type == VarDeclType.VAR -> {
-                            if(decl.datatype in ArrayDatatypes) {
-                                // array declaration can have an optional initialization value
-                                // if it is absent, the size must be given, which should have been checked earlier
-                                if(decl.value==null && decl.arraysize==null)
-                                    throw FatalAstException("array init check failed")
-                            }
-                        }
-                        else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")
-                        // const fold should have provided it!
-                    }
-                    super.visit(decl)
-                    return
-                }
+
                 when(decl.value) {
+                    null -> {
+                        // a vardecl without an initial value, don't bother with the rest
+                        return super.visit(decl)
+                    }
                     is RangeExpr -> throw FatalAstException("range expression should have been converted to a true array value")
                     is StringLiteralValue -> {
                         checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteralValue)
@@ -565,6 +543,8 @@ internal class AstChecker(private val program: Program,
                                     return
                                 }
                             }
+                        } else {
+                            errors.err("struct literal is wrong type to initialize this variable", decl.value!!.position)
                         }
                     }
                     else -> {
@@ -601,6 +581,10 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+
+        val declValue = decl.value
+        if(declValue!=null && decl.type==VarDeclType.VAR && !declValue.inferType(program).istype(decl.datatype))
+            throw FatalAstException("initialisation value $declValue is of different type (${declValue.inferType(program)} as the variable (${decl.datatype}) at ${decl.position}")
 
         super.visit(decl)
     }

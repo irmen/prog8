@@ -140,6 +140,13 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
             }
         }
 
+        val declValue = decl.value
+        if(declValue!=null && decl.type==VarDeclType.VAR
+                && declValue is NumericLiteralValue && !declValue.inferType(program).istype(decl.datatype)) {
+            // cast the numeric literal to the appropriate datatype of the variable
+            decl.value = declValue.cast(decl.datatype)
+        }
+
         return super.visit(decl)
     }
 

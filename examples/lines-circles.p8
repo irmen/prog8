@@ -8,10 +8,14 @@ main {
     sub start() {
         c64scr.print("mid-point\ncircle\n and\nbresenham\nline\nalgorithms.\n")
 
-        ubyte r
-        for r in 3 to 12 step 3 {
-            circle(20, 12, r)
-        }
+        circle(20, 12, 6)
+        circle(20, 12, 6)       ; TODO FIX ERROR IN LOCALS
+        circle(20, 12, 6)       ; TODO FIX ERROR IN LOCALS
+
+;        ubyte r
+;        for r in 3 to 12 step 3 {
+;            circle(20, 12, r)
+;        }
 
         c64scr.print("enter for disc:")
         void c64.CHRIN()
@@ -107,6 +111,13 @@ main {
             byte x = radius as byte
             byte y = 0
             byte decisionOver2 = 1-x
+
+            c64scr.print_b(x)
+            c64.CHROUT(',')
+            c64scr.print_b(y)
+            c64.CHROUT(',')
+            c64scr.print_b(decisionOver2)
+            c64.CHROUT('\n')
 
             while x>=y {
                 c64scr.setcc(xcenter + x as ubyte, ycenter + y as ubyte, 81, 1)

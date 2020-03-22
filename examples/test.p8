@@ -5,45 +5,67 @@
 
 main {
 
+    sub subje() {
+        ubyte yy=33     ; TODO reinitialize var here
+        ubyte zz        ; TODO reinitialize var here
+        ubyte[5] array1 = [1,2,3,4,5]
+
+        c64scr.print_ub(yy)
+        c64.CHROUT(',')
+        c64scr.print_ub(zz)
+        c64.CHROUT('\n')
+        yy++
+        A=zz
+        Y=array1[2]
+    }
+
     sub start() {
-        ubyte ub1
-        ubyte ub2 = 99
-        uword uw1
-        uword uw2 = 9999
-        ubyte[5] array1
-        ubyte[5] array2 = [22,33,44,55,66]
+        ubyte zz2
+        A=zz2
+        subje()
+        subje()
+        subje()
+        subje()
+        return
 
-        c64scr.print_ub(ub1)
-        c64.CHROUT(',')
-        c64scr.print_ub(ub2)
-        c64.CHROUT(',')
-        c64scr.print_uw(uw1)
-        c64.CHROUT(',')
-        c64scr.print_uw(uw2)
-        c64.CHROUT(',')
-        c64scr.print_ub(array1[0])
-        c64.CHROUT(',')
-        c64scr.print_ub(array2[0])
-        c64.CHROUT('\n')
-
-        ub1++
-        ub2++
-        uw1++
-        uw2++
-        array1[0]++
-        array2[0]++
-
-        c64scr.print_ub(ub1)
-        c64.CHROUT(',')
-        c64scr.print_ub(ub2)
-        c64.CHROUT(',')
-        c64scr.print_uw(uw1)
-        c64.CHROUT(',')
-        c64scr.print_uw(uw2)
-        c64.CHROUT(',')
-        c64scr.print_ub(array1[0])
-        c64.CHROUT(',')
-        c64scr.print_ub(array2[0])
-        c64.CHROUT('\n')
+;        ubyte ub1
+;        ubyte ub2 = 99
+;        uword uw1
+;        uword uw2 = 9999
+;        ubyte[5] array1
+;        ubyte[5] array2 = [22,33,44,55,66]
+;
+;        c64scr.print_ub(ub1)
+;        c64.CHROUT(',')
+;        c64scr.print_ub(ub2)
+;        c64.CHROUT(',')
+;        c64scr.print_uw(uw1)
+;        c64.CHROUT(',')
+;        c64scr.print_uw(uw2)
+;        c64.CHROUT(',')
+;        c64scr.print_ub(array1[0])
+;        c64.CHROUT(',')
+;        c64scr.print_ub(array2[0])
+;        c64.CHROUT('\n')
+;
+;        ub1++
+;        ub2++
+;        uw1++
+;        uw2++
+;        array1[0]++
+;        array2[0]++
+;
+;        c64scr.print_ub(ub1)
+;        c64.CHROUT(',')
+;        c64scr.print_ub(ub2)
+;        c64.CHROUT(',')
+;        c64scr.print_uw(uw1)
+;        c64.CHROUT(',')
+;        c64scr.print_uw(uw2)
+;        c64.CHROUT(',')
+;        c64scr.print_ub(array1[0])
+;        c64.CHROUT(',')
+;        c64scr.print_ub(array2[0])
+;        c64.CHROUT('\n')
     }
 }
