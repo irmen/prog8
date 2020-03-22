@@ -126,11 +126,7 @@ internal class AsmGen(private val program: Program,
         out("  ldx  #\$ff\t; init estack pointer")
 
         out("  ; initialize the variables in each block")
-        for (block in program.allBlocks()) {
-            val initVarsSub = block.statements.singleOrNull { it is Subroutine && it.name == initvarsSubName }
-            if(initVarsSub!=null)
-                out("  jsr  ${block.name}.$initvarsSubName")
-        }
+        program.allBlocks().filter { it.initialValues.any() }.forEach { out("  jsr  ${it.name}.prog8_init_vars") }
 
         out("  clc")
         when (zeropage.exitProgramStrategy) {
@@ -174,6 +170,19 @@ internal class AsmGen(private val program: Program,
         val (subroutine, stmts) = block.statements.partition { it is Subroutine }
         stmts.forEach { translate(it) }
         subroutine.forEach { translateSubroutine(it as Subroutine) }
+
+        // if any global vars need to be initialized, generate a subroutine that does this
+        // it will be called from program init.
+        if(block.initialValues.isNotEmpty()) {
+            out("prog8_init_vars\t.proc\n")
+            block.initialValues.forEach {
+                val target = AssignTarget(null, IdentifierReference(listOf(it.scopedname), it.position), null, null, it.position)
+                val assign = Assignment(target, null, it.value!!, it.position)
+                assign.linkParents(it.parent)
+                assignmentAsmGen.translate(assign)
+            }
+            out("  rts\n  .pend")
+        }
 
         out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
     }

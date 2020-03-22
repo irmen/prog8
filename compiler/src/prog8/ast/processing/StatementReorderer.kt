@@ -3,7 +3,6 @@ package prog8.ast.processing
 import prog8.ast.*
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
@@ -107,21 +106,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         block.statements.removeAll(directives)
         block.statements.addAll(0, directives)
         block.linkParents(block.parent)
-
-        // create subroutine that initializes the block's variables (if any)
-        val varInits = block.statements.withIndex().filter { it.value is VariableInitializationAssignment }
-        if(varInits.isNotEmpty()) {
-            val statements = varInits.map{it.value}.toMutableList()
-            val varInitSub = Subroutine(initvarsSubName, emptyList(), emptyList(), emptyList(), emptyList(),
-                    emptySet(), null, false, statements, block.position)
-            varInitSub.keepAlways = true
-            varInitSub.linkParents(block)
-            block.statements.add(varInitSub)
-
-            // remove the varinits from the block's statements
-            for(index in varInits.map{it.index}.reversed())
-                block.statements.removeAt(index)
-        }
 
         return super.visit(block)
     }

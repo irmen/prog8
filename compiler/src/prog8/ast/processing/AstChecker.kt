@@ -40,7 +40,6 @@ internal class AstChecker(private val program: Program,
                     is VarDecl -> true
                     is InlineAssembly -> true
                     is INameScope -> true
-                    is VariableInitializationAssignment -> true
                     is NopStatement -> true
                     else -> false
                 }

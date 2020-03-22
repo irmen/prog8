@@ -73,6 +73,7 @@ class Block(override val name: String,
         val idx = statements.indexOf(node)
         statements[idx] = replacement
     }
+    val initialValues = mutableListOf<VarDecl>()    // will be gathered by one of the Ast processing steps
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -372,11 +373,6 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
         return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
     }
 }
-
-// This is a special class so the compiler can see if the assignments are for initializing the vars in the scope,
-// or just a regular assignment. It could optimize the initialization step from this.
-class VariableInitializationAssignment(target: AssignTarget, aug_op: String?, value: Expression, position: Position)
-    : Assignment(target, aug_op, value, position)
 
 data class AssignTarget(val register: Register?,
                         var identifier: IdentifierReference?,

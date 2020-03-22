@@ -196,13 +196,14 @@ class AstVm(val program: Program, compilationTarget: String) {
             for (m in program.modules) {
                 for (b in m.statements.filterIsInstance<Block>()) {
                     for (s in b.statements.filterIsInstance<Subroutine>()) {
-                        if (s.name == initvarsSubName) {
-                            try {
-                                executeSubroutine(s, emptyList(), null)
-                            } catch (x: LoopControlReturn) {
-                                // regular return
-                            }
-                        }
+                        TODO("initialize variable values")
+//                        if (s.name == initvarsSubName) {
+//                            try {
+//                                executeSubroutine(s, emptyList(), null)
+//                            } catch (x: LoopControlReturn) {
+//                                // regular return
+//                            }
+//                        }
                     }
                 }
             }

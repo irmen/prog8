@@ -7,10 +7,6 @@ import prog8.compiler.CompilationOptions
 import prog8.optimizer.FlattenAnonymousScopesAndNopRemover
 
 
-// the name of the subroutine that should be called for every block to initialize its variables
-internal const val initvarsSubName = "prog8_init_vars"
-
-
 internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {
     val checker = AstChecker(this, compilerOptions, errors)
     checker.visit(this)
@@ -23,7 +19,7 @@ internal fun Program.moveAnonScopeVarsToSubroutine(errors: ErrorReporter) {
 }
 
 internal fun Program.reorderStatements() {
-    val initvalueCreator = VarInitValueCreator(this)
+    val initvalueCreator = AddressOfInserter(this)
     initvalueCreator.visit(this)
     initvalueCreator.applyModifications()
 

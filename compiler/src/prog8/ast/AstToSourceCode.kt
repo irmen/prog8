@@ -283,14 +283,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(assignment: Assignment) {
-        if(assignment is VariableInitializationAssignment) {
-            val targetVar = assignment.target.identifier?.targetVarDecl(program.namespace)
-            if(targetVar?.struct != null) {
-                // skip STRUCT init assignments
-                return
-            }
-        }
-
         assignment.target.accept(this)
         if (assignment.aug_op != null)
             output(" ${assignment.aug_op} ")

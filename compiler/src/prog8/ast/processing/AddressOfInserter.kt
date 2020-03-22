@@ -11,17 +11,14 @@ import prog8.functions.BuiltinFunctions
 import prog8.functions.FSignature
 
 
-internal class VarInitValueCreator(val program: Program): AstWalker() {
-    // For VarDecls that declare an initialization value:
-    // add an assignment to set this initial value explicitly.
-    // This makes sure the variables get reset to the intended value on a next run of the program.
-    // Also takes care to insert AddressOf (&) expression where required (string params to a UWORD function param etc).
+internal class AddressOfInserter(val program: Program): AstWalker() {
+    // Insert AddressOf (&) expression where required (string params to a UWORD function param etc).
     // TODO join this into the StatementReorderer?
-    // TODO actually I think the code generator should take care of this entirely, and this step should be removed from the ast modifications...
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.isArray && decl.value==null) {
             // array datatype without initialization value, add list of zeros
+            // TODO let the code generator take care of this?
             val arraysize = decl.arraysize!!.size()!!
             val zero = decl.asDefaultValueDecl(decl).value!!
             return listOf(IAstModification.SetExpression(           // can't use replaceNode here because value is null
@@ -32,30 +29,8 @@ internal class VarInitValueCreator(val program: Program): AstWalker() {
                     decl))
         }
 
-        val declvalue = decl.value
-        if(decl.type == VarDeclType.VAR && declvalue != null && decl.datatype in NumericDatatypes) {
-            val value =
-                    if(declvalue is NumericLiteralValue)
-                        declvalue.cast(decl.datatype)
-                    else
-                        declvalue
-            val identifierName = listOf(decl.name)
-            val initvalue = VariableInitializationAssignment(
-                    AssignTarget(null,
-                            IdentifierReference(identifierName, decl.position),
-                            null, null, decl.position),
-                    null, value, decl.position
-            )
-            val zero = decl.asDefaultValueDecl(decl).value!!
-            return listOf(
-                    IAstModification.Insert(decl, initvalue, parent),
-                    IAstModification.ReplaceNode(
-                            declvalue,
-                            zero,
-                            decl
-                    )
-            )
-        }
+        if(decl.value!=null && decl.type==VarDeclType.VAR && !decl.isArray)
+            decl.definingBlock().initialValues += decl
 
         return emptyList()
     }

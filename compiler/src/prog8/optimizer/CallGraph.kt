@@ -7,7 +7,6 @@ import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.VarDeclType
-import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.IAstVisitor
@@ -120,7 +119,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     override fun visit(subroutine: Subroutine) {
         if (Pair(subroutine.definingScope().name, subroutine.name) in alwaysKeepSubroutines
-                || subroutine.name == initvarsSubName || subroutine.definingModule().isLibraryModule) {
+                || subroutine.definingModule().isLibraryModule) {
             // make sure the entrypoint is mentioned in the used symbols
             addNodeAndParentScopes(subroutine)
         }
