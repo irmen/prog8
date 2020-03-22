@@ -400,17 +400,22 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ArrayLiteralValue).value
-
-        return when {
-            decl.datatype == DataType.ARRAY_UB ->
+        val array =
+                if(decl.value!=null)
+                    (decl.value as ArrayLiteralValue).value
+                else {
+                    // no array init value specified, use a list of zeros
+                    val zero = decl.asDefaultValueDecl(decl.parent).value!!
+                    Array(decl.arraysize!!.size()!!) { zero }
+                }
+        return when (decl.datatype) {
+            DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
                     val number = (it as NumericLiteralValue).number.toInt()
-                    val hexnum = number.toString(16).padStart(2, '0')
-                    "$$hexnum"
+                    "$"+number.toString(16).padStart(2, '0')
                 }
-            decl.datatype == DataType.ARRAY_B ->
+            DataType.ARRAY_B ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
                     val number = (it as NumericLiteralValue).number.toInt()
@@ -420,12 +425,11 @@ internal class AsmGen(private val program: Program,
                     else
                         "-$$hexnum"
                 }
-            decl.datatype== DataType.ARRAY_UW -> array.map {
+            DataType.ARRAY_UW -> array.map {
                 val number = (it as NumericLiteralValue).number.toInt()
-                val hexnum = number.toString(16).padStart(4, '0')
-                "$$hexnum"
+                "$" + number.toString(16).padStart(4, '0')
             }
-            decl.datatype== DataType.ARRAY_W -> array.map {
+            DataType.ARRAY_W -> array.map {
                 val number = (it as NumericLiteralValue).number.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)

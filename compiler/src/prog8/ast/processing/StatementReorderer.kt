@@ -3,6 +3,8 @@ package prog8.ast.processing
 import prog8.ast.*
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
@@ -19,13 +21,16 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
     // - all other subroutines will be moved to the end of their block.
     // - sorts the choices in when statement.
+    // - a vardecl with a non-const initializer value is split into a regular vardecl and an assignment statement.
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
     private val addReturns = mutableListOf<Pair<INameScope, Int>>()
+    private val addVardecls = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun visit(module: Module) {
         addReturns.clear()
+        addVardecls.clear()
         super.visit(module)
 
         val (blocks, other) = module.statements.partition { it is Block }
@@ -54,10 +59,16 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
 
+        // add new statements
         for(pos in addReturns) {
             val returnStmt = Return(null, pos.first.position)
             returnStmt.linkParents(pos.first as Node)
             pos.first.statements.add(pos.second, returnStmt)
+        }
+
+        for((where, decls) in addVardecls) {
+            where.statements.addAll(0, decls)
+            decls.forEach { it.linkParents(where as Node) }
         }
     }
 
@@ -146,6 +157,37 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         }
 
         return subroutine
+    }
+
+
+    private fun addVarDecl(scope: INameScope, variable: VarDecl): VarDecl {
+        if(scope !in addVardecls)
+            addVardecls[scope] = mutableListOf()
+        val declList = addVardecls.getValue(scope)
+        val existing = declList.singleOrNull { it.name==variable.name }
+        return if(existing!=null) {
+            existing
+        } else {
+            declList.add(variable)
+            variable
+        }
+    }
+
+    override fun visit(decl: VarDecl): Statement {
+        val declValue = decl.value
+        if(declValue!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
+            val declConstValue = declValue.constValue(program)
+            if(declConstValue==null) {
+                // move the vardecl (without value) to the scope and replace this with a regular assignment
+                val target = AssignTarget(null, IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                val assign = Assignment(target, null, declValue, decl.position)
+                assign.linkParents(decl.parent)
+                decl.value = null
+                addVarDecl(decl.definingScope(), decl)
+                return assign
+            }
+        }
+        return super.visit(decl)
     }
 
     override fun visit(assignment: Assignment): Statement {

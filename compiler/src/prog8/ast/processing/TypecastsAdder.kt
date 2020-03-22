@@ -4,10 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.ErrorReporter
-import prog8.ast.base.FatalAstException
-import prog8.ast.base.VarDeclType
+import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
@@ -22,7 +19,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 
         // collect all variables that have an initialisation value
-        if(decl.value!=null && decl.type== VarDeclType.VAR && !decl.isArray)
+        if(decl.value!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes)
             decl.definingBlock().initialValues += decl
 
         return emptyList()

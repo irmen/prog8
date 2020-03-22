@@ -6,6 +6,12 @@
 main {
 
     sub start() {
+        ubyte xyz = 99          ; TODO fix compiler error when removing unused var
+        word wcosa = cos8(xyz)
+        word wcosa_sinb = wcosa / 128
+        ; TODO fix too much assembly in prog8_init_vars
+
+
         ubyte ub1
         ubyte ub2 = 99
         uword uw1
