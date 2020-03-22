@@ -852,11 +852,14 @@ _print_byte_digits
 		beq  +
 		tya
 		jsr  c64.CHROUT
+		pla
+		jsr  c64.CHROUT
+		jmp  _ones
 +       pla
         cmp  #'0'
-        beq  +
+        beq  _ones
         jsr  c64.CHROUT
-+       txa
+_ones   txa
 		jsr  c64.CHROUT
 		ldx  c64.SCRATCH_ZPREGX
 		rts
