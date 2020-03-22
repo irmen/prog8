@@ -7,6 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ErrorReporter
 import prog8.ast.base.FatalAstException
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
@@ -17,6 +18,15 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
      * Make sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
      * (this includes function call arguments)
      */
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+
+        // collect all variables that have an initialisation value
+        if(decl.value!=null && decl.type== VarDeclType.VAR && !decl.isArray)
+            decl.definingBlock().initialValues += decl
+
+        return emptyList()
+    }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftDt = expr.left.inferType(program)

@@ -15,26 +15,6 @@ internal class AddressOfInserter(val program: Program): AstWalker() {
     // Insert AddressOf (&) expression where required (string params to a UWORD function param etc).
     // TODO join this into the StatementReorderer?
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.isArray && decl.value==null) {
-            // array datatype without initialization value, add list of zeros
-            // TODO let the code generator take care of this?
-            val arraysize = decl.arraysize!!.size()!!
-            val zero = decl.asDefaultValueDecl(decl).value!!
-            return listOf(IAstModification.SetExpression(           // can't use replaceNode here because value is null
-                    { newExpr -> decl.value = newExpr },
-                    ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
-                            Array(arraysize) { zero },
-                            decl.position),
-                    decl))
-        }
-
-        if(decl.value!=null && decl.type==VarDeclType.VAR && !decl.isArray)
-            decl.definingBlock().initialValues += decl
-
-        return emptyList()
-    }
-
     override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
         // insert AddressOf (&) expression where required (string params to a UWORD function param etc).
         var parentStatement: Node = functionCall

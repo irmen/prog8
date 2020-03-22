@@ -373,7 +373,14 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
-        val array = (decl.value as ArrayLiteralValue).value
+        val array =
+                if(decl.value!=null)
+                    (decl.value as ArrayLiteralValue).value
+                else {
+                    // no array init value specified, use a list of zeros
+                    val zero = decl.asDefaultValueDecl(decl.parent).value!!
+                    Array(decl.arraysize!!.size()!!) { zero }
+                }
         return when (decl.datatype) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
