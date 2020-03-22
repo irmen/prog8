@@ -36,8 +36,6 @@ Rapid edit-compile-run-debug cycle:
 - option to automatically run the program in the Vice emulator
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
-- virtual machine that can execute compiled code directy on the host system,
-  without having to actually convert it to assembly to run on a real 6502
 
 It is mainly targeted at the Commodore-64 machine at this time.
 Contributions to add support for other 8-bit (or other?!) machines are welcome.

@@ -9,7 +9,6 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.parser.ParsingFailedError
-import prog8.vm.astvm.AstVm
 import java.io.IOException
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -40,7 +39,6 @@ private fun compileMain(args: Array<String>) {
     val outputDir by cli.flagValueArgument("-out", "directory", "directory for output files instead of current directory", ".")
     val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
-    val launchSimulator by cli.flagArgument("-sim", "launch the builtin execution simulator after compilation")
     val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val compilationTarget by cli.flagValueArgument("-target", "compilertarget", "target output of the compiler, currently only 'c64' (C64 6502 assembly) available", "c64")
     val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
@@ -117,18 +115,6 @@ private fun compileMain(args: Array<String>) {
                 exitProcess(1)
             } catch (x: AstException) {
                 exitProcess(1)
-            }
-
-            if (launchSimulator) {
-//                val c64 = razorvine.c64emu.C64Machine("C64 emulator launched from Prog8 compiler")
-//                c64.cpu.addBreakpoint(0xea31) { cpu, address ->
-//                    println("zz")
-//                    Cpu6502.BreakpointResultAction()
-//                }
-//                c64.start()
-                println("\nLaunching AST-based simulator...")
-                val vm = AstVm(compilationResult.programAst, compilationTarget)
-                vm.run()
             }
 
             if (startEmulator) {

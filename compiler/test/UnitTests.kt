@@ -16,7 +16,6 @@ import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
 import prog8.compiler.target.c64.Petscii
-import prog8.vm.RuntimeValueNumeric
 import java.io.CharConversionException
 import kotlin.test.*
 
@@ -378,25 +377,5 @@ class TestPetscii {
         assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)
-    }
-
-    @Test
-    fun testStackvmValueComparisons() {
-        val ten = RuntimeValueNumeric(DataType.FLOAT, 10)
-        val nine = RuntimeValueNumeric(DataType.UWORD, 9)
-        assertEquals(ten, ten)
-        assertNotEquals(ten, nine)
-        assertFalse(ten != ten)
-        assertTrue(ten != nine)
-
-        assertTrue(ten > nine)
-        assertTrue(ten >= nine)
-        assertTrue(ten >= ten)
-        assertFalse(ten > ten)
-
-        assertFalse(ten < nine)
-        assertFalse(ten <= nine)
-        assertTrue(ten <= ten)
-        assertFalse(ten < ten)
     }
 }

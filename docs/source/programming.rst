@@ -152,13 +152,6 @@ Your program must have a single entry point where code execution begins.
 The compiler expects a ``start`` subroutine in the ``main`` block for this,
 taking no parameters and having no return value.
 
-.. sidebar::
-    60hz IRQ entry point
-
-    When running the generated code on the StackVm virtual machine,
-    it will use the ``irq`` subroutine in the ``irq`` block for the
-    60hz irq routine. This is optional.
-
 As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call)::
 
     main {

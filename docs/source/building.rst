@@ -168,18 +168,3 @@ or::
 
     $ ./p8compile.sh -emu examples/rasterbars.p8
 
-
-
-Virtual Machine / Simulator
----------------------------
-
-You may have noticed the ``-sim`` command line option for the compiler:
-
--sim
-    Launches the "AST virtual machine Simulator" that directly executes the parsed program.
-    No compilation steps will be performed.
-    Allows for very fast testing and debugging before actually compiling programs
-    to machine code.
-    It simulates a bare minimum of features from the target platform, so most stuff
-    that calls ROM routines or writes into hardware registers won't work. But basic
-    system routines are emulated.
