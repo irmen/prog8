@@ -1,13 +1,17 @@
-package prog8.ast.processing
+package prog8.compiler.target
 
 import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
+import prog8.ast.processing.AstWalker
+import prog8.ast.processing.IAstModification
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 
 
-class AnonScopeVarsToSubroutineMover(val errors: ErrorReporter): AstWalker() {
+class AsmVariablePreparer(val program: Program, val errors: ErrorReporter): AstWalker() {
+
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         val decls = scope.statements.filterIsInstance<VarDecl>()
         val sub = scope.definingSubroutine()

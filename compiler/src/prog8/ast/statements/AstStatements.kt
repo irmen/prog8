@@ -73,7 +73,6 @@ class Block(override val name: String,
         val idx = statements.indexOf(node)
         statements[idx] = replacement
     }
-    val initialValues = mutableMapOf<String, VarDecl>()    // will be gathered by one of the Ast processing steps
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -270,8 +269,6 @@ class VarDecl(val type: VarDeclType,
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    val scopedname: String by lazy { makeScopedName(name) }
 
     override fun toString(): String {
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, struct=$structName, value=$value, pos=$position)"

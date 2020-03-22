@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.compiler.*
 import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
+import prog8.compiler.target.InitialValues
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
@@ -26,9 +27,10 @@ import kotlin.math.absoluteValue
 
 
 internal class AsmGen(private val program: Program,
-             private val zeropage: Zeropage,
-             private val options: CompilationOptions,
-             private val outputDir: Path): IAssemblyGenerator {
+                      private val zeropage: Zeropage,
+                      private val initialValues: InitialValues,
+                      private val options: CompilationOptions,
+                      private val outputDir: Path): IAssemblyGenerator {
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -126,7 +128,7 @@ internal class AsmGen(private val program: Program,
         out("  ldx  #\$ff\t; init estack pointer")
 
         out("  ; initialize the variables in each block")
-        program.allBlocks().filter { it.initialValues.any() }.forEach { out("  jsr  ${it.name}.prog8_init_vars") }
+        program.allBlocks().filter { it in initialValues }.forEach { out("  jsr  ${it.name}.prog8_init_vars") }
 
         out("  clc")
         when (zeropage.exitProgramStrategy) {
@@ -173,10 +175,12 @@ internal class AsmGen(private val program: Program,
 
         // if any global vars need to be initialized, generate a subroutine that does this
         // it will be called from program init.
-        if(block.initialValues.isNotEmpty()) {
+        if(block in initialValues) {
             out("prog8_init_vars\t.proc\n")
-            block.initialValues.forEach { (scopedName, decl) ->
-                val target = AssignTarget(null, IdentifierReference(scopedName.split('.'), decl.position), null, null, decl.position)
+            initialValues.getValue(block).forEach { (scopedName, decl) ->
+                val scopedFullName = scopedName.split('.')
+                require(scopedFullName.first()==block.name)
+                val target = AssignTarget(null, IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
                 val assign = Assignment(target, null, decl.value!!, decl.position)
                 assign.linkParents(decl.parent)
                 assignmentAsmGen.translate(assign)
@@ -229,7 +233,7 @@ internal class AsmGen(private val program: Program,
         val variables = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
         for(variable in variables) {
             // should NOT allocate subroutine parameters on the zero page
-            val fullName = variable.scopedname
+            val fullName = variable.makeScopedName(variable.name)
             val zpVar = allocatedZeropageVariables[fullName]
             if(zpVar==null) {
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
@@ -305,7 +309,14 @@ internal class AsmGen(private val program: Program,
                 }
             }
             DataType.ARRAY_F -> {
-                val array = (decl.value as ArrayLiteralValue).value
+                val array =
+                        if(decl.value!=null)
+                            (decl.value as ArrayLiteralValue).value
+                        else {
+                            // no init value, use zeros
+                            val zero = decl.asDefaultValueDecl(decl.parent).value!!
+                            Array(decl.arraysize!!.size()!!) { zero }
+                        }
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
                     makeFloatFill(C64MachineDefinition.Mflpt5.fromNumber(number))
@@ -359,7 +370,7 @@ internal class AsmGen(private val program: Program,
 
         // non-string variables
         normalVars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            if(it.scopedname !in allocatedZeropageVariables)
+            if(it.makeScopedName(it.name) !in allocatedZeropageVariables)
                 vardecl2asm(it)
         }
     }

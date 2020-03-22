@@ -10,8 +10,8 @@
 c64flt {
 	; ---- this block contains C-64 floating point related functions ----
 
-		const  float  PI	= 3.141592653589793
-		const  float  TWOPI	= 6.283185307179586
+        const  float  PI        = 3.141592653589793
+        const  float  TWOPI	    = 6.283185307179586
 
 
 ; ---- C64 basic and kernal ROM float constants and functions ----
@@ -34,7 +34,8 @@ c64flt {
 		&float  FL_PIHALF	= $e2e0  ; PI / 2
 		&float  FL_TWOPI	= $e2e5  ; 2 * PI
 		&float  FL_FR4		= $e2ea  ; .25
-		 float  FL_ZERO		= 0.0    ; oddly enough 0.0 isn't available in the kernel
+		; oddly enough, 0.0 isn't available in the kernel.
+        float   FL_ZERO     = 0.0    ; oddly enough 0.0 isn't available in the kernel
 
 
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
@@ -209,8 +210,8 @@ sub  print_fln  (float value) {
 	; ---- prints the floating point value (with a newline at the end) using basic rom routines
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
-		lda  #<print_fln_value
-		ldy  #>print_fln_value
+		lda  #<value
+		ldy  #>value
 		jsr  MOVFM		; load float into fac1
 		jsr  FPRINTLN		; print fac1 with newline
 		ldx  c64.SCRATCH_ZPREGX

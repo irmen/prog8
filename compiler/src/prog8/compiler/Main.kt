@@ -116,11 +116,17 @@ fun compileProgram(filepath: Path,
             // printAst(programAst)
 
             if(writeAssembly) {
-                // asm generation directly from the Ast, no need for intermediate code
+                // asm generation directly from the Ast,
                 val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
-                programAst.moveAnonScopeVarsToSubroutine(errors)
+                programAst.prepareAsmVariables(errors)
                 errors.handle()
-                val assembly = CompilationTarget.asmGenerator(programAst, zeropage, compilerOptions, outputDir).compileToAssembly(optimize)
+                val initialValues = programAst.gatherInitialValues()
+                val assembly = CompilationTarget.asmGenerator(
+                        programAst,
+                        zeropage,
+                        initialValues,
+                        compilerOptions,
+                        outputDir).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programName = assembly.name
             }

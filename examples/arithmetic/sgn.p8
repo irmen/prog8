@@ -79,10 +79,10 @@ main {
 
         uw1 = 2222
         uw2 = 999
-        if sgn(uw2 as word - uw1 as word) != -1
-            c64scr.print("sgn2 error6\n")
-        if sgn(uw2 - uw1) != -1
-            c64scr.print("sgn2 error6\n")
+        if sgn((uw2 as word) - (uw1 as word)) != -1
+            c64scr.print("sgn2 error6a\n")
+        if sgn(uw2 - uw1) != 1      ; always 0 or 1 if unsigned
+            c64scr.print("sgn2 error6b\n")
 
         f1 = 3.45
         f2 = 1.11
