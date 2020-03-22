@@ -4,7 +4,9 @@ TODO
 
 - remove statements after an exit() or return
 - fix warnings about that unreachable code?
-- why are some programs for example cube3d increasing in size when compiling with optimizations???
+
+- add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
+  the program will then rely solely on the  values as they are in memory at the time of program startup.
 
 - create real assembly routines for the bresenham line and circle code
 - also add assembly routines in c64scr for drawing rectangles (filled/open)

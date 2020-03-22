@@ -216,7 +216,8 @@ Variable declarations
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You can give them an initial value as well. That value can be a simple literal value,
-or an expression. You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
+or an expression. If you don't provide an intial value yourself, zero will be used.
+You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
 when selecting variables to be put into zeropage.
 The syntax is::
 
@@ -321,7 +322,7 @@ Constants
 ^^^^^^^^^
 
 All variables can be assigned new values unless you use the ``const`` keyword.
-The initial value will now be evaluated at compile time (it must be a compile time constant expression).
+The initial value must be known at compile time (it must be a compile time constant expression).
 This is only valid for the simple numeric types (byte, word, float)::
 
 	const  byte  max_age = 99

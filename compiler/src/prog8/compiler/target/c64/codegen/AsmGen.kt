@@ -175,10 +175,10 @@ internal class AsmGen(private val program: Program,
         // it will be called from program init.
         if(block.initialValues.isNotEmpty()) {
             out("prog8_init_vars\t.proc\n")
-            block.initialValues.forEach {
-                val target = AssignTarget(null, IdentifierReference(listOf(it.scopedname), it.position), null, null, it.position)
-                val assign = Assignment(target, null, it.value!!, it.position)
-                assign.linkParents(it.parent)
+            block.initialValues.forEach { (scopedName, decl) ->
+                val target = AssignTarget(null, IdentifierReference(scopedName.split('.'), decl.position), null, null, decl.position)
+                val assign = Assignment(target, null, decl.value!!, decl.position)
+                assign.linkParents(decl.parent)
                 assignmentAsmGen.translate(assign)
             }
             out("  rts\n  .pend")

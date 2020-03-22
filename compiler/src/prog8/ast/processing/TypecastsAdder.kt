@@ -19,8 +19,13 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 
         // collect all variables that have an initialisation value
-        if(decl.value!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes)
-            decl.definingBlock().initialValues += decl
+        val declValue = decl.value
+        if(declValue!=null
+                && decl.type== VarDeclType.VAR
+                && decl.datatype in NumericDatatypes
+                && declValue.constValue(program)!=null) {
+            decl.definingBlock().initialValues[decl.scopedname] = decl
+        }
 
         return emptyList()
     }

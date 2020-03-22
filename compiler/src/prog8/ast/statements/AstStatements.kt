@@ -73,7 +73,7 @@ class Block(override val name: String,
         val idx = statements.indexOf(node)
         statements[idx] = replacement
     }
-    val initialValues = mutableListOf<VarDecl>()    // will be gathered by one of the Ast processing steps
+    val initialValues = mutableMapOf<String, VarDecl>()    // will be gathered by one of the Ast processing steps
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
