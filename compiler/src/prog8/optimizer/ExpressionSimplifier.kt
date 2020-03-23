@@ -510,12 +510,12 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         when (targetDt) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
-                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                    return NumericLiteralValue(targetDt, 0, expr.position)
                 }
             }
             DataType.UWORD, DataType.WORD -> {
                 if (amount >= 16) {
-                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                    return NumericLiteralValue(targetDt, 0, expr.position)
                 } else if (amount >= 8) {
                     val lsb = TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
                     if (amount == 8) {
