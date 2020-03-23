@@ -32,7 +32,6 @@ spritedata $0a00 {
 }
 
 main {
-
     sub start() {
         ubyte i
         for i in 0 to 7 {
@@ -45,18 +44,13 @@ main {
 
 
 irq {
-
     ubyte angle
 
     sub irq() {
-        ubyte @zp spri
-
         c64.EXTCOL--
-
         angle++
         c64.MSIGX=0
-
-
+        ubyte @zp spri
         for spri in 7 downto 0 {
             uword @zp x = sin8u(angle*2-spri*16) as uword + 50
             ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
@@ -66,7 +60,5 @@ irq {
             c64.EXTCOL++
         }
         c64.EXTCOL-=7
-
     }
-
 }
