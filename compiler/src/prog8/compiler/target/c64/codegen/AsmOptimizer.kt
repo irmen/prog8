@@ -13,55 +13,70 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
 
     var linesByFour = getLinesBy(lines, 4)
 
-    var removeLines = optimizeUselessStackByteWrites(linesByFour)
-    if(removeLines.isNotEmpty()) {
-        for (i in removeLines.reversed())
-            lines.removeAt(i)
+    var mods = optimizeUselessStackByteWrites(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
         numberOfOptimizations++
     }
 
-    removeLines = optimizeIncDec(linesByFour)
-    if(removeLines.isNotEmpty()) {
-        for (i in removeLines.reversed())
-            lines.removeAt(i)
+    mods = optimizeIncDec(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
         numberOfOptimizations++
     }
 
-    removeLines = optimizeCmpSequence(linesByFour)
-    if(removeLines.isNotEmpty()) {
-        for (i in removeLines.reversed())
-            lines.removeAt(i)
+    mods = optimizeCmpSequence(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
         numberOfOptimizations++
     }
 
-    removeLines = optimizeStoreLoadSame(linesByFour)
-    if(removeLines.isNotEmpty()) {
-        for (i in removeLines.reversed())
-            lines.removeAt(i)
+    mods = optimizeStoreLoadSame(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
+
+    mods= optimizeJsrRts(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
         numberOfOptimizations++
     }
 
     var linesByFourteen = getLinesBy(lines, 14)
-    removeLines = optimizeSameAssignments(linesByFourteen)
-    if(removeLines.isNotEmpty()) {
-        for (i in removeLines.reversed())
-            lines.removeAt(i)
+    mods = optimizeSameAssignments(linesByFourteen)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
         numberOfOptimizations++
     }
 
     // TODO more assembly optimizations
 
-    // TODO optimize  jsr + rts  -> jmp
-
     return numberOfOptimizations
 }
 
-fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
+private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)
+
+private fun apply(modifications: List<Modification>, lines: MutableList<String>) {
+    for (modification in modifications.sortedBy { it.lineIndex }.reversed()) {
+        if(modification.remove)
+            lines.removeAt(modification.lineIndex)
+        else
+            lines[modification.lineIndex] = modification.replacement!!
+    }
+}
+
+private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
+// all lines (that aren't empty or comments) in sliding windows of certain size
+        lines.withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
+
+private fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // the when statement (on bytes) generates a sequence of:
     //	 lda $ce01,x
     //	 cmp #$20
@@ -70,42 +85,42 @@ fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): List<Int
     //	 cmp #$21
     //	 beq  check_prog8_s73choice_33
     // the repeated lda can be removed
-    val removeLines = mutableListOf<Int>()
+    val mods = mutableListOf<Modification>()
     for(lines in linesByFour) {
         if(lines[0].value.trim()=="lda  $ESTACK_LO_PLUS1_HEX,x" &&
                 lines[1].value.trim().startsWith("cmp ") &&
                 lines[2].value.trim().startsWith("beq ") &&
                 lines[3].value.trim()=="lda  $ESTACK_LO_PLUS1_HEX,x") {
-            removeLines.add(lines[3].index) // remove the second lda
+            mods.add(Modification(lines[3].index, true, null)) // remove the second lda
         }
     }
-    return removeLines
+    return mods
 }
 
-fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
+private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // sta on stack, dex, inx, lda from stack -> eliminate this useless stack byte write
     // this is a lot harder for word values because the instruction sequence varies.
-    val removeLines = mutableListOf<Int>()
+    val mods = mutableListOf<Modification>()
     for(lines in linesByFour) {
         if(lines[0].value.trim()=="sta  $ESTACK_LO_HEX,x" &&
                 lines[1].value.trim()=="dex" &&
                 lines[2].value.trim()=="inx" &&
                 lines[3].value.trim()=="lda  $ESTACK_LO_HEX,x") {
-            removeLines.add(lines[1].index)
-            removeLines.add(lines[2].index)
-            removeLines.add(lines[3].index)
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, true, null))
+            mods.add(Modification(lines[3].index, true, null))
         }
     }
-    return removeLines
+    return mods
 }
 
-fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): List<Int> {
+private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): List<Modification> {
 
     // optimize sequential assignments of the isSameAs value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
     // @todo a better place to do this is in the Compiler instead and transform the Ast, or the AsmGen, and never even create the inefficient asm in the first place...
 
-    val removeLines = mutableListOf<Int>()
+    val mods = mutableListOf<Modification>()
     for (pair in linesByFourteen) {
         val first = pair[0].value.trimStart()
         val second = pair[1].value.trimStart()
@@ -124,8 +139,8 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
             val fourthvalue = sixth.substring(4)
             if(firstvalue==thirdvalue && secondvalue==fourthvalue) {
                 // lda/ldy   sta/sty   twice the isSameAs word -->  remove second lda/ldy pair (fifth and sixth lines)
-                removeLines.add(pair[4].index)
-                removeLines.add(pair[5].index)
+                mods.add(Modification(pair[4].index, true, null))
+                mods.add(Modification(pair[5].index, true, null))
             }
         }
 
@@ -134,7 +149,7 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
             val secondvalue = third.substring(4)
             if(firstvalue==secondvalue) {
                 // lda value / sta ? / lda isSameAs-value / sta ?  -> remove second lda (third line)
-                removeLines.add(pair[2].index)
+                mods.add(Modification(pair[2].index, true, null))
             }
         }
 
@@ -153,24 +168,20 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
 
                 if(first.substring(4) == eighth.substring(4) && second.substring(4)==nineth.substring(4)) {
                     // identical float init
-                    removeLines.add(pair[7].index)
-                    removeLines.add(pair[8].index)
-                    removeLines.add(pair[9].index)
-                    removeLines.add(pair[10].index)
+                    mods.add(Modification(pair[7].index, true, null))
+                    mods.add(Modification(pair[8].index, true, null))
+                    mods.add(Modification(pair[9].index, true, null))
+                    mods.add(Modification(pair[10].index, true, null))
                 }
             }
         }
     }
-    return removeLines
+    return mods
 }
 
-private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
-// all lines (that aren't empty or comments) in sliding windows of certain size
-        lines.withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
-
-private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
+private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can be eliminated
-    val removeLines = mutableListOf<Int>()
+    val mods = mutableListOf<Modification>()
     for (pair in linesByFour) {
         val first = pair[0].value.trimStart()
         val second = pair[1].value.trimStart()
@@ -188,26 +199,40 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>)
             val firstLoc = first.substring(4)
             val secondLoc = second.substring(4)
             if (firstLoc == secondLoc) {
-                removeLines.add(pair[1].index)
+                mods.add(Modification(pair[1].index, true, null))
             }
         }
     }
-    return removeLines
+    return mods
 }
 
-private fun optimizeIncDec(linesByTwo: List<List<IndexedValue<String>>>): List<Int> {
+private fun optimizeIncDec(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // sometimes, iny+dey / inx+dex / dey+iny / dex+inx sequences are generated, these can be eliminated.
-    val removeLines = mutableListOf<Int>()
-    for (pair in linesByTwo) {
+    val mods = mutableListOf<Modification>()
+    for (pair in linesByFour) {
         val first = pair[0].value
         val second = pair[1].value
         if ((" iny" in first || "\tiny" in first) && (" dey" in second || "\tdey" in second)
                 || (" inx" in first || "\tinx" in first) && (" dex" in second || "\tdex" in second)
                 || (" dey" in first || "\tdey" in first) && (" iny" in second || "\tiny" in second)
                 || (" dex" in first || "\tdex" in first) && (" inx" in second || "\tinx" in second)) {
-            removeLines.add(pair[0].index)
-            removeLines.add(pair[1].index)
+            mods.add(Modification(pair[0].index, true, null))
+            mods.add(Modification(pair[1].index, true, null))
         }
     }
-    return removeLines
+    return mods
+}
+
+private fun optimizeJsrRts(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+    // jsr Sub + rts -> jmp Sub
+    val mods = mutableListOf<Modification>()
+    for (pair in linesByFour) {
+        val first = pair[0].value
+        val second = pair[1].value
+        if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
+            mods += Modification(pair[0].index, false, pair[0].value.replace("jsr", "jmp"))
+            mods += Modification(pair[1].index, true, null)
+        }
+    }
+    return mods
 }
