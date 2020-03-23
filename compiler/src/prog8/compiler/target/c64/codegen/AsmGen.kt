@@ -645,7 +645,7 @@ internal class AsmGen(private val program: Program,
             is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
             is AnonymousScope -> translate(stmt)
             is Block -> throw AssemblyError("block should have been handled elsewhere")
-            else -> TODO("no translation for $stmt")
+            else -> throw AssemblyError("missing asm translation for $stmt")
         }
     }
 

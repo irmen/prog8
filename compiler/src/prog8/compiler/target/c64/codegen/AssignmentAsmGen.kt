@@ -58,8 +58,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignFromMemoryByte(assign.target, null, read.addressExpression as IdentifierReference)
                     }
                     else -> {
-                        asmgen.translateExpression(read.addressExpression)
-                        TODO("read memory byte from result and put that in ${assign.target}")
+                        throw AssemblyError("missing asm gen for memread assignment into ${assign.target}")
                     }
                 }
             }
@@ -117,7 +116,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(assign.value as FunctionCall)
                 assignFromEvalResult(assign.target)
             }
-            is ArrayLiteralValue, is StringLiteralValue -> TODO("string/array/struct assignment?  $assign")
+            is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array assignment  $assign")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened ${assign.value.position}")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values ${assign.value.position}")
         }
@@ -199,14 +198,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     """)
             }
             target.memoryAddress!=null -> {
-                TODO("assign address $sourceName to memory word $target")
+                throw AssemblyError("no asm gen for assign address $sourceName to memory word $target")
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                TODO("assign address $sourceName to array $targetName [ $index ]")
+                throw AssemblyError("no asm gen for assign address $sourceName to array $targetName [ $index ]")
             }
-            else -> TODO("assign address $sourceName to $target")
+            else -> throw AssemblyError("no asm gen for assign address $sourceName to $target")
         }
     }
 
@@ -225,7 +224,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             }
             target.memoryAddress!=null -> {
-                TODO("assign wordvar $sourceName to memory ${target.memoryAddress}")
+                throw AssemblyError("no asm gen for assign wordvar $sourceName to memory ${target.memoryAddress}")
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -236,7 +235,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
-            else -> TODO("assign wordvar to $target")
+            else -> throw AssemblyError("no asm gen for assign wordvar to $target")
         }
     }
 
@@ -267,7 +266,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(index)
                 asmgen.out("  lda  #<$targetName |  ldy  #>$targetName |  jsr  c64flt.pop_float_to_indexed_var")
             }
-            else -> TODO("assign floatvar to $target")
+            else -> throw AssemblyError("no asm gen for assign floatvar to $target")
         }
     }
 
@@ -318,7 +317,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            else -> TODO("assign bytevar to $target")
+            else -> throw AssemblyError("no asm gen for assign bytevar to $target")
         }
     }
 
@@ -413,7 +412,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            else -> TODO("assign register $register to $target")
+            else -> throw AssemblyError("no asm gen for assign register $register to $target")
         }
     }
 
@@ -498,7 +497,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             target.memoryAddress!=null -> {
-                TODO("assign word $word to memory ${target.memoryAddress}")
+                throw AssemblyError("no asm gen for assign word $word to memory ${target.memoryAddress}")
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -516,7 +515,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  $targetName+1,y
                 """)
             }
-            else -> TODO("assign word $word to $target")
+            else -> throw AssemblyError("no asm gen for assign word $word to $target")
         }
     }
 
@@ -547,7 +546,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  $targetName,y
                 """)
             }
-            else -> TODO("assign byte $byte to $target")
+            else -> throw AssemblyError("no asm gen for assign byte $byte to $target")
         }
     }
 
@@ -600,7 +599,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     """) // TODO use a subroutine for this
                     }
                 }
-                else -> TODO("assign float 0.0 to $target")
+                else -> throw AssemblyError("no asm gen for assign float 0.0 to $target")
             }
         } else {
             // non-zero value
@@ -660,7 +659,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)        // TODO use a subroutine for this
                     }
                 }
-                else -> TODO("assign float $float to $target")
+                else -> throw AssemblyError("no asm gen for assign float $float to $target")
             }
         }
     }
@@ -687,9 +686,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 targetArrayIdx!=null -> {
                     val index = targetArrayIdx.arrayspec.index
                     val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                    TODO("assign memory byte at $address to array $targetName [ $index ]")
+                    throw AssemblyError("no asm gen for assign memory byte at $address to array $targetName [ $index ]")
                 }
-                else -> TODO("assign memory byte $target")
+                else -> throw AssemblyError("no asm gen for assign memory byte $target")
             }
         }
         else if(identifier!=null) {
@@ -721,9 +720,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 targetArrayIdx!=null -> {
                     val index = targetArrayIdx.arrayspec.index
                     val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                    TODO("assign memory byte $sourceName to array $targetName [ $index ]")
+                    throw AssemblyError("no asm gen for assign memory byte $sourceName to array $targetName [ $index ]")
                 }
-                else -> TODO("assign memory byte $target")
+                else -> throw AssemblyError("no asm gen for assign memory byte $target")
             }
         }
     }
