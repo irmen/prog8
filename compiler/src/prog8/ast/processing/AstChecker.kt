@@ -95,7 +95,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("return value type mismatch", returnStmt.value!!.position)
             } else {
                 if (expectedReturnValues[0] != valueDt.typeOrElse(DataType.STRUCT))
-                    errors.err("type $valueDt of return value doesn't match subroutine's return type", returnStmt.value!!.position)
+                    errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}", returnStmt.value!!.position)
             }
         }
         super.visit(returnStmt)

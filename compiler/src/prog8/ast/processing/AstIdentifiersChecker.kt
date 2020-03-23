@@ -217,19 +217,6 @@ internal class AstIdentifiersChecker(private val program: Program,
         return super.visit(assignTarget)
     }
 
-    override fun visit(returnStmt: Return): Statement {
-        if(returnStmt.value!=null) {
-            // possibly adjust any literal values returned, into the desired returning data type
-            val subroutine = returnStmt.definingSubroutine()!!
-            if(subroutine.returntypes.size!=1)
-                return returnStmt  // mismatch in number of return values, error will be printed later.
-            val lval = returnStmt.value as? NumericLiteralValue
-            returnStmt.value = lval?.cast(subroutine.returntypes.single()) ?: returnStmt.value!!
-        }
-        return super.visit(returnStmt)
-    }
-
-
     override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
         val array = super.visit(arrayLiteral)
         if(array is ArrayLiteralValue) {

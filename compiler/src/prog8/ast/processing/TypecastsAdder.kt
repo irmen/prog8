@@ -186,4 +186,26 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         }
         return emptyList()
     }
+
+    override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
+        // add a typecast to the return type if it doesn't match the subroutine's signature
+        val returnValue = returnStmt.value
+        if(returnValue!=null) {
+            val subroutine = returnStmt.definingSubroutine()!!
+            if(subroutine.returntypes.size==1) {
+                val subReturnType = subroutine.returntypes.first()
+                if (returnValue.inferType(program).istype(subReturnType))
+                    return emptyList()
+                if (returnValue is NumericLiteralValue) {
+                    returnStmt.value = returnValue.cast(subroutine.returntypes.single())
+                } else {
+                    return listOf(IAstModification.ReplaceNode(
+                            returnValue,
+                            TypecastExpression(returnValue, subReturnType, true, returnValue.position),
+                            returnStmt))
+                }
+            }
+        }
+        return emptyList()
+    }
 }
