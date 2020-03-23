@@ -621,6 +621,8 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
         return array
     }
 
+
+    // TODO: type casts are already done elsewhere, remove all this?:
     override fun visit(assignment: Assignment): Statement {
         super.visit(assignment)
         val lv = assignment.value as? NumericLiteralValue

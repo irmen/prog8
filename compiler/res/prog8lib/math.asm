@@ -239,7 +239,7 @@ mul_byte_3	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 mul_word_3	.proc
 		; W*2 + W
 		lda  c64.ESTACK_HI+1,x
@@ -255,7 +255,7 @@ mul_word_3	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 
 mul_byte_5	.proc
 		; X*4 + X
@@ -286,7 +286,7 @@ mul_word_5	.proc
 		rts
 		.pend
 
-		
+
 mul_byte_6	.proc
 		; (X*2 + X)*2
 		lda  c64.ESTACK_LO+1,x
@@ -327,7 +327,7 @@ mul_byte_7	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 mul_word_7	.proc
 		; W*8 - W
 		lda  c64.ESTACK_HI+1,x
@@ -411,7 +411,7 @@ mul_word_10	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 mul_byte_11	.proc
 		; (X*2 + X)*4 - X
 		lda  c64.ESTACK_LO+1,x
@@ -488,7 +488,7 @@ mul_byte_14	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 ; mul_word_14 is skipped (too much code)
 
 mul_byte_15	.proc
@@ -604,7 +604,7 @@ mul_word_25	.proc
 		adc  c64.ESTACK_HI+1,x
 		sta  c64.ESTACK_HI+1,x
 		rts
-		.pend		
+		.pend
 
 mul_byte_40	.proc
 		; (X*4 + X)*8
@@ -619,7 +619,7 @@ mul_byte_40	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 mul_word_40	.proc
 		; (W*4 + W)*8
 		lda  c64.ESTACK_HI+1,x
@@ -680,3 +680,192 @@ _sign_possibly_zero	lda  c64.ESTACK_LO+1,x
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
+
+
+
+; bit shifts.
+; anything below 3 is done inline. anything above 7 is done via other optimizations.
+
+shift_left_w_7	.proc
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+
+		asl  a
+		rol  c64.SCRATCH_ZPB1
+_shift6		asl  a
+		rol  c64.SCRATCH_ZPB1
+_shift5		asl  a
+		rol  c64.SCRATCH_ZPB1
+_shift4		asl  a
+		rol  c64.SCRATCH_ZPB1
+_shift3		asl  a
+		rol  c64.SCRATCH_ZPB1
+		asl  a
+		rol  c64.SCRATCH_ZPB1
+		asl  a
+		rol  c64.SCRATCH_ZPB1
+
+		sta  c64.ESTACK_LO+1,x
+		lda  c64.SCRATCH_ZPB1
+		sta  c64.ESTACK_HI+1,x
+		rts
+		.pend
+
+shift_left_w_6	.proc
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		jmp  shift_left_w_7._shift6
+		.pend
+
+shift_left_w_5	.proc
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		jmp  shift_left_w_7._shift5
+		.pend
+
+shift_left_w_4	.proc
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		jmp  shift_left_w_7._shift4
+		.pend
+
+shift_left_w_3	.proc
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		jmp  shift_left_w_7._shift3
+		.pend
+
+shift_right_uw_7	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_HI+1,x
+
+		lsr  a
+		ror  c64.SCRATCH_ZPB1
+_shift6		lsr  a
+		ror  c64.SCRATCH_ZPB1
+_shift5		lsr  a
+		ror  c64.SCRATCH_ZPB1
+_shift4		lsr  a
+		ror  c64.SCRATCH_ZPB1
+_shift3		lsr  a
+		ror  c64.SCRATCH_ZPB1
+		lsr  a
+		ror  c64.SCRATCH_ZPB1
+		lsr  a
+		ror  c64.SCRATCH_ZPB1
+
+		sta  c64.ESTACK_HI+1,x
+		lda  c64.SCRATCH_ZPB1
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+shift_right_uw_6	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_HI+1,x
+		jmp  shift_right_uw_7._shift6
+		.pend
+
+shift_right_uw_5	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_HI+1,x
+		jmp  shift_right_uw_7._shift5
+		.pend
+
+shift_right_uw_4	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_HI+1,x
+		jmp  shift_right_uw_7._shift4
+		.pend
+
+shift_right_uw_3	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_HI+1,x
+		jmp  shift_right_uw_7._shift3
+		.pend
+
+
+shift_right_w_7		.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+
+		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+
+		lda  c64.SCRATCH_ZPWORD1+1
+_shift6		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+		lda  c64.SCRATCH_ZPWORD1+1
+_shift5		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+		lda  c64.SCRATCH_ZPWORD1+1
+_shift4		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+		lda  c64.SCRATCH_ZPWORD1+1
+_shift3		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+		lda  c64.SCRATCH_ZPWORD1+1
+		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+		lda  c64.SCRATCH_ZPWORD1+1
+		asl  a
+		ror  c64.SCRATCH_ZPWORD1+1
+		ror  c64.SCRATCH_ZPWORD1
+
+		lda  c64.SCRATCH_ZPWORD1
+		sta  c64.ESTACK_LO+1,x
+		lda  c64.SCRATCH_ZPWORD1+1
+		sta  c64.ESTACK_HI+1,x
+		rts
+		.pend
+
+shift_right_w_6	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		jmp  shift_right_w_7._shift6
+		.pend
+
+shift_right_w_5	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		jmp  shift_right_w_7._shift5
+		.pend
+
+shift_right_w_4	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		jmp  shift_right_w_7._shift4
+		.pend
+
+shift_right_w_3	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		jmp  shift_right_w_7._shift3
+		.pend
+

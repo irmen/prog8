@@ -56,6 +56,8 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
 
     // TODO more assembly optimizations
 
+    // TODO optimize  jsr + rts  -> jmp
+
     return numberOfOptimizations
 }
 

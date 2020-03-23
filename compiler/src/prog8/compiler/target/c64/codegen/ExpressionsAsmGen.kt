@@ -205,24 +205,34 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when (leftDt) {
                     DataType.UBYTE -> {
                         if(amount<=2)
-                            repeat(amount) { asmgen.out("  lsr  $ESTACK_LO_PLUS1_HEX,x") }
+                            repeat(amount) { asmgen.out(" lsr  $ESTACK_LO_PLUS1_HEX,x") }
                         else {
-                            asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x")
-                            repeat(amount) { asmgen.out("  lsr  a") }
-                            asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                            asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x")
+                            repeat(amount) { asmgen.out(" lsr  a") }
+                            asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
                         }
                     }
                     DataType.BYTE -> {
                         if(amount<=2)
-                            repeat(amount) { asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                            repeat(amount) { asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
                         else {
-                            asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            repeat(amount) { asmgen.out("  asl  a |  ror  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1} |  lda  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}") }
-                            asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                            asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}")
+                            repeat(amount) { asmgen.out(" asl  a |  ror  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1} |  lda  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}") }
+                            asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
                         }
                     }
-                    DataType.UWORD -> repeat(amount) { asmgen.out("  lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                    DataType.WORD -> repeat(amount) { asmgen.out("  lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                    DataType.UWORD -> {
+                        if(amount<=2)
+                            repeat(amount) { asmgen.out(" lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                        else
+                            asmgen.out(" jsr  math.shift_right_uw_$amount")    // 3-7 (8+ is done via other optimizations)
+                    }
+                    DataType.WORD -> {
+                        if(amount<=2)
+                            repeat(amount) { asmgen.out(" lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                        else
+                            asmgen.out(" jsr  math.shift_right_w_$amount")  // 3-7 (8+ is done via other optimizations)
+                    }
                     else -> throw AssemblyError("weird type")
                 }
                 return
@@ -242,7 +252,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     }
                 }
                 else {
-                    repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                    if(amount<=2) {
+                        repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                    } else {
+                        asmgen.out(" jsr  math.shift_left_w_$amount")      // 3-7 (8+ is done via other optimizations)
+                    }
                 }
                 return
             }
