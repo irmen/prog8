@@ -1,8 +1,6 @@
 package prog8.compiler.target
 
 import prog8.ast.Program
-import prog8.ast.statements.Block
-import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
 import java.nio.file.Path

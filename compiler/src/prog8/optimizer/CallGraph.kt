@@ -6,7 +6,6 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ParentSentinel
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.IAstVisitor

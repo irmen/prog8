@@ -19,10 +19,6 @@ main {
         ubyte pixelx
         ubyte pixely
 
-
-        ; TODO fix compiler - calculation is broken now
-
-
         for pixely in 0 to height-1 {
             float yy = (pixely as float)/0.4/height - 1.0
 

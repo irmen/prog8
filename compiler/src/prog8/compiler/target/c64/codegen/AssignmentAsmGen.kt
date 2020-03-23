@@ -117,7 +117,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(assign.value as FunctionCall)
                 assignFromEvalResult(assign.target)
             }
-            is ArrayLiteralValue, is StringLiteralValue -> TODO("string/array/struct assignment?")
+            is ArrayLiteralValue, is StringLiteralValue -> TODO("string/array/struct assignment?  $assign")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened ${assign.value.position}")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values ${assign.value.position}")
         }

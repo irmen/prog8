@@ -5,11 +5,10 @@ import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
-import prog8.ast.statements.AnonymousScope
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 
 
 class AsmVariablePreparer(val program: Program, val errors: ErrorReporter): AstWalker() {
@@ -35,19 +34,19 @@ class AsmVariablePreparer(val program: Program, val errors: ErrorReporter): AstW
                     conflicts = true
                 }
             }
-            if(!conflicts)
-                return listOf(MoveVardecls(decls, scope, sub))
+            if(!conflicts) {
+                val numericVarsWithValue = decls.filter { it.value!=null && it.datatype in NumericDatatypes }
+                return numericVarsWithValue.map {
+                            val initValue = it.value!!  // assume here that value has always been set by now
+                            it.value = null     // make sure no value init assignment for this vardecl will be created later (would be superfluous)
+                            val target = AssignTarget(null, IdentifierReference(listOf(it.name), it.position), null, null, it.position)
+                            val assign = Assignment(target, null, initValue, it.position)
+                            IAstModification.Insert(null, assign, scope)
+                        } +
+                        decls.map { IAstModification.ReplaceNode(it, NopStatement(it.position), scope) } +
+                        decls.map { IAstModification.Insert(null, it, sub) }    // move it up to the subroutine
+            }
         }
         return emptyList()
-    }
-
-    private class MoveVardecls(val decls: Collection<VarDecl>,
-                               val scope: AnonymousScope,
-                               val sub: Subroutine) : IAstModification {
-        override fun perform() {
-            decls.forEach { scope.remove(it) }
-            sub.statements.addAll(0, decls)
-            decls.forEach { it.parent = sub }
-        }
     }
 }
