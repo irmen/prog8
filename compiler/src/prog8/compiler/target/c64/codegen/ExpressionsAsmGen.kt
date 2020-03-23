@@ -4,6 +4,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
@@ -202,8 +203,24 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)!!.number.toInt()
                 when (leftDt) {
-                    DataType.UBYTE -> repeat(amount) { asmgen.out("  lsr  $ESTACK_LO_PLUS1_HEX,x") }
-                    DataType.BYTE -> repeat(amount) { asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                    DataType.UBYTE -> {
+                        if(amount<=2)
+                            repeat(amount) { asmgen.out("  lsr  $ESTACK_LO_PLUS1_HEX,x") }
+                        else {
+                            asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x")
+                            repeat(amount) { asmgen.out("  lsr  a") }
+                            asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                        }
+                    }
+                    DataType.BYTE -> {
+                        if(amount<=2)
+                            repeat(amount) { asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                        else {
+                            asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}")
+                            repeat(amount) { asmgen.out("  asl  a |  ror  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1} |  lda  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}") }
+                            asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                        }
+                    }
                     DataType.UWORD -> repeat(amount) { asmgen.out("  lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
                     DataType.WORD -> repeat(amount) { asmgen.out("  lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
                     else -> throw AssemblyError("weird type")
@@ -215,10 +232,18 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 // TODO for the word types, if shifting > 3 bits, use a subroutine
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)!!.number.toInt()
-                if (leftDt in ByteDatatypes)
-                    repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
-                else
+                if (leftDt in ByteDatatypes) {
+                    if(amount<=2)
+                        repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
+                    else {
+                        asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x")
+                        repeat(amount) { asmgen.out("  asl  a") }
+                        asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                    }
+                }
+                else {
                     repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                }
                 return
             }
             "*" -> {
