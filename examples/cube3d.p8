@@ -21,7 +21,6 @@ main {
         uword anglex
         uword angley
         uword anglez
-        word rz=33
         forever {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             c64scr.clear_screenchars(32)

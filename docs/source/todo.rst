@@ -2,6 +2,7 @@
 TODO
 ====
 
+- implement the asm for bitshift on arrays (last missing assembly code generation)
 - remove statements after an exit() or return
 - fix warnings about that unreachable code?
 

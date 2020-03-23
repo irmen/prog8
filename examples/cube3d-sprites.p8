@@ -81,7 +81,6 @@ main {
         uword anglex
         uword angley
         uword anglez
-        word rz=33
         forever {
             c64.TIME_LO=0
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
