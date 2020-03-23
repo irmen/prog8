@@ -5,29 +5,33 @@
 
 main {
 
-    sub subje(ubyte arg1) {
-        ubyte yy=33
+    sub subje() {
+        ubyte a1
+        ubyte a2
         ubyte zz
-        ubyte[5] array1 = [1,2,3,4,5]
-
-        c64scr.print_ub(arg1)
-        c64.CHROUT(',')
-        c64scr.print_ub(yy)
-        c64.CHROUT(',')
-        c64scr.print_ub(zz)
-        c64.CHROUT('\n')
-        yy++
-        A=zz
-        Y=array1[2]
+        for a1 in 1 to 3 {
+            ubyte qq = 100                  ; TODO should be inited here, and not in the subroutine.
+            for a2 in 1 to 3 {
+                ubyte zz = 100              ; TODO should be inited here, and not in the subroutine.
+                c64scr.print_ub(a1)
+                c64.CHROUT(',')
+                c64scr.print_ub(a2)
+                c64.CHROUT(',')
+                c64scr.print_ub(qq)         ; TODO qq shoud be 100..103 repeated three times...
+                c64.CHROUT(',')
+                c64scr.print_ub(zz)         ; TODO zz should always be 100...
+                c64.CHROUT('\n')
+                qq++
+                zz++
+            }
+        }
     }
 
     sub start() {
-        ubyte zz2
-        A=zz2
-        subje(111)
-        subje(112)
-        subje(113)
-        subje(114)
+        subje()
+        c64.CHROUT('\n')
+        subje()
+        c64.CHROUT('\n')
         return
 
 ;        ubyte ub1

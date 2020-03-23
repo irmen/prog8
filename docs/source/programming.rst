@@ -135,14 +135,18 @@ Scopes are created using either of these two statements:
 - blocks  (top-level named scope)
 - subroutines   (nested named scope)
 
-.. note::
-    Unlike many other programming languages, a new scope is *not* created inside
-    for, while and repeat statements, nor for the if statement and branching conditionals.
-    This can be a bit restrictive because as a programmer you have to think harder about what variables you
-    want to use inside a subroutine. But it is done precisely for this reason: memory in prog8's
+.. important::
+    Unlike most other programming languages, a new scope is *not* created inside
+    for, while and repeat statements, the if statement, and the branching conditionals.
+    These all share the same scope from the subroutine they're defined in.
+    You can define variables in these blocks, but these will be treated as if they
+    were defined in the subroutine instead.
+    This can seem a bit restrictive because you have to think harder about what variables you
+    want to use inside the subroutine, to avoid clashes.
+    But this decision was made for a good reason: memory in prog8's
     target systems is usually very limited and it would be a waste to allocate a lot of variables.
     The prog8 compiler is not yet advanced enough to be able to share or overlap
-    variables intelligently. So for now that is something the programmer has to think about.
+    variables intelligently. So for now that is something you have to think about yourself.
 
 
 Program Start and Entry Point
@@ -174,7 +178,7 @@ Variables and values
 --------------------
 
 Variables are named values that can change during the execution of the program.
-They can be defined inside any scope (blocks, subroutines, for loops, etc.) See :ref:`Scopes <scopes>`.
+They can be defined inside any scope (blocks, subroutines etc.) See :ref:`Scopes <scopes>`.
 When declaring a numeric variable it is possible to specify the initial value, if you don't want it to be zero.
 For other data types it is required to specify that initial value it should get.
 Values will usually be part of an expression or assignment statement::
