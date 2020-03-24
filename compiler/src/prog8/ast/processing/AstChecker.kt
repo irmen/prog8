@@ -1054,16 +1054,18 @@ internal class AstChecker(private val program: Program,
 
     private fun visitStatements(statements: List<Statement>) {
         for((index, stmt) in statements.withIndex()) {
-            if(stmt is FunctionCallStatement
-                    && stmt.target.nameInSource.last()=="exit"
-                    && index < statements.lastIndex) {
-                println("STMT AFTER EXIT ${statements[index+1]}") // TODO fix message if next stmt is not a regular stmt
-                errors.warn("unreachable code, preceding exit call will never return", statements[index + 1].position)
-            }
-
-            if(stmt is Return && index < statements.lastIndex) {
-                println("STMT AFTER RETURN ${statements[index+1]}") // TODO fix message if next stmt is not a regular stmt
-                errors.warn("unreachable code, preceding return statement", statements[index + 1].position)
+            if(index < statements.lastIndex && statements[index+1] !is Subroutine) {
+                when {
+                    stmt is FunctionCallStatement && stmt.target.nameInSource.last() == "exit" -> {
+                        errors.warn("unreachable code, preceding exit call will never return", statements[index + 1].position)
+                    }
+                    stmt is Return && statements[index + 1] !is Subroutine -> {
+                        errors.warn("unreachable code, preceding return statement", statements[index + 1].position)
+                    }
+                    stmt is Jump && statements[index + 1] !is Subroutine -> {
+                        errors.warn("unreachable code, preceding jump statement", statements[index + 1].position)
+                    }
+                }
             }
 
             stmt.accept(this)

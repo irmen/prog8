@@ -40,7 +40,6 @@ fun compileProgram(filepath: Path,
             if (optimize)
                 optimizeAst(programAst, errors)
             postprocessAst(programAst, errors, compilationOptions)
-            printAst(programAst) // TODO
             if(writeAssembly)
                 programName = writeAssembly(programAst, errors, outputDir, optimize, compilationOptions)
         }

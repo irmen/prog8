@@ -12,16 +12,19 @@ main {
         bla()
         exit(4)
         v1 = 100
+        goto start          ; TODO unreachable code warning
         v2 = 127
         A=5
+        return
 
         sub bla () {
             A=99
             bla2()
-
+            exit(99)
 
             sub bla2 () {
                 A=100
+                return
                 foo.ding()
                 foo.ding2()
             }

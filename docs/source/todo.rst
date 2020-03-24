@@ -3,19 +3,14 @@ TODO
 ====
 
 - implement the asm for bitshift on arrays (last missing assembly code generation)
-- remove statements after an exit() or return
-- fix warnings about that unreachable code?
 
-- add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
-  the program will then rely solely on the  values as they are in memory at the time of program startup.
-
-- create real assembly routines for the bresenham line and circle code
-- also add assembly routines in c64scr for drawing rectangles (filled/open)
-- add these routines for bitmap screen modes as well
-- add a turtle example once we have highres drawing routines
+- add a routine to plot a single bitmap pixel
+- create real assembly routines for the bresenham line and circle and disc code in bitmap gfx
+- also add assembly routines for drawing rectangles (filled/open) in bitmap gfx
+- add a turtle example once we have such highres drawing routines
 
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print'
-- option to load library files from a directory instead of the embedded ones
+- option to load library files from a directory instead of the embedded ones (easier library development/debugging)
 
 
 
@@ -42,12 +37,14 @@ More optimizations
 
 Add more compiler optimizations to the existing ones.
 
-- on the language AST level
-- on the final assembly source level
+- remove unreachable code after an exit(), return or goto
+- working subroutine inlining (start with trivial routines, grow to taking care of vars and identifier refs to them)
+- add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
+  the program will then rely solely on the values as they are in memory at the time of program startup.
+- Also some library routines and code patterns could perhaps be optimized further
 - can the parameter passing to subroutines be optimized to avoid copying?
-- working subroutine inlining (taking care of vars and identifier refs to them)
-
-Also some library routines and code patterns could perhaps be optimized further
+- more optimizations on the language AST level
+- more optimizations on the final assembly source level
 
 
 Eval stack redesign? (lot of work)
@@ -59,13 +56,14 @@ It could then even be moved into the zeropage to greatly reduce code size and sl
 
 Or just move the LSB portion into a slab of the zeropage.
 
-Allocate a fixed word in ZP that is the TOS so we can always operate on TOS directly
-without having to to index into the stack?
+Allocate a fixed word in ZP that is the Top Of Stack value so we can always operate on TOS directly
+without having to index with X into the eval stack all the time?
+This could GREATLY improvde code size and speed for operatios that work on just a single value.
 
 
-Bugs
-^^^^
-Ofcourse there are still bugs to fix ;)
+Bug Fixing
+^^^^^^^^^^
+Ofcourse there are always bugs to fix ;)
 
 
 Misc
