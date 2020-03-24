@@ -11,7 +11,7 @@ import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
 
 
-class AsmVariablePreparer(val program: Program, val errors: ErrorReporter): AstWalker() {
+class AsmVariableAndReturnsPreparer(val program: Program, val errors: ErrorReporter): AstWalker() {
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.value==null && decl.type==VarDeclType.VAR && decl.datatype in NumericDatatypes) {
@@ -47,6 +47,11 @@ class AsmVariablePreparer(val program: Program, val errors: ErrorReporter): AstW
                         decls.map { IAstModification.Insert(null, it, sub) }    // move it up to the subroutine
             }
         }
+        return emptyList()
+    }
+
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        TODO("insert Return statements at the required places such as at the end of a subroutine if they're missing")
         return emptyList()
     }
 }

@@ -8,7 +8,6 @@ import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
-import kotlin.math.floor
 
 
 internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
@@ -619,75 +618,5 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
             }
         }
         return array
-    }
-
-
-    // TODO: type casts are already done elsewhere, remove all this?:
-    override fun visit(assignment: Assignment): Statement {
-        super.visit(assignment)
-        val lv = assignment.value as? NumericLiteralValue
-        if(lv!=null) {
-            // see if we can promote/convert a literal value to the required datatype
-            val idt = assignment.target.inferType(program, assignment)
-            if(!idt.isKnown)
-                return assignment
-            when(idt.typeOrElse(DataType.STRUCT)) {
-                DataType.UWORD -> {
-                    // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
-                    if(lv.type== DataType.UBYTE)
-                        assignment.value = NumericLiteralValue(DataType.UWORD, lv.number.toInt(), lv.position)
-                    else if(lv.type== DataType.BYTE && lv.number.toInt()>=0)
-                        assignment.value = NumericLiteralValue(DataType.UWORD, lv.number.toInt(), lv.position)
-                    else if(lv.type== DataType.WORD && lv.number.toInt()>=0)
-                        assignment.value = NumericLiteralValue(DataType.UWORD, lv.number.toInt(), lv.position)
-                    else if(lv.type== DataType.FLOAT) {
-                        val d = lv.number.toDouble()
-                        if(floor(d)==d && d>=0 && d<=65535)
-                            assignment.value = NumericLiteralValue(DataType.UWORD, floor(d).toInt(), lv.position)
-                    }
-                }
-                DataType.UBYTE -> {
-                    // we can convert to UBYTE: UWORD <=255, BYTE >=0, FLOAT that's an integer 0..255,
-                    if(lv.type== DataType.UWORD && lv.number.toInt() <= 255)
-                        assignment.value = NumericLiteralValue(DataType.UBYTE, lv.number.toShort(), lv.position)
-                    else if(lv.type== DataType.BYTE && lv.number.toInt() >=0)
-                        assignment.value = NumericLiteralValue(DataType.UBYTE, lv.number.toShort(), lv.position)
-                    else if(lv.type== DataType.FLOAT) {
-                        val d = lv.number.toDouble()
-                        if(floor(d)==d && d >=0 && d<=255)
-                            assignment.value = NumericLiteralValue(DataType.UBYTE, floor(d).toShort(), lv.position)
-                    }
-                }
-                DataType.BYTE -> {
-                    // we can convert to BYTE: UWORD/UBYTE <= 127, FLOAT that's an integer 0..127
-                    if(lv.type== DataType.UWORD && lv.number.toInt() <= 127)
-                        assignment.value = NumericLiteralValue(DataType.BYTE, lv.number.toShort(), lv.position)
-                    else if(lv.type== DataType.UBYTE && lv.number.toInt() <= 127)
-                        assignment.value = NumericLiteralValue(DataType.BYTE, lv.number.toShort(), lv.position)
-                    else if(lv.type== DataType.FLOAT) {
-                        val d = lv.number.toDouble()
-                        if(floor(d)==d && d>=0 && d<=127)
-                            assignment.value = NumericLiteralValue(DataType.BYTE, floor(d).toShort(), lv.position)
-                    }
-                }
-                DataType.WORD -> {
-                    // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767,
-                    if(lv.type== DataType.UBYTE || lv.type== DataType.BYTE)
-                        assignment.value = NumericLiteralValue(DataType.WORD, lv.number.toInt(), lv.position)
-                    else if(lv.type== DataType.UWORD && lv.number.toInt() <= 32767)
-                        assignment.value = NumericLiteralValue(DataType.WORD, lv.number.toInt(), lv.position)
-                    else if(lv.type== DataType.FLOAT) {
-                        val d = lv.number.toDouble()
-                        if(floor(d)==d && d>=-32768 && d<=32767)
-                            assignment.value = NumericLiteralValue(DataType.BYTE, floor(d).toShort(), lv.position)
-                    }
-                }
-                DataType.FLOAT -> {
-                    assignment.value = NumericLiteralValue(DataType.FLOAT, lv.number.toDouble(), lv.position)
-                }
-                else -> {}
-            }
-        }
-        return assignment
     }
 }

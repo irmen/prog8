@@ -413,9 +413,11 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-        val targetDt = assignTarget.inferType(program, assignment).typeOrElse(DataType.STR)
-        if(targetDt in IterableDatatypes)
-            errors.err("cannot assign to a string or array type", assignTarget.position)
+
+// target type check is already done at the Assignment:
+//        val targetDt = assignTarget.inferType(program, assignment).typeOrElse(DataType.STR)
+//        if(targetDt in IterableDatatypes)
+//            errors.err("cannot assign to a string or array type", assignTarget.position)
 
         if (assignment is Assignment) {
 
@@ -1054,11 +1056,15 @@ internal class AstChecker(private val program: Program,
         for((index, stmt) in statements.withIndex()) {
             if(stmt is FunctionCallStatement
                     && stmt.target.nameInSource.last()=="exit"
-                    && index < statements.lastIndex)
-                errors.warn("unreachable code, exit call above never returns", statements[index+1].position)
+                    && index < statements.lastIndex) {
+                println("STMT AFTER EXIT ${statements[index+1]}") // TODO fix message if next stmt is not a regular stmt
+                errors.warn("unreachable code, exit call above never returns", statements[index + 1].position)
+            }
 
-            if(stmt is Return && index < statements.lastIndex)
-                errors.warn("unreachable code, return statement above", statements[index+1].position)
+            if(stmt is Return && index < statements.lastIndex) {
+                println("STMT AFTER RETURN ${statements[index+1]}") // TODO fix message if next stmt is not a regular stmt
+                errors.warn("unreachable code, return statement above", statements[index + 1].position)
+            }
 
             stmt.accept(this)
         }

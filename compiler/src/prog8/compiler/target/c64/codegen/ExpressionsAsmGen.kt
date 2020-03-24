@@ -199,7 +199,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         when(expr.operator) {
             ">>" -> {
                 // bit-shifts are always by a constant number (for now)
-                // TODO for everything except UBYTE, if shifting > 2 bits, use a subroutine
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)!!.number.toInt()
                 when (leftDt) {
@@ -239,7 +238,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             "<<" -> {
                 // bit-shifts are always by a constant number (for now)
-                // TODO for the word types, if shifting > 3 bits, use a subroutine
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)!!.number.toInt()
                 if (leftDt in ByteDatatypes) {

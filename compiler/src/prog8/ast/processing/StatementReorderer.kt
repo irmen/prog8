@@ -25,11 +25,9 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
-    private val addReturns = mutableListOf<Pair<INameScope, Int>>()
     private val addVardecls = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun visit(module: Module) {
-        addReturns.clear()
         addVardecls.clear()
         super.visit(module)
 
@@ -59,13 +57,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
 
-        // add new statements
-        for(pos in addReturns) {
-            val returnStmt = Return(null, pos.first.position)
-            returnStmt.linkParents(pos.first as Node)
-            pos.first.statements.add(pos.second, returnStmt)
-        }
-
         for((where, decls) in addVardecls) {
             where.statements.addAll(0, decls)
             decls.forEach { it.linkParents(where as Node) }
@@ -93,23 +84,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             }
         }
 
-        // make sure there is a 'return' in front of the first subroutine
-        // (if it isn't the first statement in the block itself, and isn't the program's entrypoint)
-        if(numSubroutinesAtEnd>0 && block.statements.size > (numSubroutinesAtEnd+1)) {
-            val firstSub = block.statements[block.statements.size - numSubroutinesAtEnd] as Subroutine
-            if(firstSub.name != "start" && block.name != "main") {
-                val stmtBeforeFirstSub = block.statements[block.statements.size - numSubroutinesAtEnd - 1]
-                if (stmtBeforeFirstSub !is Return
-                        && stmtBeforeFirstSub !is Jump
-                        && stmtBeforeFirstSub !is Subroutine
-                        && stmtBeforeFirstSub !is BuiltinFunctionStatementPlaceholder) {
-                    val ret = Return(null, stmtBeforeFirstSub.position)
-                    ret.linkParents(block)
-                    block.statements.add(block.statements.size - numSubroutinesAtEnd, ret)
-                }
-            }
-        }
-
         val varDecls = block.statements.filterIsInstance<VarDecl>()
         block.statements.removeAll(varDecls)
         block.statements.addAll(0, varDecls)
@@ -124,37 +98,12 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     override fun visit(subroutine: Subroutine): Statement {
         super.visit(subroutine)
 
-        val scope = subroutine.definingScope()
-        if(scope is Subroutine) {
-            for(stmt in scope.statements.withIndex()) {
-                if(stmt.index>0 && stmt.value===subroutine) {
-                    val precedingStmt = scope.statements[stmt.index-1]
-                    if(precedingStmt !is Jump && precedingStmt !is Subroutine) {
-                        // insert a return statement before a nested subroutine, to avoid falling trough inside the subroutine
-                        addReturns.add(Pair(scope, stmt.index))
-                    }
-                }
-            }
-        }
-
         val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
         subroutine.statements.removeAll(varDecls)
         subroutine.statements.addAll(0, varDecls)
         val directives = subroutine.statements.filter {it is Directive && it.directive in directivesToMove}
         subroutine.statements.removeAll(directives)
         subroutine.statements.addAll(0, directives)
-
-        if(subroutine.returntypes.isEmpty()) {
-            // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernel routine.
-            // and if an assembly block doesn't contain a rts/rti
-            if(subroutine.asmAddress==null && subroutine.amountOfRtsInAsm()==0) {
-                if (subroutine.statements.lastOrNull {it !is VarDecl } !is Return) {
-                    val returnStmt = Return(null, subroutine.position)
-                    returnStmt.linkParents(subroutine)
-                    subroutine.statements.add(returnStmt)
-                }
-            }
-        }
 
         return subroutine
     }

@@ -4,7 +4,7 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.processing.*
 import prog8.compiler.CompilationOptions
-import prog8.compiler.target.AsmVariablePreparer
+import prog8.compiler.target.AsmVariableAndReturnsPreparer
 import prog8.optimizer.FlattenAnonymousScopesAndNopRemover
 
 
@@ -13,10 +13,10 @@ internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: Err
     checker.visit(this)
 }
 
-internal fun Program.prepareAsmVariables(errors: ErrorReporter) {
-    val mover = AsmVariablePreparer(this, errors)
-    mover.visit(this)
-    mover.applyModifications()
+internal fun Program.prepareAsmVariablesAndReturns(errors: ErrorReporter) {
+    val fixer = AsmVariableAndReturnsPreparer(this, errors)
+    fixer.visit(this)
+    fixer.applyModifications()
 }
 
 internal fun Program.reorderStatements() {

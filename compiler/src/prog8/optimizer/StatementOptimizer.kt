@@ -115,7 +115,6 @@ internal class StatementOptimizer(private val program: Program,
             return NopStatement.insteadOf(subroutine)
         }
 
-        visitStatements(subroutine.statements)
         return subroutine
     }
 
@@ -548,7 +547,6 @@ internal class StatementOptimizer(private val program: Program,
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
         }
-        visitStatements(scope.statements)
         return super.visit(scope)
     }
 
@@ -561,21 +559,6 @@ internal class StatementOptimizer(private val program: Program,
 
         return super.visit(label)
     }
-
-
-    private fun visitStatements(statements: MutableList<Statement>) {
-        // TODO remove all unreachable code statements after call to exit() or a return
-        // this is not yet correct because we still have nested subroutines
-//        val exitCallIndex = statements.indexOfFirst { it is FunctionCallStatement && it.target.nameInSource.last()=="exit" }
-//        if(exitCallIndex>=0) {
-//            while(exitCallIndex < statements.lastIndex) {
-//                val stmt  = statements[exitCallIndex+1]
-//                println("after exit() removing: $stmt")
-//                statements.removeAt(exitCallIndex+1)
-//            }
-//        }
-    }
-
 }
 
 

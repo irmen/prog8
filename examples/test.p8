@@ -6,6 +6,20 @@
 main {
 
     sub start() {
-        c64scr.print("ubyte shift left\n")
+        byte v1
+        byte v2
+
+        bla()
+        exit(4)
+        v1 = 100
+        v2 = 127
+        A=5
+        return
+
+        sub bla () {
+        A=99
+        }
+
+
     }
 }
