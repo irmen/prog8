@@ -593,6 +593,9 @@ asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
+
+	; TODO why are the two inner loops split apart? can't they just be one single .for/.next macro?
+
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
 		bcs  +

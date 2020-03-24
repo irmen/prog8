@@ -7,9 +7,15 @@
 
 main {
 
+    ubyte perform_scroll = false
+
     sub start() {
         c64scr.plot(30,2)
         c64scr.print("skramble !")
+
+        c64.SCROLX = c64.SCROLX & %11110111     ; 38 column mode
+
+        c64utils.set_rasterirq(1)     ; enable animation
 
         ubyte target_height = 10
         ubyte active_height = 25
@@ -20,17 +26,21 @@ main {
             } else if active_height > target_height {
                 active_height--
             } else {
-                target_height = 10 + rnd() % 13
+                target_height = 8 + rnd() % 16
                 continue
             }
 
+            while not perform_scroll {
+                ; let the raster irq do its timing job
+            }
+            perform_scroll = false
             c64scr.scroll_left_full(true)
             ubyte yy
             for yy in 0 to active_height-1 {
-                c64scr.setcc(39, yy, 32, 2)
+                c64scr.setcc(39, yy, 32, 2)         ; clear top
             }
             for yy in active_height to 24 {
-                c64scr.setcc(39, yy, 102, 8)
+                c64scr.setcc(39, yy, 102, 8)        ; draw mountain
             }
 
             yy = rnd()
@@ -68,11 +78,16 @@ main {
 ;            c64scr.setcc(1, 10, @'=', 15)
 ;            c64scr.setcc(2, 10, @'>', 15)
 
-            for A in 0 to 4 {
-                while @($d012) != 100 {
-                    ; just wait for the raster beam...
-                }
-            }
         }
+    }
+}
+
+
+irq {
+    ubyte smoothx=7
+    sub irq() {
+        smoothx = (smoothx-1) & 7
+        main.perform_scroll = smoothx==0
+        c64.SCROLX = (c64.SCROLX & %11111000) | smoothx
     }
 }
