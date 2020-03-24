@@ -1058,12 +1058,12 @@ internal class AstChecker(private val program: Program,
                     && stmt.target.nameInSource.last()=="exit"
                     && index < statements.lastIndex) {
                 println("STMT AFTER EXIT ${statements[index+1]}") // TODO fix message if next stmt is not a regular stmt
-                errors.warn("unreachable code, exit call above never returns", statements[index + 1].position)
+                errors.warn("unreachable code, preceding exit call will never return", statements[index + 1].position)
             }
 
             if(stmt is Return && index < statements.lastIndex) {
                 println("STMT AFTER RETURN ${statements[index+1]}") // TODO fix message if next stmt is not a regular stmt
-                errors.warn("unreachable code, return statement above", statements[index + 1].position)
+                errors.warn("unreachable code, preceding return statement", statements[index + 1].position)
             }
 
             stmt.accept(this)

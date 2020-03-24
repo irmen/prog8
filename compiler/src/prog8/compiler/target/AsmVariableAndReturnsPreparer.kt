@@ -41,17 +41,40 @@ class AsmVariableAndReturnsPreparer(val program: Program, val errors: ErrorRepor
                             it.value = null     // make sure no value init assignment for this vardecl will be created later (would be superfluous)
                             val target = AssignTarget(null, IdentifierReference(listOf(it.name), it.position), null, null, it.position)
                             val assign = Assignment(target, null, initValue, it.position)
-                            IAstModification.Insert(null, assign, scope)
+                            IAstModification.InsertFirst(assign, scope)
                         } +
                         decls.map { IAstModification.ReplaceNode(it, NopStatement(it.position), scope) } +
-                        decls.map { IAstModification.Insert(null, it, sub) }    // move it up to the subroutine
+                        decls.map { IAstModification.InsertFirst(it, sub) }    // move it up to the subroutine
             }
         }
         return emptyList()
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        TODO("insert Return statements at the required places such as at the end of a subroutine if they're missing")
-        return emptyList()
+        // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernel routine.
+        // and if an assembly block doesn't contain a rts/rti, and some other situations.
+        val mods = mutableListOf<IAstModification>()
+        val returnStmt = Return(null, subroutine.position)
+        if(subroutine.asmAddress==null
+                && subroutine.statements.isNotEmpty()
+                && subroutine.amountOfRtsInAsm()==0
+                && subroutine.statements.lastOrNull {it !is VarDecl } !is Return
+                && subroutine.statements.last() !is Subroutine) {
+            mods += IAstModification.InsertAfter(subroutine.statements.last(), returnStmt, subroutine)
+        }
+
+        // precede a subroutine with a return to avoid falling through into the subroutine from code above it
+        val outerScope = subroutine.definingScope()
+        val outerStatements = outerScope.statements
+        val subroutineStmtIdx = outerStatements.indexOf(subroutine)
+        if(subroutineStmtIdx>0
+                && outerStatements[subroutineStmtIdx-1] !is Jump
+                && outerStatements[subroutineStmtIdx-1] !is Subroutine
+                && outerStatements[subroutineStmtIdx-1] !is Return
+                && outerScope !is Block) {
+            mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx-1], returnStmt, outerScope as Node)
+        }
+
+        return mods
     }
 }

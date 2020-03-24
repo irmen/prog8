@@ -14,12 +14,30 @@ main {
         v1 = 100
         v2 = 127
         A=5
-        return
 
         sub bla () {
-        A=99
+            A=99
+            bla2()
+
+
+            sub bla2 () {
+                A=100
+                foo.ding()
+                foo.ding2()
+            }
+
         }
 
 
+    }
+}
+
+foo {
+    ubyte derp=99
+    sub ding() {
+        A=derp
+    }
+    sub ding2() {
+        A=derp
     }
 }
