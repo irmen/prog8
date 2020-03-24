@@ -2,6 +2,9 @@
 TODO
 ====
 
+- fix the invalid assembly generation problem (invalid_assembly.p8)
+
+
 - implement the asm for bitshift on arrays (last missing assembly code generation)
 
 - add a routine to plot a single bitmap pixel
