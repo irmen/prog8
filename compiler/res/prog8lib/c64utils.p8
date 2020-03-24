@@ -594,8 +594,6 @@ asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 
-	; TODO why are the two inner loops split apart? can't they just be one single .for/.next macro?
-
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
 		bcs  +
@@ -605,18 +603,7 @@ asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 		ldx  #0
 		ldy  #38
 -
-	.for row=0, row<=12, row+=1
-		lda  c64.Colors + 40*row + 1,x
-		sta  c64.Colors + 40*row,x
-	.next
-		inx
-		dey
-		bpl  -
-
-		ldx  #0
-		ldy  #38
--
-	.for row=13, row<=24, row+=1
+	.for row=0, row<=24, row+=1
 		lda  c64.Colors + 40*row + 1,x
 		sta  c64.Colors + 40*row,x
 	.next
@@ -628,18 +615,7 @@ _scroll_screen  ; scroll the screen memory
 		ldx  #0
 		ldy  #38
 -
-	.for row=0, row<=12, row+=1
-		lda  c64.Screen + 40*row + 1,x
-		sta  c64.Screen + 40*row,x
-	.next
-		inx
-		dey
-		bpl  -
-
-		ldx  #0
-		ldy  #38
--
-	.for row=13, row<=24, row+=1
+	.for row=0, row<=24, row+=1
 		lda  c64.Screen + 40*row + 1,x
 		sta  c64.Screen + 40*row,x
 	.next
@@ -664,17 +640,8 @@ asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 +               ; scroll the color memory
 		ldx  #38
 -
-	.for row=0, row<=12, row+=1
+	.for row=0, row<=24, row+=1
 		lda  c64.Colors + 40*row + 0,x
-		sta  c64.Colors + 40*row + 1,x
-	.next
-		dex
-		bpl  -
-
-		ldx  #38
--
-	.for row=13, row<=24, row+=1
-		lda  c64.Colors + 40*row,x
 		sta  c64.Colors + 40*row + 1,x
 	.next
 		dex
@@ -683,17 +650,8 @@ asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 _scroll_screen  ; scroll the screen memory
 		ldx  #38
 -
-	.for row=0, row<=12, row+=1
+	.for row=0, row<=24, row+=1
 		lda  c64.Screen + 40*row + 0,x
-		sta  c64.Screen + 40*row + 1,x
-	.next
-		dex
-		bpl  -
-
-		ldx  #38
--
-	.for row=13, row<=24, row+=1
-		lda  c64.Screen + 40*row,x
 		sta  c64.Screen + 40*row + 1,x
 	.next
 		dex
@@ -716,16 +674,7 @@ asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 +               ; scroll the color memory
 		ldx #39
 -
-	.for row=1, row<=11, row+=1
-		lda  c64.Colors + 40*row,x
-		sta  c64.Colors + 40*(row-1),x
-	.next
-		dex
-		bpl  -
-
-		ldx #39
--
-	.for row=12, row<=24, row+=1
+	.for row=1, row<=24, row+=1
 		lda  c64.Colors + 40*row,x
 		sta  c64.Colors + 40*(row-1),x
 	.next
@@ -735,16 +684,7 @@ asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 _scroll_screen  ; scroll the screen memory
 		ldx #39
 -
-	.for row=1, row<=11, row+=1
-		lda  c64.Screen + 40*row,x
-		sta  c64.Screen + 40*(row-1),x
-	.next
-		dex
-		bpl  -
-
-		ldx #39
--
-	.for row=12, row<=24, row+=1
+	.for row=1, row<=24, row+=1
 		lda  c64.Screen + 40*row,x
 		sta  c64.Screen + 40*(row-1),x
 	.next
@@ -768,16 +708,7 @@ asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 +               ; scroll the color memory
 		ldx #39
 -
-	.for row=23, row>=12, row-=1
-		lda  c64.Colors + 40*row,x
-		sta  c64.Colors + 40*(row+1),x
-	.next
-		dex
-		bpl  -
-
-		ldx #39
--
-	.for row=11, row>=0, row-=1
+	.for row=23, row>=0, row-=1
 		lda  c64.Colors + 40*row,x
 		sta  c64.Colors + 40*(row+1),x
 	.next
@@ -787,16 +718,7 @@ asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 _scroll_screen  ; scroll the screen memory
 		ldx #39
 -
-	.for row=23, row>=12, row-=1
-		lda  c64.Screen + 40*row,x
-		sta  c64.Screen + 40*(row+1),x
-	.next
-		dex
-		bpl  -
-
-		ldx #39
--
-	.for row=11, row>=0, row-=1
+	.for row=23, row>=0, row-=1
 		lda  c64.Screen + 40*row,x
 		sta  c64.Screen + 40*(row+1),x
 	.next
