@@ -68,7 +68,8 @@ fun compileProgram(filepath: Path,
         System.out.flush()
         throw x
     }
-    return CompilationResult(false, programAst, programName, importedFiles)
+
+    return CompilationResult(false, Program("failed", mutableListOf()), programName, emptyList())
 }
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
