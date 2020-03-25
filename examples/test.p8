@@ -4,7 +4,7 @@
 
 
 main {
-    uword[2] array1 = 1        ; TODO fix compiler crash about init value type
+    uword[2] array1 = 1
 
 
     sub start() {

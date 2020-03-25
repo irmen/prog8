@@ -102,7 +102,7 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
                             else -> {}
                         }
                         // create the array itself, filled with the fillvalue.
-                        val array = Array(size) {fillvalue}.map { NumericLiteralValue.optimalInteger(it, numericLv.position) as Expression}.toTypedArray()
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayElementTypes.getValue(decl.datatype), it, numericLv.position) as Expression}.toTypedArray()
                         val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                         decl.value = refValue
                         refValue.parent=decl
