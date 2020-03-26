@@ -66,7 +66,20 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                     }
                     is IdentifierReference -> {
                         val what = asmgen.asmIdentifierName(addressExpr)
-                        asmgen.out(if(incr) "  inc  $what" else "  dec  $what")
+                        asmgen.out("""
+    ldy  $what
+    sty  ${C64Zeropage.SCRATCH_W1}                                
+    ldy  $what+1
+    sty  ${C64Zeropage.SCRATCH_W1 + 1}
+    ldy  #0
+    lda  (${C64Zeropage.SCRATCH_W1}),y
+""")
+                        if(incr)
+                            asmgen.out("  clc |  adc  #1")
+                        else
+                            asmgen.out("  sec |  sbc  #1")
+
+                        asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
                     }
                     else -> throw AssemblyError("weird target type $targetMemory")
                 }
