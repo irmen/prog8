@@ -432,7 +432,13 @@ data class AssignTarget(val register: Register?,
 
     infix fun isSameAs(value: Expression): Boolean {
         return when {
-            this.memoryAddress!=null -> false
+            this.memoryAddress!=null -> {
+                // if the target is a memory write, and the value is a memory read, they're the same if the address matches
+                if(value is DirectMemoryRead)
+                    this.memoryAddress.addressExpression isSameAs value.addressExpression
+                else
+                    false
+            }
             this.register!=null -> value is RegisterExpr && value.register==register
             this.identifier!=null -> value is IdentifierReference && value.nameInSource==identifier!!.nameInSource
             this.arrayindexed!=null -> value is ArrayIndexedExpression &&
