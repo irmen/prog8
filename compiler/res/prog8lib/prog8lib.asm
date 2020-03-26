@@ -1772,6 +1772,7 @@ _loop_hi	ldy  _index_first
 
 ror2_mem_ub	.proc
 		; -- in-place 8-bit ror of byte at memory location on stack
+		; TODO use self modifying code here
 		inx
 		lda  c64.ESTACK_LO,x
 		sta  c64.SCRATCH_ZPWORD1
@@ -1788,7 +1789,7 @@ ror2_mem_ub	.proc
 
 rol2_mem_ub	.proc
 		; -- in-place 8-bit rol of byte at memory location on stack
-		;"  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}"
+		; TODO use self modifying code here
 		inx
 		lda  c64.ESTACK_LO,x
 		sta  c64.SCRATCH_ZPWORD1

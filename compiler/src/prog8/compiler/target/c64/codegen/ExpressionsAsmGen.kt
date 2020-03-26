@@ -127,8 +127,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 asmgen.out("  lda  ${address.toHex()} |  sta  $ESTACK_LO_HEX,x |  dex")
             }
             is IdentifierReference -> {
+                // the identifier is a pointer variable, so read the value from the address in it
                 val sourceName = asmgen.asmIdentifierName(expr.addressExpression as IdentifierReference)
-                asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+                asmgen.out("""
+        lda  $sourceName
+        sta  (+) +1
+        lda  $sourceName+1
+        sta  (+) +2
++       lda  ${'$'}ffff     ; modified
+        sta  $ESTACK_LO_HEX,x
+        dex""")
             }
             else -> {
                 translateExpression(expr.addressExpression)
