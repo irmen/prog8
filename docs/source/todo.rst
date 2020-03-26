@@ -2,12 +2,9 @@
 TODO
 ====
 
-- fix the invalid assembly generation problem for several direct memory operations (invalid_assembly.p8 / todo.p8)
-
-
 - implement the asm for bitshift on arrays (last missing assembly code generation)
 
-- add a routine to plot a single bitmap pixel
+- add a library asm routine to plot a single bitmap pixel
 - create real assembly routines for the bresenham line and circle and disc code in bitmap gfx
 - also add assembly routines for drawing rectangles (filled/open) in bitmap gfx
 - add a turtle example once we have such highres drawing routines

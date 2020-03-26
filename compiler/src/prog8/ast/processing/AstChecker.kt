@@ -21,6 +21,8 @@ internal class AstChecker(private val program: Program,
         val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
         if(mainBlocks.size>1)
             errors.err("more than one 'main' block", mainBlocks[0].position)
+        if(mainBlocks.isEmpty())
+            errors.err("there is no 'main' block", program.position)
 
         for(mainBlock in mainBlocks) {
             val startSub = mainBlock.subScopes()["start"] as? Subroutine

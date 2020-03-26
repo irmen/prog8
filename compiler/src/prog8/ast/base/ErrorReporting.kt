@@ -8,13 +8,13 @@ class ErrorReporter {
         WARNING,
         ERROR
     }
-    private class CompilerMessage(val severity: MessageSeverity, val message: String, val position: Position?)
+    private class CompilerMessage(val severity: MessageSeverity, val message: String, val position: Position)
 
     private val messages = mutableListOf<CompilerMessage>()
     private val alreadyReportedMessages = mutableSetOf<String>()
 
-    fun err(msg: String, position: Position?) = messages.add(CompilerMessage(MessageSeverity.ERROR, msg, position))
-    fun warn(msg: String, position: Position?) = messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
+    fun err(msg: String, position: Position) = messages.add(CompilerMessage(MessageSeverity.ERROR, msg, position))
+    fun warn(msg: String, position: Position) = messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
 
     fun handle() {
         var numErrors = 0

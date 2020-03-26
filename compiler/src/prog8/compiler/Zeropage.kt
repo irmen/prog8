@@ -30,7 +30,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                             if(position!=null)
                                 errors.warn("allocated a large value (float) in zeropage", position)
                             else
-                                errors.warn("$scopedname: allocated a large value (float) in zeropage", null)
+                                errors.warn("$scopedname: allocated a large value (float) in zeropage", position ?: Position.DUMMY)
                             5
                         } else throw CompilerException("floating point option not enabled")
                     }

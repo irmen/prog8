@@ -2,6 +2,7 @@ package prog8.ast.processing
 
 import prog8.ast.INameScope
 import prog8.ast.base.ErrorReporter
+import prog8.ast.base.Position
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
@@ -16,7 +17,7 @@ internal class AstRecursionChecker(private val namespace: INameScope,
         if(cycle.isEmpty())
             return
         val chain = cycle.joinToString(" <-- ") { "${it.name} at ${it.position}" }
-        errors.err("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) $chain", null)
+        errors.err("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) $chain", Position.DUMMY)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
