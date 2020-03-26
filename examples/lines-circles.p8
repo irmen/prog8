@@ -80,10 +80,10 @@ main {
                     c64scr.setcc(x, y, 42, 5)
                     if x==x2
                         return
-                    x += ix as ubyte
+                    x += ix
                     d += dy2
                     if d > dx {
-                        y += iy as ubyte
+                        y += iy
                         d -= dx2
                     }
                 }
@@ -92,10 +92,10 @@ main {
                     c64scr.setcc(x, y, 42, 5)
                     if y == y2
                         return
-                    y += iy as ubyte
+                    y += iy
                     d += dx2
                     if d > dy {
-                        x += ix as ubyte
+                        x += ix
                         d -= dy2
                     }
                 }
@@ -104,19 +104,19 @@ main {
 
         sub circle(ubyte xcenter, ubyte ycenter, ubyte radius) {
             ; Midpoint algorithm
-            byte x = radius as byte
-            byte y = 0
+            ubyte x = radius
+            ubyte y = 0
             byte decisionOver2 = 1-x
 
             while x>=y {
-                c64scr.setcc(xcenter + x as ubyte, ycenter + y as ubyte, 81, 1)
-                c64scr.setcc(xcenter - x as ubyte, ycenter + y as ubyte, 81, 2)
-                c64scr.setcc(xcenter + x as ubyte, ycenter - y as ubyte, 81, 3)
-                c64scr.setcc(xcenter - x as ubyte, ycenter - y as ubyte, 81, 4)
-                c64scr.setcc(xcenter + y as ubyte, ycenter + x as ubyte, 81, 5)
-                c64scr.setcc(xcenter - y as ubyte, ycenter + x as ubyte, 81, 6)
-                c64scr.setcc(xcenter + y as ubyte, ycenter - x as ubyte, 81, 7)
-                c64scr.setcc(xcenter - y as ubyte, ycenter - x as ubyte, 81, 8)
+                c64scr.setcc(xcenter + x, ycenter + y as ubyte, 81, 1)
+                c64scr.setcc(xcenter - x, ycenter + y as ubyte, 81, 2)
+                c64scr.setcc(xcenter + x, ycenter - y as ubyte, 81, 3)
+                c64scr.setcc(xcenter - x, ycenter - y as ubyte, 81, 4)
+                c64scr.setcc(xcenter + y, ycenter + x as ubyte, 81, 5)
+                c64scr.setcc(xcenter - y, ycenter + x as ubyte, 81, 6)
+                c64scr.setcc(xcenter + y, ycenter - x as ubyte, 81, 7)
+                c64scr.setcc(xcenter - y, ycenter - x as ubyte, 81, 8)
                 y++
                 if decisionOver2<=0
                     decisionOver2 += 2*y+1
@@ -129,27 +129,27 @@ main {
 
         sub disc(ubyte cx, ubyte cy, ubyte radius) {
             ; Midpoint algorithm, filled
-            byte x = radius as byte
-            byte y = 0
+            ubyte x = radius
+            ubyte y = 0
             byte decisionOver2 = 1-x
-            byte xx
+            ubyte xx
 
             while x>=y {
                 for xx in cx to cx+x {
-                    c64scr.setcc(xx as ubyte, cy + y as ubyte, 81, 1)
-                    c64scr.setcc(xx as ubyte, cy - y as ubyte, 81, 2)
+                    c64scr.setcc(xx, cy + y as ubyte, 81, 1)
+                    c64scr.setcc(xx, cy - y as ubyte, 81, 2)
                 }
                 for xx in cx-x to cx-1 {
-                    c64scr.setcc(xx as ubyte, cy + y as ubyte, 81, 3)
-                    c64scr.setcc(xx as ubyte, cy - y as ubyte, 81, 4)
+                    c64scr.setcc(xx, cy + y as ubyte, 81, 3)
+                    c64scr.setcc(xx, cy - y as ubyte, 81, 4)
                 }
                 for xx in cx to cx+y {
-                    c64scr.setcc(xx as ubyte, cy + x as ubyte, 81, 5)
-                    c64scr.setcc(xx as ubyte, cy - x as ubyte, 81, 6)
+                    c64scr.setcc(xx, cy + x as ubyte, 81, 5)
+                    c64scr.setcc(xx, cy - x as ubyte, 81, 6)
                 }
                 for xx in cx-y to cx {
-                    c64scr.setcc(xx as ubyte, cy + x as ubyte, 81, 7)
-                    c64scr.setcc(xx as ubyte, cy - x as ubyte, 81, 8)
+                    c64scr.setcc(xx, cy + x as ubyte, 81, 7)
+                    c64scr.setcc(xx, cy - x as ubyte, 81, 8)
                 }
                 y++
                 if decisionOver2<=0
