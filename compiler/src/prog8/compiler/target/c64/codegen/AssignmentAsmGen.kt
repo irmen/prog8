@@ -426,31 +426,23 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val targetName = asmgen.asmIdentifierName(addressExpr)
                 when(register) {
                     Register.A -> asmgen.out("""
-                        ldy  $targetName
-                        sty  ${C64Zeropage.SCRATCH_W1}
-                        ldy  $targetName+1
-                        sty  ${C64Zeropage.SCRATCH_W1+1}
-                        ldy  #0
-                        sta  (${C64Zeropage.SCRATCH_W1}),y
-                        """)
+        ldy  $targetName
+        sty  (+) +1
+        ldy  $targetName+1
+        sty  (+) +2
++       sta  ${'$'}ffff     ; modified""")
                     Register.X -> asmgen.out("""
-                        txa
-                        ldy  $targetName
-                        sty  ${C64Zeropage.SCRATCH_W1}
-                        ldy  $targetName+1
-                        sty  ${C64Zeropage.SCRATCH_W1+1}
-                        ldy  #0
-                        sta  (${C64Zeropage.SCRATCH_W1}),y
-                        """)
+        ldy  $targetName
+        sty  (+) +1
+        ldy  $targetName+1
+        sty  (+) +2
++       stx  ${'$'}ffff    ; modified""")
                     Register.Y -> asmgen.out("""
-                        tya
-                        ldy  $targetName
-                        sty  ${C64Zeropage.SCRATCH_W1}
-                        ldy  $targetName+1
-                        sty  ${C64Zeropage.SCRATCH_W1+1}
-                        ldy  #0
-                        sta  (${C64Zeropage.SCRATCH_W1}),y
-                        """)
+        lda  $targetName
+        sta  (+) +1
+        lda  $targetName+1
+        sta  (+) +2
++       sty  ${'$'}ffff    ; modified""")
                 }
             }
             else -> {
@@ -696,22 +688,25 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             when {
                 target.register!=null -> {
                     asmgen.out("""
-                        ldy  #0
-                        lda  ($sourceName),y
-                    """)
+                        lda  $sourceName
+                        sta  (+) + 1
+                        lda  $sourceName+1
+                        sta  (+) + 2""")
                     when(target.register){
-                        Register.A -> {}
-                        Register.X -> asmgen.out("  tax")
-                        Register.Y -> asmgen.out("  tay")
+                        Register.A -> asmgen.out("+       lda  ${'$'}ffff\t; modified")
+                        Register.X -> asmgen.out("+       ldx  ${'$'}ffff\t; modified")
+                        Register.Y -> asmgen.out("+       ldy  ${'$'}ffff\t; modified")
                     }
                 }
                 targetIdent!=null -> {
                     val targetName = asmgen.asmIdentifierName(targetIdent)
                     asmgen.out("""
-                        ldy  #0
-                        lda  ($sourceName),y
-                        sta  $targetName
-                    """)
+    lda  $sourceName
+    sta  (+) + 1
+    lda  $sourceName+1
+    sta  (+) + 2
++   lda  ${'$'}ffff\t; modified
+    sta  $targetName""")
                 }
                 target.memoryAddress!=null -> {
                     asmgen.out("  ldy  $sourceName")
