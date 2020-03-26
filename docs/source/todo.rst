@@ -2,7 +2,7 @@
 TODO
 ====
 
-- fix the invalid assembly generation problem (invalid_assembly.p8)
+- fix the invalid assembly generation problem for several direct memory operations (invalid_assembly.p8 / todo.p8)
 
 
 - implement the asm for bitshift on arrays (last missing assembly code generation)

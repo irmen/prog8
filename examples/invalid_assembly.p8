@@ -58,7 +58,7 @@ main {
 
     sub plot(uword px, ubyte py, ubyte color) {
         uword addr = 320
-        A=@(addr)           ; TODO invalid assemlby generated    lda (addr),y    something to do with zeropage allocation????
+        A=@(addr)           ; TODO invalid assemlby generated    lda (addr),y    something to do with zeropage allocation???? or simply direct memory write/read wrong translations?
         @(addr) = A
     }
 
