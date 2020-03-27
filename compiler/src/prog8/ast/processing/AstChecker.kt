@@ -716,9 +716,9 @@ internal class AstChecker(private val program: Program,
     override fun visit(expr: BinaryExpression) {
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
-        if(!leftIDt.isKnown || !rightIDt.isKnown) {
-            throw FatalAstException("can't determine datatype of both expression operands $expr")
-        }
+        if(!leftIDt.isKnown || !rightIDt.isKnown)
+            return     // hopefully this error will be detected elsewhere
+
         val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
         val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
 

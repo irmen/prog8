@@ -768,10 +768,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         val targetStmt = targetStatement(program.namespace)
-        if(targetStmt is VarDecl) {
-            return InferredTypes.knownFor(targetStmt.datatype)
+        return if(targetStmt is VarDecl) {
+            InferredTypes.knownFor(targetStmt.datatype)
         } else {
-            throw FatalAstException("cannot get datatype from identifier reference ${this}, pos=$position")
+            InferredTypes.InferredType.unknown()
         }
     }
 
