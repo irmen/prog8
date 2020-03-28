@@ -33,9 +33,6 @@ spritedata $0a00 {
 
 main {
 
-    const uword SP0X = $d000
-    const uword SP0Y = $d001
-
     sub start() {
 
         c64scr.print("balloon sprites!\n...we are all floating...\n")
