@@ -5,7 +5,6 @@
 
 main {
     sub start() {
-    A=5
     }
 }
 

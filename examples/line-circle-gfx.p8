@@ -24,10 +24,9 @@ main {
     sub draw_lines() {
         ubyte i
         for i in 0 to 255 step 4 {
-            ; uword x1 = (320-256)/2 + sin8u(i)
-            uword x1 = ((320-256)/2 as uword) + sin8u(i)            ; TODO fix the need for a cast here
+            uword x1 = ((320-256)/2 as uword) + sin8u(i)
             uword y1 = (200-128)/2 + cos8u(i)/2
-            uword x2 = ((320-64)/2 as uword) + sin8u(i)/4           ; TODO fix the need for a cast here
+            uword x2 = ((320-64)/2 as uword) + sin8u(i)/4
             uword y2 = (200-64)/2 + cos8u(i)/4
             graphics.line(x1, lsb(y1), x2, lsb(y2))
         }
