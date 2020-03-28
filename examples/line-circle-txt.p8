@@ -64,7 +64,8 @@ main {
         }
 
         sub line(ubyte x1, ubyte y1, ubyte x2, ubyte y2) {
-            ; Bresenham algorithm
+            ; Bresenham algorithm, not very optimized to keep clear code.
+            ; For a better optimized version have a look in the graphics.p8 module.
             byte d = 0
             ubyte dx = abs(x2 - x1)
             ubyte dy = abs(y2 - y1)

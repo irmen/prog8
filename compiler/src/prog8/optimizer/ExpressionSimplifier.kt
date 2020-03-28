@@ -14,6 +14,12 @@ import kotlin.math.pow
 /*
     todo add more expression optimizations
 
+    x + x  ->  x << 1  (for words... for bytes too?)
+    x + x + x + x -> x << 2  (for words... for bytes too?)
+    x + x + x -> ???? x*3 ??? words/bytes?
+    x - x  ->  0
+
+
     Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
  */
