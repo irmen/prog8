@@ -6,7 +6,7 @@ TODO
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print'
 - option to load library files from a directory instead of the embedded ones (easier library development/debugging)
 
-
+- investigate support for 8bitguy's Commander X16 platform https://murray2.com/forums/commander-x16.9/
 
 
 Memory Block Operations integrated in language?
@@ -36,6 +36,7 @@ Add more compiler optimizations to the existing ones.
   the program will then rely solely on the values as they are in memory at the time of program startup.
 - Also some library routines and code patterns could perhaps be optimized further
 - can the parameter passing to subroutines be optimized to avoid copying?
+- subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
 
