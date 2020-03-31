@@ -165,6 +165,9 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
         if (optsDone1 + optsDone2 == 0)
             break
     }
+    // because simplified statements and expressions could give rise to more constants that can be folded away:
+    programAst.constantFold(errors)
+    errors.handle()
 }
 
 private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {

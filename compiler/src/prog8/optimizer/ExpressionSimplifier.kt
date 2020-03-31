@@ -258,6 +258,14 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
     }
 
     private fun optimizeAdd(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if(expr.left.isSameAs(expr.right)) {
+            // optimize X+X into X *2
+            expr.operator = "*"
+            expr.right = NumericLiteralValue.optimalInteger(2, expr.right.position)
+            expr.right.linkParents(expr)
+            return expr
+        }
+
         if (leftVal == null && rightVal == null)
             return null
 
@@ -278,6 +286,11 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
     }
 
     private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+        if(expr.left.isSameAs(expr.right)) {
+            // optimize X-X into 0
+            return NumericLiteralValue.optimalInteger(0, expr.position)
+        }
+
         if (leftVal == null && rightVal == null)
             return null
 
