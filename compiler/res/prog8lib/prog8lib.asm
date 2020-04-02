@@ -1810,19 +1810,81 @@ lsl_array_w	.proc
 		.pend
 
 lsr_array_ub	.proc
-		.warn "lsr_array_ub"		; TODO
+		; -- lsr a ubyte in an array (index and array address on stack)
+		inx
+		ldy  c64.ESTACK_LO,x
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  (c64.SCRATCH_ZPWORD1),y
+		lsr  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		rts
 		.pend
 
 lsr_array_b	.proc
-		.warn "lsr_array_b"		; TODO
+		; -- lsr a byte in an array (index and array address on stack)
+		inx
+		ldy  c64.ESTACK_LO,x
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  (c64.SCRATCH_ZPWORD1),y
+		asl  a
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ror  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		rts
 		.pend
 
 lsr_array_uw	.proc
-		.warn "lsr_array_uw"		; TODO
+		; -- lsr a uword in an array (index and array address on stack)
+		inx
+		lda  c64.ESTACK_LO,x
+		asl  a
+		tay
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		lsr  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ror  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		rts
 		.pend
 
 lsr_array_w	.proc
-		.warn "lsr_array_w"		; TODO
+		; -- lsr a uword in an array (index and array address on stack)
+		inx
+		lda  c64.ESTACK_LO,x
+		asl  a
+		tay
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		asl  a
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ror  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ror  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		rts
 		.pend
 
 rol_array_ub	.proc
