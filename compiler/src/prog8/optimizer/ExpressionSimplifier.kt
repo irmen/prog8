@@ -31,7 +31,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if (assignment.aug_op != null)
-            throw AstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
+            throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
         return emptyList()
     }
 

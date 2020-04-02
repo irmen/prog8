@@ -82,7 +82,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(returnStmt: Return) {
         val expectedReturnValues = returnStmt.definingSubroutine()?.returntypes ?: emptyList()
         if(expectedReturnValues.size>1) {
-            throw AstException("cannot use a return with one value in a subroutine that has multiple return values: $returnStmt")
+            throw FatalAstException("cannot use a return with one value in a subroutine that has multiple return values: $returnStmt")
         }
 
         if(expectedReturnValues.isEmpty() && returnStmt.value!=null) {
@@ -588,7 +588,7 @@ internal class AstChecker(private val program: Program,
 
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR && !declValue.inferType(program).istype(decl.datatype))
-            throw FatalAstException("initialisation value $declValue is of different type (${declValue.inferType(program)} as the variable (${decl.datatype}) at ${decl.position}")
+            err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
 
         super.visit(decl)
     }
@@ -1268,7 +1268,7 @@ internal class AstChecker(private val program: Program,
                 correct = array.all { it in -32768..32767 }
             }
             DataType.ARRAY_F -> correct = true
-            else -> throw AstException("invalid array type $type")
+            else -> throw FatalAstException("invalid array type $type")
         }
         if (!correct)
             errors.err("array value out of range for type $type", value.position)
