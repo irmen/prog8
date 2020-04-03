@@ -2,7 +2,6 @@
 TODO
 ====
 
-- implement the asm for bitshift on arrays (last missing assembly code generation)
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print'
 - option to load library files from a directory instead of the embedded ones (easier library development/debugging)
 
