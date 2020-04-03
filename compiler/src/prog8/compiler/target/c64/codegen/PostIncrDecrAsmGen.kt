@@ -104,17 +104,14 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                         }
                     }
                     is RegisterExpr -> {
-                        // TODO optimize common cases
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
                         incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }
                     is IdentifierReference -> {
-                        // TODO optimize common cases
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
                         incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }
                     else -> {
-                        // TODO optimize common cases
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
                         incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }

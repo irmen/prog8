@@ -575,20 +575,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     } else {
                         asmgen.translateExpression(index)
                         asmgen.out("""
-                        inx
-                        lda  $ESTACK_LO_HEX,x
-                        asl  a
-                        asl  a
-                        clc
-                        adc  $ESTACK_LO_HEX,x
-                        tay
-                        lda  #0
-                        sta  $targetName,y
-                        sta  $targetName+1,y
-                        sta  $targetName+2,y
-                        sta  $targetName+3,y
-                        sta  $targetName+4,y
-                    """) // TODO use a subroutine for this
+                            lda  #<${targetName}
+                            sta  ${C64Zeropage.SCRATCH_W1}
+                            lda  #>${targetName}
+                            sta  ${C64Zeropage.SCRATCH_W1 + 1}
+                            jsr  c64flt.set_0_array_float
+                        """)
                     }
                 }
                 else -> throw AssemblyError("no asm gen for assign float 0.0 to $target")
@@ -632,23 +624,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     } else {
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
                         asmgen.out("""
-                            sta  ${C64Zeropage.SCRATCH_REG}
-                            asl  a
-                            asl  a
-                            clc
-                            adc  ${C64Zeropage.SCRATCH_REG}
-                            tay
-                            lda  $constFloat
-                            sta  $arrayVarName,y
-                            lda  $constFloat+1
-                            sta  $arrayVarName+1,y
-                            lda  $constFloat+2
-                            sta  $arrayVarName+2,y
-                            lda  $constFloat+3
-                            sta  $arrayVarName+3,y
-                            lda  $constFloat+4
-                            sta  $arrayVarName+4,y
-                        """)        // TODO use a subroutine for this
+                            lda  #<${constFloat}
+                            sta  ${C64Zeropage.SCRATCH_W1}
+                            lda  #>${constFloat}
+                            sta  ${C64Zeropage.SCRATCH_W1 + 1}
+                            lda  #<${arrayVarName}
+                            sta  ${C64Zeropage.SCRATCH_W2}
+                            lda  #>${arrayVarName}
+                            sta  ${C64Zeropage.SCRATCH_W2 + 1}
+                            jsr  c64flt.set_array_float
+                        """)
                     }
                 }
                 else -> throw AssemblyError("no asm gen for assign float $float to $target")

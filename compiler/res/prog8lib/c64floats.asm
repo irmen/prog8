@@ -658,8 +658,8 @@ func_all_f	.proc
 		dey
 		cmp  #0
 		beq  +
-        cpy  #255
-        bne  -
+		cpy  #255
+        	bne  -
 		lda  #1
 		sta  c64.ESTACK_LO+1,x
 		rts
@@ -738,4 +738,46 @@ sign_f		.proc
 		sta  c64.ESTACK_LO,x
 		dex
 		rts
+		.pend
+
+
+set_0_array_float	.proc
+		; -- set a float in an array to zero (index on stack, array in SCRATCH_ZPWORD1)
+		inx
+		lda  c64.ESTACK_LO,x
+		asl  a
+		asl  a
+		clc
+		adc  c64.ESTACK_LO,x
+		tay
+		lda  #0
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		sta  (c64.SCRATCH_ZPWORD1),y
+		rts
+		.pend
+
+
+set_array_float		.proc
+		; -- set a float in an array to a value (index on stack, float in SCRATCH_ZPWORD1, array in SCRATCH_ZPWORD2)
+		inx
+		lda  c64.ESTACK_LO,x
+		asl  a
+		asl  a
+		clc
+		adc  c64.ESTACK_LO,x
+		clc
+		adc  c64.SCRATCH_ZPWORD2
+		ldy  c64.SCRATCH_ZPWORD2+1
+		bcc  +
+		iny
++		jmp  copy_float
+			; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
+			;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
 		.pend
