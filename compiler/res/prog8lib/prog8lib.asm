@@ -1902,6 +1902,23 @@ ror_array_ub	.proc
 		rts
 		.pend
 
+ror2_array_ub	.proc
+		; -- ror2 (8-bit ror) a ubyte in an array (index and array address on stack)
+		inx
+		ldy  c64.ESTACK_LO,x
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  (c64.SCRATCH_ZPWORD1),y
+		lsr  a
+		bcc  +
+		ora  #$80
++		sta  (c64.SCRATCH_ZPWORD1),y
+		rts
+		.pend
+
 ror_array_uw	.proc
 		; -- ror a uword in an array (index and array address on stack)
 		php
@@ -1926,6 +1943,33 @@ ror_array_uw	.proc
 		rts
 		.pend
 
+ror2_array_uw	.proc
+		; -- ror2 (16-bit ror) a uword in an array (index and array address on stack)
+		inx
+		lda  c64.ESTACK_LO,x
+		asl  a
+		tay
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		lsr  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		dey
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ror  a
+		sta  (c64.SCRATCH_ZPWORD1),y
+		bcc  +
+		iny
+		lda  (c64.SCRATCH_ZPWORD1),y
+		ora  #$80
+		sta  (c64.SCRATCH_ZPWORD1),y
++		rts
+		.pend
+
 rol_array_ub	.proc
 		.warn "rol_array_ub"		; TODO
 		.pend
@@ -1942,10 +1986,3 @@ rol2_array_uw	.proc
 		.warn "rol2_array_uw"		; TODO
 		.pend
 
-ror2_array_ub	.proc
-		.warn "ror2_array_ub"		; TODO
-		.pend
-
-ror2_array_uw	.proc
-		.warn "ror2_array_uw"		; TODO
-		.pend
