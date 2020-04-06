@@ -106,7 +106,7 @@ main {
 
         check_eval_stack()
 
-        c64scr.print("\nyou should see no errors above.")
+        c64scr.print("\nyou should see no errors printed above (only at first run).")
     }
 
     sub check_eval_stack() {

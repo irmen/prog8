@@ -26,6 +26,7 @@ import kotlin.math.absoluteValue
 
 
 internal class AsmGen(private val program: Program,
+                      private val errors: ErrorReporter,
                       private val zeropage: Zeropage,
                       private val options: CompilationOptions,
                       private val outputDir: Path): IAssemblyGenerator {
@@ -38,7 +39,7 @@ internal class AsmGen(private val program: Program,
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this)
+    private val assignmentAsmGen = AssignmentAsmGen(program, errors, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     internal val loopEndLabels = ArrayDeque<String>()
     internal val loopContinueLabels = ArrayDeque<String>()
@@ -913,9 +914,32 @@ internal class AsmGen(private val program: Program,
                 val indexName = asmIdentifierName(index)
                 out("  lda  $indexName")
             }
+            // TODO optimize more cases
             else -> {
                 expressionsAsmGen.translateExpression(index)
                 out("  inx |  lda  $ESTACK_LO_HEX,x")
+            }
+        }
+    }
+
+    internal fun translateArrayIndexIntoY(expr: ArrayIndexedExpression) {
+        when (val index = expr.arrayspec.index) {
+            is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
+            is RegisterExpr -> {
+                when (index.register) {
+                    Register.A -> out("  tay")
+                    Register.X -> out("  txa |  tay")
+                    Register.Y -> {}
+                }
+            }
+            is IdentifierReference -> {
+                val indexName = asmIdentifierName(index)
+                out("  ldy  $indexName")
+            }
+            // TODO optimize more cases, see translateArrayIndexIntoA
+            else -> {
+                expressionsAsmGen.translateExpression(index)
+                out("  inx |  ldy  $ESTACK_LO_HEX,x")
             }
         }
     }

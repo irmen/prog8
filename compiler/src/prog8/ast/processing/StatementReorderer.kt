@@ -54,7 +54,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         if(block.isInLibrary) {
             return listOf(
                     IAstModification.Remove(block, parent),
-                    IAstModification.InsertAfter(parent.statements.last(), block, parent)
+                    IAstModification.InsertLast(block, parent)
             )
         }
 
@@ -71,7 +71,6 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                 )
             }
         }
-        reorderVardeclsAndDirectives(subroutine.statements)
         return emptyList()
     }
 
@@ -104,18 +103,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
 
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if(assignment.aug_op!=null) {
-            val leftOperand: Expression =
-                    when {
-                        assignment.target.register != null -> RegisterExpr(assignment.target.register!!, assignment.target.position)
-                        assignment.target.identifier != null -> assignment.target.identifier!!
-                        assignment.target.arrayindexed != null -> assignment.target.arrayindexed!!
-                        assignment.target.memoryAddress != null -> DirectMemoryRead(assignment.target.memoryAddress!!.addressExpression, assignment.value.position)
-                        else -> throw FatalAstException("strange assignment")
-                    }
-
-            val expression = BinaryExpression(leftOperand, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
-            val convertedAssignment = Assignment(assignment.target, null, expression, assignment.position)
-            return listOf(IAstModification.ReplaceNode(assignment, convertedAssignment, parent))
+            return listOf(IAstModification.ReplaceNode(assignment, assignment.asDesugaredNonaugmented(), parent))
         }
 
         val valueType = assignment.value.inferType(program)

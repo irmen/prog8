@@ -41,11 +41,13 @@ fun compileProgram(filepath: Path,
                 optimizeAst(programAst, errors)
             postprocessAst(programAst, errors, compilationOptions)
 
-            // printAst(programAst)
+            printAst(programAst) // TODO
 
             if(writeAssembly)
                 programName = writeAssembly(programAst, errors, outputDir, optimize, compilationOptions)
         }
+        System.out.flush()
+        System.err.flush()
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
         return CompilationResult(true, programAst, programName, importedFiles)
 
@@ -186,12 +188,15 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
     programAst.prepareAsmVariablesAndReturns(errors)
     errors.handle()
+
     val assembly = CompilationTarget.asmGenerator(
             programAst,
+            errors,
             zeropage,
             compilerOptions,
             outputDir).compileToAssembly(optimize)
     assembly.assemble(compilerOptions)
+    errors.handle()
     return assembly.name
 }
 

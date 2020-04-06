@@ -13,7 +13,7 @@ main {
         c64.SPXY[0] = 80
         c64.SPXY[1] = 100
 
-        c64.SCROLX = c64.SCROLX & %11110111     ; 38 column mode
+        c64.SCROLX &= %11110111     ; 38 column mode
 
         c64utils.set_rasterirq(1)     ; enable animation
 

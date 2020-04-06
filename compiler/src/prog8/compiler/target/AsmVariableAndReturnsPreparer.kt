@@ -5,6 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
@@ -60,7 +61,7 @@ class AsmVariableAndReturnsPreparer(val program: Program, val errors: ErrorRepor
                 && subroutine.amountOfRtsInAsm()==0
                 && subroutine.statements.lastOrNull {it !is VarDecl } !is Return
                 && subroutine.statements.last() !is Subroutine) {
-            mods += IAstModification.InsertAfter(subroutine.statements.last(), returnStmt, subroutine)
+            mods += IAstModification.InsertLast(returnStmt, subroutine)
         }
 
         // precede a subroutine with a return to avoid falling through into the subroutine from code above it
@@ -76,5 +77,23 @@ class AsmVariableAndReturnsPreparer(val program: Program, val errors: ErrorRepor
         }
 
         return mods
+    }
+
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        // modify A = A + 5 back into augmented form A += 5 for easier code generation for optimized in-place assignments
+        // also to put code generation stuff together, single value assignment (A = 5) is converted to a special
+        // augmented form as wel (with the operator "setvalue")
+        if(assignment.aug_op==null) {
+            val binExpr = assignment.value as? BinaryExpression
+            if (binExpr != null) {
+                if (assignment.target.isSameAs(binExpr.left)) {
+                    val augAssignment = Assignment(assignment.target, binExpr.operator + "=", binExpr.right, assignment.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, augAssignment, parent))
+                }
+            }
+            val augAssignment = Assignment(assignment.target, "setvalue", assignment.value, assignment.position)
+            return listOf(IAstModification.ReplaceNode(assignment, augAssignment, parent))
+        }
+        return emptyList()
     }
 }

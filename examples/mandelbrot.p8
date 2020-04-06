@@ -3,7 +3,6 @@
 %import c64flt
 %zeropage basicsafe
 
-
 main {
     const uword width = 30
     const uword height = 20

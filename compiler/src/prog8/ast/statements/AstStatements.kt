@@ -371,6 +371,31 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
     override fun toString(): String {
         return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
     }
+
+    fun asDesugaredNonaugmented(): Assignment {
+        if(aug_op==null)
+            return this
+
+        val leftOperand: Expression =
+                when {
+                    target.register != null -> RegisterExpr(target.register!!, target.position)
+                    target.identifier != null -> target.identifier!!
+                    target.arrayindexed != null -> target.arrayindexed!!
+                    target.memoryAddress != null -> DirectMemoryRead(target.memoryAddress!!.addressExpression, value.position)
+                    else -> throw FatalAstException("strange this")
+                }
+
+        val assignment =
+            if(aug_op=="setvalue") {
+                Assignment(target, null, value, position)
+            } else {
+                val expression = BinaryExpression(leftOperand, aug_op.substringBeforeLast('='), value, position)
+                Assignment(target, null, expression, position)
+            }
+        assignment.linkParents(parent)
+
+        return assignment
+    }
 }
 
 data class AssignTarget(val register: Register?,

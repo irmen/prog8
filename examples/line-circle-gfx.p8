@@ -2,7 +2,6 @@
 %import c64graphics
 %zeropage basicsafe
 
-
 main {
 
     sub start() {
