@@ -3,6 +3,21 @@
 %import c64flt
 %zeropage basicsafe
 
+foobar {
+    %option force_output
+
+    ubyte xx
+
+    sub derp() {
+        byte yy=cos8(A)
+
+        if A==0 {
+            ; ubyte qq=cos8(A)
+            A=54
+        }
+    }
+
+}
 
 main {
     sub start() {
@@ -16,6 +31,16 @@ main {
         c64flt.print_f(floats[0])
         c64flt.print_f(floats[1])
 
+        foobar.derp()
+        when A {
+        100 -> Y=4
+        101 -> Y=5
+        1 -> Y=66
+        10 -> Y=77
+        else -> Y=9
+        }
+
+        A+=99
     }
 }
 

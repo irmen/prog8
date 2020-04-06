@@ -56,7 +56,7 @@ interface IAstModification {
     class ReplaceNode(val node: Node, val replacement: Node, val parent: Node) : IAstModification {
         override fun perform() {
             parent.replaceChildNode(node, replacement)
-            replacement.parent = parent
+            replacement.linkParents(parent)
         }
     }
 

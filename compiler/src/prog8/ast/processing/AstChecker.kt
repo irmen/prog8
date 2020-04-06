@@ -22,7 +22,7 @@ internal class AstChecker(private val program: Program,
         if(mainBlocks.size>1)
             errors.err("more than one 'main' block", mainBlocks[0].position)
         if(mainBlocks.isEmpty())
-            errors.err("there is no 'main' block", program.position)
+            errors.err("there is no 'main' block", program.modules.firstOrNull()?.position ?: program.position)
 
         for(mainBlock in mainBlocks) {
             val startSub = mainBlock.subScopes()["start"] as? Subroutine

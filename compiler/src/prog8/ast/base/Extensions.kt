@@ -24,8 +24,9 @@ internal fun Program.reorderStatements() {
     initvalueCreator.visit(this)
     initvalueCreator.applyModifications()
 
-    val checker = StatementReorderer(this)
-    checker.visit(this)
+    val reorder = StatementReorderer(this)
+    reorder.visit(this)
+    reorder.applyModifications()
 }
 
 internal fun Program.addTypecasts(errors: ErrorReporter) {
