@@ -20,10 +20,6 @@ internal fun Program.prepareAsmVariablesAndReturns(errors: ErrorReporter) {
 }
 
 internal fun Program.reorderStatements() {
-    val initvalueCreator = AddressOfInserter(this)
-    initvalueCreator.visit(this)
-    initvalueCreator.applyModifications()
-
     val reorder = StatementReorderer(this)
     reorder.visit(this)
     reorder.applyModifications()
