@@ -2,26 +2,11 @@
 TODO
 ====
 
+- finalize (most) of the still missing "new" assignment asm code generation (several example code files even refuse to compile currently)
+
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print'
 - option to load library files from a directory instead of the embedded ones (easier library development/debugging)
-
 - investigate support for 8bitguy's Commander X16 platform https://murray2.com/forums/commander-x16.9/
-
-
-Memory Block Operations integrated in language?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-array/string memory block operations?
-
-- array operations
-  copy (from another array with the same length), shift-N(left,right), rotate-N(left,right)
-  clear (set whole array to the given value, default 0)
-
-- array operations ofcourse work identical on vars and on memory mapped vars of these types.
-
-- strings: identical operations as on array.
-
-For now, we have the ``memcopy`` and ``memset`` builtin functions.
 
 
 More optimizations
@@ -29,13 +14,14 @@ More optimizations
 
 Add more compiler optimizations to the existing ones.
 
+- more targeted optimizations for assigment asm code, such as the following:
+- subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
 - remove unreachable code after an exit(), return or goto
 - working subroutine inlining (start with trivial routines, grow to taking care of vars and identifier refs to them)
 - add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
   the program will then rely solely on the values as they are in memory at the time of program startup.
 - Also some library routines and code patterns could perhaps be optimized further
 - can the parameter passing to subroutines be optimized to avoid copying?
-- subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
 
@@ -64,4 +50,3 @@ Misc
 
 Several ideas were discussed on my reddit post
 https://www.reddit.com/r/programming/comments/alhj59/creating_a_programming_language_and_cross/
-
