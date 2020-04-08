@@ -1,6 +1,5 @@
 %import c64lib
 %import c64graphics
-%zeropage basicsafe
 
 main {
 

@@ -141,21 +141,26 @@ graphics {
         byte decisionOver2 = 1-xx
 
         while xx>=yy {
+            ubyte cy_plus_yy = cy + yy
+            ubyte cy_min_yy = cy - yy
+            ubyte cy_plus_xx = cy + xx
+            ubyte cy_min_xx = cy - xx
+
             for plotx in cx to cx+xx {
-                plot(cy + yy)
-                plot(cy - yy)
+                plot(cy_plus_yy)
+                plot(cy_min_yy)
             }
             for plotx in cx-xx to cx-1 {
-                plot(cy + yy)
-                plot(cy - yy)
+                plot(cy_plus_yy)
+                plot(cy_min_yy)
             }
             for plotx in cx to cx+yy {
-                plot(cy + xx)
-                plot(cy - xx)
+                plot(cy_plus_xx)
+                plot(cy_min_xx)
             }
             for plotx in cx-yy to cx {
-                plot(cy + xx)
-                plot(cy - xx)
+                plot(cy_plus_xx)
+                plot(cy_min_xx)
             }
             yy++
             if decisionOver2<=0
