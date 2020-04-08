@@ -61,6 +61,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node === expression && replacement is Expression)
         expression = replacement
+        replacement.parent = this
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
@@ -112,6 +113,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             node===right -> right = replacement
             else -> throw FatalAstException("invalid replace, no child $node")
         }
+        replacement.parent = this
     }
 
     override fun toString(): String {
@@ -231,6 +233,7 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
             node===arrayspec.index -> arrayspec.index = replacement as Expression
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
@@ -268,6 +271,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===expression)
         expression = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -299,6 +303,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is IdentifierReference && node===identifier)
         identifier = replacement
+        replacement.parent = this
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
@@ -320,6 +325,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===addressExpression)
         addressExpression = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -535,6 +541,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         require(replacement is Expression)
         val idx = value.indexOf(node)
         value[idx] = replacement
+        replacement.parent = this
     }
 
     override fun referencesIdentifiers(vararg name: String) = value.any { it.referencesIdentifiers(*name) }
@@ -629,6 +636,7 @@ class RangeExpr(var from: Expression,
             step===node -> step=replacement
             else -> throw FatalAstException("invalid replacement")
         }
+        replacement.parent = this
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
@@ -807,6 +815,7 @@ class FunctionCall(override var target: IdentifierReference,
             val idx = args.indexOf(node)
             args[idx] = replacement as Expression
         }
+        replacement.parent = this
     }
 
     override fun constValue(program: Program) = constValue(program, true)

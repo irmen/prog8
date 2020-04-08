@@ -41,7 +41,7 @@ fun compileProgram(filepath: Path,
                 optimizeAst(programAst, errors)
             postprocessAst(programAst, errors, compilationOptions)
 
-            printAst(programAst) // TODO
+            // printAst(programAst) // TODO
 
             if(writeAssembly)
                 programName = writeAssembly(programAst, errors, outputDir, optimize, compilationOptions)
@@ -186,8 +186,10 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
                           optimize: Boolean, compilerOptions: CompilationOptions): String {
     // asm generation directly from the Ast,
     val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
-    programAst.prepareAsmVariablesAndReturns(errors)
+    programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
+
+    // printAst(programAst)        // TODO
 
     val assembly = CompilationTarget.asmGenerator(
             programAst,

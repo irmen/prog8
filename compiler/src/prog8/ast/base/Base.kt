@@ -150,7 +150,9 @@ object ParentSentinel : Node {
     override val position = Position("<<sentinel>>", 0, 0, 0)
     override var parent: Node = this
     override fun linkParents(parent: Node) {}
-    override fun replaceChildNode(node: Node, replacement: Node) {}
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        replacement.parent = this
+    }
 }
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {

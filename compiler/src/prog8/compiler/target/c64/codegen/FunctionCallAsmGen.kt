@@ -225,6 +225,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     private fun argumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
         if(argType isAssignableTo paramType)
             return true
+        if(argType in ByteDatatypes && paramType in ByteDatatypes)
+            return true
+        if(argType in WordDatatypes && paramType in WordDatatypes)
+            return true
 
         // we have a special rule for some types.
         // strings are assignable to UWORD, for example, and vice versa

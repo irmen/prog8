@@ -835,12 +835,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             assignFromEvalResult(normalAssign.target)
         } else {
             when (assign.value) {
-                is TypecastExpression -> {
-                    // TODO optimize assignment of typecast value?
-                    val normalAssign = assign.asDesugaredNonaugmented()
-                    asmgen.translateExpression(normalAssign.value)
-                    assignFromEvalResult(normalAssign.target)
-                }
                 is FunctionCall -> {
                     // TODO is there a way to avoid function return value being passed via the stack?
                     //      for instance, 1 byte return value always in A, etc
@@ -860,6 +854,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
 
 
     //  old code-generation below:
+    //  eventually, all of this should have been replaced by newer more optimized code above.
 
     private fun translateNormalAssignment(assign: Assignment) {
         require(assign.aug_op == null)

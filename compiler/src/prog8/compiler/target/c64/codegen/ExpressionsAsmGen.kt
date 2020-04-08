@@ -320,8 +320,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         // the general, non-optimized cases
         translateExpression(expr.left)
         translateExpression(expr.right)
-        if(leftDt!=rightDt)
-            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")     // is this strictly required always?
+        if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
+                || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
+            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
+
         when (leftDt) {
             in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
             in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)

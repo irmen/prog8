@@ -233,6 +233,7 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
         require(node is Module && replacement is Module)
         val idx = modules.indexOf(node)
         modules[idx] = replacement
+        replacement.parent = this
     }
 }
 
@@ -259,6 +260,7 @@ class Module(override val name: String,
         require(node is Statement && replacement is Statement)
         val idx = statements.indexOf(node)
         statements[idx] = replacement
+        replacement.parent = this
     }
 
     override fun toString() = "Module(name=$name, pos=$position, lib=$isLibraryModule)"

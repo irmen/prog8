@@ -48,7 +48,9 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
-    override fun replaceChildNode(node: Node, replacement: Node) {}
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        replacement.parent = this
+    }
     override val expensiveToInline = false
 }
 
@@ -72,6 +74,7 @@ class Block(override val name: String,
         require(replacement is Statement)
         val idx = statements.indexOf(node)
         statements[idx] = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -139,6 +142,7 @@ open class Return(var value: Expression?, override val position: Position) : Sta
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
         value = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -274,6 +278,7 @@ open class VarDecl(val type: VarDeclType,
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===value)
         value = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -324,6 +329,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===index)
         index = replacement
+        replacement.parent = this
     }
 
     companion object {
@@ -345,7 +351,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
     fun size() = (index as? NumericLiteralValue)?.number?.toInt()
 }
 
-open class Assignment(var target: AssignTarget, val aug_op : String?, var value: Expression, override val position: Position) : Statement() {
+open class Assignment(var target: AssignTarget, var aug_op : String?, var value: Expression, override val position: Position) : Statement() {
     override lateinit var parent: Node
     override val expensiveToInline
             get() = value !is NumericLiteralValue
@@ -362,6 +368,7 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
             node===value -> value = replacement as Expression
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -373,8 +380,7 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
     }
 
     fun asDesugaredNonaugmented(): Assignment {
-        if(aug_op==null)
-            return this
+        val augmented = aug_op ?: return this
 
         val leftOperand: Expression =
                 when {
@@ -386,10 +392,10 @@ open class Assignment(var target: AssignTarget, val aug_op : String?, var value:
                 }
 
         val assignment =
-            if(aug_op=="setvalue") {
+            if(augmented=="setvalue") {
                 Assignment(target, null, value, position)
             } else {
-                val expression = BinaryExpression(leftOperand, aug_op.substringBeforeLast('='), value, position)
+                val expression = BinaryExpression(leftOperand, augmented.substringBeforeLast('='), value, position)
                 Assignment(target, null, expression, position)
             }
         assignment.linkParents(parent)
@@ -418,6 +424,7 @@ data class AssignTarget(val register: Register?,
             node===arrayindexed -> arrayindexed = replacement as ArrayIndexedExpression
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -528,6 +535,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is AssignTarget && node===target)
         target = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -582,6 +590,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
             val idx = args.indexOf(node)
             args[idx] = replacement as Expression
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -632,6 +641,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
         require(replacement is Statement)
         val idx = statements.indexOf(node)
         statements[idx] = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -695,6 +705,7 @@ class Subroutine(override val name: String,
         require(replacement is Statement)
         val idx = statements.indexOf(node)
         statements[idx] = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -749,6 +760,7 @@ class IfStatement(var condition: Expression,
             node===elsepart -> elsepart = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -777,6 +789,7 @@ class BranchStatement(var condition: BranchCondition,
             node===elsepart -> elsepart = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -807,6 +820,7 @@ class ForLoop(val loopRegister: Register?,
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -842,6 +856,7 @@ class WhileLoop(var condition: Expression,
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -861,6 +876,7 @@ class ForeverLoop(var body: AnonymousScope, override val position: Position) : S
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is AnonymousScope && node===body)
         body = replacement
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -886,6 +902,7 @@ class RepeatLoop(var body: AnonymousScope,
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace")
         }
+        replacement.parent = this
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -912,6 +929,7 @@ class WhenStatement(var condition: Expression,
             val idx = choices.indexOf(node)
             choices[idx] = replacement as WhenChoice
         }
+        replacement.parent = this
     }
 
     fun choiceValues(program: Program): List<Pair<List<Int>?, WhenChoice>> {
@@ -950,6 +968,7 @@ class WhenChoice(var values: List<Expression>?,           // if null,  this is t
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is AnonymousScope && node===statements)
         statements = replacement
+        replacement.parent = this
     }
 
     override fun toString(): String {
@@ -978,6 +997,7 @@ class StructDecl(override val name: String,
         require(replacement is Statement)
         val idx = statements.indexOf(node)
         statements[idx] = replacement
+        replacement.parent = this
     }
 
     val numberOfElements: Int
@@ -1001,6 +1021,7 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===addressExpression)
         addressExpression = replacement
+        replacement.parent = this
     }
 
     override fun toString(): String {
