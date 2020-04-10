@@ -2,7 +2,7 @@
 TODO
 ====
 
-- finalize (most) of the still missing "new" assignment asm code generation (several example code files even refuse to compile currently)
+- finalize (most) of the still missing "new" assignment asm code generation
 
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print'
 - option to load library files from a directory instead of the embedded ones (easier library development/debugging)

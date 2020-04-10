@@ -77,13 +77,13 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         else
                             asmgen.translateArrayIndexIntoA(targetArray)
                         asmgen.out("""
-                        asl  a
-                        tay
-                        lda  #<$hexValue
-                        sta  $targetName,y
-                        lda  #>$hexValue
-                        sta  $targetName+1,y
-                    """)
+                            asl  a
+                            tay
+                            lda  #<$hexValue
+                            sta  $targetName,y
+                            lda  #>$hexValue
+                            sta  $targetName+1,y
+                        """)
                     }
                     DataType.ARRAY_F -> {
                         assignFromFloatConstant(assign.target, constValue.toDouble())
@@ -100,11 +100,65 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
         when (assign.value) {
             is RegisterExpr -> {
-                TODO()
+                when(assign.aug_op) {
+                    "setvalue" -> {
+                        val reg = (assign.value as RegisterExpr).register
+                        if(reg!=Register.Y) {
+                            if (arrayIndex is NumericLiteralValue)
+                                asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
+                            else
+                                asmgen.translateArrayIndexIntoY(targetArray)
+                        }
+                        when (reg) {
+                            Register.A -> asmgen.out(" sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" stx  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> {
+                                if (arrayIndex is NumericLiteralValue)
+                                    asmgen.out(" lda  #${arrayIndex.number.toHex()}")
+                                else
+                                    asmgen.translateArrayIndexIntoA(targetArray)
+                                asmgen.out("""
+                                    sta  ${C64Zeropage.SCRATCH_REG}
+                                    tya
+                                    ldy  ${C64Zeropage.SCRATCH_REG}
+                                    sta  (${C64Zeropage.SCRATCH_W1}),y
+                                """)
+                            }
+                        }
+                    }
+                    else -> TODO("$assign")
+                }
+                return true
             }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
-                TODO("$assign")
+                when(arrayDt) {
+                    DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> {
+                        asmgen.out(" lda  $sourceName")
+                        if (arrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
+                        else
+                            asmgen.translateArrayIndexIntoY(targetArray)
+                        asmgen.out(" sta  $targetName,y")
+                    }
+                    DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                        if (arrayIndex is NumericLiteralValue)
+                            asmgen.out(" lda  #${arrayIndex.number.toHex()}")
+                        else
+                            asmgen.translateArrayIndexIntoA(targetArray)
+                        asmgen.out("""
+                            asl  a
+                            tay
+                            lda  $sourceName
+                            sta  $targetName,y
+                            lda  $sourceName+1
+                            sta  $targetName+1,y
+                        """)
+                    }
+                    DataType.ARRAY_F -> return false        // TODO optimize?
+                    else -> throw AssemblyError("invalid array dt $arrayDt")
+                }
+                return true
             }
             is AddressOf -> {
                 TODO("$assign")
@@ -113,7 +167,36 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 TODO("$assign")
             }
             is ArrayIndexedExpression -> {
-                TODO("$assign")
+                val valueArrayExpr = assign.value as ArrayIndexedExpression
+                val valueArrayIndex = valueArrayExpr.arrayspec.index
+                val valueVariablename = asmgen.asmIdentifierName(valueArrayExpr.identifier)
+                val valueDt = valueArrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                when(arrayDt) {
+                    DataType.ARRAY_UB -> {
+                        if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
+                            throw AssemblyError("expected byte array or string")
+                        if (assign.aug_op == "setvalue") {
+                            if (valueArrayIndex is NumericLiteralValue)
+                                asmgen.out(" ldy  #${valueArrayIndex.number.toHex()}")
+                            else
+                                asmgen.translateArrayIndexIntoY(valueArrayExpr)
+                            asmgen.out(" lda  $valueVariablename,y")
+                            if (arrayIndex is NumericLiteralValue)
+                                asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
+                            else
+                                asmgen.translateArrayIndexIntoY(targetArray)
+                            asmgen.out(" sta  $targetName,y")
+                        } else {
+                            return false // TODO optimize
+                        }
+                    }
+                    DataType.ARRAY_B -> TODO()
+                    DataType.ARRAY_UW -> TODO()
+                    DataType.ARRAY_W -> TODO()
+                    DataType.ARRAY_F -> TODO()
+                    else -> throw AssemblyError("invalid array dt")
+                }
+                return true
             }
             else -> {
                 fallbackAssignment(assign)
@@ -125,7 +208,9 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
     }
 
     private fun inplaceAssignToMemoryByte(assign: Assignment): Boolean {
-        val address = assign.target.memoryAddress?.addressExpression?.constValue(program)?.number ?: return false
+        val address = assign.target.memoryAddress?.addressExpression?.constValue(program)?.number
+                ?: return inplaceAssignToNonConstMemoryByte(assign)
+
         val hexAddr = address.toHex()
         val constValue = assign.value.constValue(program)
         if (constValue != null) {
@@ -226,6 +311,140 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         return false
     }
 
+    private fun inplaceAssignToNonConstMemoryByte(assign: Assignment): Boolean {
+        // target address is not constant, so evaluate it on the stack
+        asmgen.translateExpression(assign.target.memoryAddress!!.addressExpression)
+        asmgen.out("""
+            inx
+            lda  $ESTACK_LO_HEX,x
+            sta  ${C64Zeropage.SCRATCH_W1}
+            lda  $ESTACK_HI_HEX,x
+            sta  ${C64Zeropage.SCRATCH_W1}+1
+        """)
+
+        val constValue = assign.value.constValue(program)
+        if (constValue != null) {
+            val hexValue = constValue.number.toHex()
+            asmgen.out("  ldy  #0")
+            when (assign.aug_op) {
+                "setvalue" -> asmgen.out(" lda  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                "+=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  clc |  adc  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                "-=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                "/=" -> TODO("/=")
+                "*=" -> TODO("*=")
+                "**=" -> TODO("**=")
+                "&=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  and  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                "|=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  ora  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                "^=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  eor  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                "%=" -> TODO("%=")
+                "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
+                ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
+                else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
+            }
+            return true
+        }
+
+        // non-const value.
+        // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
+        when (assign.value) {
+            is RegisterExpr -> {
+                when (assign.aug_op) {
+                    "setvalue" -> {
+                        when ((assign.value as RegisterExpr).register) {
+                            Register.A -> asmgen.out(" ldy  #0 |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" ldy  #0 |  stx  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> asmgen.out(" tya  | ldy  #0 |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        }
+                    }
+                    "+=" -> {
+                        when ((assign.value as RegisterExpr).register) {
+                            Register.A -> asmgen.out(" ldy  #0 |  clc |  adc  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" ldy  #0 |  txa |  clc |  adc  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> asmgen.out(" tya  | ldy  #0 |  clc |  adc  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        }
+                    }
+                    "-=" -> {
+                        when ((assign.value as RegisterExpr).register) {
+                            Register.A -> asmgen.out(" ldy  #0 |  sta  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" ldy  #0 |  stx  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> asmgen.out(" tya  | ldy  #0 |  sta  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        }
+                    }
+                    "/=" -> TODO("/=")
+                    "*=" -> TODO("*=")
+                    "**=" -> TODO("**=")
+                    "&=" -> {
+                        when ((assign.value as RegisterExpr).register) {
+                            Register.A -> asmgen.out(" ldy  #0 |  and  (${C64Zeropage.SCRATCH_W1}),y|  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" ldy  #0 |  txa |  and  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> asmgen.out(" tya |  ldy  #0 |  and  (${C64Zeropage.SCRATCH_W1}),y|  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        }
+                    }
+                    "|=" -> {
+                        when ((assign.value as RegisterExpr).register) {
+                            Register.A -> asmgen.out(" ldy  #0 |  ora  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" ldy  #0 |  txa |  ora  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> asmgen.out(" tya |  ldy  #0 |  ora  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        }
+                    }
+                    "^=" -> {
+                        when ((assign.value as RegisterExpr).register) {
+                            Register.A -> asmgen.out(" ldy  #0 |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.X -> asmgen.out(" ldy  #0 |  txa |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                            Register.Y -> asmgen.out(" tya |  ldy  #0 |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        }
+                    }
+                    "%=" -> TODO("%=")
+                    "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
+                    ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
+                    else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
+                }
+                return true
+            }
+            is IdentifierReference -> {
+                val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
+                TODO("$assign")
+            }
+            is AddressOf -> {
+                TODO("$assign")
+            }
+            is DirectMemoryRead -> {
+                TODO("$assign")
+            }
+            is ArrayIndexedExpression -> {
+                if (assign.aug_op == "setvalue") {
+                    val arrayExpr = assign.value as ArrayIndexedExpression
+                    val arrayIndex = arrayExpr.arrayspec.index
+                    val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
+                    val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                    if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
+                        throw AssemblyError("expected byte array or string")
+                    if (arrayIndex is NumericLiteralValue)
+                        asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
+                    else
+                        asmgen.translateArrayIndexIntoY(arrayExpr)
+                    asmgen.out("""
+                        lda  $variablename,y
+                        ldy  #0
+                        sta  (${C64Zeropage.SCRATCH_W1}),y
+                    """)
+                } else {
+                    // TODO optimize more augmented assignment cases
+                    val normalAssign = assign.asDesugaredNonaugmented()
+                    asmgen.translateExpression(normalAssign.value)
+                    assignFromEvalResult(normalAssign.target)
+                }
+                return true
+            }
+            else -> {
+                fallbackAssignment(assign)
+                return true
+            }
+        }
+
+        return false   // TODO optimized
+    }
+
     private fun inplaceAssignToIdentifier(assign: Assignment): Boolean {
         val targetType = assign.target.inferType(program, assign)
         val constNumber = assign.value.constValue(program)?.number
@@ -258,7 +477,17 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
                 when (assign.value) {
                     is RegisterExpr -> {
-                        TODO("$assign")
+                        when(assign.aug_op) {
+                            "setvalue" -> {
+                                when ((assign.value as RegisterExpr).register) {
+                                    Register.A -> asmgen.out(" sta  $targetName")
+                                    Register.X -> asmgen.out(" stx  $targetName")
+                                    Register.Y -> asmgen.out(" sty  $targetName")
+                                }
+                            }
+                            else -> TODO("$assign")
+                        }
+                        return true
                     }
                     is IdentifierReference -> {
                         val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
@@ -285,21 +514,16 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     is ArrayIndexedExpression -> {
                         if (assign.aug_op == "setvalue") {
                             val arrayExpr = assign.value as ArrayIndexedExpression
-                            val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
-                            if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB)
-                                throw AssemblyError("expected byte array")
                             val arrayIndex = arrayExpr.arrayspec.index
                             val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
+                            val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                            if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
+                                throw AssemblyError("expected byte array or string")
                             if (arrayIndex is NumericLiteralValue)
                                 asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
                             else
                                 asmgen.translateArrayIndexIntoY(arrayExpr)
-                            asmgen.out("""
-                            lda  $variablename,y
-                            sta  $targetName
-                            lda  $variablename+1,y
-                            sta  $targetName+1
-                        """)
+                            asmgen.out(" lda  $variablename,y |  sta  $targetName")
                         } else {
                             // TODO optimize more augmented assignment cases
                             val normalAssign = assign.asDesugaredNonaugmented()
@@ -320,26 +544,33 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     when (assign.aug_op) {
                         "setvalue" -> {
                             asmgen.out("""
-                            lda  #<$hexNumber
-                            sta  $targetName
-                            lda  #>$hexNumber
-                            sta  $targetName+1
-                        """)
+                                lda  #<$hexNumber
+                                sta  $targetName
+                                lda  #>$hexNumber
+                                sta  $targetName+1
+                            """)
                         }
                         "+=" -> {
                             asmgen.out("""
-                            lda  $targetName
-                            clc
-                            adc  #<$hexNumber
-                            sta  $targetName
-                            lda  $targetName+1
-                            adc  #>$hexNumber
-                            sta  $targetName+1
-                        """)
-                            return true
+                                lda  $targetName
+                                clc
+                                adc  #<$hexNumber
+                                sta  $targetName
+                                lda  $targetName+1
+                                adc  #>$hexNumber
+                                sta  $targetName+1
+                            """)
                         }
                         "-=" -> {
-                            return false // TODO("optimized word -= const")
+                            asmgen.out("""
+                                lda  $targetName
+                                sec
+                                sbc  #<$hexNumber
+                                sta  $targetName
+                                lda  $targetName+1
+                                sbc  #>$hexNumber
+                                sta  $targetName+1
+                            """)
                         }
                         else -> TODO("$assign")
                     }
@@ -402,23 +633,23 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     is ArrayIndexedExpression -> {
                         if (assign.aug_op == "setvalue") {
                             val arrayExpr = assign.value as ArrayIndexedExpression
+                            val arrayIndex = arrayExpr.arrayspec.index
+                            val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                             val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                             if (arrayDt != DataType.ARRAY_W && arrayDt != DataType.ARRAY_UW)
                                 throw AssemblyError("expected word array")
-                            val arrayIndex = arrayExpr.arrayspec.index
-                            val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                             if (arrayIndex is NumericLiteralValue)
                                 asmgen.out(" lda  #${arrayIndex.number.toHex()}")
                             else
                                 asmgen.translateArrayIndexIntoA(arrayExpr)
                             asmgen.out("""
-                        asl  a
-                        tay
-                        lda  $variablename,y
-                        sta  $targetName
-                        lda  $variablename+1,y
-                        sta  $targetName+1
-                    """)
+                                asl  a
+                                tay
+                                lda  $variablename,y
+                                sta  $targetName
+                                lda  $variablename+1,y
+                                sta  $targetName+1
+                            """)
                         } else {
                             // TODO optimize more augmented assignment cases
                             val normalAssign = assign.asDesugaredNonaugmented()
@@ -503,7 +734,40 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         return true
                     }
                     is ArrayIndexedExpression -> {
-                        TODO("$assign")
+                        when(assign.aug_op) {
+                            "setvalue" -> {
+                                val arrayExpr = assign.value as ArrayIndexedExpression
+                                val arrayIndex = arrayExpr.arrayspec.index
+                                val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
+                                val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                                if (arrayDt != DataType.ARRAY_F)
+                                    throw AssemblyError("expected float array")
+                                if (arrayIndex is NumericLiteralValue)
+                                    asmgen.out(" lda  #${arrayIndex.number.toHex()}")
+                                else
+                                    asmgen.translateArrayIndexIntoA(arrayExpr)
+                                asmgen.out("""
+                                    sta  c64.SCRATCH_ZPB1
+                                    asl  a
+                                    asl  a
+                                    clc
+                                    adc  c64.SCRATCH_ZPB1  
+                                    tay
+                                    lda  $variablename,y
+                                    sta  $targetName
+                                    lda  $variablename+1,y
+                                    sta  $targetName+1
+                                    lda  $variablename+2,y
+                                    sta  $targetName+2
+                                    lda  $variablename+3,y
+                                    sta  $targetName+3
+                                    lda  $variablename+4,y
+                                    sta  $targetName+4
+                                """)
+                            }
+                            else -> TODO("$assign")
+                        }
+                        return true
                     }
                     else -> {
                         fallbackAssignment(assign)
@@ -816,7 +1080,29 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 TODO("$assign")
             }
             is ArrayIndexedExpression -> {
-                TODO("$assign")
+                if (assign.aug_op == "setvalue") {
+                    val arrayExpr = assign.value as ArrayIndexedExpression
+                    val arrayIndex = arrayExpr.arrayspec.index
+                    val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
+                    val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                    if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
+                        throw AssemblyError("expected byte array or string")
+                    if (arrayIndex is NumericLiteralValue)
+                        asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
+                    else
+                        asmgen.translateArrayIndexIntoY(arrayExpr)
+                    when(assign.target.register!!) {
+                        Register.A -> asmgen.out(" lda  $variablename,y")
+                        Register.X -> asmgen.out(" ldx  $variablename,y")
+                        Register.Y -> asmgen.out(" lda  $variablename,y |  tay")
+                    }
+                } else {
+                    // TODO optimize more augmented assignment cases
+                    val normalAssign = assign.asDesugaredNonaugmented()
+                    asmgen.translateExpression(normalAssign.value)
+                    assignFromEvalResult(normalAssign.target)
+                }
+                return true
             }
             else -> {
                 fallbackAssignment(assign)
