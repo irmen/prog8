@@ -54,6 +54,7 @@ interface INameScope {
     fun linkParents(parent: Node)
 
     fun subScopes(): Map<String, INameScope> {
+        // TODO PERFORMANCE: this is called very often and is relatively expensive. Optimize this.
         val subscopes = mutableMapOf<String, INameScope>()
         for(stmt in statements) {
             when(stmt) {
@@ -126,7 +127,7 @@ interface INameScope {
             for(module in localContext.definingModule().program.modules) {
                 var scope: INameScope? = module
                 for(name in scopedName.dropLast(1)) {
-                    scope = scope?.subScopes()?.get(name)
+                    scope = scope?.subScopes()?.get(name)           // TODO PERFORMANCE: EXPENSIVE! (creates new map every call) OPTIMIZE.
                     if(scope==null)
                         break
                 }

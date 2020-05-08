@@ -29,7 +29,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val subroutinesCalling = mutableMapOf<INameScope, List<Subroutine>>().withDefault { mutableListOf() }
     val subroutinesCalledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
 
-    // TODO  add dataflow graph: what statements use what variables
+    // TODO  add dataflow graph: what statements use what variables - can be used to eliminate unused vars
     val usedSymbols = mutableSetOf<Statement>()
 
     init {

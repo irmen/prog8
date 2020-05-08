@@ -24,7 +24,7 @@ internal class StatementOptimizer(private val program: Program,
         private set
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
-    private val callgraph = CallGraph(program)
+    private val callgraph = CallGraph(program)      // TODO PERFORMANCE: it is expensive to create this every round
     private val vardeclsToRemove = mutableListOf<VarDecl>()
 
     override fun visit(program: Program) {
@@ -37,6 +37,7 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     private fun removeUnusedCode(callgraph: CallGraph) {
+        // TODO PERFORMANCE: expensive code (because of callgraph) OPTIMIZE THIS: only run once separately ?
         // remove all subroutines that aren't called, or are empty
         val removeSubroutines = mutableSetOf<Subroutine>()
         val entrypoint = program.entrypoint()
