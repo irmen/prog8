@@ -174,6 +174,7 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
 
     val remover = UnusedCodeRemover()
     remover.visit(programAst)
+    remover.applyModifications()
 }
 
 private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
