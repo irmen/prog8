@@ -5,6 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.statements.Directive
 import prog8.compiler.target.CompilationTarget
+import prog8.optimizer.UnusedCodeRemover
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
 import prog8.optimizer.simplifyExpressions
@@ -170,6 +171,9 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
     // because simplified statements and expressions could give rise to more constants that can be folded away:
     programAst.constantFold(errors)
     errors.handle()
+
+    val remover = UnusedCodeRemover()
+    remover.visit(programAst)
 }
 
 private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {

@@ -31,13 +31,13 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 Rapid edit-compile-run-debug cycle:
 
-- use modern PC to work on
-- quick compilation times (seconds)
-- option to automatically run the program in the Vice emulator
+- use a modern PC to do the work on
+- very quick compilation times
+- can automatically run the program in the Vice emulator after succesful compilation
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 
-It is mainly targeted at the Commodore-64 machine at this time.
+Prog8 is mainly targeted at the Commodore-64 machine at this time.
 Contributions to add support for other 8-bit (or other?!) machines are welcome.
 
 Documentation/manual

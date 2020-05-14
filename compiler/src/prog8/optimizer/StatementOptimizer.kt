@@ -1,7 +1,6 @@
 package prog8.optimizer
 
 import prog8.ast.INameScope
-import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -24,55 +23,14 @@ internal class StatementOptimizer(private val program: Program,
         private set
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
-    private val callgraph = CallGraph(program)      // TODO PERFORMANCE: it is expensive to create this every round
+    private val callgraph = CallGraph(program)
     private val vardeclsToRemove = mutableListOf<VarDecl>()
 
     override fun visit(program: Program) {
-        removeUnusedCode(callgraph)
         super.visit(program)
 
         for(decl in vardeclsToRemove) {
             decl.definingScope().remove(decl)
-        }
-    }
-
-    private fun removeUnusedCode(callgraph: CallGraph) {
-        // TODO PERFORMANCE: expensive code (because of callgraph) OPTIMIZE THIS: only run once separately ?
-        // remove all subroutines that aren't called, or are empty
-        val removeSubroutines = mutableSetOf<Subroutine>()
-        val entrypoint = program.entrypoint()
-        program.modules.forEach {
-            callgraph.forAllSubroutines(it) { sub ->
-                if (sub !== entrypoint && !sub.keepAlways && (sub.calledBy.isEmpty() || (sub.containsNoCodeNorVars() && !sub.isAsmSubroutine)))
-                    removeSubroutines.add(sub)
-            }
-        }
-
-        if (removeSubroutines.isNotEmpty()) {
-            removeSubroutines.forEach {
-                it.definingScope().remove(it)
-            }
-        }
-
-        val removeBlocks = mutableSetOf<Block>()
-        program.modules.flatMap { it.statements }.filterIsInstance<Block>().forEach { block ->
-            if (block.containsNoCodeNorVars() && "force_output" !in block.options())
-                removeBlocks.add(block)
-        }
-
-        if (removeBlocks.isNotEmpty()) {
-            removeBlocks.forEach { it.definingScope().remove(it) }
-        }
-
-        // remove modules that are not imported, or are empty (unless it's a library modules)
-        val removeModules = mutableSetOf<Module>()
-        program.modules.forEach {
-            if (!it.isLibraryModule && (it.importedBy.isEmpty() || it.containsNoCodeNorVars()))
-                removeModules.add(it)
-        }
-
-        if (removeModules.isNotEmpty()) {
-            program.modules.removeAll(removeModules)
         }
     }
 

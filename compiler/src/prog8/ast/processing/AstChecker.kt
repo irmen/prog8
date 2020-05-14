@@ -25,7 +25,7 @@ internal class AstChecker(private val program: Program,
             errors.err("there is no 'main' block", program.modules.firstOrNull()?.position ?: program.position)
 
         for(mainBlock in mainBlocks) {
-            val startSub = mainBlock.subScopes()["start"] as? Subroutine
+            val startSub = mainBlock.subScope("start") as? Subroutine
             if (startSub == null) {
                 errors.err("missing program entrypoint ('start' subroutine in 'main' block)", mainBlock.position)
             } else {
@@ -58,7 +58,7 @@ internal class AstChecker(private val program: Program,
         if(irqBlocks.size>1)
             errors.err("more than one 'irq' block", irqBlocks[0].position)
         for(irqBlock in irqBlocks) {
-            val irqSub = irqBlock.subScopes()["irq"] as? Subroutine
+            val irqSub = irqBlock.subScope("irq") as? Subroutine
             if (irqSub != null) {
                 if (irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
                     errors.err("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position)

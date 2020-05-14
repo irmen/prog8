@@ -6,8 +6,6 @@
 ;   shows next piece
 ;   staged speed increase
 ;   some simple sound effects
-;
-; @todo show ghost?
 
 main {
 

@@ -31,13 +31,13 @@ Eval stack redesign? (lot of work)
 
 The eval stack is now a split lsb/msb stack using X as the stackpointer.
 Is it easier/faster to just use a single page unsplit stack?
-It could then even be moved into the zeropage to greatly reduce code size and slowness.
+It could then even be moved into the zeropage to reduce code size and slowness.
 
 Or just move the LSB portion into a slab of the zeropage.
 
 Allocate a fixed word in ZP that is the Top Of Stack value so we can always operate on TOS directly
 without having to index with X into the eval stack all the time?
-This could GREATLY improvde code size and speed for operatios that work on just a single value.
+This could GREATLY improve code size and speed for operations that work on just a single value.
 
 
 Bug Fixing

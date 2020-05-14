@@ -53,33 +53,31 @@ interface INameScope {
 
     fun linkParents(parent: Node)
 
-    fun subScopes(): Map<String, INameScope> {
-        // TODO PERFORMANCE: this is called very often and is relatively expensive. Optimize this.
-        val subscopes = mutableMapOf<String, INameScope>()
+    fun subScope(name: String): INameScope? {
         for(stmt in statements) {
             when(stmt) {
                 // NOTE: if other nodes are introduced that are a scope, or contain subscopes, they must be added here!
-                is ForLoop -> subscopes[stmt.body.name] = stmt.body
-                is RepeatLoop -> subscopes[stmt.body.name] = stmt.body
-                is WhileLoop -> subscopes[stmt.body.name] = stmt.body
+                is ForLoop -> if(stmt.body.name==name) return stmt.body
+                is RepeatLoop -> if(stmt.body.name==name) return stmt.body
+                is WhileLoop -> if(stmt.body.name==name) return stmt.body
                 is BranchStatement -> {
-                    subscopes[stmt.truepart.name] = stmt.truepart
-                    if(stmt.elsepart.containsCodeOrVars())
-                        subscopes[stmt.elsepart.name] = stmt.elsepart
+                    if(stmt.truepart.name==name) return stmt.truepart
+                    if(stmt.elsepart.containsCodeOrVars() && stmt.elsepart.name==name) return stmt.elsepart
                 }
                 is IfStatement -> {
-                    subscopes[stmt.truepart.name] = stmt.truepart
-                    if(stmt.elsepart.containsCodeOrVars())
-                        subscopes[stmt.elsepart.name] = stmt.elsepart
+                    if(stmt.truepart.name==name) return stmt.truepart
+                    if(stmt.elsepart.containsCodeOrVars() && stmt.elsepart.name==name) return stmt.elsepart
                 }
                 is WhenStatement -> {
-                    stmt.choices.forEach { subscopes[it.statements.name] = it.statements }
+                    val scope = stmt.choices.firstOrNull { it.statements.name==name }
+                    if(scope!=null)
+                        return scope.statements
                 }
-                is INameScope -> subscopes[stmt.name] = stmt
+                is INameScope -> if(stmt.name==name) return stmt
                 else -> {}
             }
         }
-        return subscopes
+        return null
     }
 
     fun getLabelOrVariable(name: String): Statement? {
@@ -127,7 +125,7 @@ interface INameScope {
             for(module in localContext.definingModule().program.modules) {
                 var scope: INameScope? = module
                 for(name in scopedName.dropLast(1)) {
-                    scope = scope?.subScopes()?.get(name)           // TODO PERFORMANCE: EXPENSIVE! (creates new map every call) OPTIMIZE.
+                    scope = scope?.subScope(name)
                     if(scope==null)
                         break
                 }
@@ -135,7 +133,7 @@ interface INameScope {
                     val result = scope.getLabelOrVariable(scopedName.last())
                     if(result!=null)
                         return result
-                    return scope.subScopes()[scopedName.last()] as Statement?
+                    return scope.subScope(scopedName.last()) as Statement?
                 }
             }
             return null
@@ -147,7 +145,7 @@ interface INameScope {
                 val result = localScope.getLabelOrVariable(scopedName[0])
                 if (result != null)
                     return result
-                val subscope = localScope.subScopes()[scopedName[0]] as Statement?
+                val subscope = localScope.subScope(scopedName[0]) as Statement?
                 if (subscope != null)
                     return subscope
                 // not found in this scope, look one higher up
@@ -213,7 +211,7 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
         return if(mainBlocks.isEmpty()) {
             null
         } else {
-            mainBlocks[0].subScopes()["start"] as Subroutine?
+            mainBlocks[0].subScope("start") as Subroutine?
         }
     }
 
