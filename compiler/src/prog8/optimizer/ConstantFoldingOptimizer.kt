@@ -10,12 +10,13 @@ import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 
 
+// TODO implement using AstWalker instead of IAstModifyingVisitor
 internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
 
     override fun visit(decl: VarDecl): Statement {
         // the initializer value can't refer to the variable itself (recursive definition)
-        // TODO: use call tree for this?
+        // TODO: use call graph for this?
         if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
             errors.err("recursive var declaration", decl.position)
             return decl

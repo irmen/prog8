@@ -10,7 +10,7 @@ import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 
-
+// TODO implement using AstWalker instead of IAstModifyingVisitor
 internal class AstIdentifiersChecker(private val program: Program,
                                      private val errors: ErrorReporter) : IAstModifyingVisitor {
     private var blocks = mutableMapOf<String, Block>()

@@ -6,7 +6,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
-
+// TODO replace all occurrences of this with AstWalker
 interface IAstModifyingVisitor {
     fun visit(program: Program) {
         program.modules.forEach { it.accept(this) }

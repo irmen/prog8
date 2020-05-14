@@ -5,6 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
@@ -17,6 +18,7 @@ import kotlin.math.floor
 */
 
 
+// TODO implement using AstWalker instead of IAstModifyingVisitor
 internal class StatementOptimizer(private val program: Program,
                                   private val errors: ErrorReporter) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
@@ -317,20 +319,19 @@ internal class StatementOptimizer(private val program: Program,
 
     private fun hasContinueOrBreak(scope: INameScope): Boolean {
 
-        class Searcher: IAstModifyingVisitor
+        class Searcher: IAstVisitor
         {
             var count=0
 
-            override fun visit(breakStmt: Break): Statement {
+            override fun visit(breakStmt: Break) {
                 count++
-                return super.visit(breakStmt)
             }
 
-            override fun visit(contStmt: Continue): Statement {
+            override fun visit(contStmt: Continue) {
                 count++
-                return super.visit(contStmt)
             }
         }
+
         val s=Searcher()
         for(stmt in scope.statements) {
             stmt.accept(s)
