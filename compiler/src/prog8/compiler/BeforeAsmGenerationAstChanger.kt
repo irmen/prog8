@@ -1,18 +1,15 @@
-package prog8.compiler.target
+package prog8.compiler
 
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
 
 
-class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter) : AstWalker() {
+internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter) : AstWalker() {
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if (decl.value == null && decl.type == VarDeclType.VAR && decl.datatype in NumericDatatypes) {
@@ -101,6 +98,7 @@ class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorRepor
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // see if we can remove superfluous typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword
+        // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of.
         val sourceDt = typecast.expression.inferType(program).typeOrElse(DataType.STRUCT)
         if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
                 || typecast.type in WordDatatypes && sourceDt in WordDatatypes) {
@@ -108,6 +106,18 @@ class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorRepor
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
         }
+        else if(sourceDt in PassByReferenceDatatypes) {
+            if(typecast.type==DataType.UWORD) {
+                return listOf(IAstModification.ReplaceNode(
+                        typecast,
+                        AddressOf(typecast.expression as IdentifierReference, typecast.position),
+                        parent
+                ))
+            } else {
+                errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)
+            }
+        }
+
         return emptyList()
     }
 }

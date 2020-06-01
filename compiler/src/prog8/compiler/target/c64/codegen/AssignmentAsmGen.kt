@@ -580,9 +580,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 // non-const value
                 // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
                 when (assign.value) {
-                    is RegisterExpr -> {
-                        TODO("$assign")
-                    }
+                    is RegisterExpr -> throw AssemblyError("expected a typecast for assigning register to word")
                     is IdentifierReference -> {
                         val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                         when (assign.aug_op) {
@@ -624,11 +622,11 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         }
                         return true
                     }
-                    is DirectMemoryRead -> {
-                        TODO("$assign")
-                    }
+                    is DirectMemoryRead -> throw AssemblyError("expected a typecast for assigning memory read byte to word")
                     is AddressOf -> {
-                        TODO("$assign")
+                        val name = asmgen.asmIdentifierName((assign.value as AddressOf).identifier)
+                        asmgen.out(" lda  #<$name |  sta  $targetName |  lda  #>$name |  sta  $targetName+1")
+                        return true
                     }
                     is ArrayIndexedExpression -> {
                         if (assign.aug_op == "setvalue") {
