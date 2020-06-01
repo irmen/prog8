@@ -88,7 +88,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     DataType.ARRAY_F -> {
                         assignFromFloatConstant(assign.target, constValue.toDouble())
                     }
-                    else -> throw AssemblyError("invalid array dt $arrayDt")
+                    else -> throw AssemblyError("assignment to array: invalid array dt $arrayDt")
                 }
             } else {
                 TODO()
@@ -156,7 +156,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         """)
                     }
                     DataType.ARRAY_F -> return false        // TODO optimize?
-                    else -> throw AssemblyError("invalid array dt $arrayDt")
+                    else -> throw AssemblyError("assignment to array: invalid array dt $arrayDt")
                 }
                 return true
             }
@@ -174,7 +174,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 when(arrayDt) {
                     DataType.ARRAY_UB -> {
                         if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
-                            throw AssemblyError("expected byte array or string")
+                            throw AssemblyError("assignment to array: expected byte array or string")
                         if (assign.aug_op == "setvalue") {
                             if (valueArrayIndex is NumericLiteralValue)
                                 asmgen.out(" ldy  #${valueArrayIndex.number.toHex()}")
@@ -194,7 +194,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     DataType.ARRAY_UW -> TODO()
                     DataType.ARRAY_W -> TODO()
                     DataType.ARRAY_F -> TODO()
-                    else -> throw AssemblyError("invalid array dt")
+                    else -> throw AssemblyError("assignment to array: invalid array dt")
                 }
                 return true
             }
@@ -418,7 +418,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                     val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                     if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
-                        throw AssemblyError("expected byte array or string")
+                        throw AssemblyError("assign to memory byte: expected byte array or string source")
                     if (arrayIndex is NumericLiteralValue)
                         asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
                     else
@@ -518,7 +518,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                             val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                             if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
-                                throw AssemblyError("expected byte array or string")
+                                throw AssemblyError("assign to identifier: expected byte array or string source")
                             if (arrayIndex is NumericLiteralValue)
                                 asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
                             else
@@ -637,7 +637,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                             val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                             if (arrayDt != DataType.ARRAY_W && arrayDt != DataType.ARRAY_UW)
-                                throw AssemblyError("expected word array")
+                                throw AssemblyError("assign to identifier: expected word array source")
                             if (arrayIndex is NumericLiteralValue)
                                 asmgen.out(" lda  #${arrayIndex.number.toHex()}")
                             else
@@ -741,7 +741,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                                 val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                                 if (arrayDt != DataType.ARRAY_F)
-                                    throw AssemblyError("expected float array")
+                                    throw AssemblyError("assign to identifier: expected float array source")
                                 if (arrayIndex is NumericLiteralValue)
                                     asmgen.out(" lda  #${arrayIndex.number.toHex()}")
                                 else
@@ -775,7 +775,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     }
                 }
             }
-            else -> throw AssemblyError("invalid dt")
+            else -> throw AssemblyError("assignment to identifier: invalid target datatype: $targetType")
         }
         return false
     }
@@ -1086,7 +1086,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
                     val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                     if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
-                        throw AssemblyError("expected byte array or string")
+                        throw AssemblyError("assign to register: expected byte array or string source")
                     if (arrayIndex is NumericLiteralValue)
                         asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
                     else
@@ -1141,7 +1141,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
 
     //  old code-generation below:
     //  eventually, all of this should have been replaced by newer more optimized code above.
-
     private fun translateNormalAssignment(assign: Assignment) {
         require(assign.aug_op == null)
 

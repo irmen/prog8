@@ -110,7 +110,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     else -> throw AssemblyError("weird type")
                 }
             }
-            in PassByReferenceDatatypes -> throw AssemblyError("cannot case a pass-by-reference datatypes into something else")
+            in PassByReferenceDatatypes -> throw AssemblyError("cannot cast pass-by-reference value into another type")
             else -> throw AssemblyError("weird type")
         }
     }

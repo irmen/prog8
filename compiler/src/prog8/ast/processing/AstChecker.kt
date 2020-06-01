@@ -849,7 +849,7 @@ internal class AstChecker(private val program: Program,
         if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
             if(functionCallStatement.args.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
-                errors.err("can't use that as argument to a in-place modifying function", functionCallStatement.args.first().position)
+                errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
             }
         }
         super.visit(functionCallStatement)
