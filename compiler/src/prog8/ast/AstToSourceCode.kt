@@ -284,7 +284,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
     override fun visit(assignment: Assignment) {
         assignment.target.accept(this)
-        if (assignment.aug_op != null)
+        if (assignment.aug_op != null && assignment.aug_op != "setvalue")
             output(" ${assignment.aug_op} ")
         else
             output(" = ")

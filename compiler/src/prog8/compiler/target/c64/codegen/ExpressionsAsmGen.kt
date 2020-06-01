@@ -40,8 +40,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if (builtinFunc != null) {
             asmgen.translateFunctioncallExpression(expression, builtinFunc)
         } else {
-            asmgen.translateFunctionCall(expression)
             val sub = expression.target.targetSubroutine(program.namespace)!!
+            asmgen.translateFunctionCall(expression)
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
             for ((_, reg) in returns) {
                 if (!reg.stack) {
@@ -51,7 +51,18 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             RegisterOrPair.A -> asmgen.out("  sta  $ESTACK_LO_HEX,x |  dex")
                             RegisterOrPair.Y -> asmgen.out("  tya |  sta  $ESTACK_LO_HEX,x |  dex")
                             RegisterOrPair.AY -> asmgen.out("  sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex")
-                            RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't push X register - use a variable")
+                            RegisterOrPair.X -> {
+                                // return value in X register has been discarded, just push a zero
+                                asmgen.out("  lda  #0 |  sta  $ESTACK_LO_HEX,x |  dex")
+                            }
+                            RegisterOrPair.AX -> {
+                                // return value in X register has been discarded, just push a zero in this place
+                                asmgen.out("  sta  $ESTACK_LO_HEX,x |  lda  #0 |  sta  $ESTACK_HI_HEX,x |  dex")
+                            }
+                            RegisterOrPair.XY -> {
+                                // return value in X register has been discarded, just push a zero in this place
+                                asmgen.out("  lda  #0 |  sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex")
+                            }
                         }
                     }
                     // return value from a statusregister is not put on the stack, it should be acted on via a conditional branch such as if_cc

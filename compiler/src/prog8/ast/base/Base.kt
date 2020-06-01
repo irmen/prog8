@@ -24,7 +24,7 @@ enum class DataType {
      * is the type assignable to the given other type?
      */
     infix fun isAssignableTo(targetType: DataType) =
-            // what types are assignable to others without loss of precision?
+            // what types are assignable to others, perhaps via a typecast, without loss of precision?
             when(this) {
                 UBYTE -> targetType in setOf(UBYTE, WORD, UWORD, FLOAT)
                 BYTE -> targetType in setOf(BYTE, WORD, FLOAT)

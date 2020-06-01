@@ -4,9 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.ErrorReporter
-import prog8.ast.base.FatalAstException
+import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
@@ -45,10 +43,12 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             val targettype = targetItype.typeOrElse(DataType.STRUCT)
             val valuetype = valueItype.typeOrElse(DataType.STRUCT)
             if (valuetype != targettype) {
-                return listOf(IAstModification.ReplaceNode(
-                        assignment.value,
-                        TypecastExpression(assignment.value, targettype, true, assignment.value.position),
-                        assignment))
+                if(valuetype.isAssignableTo(targettype)) {
+                    return listOf(IAstModification.ReplaceNode(
+                            assignment.value,
+                            TypecastExpression(assignment.value, targettype, true, assignment.value.position),
+                            assignment))
+                }
             }
         }
         return emptyList()
@@ -76,6 +76,12 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                                 return listOf(IAstModification.ReplaceNode(
                                         call.args[arg.second.index],
                                         TypecastExpression(arg.second.value, requiredType, true, arg.second.value.position),
+                                        call as Node))
+                            } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
+                                // we allow STR/ARRAY values in place of UWORD parameters. Take their address instead.
+                                return listOf(IAstModification.ReplaceNode(
+                                        call.args[arg.second.index],
+                                        AddressOf(arg.second.value as IdentifierReference, arg.second.value.position),
                                         call as Node))
                             }
                         }

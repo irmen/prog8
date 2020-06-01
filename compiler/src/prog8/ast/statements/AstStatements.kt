@@ -716,6 +716,8 @@ class Subroutine(override val name: String,
         return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
     }
 
+    fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
+
     fun amountOfRtsInAsm(): Int = statements
             .asSequence()
             .filter { it is InlineAssembly }

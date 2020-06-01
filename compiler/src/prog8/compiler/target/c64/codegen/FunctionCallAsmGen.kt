@@ -19,7 +19,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // output the code to setup the parameters and perform the actual call
         // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
-        if(Register.X in sub.asmClobbers)
+        val saveX = Register.X in sub.asmClobbers || sub.regXasResult()
+        if(saveX)
             asmgen.out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
 
         val subName = asmgen.asmIdentifierName(stmt.target)
@@ -30,7 +31,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
         asmgen.out("  jsr  $subName")
 
-        if(Register.X in sub.asmClobbers)
+        if(saveX)
             asmgen.out("  ldx  c64.SCRATCH_ZPREGX")        // restore X again
     }
 

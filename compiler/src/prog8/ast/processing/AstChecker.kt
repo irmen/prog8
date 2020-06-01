@@ -897,6 +897,8 @@ internal class AstChecker(private val program: Program,
                 }
             }
         } else if(target is Subroutine) {
+            if(target.regXasResult())
+                errors.warn("subroutine call return value in X register is discarded and replaced by 0", position)
             if(args.size!=target.parameters.size)
                 errors.err("invalid number of arguments", position)
             else {
@@ -915,7 +917,7 @@ internal class AstChecker(private val program: Program,
                     if(target.isAsmSubroutine) {
                         if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {
                             if (arg.first.value !is NumericLiteralValue && arg.first.value !is IdentifierReference)
-                                errors.warn("calling a subroutine that expects X as a parameter is problematic, more so when providing complex arguments. If you see a compiler error/crash about this later, try to simplify this call", position)
+                                errors.warn("calling a subroutine that expects X as a parameter is problematic. If you see a compiler error/crash about this later, try to change this call", position)
                         }
 
                         // check if the argument types match the register(pairs)
