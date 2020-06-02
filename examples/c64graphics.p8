@@ -17,79 +17,134 @@ graphics {
         c64scr.clear_screen($10, 0)         ; pixel color $1 (white) backround $0 (black)
     }
 
-
     sub line(uword x1, ubyte y1, uword x2, ubyte y2) {
         ; Bresenham algorithm
-        word dx
-        word dy
-        byte ix = 1
-        byte iy = 1
-        if x2>x1 {
-            dx = x2-x1
-        } else {
-            ix = -1
-            dx = x1-x2
-        }
-        if y2>y1 {
-            dy = y2-y1
-        } else {
-            iy = -1
-            dy = y1-y2
-        }
-        word dx2 = 2 * dx
-        word dy2 = 2 * dy
+        ; This code is a bit long because each of the 8 different octants has a dedicated loop.
+        ; This minimizes the number of actual math operations, and allows usins simple ++ and -- operations.
+        ; TODO sort X/Y coordinates to eliminate some of the special cases
         word d = 0
+        ubyte positive_ix = true
+        ubyte positive_iy = true
+        word dx = x2 - x1 as word
+        word dy = y2 as word - y1 as word
+        if dx < 0 {
+            dx = -dx
+            positive_ix = false
+        }
+        if dy < 0 {
+            dy = -dy
+            positive_iy = false
+        }
+        dx *= 2
+        dy *= 2
         plotx = x1
 
         if dx >= dy {
-            if ix<0 {
-                forever {
-                    graphics.plot(y1)
-                    if plotx==x2
-                        return
-                    plotx--
-                    d += dy2
-                    if d > dx {
-                        y1 += iy
-                        d -= dx2
+            if positive_ix {
+                if positive_iy {
+                    forever {
+                        graphics.plot(y1)
+                        if plotx==x2
+                            return
+                        plotx++
+                        d += dy
+                        if d > dx {
+                            y1++
+                            d -= dx
+                        }
+                    }
+                } else {
+                    forever {
+                        graphics.plot(y1)
+                        if plotx==x2
+                            return
+                        plotx++
+                        d += dy
+                        if d > dx {
+                            y1--
+                            d -= dx
+                        }
                     }
                 }
             } else {
-                forever {
-                    graphics.plot(y1)
-                    if plotx==x2
-                        return
-                    plotx++
-                    d += dy2
-                    if d > dx {
-                        y1 += iy
-                        d -= dx2
+                if positive_iy {
+                    forever {
+                        graphics.plot(y1)
+                        if plotx==x2
+                            return
+                        plotx--
+                        d += dy
+                        if d > dx {
+                            y1++
+                            d -= dx
+                        }
+                    }
+                } else {
+                    forever {
+                        graphics.plot(y1)
+                        if plotx==x2
+                            return
+                        plotx--
+                        d += dy
+                        if d > dx {
+                            y1--
+                            d -= dx
+                        }
                     }
                 }
             }
-        } else {
-            if iy<0 {
-                forever {
-                    plot(y1)
-                    if y1 == y2
-                        return
-                    y1--
-                    d += dx2
-                    if d > dy {
-                        plotx += ix as word
-                        d -= dy2
+        }
+        else {
+            if positive_iy {
+                if positive_ix {
+                    forever {
+                        plot(y1)
+                        if y1 == y2
+                            return
+                        y1++
+                        d += dx
+                        if d > dy {
+                            plotx++
+                            d -= dy
+                        }
+                    }
+                } else {
+                    forever {
+                        plot(y1)
+                        if y1 == y2
+                            return
+                        y1++
+                        d += dx
+                        if d > dy {
+                            plotx--
+                            d -= dy
+                        }
                     }
                 }
             } else {
-                forever {
-                    plot(y1)
-                    if y1 == y2
-                        return
-                    y1++
-                    d += dx2
-                    if d > dy {
-                        plotx += ix as word
-                        d -= dy2
+                if positive_ix {
+                    forever {
+                        plot(y1)
+                        if y1 == y2
+                            return
+                        y1--
+                        d += dx
+                        if d > dy {
+                            plotx++
+                            d -= dy
+                        }
+                    }
+                } else {
+                    forever {
+                        plot(y1)
+                        if y1 == y2
+                            return
+                        y1--
+                        d += dx
+                        if d > dy {
+                            plotx--
+                            d -= dy
+                        }
                     }
                 }
             }
@@ -101,7 +156,7 @@ graphics {
         ubyte ploty
         ubyte xx = radius
         ubyte yy = 0
-        byte decisionOver2 = 1-xx
+        byte decisionOver2 = 1-xx as byte
 
         while xx>=yy {
             plotx = xcenter + xx
@@ -138,7 +193,7 @@ graphics {
         ; Midpoint algorithm, filled
         ubyte xx = radius
         ubyte yy = 0
-        byte decisionOver2 = 1-xx
+        byte decisionOver2 = 1-xx as byte
 
         while xx>=yy {
             ubyte cy_plus_yy = cy + yy
@@ -180,7 +235,7 @@ graphics {
 ;        @(addr) |= ormask[lsb(px) & 7]
 ;    }
 
-    uword plotx     ; 0..319
+    uword plotx     ; 0..319        ; separate 'parameter' for plot()
 
     asmsub plot(ubyte ploty @A) {           ; plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{

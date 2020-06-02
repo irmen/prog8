@@ -19,6 +19,8 @@ import kotlin.math.pow
     x + x + x -> ???? x*3 ??? words/bytes?
     x - x  ->  0
 
+    x < 0  (for word, byte as well?):  just test the most significant bit for 1
+    x >= 0  (for word, byte as well?):  just test the most significant bit for 0
 
     Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 

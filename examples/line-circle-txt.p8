@@ -71,8 +71,8 @@ main {
             ubyte dy = abs(y2 - y1)
             ubyte dx2 = 2 * dx
             ubyte dy2 = 2 * dy
-            byte ix = sgn(x2 as byte - x1 as byte)
-            byte iy = sgn(y2 as byte - y1 as byte)
+            ubyte ix = sgn(x2 as byte - x1 as byte) as ubyte
+            ubyte iy = sgn(y2 as byte - y1 as byte) as ubyte
             ubyte x = x1
             ubyte y = y1
 
@@ -107,7 +107,7 @@ main {
             ; Midpoint algorithm
             ubyte x = radius
             ubyte y = 0
-            byte decisionOver2 = 1-x
+            byte decisionOver2 = 1-x as byte
 
             while x>=y {
                 c64scr.setcc(xcenter + x, ycenter + y as ubyte, 81, 1)
@@ -132,7 +132,7 @@ main {
             ; Midpoint algorithm, filled
             ubyte x = radius
             ubyte y = 0
-            byte decisionOver2 = 1-x
+            byte decisionOver2 = 1-x as byte
             ubyte xx
 
             while x>=y {

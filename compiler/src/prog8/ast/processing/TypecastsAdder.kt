@@ -42,13 +42,11 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         if(targetItype.isKnown && valueItype.isKnown) {
             val targettype = targetItype.typeOrElse(DataType.STRUCT)
             val valuetype = valueItype.typeOrElse(DataType.STRUCT)
-            if (valuetype != targettype) {
-                if(valuetype.isAssignableTo(targettype)) {
+            if (valuetype != targettype && valuetype isAssignableTo targettype) {
                     return listOf(IAstModification.ReplaceNode(
                             assignment.value,
                             TypecastExpression(assignment.value, targettype, true, assignment.value.position),
                             assignment))
-                }
             }
         }
         return emptyList()
