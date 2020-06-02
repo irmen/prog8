@@ -43,7 +43,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(!argumentTypeCompatible(sourceDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
         if(sub.asmParameterRegisters.isEmpty()) {
-            // pass parameter via a variable
+            // pass parameter via a regular variable (not via registers)
             val paramVar = parameter.value
             val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
             val target = AssignTarget(null, IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
@@ -55,7 +55,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         in ByteDatatypes -> asmgen.assignFromByteConstant(target, value.number.toShort())
                         in WordDatatypes -> asmgen.assignFromWordConstant(target, value.number.toInt())
                         DataType.FLOAT -> asmgen.assignFromFloatConstant(target, value.number.toDouble())
-                        in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as arguments?")
+                        in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as argument via a variable?")    // TODO huh
                         else -> throw AssemblyError("weird parameter datatype")
                     }
                 }
@@ -65,7 +65,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         in ByteDatatypes -> asmgen.assignFromByteVariable(target, value)
                         in WordDatatypes -> asmgen.assignFromWordVariable(target, value)
                         DataType.FLOAT -> asmgen.assignFromFloatVariable(target, value)
-                        in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as arguments?")
+                        in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as argument via a variable?")     // TODO huh
                         else -> throw AssemblyError("weird parameter datatype")
                     }
                 }
@@ -203,11 +203,20 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         }
                         is IdentifierReference -> {
                             val sourceName = asmgen.asmIdentifierName(value)
-                            when (register) {
-                                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName  |  ldx  $sourceName+1")
-                                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName  |  ldy  $sourceName+1")
-                                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName  |  ldy  $sourceName+1")
-                                else -> {}
+                            if(sourceDt in PassByReferenceDatatypes) {
+                                when (register) {
+                                    RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName  |  ldx  #>$sourceName")
+                                    RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName  |  ldy  #>$sourceName")
+                                    RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                                    else -> {}
+                                }
+                            } else {
+                                when (register) {
+                                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName  |  ldx  $sourceName+1")
+                                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName  |  ldy  $sourceName+1")
+                                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName  |  ldy  $sourceName+1")
+                                    else -> {}
+                                }
                             }
                         }
                         else -> {
