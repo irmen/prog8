@@ -568,6 +568,38 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcSwap(fcall: IFunctionCall) {
         val first = fcall.args[0]
         val second = fcall.args[1]
+        if(first is IdentifierReference && second is IdentifierReference) {
+            val firstName = asmgen.asmIdentifierName(first)
+            val secondName = asmgen.asmIdentifierName(second)
+            val dt = first.inferType(program)
+            if(dt.istype(DataType.BYTE) || dt.istype(DataType.UBYTE)) {
+                asmgen.out(" ldy  $firstName |  lda  $secondName |  sta  $firstName |  tya |  sta  $secondName")
+                return
+            }
+            if(dt.istype(DataType.WORD) || dt.istype(DataType.UWORD)) {
+                asmgen.out("""
+                    ldy  $firstName
+                    lda  $secondName
+                    sta  $firstName
+                    tya
+                    sta  $secondName
+                    ldy  $firstName+1
+                    lda  $secondName+1
+                    sta  $firstName+1
+                    tya
+                    sta  $secondName+1
+                """)
+                return
+            }
+            if(dt.istype(DataType.FLOAT)) {
+                TODO("optimized case for swapping 2 float vars-- asm subroutine")
+                return
+            }
+        }
+
+        // TODO more optimized cases? for instance swapping elements of array vars?
+
+        // suboptimal code via the evaluation stack...
         asmgen.translateExpression(first)
         asmgen.translateExpression(second)
         // pop in reverse order

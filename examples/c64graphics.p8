@@ -18,22 +18,20 @@ graphics {
     }
 
     sub line(uword x1, ubyte y1, uword x2, ubyte y2) {
-        ; Bresenham algorithm
-        ; This code is a bit long because each of the 8 different octants has a dedicated loop.
-        ; This minimizes the number of actual math operations, and allows usins simple ++ and -- operations.
-        ; TODO sort X/Y coordinates to eliminate some of the special cases
+        ; Bresenham algorithm.
+        ; This code special cases various quadrant loops to allow simple ++ and -- operations.
+        if y1>y2 {
+            ; make sure dy is always positive to avoid 8 instead of just 4 special cases
+            swap(x1, x2)
+            swap(y1, y2)
+        }
         word d = 0
         ubyte positive_ix = true
-        ubyte positive_iy = true
         word dx = x2 - x1 as word
         word dy = y2 as word - y1 as word
         if dx < 0 {
             dx = -dx
             positive_ix = false
-        }
-        if dy < 0 {
-            dy = -dy
-            positive_iy = false
         }
         dx *= 2
         dy *= 2
@@ -41,110 +39,54 @@ graphics {
 
         if dx >= dy {
             if positive_ix {
-                if positive_iy {
-                    forever {
-                        graphics.plot(y1)
-                        if plotx==x2
-                            return
-                        plotx++
-                        d += dy
-                        if d > dx {
-                            y1++
-                            d -= dx
-                        }
-                    }
-                } else {
-                    forever {
-                        graphics.plot(y1)
-                        if plotx==x2
-                            return
-                        plotx++
-                        d += dy
-                        if d > dx {
-                            y1--
-                            d -= dx
-                        }
+                forever {
+                    plot(y1)
+                    if plotx==x2
+                        return
+                    plotx++
+                    d += dy
+                    if d > dx {
+                        y1++
+                        d -= dx
                     }
                 }
             } else {
-                if positive_iy {
-                    forever {
-                        graphics.plot(y1)
-                        if plotx==x2
-                            return
-                        plotx--
-                        d += dy
-                        if d > dx {
-                            y1++
-                            d -= dx
-                        }
-                    }
-                } else {
-                    forever {
-                        graphics.plot(y1)
-                        if plotx==x2
-                            return
-                        plotx--
-                        d += dy
-                        if d > dx {
-                            y1--
-                            d -= dx
-                        }
+                forever {
+                    plot(y1)
+                    if plotx==x2
+                        return
+                    plotx--
+                    d += dy
+                    if d > dx {
+                        y1++
+                        d -= dx
                     }
                 }
             }
         }
         else {
-            if positive_iy {
-                if positive_ix {
-                    forever {
-                        plot(y1)
-                        if y1 == y2
-                            return
-                        y1++
-                        d += dx
-                        if d > dy {
-                            plotx++
-                            d -= dy
-                        }
-                    }
-                } else {
-                    forever {
-                        plot(y1)
-                        if y1 == y2
-                            return
-                        y1++
-                        d += dx
-                        if d > dy {
-                            plotx--
-                            d -= dy
-                        }
+            if positive_ix {
+                forever {
+                    plot(y1)
+                    if y1 == y2
+                        return
+                    y1++
+                    d += dx
+                    if d > dy {
+                        plotx++
+                        d -= dy
                     }
                 }
             } else {
-                if positive_ix {
-                    forever {
-                        plot(y1)
-                        if y1 == y2
-                            return
-                        y1--
-                        d += dx
-                        if d > dy {
-                            plotx++
-                            d -= dy
-                        }
-                    }
-                } else {
-                    forever {
-                        plot(y1)
-                        if y1 == y2
-                            return
-                        y1--
-                        d += dx
-                        if d > dy {
-                            plotx--
-                            d -= dy
-                        }
+                forever {
+                    plot(y1)
+                    if y1 == y2
+                        return
+                    y1++
+                    d += dx
+                    if d > dy {
+                        plotx--
+                        d -= dy
                     }
                 }
             }
@@ -272,7 +214,7 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 
 ; note: this can be even faster if we also have a 256 byte x-lookup table, but hey.
 ; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
-; the y lookup tables encode this formula:  bitmap_address + 320*(py>>3) + (py & 7)    (y from 0..199)
+; the y lookup tables encodes this formula:  bitmap_address + 320*(py>>3) + (py & 7)    (y from 0..199)
 _y_lookup_hi
             .byte  $20, $20, $20, $20, $20, $20, $20, $20, $21, $21, $21, $21, $21, $21, $21, $21
             .byte  $22, $22, $22, $22, $22, $22, $22, $22, $23, $23, $23, $23, $23, $23, $23, $23
