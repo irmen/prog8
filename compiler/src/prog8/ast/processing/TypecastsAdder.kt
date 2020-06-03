@@ -42,11 +42,34 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         if(targetItype.isKnown && valueItype.isKnown) {
             val targettype = targetItype.typeOrElse(DataType.STRUCT)
             val valuetype = valueItype.typeOrElse(DataType.STRUCT)
-            if (valuetype != targettype && valuetype isAssignableTo targettype) {
+            if (valuetype != targettype) {
+                if (valuetype isAssignableTo targettype) {
                     return listOf(IAstModification.ReplaceNode(
                             assignment.value,
                             TypecastExpression(assignment.value, targettype, true, assignment.value.position),
                             assignment))
+                } else {
+                    fun castLiteral(cvalue: NumericLiteralValue): List<IAstModification.ReplaceNode> =
+                        listOf(IAstModification.ReplaceNode(cvalue, cvalue.cast(targettype), cvalue.parent))
+                    val cvalue = assignment.value.constValue(program)
+                    if(cvalue!=null) {
+                        val number = cvalue.number.toDouble()
+                        // more complex comparisons if the type is different, but the constant value is compatible
+                        if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
+                            if(number>0)
+                                return castLiteral(cvalue)
+                        } else if (valuetype == DataType.WORD && targettype == DataType.UWORD) {
+                            if(number>0)
+                                return castLiteral(cvalue)
+                        } else if (valuetype == DataType.UBYTE && targettype == DataType.BYTE) {
+                            if(number<0x80)
+                                return castLiteral(cvalue)
+                        } else if (valuetype == DataType.UWORD && targettype == DataType.WORD) {
+                            if(number<0x8000)
+                                return castLiteral(cvalue)
+                        }
+                    }
+                }
             }
         }
         return emptyList()
