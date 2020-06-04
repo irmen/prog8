@@ -7,86 +7,31 @@
 main {
     sub start() {
 
-        ubyte ubb
-        byte bb
-        uword uww
-        word ww
+        A=Y+Y
+        A=Y+Y+Y
+        A=Y+Y+Y+Y
+        A=Y+Y+Y+Y+Y
 
-        bb = -1
-        ww = -1
-
-        if bb<0
-            c64scr.print("1 ok\n")
-        else
-            c64scr.print("1 fail\n")
-
-        if ww<0
-            c64scr.print("2 ok\n")
-        else
-            c64scr.print("2 fail\n")
-
-        bb = 0
-        ww = 0
-
-        if bb>=0
-            c64scr.print("4 ok\n")
-        else
-            c64scr.print("4 fail\n")
-
-        if ww>=0
-            c64scr.print("5 ok\n")
-        else
-            c64scr.print("5 fail\n")
-
-        bb = 0
-        ww = 0
-
-        if bb>=0
-            c64scr.print("7 ok\n")
-        else
-            c64scr.print("7 fail\n")
-
-        if ww>=0
-            c64scr.print("8 ok\n")
-        else
-            c64scr.print("8 fail\n")
-
-        ubb = 0
-        uww = 0
-        if ubb>=0
-            c64scr.print("10 ok\n")
-        else
-            c64scr.print("10 fail\n")
-        if uww>=0
-            c64scr.print("11 ok\n")
-        else
-            c64scr.print("11 fail\n")
-        if ubb<0
-            c64scr.print("12 fail\n")
-        else
-            c64scr.print("12 ok\n")
-        if uww<0
-            c64scr.print("13 fail\n")
-        else
-            c64scr.print("13 ok\n")
-        ubb = $ff
-        uww = $ffff
-        if ubb>=0
-            c64scr.print("14 ok\n")
-        else
-            c64scr.print("14 fail\n")
-        if uww>=0
-            c64scr.print("15 ok\n")
-        else
-            c64scr.print("15 fail\n")
-        if ubb<0
-            c64scr.print("16 fail\n")
-        else
-            c64scr.print("16 ok\n")
-        if uww<0
-            c64scr.print("17 fail\n")
-        else
-            c64scr.print("17 ok\n")
+;        ubyte ubb
+;        byte bb
+;        uword uww
+;        word ww
+;        word ww2
+;
+;        A = ubb*0
+;        Y = ubb*1
+;        A = ubb*2
+;        Y = ubb*4
+;        A = ubb*8
+;        Y = ubb*16
+;        A = ubb*32
+;        Y = ubb*64
+;        A = ubb*128
+;        Y = ubb+ubb+ubb
+;        A = ubb+ubb+ubb+ubb
+;        ww = ww2+ww2
+;        ww = ww2+ww2+ww2
+;        ww = ww2+ww2+ww2+ww2
 
     }
 }

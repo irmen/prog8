@@ -164,13 +164,11 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.optimizeStatements(errors)
+        programAst.constantFold(errors) // because simplified statements and expressions could give rise to more constants that can be folded away:
         errors.handle()
         if (optsDone1 + optsDone2 == 0)
             break
     }
-    // because simplified statements and expressions could give rise to more constants that can be folded away:
-    programAst.constantFold(errors)
-    errors.handle()
 
     val remover = UnusedCodeRemover()
     remover.visit(programAst)

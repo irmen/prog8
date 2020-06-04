@@ -14,11 +14,6 @@ import kotlin.math.pow
 /*
     todo add more expression optimizations
 
-    x + x  ->  x << 1  (for words... for bytes too?)
-    x + x + x + x -> x << 2  (for words... for bytes too?)
-    x + x + x -> ???? x*3 ??? words/bytes?
-    x - x  ->  0
-
     (assignment) x += y + 1  -> x += y ,  x++    (add another x++ for +2)
     (assignment) x += y - 1  -> x += y ,  x--
     (assignment) x -= y + 1  -> x -= y ,  x--
@@ -106,7 +101,6 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         val rightIDt = expr.right.inferType(program)
         if (!leftIDt.isKnown || !rightIDt.isKnown)
             throw FatalAstException("can't determine datatype of both expression operands $expr")
-
 
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         if (leftVal != null && expr.operator in associativeOperators && rightVal == null)
@@ -242,7 +236,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             }
         }
 
-            // simplify when a term is constant and directly determines the outcome
+        // simplify when a term is constant and directly determines the outcome
         val constTrue = NumericLiteralValue.fromBoolean(true, expr.position)
         val constFalse = NumericLiteralValue.fromBoolean(false, expr.position)
         val newExpr: Expression? = when (expr.operator) {
