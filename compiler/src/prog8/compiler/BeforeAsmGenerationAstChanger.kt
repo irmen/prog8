@@ -76,25 +76,6 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         return mods
     }
 
-    override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        // modify A = A + 5 back into augmented form A += 5 for easier code generation for optimized in-place assignments
-        // also to put code generation stuff together, single value assignment (A = 5) is converted to a special
-        // augmented form as wel (with the operator "setvalue")
-        if (assignment.aug_op == null) {
-            val binExpr = assignment.value as? BinaryExpression
-            if (binExpr != null) {
-                if (assignment.target.isSameAs(binExpr.left)) {
-                    assignment.value = binExpr.right
-                    assignment.aug_op = binExpr.operator + "="
-                    assignment.value.parent = assignment
-                    return emptyList()
-                }
-            }
-            assignment.aug_op = "setvalue"
-        }
-        return emptyList()
-    }
-
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // see if we can remove superfluous typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword

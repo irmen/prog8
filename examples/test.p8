@@ -7,10 +7,17 @@
 main {
     sub start() {
 
-        A=Y+Y
-        A=Y+Y+Y
-        A=Y+Y+Y+Y
-        A=Y+Y+Y+Y+Y
+        A += 50
+
+        A += Y + 1
+        A -= Y + 1
+        A += Y - 1
+        A -= Y - 1
+
+        A += Y + 2
+        A -= Y + 2
+        A += Y - 2
+        A -= Y - 2
 
 ;        ubyte ubb
 ;        byte bb

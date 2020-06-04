@@ -14,11 +14,6 @@ import kotlin.math.pow
 /*
     todo add more expression optimizations
 
-    (assignment) x += y + 1  -> x += y ,  x++    (add another x++ for +2)
-    (assignment) x += y - 1  -> x += y ,  x--
-    (assignment) x -= y + 1  -> x -= y ,  x--
-    (assignment) x -= y - 1  -> x -= y ,  x++
-
     Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
  */

@@ -16,7 +16,7 @@ sub start() {
     c64.STROUT(a1)
     c64.CHROUT('\n')
 
-    c64scr.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")     ; XXX TODO FIX PRINT OUTPUT
+    c64scr.print("bla\n")
 
 ;    c64scr.print_uwhex(s1, true)
 ;    w1 = &s1

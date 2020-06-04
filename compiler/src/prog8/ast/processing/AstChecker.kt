@@ -423,9 +423,6 @@ internal class AstChecker(private val program: Program,
 
         if (assignment is Assignment) {
 
-            if (assignment.aug_op != null)
-                throw FatalAstException("augmented assignment should have been converted into normal assignment")
-
             val targetDatatype = assignTarget.inferType(program, assignment)
             if (targetDatatype.isKnown) {
                 val constVal = assignment.value.constValue(program)
