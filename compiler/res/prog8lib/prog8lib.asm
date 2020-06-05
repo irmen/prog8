@@ -2078,3 +2078,127 @@ ror2_array_uw	.proc
 		sta  (c64.SCRATCH_ZPWORD1),y
 +		rts
 		.pend
+
+		
+strcpy		.proc
+		; copy a string (0-terminated) from A/Y to (ZPWORD1)
+		; it is assumed the target string is large enough.
+		sta  c64.SCRATCH_ZPWORD2
+		sty  c64.SCRATCH_ZPWORD2+1
+		ldy  #$ff
+-		iny
+		lda  (c64.SCRATCH_ZPWORD2),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		bne  -
+		rts
+		.pend
+		
+		
+func_leftstr	.proc
+		; leftstr(source, target, length) with params on stack
+		inx
+		lda  c64.ESTACK_LO,x
+		tay			; length
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD2
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD2+1
+		inx
+		lda  c64.ESTACK_LO,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  #0
+		sta  (c64.SCRATCH_ZPWORD2),y
+-		dey
+		cpy  #$ff
+		bne  +
+		rts
++		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  (c64.SCRATCH_ZPWORD2),y
+		jmp  -
+		.pend
+
+func_rightstr	.proc
+		; rightstr(source, target, length) with params on stack
+		; make place for the 4 parameters for substr()
+		dex
+		dex
+		dex
+		dex
+		; X-> .
+		; x+1 -> length of segment
+		; x+2 -> start index
+		; X+3 -> target LO+HI
+		; X+4 -> source LO+HI
+		; original parameters:
+		;  x+5 -> original length LO
+		;  x+6 -> original targetLO + HI
+		;  x+7 -> original sourceLO + HI
+		; replicate paramters:
+		lda  c64.ESTACK_LO+5,x
+		sta  c64.ESTACK_LO+1,x
+		lda  c64.ESTACK_LO+6,x
+		sta  c64.ESTACK_LO+3,x
+		lda  c64.ESTACK_HI+6,x
+		sta  c64.ESTACK_HI+3,x
+		lda  c64.ESTACK_LO+7,x
+		sta  c64.ESTACK_LO+4,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+7,x
+		sta  c64.ESTACK_HI+4,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		; determine string length
+		ldy  #0
+-		lda  (c64.SCRATCH_ZPWORD1),y
+		beq  +
+		iny
+		bne  -
++		tya
+		sec
+		sbc  c64.ESTACK_LO+1,x  ; start index = strlen - segment length
+		sta  c64.ESTACK_LO+2,x
+		jsr  func_substr
+		; unwind original params
+		inx
+		inx
+		inx
+		rts
+		.pend
+
+func_substr	.proc
+		; substr(source, target, start, length) with params on stack
+		inx
+		ldy  c64.ESTACK_LO,x	; length
+		inx
+		lda  c64.ESTACK_LO,x	; start
+		sta  c64.SCRATCH_ZPB1
+		inx
+		lda  c64.ESTACK_LO,x	
+		sta  c64.SCRATCH_ZPWORD2
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD2+1
+		inx
+		lda  c64.ESTACK_LO,x	
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		; adjust src location
+		clc
+		lda  c64.SCRATCH_ZPWORD1
+		adc  c64.SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPWORD1
+		bcc  +
+		inc  c64.SCRATCH_ZPWORD1+1
++		lda  #0
+		sta  (c64.SCRATCH_ZPWORD2),y
+		jmp  _startloop
+-		lda  (c64.SCRATCH_ZPWORD1),y
+		sta  (c64.SCRATCH_ZPWORD2),y
+_startloop	dey
+		cpy  #$ff
+		bne  -
+		rts
+
+		.pend

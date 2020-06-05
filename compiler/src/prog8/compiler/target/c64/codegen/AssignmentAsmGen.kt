@@ -773,6 +773,21 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     }
                 }
             }
+            DataType.STR -> {
+                val identifier = assign.value as? IdentifierReference
+                        ?: throw AssemblyError("string value assignment expects identifier value")
+                val sourceName = asmgen.asmIdentifierName(identifier)
+                asmgen.out("""
+                    lda  #<$targetName
+                    sta  ${C64Zeropage.SCRATCH_W1}
+                    lda  #>$targetName
+                    sta  ${C64Zeropage.SCRATCH_W1+1}
+                    lda  #<$sourceName
+                    ldy  #>$sourceName
+                    jsr  prog8_lib.strcpy
+                """)
+                return true
+            }
             else -> throw AssemblyError("assignment to identifier: invalid target datatype: $targetType")
         }
         return false

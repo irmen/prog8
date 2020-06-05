@@ -87,7 +87,20 @@ val BuiltinFunctions = mapOf(
                             FParam("address", IterableDatatypes + DataType.UWORD),
                             FParam("numwords", setOf(DataType.UWORD)),
                             FParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
-    "strlen"      to FSignature(true, listOf(FParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen)
+    "strlen"      to FSignature(true, listOf(FParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen),
+    "substr"      to FSignature(false, listOf(
+            FParam("source", IterableDatatypes + DataType.UWORD),
+            FParam("target", IterableDatatypes + DataType.UWORD),
+            FParam("start", setOf(DataType.UBYTE)),
+            FParam("length", setOf(DataType.UBYTE))), null),
+    "leftstr"      to FSignature(false, listOf(
+            FParam("source", IterableDatatypes + DataType.UWORD),
+            FParam("target", IterableDatatypes + DataType.UWORD),
+            FParam("length", setOf(DataType.UBYTE))), null),
+    "rightstr"      to FSignature(false, listOf(
+            FParam("source", IterableDatatypes + DataType.UWORD),
+            FParam("target", IterableDatatypes + DataType.UWORD),
+            FParam("length", setOf(DataType.UBYTE))), null)
 )
 
 fun builtinMax(array: List<Number>): Number = array.maxBy { it.toDouble() }!!

@@ -156,7 +156,7 @@ Design principles and features
 - The compiler tries to optimize the program and generated code a bit, but hand-tuning of the
   performance or space-critical parts will likely still be required. This is supported by
   the ability to easily write embedded assembly code directly in the program source code.
-- There are many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
+- There are many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``substr``, ``sort`` and ``reverse`` (and others)
 - Assembling the generated code into a program wil be done by an external cross-assembler tool.
 
 

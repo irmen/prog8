@@ -279,16 +279,23 @@ This @-prefix can also be used for character byte values.
 
 
 You can concatenate two string literals using '+' (not very useful though) or repeat
-a string literal a given number of times using '*'::
+a string literal a given number of times using '*'. You can also assign a new string
+value to another string. No bounds check is done so be sure the destination string is
+large enough to contain the new value::
 
     str string1 = "first part" + "second part"
     str string2 = "hello!" * 10
 
+    string1 = string2
+    string1 = "new value"
+
 
 .. caution::
-    Avoid changing strings after they've been created.
+    It's probably best to avoid changing strings after they've been created. This
+    includes changing certain letters by index, or by assigning a new value, or by
+    modifying the string via other means for example ``substr`` function and its cousins.
     This is because if your program exits and is restarted (without loading it again),
-    it will then start working with the changed strings instead of the original ones.
+    it will then start working with the changed strings instead of the original ones!
     The same is true for arrays.
 
 
@@ -801,6 +808,22 @@ memset(address, numbytes, bytevalue)
 memsetw(address, numwords, wordvalue)
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
+
+leftstr(source, target, length)
+    Copies the left side of the source string of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+rightstr(source, target, length)
+    Copies the right side of the source string of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+substr(source, target, start, length)
+    Copies a segment from the source string, starting at the given index,
+    and of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
