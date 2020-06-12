@@ -56,8 +56,14 @@ internal fun Program.checkRecursion(errors: ErrorReporter) {
 }
 
 internal fun Program.checkIdentifiers(errors: ErrorReporter) {
-    val checker = AstIdentifiersChecker(this, errors)
-    checker.visit(this)
+
+    val checker2 = AstIdentifiersChecker(this, errors)
+    checker2.visit(this)
+
+    if(errors.isEmpty()) {
+        val checker = AstIdentifierTransforms(this)
+        checker.visit(this)
+    }
 
     if (modules.map { it.name }.toSet().size != modules.size) {
         throw FatalAstException("modules should all be unique")
