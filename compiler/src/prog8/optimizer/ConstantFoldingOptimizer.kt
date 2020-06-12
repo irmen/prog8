@@ -291,10 +291,6 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
     override fun visit(expr: BinaryExpression): Expression {
         super.visit(expr)
 
-        if(expr.left is StringLiteralValue || expr.left is ArrayLiteralValue
-                || expr.right is StringLiteralValue || expr.right is ArrayLiteralValue)
-            throw FatalAstException("binexpr with reference litval instead of numeric")
-
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)
 

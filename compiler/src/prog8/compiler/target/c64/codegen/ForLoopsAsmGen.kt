@@ -37,7 +37,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
             is IdentifierReference -> {
                 translateForOverIterableVar(stmt, iterableDt.typeOrElse(DataType.STRUCT), stmt.iterable as IdentifierReference)
             }
-            else -> throw AssemblyError("can't iterate over ${stmt.iterable}")
+            else -> throw AssemblyError("can't iterate over ${stmt.iterable.javaClass} - should have been replaced by a variable")
         }
     }
 

@@ -28,7 +28,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is RegisterExpr -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCall -> translateExpression(expression)
-            is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array assignment")
+            is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is StructLiteralValue -> throw AssemblyError("struct literal value assignment should have been flattened")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
         }

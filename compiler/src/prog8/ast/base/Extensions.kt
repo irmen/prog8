@@ -61,8 +61,9 @@ internal fun Program.checkIdentifiers(errors: ErrorReporter) {
     checker2.visit(this)
 
     if(errors.isEmpty()) {
-        val checker = AstIdentifierTransforms(this)
-        checker.visit(this)
+        val transforms = AstVariousTransforms(this)
+        transforms.visit(this)
+        transforms.applyModifications()
     }
 
     if (modules.map { it.name }.toSet().size != modules.size) {
