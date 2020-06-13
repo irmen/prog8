@@ -19,11 +19,16 @@ internal fun Program.constantFold(errors: ErrorReporter) {
 
 
 internal fun Program.optimizeStatements(errors: ErrorReporter): Int {
-    val optimizer = StatementOptimizer(this, errors)
+    val optimizer = StatementOptimizer2(this, errors)
     optimizer.visit(this)
+    val optimizationCount = optimizer.applyModifications()
+
+    val old_optimizer = StatementOptimizer(this, errors)
+    old_optimizer.visit(this)
+
     modules.forEach { it.linkParents(this.namespace) }   // re-link in final configuration
 
-    return optimizer.optimizationsDone
+    return optimizationCount + old_optimizer.optimizationsDone
 }
 
 internal fun Program.simplifyExpressions() : Int {

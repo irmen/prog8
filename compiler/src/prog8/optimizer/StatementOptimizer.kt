@@ -1,9 +1,12 @@
 package prog8.optimizer
 
 import prog8.ast.INameScope
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.processing.AstWalker
+import prog8.ast.processing.IAstModification
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
@@ -18,50 +21,33 @@ import kotlin.math.floor
 */
 
 
-// TODO implement using AstWalker instead of IAstModifyingVisitor
-internal class StatementOptimizer(private val program: Program,
-                                  private val errors: ErrorReporter) : IAstModifyingVisitor {
-    var optimizationsDone: Int = 0
-        private set
+internal class StatementOptimizer2(private val program: Program,
+                                   private val errors: ErrorReporter) : AstWalker() {
 
-    private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
-    private val vardeclsToRemove = mutableListOf<VarDecl>()
+    private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
 
-    override fun visit(program: Program) {
-        super.visit(program)
-
-        for(decl in vardeclsToRemove) {
-            decl.definingScope().remove(decl)
-        }
-    }
-
-    override fun visit(block: Block): Statement {
+    override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars()) {
-                optimizationsDone++
                 errors.warn("removing empty block '${block.name}'", block.position)
-                return NopStatement.insteadOf(block)
+                return listOf(IAstModification.Remove(block, parent))
             }
 
             if (block !in callgraph.usedSymbols) {
-                optimizationsDone++
                 errors.warn("removing unused block '${block.name}'", block.position)
-                return NopStatement.insteadOf(block)  // remove unused block
+                return listOf(IAstModification.Remove(block, parent))
             }
         }
-
-        return super.visit(block)
+        return emptyList()
     }
 
-    override fun visit(subroutine: Subroutine): Statement {
-        super.visit(subroutine)
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val forceOutput = "force_output" in subroutine.definingBlock().options()
         if(subroutine.asmAddress==null && !forceOutput) {
             if(subroutine.containsNoCodeNorVars()) {
                 errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
-                optimizationsDone++
-                return NopStatement.insteadOf(subroutine)
+                return listOf(IAstModification.Remove(subroutine, parent))
             }
         }
 
@@ -72,24 +58,251 @@ internal class StatementOptimizer(private val program: Program,
 
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {
             errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
-            optimizationsDone++
-            return NopStatement.insteadOf(subroutine)
+            return listOf(IAstModification.Remove(subroutine, parent))
         }
 
-        return subroutine
+        return emptyList()
     }
 
-    override fun visit(decl: VarDecl): Statement {
+    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+        val linesToRemove = deduplicateAssignments(scope.statements)
+        return linesToRemove.reversed().map { IAstModification.Remove(scope.statements[it], scope) }
+    }
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val forceOutput = "force_output" in decl.definingBlock().options()
         if(decl !in callgraph.usedSymbols && !forceOutput) {
             if(decl.type == VarDeclType.VAR)
-                errors.warn("removing unused variable ${decl.type} '${decl.name}'", decl.position)
-            optimizationsDone++
-            return NopStatement.insteadOf(decl)
+                errors.warn("removing unused variable '${decl.name}'", decl.position)
+
+            return listOf(IAstModification.Remove(decl, parent))
         }
 
-        return super.visit(decl)
+        return emptyList()
     }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
+            val functionName = functionCallStatement.target.nameInSource[0]
+            if (functionName in pureBuiltinFunctions) {
+                errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
+                return listOf(IAstModification.Remove(functionCallStatement, parent))
+            }
+        }
+
+        // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
+        // this is a C-64 specific optimization
+        if(functionCallStatement.target.nameInSource==listOf("c64scr", "print")) {
+            val arg = functionCallStatement.args.single()
+            val stringVar: IdentifierReference?
+            stringVar = if(arg is AddressOf) {
+                arg.identifier
+            } else {
+                arg as? IdentifierReference
+            }
+            if(stringVar!=null) {
+                val vardecl = stringVar.targetVarDecl(program.namespace)!!
+                val string = vardecl.value!! as StringLiteralValue
+                val pos = functionCallStatement.position
+                if(string.value.length==1) {
+                    val firstCharEncoded = CompilationTarget.encodeString(string.value, string.altEncoding)[0]
+                    val chrout = FunctionCallStatement(
+                            IdentifierReference(listOf("c64", "CHROUT"), pos),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
+                            functionCallStatement.void, pos
+                    )
+                    return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
+                } else if(string.value.length==2) {
+                    val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2), string.altEncoding)
+                    val chrout1 = FunctionCallStatement(
+                            IdentifierReference(listOf("c64", "CHROUT"), pos),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
+                            functionCallStatement.void, pos
+                    )
+                    val chrout2 = FunctionCallStatement(
+                            IdentifierReference(listOf("c64", "CHROUT"), pos),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toInt(), pos)),
+                            functionCallStatement.void, pos
+                    )
+                    val anonscope = AnonymousScope(mutableListOf(), pos)
+                    anonscope.statements.add(chrout1)
+                    anonscope.statements.add(chrout2)
+                    return listOf(IAstModification.ReplaceNode(functionCallStatement, anonscope, parent))
+                }
+            }
+        }
+
+        // if the first instruction in the called subroutine is a return statement, remove the jump altogeter
+        val subroutine = functionCallStatement.target.targetSubroutine(program.namespace)
+        if(subroutine!=null) {
+            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
+            if(first is ReturnFromIrq || first is Return)
+                return listOf(IAstModification.Remove(functionCallStatement, parent))
+        }
+
+        return emptyList()
+    }
+
+    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+        // if the first instruction in the called subroutine is a return statement with constant value, replace with the constant value
+        val subroutine = functionCall.target.targetSubroutine(program.namespace)
+        if(subroutine!=null) {
+            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
+            if(first is Return && first.value!=null) {
+                val constval = first.value?.constValue(program)
+                if(constval!=null)
+                    return listOf(IAstModification.ReplaceNode(functionCall, constval, parent))
+            }
+        }
+        return emptyList()
+    }
+
+    override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
+        // remove empty if statements
+        if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars())
+            return listOf(IAstModification.Remove(ifStatement, parent))
+
+        // empty true part? switch with the else part
+        if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsCodeOrVars()) {
+            val invertedCondition = PrefixExpression("not", ifStatement.condition, ifStatement.condition.position)
+            val emptyscope = AnonymousScope(mutableListOf(), ifStatement.elsepart.position)
+            val truepart = AnonymousScope(ifStatement.elsepart.statements, ifStatement.truepart.position)
+            return listOf(
+                    IAstModification.ReplaceNode(ifStatement.condition, invertedCondition, ifStatement),
+                    IAstModification.ReplaceNode(ifStatement.truepart, truepart, ifStatement),
+                    IAstModification.ReplaceNode(ifStatement.elsepart, emptyscope, ifStatement)
+            )
+        }
+
+        val constvalue = ifStatement.condition.constValue(program)
+        if(constvalue!=null) {
+            return if(constvalue.asBooleanValue){
+                // always true -> keep only if-part
+                errors.warn("condition is always true", ifStatement.position)
+                listOf(IAstModification.ReplaceNode(ifStatement, ifStatement.truepart, parent))
+            } else {
+                // always false -> keep only else-part
+                errors.warn("condition is always false", ifStatement.position)
+                listOf(IAstModification.ReplaceNode(ifStatement, ifStatement.elsepart, parent))
+            }
+        }
+
+        return emptyList()
+    }
+
+    override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
+        if(forLoop.body.containsNoCodeNorVars()) {
+            // remove empty for loop
+            return listOf(IAstModification.Remove(forLoop, parent))
+        } else if(forLoop.body.statements.size==1) {
+            val loopvar = forLoop.body.statements[0] as? VarDecl
+            if(loopvar!=null && loopvar.name==forLoop.loopVar?.nameInSource?.singleOrNull()) {
+                // remove empty for loop (only loopvar decl in it)
+                return listOf(IAstModification.Remove(forLoop, parent))
+            }
+        }
+
+        val range = forLoop.iterable as? RangeExpr
+        if(range!=null) {
+            if(range.size()==1) {
+                // for loop over a (constant) range of just a single value-- optimize the loop away
+                // loopvar/reg = range value , follow by block
+                val scope = AnonymousScope(mutableListOf(), forLoop.position)
+                scope.statements.add(Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, range.from, forLoop.position))
+                scope.statements.addAll(forLoop.body.statements)
+                return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
+            }
+        }
+        val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl(program.namespace)
+        if(iterable!=null) {
+            if(iterable.datatype==DataType.STR) {
+                val sv = iterable.value as StringLiteralValue
+                val size = sv.value.length
+                if(size==1) {
+                    // loop over string of length 1 -> just assign the single character
+                    val character = CompilationTarget.encodeString(sv.value, sv.altEncoding)[0]
+                    val byte = NumericLiteralValue(DataType.UBYTE, character, iterable.position)
+                    val scope = AnonymousScope(mutableListOf(), forLoop.position)
+                    scope.statements.add(Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, byte, forLoop.position))
+                    scope.statements.addAll(forLoop.body.statements)
+                    return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
+                }
+            }
+            else if(iterable.datatype in ArrayDatatypes) {
+                val size = iterable.arraysize!!.size()
+                if(size==1) {
+                    // loop over array of length 1 -> just assign the single value
+                    val av = (iterable.value as ArrayLiteralValue).value[0].constValue(program)?.number
+                    if(av!=null) {
+                        val scope = AnonymousScope(mutableListOf(), forLoop.position)
+                        scope.statements.add(Assignment(
+                                AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
+                                forLoop.position))
+                        scope.statements.addAll(forLoop.body.statements)
+                        return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
+                    }
+                }
+            }
+        }
+
+        return emptyList()
+    }
+
+    override fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
+        val constvalue = repeatLoop.untilCondition.constValue(program)
+        if(constvalue!=null) {
+            if(constvalue.asBooleanValue) {
+                // always true -> keep only the statement block (if there are no continue and break statements)
+                errors.warn("condition is always true", repeatLoop.untilCondition.position)
+                if(!hasContinueOrBreak(repeatLoop.body))
+                    return listOf(IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent))
+            } else {
+                // always false
+                val forever = ForeverLoop(repeatLoop.body, repeatLoop.position)
+                return listOf(IAstModification.ReplaceNode(repeatLoop, forever, parent))
+            }
+        }
+        return emptyList()
+    }
+
+    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        val constvalue = whileLoop.condition.constValue(program)
+        if(constvalue!=null) {
+            return if(constvalue.asBooleanValue) {
+                // always true
+                val forever = ForeverLoop(whileLoop.body, whileLoop.position)
+                listOf(IAstModification.ReplaceNode(whileLoop, forever, parent))
+            } else {
+                // always false -> remove the while statement altogether
+                errors.warn("condition is always false", whileLoop.condition.position)
+                listOf(IAstModification.Remove(whileLoop, parent))
+            }
+        }
+        return emptyList()
+    }
+
+    override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
+        // remove empty choices
+        class ChoiceRemover(val choice: WhenChoice) : IAstModification {
+            override fun perform() {
+                whenStatement.choices.remove(choice)
+            }
+        }
+        return whenStatement.choices
+                .filter { !it.statements.containsCodeOrVars() }
+                .map { ChoiceRemover(it) }
+    }
+
+    override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
+        // if the jump is to the next statement, remove the jump
+        val scope = jump.definingScope()
+        val label = jump.identifier?.targetStatement(scope)
+        if(label!=null && scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1)
+            return listOf(IAstModification.Remove(jump, parent))
+
+        return emptyList()
+    }
+
 
     private fun deduplicateAssignments(statements: List<Statement>): MutableList<Int> {
         // removes 'duplicate' assignments that assign the isSameAs target
@@ -116,207 +329,6 @@ internal class StatementOptimizer(private val program: Program,
         return linesToRemove
     }
 
-    override fun visit(functionCallStatement: FunctionCallStatement): Statement {
-        if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
-            val functionName = functionCallStatement.target.nameInSource[0]
-            if (functionName in pureBuiltinFunctions) {
-                errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
-                optimizationsDone++
-                return NopStatement.insteadOf(functionCallStatement)
-            }
-        }
-
-        if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
-                functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
-            // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            val arg = functionCallStatement.args.single()
-            val stringVar: IdentifierReference?
-            stringVar = if(arg is AddressOf) {
-                arg.identifier
-            } else {
-                arg as? IdentifierReference
-            }
-            if(stringVar!=null) {
-                val vardecl = stringVar.targetVarDecl(program.namespace)!!
-                val string = vardecl.value!! as StringLiteralValue
-                if(string.value.length==1) {
-                    val firstCharEncoded = CompilationTarget.encodeString(string.value, string.altEncoding)[0]
-                    functionCallStatement.args.clear()
-                    functionCallStatement.args.add(NumericLiteralValue.optimalInteger(firstCharEncoded.toInt(), functionCallStatement.position))
-                    functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
-                    vardeclsToRemove.add(vardecl)
-                    optimizationsDone++
-                    return functionCallStatement
-                } else if(string.value.length==2) {
-                    val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2), string.altEncoding)
-                    val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
-                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[0].toInt(), functionCallStatement.position)),
-                            functionCallStatement.void, functionCallStatement.position))
-                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(NumericLiteralValue.optimalInteger(firstTwoCharsEncoded[1].toInt(), functionCallStatement.position)),
-                            functionCallStatement.void, functionCallStatement.position))
-                    vardeclsToRemove.add(vardecl)
-                    optimizationsDone++
-                    return scope
-                }
-            }
-        }
-
-        // if it calls a subroutine,
-        // and the first instruction in the subroutine is a jump, call that jump target instead
-        // if the first instruction in the subroutine is a return statement, replace with a nop instruction
-        val subroutine = functionCallStatement.target.targetSubroutine(program.namespace)
-        if(subroutine!=null) {
-            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is Jump && first.identifier!=null) {
-                optimizationsDone++
-                return FunctionCallStatement(first.identifier, functionCallStatement.args, functionCallStatement.void, functionCallStatement.position)
-            }
-            if(first is ReturnFromIrq || first is Return) {
-                optimizationsDone++
-                return NopStatement.insteadOf(functionCallStatement)
-            }
-        }
-
-        return super.visit(functionCallStatement)
-    }
-
-    override fun visit(functionCall: FunctionCall): Expression {
-        // if it calls a subroutine,
-        // and the first instruction in the subroutine is a jump, call that jump target instead
-        // if the first instruction in the subroutine is a return statement with constant value, replace with the constant value
-        val subroutine = functionCall.target.targetSubroutine(program.namespace)
-        if(subroutine!=null) {
-            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is Jump && first.identifier!=null) {
-                optimizationsDone++
-                return FunctionCall(first.identifier, functionCall.args, functionCall.position)
-            }
-            if(first is Return && first.value!=null) {
-                val constval = first.value?.constValue(program)
-                if(constval!=null)
-                    return constval
-            }
-        }
-        return super.visit(functionCall)
-    }
-
-    override fun visit(ifStatement: IfStatement): Statement {
-        super.visit(ifStatement)
-
-        if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars()) {
-            optimizationsDone++
-            return NopStatement.insteadOf(ifStatement)
-        }
-
-        if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsCodeOrVars()) {
-            // invert the condition and move else part to true part
-            ifStatement.truepart = ifStatement.elsepart
-            ifStatement.elsepart = AnonymousScope(mutableListOf(), ifStatement.elsepart.position)
-            ifStatement.condition = PrefixExpression("not", ifStatement.condition, ifStatement.condition.position)
-            optimizationsDone++
-            return ifStatement
-        }
-
-        val constvalue = ifStatement.condition.constValue(program)
-        if(constvalue!=null) {
-            return if(constvalue.asBooleanValue){
-                // always true -> keep only if-part
-                errors.warn("condition is always true", ifStatement.position)
-                optimizationsDone++
-                ifStatement.truepart
-            } else {
-                // always false -> keep only else-part
-                errors.warn("condition is always false", ifStatement.position)
-                optimizationsDone++
-                ifStatement.elsepart
-            }
-        }
-        return ifStatement
-    }
-
-    override fun visit(forLoop: ForLoop): Statement {
-        super.visit(forLoop)
-        if(forLoop.body.containsNoCodeNorVars()) {
-            // remove empty for loop
-            optimizationsDone++
-            return NopStatement.insteadOf(forLoop)
-        } else if(forLoop.body.statements.size==1) {
-            val loopvar = forLoop.body.statements[0] as? VarDecl
-            if(loopvar!=null && loopvar.name==forLoop.loopVar?.nameInSource?.singleOrNull()) {
-                // remove empty for loop
-                optimizationsDone++
-                return NopStatement.insteadOf(forLoop)
-            }
-        }
-
-
-        val range = forLoop.iterable as? RangeExpr
-        if(range!=null) {
-            if(range.size()==1) {
-                // for loop over a (constant) range of just a single value-- optimize the loop away
-                // loopvar/reg = range value , follow by block
-                val assignment = Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, range.from, forLoop.position)
-                forLoop.body.statements.add(0, assignment)
-                optimizationsDone++
-                return forLoop.body
-            }
-        }
-        return forLoop
-    }
-
-    override fun visit(whileLoop: WhileLoop): Statement {
-        super.visit(whileLoop)
-        val constvalue = whileLoop.condition.constValue(program)
-        if(constvalue!=null) {
-            return if(constvalue.asBooleanValue){
-                // always true -> print a warning, and optimize into a forever-loop
-                errors.warn("condition is always true", whileLoop.condition.position)
-                optimizationsDone++
-                ForeverLoop(whileLoop.body, whileLoop.position)
-            } else {
-                // always false -> remove the while statement altogether
-                errors.warn("condition is always false", whileLoop.condition.position)
-                optimizationsDone++
-                NopStatement.insteadOf(whileLoop)
-            }
-        }
-        return whileLoop
-    }
-
-    override fun visit(repeatLoop: RepeatLoop): Statement {
-        super.visit(repeatLoop)
-        val constvalue = repeatLoop.untilCondition.constValue(program)
-        if(constvalue!=null) {
-            return if(constvalue.asBooleanValue){
-                // always true -> keep only the statement block (if there are no continue and break statements)
-                errors.warn("condition is always true", repeatLoop.untilCondition.position)
-                if(hasContinueOrBreak(repeatLoop.body))
-                    repeatLoop
-                else {
-                    optimizationsDone++
-                    repeatLoop.body
-                }
-            } else {
-                // always false -> print a warning, and optimize into a forever loop
-                errors.warn("condition is always false", repeatLoop.untilCondition.position)
-                optimizationsDone++
-                ForeverLoop(repeatLoop.body, repeatLoop.position)
-            }
-        }
-        return repeatLoop
-    }
-
-    override fun visit(whenStatement: WhenStatement): Statement {
-        val choices = whenStatement.choices.toList()
-        for(choice in choices) {
-            if(choice.statements.containsNoCodeNorVars())
-                whenStatement.choices.remove(choice)
-        }
-        return super.visit(whenStatement)
-    }
-
     private fun hasContinueOrBreak(scope: INameScope): Boolean {
 
         class Searcher: IAstVisitor
@@ -341,28 +353,26 @@ internal class StatementOptimizer(private val program: Program,
         return s.count > 0
     }
 
-    override fun visit(jump: Jump): Statement {
-        val subroutine = jump.identifier?.targetSubroutine(program.namespace)
-        if(subroutine!=null) {
-            // if the first instruction in the subroutine is another jump, shortcut this one
-            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is Jump) {
-                optimizationsDone++
-                return first
-            }
-        }
+}
 
-        // if the jump is to the next statement, remove the jump
-        val scope = jump.definingScope()
-        val label = jump.identifier?.targetStatement(scope)
-        if(label!=null) {
-            if(scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1) {
-                optimizationsDone++
-                return NopStatement.insteadOf(jump)
-            }
-        }
 
-        return jump
+// ------------------------------------------------------------
+
+
+// TODO implement using AstWalker instead of IAstModifyingVisitor
+internal class StatementOptimizer(private val program: Program,
+                                  private val errors: ErrorReporter) : IAstModifyingVisitor {
+    var optimizationsDone: Int = 0
+        private set
+
+    private val vardeclsToRemove = mutableListOf<VarDecl>()
+
+    override fun visit(program: Program) {
+        super.visit(program)
+
+        for(decl in vardeclsToRemove) {
+            decl.definingScope().remove(decl)
+        }
     }
 
     override fun visit(assignment: Assignment): Statement {
@@ -502,13 +512,6 @@ internal class StatementOptimizer(private val program: Program,
         return super.visit(assignment)
     }
 
-    override fun visit(scope: AnonymousScope): Statement {
-        val linesToRemove = deduplicateAssignments(scope.statements)
-        if(linesToRemove.isNotEmpty()) {
-            linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
-        }
-        return super.visit(scope)
-    }
 
     override fun visit(label: Label): Statement {
         // remove duplicate labels

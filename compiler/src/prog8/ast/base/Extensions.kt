@@ -71,12 +71,6 @@ internal fun Program.checkIdentifiers(errors: ErrorReporter) {
     }
 }
 
-internal fun Program.makeForeverLoops() {
-    val checker = ForeverLoopsMaker()
-    checker.visit(this)
-    checker.applyModifications()
-}
-
 internal fun Program.removeNopsFlattenAnonScopes() {
     val flattener = FlattenAnonymousScopesAndNopRemover()
     flattener.visit(this)
