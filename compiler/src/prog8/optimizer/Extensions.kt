@@ -5,11 +5,9 @@ import prog8.ast.base.ErrorReporter
 
 
 internal fun Program.constantFold(errors: ErrorReporter) {
-    val optimizer = ConstantFoldingOptimizer2(this, errors)
-    optimizer.visit(this)
-    while(errors.isEmpty() && optimizer.applyModifications() > 0) {
-        optimizer.visit(this)
-    }
+    val replacer = ConstantIdentifierReplacer(this)
+    replacer.visit(this)
+    replacer.applyModifications()
 
     val optimizer_old = ConstantFoldingOptimizer(this, errors)
     optimizer_old.visit(this)
@@ -17,6 +15,12 @@ internal fun Program.constantFold(errors: ErrorReporter) {
     while(errors.isEmpty() && optimizer_old.optimizationsDone>0) {
         optimizer_old.optimizationsDone = 0
         optimizer_old.visit(this)
+    }
+
+    val optimizer = ConstantFoldingOptimizer2(this, errors)
+    optimizer.visit(this)
+    while(errors.isEmpty() && optimizer.applyModifications() > 0) {
+        optimizer.visit(this)
     }
 
     if(errors.isEmpty())

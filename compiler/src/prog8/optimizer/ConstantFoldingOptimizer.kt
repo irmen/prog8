@@ -1,6 +1,5 @@
 package prog8.optimizer
 
-import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -10,8 +9,33 @@ import prog8.ast.processing.IAstModification
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
-import prog8.functions.BuiltinFunctions
 
+
+// First thing to do is replace all constant identifiers with their actual value.
+// this is needed because further constant optimizations depend on this.
+internal class ConstantIdentifierReplacer(private val program: Program) : AstWalker() {
+    private val noModifications = emptyList<IAstModification>()
+
+    override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+        // replace identifiers that refer to const value, with the value itself
+        // if it's a simple type and if it's not a left hand side variable
+        if(identifier.parent is AssignTarget)
+            return noModifications
+        var forloop = identifier.parent as? ForLoop
+        if(forloop==null)
+            forloop = identifier.parent.parent as? ForLoop
+        if(forloop!=null && identifier===forloop.loopVar)
+            return noModifications
+
+        val cval = identifier.constValue(program) ?: return noModifications
+        return when (cval.type) {
+            in NumericDatatypes -> listOf(IAstModification.ReplaceNode(identifier, NumericLiteralValue(cval.type, cval.number, identifier.position), identifier.parent))
+            in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
+            else -> noModifications
+        }
+    }
+
+}
 
 internal class ConstantFoldingOptimizer2(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
@@ -23,6 +47,334 @@ internal class ConstantFoldingOptimizer2(private val program: Program, private v
             listOf(IAstModification.ReplaceNode(memread, addrOf.identifier, parent))
         else
             noModifications
+    }
+
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        // Try to turn a unary prefix expression into a single constant value.
+        // Compile-time constant sub expressions will be evaluated on the spot.
+        // For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
+        val subexpr = expr.expression
+        if (subexpr is NumericLiteralValue) {
+            // accept prefixed literal values (such as -3, not true)
+            return when (expr.operator) {
+                "+" -> listOf(IAstModification.ReplaceNode(expr, subexpr, parent))
+                "-" -> when (subexpr.type) {
+                    in IntegerDatatypes -> {
+                        listOf(IAstModification.ReplaceNode(expr,
+                                NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position),
+                                parent))
+                    }
+                    DataType.FLOAT -> {
+                        listOf(IAstModification.ReplaceNode(expr,
+                                NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position),
+                                parent))
+                    }
+                    else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
+                }
+                "~" -> when (subexpr.type) {
+                    in IntegerDatatypes -> {
+                        listOf(IAstModification.ReplaceNode(expr,
+                                NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position),
+                                parent))
+                    }
+                    else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
+                }
+                "not" -> {
+                    listOf(IAstModification.ReplaceNode(expr,
+                            NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position),
+                            parent))
+                }
+                else -> throw ExpressionError(expr.operator, subexpr.position)
+            }
+        }
+        return noModifications
+    }
+
+    /**
+     * Try to constfold a binary expression.
+     * Compile-time constant sub expressions will be evaluated on the spot.
+     * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
+     *
+     * More complex stuff: reordering to group constants:
+     * If one of our operands is a Constant,
+     *   and the other operand is a Binary expression,
+     *   and one of ITS operands is a Constant,
+     *   and ITS other operand is NOT a Constant,
+     *   ...it may be possible to rewrite the expression to group the two Constants together,
+     *      to allow them to be const-folded away.
+     *
+     *  examples include:
+     *        (X / c1) * c2  ->  X / (c2/c1)
+     *        (X + c1) - c2  ->  X + (c1-c2)
+     */
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        val leftconst = expr.left.constValue(program)
+        val rightconst = expr.right.constValue(program)
+
+        val subExpr: BinaryExpression? = when {
+            leftconst!=null -> expr.right as? BinaryExpression
+            rightconst!=null -> expr.left as? BinaryExpression
+            else -> null
+        }
+        if(subExpr!=null) {
+            val subleftconst = subExpr.left.constValue(program)
+            val subrightconst = subExpr.right.constValue(program)
+            if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
+                // try reordering.
+                val change = groupTwoConstsTogether(expr, subExpr,
+                        leftconst != null, rightconst != null,
+                        subleftconst != null, subrightconst != null)
+                return change?.let { listOf(it) } ?: noModifications
+            }
+        }
+
+        // const fold when both operands are a const
+        if(leftconst != null && rightconst != null) {
+            val evaluator = ConstExprEvaluator()
+            return listOf(IAstModification.ReplaceNode(
+                    expr,
+                    evaluator.evaluate(leftconst, expr.operator, rightconst),
+                    parent
+            ))
+        }
+
+        return noModifications
+    }
+
+    override fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> {
+        // because constant folding can result in arrays that are now suddenly capable
+        // of telling the type of all their elements (for instance, when they contained -2 which
+        // was a prefix expression earlier), we recalculate the array's datatype.
+        if(array.type.isKnown)
+            return noModifications
+        val arrayDt = array.guessDatatype(program)
+        if(arrayDt.isKnown) {
+            val newArray = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
+            if(newArray!=null && newArray != array) {
+                return listOf(IAstModification.ReplaceNode(array, newArray, parent))
+            }
+        }
+
+        return noModifications
+    }
+
+    override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+        // the args of a fuction are constfolded via recursion already.
+        val constvalue = functionCall.constValue(program)
+        return if(constvalue!=null)
+            listOf(IAstModification.ReplaceNode(functionCall, constvalue, parent))
+        else
+            noModifications
+    }
+
+    private class ShuffleOperands(val expr: BinaryExpression,
+                                  val exprOperator: String?,
+                                  val subExpr: BinaryExpression,
+                                  val newExprLeft: Expression?,
+                                  val newExprRight: Expression?,
+                                  val newSubexprLeft: Expression?,
+                                  val newSubexprRight: Expression?
+                                  ): IAstModification {
+        override fun perform() {
+            if(exprOperator!=null) expr.operator = exprOperator
+            if(newExprLeft!=null) expr.left = newExprLeft
+            if(newExprRight!=null) expr.right = newExprRight
+            if(newSubexprLeft!=null) subExpr.left = newSubexprLeft
+            if(newSubexprRight!=null) subExpr.right = newSubexprRight
+        }
+    }
+
+    private fun groupTwoConstsTogether(expr: BinaryExpression,
+                                       subExpr: BinaryExpression,
+                                       leftIsConst: Boolean,
+                                       rightIsConst: Boolean,
+                                       subleftIsConst: Boolean,
+                                       subrightIsConst: Boolean): IAstModification?
+    {
+        // todo: this implements only a small set of possible reorderings at this time
+        if(expr.operator==subExpr.operator) {
+            // both operators are the same.
+            // If + or *,  we can simply shuffle the const operands around to optimize.
+            if(expr.operator=="+" || expr.operator=="*") {
+                return if(leftIsConst) {
+                    if(subleftIsConst)
+                        ShuffleOperands(expr, null, subExpr, subExpr.right, null, null, expr.left)
+                    else
+                        ShuffleOperands(expr, null, subExpr, subExpr.left, null, expr.left, null)
+                } else {
+                    if(subleftIsConst)
+                        ShuffleOperands(expr, null, subExpr, null, subExpr.right, null, expr.right)
+                    else
+                        ShuffleOperands(expr, null, subExpr, null, subExpr.left, expr.right, null)
+                }
+            }
+
+            // If - or /,  we simetimes must reorder more, and flip operators (- -> +, / -> *)
+            if(expr.operator=="-" || expr.operator=="/") {
+                if(leftIsConst) {
+                    return if (subleftIsConst) {
+                        ShuffleOperands(expr, if (expr.operator == "-") "+" else "*", subExpr, subExpr.right, null, expr.left, subExpr.left)
+                    } else {
+                        IAstModification.ReplaceNode(expr,
+                                BinaryExpression(
+                                        BinaryExpression(expr.left, if (expr.operator == "-") "+" else "*", subExpr.right, subExpr.position),
+                                        expr.operator, subExpr.left, expr.position),
+                                expr.parent)
+                    }
+                } else {
+                    return if(subleftIsConst) {
+                        return ShuffleOperands(expr, null, subExpr, null, subExpr.right, null, expr.right)
+                    } else {
+                        IAstModification.ReplaceNode(expr,
+                                BinaryExpression(
+                                        subExpr.left, expr.operator,
+                                        BinaryExpression(expr.right, if (expr.operator == "-") "+" else "*", subExpr.right, subExpr.position),
+                                        expr.position),
+                                expr.parent)
+                    }
+                }
+            }
+            return null
+
+        }
+        else
+        {
+
+            if(expr.operator=="/" && subExpr.operator=="*") {
+                if(leftIsConst) {
+                    val change = if(subleftIsConst) {
+                        // C1/(C2*V) -> (C1/C2)/V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "/", subExpr.left, subExpr.position),
+                                "/",
+                                subExpr.right, expr.position)
+                    } else {
+                        // C1/(V*C2) -> (C1/C2)/V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "/", subExpr.right, subExpr.position),
+                                "/",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                } else {
+                    val change = if(subleftIsConst) {
+                        // (C1*V)/C2 -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "/", expr.right, subExpr.position),
+                                "*",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (V*C1)/C2 -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.right, "/", expr.right, subExpr.position),
+                                "*",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                }
+            }
+            else if(expr.operator=="*" && subExpr.operator=="/") {
+                if(leftIsConst) {
+                    val change = if(subleftIsConst) {
+                        // C1*(C2/V) -> (C1*C2)/V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "*", subExpr.left, subExpr.position),
+                                "/",
+                                subExpr.right, expr.position)
+                    } else {
+                        // C1*(V/C2) -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "/", subExpr.right, subExpr.position),
+                                "*",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                } else {
+                    val change = if(subleftIsConst) {
+                        // (C1/V)*C2 -> (C1*C2)/V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "*", expr.right, subExpr.position),
+                                "/",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (V/C1)*C2 -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(expr.right, "/", subExpr.right, subExpr.position),
+                                "*",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                }
+            }
+            else if(expr.operator=="+" && subExpr.operator=="-") {
+                if(leftIsConst){
+                    val change = if(subleftIsConst){
+                        // c1+(c2-v)  ->  (c1+c2)-v
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "+", subExpr.left, subExpr.position),
+                                "-",
+                                subExpr.right, expr.position)
+                    } else {
+                        // c1+(v-c2)  ->  v+(c1-c2)
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "-", subExpr.right, subExpr.position),
+                                "+",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                } else {
+                    val change = if(subleftIsConst) {
+                        // (c1-v)+c2  ->  (c1+c2)-v
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "+", expr.right, subExpr.position),
+                                "-",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (v-c1)+c2  ->  v+(c2-c1)
+                        BinaryExpression(
+                                BinaryExpression(expr.right, "-", subExpr.right, subExpr.position),
+                                "+",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                }
+            }
+            else if(expr.operator=="-" && subExpr.operator=="+") {
+                if(leftIsConst) {
+                    val change = if(subleftIsConst) {
+                        // c1-(c2+v)  ->  (c1-c2)-v
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "-", subExpr.left, subExpr.position),
+                                "-",
+                                subExpr.right, expr.position)
+                    } else {
+                        // c1-(v+c2)  ->  (c1-c2)-v
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "-", subExpr.right, subExpr.position),
+                                "-",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                } else {
+                    val change = if(subleftIsConst) {
+                        // (c1+v)-c2  ->  v+(c1-c2)
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "-", expr.right, subExpr.position),
+                                "+",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (v+c1)-c2  ->  v+(c1-c2)
+                        BinaryExpression(
+                                BinaryExpression(subExpr.right, "-", expr.right, subExpr.position),
+                                "+",
+                                subExpr.left, expr.position)
+                    }
+                    return IAstModification.ReplaceNode(expr, change, expr.parent)
+                }
+            }
+
+            return null
+        }
     }
 
     // TODO conversion from below
@@ -169,362 +521,6 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
         return super.visit(decl)
     }
 
-    /**
-     * replace identifiers that refer to const value, with the value itself (if it's a simple type)
-     */
-    override fun visit(identifier: IdentifierReference): Expression {
-        // don't replace when it's an assignment target or loop variable
-        if(identifier.parent is AssignTarget)
-            return identifier
-        var forloop = identifier.parent as? ForLoop
-        if(forloop==null)
-            forloop = identifier.parent.parent as? ForLoop
-        if(forloop!=null && identifier===forloop.loopVar)
-            return identifier
-
-        val cval = identifier.constValue(program) ?: return identifier
-        return when (cval.type) {
-            in NumericDatatypes -> {
-                val copy = NumericLiteralValue(cval.type, cval.number, identifier.position)
-                copy.parent = identifier.parent
-                copy
-            }
-            in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
-            else -> identifier
-        }
-    }
-
-    override fun visit(functionCall: FunctionCall): Expression {
-        super.visit(functionCall)
-        typeCastConstArguments(functionCall)
-        return functionCall.constValue(program) ?: functionCall
-    }
-
-    override fun visit(functionCallStatement: FunctionCallStatement): Statement {
-        super.visit(functionCallStatement)
-        typeCastConstArguments(functionCallStatement)
-        return functionCallStatement
-    }
-
-    private fun typeCastConstArguments(functionCall: IFunctionCall) {
-        if(functionCall.target.nameInSource.size==1) {
-            val builtinFunction = BuiltinFunctions[functionCall.target.nameInSource.single()]
-            if(builtinFunction!=null) {
-                // match the arguments of a builtin function signature.
-                for(arg in functionCall.args.withIndex().zip(builtinFunction.parameters)) {
-                    val possibleDts = arg.second.possibleDatatypes
-                    val argConst = arg.first.value.constValue(program)
-                    if(argConst!=null && argConst.type !in possibleDts) {
-                        val convertedValue = argConst.cast(possibleDts.first())
-                        functionCall.args[arg.first.index] = convertedValue
-                        optimizationsDone++
-                    }
-                }
-                return
-            }
-        }
-        // match the arguments of a subroutine.
-        val subroutine = functionCall.target.targetSubroutine(program.namespace)
-        if(subroutine!=null) {
-            // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
-            for(arg in functionCall.args.withIndex().zip(subroutine.parameters)) {
-                val expectedDt = arg.second.type
-                val argConst = arg.first.value.constValue(program)
-                if(argConst!=null && argConst.type!=expectedDt) {
-                    val convertedValue = argConst.cast(expectedDt)
-                    functionCall.args[arg.first.index] = convertedValue
-                    optimizationsDone++
-                }
-            }
-        }
-    }
-
-    /**
-     * Try to accept a unary prefix expression.
-     * Compile-time constant sub expressions will be evaluated on the spot.
-     * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
-     */
-    override fun visit(expr: PrefixExpression): Expression {
-        val prefixExpr=super.visit(expr)
-        if(prefixExpr !is PrefixExpression)
-            return prefixExpr
-
-        val subexpr = prefixExpr.expression
-        if (subexpr is NumericLiteralValue) {
-            // accept prefixed literal values (such as -3, not true)
-            return when (prefixExpr.operator) {
-                "+" -> subexpr
-                "-" -> when (subexpr.type) {
-                    in IntegerDatatypes -> {
-                        optimizationsDone++
-                        NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
-                    }
-                    DataType.FLOAT -> {
-                        optimizationsDone++
-                        NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position)
-                    }
-                    else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
-                }
-                "~" -> when (subexpr.type) {
-                    in IntegerDatatypes -> {
-                        optimizationsDone++
-                        NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
-                    }
-                    else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
-                }
-                "not" -> {
-                    optimizationsDone++
-                    NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
-                }
-                else -> throw ExpressionError(prefixExpr.operator, subexpr.position)
-            }
-        }
-        return prefixExpr
-    }
-
-    /**
-     * Try to accept a binary expression.
-     * Compile-time constant sub expressions will be evaluated on the spot.
-     * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
-     *
-     * More complex stuff: reordering to group constants:
-     * If one of our operands is a Constant,
-     *   and the other operand is a Binary expression,
-     *   and one of ITS operands is a Constant,
-     *   and ITS other operand is NOT a Constant,
-     *   ...it may be possible to rewrite the expression to group the two Constants together,
-     *      to allow them to be const-folded away.
-     *
-     *  examples include:
-     *        (X / c1) * c2  ->  X / (c2/c1)
-     *        (X + c1) - c2  ->  X + (c1-c2)
-     */
-    override fun visit(expr: BinaryExpression): Expression {
-        super.visit(expr)
-
-        val leftconst = expr.left.constValue(program)
-        val rightconst = expr.right.constValue(program)
-
-        val subExpr: BinaryExpression? = when {
-            leftconst!=null -> expr.right as? BinaryExpression
-            rightconst!=null -> expr.left as? BinaryExpression
-            else -> null
-        }
-        if(subExpr!=null) {
-            val subleftconst = subExpr.left.constValue(program)
-            val subrightconst = subExpr.right.constValue(program)
-            if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
-                // try reordering.
-                return groupTwoConstsTogether(expr, subExpr,
-                        leftconst != null, rightconst != null,
-                        subleftconst != null, subrightconst != null)
-            }
-        }
-
-        // const fold when both operands are a const
-        return when {
-            leftconst != null && rightconst != null -> {
-                optimizationsDone++
-                val evaluator = ConstExprEvaluator()
-                evaluator.evaluate(leftconst, expr.operator, rightconst)
-            }
-
-            else -> expr
-        }
-    }
-
-    private fun groupTwoConstsTogether(expr: BinaryExpression,
-                                       subExpr: BinaryExpression,
-                                       leftIsConst: Boolean,
-                                       rightIsConst: Boolean,
-                                       subleftIsConst: Boolean,
-                                       subrightIsConst: Boolean): Expression
-    {
-        // todo: this implements only a small set of possible reorderings at this time
-        if(expr.operator==subExpr.operator) {
-            // both operators are the isSameAs.
-            // If + or *,  we can simply swap the const of expr and Var in subexpr.
-            if(expr.operator=="+" || expr.operator=="*") {
-                if(leftIsConst) {
-                    if(subleftIsConst)
-                        expr.left = subExpr.right.also { subExpr.right = expr.left }
-                    else
-                        expr.left = subExpr.left.also { subExpr.left = expr.left }
-                } else {
-                    if(subleftIsConst)
-                        expr.right = subExpr.right.also {subExpr.right = expr.right }
-                    else
-                        expr.right = subExpr.left.also { subExpr.left = expr.right }
-                }
-                optimizationsDone++
-                return expr
-            }
-
-            // If - or /,  we simetimes must reorder more, and flip operators (- -> +, / -> *)
-            if(expr.operator=="-" || expr.operator=="/") {
-                optimizationsDone++
-                if(leftIsConst) {
-                    return if(subleftIsConst) {
-                        val tmp = subExpr.right
-                        subExpr.right = subExpr.left
-                        subExpr.left = expr.left
-                        expr.left = tmp
-                        expr.operator = if(expr.operator=="-") "+" else "*"
-                        expr
-                    } else
-                        BinaryExpression(
-                                BinaryExpression(expr.left, if (expr.operator == "-") "+" else "*", subExpr.right, subExpr.position),
-                                expr.operator, subExpr.left, expr.position)
-                } else {
-                    return if(subleftIsConst) {
-                        expr.right = subExpr.right.also { subExpr.right = expr.right }
-                        expr
-                    } else
-                        BinaryExpression(
-                                subExpr.left, expr.operator,
-                                BinaryExpression(expr.right, if (expr.operator == "-") "+" else "*", subExpr.right, subExpr.position),
-                                expr.position)
-                }
-            }
-            return expr
-
-        }
-        else
-        {
-
-            if(expr.operator=="/" && subExpr.operator=="*") {
-                optimizationsDone++
-                if(leftIsConst) {
-                    return if(subleftIsConst) {
-                        // C1/(C2*V) -> (C1/C2)/V
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "/", subExpr.left, subExpr.position),
-                                "/",
-                                subExpr.right, expr.position)
-                    } else {
-                        // C1/(V*C2) -> (C1/C2)/V
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "/", subExpr.right, subExpr.position),
-                                "/",
-                                subExpr.left, expr.position)
-                    }
-                } else {
-                    return if(subleftIsConst) {
-                        // (C1*V)/C2 -> (C1/C2)*V
-                        BinaryExpression(
-                                BinaryExpression(subExpr.left, "/", expr.right, subExpr.position),
-                                "*",
-                                subExpr.right, expr.position)
-                    } else {
-                        // (V*C1)/C2 -> (C1/C2)*V
-                        BinaryExpression(
-                                BinaryExpression(subExpr.right, "/", expr.right, subExpr.position),
-                                "*",
-                                subExpr.left, expr.position)
-                    }
-                }
-            }
-            else if(expr.operator=="*" && subExpr.operator=="/") {
-                optimizationsDone++
-                if(leftIsConst) {
-                    return if(subleftIsConst) {
-                        // C1*(C2/V) -> (C1*C2)/V
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "*", subExpr.left, subExpr.position),
-                                "/",
-                                subExpr.right, expr.position)
-                    } else {
-                        // C1*(V/C2) -> (C1/C2)*V
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "/", subExpr.right, subExpr.position),
-                                "*",
-                                subExpr.left, expr.position)
-                    }
-                } else {
-                    return if(subleftIsConst) {
-                        // (C1/V)*C2 -> (C1*C2)/V
-                        BinaryExpression(
-                                BinaryExpression(subExpr.left, "*", expr.right, subExpr.position),
-                                "/",
-                                subExpr.right, expr.position)
-                    } else {
-                        // (V/C1)*C2 -> (C1/C2)*V
-                        BinaryExpression(
-                                BinaryExpression(expr.right, "/", subExpr.right, subExpr.position),
-                                "*",
-                                subExpr.left, expr.position)
-                    }
-                }
-            }
-            else if(expr.operator=="+" && subExpr.operator=="-") {
-                optimizationsDone++
-                if(leftIsConst){
-                    return if(subleftIsConst){
-                        // c1+(c2-v)  ->  (c1+c2)-v
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "+", subExpr.left, subExpr.position),
-                                "-",
-                                subExpr.right, expr.position)
-                    } else {
-                        // c1+(v-c2)  ->  v+(c1-c2)
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "-", subExpr.right, subExpr.position),
-                                "+",
-                                subExpr.left, expr.position)
-                    }
-                } else {
-                    return if(subleftIsConst) {
-                        // (c1-v)+c2  ->  (c1+c2)-v
-                        BinaryExpression(
-                                BinaryExpression(subExpr.left, "+", expr.right, subExpr.position),
-                                "-",
-                                subExpr.right, expr.position)
-                    } else {
-                        // (v-c1)+c2  ->  v+(c2-c1)
-                        BinaryExpression(
-                                BinaryExpression(expr.right, "-", subExpr.right, subExpr.position),
-                                "+",
-                                subExpr.left, expr.position)
-                    }
-                }
-            }
-            else if(expr.operator=="-" && subExpr.operator=="+") {
-                optimizationsDone++
-                if(leftIsConst) {
-                    return if(subleftIsConst) {
-                        // c1-(c2+v)  ->  (c1-c2)-v
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "-", subExpr.left, subExpr.position),
-                                "-",
-                                subExpr.right, expr.position)
-                    } else {
-                        // c1-(v+c2)  ->  (c1-c2)-v
-                        BinaryExpression(
-                                BinaryExpression(expr.left, "-", subExpr.right, subExpr.position),
-                                "-",
-                                subExpr.left, expr.position)
-                    }
-                } else {
-                    return if(subleftIsConst) {
-                        // (c1+v)-c2  ->  v+(c1-c2)
-                        BinaryExpression(
-                                BinaryExpression(subExpr.left, "-", expr.right, subExpr.position),
-                                "+",
-                                subExpr.right, expr.position)
-                    } else {
-                        // (v+c1)-c2  ->  v+(c1-c2)
-                        BinaryExpression(
-                                BinaryExpression(subExpr.right, "-", expr.right, subExpr.position),
-                                "+",
-                                subExpr.left, expr.position)
-                    }
-                }
-            }
-
-            return expr
-        }
-    }
-
     override fun visit(forLoop: ForLoop): Statement {
 
         fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
@@ -610,21 +606,4 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
         return forLoop2
     }
 
-    override fun visit(arrayLiteral: ArrayLiteralValue): Expression {
-        // because constant folding can result in arrays that are now suddenly capable
-        // of telling the type of all their elements (for instance, when they contained -2 which
-        // was a prefix expression earlier), we recalculate the array's datatype.
-        val array = super.visit(arrayLiteral)
-        if(array is ArrayLiteralValue) {
-            if(array.type.isKnown)
-                return array
-            val arrayDt = array.guessDatatype(program)
-            if(arrayDt.isKnown) {
-                val newArray = arrayLiteral.cast(arrayDt.typeOrElse(DataType.STRUCT))
-                if(newArray!=null)
-                    return newArray
-            }
-        }
-        return array
-    }
 }

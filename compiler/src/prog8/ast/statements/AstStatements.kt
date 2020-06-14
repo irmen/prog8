@@ -342,7 +342,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
         index = index.accept(visitor)
     }
     fun accept(visitor: IAstVisitor) = index.accept(visitor)
-    fun accept(visitor: AstWalker, parent: Node) = index.accept(visitor, parent)
+    fun accept(visitor: AstWalker, parent: Node) = index.accept(visitor, this)
 
     override fun toString(): String {
         return("ArrayIndex($index, pos=$position)")
