@@ -23,6 +23,7 @@ import kotlin.math.floor
 internal class StatementOptimizer(private val program: Program,
                                   private val errors: ErrorReporter) : AstWalker() {
 
+    private val noModifications = emptyList<IAstModification>()
     private val callgraph = CallGraph(program)
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
 
@@ -38,7 +39,7 @@ internal class StatementOptimizer(private val program: Program,
                 return listOf(IAstModification.Remove(block, parent))
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
@@ -60,7 +61,7 @@ internal class StatementOptimizer(private val program: Program,
             return listOf(IAstModification.Remove(subroutine, parent))
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
@@ -77,7 +78,7 @@ internal class StatementOptimizer(private val program: Program,
             return listOf(IAstModification.Remove(decl, parent))
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
@@ -139,7 +140,7 @@ internal class StatementOptimizer(private val program: Program,
                 return listOf(IAstModification.Remove(functionCallStatement, parent))
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
@@ -153,7 +154,7 @@ internal class StatementOptimizer(private val program: Program,
                     return listOf(IAstModification.ReplaceNode(functionCall, constval, parent))
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
@@ -186,7 +187,7 @@ internal class StatementOptimizer(private val program: Program,
             }
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
@@ -244,7 +245,7 @@ internal class StatementOptimizer(private val program: Program,
             }
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
@@ -261,7 +262,7 @@ internal class StatementOptimizer(private val program: Program,
                 return listOf(IAstModification.ReplaceNode(repeatLoop, forever, parent))
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
@@ -277,7 +278,7 @@ internal class StatementOptimizer(private val program: Program,
                 listOf(IAstModification.Remove(whileLoop, parent))
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
@@ -299,7 +300,7 @@ internal class StatementOptimizer(private val program: Program,
         if(label!=null && scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1)
             return listOf(IAstModification.Remove(jump, parent))
 
-        return emptyList()
+        return noModifications
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
@@ -391,7 +392,7 @@ internal class StatementOptimizer(private val program: Program,
 
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     private fun deduplicateAssignments(statements: List<Statement>): MutableList<Int> {

@@ -8,6 +8,7 @@ import prog8.ast.statements.*
 
 
 internal class AstVariousTransforms(private val program: Program) : AstWalker() {
+    private val noModifications = emptyList<IAstModification>()
 
     override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0]=="lsb") {
@@ -18,7 +19,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             ))
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -33,7 +34,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             ))
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
@@ -52,7 +53,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             }
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
@@ -71,7 +72,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 ))
         }
 
-        return emptyList()
+        return noModifications
     }
 
     override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
@@ -84,7 +85,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                     IAstModification.InsertFirst(vardecl, string.definingScope() as Node)
             )
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> {
@@ -112,7 +113,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 }
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     private fun processBinaryExprWithString(string: StringLiteralValue, operand: Expression, expr: BinaryExpression): Expression {

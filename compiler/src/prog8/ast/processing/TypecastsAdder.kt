@@ -16,6 +16,8 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
      * (this includes function call arguments)
      */
 
+    private val noModifications = emptyList<IAstModification>()
+
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
@@ -32,7 +34,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                 }
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
@@ -72,7 +74,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                 }
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
@@ -143,7 +145,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
             errors.warn("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
@@ -154,7 +156,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                     ?: TypecastExpression(memread.addressExpression, DataType.UWORD, true, memread.addressExpression.position)
             return listOf(IAstModification.ReplaceNode(memread.addressExpression, typecast, memread))
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> {
@@ -165,7 +167,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                     ?: TypecastExpression(memwrite.addressExpression, DataType.UWORD, true, memwrite.addressExpression.position)
             return listOf(IAstModification.ReplaceNode(memwrite.addressExpression, typecast, memwrite))
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(structLv: StructLiteralValue, parent: Node): Iterable<IAstModification> {
@@ -210,7 +212,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                 }
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
@@ -221,7 +223,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             if(subroutine.returntypes.size==1) {
                 val subReturnType = subroutine.returntypes.first()
                 if (returnValue.inferType(program).istype(subReturnType))
-                    return emptyList()
+                    return noModifications
                 if (returnValue is NumericLiteralValue) {
                     returnStmt.value = returnValue.cast(subroutine.returntypes.single())
                 } else {
@@ -232,6 +234,6 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                 }
             }
         }
-        return emptyList()
+        return noModifications
     }
 }

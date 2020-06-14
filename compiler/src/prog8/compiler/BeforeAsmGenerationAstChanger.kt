@@ -11,12 +11,14 @@ import prog8.ast.statements.*
 
 internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter) : AstWalker() {
 
+    private val noModifications = emptyList<IAstModification>()
+
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if (decl.value == null && decl.type == VarDeclType.VAR && decl.datatype in NumericDatatypes) {
             // a numeric vardecl without an initial value is initialized with zero.
             decl.value = decl.zeroElementValue()
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
@@ -45,7 +47,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                      decls.map { IAstModification.InsertFirst(it, sub) }    // move it up to the subroutine
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
@@ -99,6 +101,6 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
             }
         }
 
-        return emptyList()
+        return noModifications
     }
 }

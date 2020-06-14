@@ -10,11 +10,12 @@ internal class ImportedModuleDirectiveRemover: AstWalker() {
      */
 
     private val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address")
+    private val noModifications = emptyList<IAstModification>()
 
     override fun before(directive: Directive, parent: Node): Iterable<IAstModification> {
         if(directive.directive in moduleLevelDirectives) {
             return listOf(IAstModification.Remove(directive, parent))
         }
-        return emptyList()
+        return noModifications
     }
 }

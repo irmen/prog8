@@ -19,7 +19,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc).
 
-
+    private val noModifications = emptyList<IAstModification>()
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
     override fun after(module: Module, parent: Node): Iterable<IAstModification> {
@@ -33,7 +33,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         }
 
         reorderVardeclsAndDirectives(module.statements)
-        return emptyList()
+        return noModifications
     }
 
     private fun reorderVardeclsAndDirectives(statements: MutableList<Statement>) {
@@ -56,7 +56,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         }
 
         reorderVardeclsAndDirectives(block.statements)
-        return emptyList()
+        return noModifications
     }
 
     override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
@@ -68,7 +68,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                 )
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -86,7 +86,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                 )
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
@@ -95,7 +95,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         }
         whenStatement.choices.clear()
         choices.mapTo(whenStatement.choices) { it.second }
-        return emptyList()
+        return noModifications
     }
 
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
@@ -119,7 +119,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
             }
         }
 
-        return emptyList()
+        return noModifications
     }
 
     private fun flattenStructAssignmentFromStructLiteral(structAssignment: Assignment, program: Program): List<Assignment> {

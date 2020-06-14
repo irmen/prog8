@@ -22,11 +22,12 @@ import kotlin.math.pow
 internal class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
+    private val noModifications = emptyList<IAstModification>()
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if (assignment.aug_op != null)
             throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
-        return emptyList()
+        return noModifications
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
@@ -82,10 +83,10 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     if (newExpr != null)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                 }
-                else -> return emptyList()
+                else -> return noModifications
             }
         }
-        return emptyList()
+        return noModifications
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
@@ -297,7 +298,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         if(newExpr != null)
             return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
 
-        return emptyList()
+        return noModifications
     }
 
     private fun determineY(x: Expression, subBinExpr: BinaryExpression): Expression? {

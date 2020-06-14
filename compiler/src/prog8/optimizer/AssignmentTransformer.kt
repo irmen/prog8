@@ -14,6 +14,7 @@ import prog8.ast.statements.PostIncrDecr
 internal class AssignmentTransformer(val program: Program, val errors: ErrorReporter) : AstWalker() {
 
     var optimizationsDone: Int = 0
+    private val noModifications = emptyList<IAstModification>()
 
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         // modify A = A + 5 back into augmented form A += 5 for easier code generation for optimized in-place assignments
@@ -27,7 +28,7 @@ internal class AssignmentTransformer(val program: Program, val errors: ErrorRepo
                     assignment.aug_op = binExpr.operator + "="
                     assignment.value.parent = assignment
                     optimizationsDone++
-                    return emptyList()
+                    return noModifications
                 }
             }
             assignment.aug_op = "setvalue"
@@ -151,6 +152,6 @@ internal class AssignmentTransformer(val program: Program, val errors: ErrorRepo
                 }
             }
         }
-        return emptyList()
+        return noModifications
     }
 }
