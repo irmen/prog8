@@ -1,16 +1,35 @@
 package prog8.optimizer
 
 import prog8.ast.IFunctionCall
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.processing.AstWalker
+import prog8.ast.processing.IAstModification
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 
 
-// TODO implement using AstWalker instead of IAstModifyingVisitor
+internal class ConstantFoldingOptimizer2(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
+    private val noModifications = emptyList<IAstModification>()
+
+    override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
+        // @( &thing )  -->  thing
+        val addrOf = memread.addressExpression as? AddressOf
+        return if(addrOf!=null)
+            listOf(IAstModification.ReplaceNode(memread, addrOf.identifier, parent))
+        else
+            noModifications
+    }
+
+    // TODO conversion from below
+}
+
+// -----------------------------------------------------------
+
 internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
 
@@ -218,14 +237,6 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
                 }
             }
         }
-    }
-
-    override fun visit(memread: DirectMemoryRead): Expression {
-        // @( &thing )  -->  thing
-        val addrOf = memread.addressExpression as? AddressOf
-        if(addrOf!=null)
-            return super.visit(addrOf.identifier)
-        return super.visit(memread)
     }
 
     /**

@@ -19,14 +19,10 @@ blabla:
 
     sub start() {
 
-        A <<= 2
-        A >>= 2
-        A -= 3
-        A = A+A
-        lsl(X)
-        lsl(Y)
-        lsl(A)
-        lsl(@($d020))
+        str sss = "zzz"
+        str x = "zxcvzxcv"
+
+        x = @(&sss)
     }
 
 }
