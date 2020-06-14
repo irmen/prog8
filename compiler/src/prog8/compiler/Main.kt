@@ -144,7 +144,6 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     println("Processing...")
     programAst.checkIdentifiers(errors)
     errors.handle()
-    programAst.makeForeverLoops()
     programAst.constantFold(errors)
     errors.handle()
     programAst.removeNopsFlattenAnonScopes()
@@ -194,7 +193,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
-    // printAst(programAst)        // TODO
+    // printAst(programAst)
 
     val assembly = CompilationTarget.asmGenerator(
             programAst,

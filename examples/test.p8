@@ -4,43 +4,31 @@
 %zeropage basicsafe
 
 
+
 main {
-    sub start() {
 
-        A += 50
+    sub jumpsub() {
 
-        A += Y + 1
-        A -= Y + 1
-        A += Y - 1
-        A -= Y - 1
-
-        A += Y + 2
-        A -= Y + 2
-        A += Y - 2
-        A -= Y - 2
-
-;        ubyte ubb
-;        byte bb
-;        uword uww
-;        word ww
-;        word ww2
-;
-;        A = ubb*0
-;        Y = ubb*1
-;        A = ubb*2
-;        Y = ubb*4
-;        A = ubb*8
-;        Y = ubb*16
-;        A = ubb*32
-;        Y = ubb*64
-;        A = ubb*128
-;        Y = ubb+ubb+ubb
-;        A = ubb+ubb+ubb+ubb
-;        ww = ww2+ww2
-;        ww = ww2+ww2+ww2
-;        ww = ww2+ww2+ww2+ww2
+        ; goto jumpsub        ; TODO fix compiler loop
+        goto blabla
+blabla:
+        A=99
+        return
 
     }
+
+    sub start() {
+
+        A <<= 2
+        A >>= 2
+        A -= 3
+        A = A+A
+        lsl(X)
+        lsl(Y)
+        lsl(A)
+        lsl(@($d020))
+    }
+
 }
 
 

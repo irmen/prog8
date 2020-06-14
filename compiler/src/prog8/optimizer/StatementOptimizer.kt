@@ -7,7 +7,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
-import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
@@ -21,8 +20,8 @@ import kotlin.math.floor
 */
 
 
-internal class StatementOptimizer2(private val program: Program,
-                                   private val errors: ErrorReporter) : AstWalker() {
+internal class StatementOptimizer(private val program: Program,
+                                  private val errors: ErrorReporter) : AstWalker() {
 
     private val callgraph = CallGraph(program)
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
@@ -303,6 +302,97 @@ internal class StatementOptimizer2(private val program: Program,
         return emptyList()
     }
 
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        if(assignment.aug_op!=null)
+            throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
+
+        // remove assignments to self
+        if(assignment.target isSameAs assignment.value) {
+            if(assignment.target.isNotMemory(program.namespace))
+                return listOf(IAstModification.Remove(assignment, parent))
+        }
+
+        val targetIDt = assignment.target.inferType(program, assignment)
+        if(!targetIDt.isKnown)
+            throw FatalAstException("can't infer type of assignment target")
+
+
+        // optimize binary expressions a bit
+        val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
+        val bexpr=assignment.value as? BinaryExpression
+        if(bexpr!=null) {
+            val cv = bexpr.right.constValue(program)?.number?.toDouble()
+            if (cv != null && assignment.target isSameAs bexpr.left) {
+                // assignments of the form:  X = X <operator> <expr>
+                // remove assignments that have no effect (such as X=X+0)
+                // optimize/rewrite some other expressions
+                val vardeclDt = (assignment.target.identifier?.targetVarDecl(program.namespace))?.type
+                when (bexpr.operator) {
+                    "+" -> {
+                        if (cv == 0.0) {
+                            return listOf(IAstModification.Remove(assignment, parent))
+                        } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
+                            if ((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt != VarDeclType.MEMORY && cv in 1.0..8.0)) {
+                                // replace by several INCs (a bit less when dealing with memory targets)
+                                val incs = AnonymousScope(mutableListOf(), assignment.position)
+                                repeat(cv.toInt()) {
+                                    incs.statements.add(PostIncrDecr(assignment.target, "++", assignment.position))
+                                }
+                                return listOf(IAstModification.ReplaceNode(assignment, incs, parent))
+                            }
+                        }
+                    }
+                    "-" -> {
+                        if (cv == 0.0) {
+                            return listOf(IAstModification.Remove(assignment, parent))
+                        } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
+                            if ((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt != VarDeclType.MEMORY && cv in 1.0..8.0)) {
+                                // replace by several DECs (a bit less when dealing with memory targets)
+                                val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                repeat(cv.toInt()) {
+                                    decs.statements.add(PostIncrDecr(assignment.target, "--", assignment.position))
+                                }
+                                return listOf(IAstModification.ReplaceNode(assignment, decs, parent))
+                            }
+                        }
+                    }
+                    "*" -> if (cv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "/" -> if (cv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "**" -> if (cv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "|" -> if (cv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "^" -> if (cv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "<<" -> {
+                        if (cv == 0.0)
+                            return listOf(IAstModification.Remove(assignment, parent))
+                        // replace by in-place lsl(...) call
+                        val scope = AnonymousScope(mutableListOf(), assignment.position)
+                        var numshifts = cv.toInt()
+                        while (numshifts > 0) {
+                            scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position),
+                                    mutableListOf(bexpr.left), true, assignment.position))
+                            numshifts--
+                        }
+                        return listOf(IAstModification.ReplaceNode(assignment, scope, parent))
+                    }
+                    ">>" -> {
+                        if (cv == 0.0)
+                            return listOf(IAstModification.Remove(assignment, parent))
+                        // replace by in-place lsr(...) call
+                        val scope = AnonymousScope(mutableListOf(), assignment.position)
+                        var numshifts = cv.toInt()
+                        while (numshifts > 0) {
+                            scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position),
+                                    mutableListOf(bexpr.left), true, assignment.position))
+                            numshifts--
+                        }
+                        return listOf(IAstModification.ReplaceNode(assignment, scope, parent))
+                    }
+                }
+
+            }
+        }
+        return emptyList()
+    }
 
     private fun deduplicateAssignments(statements: List<Statement>): MutableList<Int> {
         // removes 'duplicate' assignments that assign the isSameAs target
@@ -354,175 +444,3 @@ internal class StatementOptimizer2(private val program: Program,
     }
 
 }
-
-
-// ------------------------------------------------------------
-
-
-// TODO implement using AstWalker instead of IAstModifyingVisitor
-internal class StatementOptimizer(private val program: Program,
-                                  private val errors: ErrorReporter) : IAstModifyingVisitor {
-    var optimizationsDone: Int = 0
-        private set
-
-    private val vardeclsToRemove = mutableListOf<VarDecl>()
-
-    override fun visit(program: Program) {
-        super.visit(program)
-
-        for(decl in vardeclsToRemove) {
-            decl.definingScope().remove(decl)
-        }
-    }
-
-    override fun visit(assignment: Assignment): Statement {
-        if(assignment.aug_op!=null)
-            throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
-
-        if(assignment.target isSameAs assignment.value) {
-            if(assignment.target.isNotMemory(program.namespace)) {
-                optimizationsDone++
-                return NopStatement.insteadOf(assignment)
-            }
-        }
-        val targetIDt = assignment.target.inferType(program, assignment)
-        if(!targetIDt.isKnown)
-            throw FatalAstException("can't infer type of assignment target")
-        val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
-        val bexpr=assignment.value as? BinaryExpression
-        if(bexpr!=null) {
-            val cv = bexpr.right.constValue(program)?.number?.toDouble()
-            if (cv == null) {
-                if (bexpr.operator == "+" && targetDt != DataType.FLOAT) {
-                    if (bexpr.left isSameAs bexpr.right && assignment.target isSameAs bexpr.left) {
-                        bexpr.operator = "*"
-                        bexpr.right = NumericLiteralValue.optimalInteger(2, assignment.value.position)
-                        optimizationsDone++
-                        return assignment
-                    }
-                }
-            } else {
-                if (assignment.target isSameAs bexpr.left) {
-                    // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
-                    // A = A <operator> B
-                    val vardeclDt = (assignment.target.identifier?.targetVarDecl(program.namespace))?.type
-
-                    when (bexpr.operator) {
-                        "+" -> {
-                            if (cv == 0.0) {
-                                optimizationsDone++
-                                return NopStatement.insteadOf(assignment)
-                            } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
-                                if ((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt != VarDeclType.MEMORY && cv in 1.0..8.0)) {
-                                    // replace by several INCs (a bit less when dealing with memory targets)
-                                    val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                    repeat(cv.toInt()) {
-                                        decs.statements.add(PostIncrDecr(assignment.target, "++", assignment.position))
-                                    }
-                                    return decs
-                                }
-                            }
-                        }
-                        "-" -> {
-                            if (cv == 0.0) {
-                                optimizationsDone++
-                                return NopStatement.insteadOf(assignment)
-                            } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
-                                if ((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt != VarDeclType.MEMORY && cv in 1.0..8.0)) {
-                                    // replace by several DECs (a bit less when dealing with memory targets)
-                                    val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                    repeat(cv.toInt()) {
-                                        decs.statements.add(PostIncrDecr(assignment.target, "--", assignment.position))
-                                    }
-                                    return decs
-                                }
-                            }
-                        }
-                        "*" -> if (cv == 1.0) {
-                            optimizationsDone++
-                            return NopStatement.insteadOf(assignment)
-                        }
-                        "/" -> if (cv == 1.0) {
-                            optimizationsDone++
-                            return NopStatement.insteadOf(assignment)
-                        }
-                        "**" -> if (cv == 1.0) {
-                            optimizationsDone++
-                            return NopStatement.insteadOf(assignment)
-                        }
-                        "|" -> if (cv == 0.0) {
-                            optimizationsDone++
-                            return NopStatement.insteadOf(assignment)
-                        }
-                        "^" -> if (cv == 0.0) {
-                            optimizationsDone++
-                            return NopStatement.insteadOf(assignment)
-                        }
-                        "<<" -> {
-                            if (cv == 0.0) {
-                                optimizationsDone++
-                                return NopStatement.insteadOf(assignment)
-                            }
-                            if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
-                                    ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
-                                assignment.value = NumericLiteralValue.optimalInteger(0, assignment.value.position)
-                                assignment.value.linkParents(assignment)
-                                optimizationsDone++
-                            } else {
-                                // replace by in-place lsl(...) call
-                                val scope = AnonymousScope(mutableListOf(), assignment.position)
-                                var numshifts = cv.toInt()
-                                while (numshifts > 0) {
-                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position),
-                                            mutableListOf(bexpr.left), true, assignment.position))
-                                    numshifts--
-                                }
-                                optimizationsDone++
-                                return scope
-                            }
-                        }
-                        ">>" -> {
-                            if (cv == 0.0) {
-                                optimizationsDone++
-                                return NopStatement.insteadOf(assignment)
-                            }
-                            if ((targetDt == DataType.UWORD && cv > 15.0) || (targetDt == DataType.UBYTE && cv > 7.0)) {
-                                assignment.value = NumericLiteralValue.optimalInteger(0, assignment.value.position)
-                                assignment.value.linkParents(assignment)
-                                optimizationsDone++
-                            } else {
-                                // replace by in-place lsr(...) call
-                                val scope = AnonymousScope(mutableListOf(), assignment.position)
-                                var numshifts = cv.toInt()
-                                while (numshifts > 0) {
-                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position),
-                                            mutableListOf(bexpr.left), true, assignment.position))
-                                    numshifts--
-                                }
-                                optimizationsDone++
-                                return scope
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-        return super.visit(assignment)
-    }
-
-
-    override fun visit(label: Label): Statement {
-        // remove duplicate labels
-        val stmts = label.definingScope().statements
-        val startIdx = stmts.indexOf(label)
-        if(startIdx< stmts.lastIndex && stmts[startIdx+1] == label)
-            return NopStatement.insteadOf(label)
-
-        return super.visit(label)
-    }
-}
-
-
-
