@@ -293,15 +293,15 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                 TODO("$assign")
             }
-            is AddressOf -> {
-                TODO("$assign")
-            }
             is DirectMemoryRead -> {
-                TODO("$assign")
+                val memory = (assign.value as DirectMemoryRead).addressExpression.constValue(program)!!.number.toHex()
+                asmgen.out(" lda  $memory |  sta  $hexAddr")
+                return true
             }
             is ArrayIndexedExpression -> {
                 TODO("$assign")
             }
+            is AddressOf -> throw AssemblyError("can't assign address to byte")
             else -> {
                 fallbackAssignment(assign)
                 return true
