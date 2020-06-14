@@ -102,6 +102,12 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(decl: VarDecl) {
+
+        // if the vardecl is a parameter of a subroutine, don't output it again
+        val paramNames = (decl.definingScope() as? Subroutine)?.parameters?.map { it.name }
+        if(paramNames!=null && decl.name in paramNames)
+            return
+
         when(decl.type) {
             VarDeclType.VAR -> {}
             VarDeclType.CONST -> output("const ")
