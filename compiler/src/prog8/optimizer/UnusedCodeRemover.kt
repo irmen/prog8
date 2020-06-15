@@ -30,7 +30,7 @@ internal class UnusedCodeRemover: AstWalker() {
         // remove modules that are not imported, or are empty (unless it's a library modules)
         program.modules.forEach {
             if (!it.isLibraryModule && (it.importedBy.isEmpty() || it.containsNoCodeNorVars()))
-                removals.add(IAstModification.Remove(it, it.parent))        // TODO does removing modules work like this?
+                removals.add(IAstModification.Remove(it, it.parent))
         }
 
         return removals
