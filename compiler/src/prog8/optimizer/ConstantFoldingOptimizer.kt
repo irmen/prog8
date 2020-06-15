@@ -6,14 +6,14 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
-import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 
 
-// First thing to do is replace all constant identifiers with their actual value.
-// this is needed because further constant optimizations depend on this.
-internal class ConstantIdentifierReplacer(private val program: Program) : AstWalker() {
+// First thing to do is replace all constant identifiers with their actual value,
+// and the array var initializer values and sizes.
+// This is needed because further constant optimizations depend on those.
+internal class ConstantIdentifierReplacer(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
@@ -35,9 +35,151 @@ internal class ConstantIdentifierReplacer(private val program: Program) : AstWal
         }
     }
 
+    override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        // the initializer value can't refer to the variable itself (recursive definition)
+        // TODO: use call graph for this?
+        if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
+            errors.err("recursive var declaration", decl.position)
+            return noModifications
+        }
+
+        if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
+            if(decl.isArray){
+                if(decl.arraysize==null) {
+                    // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
+                    val arrayval = decl.value as? ArrayLiteralValue
+                    if(arrayval!=null) {
+                        return listOf(IAstModification.SetExpression(
+                                { decl.arraysize = ArrayIndex(it, decl.position) },
+                                NumericLiteralValue.optimalInteger(arrayval.value.size, decl.position),
+                                decl
+                        ))
+                    }
+                }
+                else if(decl.arraysize?.size()==null) {
+                    val size = decl.arraysize!!.index.constValue(program)
+                    if(size!=null) {
+                        return listOf(IAstModification.SetExpression(
+                                { decl.arraysize = ArrayIndex(it, decl.position) },
+                                size, decl
+                        ))
+                    }
+                }
+            }
+
+            when(decl.datatype) {
+                DataType.FLOAT -> {
+                    // vardecl: for scalar float vars, promote constant integer initialization values to floats
+                    val litval = decl.value as? NumericLiteralValue
+                    if (litval!=null && litval.type in IntegerDatatypes) {
+                        val newValue = NumericLiteralValue(DataType.FLOAT, litval.number.toDouble(), litval.position)
+                        return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
+                    }
+                }
+                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    val numericLv = decl.value as? NumericLiteralValue
+                    val rangeExpr = decl.value as? RangeExpr
+                    if(rangeExpr!=null) {
+                        // convert the initializer range expression to an actual array
+                        val declArraySize = decl.arraysize?.size()
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size())
+                            errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
+                        val constRange = rangeExpr.toConstantIntegerRange()
+                        if(constRange!=null) {
+                            val eltType = rangeExpr.inferType(program).typeOrElse(DataType.UBYTE)
+                            val newValue = if(eltType in ByteDatatypes) {
+                                ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
+                                        constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),
+                                        position = decl.value!!.position)
+                            } else {
+                                ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
+                                        constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }.toTypedArray(),
+                                        position = decl.value!!.position)
+                            }
+                            return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
+                        }
+                    }
+                    if(numericLv!=null && numericLv.type==DataType.FLOAT)
+                        errors.err("arraysize requires only integers here", numericLv.position)
+                    val size = decl.arraysize?.size() ?: return noModifications
+                    if (rangeExpr==null && numericLv!=null) {
+                        // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
+                        val fillvalue = numericLv.number.toInt()
+                        when(decl.datatype){
+                            DataType.ARRAY_UB -> {
+                                if(fillvalue !in 0..255)
+                                    errors.err("ubyte value overflow", numericLv.position)
+                            }
+                            DataType.ARRAY_B -> {
+                                if(fillvalue !in -128..127)
+                                    errors.err("byte value overflow", numericLv.position)
+                            }
+                            DataType.ARRAY_UW -> {
+                                if(fillvalue !in 0..65535)
+                                    errors.err("uword value overflow", numericLv.position)
+                            }
+                            DataType.ARRAY_W -> {
+                                if(fillvalue !in -32768..32767)
+                                    errors.err("word value overflow", numericLv.position)
+                            }
+                            else -> {}
+                        }
+                        // create the array itself, filled with the fillvalue.
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayElementTypes.getValue(decl.datatype), it, numericLv.position) as Expression}.toTypedArray()
+                        val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
+                        return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
+                    }
+                }
+                DataType.ARRAY_F  -> {
+                    val size = decl.arraysize?.size() ?: return noModifications
+                    val litval = decl.value as? NumericLiteralValue
+                    val rangeExpr = decl.value as? RangeExpr
+                    if(rangeExpr!=null) {
+                        // convert the initializer range expression to an actual array of floats
+                        val declArraySize = decl.arraysize?.size()
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size())
+                            errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
+                        val constRange = rangeExpr.toConstantIntegerRange()
+                        if(constRange!=null) {
+                            val newValue = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_F),
+                                        constRange.map { NumericLiteralValue(DataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                                        position = decl.value!!.position)
+                            return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
+                        }
+                    }
+                    if(rangeExpr==null && litval!=null) {
+                        // arraysize initializer is a single int, and we know the size.
+                        val fillvalue = litval.number.toDouble()
+                        if (fillvalue < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.machine.FLOAT_MAX_POSITIVE)
+                            errors.err("float value overflow", litval.position)
+                        else {
+                            // create the array itself, filled with the fillvalue.
+                            val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
+                            val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_F), array, position = litval.position)
+                            return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
+                        }
+                    }
+                }
+                else -> {
+                    // nothing to do for this type
+                    // this includes strings and structs
+                }
+            }
+        }
+
+        val declValue = decl.value
+        if(declValue!=null && decl.type==VarDeclType.VAR
+                && declValue is NumericLiteralValue && !declValue.inferType(program).istype(decl.datatype)) {
+            // cast the numeric literal to the appropriate datatype of the variable
+            return listOf(IAstModification.ReplaceNode(decl.value!!, declValue.cast(decl.datatype), decl))
+        }
+
+        return noModifications
+    }
 }
 
-internal class ConstantFoldingOptimizer2(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
+
+internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
@@ -150,9 +292,8 @@ internal class ConstantFoldingOptimizer2(private val program: Program, private v
         val arrayDt = array.guessDatatype(program)
         if(arrayDt.isKnown) {
             val newArray = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
-            if(newArray!=null && newArray != array) {
+            if(newArray!=null && newArray != array)
                 return listOf(IAstModification.ReplaceNode(array, newArray, parent))
-            }
         }
 
         return noModifications
@@ -165,6 +306,69 @@ internal class ConstantFoldingOptimizer2(private val program: Program, private v
             listOf(IAstModification.ReplaceNode(functionCall, constvalue, parent))
         else
             noModifications
+    }
+
+    override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
+        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
+            val newFrom: NumericLiteralValue
+            val newTo: NumericLiteralValue
+            try {
+                newFrom = rangeFrom.cast(targetDt)
+                newTo = rangeTo.cast(targetDt)
+            } catch (x: ExpressionError) {
+                return range
+            }
+            val newStep: Expression = try {
+                stepLiteral?.cast(targetDt)?: range.step
+            } catch(ee: ExpressionError) {
+                range.step
+            }
+            return RangeExpr(newFrom, newTo, newStep, range.position)
+        }
+
+        // adjust the datatype of a range expression in for loops to the loop variable.
+        val iterableRange = forLoop.iterable as? RangeExpr ?: return noModifications
+        val rangeFrom = iterableRange.from as? NumericLiteralValue
+        val rangeTo = iterableRange.to as? NumericLiteralValue
+        if(rangeFrom==null || rangeTo==null) return noModifications
+
+        val loopvar = forLoop.loopVar?.targetVarDecl(program.namespace)
+        if(loopvar!=null) {
+            val stepLiteral = iterableRange.step as? NumericLiteralValue
+            when(loopvar.datatype) {
+                DataType.UBYTE -> {
+                    if(rangeFrom.type!= DataType.UBYTE) {
+                        // attempt to translate the iterable into ubyte values
+                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    }
+                }
+                DataType.BYTE -> {
+                    if(rangeFrom.type!= DataType.BYTE) {
+                        // attempt to translate the iterable into byte values
+                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    }
+                }
+                DataType.UWORD -> {
+                    if(rangeFrom.type!= DataType.UWORD) {
+                        // attempt to translate the iterable into uword values
+                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    }
+                }
+                DataType.WORD -> {
+                    if(rangeFrom.type!= DataType.WORD) {
+                        // attempt to translate the iterable into word values
+                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    }
+                }
+                else -> throw FatalAstException("invalid loopvar datatype $loopvar")
+            }
+        }
+
+        return noModifications
     }
 
     private class ShuffleOperands(val expr: BinaryExpression,
@@ -375,235 +579,6 @@ internal class ConstantFoldingOptimizer2(private val program: Program, private v
 
             return null
         }
-    }
-
-    // TODO conversion from below
-}
-
-// -----------------------------------------------------------
-
-internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : IAstModifyingVisitor {
-    var optimizationsDone: Int = 0
-
-    override fun visit(decl: VarDecl): Statement {
-        // the initializer value can't refer to the variable itself (recursive definition)
-        // TODO: use call graph for this?
-        if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
-            errors.err("recursive var declaration", decl.position)
-            return decl
-        }
-
-        if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
-            if(decl.isArray){
-                if(decl.arraysize==null) {
-                    // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
-                    val arrayval = decl.value as? ArrayLiteralValue
-                    if(arrayval!=null) {
-                        decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.value.size, decl.position), decl.position)
-                        optimizationsDone++
-                    }
-                }
-                else if(decl.arraysize?.size()==null) {
-                    val size = decl.arraysize!!.index.accept(this)
-                    if(size is NumericLiteralValue) {
-                        decl.arraysize = ArrayIndex(size, decl.position)
-                        optimizationsDone++
-                    }
-                }
-            }
-
-            when(decl.datatype) {
-                DataType.FLOAT -> {
-                    // vardecl: for scalar float vars, promote constant integer initialization values to floats
-                    val litval = decl.value as? NumericLiteralValue
-                    if (litval!=null && litval.type in IntegerDatatypes) {
-                        val newValue = NumericLiteralValue(DataType.FLOAT, litval.number.toDouble(), litval.position)
-                        decl.value = newValue
-                        optimizationsDone++
-                        return super.visit(decl)
-                    }
-                }
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                    val numericLv = decl.value as? NumericLiteralValue
-                    val rangeExpr = decl.value as? RangeExpr
-                    if(rangeExpr!=null) {
-                        // convert the initializer range expression to an actual array
-                        val declArraySize = decl.arraysize?.size()
-                        if(declArraySize!=null && declArraySize!=rangeExpr.size())
-                            errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
-                        val constRange = rangeExpr.toConstantIntegerRange()
-                        if(constRange!=null) {
-                            val eltType = rangeExpr.inferType(program).typeOrElse(DataType.UBYTE)
-                            if(eltType in ByteDatatypes) {
-                                decl.value = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
-                                        constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),
-                                        position = decl.value!!.position)
-                            } else {
-                                decl.value = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
-                                        constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }.toTypedArray(),
-                                        position = decl.value!!.position)
-                            }
-                            decl.value!!.linkParents(decl)
-                            optimizationsDone++
-                            return super.visit(decl)
-                        }
-                    }
-                    if(numericLv!=null && numericLv.type== DataType.FLOAT)
-                        errors.err("arraysize requires only integers here", numericLv.position)
-                    val size = decl.arraysize?.size() ?: return decl
-                    if (rangeExpr==null && numericLv!=null) {
-                        // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
-                        val fillvalue = numericLv.number.toInt()
-                        when(decl.datatype){
-                            DataType.ARRAY_UB -> {
-                                if(fillvalue !in 0..255)
-                                    errors.err("ubyte value overflow", numericLv.position)
-                            }
-                            DataType.ARRAY_B -> {
-                                if(fillvalue !in -128..127)
-                                    errors.err("byte value overflow", numericLv.position)
-                            }
-                            DataType.ARRAY_UW -> {
-                                if(fillvalue !in 0..65535)
-                                    errors.err("uword value overflow", numericLv.position)
-                            }
-                            DataType.ARRAY_W -> {
-                                if(fillvalue !in -32768..32767)
-                                    errors.err("word value overflow", numericLv.position)
-                            }
-                            else -> {}
-                        }
-                        // create the array itself, filled with the fillvalue.
-                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayElementTypes.getValue(decl.datatype), it, numericLv.position) as Expression}.toTypedArray()
-                        val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
-                        decl.value = refValue
-                        refValue.parent=decl
-                        optimizationsDone++
-                        return super.visit(decl)
-                    }
-                }
-                DataType.ARRAY_F  -> {
-                    val size = decl.arraysize?.size() ?: return decl
-                    val litval = decl.value as? NumericLiteralValue
-                    if(litval==null) {
-                        // there's no initialization value, but the size is known, so we're ok.
-                        return super.visit(decl)
-                    } else {
-                        // arraysize initializer is a single int, and we know the size.
-                        val fillvalue = litval.number.toDouble()
-                        if (fillvalue < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.machine.FLOAT_MAX_POSITIVE)
-                            errors.err("float value overflow", litval.position)
-                        else {
-                            // create the array itself, filled with the fillvalue.
-                            val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
-                            val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_F), array, position = litval.position)
-                            decl.value = refValue
-                            refValue.parent=decl
-                            optimizationsDone++
-                            return super.visit(decl)
-                        }
-                    }
-                }
-                else -> {
-                    // nothing to do for this type
-                    // this includes strings and structs
-                }
-            }
-        }
-
-        val declValue = decl.value
-        if(declValue!=null && decl.type==VarDeclType.VAR
-                && declValue is NumericLiteralValue && !declValue.inferType(program).istype(decl.datatype)) {
-            // cast the numeric literal to the appropriate datatype of the variable
-            decl.value = declValue.cast(decl.datatype)
-        }
-
-        return super.visit(decl)
-    }
-
-    override fun visit(forLoop: ForLoop): Statement {
-
-        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
-            val newFrom: NumericLiteralValue
-            val newTo: NumericLiteralValue
-            try {
-                newFrom = rangeFrom.cast(targetDt)
-                newTo = rangeTo.cast(targetDt)
-            } catch (x: ExpressionError) {
-                return range
-            }
-            val newStep: Expression = try {
-                stepLiteral?.cast(targetDt)?: range.step
-            } catch(ee: ExpressionError) {
-                range.step
-            }
-            return RangeExpr(newFrom, newTo, newStep, range.position)
-        }
-
-        val forLoop2 = super.visit(forLoop) as ForLoop
-
-        // check if we need to adjust an array literal to the loop variable's datatype
-        val array = forLoop2.iterable as? ArrayLiteralValue
-        if(array!=null) {
-            val loopvarDt: DataType = when {
-                forLoop.loopVar!=null -> forLoop.loopVar!!.inferType(program).typeOrElse(DataType.UBYTE)
-                forLoop.loopRegister!=null -> DataType.UBYTE
-                else -> throw FatalAstException("weird for loop")
-            }
-
-            val arrayType = when(loopvarDt) {
-                DataType.UBYTE -> DataType.ARRAY_UB
-                DataType.BYTE -> DataType.ARRAY_B
-                DataType.UWORD -> DataType.ARRAY_UW
-                DataType.WORD -> DataType.ARRAY_W
-                DataType.FLOAT -> DataType.ARRAY_F
-                else -> throw FatalAstException("invalid array elt type")
-            }
-            val array2 = array.cast(arrayType)
-            if(array2!=null && array2!==array) {
-                forLoop2.iterable = array2
-                array2.linkParents(forLoop2)
-            }
-        }
-
-        // adjust the datatype of a range expression in for loops to the loop variable.
-        val iterableRange = forLoop2.iterable as? RangeExpr ?: return forLoop2
-        val rangeFrom = iterableRange.from as? NumericLiteralValue
-        val rangeTo = iterableRange.to as? NumericLiteralValue
-        if(rangeFrom==null || rangeTo==null) return forLoop2
-
-        val loopvar = forLoop2.loopVar?.targetVarDecl(program.namespace)
-        if(loopvar!=null) {
-            val stepLiteral = iterableRange.step as? NumericLiteralValue
-            when(loopvar.datatype) {
-                DataType.UBYTE -> {
-                    if(rangeFrom.type!= DataType.UBYTE) {
-                        // attempt to translate the iterable into ubyte values
-                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    }
-                }
-                DataType.BYTE -> {
-                    if(rangeFrom.type!= DataType.BYTE) {
-                        // attempt to translate the iterable into byte values
-                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    }
-                }
-                DataType.UWORD -> {
-                    if(rangeFrom.type!= DataType.UWORD) {
-                        // attempt to translate the iterable into uword values
-                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    }
-                }
-                DataType.WORD -> {
-                    if(rangeFrom.type!= DataType.WORD) {
-                        // attempt to translate the iterable into word values
-                        forLoop2.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    }
-                }
-                else -> throw FatalAstException("invalid loopvar datatype $loopvar")
-            }
-        }
-        return forLoop2
     }
 
 }

@@ -4,7 +4,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.AstWalker
-import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
@@ -264,7 +263,6 @@ class Module(override val name: String,
 
     override fun toString() = "Module(name=$name, pos=$position, lib=$isLibraryModule)"
 
-    fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }

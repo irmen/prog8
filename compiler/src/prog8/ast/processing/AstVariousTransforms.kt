@@ -95,7 +95,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             val arrayDt = array.type
             if(!arrayDt.istype(vardecl.datatype)) {
                 val cast = array.cast(vardecl.datatype)
-                if (cast != null)
+                if (cast != null && cast!=array)
                     return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
             }
         } else {
@@ -103,7 +103,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             if(arrayDt.isKnown) {
                 // this array literal is part of an expression, turn it into an identifier reference
                 val litval2 = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
-                if(litval2!=null) {
+                if(litval2!=null && litval2!=array) {
                     val vardecl = VarDecl.createAuto(litval2)
                     val identifier = IdentifierReference(listOf(vardecl.name), vardecl.position)
                     return listOf(

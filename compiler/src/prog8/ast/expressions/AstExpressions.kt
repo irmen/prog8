@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.processing.AstWalker
-import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
@@ -20,7 +19,6 @@ val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "=
 
 sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteralValue?
-    abstract fun accept(visitor: IAstModifyingVisitor): Expression
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
     abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove this and add identifier usage tracking into CallGraph instead
@@ -65,7 +63,6 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -123,7 +120,6 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(program: Program): NumericLiteralValue? = null
 
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -237,7 +233,6 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -274,7 +269,6 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         replacement.parent = this
     }
 
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -309,7 +303,6 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UWORD)
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }
@@ -328,7 +321,6 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
         replacement.parent = this
     }
 
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -388,7 +380,6 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     override fun referencesIdentifiers(vararg name: String) = false
     override fun constValue(program: Program) = this
 
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -479,7 +470,6 @@ class StructLiteralValue(var values: List<Expression>,
     }
 
     override fun constValue(program: Program): NumericLiteralValue?  = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -510,7 +500,6 @@ class StringLiteralValue(val value: String,
 
     override fun referencesIdentifiers(vararg name: String) = false
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -546,12 +535,11 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 
     override fun referencesIdentifiers(vararg name: String) = value.any { it.referencesIdentifiers(*name) }
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun toString(): String = "$value"
-    override fun inferType(program: Program): InferredTypes.InferredType = if(type.isUnknown) type else guessDatatype(program)
+    override fun inferType(program: Program): InferredTypes.InferredType = if(type.isKnown) type else guessDatatype(program)
 
     operator fun compareTo(other: ArrayLiteralValue): Int = throw ExpressionError("cannot order compare arrays", position)
     override fun hashCode(): Int = Objects.hash(value, type)
@@ -640,7 +628,6 @@ class RangeExpr(var from: Expression,
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -720,7 +707,6 @@ class RegisterExpr(val register: Register, override val position: Position) : Ex
     }
 
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -768,7 +754,6 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         return "IdentifierRef($nameInSource)"
     }
 
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -854,7 +839,6 @@ class FunctionCall(override var target: IdentifierReference,
         return "FunctionCall(target=$target, pos=$position)"
     }
 
-    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
