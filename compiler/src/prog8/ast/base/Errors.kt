@@ -2,7 +2,7 @@ package prog8.ast.base
 
 import prog8.ast.expressions.IdentifierReference
 
-class FatalAstException (override var message: String) : Exception(message)
+open class FatalAstException (override var message: String) : Exception(message)
 
 open class AstException (override var message: String) : Exception(message)
 

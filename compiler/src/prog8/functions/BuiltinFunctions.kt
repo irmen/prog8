@@ -185,6 +185,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 
 
 class NotConstArgumentException: AstException("not a const argument to a built-in function")
+class CannotEvaluateException(func:String, msg: String): FatalAstException("cannot evaluate built-in function $func: $msg")
 
 
 private fun oneDoubleArg(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Number): NumericLiteralValue {
@@ -265,17 +266,22 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         return NumericLiteralValue.optimalInteger((args[0] as ArrayLiteralValue).value.size, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
-    val target = (args[0] as IdentifierReference).targetVarDecl(program.namespace)!!
+    val target = (args[0] as IdentifierReference).targetVarDecl(program.namespace)
+            ?: throw CannotEvaluateException("len", "no target vardecl")
 
     return when(target.datatype) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-            arraySize = target.arraysize!!.size()!!
+            arraySize = target.arraysize?.size()
+            if(arraySize==null)
+                throw CannotEvaluateException("len", "arraysize unknown")
             if(arraySize>256)
                 throw CompilerException("array length exceeds byte limit ${target.position}")
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)
         }
         DataType.ARRAY_F -> {
-            arraySize = target.arraysize!!.size()!!
+            arraySize = target.arraysize?.size()
+            if(arraySize==null)
+                throw CannotEvaluateException("len", "arraysize unknown")
             if(arraySize>256)
                 throw CompilerException("array length exceeds byte limit ${target.position}")
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)

@@ -8,6 +8,7 @@ import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
+import prog8.functions.CannotEvaluateException
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
 import java.util.*
@@ -830,6 +831,10 @@ class FunctionCall(override var target: IdentifierReference,
             }
         }
         catch(x: NotConstArgumentException) {
+            // const-evaluating the builtin function call failed.
+            return null
+        }
+        catch(x: CannotEvaluateException) {
             // const-evaluating the builtin function call failed.
             return null
         }

@@ -289,11 +289,21 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
         // was a prefix expression earlier), we recalculate the array's datatype.
         if(array.type.isKnown)
             return noModifications
-        val arrayDt = array.guessDatatype(program)
-        if(arrayDt.isKnown) {
-            val newArray = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
-            if(newArray!=null && newArray != array)
+
+        // if the array literalvalue is inside an array vardecl, take the type from that
+        // otherwise infer it from the elements of the array
+        val vardeclType = (array.parent as? VarDecl)?.datatype
+        if(vardeclType!=null) {
+            val newArray = array.cast(vardeclType)
+            if (newArray != null && newArray != array)
                 return listOf(IAstModification.ReplaceNode(array, newArray, parent))
+        } else {
+            val arrayDt = array.guessDatatype(program)
+            if (arrayDt.isKnown) {
+                val newArray = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
+                if (newArray != null && newArray != array)
+                    return listOf(IAstModification.ReplaceNode(array, newArray, parent))
+            }
         }
 
         return noModifications

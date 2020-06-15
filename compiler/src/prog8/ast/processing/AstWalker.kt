@@ -1,9 +1,6 @@
 package prog8.ast.processing
 
-import prog8.ast.INameScope
-import prog8.ast.Module
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -15,7 +12,7 @@ interface IAstModification {
     class Remove(val node: Node, val parent: Node) : IAstModification {
         override fun perform() {
             if(parent is INameScope) {
-                if (!parent.statements.remove(node))
+                if (!parent.statements.remove(node) && parent !is GlobalNamespace)
                     throw FatalAstException("attempt to remove non-existing node $node")
             } else {
                 throw FatalAstException("parent of a remove modification is not an INameScope")
