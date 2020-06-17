@@ -16,7 +16,7 @@ import prog8.compiler.toHex
 import kotlin.math.absoluteValue
 
 // todo choose more efficient comparisons to avoid needless lda's
-// todo optimize common case step == 2 / -2
+// todo optimize common case when step == 2 or -2
 
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -339,7 +339,7 @@ $continueLabel      inc  $loopLabel+1
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter in such cases
+                // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter var in such cases
                 val length = decl.arraysize!!.size()!!
                 if(stmt.loopRegister!=null && stmt.loopRegister!= Register.A)
                     throw AssemblyError("can only use A")
@@ -366,7 +366,7 @@ $counterLabel       .byte  0
 $endLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter in such cases
+                // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter var in such cases
                 val length = decl.arraysize!!.size()!! * 2
                 if(stmt.loopRegister!=null)
                     throw AssemblyError("can't use register to loop over words")
@@ -410,7 +410,7 @@ $endLabel""")
     }
 
     private fun translateForOverConstRange(stmt: ForLoop, iterableDt: DataType, range: IntProgression) {
-        // TODO: optimize loop code when the range is < 256 iterations, don't need a separate counter in such cases
+        // TODO: optimize loop code when the range is < 256 iterations, don't need a separate counter var in such cases
         if (range.isEmpty())
             throw AssemblyError("empty range")
         val loopLabel = asmgen.makeLabel("for_loop")

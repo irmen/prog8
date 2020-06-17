@@ -46,7 +46,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             }
         }
 
-        // TODO this is the FALLBACK:
+        // TODO this is the slow FALLBACK, eventually we don't want to have to use it anymore:
         errors.warn("using suboptimal in-place assignment code (this should still be optimized)", assign.position)
         val normalAssignment = assign.asDesugaredNonaugmented()
         return translateNormalAssignment(normalAssignment)

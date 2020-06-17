@@ -42,7 +42,7 @@ fun compileProgram(filepath: Path,
                 optimizeAst(programAst, errors)
             postprocessAst(programAst, errors, compilationOptions)
 
-            // printAst(programAst) // TODO
+            // printAst(programAst)
 
             if(writeAssembly)
                 programName = writeAssembly(programAst, errors, outputDir, optimize, compilationOptions)
