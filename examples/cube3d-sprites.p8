@@ -143,18 +143,9 @@ main {
             for i1 in 0 to i {
                 ubyte i2 = i1+1
                 if(rotatedz[i1] > rotatedz[i2]) {
-                    ; swap(rotatedx[i1], rotatedx[i2])      ; TODO eventually, implment the swap()
-                    ; swap(rotatedy[i1], rotatedy[i2])
-                    ; swap(rotatedz[i1], rotatedz[i2])
-                    word tmp1 = rotatedx[i1]
-                    rotatedx[i1] = rotatedx[i2]       ; TODO fix assignment error
-                    rotatedx[i2] = tmp1
-                    tmp1 = rotatedy[i1]
-                    rotatedy[i1] = rotatedy[i2]
-                    rotatedy[i2] = tmp1
-                    tmp1 = rotatedz[i1]
-                    rotatedz[i1] = rotatedz[i2]
-                    rotatedz[i2] = tmp1
+                    swap(rotatedx[i1], rotatedx[i2])
+                    swap(rotatedy[i1], rotatedy[i2])
+                    swap(rotatedz[i1], rotatedz[i2])
                 }
             }
         }

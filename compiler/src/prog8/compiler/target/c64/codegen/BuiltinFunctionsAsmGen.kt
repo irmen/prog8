@@ -2,12 +2,8 @@ package prog8.compiler.target.c64.codegen
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
-import prog8.ast.base.ByteDatatypes
-import prog8.ast.base.DataType
-import prog8.ast.base.Register
-import prog8.ast.base.WordDatatypes
+import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
@@ -605,48 +601,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         }
 
-        // TODO more optimized cases?
-
-//        if(first is ArrayIndexedExpression && second is ArrayIndexedExpression && first.identifier == second.identifier) {
-//            // swapping two elements of an array
-//            // we optimize just some simple cases here: same array, const/var/reg index.
-//            val arrayName = asmgen.asmIdentifierName(first.identifier)
-//            val dt = first.inferType(program).typeOrElse(DataType.STRUCT)
-//            val constIndex1 = first.arrayspec.index.constValue(program)
-//            val constIndex2 = second.arrayspec.index.constValue(program)
-//            val varIndex1 = first.arrayspec.index as? IdentifierReference
-//            val varIndex2 = first.arrayspec.index as? IdentifierReference
-//            val regIndex1 = (first.arrayspec.index as? RegisterExpr)?.register
-//            val regIndex2 = (first.arrayspec.index as? RegisterExpr)?.register
-//            when(dt) {
-//                DataType.UBYTE, DataType.BYTE -> {
-//                    TODO("swap byte in array $arrayName")
-//                }
-//                DataType.UWORD, DataType.WORD -> {
-//                    // swap word in array
-//                    if(varIndex1!=null && varIndex2!=null){
-//                        TODO("swap word in array $arrayName   with varindexes")
-//                    } else if(constIndex1!=null && constIndex2!=null) {
-//                        TODO("swap word in array $arrayName   with constants")
-//                    } else if(regIndex1!=null && regIndex2!=null) {
-//                        TODO("swap word in array $arrayName   with register indexes")
-//                    }
-//                }
-//                DataType.FLOAT -> {
-//                    TODO("swap float in array $arrayName")
-//                }
-//                else -> throw AssemblyError("invalid array dt")
-//            }
-//        }
-
-        // suboptimal code via the evaluation stack...
-        asmgen.translateExpression(first)
-        asmgen.translateExpression(second)
-        // pop in reverse order
-        val firstTarget = AssignTarget.fromExpr(first)
-        val secondTarget = AssignTarget.fromExpr(second)
-        asmgen.assignFromEvalResult(firstTarget)
-        asmgen.assignFromEvalResult(secondTarget)
+        // other types of swap() calls should have been replaced by a different statement sequence involving a temp variable
+        throw AssemblyError("no asm generation for swap funccall $fcall")
     }
 
     private fun funcAbs(fcall: IFunctionCall, func: FSignature) {

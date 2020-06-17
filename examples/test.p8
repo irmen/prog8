@@ -23,10 +23,6 @@ main {
         swap(uba[0], uba[1])
         swap(uwa[0], uwa[1])
 
-        swap(fa[A], fa[Y])
-        swap(uba[A], uba[Y])
-        swap(uwa[A], uwa[Y])
-
         ubyte i1
         ubyte i2
         swap(fa[i1], fa[i2])
