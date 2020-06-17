@@ -1,19 +1,19 @@
 %import c64lib
-%import c64utils
 %import c64flt
-%zeropage basicsafe
+%import c64graphics
+%zeropage floatsafe
+
+; Draw a mandelbrot in graphics mode (the image will be 256 x 200 pixels).
+; NOTE: this will take an eternity to draw on a real c64.
+; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
 
 main {
-    const uword width = 30
-    const uword height = 20
+    const ubyte width = 255
+    const ubyte height = 200
     const ubyte max_iter = 16
 
     sub start()  {
-        c64scr.print("calculating mandelbrot fractal...")
-
-        c64.TIME_HI=0
-        c64.TIME_MID=0
-        c64.TIME_LO=0
+        graphics.enable_bitmap_mode()
 
         ubyte pixelx
         ubyte pixely
@@ -37,26 +37,15 @@ main {
                     ysquared = y*y
                     iter++
                 }
-                c64scr.setcc(pixelx+4, pixely+1, 160, max_iter-iter)
+
+                if iter & 1 {
+                    graphics.plotx = pixelx
+                    graphics.plot(pixely)
+                }
             }
         }
 
-        float duration = ((c64.TIME_LO as float)
-                                + 256.0*(c64.TIME_MID as float)
-                                + 65536.0*(c64.TIME_HI as float))/60.0
-        c64scr.plot(0, 21)
-        c64scr.print("finished in ")
-        c64flt.print_f(duration)
-        c64scr.print(" seconds!\n")
-        check_eval_stack()
-    }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("stack x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
+        forever {
         }
     }
-
 }
