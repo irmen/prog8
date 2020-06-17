@@ -781,3 +781,18 @@ set_array_float		.proc
 			; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
 			;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
 		.pend
+
+
+swap_floats	.proc
+		; -- swap floats pointed to by SCRATCH_ZPWORD1, SCRATCH_ZPWORD2
+		ldy  #4
+-               lda  (c64.SCRATCH_ZPWORD1),y
+		pha
+		lda  (c64.SCRATCH_ZPWORD2),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		pla
+		sta  (c64.SCRATCH_ZPWORD2),y
+		dey
+		bpl  -
+		rts
+		.pend

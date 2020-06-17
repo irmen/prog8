@@ -691,7 +691,6 @@ internal class AsmGen(private val program: Program,
         loopEndLabels.push(endLabel)
         loopContinueLabels.push(whileLabel)
         out(whileLabel)
-        // TODO optimize for the simple cases, can we avoid stack use?
         expressionsAsmGen.translateExpression(stmt.condition)
         val conditionDt = stmt.condition.inferType(program)
         if(!conditionDt.isKnown)
@@ -720,7 +719,6 @@ internal class AsmGen(private val program: Program,
         loopEndLabels.push(endLabel)
         loopContinueLabels.push(repeatLabel)
         out(repeatLabel)
-        // TODO optimize this for the simple cases, can we avoid stack use?
         translate(stmt.body)
         expressionsAsmGen.translateExpression(stmt.untilCondition)
         val conditionDt = stmt.untilCondition.inferType(program)

@@ -731,6 +731,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     fun targetVarDecl(namespace: INameScope): VarDecl? = targetStatement(namespace) as? VarDecl
     fun targetSubroutine(namespace: INameScope): Subroutine? = targetStatement(namespace) as? Subroutine
 
+    override fun equals(other: Any?) = other is IdentifierReference && other.nameInSource==nameInSource
+
     override fun linkParents(parent: Node) {
         this.parent = parent
     }

@@ -581,23 +581,63 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     ldy  $firstName
                     lda  $secondName
                     sta  $firstName
-                    tya
-                    sta  $secondName
+                    sty  $secondName
                     ldy  $firstName+1
                     lda  $secondName+1
                     sta  $firstName+1
-                    tya
-                    sta  $secondName+1
+                    sty  $secondName+1
                 """)
                 return
             }
             if(dt.istype(DataType.FLOAT)) {
-                TODO("optimized case for swapping 2 float vars-- asm subroutine")
+                asmgen.out("""
+                    lda  #<$firstName
+                    sta  ${C64Zeropage.SCRATCH_W1}
+                    lda  #>$firstName
+                    sta  ${C64Zeropage.SCRATCH_W1+1}
+                    lda  #<$secondName
+                    sta  ${C64Zeropage.SCRATCH_W2}
+                    lda  #>$secondName
+                    sta  ${C64Zeropage.SCRATCH_W2+1}
+                    jsr  c64flt.swap_floats
+                """)
                 return
             }
         }
 
-        // TODO more optimized cases? for instance swapping elements of array vars?
+        // TODO more optimized cases?
+
+//        if(first is ArrayIndexedExpression && second is ArrayIndexedExpression && first.identifier == second.identifier) {
+//            // swapping two elements of an array
+//            // we optimize just some simple cases here: same array, const/var/reg index.
+//            val arrayName = asmgen.asmIdentifierName(first.identifier)
+//            val dt = first.inferType(program).typeOrElse(DataType.STRUCT)
+//            val constIndex1 = first.arrayspec.index.constValue(program)
+//            val constIndex2 = second.arrayspec.index.constValue(program)
+//            val varIndex1 = first.arrayspec.index as? IdentifierReference
+//            val varIndex2 = first.arrayspec.index as? IdentifierReference
+//            val regIndex1 = (first.arrayspec.index as? RegisterExpr)?.register
+//            val regIndex2 = (first.arrayspec.index as? RegisterExpr)?.register
+//            when(dt) {
+//                DataType.UBYTE, DataType.BYTE -> {
+//                    TODO("swap byte in array $arrayName")
+//                }
+//                DataType.UWORD, DataType.WORD -> {
+//                    // swap word in array
+//                    if(varIndex1!=null && varIndex2!=null){
+//                        TODO("swap word in array $arrayName   with varindexes")
+//                    } else if(constIndex1!=null && constIndex2!=null) {
+//                        TODO("swap word in array $arrayName   with constants")
+//                    } else if(regIndex1!=null && regIndex2!=null) {
+//                        TODO("swap word in array $arrayName   with register indexes")
+//                    }
+//                }
+//                DataType.FLOAT -> {
+//                    TODO("swap float in array $arrayName")
+//                }
+//                else -> throw AssemblyError("invalid array dt")
+//            }
+//        }
 
         // suboptimal code via the evaluation stack...
         asmgen.translateExpression(first)

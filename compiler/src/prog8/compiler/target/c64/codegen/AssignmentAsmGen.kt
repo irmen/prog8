@@ -167,33 +167,108 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 TODO("$assign")
             }
             is ArrayIndexedExpression -> {
+                if(assign.aug_op != "setvalue")
+                    return false   // we don't put effort into optimizing anything beside simple assignment
                 val valueArrayExpr = assign.value as ArrayIndexedExpression
                 val valueArrayIndex = valueArrayExpr.arrayspec.index
+                if(valueArrayIndex is RegisterExpr || arrayIndex is RegisterExpr) {
+                    throw AssemblyError("cannot generate code for array operations with registers as index")
+                }
                 val valueVariablename = asmgen.asmIdentifierName(valueArrayExpr.identifier)
                 val valueDt = valueArrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 when(arrayDt) {
-                    DataType.ARRAY_UB -> {
-                        if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
-                            throw AssemblyError("assignment to array: expected byte array or string")
-                        if (assign.aug_op == "setvalue") {
-                            if (valueArrayIndex is NumericLiteralValue)
-                                asmgen.out(" ldy  #${valueArrayIndex.number.toHex()}")
-                            else
-                                asmgen.translateArrayIndexIntoY(valueArrayExpr)
-                            asmgen.out(" lda  $valueVariablename,y")
-                            if (arrayIndex is NumericLiteralValue)
-                                asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
-                            else
-                                asmgen.translateArrayIndexIntoY(targetArray)
-                            asmgen.out(" sta  $targetName,y")
-                        } else {
-                            return false // TODO optimize
-                        }
+                    DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> {
+                        if (valueArrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #${valueArrayIndex.number.toHex()}")
+                        else
+                            asmgen.translateArrayIndexIntoY(valueArrayExpr)
+                        asmgen.out(" lda  $valueVariablename,y")
+                        if (arrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
+                        else
+                            asmgen.translateArrayIndexIntoY(targetArray)
+                        asmgen.out(" sta  $targetName,y")
                     }
-                    DataType.ARRAY_B -> TODO()
-                    DataType.ARRAY_UW -> TODO()
-                    DataType.ARRAY_W -> TODO()
-                    DataType.ARRAY_F -> TODO()
+                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                        if (valueArrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #2*${valueArrayIndex.number.toHex()}")
+                        else {
+                            asmgen.translateArrayIndexIntoA(valueArrayExpr)
+                            asmgen.out(" asl  a |  tay")
+                        }
+                        asmgen.out("""
+                            lda  $valueVariablename,y
+                            pha
+                            lda  $valueVariablename+1,y
+                            pha
+                        """)
+                        if (arrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #2*${arrayIndex.number.toHex()}")
+                        else {
+                            asmgen.translateArrayIndexIntoA(targetArray)
+                            asmgen.out(" asl  a |  tay")
+                        }
+                        asmgen.out("""
+                            pla
+                            sta  $targetName+1,y
+                            pla
+                            sta  $targetName,y
+                        """)
+                        return true
+                    }
+                    DataType.ARRAY_F -> {
+                        if (valueArrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #5*${valueArrayIndex.number.toHex()}")
+                        else {
+                            asmgen.translateArrayIndexIntoA(valueArrayExpr)
+                            asmgen.out("""
+                                sta  ${C64Zeropage.SCRATCH_REG}
+                                asl  a
+                                asl  a
+                                clc
+                                adc  ${C64Zeropage.SCRATCH_REG}
+                                tay
+                            """)
+                        }
+                        asmgen.out("""
+                            lda  $valueVariablename,y
+                            pha
+                            lda  $valueVariablename+1,y
+                            pha
+                            lda  $valueVariablename+2,y
+                            pha
+                            lda  $valueVariablename+3,y
+                            pha
+                            lda  $valueVariablename+4,y
+                            pha
+                        """)
+                        if (arrayIndex is NumericLiteralValue)
+                            asmgen.out(" ldy  #5*${arrayIndex.number.toHex()}")
+                        else {
+                            asmgen.translateArrayIndexIntoA(targetArray)
+                            asmgen.out("""
+                                sta  ${C64Zeropage.SCRATCH_REG}
+                                asl  a
+                                asl  a
+                                clc
+                                adc  ${C64Zeropage.SCRATCH_REG}
+                                tay
+                            """)
+                        }
+                        asmgen.out("""
+                            pla
+                            sta  $targetName+4,y
+                            pla
+                            sta  $targetName+3,y
+                            pla
+                            sta  $targetName+2,y
+                            pla
+                            sta  $targetName+1,y
+                            pla
+                            sta  $targetName,y
+                        """)
+                        return true
+                    }
                     else -> throw AssemblyError("assignment to array: invalid array dt")
                 }
                 return true
