@@ -24,10 +24,10 @@ private val asmRefRx = Regex("""[\-+a-zA-Z0-9_ \t]+(...)[ \t]+(\S+).*""", RegexO
 
 class CallGraph(private val program: Program) : IAstVisitor {
 
-    val modulesImporting = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
-    val modulesImportedBy = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
-    val subroutinesCalling = mutableMapOf<INameScope, List<Subroutine>>().withDefault { mutableListOf() }
-    val subroutinesCalledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
+    val imports = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
+    val importedBy = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
+    val calls = mutableMapOf<INameScope, List<Subroutine>>().withDefault { mutableListOf() }
+    val calledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
 
     // TODO  add dataflow graph: what statements use what variables - can be used to eliminate unused vars
     val usedSymbols = mutableSetOf<Statement>()
@@ -55,15 +55,15 @@ class CallGraph(private val program: Program) : IAstVisitor {
             it.importedBy.clear()
             it.imports.clear()
 
-            it.importedBy.addAll(modulesImportedBy.getValue(it))
-            it.imports.addAll(modulesImporting.getValue(it))
+            it.importedBy.addAll(importedBy.getValue(it))
+            it.imports.addAll(imports.getValue(it))
 
             forAllSubroutines(it) { sub ->
                 sub.calledBy.clear()
                 sub.calls.clear()
 
-                sub.calledBy.addAll(subroutinesCalledBy.getValue(sub))
-                sub.calls.addAll(subroutinesCalling.getValue(sub))
+                sub.calledBy.addAll(calledBy.getValue(sub))
+                sub.calls.addAll(calls.getValue(sub))
             }
 
         }
@@ -85,8 +85,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val thisModule = directive.definingModule()
         if (directive.directive == "%import") {
             val importedModule: Module = program.modules.single { it.name == directive.args[0].name }
-            modulesImporting[thisModule] = modulesImporting.getValue(thisModule).plus(importedModule)
-            modulesImportedBy[importedModule] = modulesImportedBy.getValue(importedModule).plus(thisModule)
+            imports[thisModule] = imports.getValue(thisModule).plus(importedModule)
+            importedBy[importedModule] = importedBy.getValue(importedModule).plus(thisModule)
         } else if (directive.directive == "%asminclude") {
             val asm = loadAsmIncludeFile(directive.args[0].str!!, thisModule.source)
             val scope = directive.definingScope()
@@ -141,8 +141,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = functionCall.target.targetSubroutine(program.namespace)
         if (otherSub != null) {
             functionCall.definingSubroutine()?.let { thisSub ->
-                subroutinesCalling[thisSub] = subroutinesCalling.getValue(thisSub).plus(otherSub)
-                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(functionCall)
+                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
+                calledBy[otherSub] = calledBy.getValue(otherSub).plus(functionCall)
             }
         }
         super.visit(functionCall)
@@ -152,8 +152,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = functionCallStatement.target.targetSubroutine(program.namespace)
         if (otherSub != null) {
             functionCallStatement.definingSubroutine()?.let { thisSub ->
-                subroutinesCalling[thisSub] = subroutinesCalling.getValue(thisSub).plus(otherSub)
-                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(functionCallStatement)
+                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
+                calledBy[otherSub] = calledBy.getValue(otherSub).plus(functionCallStatement)
             }
         }
         super.visit(functionCallStatement)
@@ -163,8 +163,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = jump.identifier?.targetSubroutine(program.namespace)
         if (otherSub != null) {
             jump.definingSubroutine()?.let { thisSub ->
-                subroutinesCalling[thisSub] = subroutinesCalling.getValue(thisSub).plus(otherSub)
-                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(jump)
+                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
+                calledBy[otherSub] = calledBy.getValue(otherSub).plus(jump)
             }
         }
         super.visit(jump)
@@ -190,14 +190,14 @@ class CallGraph(private val program: Program) : IAstVisitor {
                 if (jumptarget != null && (jumptarget[0].isLetter() || jumptarget[0] == '_')) {
                     val node = program.namespace.lookup(jumptarget.split('.'), context)
                     if (node is Subroutine) {
-                        subroutinesCalling[scope] = subroutinesCalling.getValue(scope).plus(node)
-                        subroutinesCalledBy[node] = subroutinesCalledBy.getValue(node).plus(context)
+                        calls[scope] = calls.getValue(scope).plus(node)
+                        calledBy[node] = calledBy.getValue(node).plus(context)
                     } else if (jumptarget.contains('.')) {
                         // maybe only the first part already refers to a subroutine
                         val node2 = program.namespace.lookup(listOf(jumptarget.substringBefore('.')), context)
                         if (node2 is Subroutine) {
-                            subroutinesCalling[scope] = subroutinesCalling.getValue(scope).plus(node2)
-                            subroutinesCalledBy[node2] = subroutinesCalledBy.getValue(node2).plus(context)
+                            calls[scope] = calls.getValue(scope).plus(node2)
+                            calledBy[node2] = calledBy.getValue(node2).plus(context)
                         }
                     }
                 }
@@ -209,8 +209,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
                         if (target.contains('.')) {
                             val node = program.namespace.lookup(listOf(target.substringBefore('.')), context)
                             if (node is Subroutine) {
-                                subroutinesCalling[scope] = subroutinesCalling.getValue(scope).plus(node)
-                                subroutinesCalledBy[node] = subroutinesCalledBy.getValue(node).plus(context)
+                                calls[scope] = calls.getValue(scope).plus(node)
+                                calledBy[node] = calledBy.getValue(node).plus(context)
                             }
                         }
                     }

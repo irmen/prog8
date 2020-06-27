@@ -155,6 +155,7 @@ interface INameScope {
     }
 
     fun containsCodeOrVars() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm"}
+    fun containsNoVars() = statements.all { it !is VarDecl }
     fun containsNoCodeNorVars() = !containsCodeOrVars()
 
     fun remove(stmt: Statement) {

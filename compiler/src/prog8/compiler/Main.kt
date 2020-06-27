@@ -150,6 +150,7 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     programAst.reorderStatements()
     programAst.addTypecasts(errors)
     errors.handle()
+    programAst.inlineSubroutines()
     programAst.checkValid(compilerOptions, errors)
     errors.handle()
     programAst.checkIdentifiers(errors)

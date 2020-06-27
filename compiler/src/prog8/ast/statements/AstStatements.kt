@@ -340,7 +340,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
 open class Assignment(var target: AssignTarget, var aug_op : String?, var value: Expression, override val position: Position) : Statement() {
     override lateinit var parent: Node
     override val expensiveToInline
-            get() = value !is NumericLiteralValue
+            get() = value is BinaryExpression
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -668,8 +668,8 @@ class Subroutine(override val name: String,
             get() = statements.any { it.expensiveToInline }
 
     override lateinit var parent: Node
-    val calledBy = mutableListOf<Node>()
-    val calls = mutableSetOf<Subroutine>()
+    val calledBy = mutableListOf<Node>()            // TODO remove, use callgraph only
+    val calls = mutableSetOf<Subroutine>()          // TODO remove, use callgraph only
 
     val scopedname: String by lazy { makeScopedName(name) }
 
@@ -700,6 +700,32 @@ class Subroutine(override val name: String,
             .filter { it is InlineAssembly }
             .map { (it as InlineAssembly).assembly }
             .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
+
+    fun countStatements(): Int {
+        class StatementCounter: IAstVisitor {
+            var count = 0
+
+            override fun visit(block: Block) {
+                count += block.statements.size
+                super.visit(block)
+            }
+
+            override fun visit(subroutine: Subroutine) {
+                count += subroutine.statements.size
+                super.visit(subroutine)
+            }
+
+            override fun visit(scope: AnonymousScope) {
+                count += scope.statements.size
+                super.visit(scope)
+            }
+        }
+
+        // the (recursive) number of statements
+        val counter = StatementCounter()
+        counter.visit(this)
+        return counter.count
+    }
 }
 
 
