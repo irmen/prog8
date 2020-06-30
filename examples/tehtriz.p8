@@ -7,6 +7,12 @@
 ;   staged speed increase
 ;   some simple sound effects
 
+
+
+;  TODO fix crash when piece reaches bottom.
+;  TODO fix wrong behavior when compiled without optimizations.
+
+
 main {
 
     const ubyte boardOffsetX = 14
