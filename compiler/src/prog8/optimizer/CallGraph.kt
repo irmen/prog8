@@ -57,15 +57,6 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
             it.importedBy.addAll(importedBy.getValue(it))
             it.imports.addAll(imports.getValue(it))
-
-            forAllSubroutines(it) { sub ->
-                sub.calledBy.clear()
-                sub.calls.clear()
-
-                sub.calledBy.addAll(calledBy.getValue(sub))
-                sub.calls.addAll(calls.getValue(sub))
-            }
-
         }
 
         val rootmodule = program.modules.first()

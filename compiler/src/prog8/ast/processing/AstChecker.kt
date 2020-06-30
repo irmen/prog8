@@ -326,7 +326,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(repeatLoop: RepeatLoop) {
-        if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))   // TODO use callgraph?
+        if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
             errors.warn("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
         if(repeatLoop.untilCondition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", repeatLoop.untilCondition.position)
@@ -334,7 +334,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))        // TODO use callgraph?
+        if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
             errors.warn("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
         if(whileLoop.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", whileLoop.condition.position)
@@ -463,7 +463,6 @@ internal class AstChecker(private val program: Program,
         }
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        // TODO use callgraph for check?
         if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
             err("recursive var declaration")
         }

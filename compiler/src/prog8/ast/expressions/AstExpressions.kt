@@ -22,7 +22,7 @@ sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteralValue?
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
-    abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove this and add identifier usage tracking into CallGraph instead
+    abstract fun referencesIdentifiers(vararg name: String): Boolean
     abstract fun inferType(program: Program): InferredTypes.InferredType
 
     infix fun isSameAs(other: Expression): Boolean {

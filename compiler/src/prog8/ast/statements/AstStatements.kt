@@ -668,8 +668,6 @@ class Subroutine(override val name: String,
             get() = statements.any { it.expensiveToInline }
 
     override lateinit var parent: Node
-    val calledBy = mutableListOf<Node>()            // TODO remove, use callgraph only
-    val calls = mutableSetOf<Subroutine>()          // TODO remove, use callgraph only
 
     val scopedname: String by lazy { makeScopedName(name) }
 
