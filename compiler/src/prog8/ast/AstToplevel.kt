@@ -230,7 +230,7 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Module && replacement is Module)
-        val idx = modules.indexOf(node)
+        val idx = modules.withIndex().find { it.value===node }!!.index
         modules[idx] = replacement
         replacement.parent = this
     }
@@ -257,7 +257,7 @@ class Module(override val name: String,
     override fun definingScope(): INameScope = program.namespace
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Statement && replacement is Statement)
-        val idx = statements.indexOf(node)
+        val idx = statements.withIndex().find { it.value===node }!!.index
         statements[idx] = replacement
         replacement.parent = this
     }

@@ -529,7 +529,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
-        val idx = value.indexOf(node)
+        val idx = value.withIndex().find { it.value===node }!!.index
         value[idx] = replacement
         replacement.parent = this
     }
@@ -800,7 +800,7 @@ class FunctionCall(override var target: IdentifierReference,
         if(node===target)
             target=replacement as IdentifierReference
         else {
-            val idx = args.indexOf(node)
+            val idx = args.withIndex().find { it.value===node }!!.index
             args[idx] = replacement as Expression
         }
         replacement.parent = this

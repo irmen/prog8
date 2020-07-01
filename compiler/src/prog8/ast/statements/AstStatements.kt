@@ -69,7 +69,7 @@ class Block(override val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.indexOf(node)
+        val idx = statements.withIndex().find { it.value===node }!!.index
         statements[idx] = replacement
         replacement.parent = this
     }
@@ -569,7 +569,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
         if(node===target)
             target = replacement as IdentifierReference
         else {
-            val idx = args.indexOf(node)
+            val idx = args.withIndex().find { it.value===node }!!.index
             args[idx] = replacement as Expression
         }
         replacement.parent = this
@@ -619,7 +619,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.indexOf(node)
+        val idx = statements.withIndex().find { it.value===node }!!.index
         statements[idx] = replacement
         replacement.parent = this
     }
@@ -679,7 +679,7 @@ class Subroutine(override val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.indexOf(node)
+        val idx = statements.withIndex().find { it.value===node }!!.index
         statements[idx] = replacement
         replacement.parent = this
     }
@@ -923,7 +923,7 @@ class WhenStatement(var condition: Expression,
         if(node===condition)
             condition = replacement as Expression
         else {
-            val idx = choices.indexOf(node)
+            val idx = choices.withIndex().find { it.value===node }!!.index
             choices[idx] = replacement as WhenChoice
         }
         replacement.parent = this
@@ -990,7 +990,7 @@ class StructDecl(override val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.indexOf(node)
+        val idx = statements.withIndex().find { it.value===node }!!.index
         statements[idx] = replacement
         replacement.parent = this
     }

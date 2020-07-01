@@ -87,7 +87,9 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
 
     private fun afterFunctionCallArgs(call: IFunctionCall, scope: INameScope): Iterable<IAstModification> {
         // see if a typecast is needed to convert the arguments into the required parameter's type
-        return when(val sub = call.target.targetStatement(scope)) {
+        val modifications = mutableListOf<IAstModification>()
+
+        when(val sub = call.target.targetStatement(scope)) {
             is Subroutine -> {
                 for(arg in sub.parameters.zip(call.args.withIndex())) {
                     val argItype = arg.second.value.inferType(program)
@@ -96,21 +98,30 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                         val requiredType = arg.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
-                                return listOf(IAstModification.ReplaceNode(
+                                modifications += IAstModification.ReplaceNode(
                                         call.args[arg.second.index],
                                         TypecastExpression(arg.second.value, requiredType, true, arg.second.value.position),
-                                        call as Node))
+                                        call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
                                 // we allow STR/ARRAY values in place of UWORD parameters. Take their address instead.
-                                return listOf(IAstModification.ReplaceNode(
+                                modifications += IAstModification.ReplaceNode(
                                         call.args[arg.second.index],
                                         AddressOf(arg.second.value as IdentifierReference, arg.second.value.position),
-                                        call as Node))
+                                        call as Node)
+                            } else if(arg.second.value is NumericLiteralValue) {
+                                try {
+                                    val castedValue = (arg.second.value as NumericLiteralValue).cast(requiredType)
+                                    modifications += IAstModification.ReplaceNode(
+                                            call.args[arg.second.index],
+                                            castedValue,
+                                            call as Node)
+                                } catch (x: ExpressionError) {
+                                    // no cast possible
+                                }
                             }
                         }
                     }
                 }
-                emptyList()
             }
             is BuiltinFunctionStatementPlaceholder -> {
                 val func = BuiltinFunctions.getValue(sub.name)
@@ -124,20 +135,21 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                                 continue
                             for (possibleType in arg.first.possibleDatatypes) {
                                 if (argtype isAssignableTo possibleType) {
-                                    return listOf(IAstModification.ReplaceNode(
+                                    modifications += IAstModification.ReplaceNode(
                                             call.args[arg.second.index],
                                             TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position),
-                                            call as Node))
+                                            call as Node)
                                 }
                             }
                         }
                     }
                 }
-                emptyList()
             }
-            null -> emptyList()
+            null -> { }
             else -> throw FatalAstException("call to something weird $sub   ${call.target}")
         }
+
+        return modifications
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {

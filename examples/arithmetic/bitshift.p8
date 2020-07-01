@@ -3,6 +3,9 @@
 ;%option enable_floats
 %zeropage dontuse
 
+; TODO fix compiler errors when compiling without optimizations
+
+
 main {
 
     sub start() {
