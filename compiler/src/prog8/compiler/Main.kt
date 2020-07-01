@@ -150,7 +150,6 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     programAst.reorderStatements()
     programAst.addTypecasts(errors)
     errors.handle()
-    programAst.inlineSubroutines()
     programAst.checkValid(compilerOptions, errors)
     errors.handle()
     programAst.checkIdentifiers(errors)
@@ -164,9 +163,10 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.optimizeStatements(errors)
+        val optsDone3 = programAst.inlineSubroutines()
         programAst.constantFold(errors) // because simplified statements and expressions could give rise to more constants that can be folded away:
         errors.handle()
-        if (optsDone1 + optsDone2 == 0)
+        if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
 
