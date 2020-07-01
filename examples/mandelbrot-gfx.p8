@@ -7,6 +7,9 @@
 ; NOTE: this will take an eternity to draw on a real c64.
 ; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
 
+; TODO fix compiler errors when compiling without optimizations
+
+
 main {
     const ubyte width = 255
     const ubyte height = 200

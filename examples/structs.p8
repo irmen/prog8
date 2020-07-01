@@ -1,6 +1,9 @@
 %import c64utils
 %zeropage basicsafe
 
+; TODO fix compiler errors when compiling without optimizations
+
+
 main {
 
     struct Color {
