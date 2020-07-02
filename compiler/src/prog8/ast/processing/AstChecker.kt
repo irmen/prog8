@@ -732,7 +732,7 @@ internal class AstChecker(private val program: Program,
             }
             "**" -> {
                 if(leftDt in IntegerDatatypes)
-                    errors.err("power operator requires floating point", expr.position)
+                    errors.err("power operator requires floating point operands", expr.position)
             }
             "and", "or", "xor" -> {
                 // only integer numeric operands accepted, and if literal constants, only boolean values accepted (0 or 1)

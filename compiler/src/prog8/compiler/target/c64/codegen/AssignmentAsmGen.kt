@@ -91,7 +91,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     else -> throw AssemblyError("assignment to array: invalid array dt $arrayDt")
                 }
             } else {
-                TODO()
+                TODO("aug assignment to element in array/string")
             }
             return true
         }
@@ -155,16 +155,16 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             sta  $targetName+1,y
                         """)
                     }
-                    DataType.ARRAY_F -> return false        // TODO optimize?
+                    DataType.ARRAY_F -> return false        // TODO optimize instead of fallback?
                     else -> throw AssemblyError("assignment to array: invalid array dt $arrayDt")
                 }
                 return true
             }
             is AddressOf -> {
-                TODO("$assign")
+                TODO("assign address into array $assign")
             }
             is DirectMemoryRead -> {
-                TODO("$assign")
+                TODO("assign memory read into array $assign")
             }
             is ArrayIndexedExpression -> {
                 if(assign.aug_op != "setvalue")
@@ -294,13 +294,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 "setvalue" -> asmgen.out(" lda  #$hexValue |  sta  $hexAddr")
                 "+=" -> asmgen.out(" lda  $hexAddr |  clc |  adc  #$hexValue |  sta  $hexAddr")
                 "-=" -> asmgen.out(" lda  $hexAddr |  sec |  sbc  #$hexValue |  sta  $hexAddr")
-                "/=" -> TODO("/=")
-                "*=" -> TODO("*=")
-                "**=" -> TODO("**=")
+                "/=" -> TODO("membyte /= const $hexValue")
+                "*=" -> TODO("membyte *= const $hexValue")
                 "&=" -> asmgen.out(" lda  $hexAddr |  and  #$hexValue |  sta  $hexAddr")
                 "|=" -> asmgen.out(" lda  $hexAddr |  ora  #$hexValue |  sta  $hexAddr")
                 "^=" -> asmgen.out(" lda  $hexAddr |  eor  #$hexValue |  sta  $hexAddr")
-                "%=" -> TODO("%=")
+                "%=" -> TODO("membyte %= const $hexValue")
                 "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                 ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                 else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -333,9 +332,8 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             Register.Y -> asmgen.out(" sty  ${C64Zeropage.SCRATCH_B1} | lda  $hexAddr |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  $hexAddr")
                         }
                     }
-                    "/=" -> TODO("/=")
-                    "*=" -> TODO("*=")
-                    "**=" -> TODO("**=")
+                    "/=" -> TODO("membyte /= register")
+                    "*=" -> TODO("membyte *= register")
                     "&=" -> {
                         when ((assign.value as RegisterExpr).register) {
                             Register.A -> asmgen.out(" and  $hexAddr |  sta  $hexAddr")
@@ -357,7 +355,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             Register.Y -> asmgen.out(" tya |  eor  $hexAddr |  sta  $hexAddr")
                         }
                     }
-                    "%=" -> TODO("%=")
+                    "%=" -> TODO("membyte %= register")
                     "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                     ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                     else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -366,7 +364,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
-                TODO("$assign")
+                TODO("membyte = variable $assign")
             }
             is DirectMemoryRead -> {
                 val memory = (assign.value as DirectMemoryRead).addressExpression.constValue(program)!!.number.toHex()
@@ -374,7 +372,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 return true
             }
             is ArrayIndexedExpression -> {
-                TODO("$assign")
+                TODO("membyte = array value $assign")
             }
             is AddressOf -> throw AssemblyError("can't assign address to byte")
             else -> {
@@ -387,7 +385,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
     }
 
     private fun inplaceAssignToNonConstMemoryByte(assign: Assignment): Boolean {
-        // target address is not constant, so evaluate it on the stack
+        // target address is not constant, so evaluate it from the stack
         asmgen.translateExpression(assign.target.memoryAddress!!.addressExpression)
         asmgen.out("""
             inx
@@ -405,13 +403,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 "setvalue" -> asmgen.out(" lda  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
                 "+=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  clc |  adc  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
                 "-=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                "/=" -> TODO("/=")
-                "*=" -> TODO("*=")
-                "**=" -> TODO("**=")
+                "/=" -> TODO("membyte /= const $hexValue")
+                "*=" -> TODO("membyte *= const $hexValue")
                 "&=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  and  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
                 "|=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  ora  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
                 "^=" -> asmgen.out(" lda  (${C64Zeropage.SCRATCH_W1}),y |  eor  #$hexValue |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                "%=" -> TODO("%=")
+                "%=" -> TODO("membyte %= const $hexValue")
                 "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                 ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                 else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -445,9 +442,8 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             Register.Y -> asmgen.out(" tya  | ldy  #0 |  sta  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
                         }
                     }
-                    "/=" -> TODO("/=")
-                    "*=" -> TODO("*=")
-                    "**=" -> TODO("**=")
+                    "/=" -> TODO("membyte /= register")
+                    "*=" -> TODO("membyte *= register")
                     "&=" -> {
                         when ((assign.value as RegisterExpr).register) {
                             Register.A -> asmgen.out(" ldy  #0 |  and  (${C64Zeropage.SCRATCH_W1}),y|  sta  (${C64Zeropage.SCRATCH_W1}),y")
@@ -469,7 +465,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             Register.Y -> asmgen.out(" tya |  ldy  #0 |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
                         }
                     }
-                    "%=" -> TODO("%=")
+                    "%=" -> TODO("membyte %= register")
                     "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                     ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                     else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -478,13 +474,10 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
-                TODO("$assign")
-            }
-            is AddressOf -> {
-                TODO("$assign")
+                TODO("membyte = variable $assign")
             }
             is DirectMemoryRead -> {
-                TODO("$assign")
+                TODO("membyte = memread $assign")
             }
             is ArrayIndexedExpression -> {
                 if (assign.aug_op == "setvalue") {
@@ -511,6 +504,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 }
                 return true
             }
+            is AddressOf -> throw AssemblyError("can't assign memory address to memory byte")
             else -> {
                 fallbackAssignment(assign)
                 return true
@@ -534,13 +528,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         "setvalue" -> asmgen.out(" lda  #$hexValue |  sta  $targetName")
                         "+=" -> asmgen.out(" lda  $targetName |  clc |  adc  #$hexValue |  sta  $targetName")
                         "-=" -> asmgen.out(" lda  $targetName |  sec |  sbc  #$hexValue |  sta  $targetName")
-                        "/=" -> TODO("/=")
-                        "*=" -> TODO("*=")
-                        "**=" -> TODO("**=")
+                        "/=" -> TODO("variable /= const $hexValue")
+                        "*=" -> TODO("variable *= const $hexValue")
                         "&=" -> asmgen.out(" lda  $targetName |  and  #$hexValue |  sta  $targetName")
                         "|=" -> asmgen.out(" lda  $targetName |  ora  #$hexValue |  sta  $targetName")
                         "^=" -> asmgen.out(" lda  $targetName |  eor  #$hexValue |  sta  $targetName")
-                        "%=" -> TODO("%=")
+                        "%=" -> TODO("variable %= const $hexValue")
                         "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                         ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                         else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -560,7 +553,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                     Register.Y -> asmgen.out(" sty  $targetName")
                                 }
                             }
-                            else -> TODO("$assign")
+                            else -> TODO("aug.assign variable = register $assign")
                         }
                         return true
                     }
@@ -570,13 +563,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             "setvalue" -> asmgen.out(" lda  $sourceName |  sta  $targetName")
                             "+=" -> asmgen.out(" lda  $targetName |  clc |  adc  $sourceName |  sta  $targetName")
                             "-=" -> asmgen.out(" lda  $targetName |  sec |  sbc  $sourceName |  sta  $targetName")
-                            "/=" -> TODO("/=")
-                            "*=" -> TODO("*=")
-                            "**=" -> TODO("**=")
+                            "/=" -> TODO("variable /= variable")
+                            "*=" -> TODO("variable *= variable")
                             "&=" -> asmgen.out(" lda  $targetName |  and  $sourceName |  sta  $targetName")
                             "|=" -> asmgen.out(" lda  $targetName |  ora  $sourceName |  sta  $targetName")
                             "^=" -> asmgen.out(" lda  $targetName |  eor  $sourceName |  sta  $targetName")
-                            "%=" -> TODO("%=")
+                            "%=" -> TODO("variable %= variable")
                             "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                             ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                             else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -584,7 +576,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         return true
                     }
                     is DirectMemoryRead -> {
-                        TODO("$assign")
+                        TODO("variable = memory read $assign")
                     }
                     is ArrayIndexedExpression -> {
                         if (assign.aug_op == "setvalue") {
@@ -647,7 +639,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 sta  $targetName+1
                             """)
                         }
-                        else -> TODO("$assign")
+                        else -> TODO("variable aug.assign ${assign.aug_op} const $hexNumber")
                     }
                     return true
                 }
@@ -692,7 +684,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 return true
                             }
                             else -> {
-                                TODO("$assign")
+                                TODO("variable aug.assign variable")
                             }
                         }
                         return true
@@ -789,7 +781,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         """)
                             return true
                         }
-                        else -> TODO("$assign")
+                        else -> TODO("float const value aug.assign $assign")
                     }
                     return true
                 }
@@ -802,7 +794,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             "setvalue" -> assignFromFloatVariable(assign.target, assign.value as IdentifierReference)
                             "+=" -> return false        // TODO optimized float += variable
                             "-=" -> return false        // TODO optimized float -= variable
-                            else -> TODO("$assign")
+                            else -> TODO("float non-const value aug.assign $assign")
                         }
                         return true
                     }
@@ -838,7 +830,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                     sta  $targetName+4
                                 """)
                             }
-                            else -> TODO("$assign")
+                            else -> TODO("float $assign")
                         }
                         return true
                     }
@@ -878,13 +870,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         "setvalue" -> asmgen.out(" lda  #$hexValue")
                         "+=" -> asmgen.out(" clc |  adc  #$hexValue")
                         "-=" -> asmgen.out(" sec |  sbc  #$hexValue")
-                        "/=" -> TODO("/=")
-                        "*=" -> TODO("*=")
-                        "**=" -> TODO("**=")
+                        "/=" -> TODO("A /= const $hexValue")
+                        "*=" -> TODO("A *= const $hexValue")
                         "&=" -> asmgen.out(" and  #$hexValue")
                         "|=" -> asmgen.out(" ora  #$hexValue")
                         "^=" -> asmgen.out(" eor  #$hexValue")
-                        "%=" -> TODO("%=")
+                        "%=" -> TODO("A %= const $hexValue")
                         "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                         ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                         else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -895,13 +886,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         "setvalue" -> asmgen.out(" ldx  #$hexValue")
                         "+=" -> asmgen.out(" txa |  clc |  adc  #$hexValue |  tax")
                         "-=" -> asmgen.out(" txa |  sec |  sbc  #$hexValue |  tax")
-                        "/=" -> TODO("/=")
-                        "*=" -> TODO("*=")
-                        "**=" -> TODO("**=")
+                        "/=" -> TODO("X /= const $hexValue")
+                        "*=" -> TODO("X *= const $hexValue")
                         "&=" -> asmgen.out(" txa |  and  #$hexValue |  tax")
                         "|=" -> asmgen.out(" txa |  ora  #$hexValue |  tax")
                         "^=" -> asmgen.out(" txa |  eor  #$hexValue |  tax")
-                        "%=" -> TODO("%=")
+                        "%=" -> TODO("X %= const $hexValue")
                         "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                         ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                         else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -912,13 +902,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         "setvalue" -> asmgen.out(" ldy  #$hexValue")
                         "+=" -> asmgen.out(" tya |  clc |  adc  #$hexValue |  tay")
                         "-=" -> asmgen.out(" tya |  sec |  sbc  #$hexValue |  tay")
-                        "/=" -> TODO("/=")
-                        "*=" -> TODO("*=")
-                        "**=" -> TODO("**=")
+                        "/=" -> TODO("Y /= const $hexValue")
+                        "*=" -> TODO("Y *= const $hexValue")
                         "&=" -> asmgen.out(" tya |  and  #$hexValue |  tay")
                         "|=" -> asmgen.out(" tya |  ora  #$hexValue |  tay")
                         "^=" -> asmgen.out(" tya |  eor  #$hexValue |  tay")
-                        "%=" -> TODO("%=")
+                        "%=" -> TODO("Y %= const $hexValue")
                         "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                         ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                         else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -938,13 +927,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             "setvalue" -> asmgen.out(" lda  $sourceName")
                             "+=" -> asmgen.out(" clc |  adc  $sourceName")
                             "-=" -> asmgen.out(" sec |  sbc  $sourceName")
-                            "/=" -> TODO("/=")
-                            "*=" -> TODO("*=")
-                            "**=" -> TODO("**=")
+                            "/=" -> TODO("A /= variable")
+                            "*=" -> TODO("A *= variable")
                             "&=" -> asmgen.out(" and  $sourceName")
                             "|=" -> asmgen.out(" ora  $sourceName")
                             "^=" -> asmgen.out(" eor  $sourceName")
-                            "%=" -> TODO("%=")
+                            "%=" -> TODO("A %= variable")
                             "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                             ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                             else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -955,13 +943,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             "setvalue" -> asmgen.out(" ldx  $sourceName")
                             "+=" -> asmgen.out(" txa |  clc |  adc  $sourceName |  tax")
                             "-=" -> asmgen.out(" txa |  sec |  sbc  $sourceName |  tax")
-                            "/=" -> TODO("/=")
-                            "*=" -> TODO("*=")
-                            "**=" -> TODO("**=")
+                            "/=" -> TODO("X /= variable")
+                            "*=" -> TODO("X *= variable")
                             "&=" -> asmgen.out(" txa |  and  $sourceName |  tax")
                             "|=" -> asmgen.out(" txa |  ora  $sourceName |  tax")
                             "^=" -> asmgen.out(" txa |  eor  $sourceName |  tax")
-                            "%=" -> TODO("%=")
+                            "%=" -> TODO("X %= variable")
                             "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                             ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                             else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -972,13 +959,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             "setvalue" -> asmgen.out(" ldy  $sourceName")
                             "+=" -> asmgen.out(" tya |  clc |  adc  $sourceName |  tay")
                             "-=" -> asmgen.out(" tya |  sec |  sbc  $sourceName |  tay")
-                            "/=" -> TODO("/=")
-                            "*=" -> TODO("*=")
-                            "**=" -> TODO("**=")
+                            "/=" -> TODO("Y /= variable")
+                            "*=" -> TODO("Y *= variable")
                             "&=" -> asmgen.out(" tya |  and  $sourceName |  tay")
                             "|=" -> asmgen.out(" tya |  ora  $sourceName |  tay")
                             "^=" -> asmgen.out(" tya |  eor  $sourceName |  tay")
-                            "%=" -> TODO("%=")
+                            "%=" -> TODO("Y %= variable")
                             "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                             ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                             else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -993,8 +979,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         when ((assign.value as RegisterExpr).register) {
                             Register.A -> {
                                 when (assign.target.register!!) {
-                                    Register.A -> {
-                                    }
+                                    Register.A -> {}
                                     Register.X -> asmgen.out("  tax")
                                     Register.Y -> asmgen.out("  tay")
                                 }
@@ -1002,8 +987,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             Register.X -> {
                                 when (assign.target.register!!) {
                                     Register.A -> asmgen.out("  txa")
-                                    Register.X -> {
-                                    }
+                                    Register.X -> {}
                                     Register.Y -> asmgen.out("  txa |  tay")
                                 }
                             }
@@ -1011,8 +995,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 when (assign.target.register!!) {
                                     Register.A -> asmgen.out("  tya")
                                     Register.X -> asmgen.out("  tya |  tax")
-                                    Register.Y -> {
-                                    }
+                                    Register.Y -> {}
                                 }
                             }
                         }
@@ -1067,9 +1050,8 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             }
                         }
                     }
-                    "/=" -> TODO("/=")
-                    "*=" -> TODO("*=")
-                    "**=" -> TODO("**=")
+                    "/=" -> TODO("register /= register")
+                    "*=" -> TODO("register *= register")
                     "&=" -> {
                         when ((assign.value as RegisterExpr).register) {
                             Register.A -> {
@@ -1095,9 +1077,9 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             }
                         }
                     }
-                    "|=" -> TODO()
-                    "^=" -> TODO()
-                    "%=" -> TODO("%=")
+                    "|=" -> TODO("register |= register")
+                    "^=" -> TODO("register ^= register")
+                    "%=" -> TODO("register %= register")
                     "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                     ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                     else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -1114,13 +1096,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 "setvalue" -> asmgen.out(" lda  $hexAddr")
                                 "+=" -> asmgen.out(" clc |  adc  $hexAddr")
                                 "-=" -> asmgen.out(" sec |  sbc  $hexAddr")
-                                "/=" -> TODO("/=")
-                                "*=" -> TODO("*=")
-                                "**=" -> TODO("**=")
+                                "/=" -> TODO("A /= memory $hexAddr")
+                                "*=" -> TODO("A *= memory $hexAddr")
                                 "&=" -> asmgen.out(" and  $hexAddr")
                                 "|=" -> asmgen.out(" ora  $hexAddr")
                                 "^=" -> asmgen.out(" eor  $hexAddr")
-                                "%=" -> TODO("%=")
+                                "%=" -> TODO("A %= memory $hexAddr")
                                 "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                                 ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                                 else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -1131,13 +1112,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 "setvalue" -> asmgen.out(" ldx  $hexAddr")
                                 "+=" -> asmgen.out(" txa |  clc |  adc  $hexAddr |  tax")
                                 "-=" -> asmgen.out(" txa |  sec |  sbc  $hexAddr |  tax")
-                                "/=" -> TODO("/=")
-                                "*=" -> TODO("*=")
-                                "**=" -> TODO("**=")
+                                "/=" -> TODO("X /= memory $hexAddr")
+                                "*=" -> TODO("X *= memory $hexAddr")
                                 "&=" -> asmgen.out(" txa |  and  $hexAddr |  tax")
                                 "|=" -> asmgen.out(" txa |  ora  $hexAddr |  tax")
                                 "^=" -> asmgen.out(" txa |  eor  $hexAddr |  tax")
-                                "%=" -> TODO("%=")
+                                "%=" -> TODO("X %= memory $hexAddr")
                                 "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                                 ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                                 else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -1148,13 +1128,12 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                                 "setvalue" -> asmgen.out(" ldy  $hexAddr")
                                 "+=" -> asmgen.out(" tya |  clc |  adc  $hexAddr |  tay")
                                 "-=" -> asmgen.out(" tya |  sec |  sbc  $hexAddr |  tay")
-                                "/=" -> TODO("/=")
-                                "*=" -> TODO("*=")
-                                "**=" -> TODO("**=")
+                                "/=" -> TODO("Y /= memory $hexAddr")
+                                "*=" -> TODO("Y *= memory $hexAddr")
                                 "&=" -> asmgen.out(" tya |  and  $hexAddr |  tay")
                                 "|=" -> asmgen.out(" tya |  ora  $hexAddr |  tay")
                                 "^=" -> asmgen.out(" tya |  eor  $hexAddr |  tay")
-                                "%=" -> TODO("%=")
+                                "%=" -> TODO("Y %= memory $hexAddr")
                                 "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
                                 ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
                                 else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
@@ -1163,9 +1142,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     }
                     return true
                 }
-            }
-            is AddressOf -> {
-                TODO("$assign")
             }
             is ArrayIndexedExpression -> {
                 if (assign.aug_op == "setvalue") {
@@ -1192,6 +1168,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 }
                 return true
             }
+            is AddressOf -> throw AssemblyError("can't load a memory address into a register")
             else -> {
                 fallbackAssignment(assign)
                 return true

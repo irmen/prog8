@@ -1,7 +1,7 @@
 %import c64utils
 %zeropage basicsafe
 
-; TODO fix compiler errors when compiling without optimizations
+; TODO fix compiler errors when compiling ( /= )
 
 
 main {
@@ -20,7 +20,7 @@ main {
 
         other = purple
 
-        other.red /= 2
+        other.red /= 3
         other.green = 10 + other.green / 2
         other.blue = 99
 

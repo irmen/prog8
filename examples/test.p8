@@ -2,34 +2,31 @@
 %import c64utils
 %import c64flt
 %zeropage basicsafe
-
+%option enable_floats
 
 
 main {
 
-    sub ss(ubyte qq) {
-        Y=qq
-    }
-
-    sub tiny() {
-        Y++
-    }
-
-    sub tiny2() {
-        for A in 10 to 20 {
-            ubyte xx = A
-        }
-    }
-
     sub start() {
-        uword zomg=2
-        A=lsb(zomg)
-        ss(100)
-        ss(101)
-        tiny()
-        tiny()
-        tiny2()
-        tiny2()
+        ubyte xx = 10
+        float ff = 4
+        float ff2 = 4
+
+;        xx /= 2
+;
+;        xx /= 3
+;
+;        xx *= 2
+;        xx *= 3
+
+        ;ff **= 2.0
+        ;ff **= 3.0
+
+        ff = ff2 ** 2.0
+        ff = ff2 ** 3.0
+
+;        xx = xx % 5
+;        xx %= 5
     }
 
 }
