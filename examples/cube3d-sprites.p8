@@ -1,8 +1,6 @@
 %import c64lib
 %import c64utils
 
-; TODO fix compiler errors when compiling without optimizations
-
 
 spritedata $2000 {
     ; this memory block contains the sprite data

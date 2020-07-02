@@ -240,16 +240,28 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         }
                     }
                     DataType.UWORD -> {
-                        if(amount<=2)
-                            repeat(amount) { asmgen.out(" lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                        else
-                            asmgen.out(" jsr  math.shift_right_uw_$amount")    // 3-7 (8+ is done via other optimizations)
+                        if (amount<=2) repeat(amount) { asmgen.out(" lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                        else {
+                            var left = amount
+                            while(left>=7) {
+                                asmgen.out(" jsr  math.shift_right_uw_7")
+                                left -= 7
+                            }
+                            if(left>0)
+                                asmgen.out(" jsr  math.shift_right_uw_$left")
+                        }
                     }
                     DataType.WORD -> {
-                        if(amount<=2)
-                            repeat(amount) { asmgen.out(" lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                        else
-                            asmgen.out(" jsr  math.shift_right_w_$amount")  // 3-7 (8+ is done via other optimizations)
+                        if (amount<=2) repeat(amount) { asmgen.out(" lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                        else {
+                            var left=amount
+                            while(left>=7) {
+                                asmgen.out(" jsr  math.shift_right_w_7")
+                                left -= 7
+                            }
+                            if(left>0)
+                                asmgen.out(" jsr  math.shift_right_w_$left")
+                        }
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -269,10 +281,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     }
                 }
                 else {
-                    if(amount<=2) {
-                        repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
-                    } else {
-                        asmgen.out(" jsr  math.shift_left_w_$amount")      // 3-7 (8+ is done via other optimizations)
+                    if (amount<=2) repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                    else {
+                        var left=amount
+                        while(left>=7) {
+                            asmgen.out(" jsr  math.shift_left_w_7")
+                            left -= 7
+                        }
+                        if(left > 0)
+                            asmgen.out(" jsr  math.shift_left_w_$left")
                     }
                 }
                 return
