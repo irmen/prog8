@@ -6,7 +6,6 @@ import prog8.ast.processing.*
 import prog8.compiler.CompilationOptions
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.optimizer.AssignmentTransformer
-import prog8.optimizer.FlattenAnonymousScopesAndNopRemover
 
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {
@@ -38,10 +37,9 @@ internal fun Program.addTypecasts(errors: ErrorReporter) {
     caster.applyModifications()
 }
 
-internal fun Program.simplifyNumericCasts() {
-    val fixer = TypecastsSimplifier(this)
+internal fun Program.verifyFunctionArgTypes() {
+    val fixer = VerifyFunctionArgTypes(this)
     fixer.visit(this)
-    fixer.applyModifications()
 }
 
 internal fun Program.transformAssignments(errors: ErrorReporter) {
@@ -83,7 +81,8 @@ internal fun Program.checkIdentifiers(errors: ErrorReporter) {
     }
 }
 
-internal fun Program.removeNopsFlattenAnonScopes() {
-    val flattener = FlattenAnonymousScopesAndNopRemover()
-    flattener.visit(this)
+internal fun Program.variousCleanups() {
+    val process = VariousCleanups()
+    process.visit(this)
+    process.applyModifications()
 }

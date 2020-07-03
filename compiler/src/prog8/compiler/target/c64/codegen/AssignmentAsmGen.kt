@@ -364,11 +364,18 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
-                TODO("membyte = variable $assign")
+                when(assign.aug_op) {
+                    "setvalue" -> asmgen.out(" lda  $sourceName |  sta  $hexAddr")
+                    else -> TODO("membyte aug.assign  variable  $assign")
+                }
+                return true
             }
             is DirectMemoryRead -> {
                 val memory = (assign.value as DirectMemoryRead).addressExpression.constValue(program)!!.number.toHex()
-                asmgen.out(" lda  $memory |  sta  $hexAddr")
+                when(assign.aug_op) {
+                    "setvalue" -> asmgen.out(" lda  $memory |  sta  $hexAddr")
+                    else -> TODO("membyte aug.assign  memread  $assign")
+                }
                 return true
             }
             is ArrayIndexedExpression -> {

@@ -146,10 +146,10 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     errors.handle()
     programAst.constantFold(errors)
     errors.handle()
-    programAst.removeNopsFlattenAnonScopes()
     programAst.reorderStatements()
     programAst.addTypecasts(errors)
     errors.handle()
+    programAst.variousCleanups()
     programAst.checkValid(compilerOptions, errors)
     errors.handle()
     programAst.checkIdentifiers(errors)
@@ -180,12 +180,12 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
     errors.handle()
     programAst.addTypecasts(errors)
     errors.handle()
-    programAst.simplifyNumericCasts()
-    programAst.removeNopsFlattenAnonScopes()
+    programAst.variousCleanups()
     programAst.checkValid(compilerOptions, errors)          // check if final tree is still valid
     errors.handle()
     programAst.checkRecursion(errors)         // check if there are recursive subroutine calls
     errors.handle()
+    programAst.verifyFunctionArgTypes()
 }
 
 private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir: Path,

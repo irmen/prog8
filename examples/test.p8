@@ -5,30 +5,43 @@
 %option enable_floats
 
 
+; TODO: fix register argument clobbering when calling asmsubs.
+; for instance if the first arg goes into Y, and the second in A,
+; but when calculating the second argument clobbers Y, the first argument gets destroyed.
+
 main {
 
     sub start() {
-        ubyte xx = 10
-        float ff = 4
-        float ff2 = 4
+        function(20, calculate())
+        asmfunction(20, calculate())
 
-;        xx /= 2
-;
-;        xx /= 3
-;
-;        xx *= 2
-;        xx *= 3
+        c64.CHROUT('\n')
 
-        ;ff **= 2.0
-        ;ff **= 3.0
-
-        ff = ff2 ** 2.0
-        ff = ff2 ** 3.0
-
-;        xx = xx % 5
-;        xx %= 5
+        if @($0400)==@($0402) and @($0401) == @($0403) {
+            c64scr.print("ok: results are same\n")
+        } else {
+            c64scr.print("error: result differ; arg got clobbered\n")
+        }
     }
 
+    sub function(ubyte a1, ubyte a2) {
+        ; non-asm function passes via stack, this is ok
+        @($0400) = a1
+        @($0401) = a2
+    }
+
+    asmsub asmfunction(ubyte a1 @ Y, ubyte a2 @ A) {
+        ; asm-function passes via registers, risk of clobbering
+        %asm {{
+            sty  $0402
+            sta  $0403
+        }}
+    }
+
+    sub calculate() -> ubyte {
+        Y = 99
+        return Y
+    }
 }
 
 
