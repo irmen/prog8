@@ -38,6 +38,12 @@ internal fun Program.addTypecasts(errors: ErrorReporter) {
     caster.applyModifications()
 }
 
+internal fun Program.simplifyNumericCasts() {
+    val fixer = TypecastsSimplifier(this)
+    fixer.visit(this)
+    fixer.applyModifications()
+}
+
 internal fun Program.transformAssignments(errors: ErrorReporter) {
     val transform = AssignmentTransformer(this, errors)
     transform.visit(this)

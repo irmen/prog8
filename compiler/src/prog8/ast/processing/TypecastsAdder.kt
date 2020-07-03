@@ -7,6 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.CompilerException
 import prog8.functions.BuiltinFunctions
 
 
@@ -125,21 +126,18 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             }
             is BuiltinFunctionStatementPlaceholder -> {
                 val func = BuiltinFunctions.getValue(sub.name)
-                if(func.pure) {
-                    // non-pure functions don't get automatic typecasts because sometimes they act directly on their parameters
-                    for (arg in func.parameters.zip(call.args.withIndex())) {
-                        val argItype = arg.second.value.inferType(program)
-                        if (argItype.isKnown) {
-                            val argtype = argItype.typeOrElse(DataType.STRUCT)
-                            if (arg.first.possibleDatatypes.any { argtype == it })
-                                continue
-                            for (possibleType in arg.first.possibleDatatypes) {
-                                if (argtype isAssignableTo possibleType) {
-                                    modifications += IAstModification.ReplaceNode(
-                                            call.args[arg.second.index],
-                                            TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position),
-                                            call as Node)
-                                }
+                for (arg in func.parameters.zip(call.args.withIndex())) {
+                    val argItype = arg.second.value.inferType(program)
+                    if (argItype.isKnown) {
+                        val argtype = argItype.typeOrElse(DataType.STRUCT)
+                        if (arg.first.possibleDatatypes.any { argtype == it })
+                            continue
+                        for (possibleType in arg.first.possibleDatatypes) {
+                            if (argtype isAssignableTo possibleType) {
+                                modifications += IAstModification.ReplaceNode(
+                                        call.args[arg.second.index],
+                                        TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position),
+                                        call as Node)
                             }
                         }
                     }
@@ -248,4 +246,53 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         }
         return noModifications
     }
+}
+
+
+
+class TypecastsSimplifier(val program: Program) : AstWalker() {
+    /*
+     * Typecasts of a numeric literal value can be replaced by the numeric value of the type directly.
+     */
+
+    private val noModifications = emptyList<IAstModification>()
+
+    override fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+        if(typecast.expression is NumericLiteralValue) {
+            val value = (typecast.expression as NumericLiteralValue).cast(typecast.type)
+            return listOf(IAstModification.ReplaceNode(typecast, value, parent))
+        }
+
+        return noModifications
+    }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>
+        = checkCallArgTypes(functionCallStatement as IFunctionCall, functionCallStatement.definingScope())
+
+    override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification>
+        = checkCallArgTypes(functionCall as IFunctionCall, functionCall.definingScope())
+
+    private fun checkCallArgTypes(call: IFunctionCall, scope: INameScope): Iterable<IAstModification> {
+        val argtypes = call.args.map { it.inferType(program).typeOrElse(DataType.STRUCT) }
+        val target = call.target.targetStatement(scope)
+        when(target) {
+            is Subroutine -> {
+                val paramtypes = target.parameters.map { it.type }
+                if(argtypes!=paramtypes)
+                    throw CompilerException("parameter type mismatch $call")
+            }
+            is BuiltinFunctionStatementPlaceholder -> {
+                val func = BuiltinFunctions.getValue(target.name)
+                val paramtypes = func.parameters.map { it.possibleDatatypes }
+                for(x in argtypes.zip(paramtypes)) {
+                    if(x.first !in x.second)
+                        throw CompilerException("parameter type mismatch $call")
+                }
+            }
+            else -> {}
+        }
+        println("**** $target")
+        return noModifications
+    }
+
 }

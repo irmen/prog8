@@ -180,6 +180,7 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
     errors.handle()
     programAst.addTypecasts(errors)
     errors.handle()
+    programAst.simplifyNumericCasts()
     programAst.removeNopsFlattenAnonScopes()
     programAst.checkValid(compilerOptions, errors)          // check if final tree is still valid
     errors.handle()

@@ -9,8 +9,7 @@
 
 
 
-;  TODO fix crash when piece reaches bottom. (codegen issue).
-;  TODO fix wrong behavior when compiled without optimizations (codegen issue).
+;  TODO fix wrong block behavior at bottom when compiled without optimizations (codegen issue).
 
 
 main {
