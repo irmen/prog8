@@ -29,8 +29,6 @@ sealed class Statement : Node {
         return scope.joinToString(".")
     }
 
-    abstract val expensiveToInline: Boolean
-
     fun definingBlock(): Block {
         if(this is Block)
             return this
@@ -48,7 +46,6 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override fun replaceChildNode(node: Node, replacement: Node) {
         replacement.parent = this
     }
-    override val expensiveToInline = false
 }
 
 data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?, val stack: Boolean)
@@ -59,8 +56,6 @@ class Block(override val name: String,
             val isInLibrary: Boolean,
             override val position: Position) : Statement(), INameScope {
     override lateinit var parent: Node
-    override val expensiveToInline
-        get() = statements.any { it.expensiveToInline }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -86,7 +81,6 @@ class Block(override val name: String,
 
 data class Directive(val directive: String, val args: List<DirectiveArg>, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -109,7 +103,6 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?, over
 
 data class Label(val name: String, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -126,7 +119,6 @@ data class Label(val name: String, override val position: Position) : Statement(
 
 open class Return(var value: Expression?, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = value!=null && value !is NumericLiteralValue
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -158,7 +150,6 @@ class ReturnFromIrq(override val position: Position) : Return(null, position) {
 
 class Continue(override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -171,7 +162,6 @@ class Continue(override val position: Position) : Statement() {
 
 class Break(override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -206,9 +196,6 @@ open class VarDecl(val type: VarDeclType,
         private set
     var structHasBeenFlattened = false      // set later
         private set
-
-    override val expensiveToInline
-            get() = value!=null && value !is NumericLiteralValue
 
     // prefix for literal values that are turned into a variable on the heap
 
@@ -339,8 +326,6 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
 
 open class Assignment(var target: AssignTarget, var aug_op : String?, var value: Expression, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline
-            get() = value is BinaryExpression
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -509,7 +494,6 @@ data class AssignTarget(val register: Register?,
 
 class PostIncrDecr(var target: AssignTarget, val operator: String, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -535,7 +519,6 @@ class Jump(val address: Int?,
            val generatedLabel: String?,             // used in code generation scenarios
            override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -556,8 +539,6 @@ class FunctionCallStatement(override var target: IdentifierReference,
                             val void: Boolean,
                             override val position: Position) : Statement(), IFunctionCall {
     override lateinit var parent: Node
-    override val expensiveToInline
-            get() = args.any { it !is NumericLiteralValue }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -585,7 +566,6 @@ class FunctionCallStatement(override var target: IdentifierReference,
 
 class InlineAssembly(val assembly: String, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -600,8 +580,6 @@ class AnonymousScope(override var statements: MutableList<Statement>,
                      override val position: Position) : INameScope, Statement() {
     override val name: String
     override lateinit var parent: Node
-    override val expensiveToInline
-        get() = statements.any { it.expensiveToInline }
 
     companion object {
         private var sequenceNumber = 1
@@ -630,7 +608,6 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 
 class NopStatement(override val position: Position): Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -664,11 +641,7 @@ class Subroutine(override val name: String,
                  override val position: Position) : Statement(), INameScope {
 
     var keepAlways: Boolean = false
-    override val expensiveToInline
-            get() = statements.any { it.expensiveToInline }
-
     override lateinit var parent: Node
-
     val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
@@ -746,8 +719,6 @@ class IfStatement(var condition: Expression,
                   var elsepart: AnonymousScope,
                   override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline: Boolean
-        get() = truepart.expensiveToInline || elsepart.expensiveToInline
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -776,8 +747,6 @@ class BranchStatement(var condition: BranchCondition,
                       var elsepart: AnonymousScope,
                       override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline: Boolean
-        get() = truepart.expensiveToInline || elsepart.expensiveToInline
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -805,7 +774,6 @@ class ForLoop(val loopRegister: Register?,
               var body: AnonymousScope,
               override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -842,7 +810,6 @@ class WhileLoop(var condition: Expression,
                 var body: AnonymousScope,
                 override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -865,7 +832,6 @@ class WhileLoop(var condition: Expression,
 
 class ForeverLoop(var body: AnonymousScope, override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -886,7 +852,6 @@ class RepeatLoop(var body: AnonymousScope,
                  var untilCondition: Expression,
                  override val position: Position) : Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -911,7 +876,6 @@ class WhenStatement(var condition: Expression,
                     var choices: MutableList<WhenChoice>,
                     override val position: Position): Statement() {
     override lateinit var parent: Node
-    override val expensiveToInline: Boolean = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -981,7 +945,6 @@ class StructDecl(override val name: String,
                  override val position: Position): Statement(), INameScope {
 
     override lateinit var parent: Node
-    override val expensiveToInline: Boolean = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent

@@ -25,12 +25,6 @@ internal fun Program.reorderStatements() {
     reorder.applyModifications()
 }
 
-internal fun Program.inlineSubroutines(): Int {
-    val reorder = SubroutineInliner(this)
-    reorder.visit(this)
-    return reorder.applyModifications()
-}
-
 internal fun Program.addTypecasts(errors: ErrorReporter) {
     val caster = TypecastsAdder(this, errors)
     caster.visit(this)

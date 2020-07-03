@@ -20,13 +20,13 @@ Add more compiler optimizations to the existing ones.
 - more targeted optimizations for assigment asm code, such as the following:
 - subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
 - remove unreachable code after an exit(), return or goto
-- working subroutine inlining (start with trivial routines, grow to taking care of vars and identifier refs to them)
 - add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
   the program will then rely solely on the values as they are in memory at the time of program startup.
 - Also some library routines and code patterns could perhaps be optimized further
 - can the parameter passing to subroutines be optimized to avoid copying?
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
+- note: abandoned subroutine inlining because of problems referencing non-local stuff. Can't move everything around.
 
 
 Eval stack redesign? (lot of work)

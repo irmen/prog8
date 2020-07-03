@@ -43,17 +43,23 @@ turtle {
         c64.SPENA = 1
         c64.SP0COL = 5
 
-        turtlepos()
+        update_turtle_sprite()
     }
 
-    sub turtlepos() {
+    sub update_turtle_sprite() {
         uword xx = xpos as uword
         c64.SPXY[0] = lsb(xx) + 12
-        if msb(xx)
-            c64.MSIGX = 1
-        else
-            c64.MSIGX = 0
+        c64.MSIGX = msb(xx) > 0
         c64.SPXY[1] = lsb(ypos) + 40
+    }
+
+    sub pos(float x, float y) {
+        if pendown {
+            graphics.line(xpos as uword, ypos as ubyte, x as uword, y as ubyte)
+        }
+        xpos = x
+        ypos = y
+        update_turtle_sprite()
     }
 
     sub fd(uword length) {
@@ -62,7 +68,7 @@ turtle {
         float sy = ypos
         xpos += flen * sin(angle)
         ypos -= flen * cos(angle)
-        turtlepos()
+        update_turtle_sprite()
         if pendown {
             graphics.line(sx as uword, lsb(sy), xpos as uword, lsb(ypos))
         }
