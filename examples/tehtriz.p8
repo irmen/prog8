@@ -549,7 +549,7 @@ blocklogic {
     sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
         ubyte i
         for i in 15 downto 0 {
-            ; TODO FIX THIS when compiling without optimizations (codegen problem: clobbering register arguments):
+            ; TODO FIX THIS when compiling without optimizations (codegen problem: clobbering register arguments, see fixme_argclobber):
             if currentBlock[i] and c64scr.getchr(xpos + (i&3), ypos+i/4)!=32
                 return false
         }

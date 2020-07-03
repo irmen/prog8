@@ -20,7 +20,7 @@ main {
 
         other = purple
 
-        other.red /= 3
+        other.red /= 2
         other.green = 10 + other.green / 2
         other.blue = 99
 
