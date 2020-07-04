@@ -5,7 +5,6 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
 import prog8.compiler.AssemblyError
@@ -39,32 +38,29 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 } else {
                     // multiple register arguments, risk of register clobbering.
                     // evaluate arguments onto the stack, and load the registers from the evaluated values on the stack.
-                    // TODO optimize this for the cases where all args aren't expressions (no risk of clobbering in that case)
-                    for(arg in stmt.args.reversed())
-                        asmgen.translateExpression(arg)
-                    for(regparam in sub.asmParameterRegisters) {
-                        when(regparam.registerOrPair) {
-                            RegisterOrPair.A -> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x")
-                            RegisterOrPair.X -> throw AssemblyError("can't pop into X register - use a variable instead")
-                            RegisterOrPair.Y -> asmgen.out(" inx |  ldy  $ESTACK_LO_HEX,x")
-                            RegisterOrPair.AX -> throw AssemblyError("can't pop into X register - use a variable instead")
-                            RegisterOrPair.AY -> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
-                            RegisterOrPair.XY -> throw AssemblyError("can't pop into X register - use a variable instead")
-                            null -> {}
+                    when {
+                        stmt.args.all {it is AddressOf ||
+                                it is NumericLiteralValue ||
+                                it is StructLiteralValue ||
+                                it is StringLiteralValue ||
+                                it is ArrayLiteralValue ||
+                                it is IdentifierReference} -> {
+                            // no risk of clobbering for these simple argument types. Optimize the register loading.
+                            for(arg in sub.parameters.withIndex().zip(stmt.args)) {
+                                argumentViaRegister(sub, arg.first, arg.second)
+                            }
                         }
-                        when(regparam.statusflag) {
-                            Statusflag.Pc -> asmgen.out("""
-            inx
-            pha
-            lda  $ESTACK_LO_HEX,x
-            beq  +
-            sec  
-            bcs  ++
-+           clc
-+           pla
-""")
-                            null -> {}
-                            else -> throw AssemblyError("can only use Carry as status flag parameter")
+                        stmt.args.all {it is RegisterExpr} -> {
+                            val argRegisters = stmt.args.map {(it as RegisterExpr).register.toString()}
+                            val paramRegisters = sub.asmParameterRegisters.map { it.registerOrPair?.toString() }
+                            if(argRegisters != paramRegisters) {
+                                // all args are registers but differ from the function params. Can't pass directly, work via stack.
+                                argsViaStackEvaluation(stmt, sub)
+                            }
+                        }
+                        else -> {
+                            // Risk of clobbering due to complex expression args. Work via the stack.
+                            argsViaStackEvaluation(stmt, sub)
                         }
                     }
                 }
@@ -74,6 +70,38 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         if(saveX)
             asmgen.out("  ldx  c64.SCRATCH_ZPREGX")        // restore X again
+    }
+
+    private fun argsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {
+        for (arg in stmt.args.reversed())
+            asmgen.translateExpression(arg)
+        for (regparam in sub.asmParameterRegisters) {
+            when (regparam.registerOrPair) {
+                RegisterOrPair.A -> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x")
+                RegisterOrPair.X -> throw AssemblyError("can't pop into X register - use a variable instead")
+                RegisterOrPair.Y -> asmgen.out(" inx |  ldy  $ESTACK_LO_HEX,x")
+                RegisterOrPair.AX -> throw AssemblyError("can't pop into X register - use a variable instead")
+                RegisterOrPair.AY -> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
+                RegisterOrPair.XY -> throw AssemblyError("can't pop into X register - use a variable instead")
+                null -> {
+                }
+            }
+            when (regparam.statusflag) {
+                Statusflag.Pc -> asmgen.out("""
+                        inx
+                        pha
+                        lda  $ESTACK_LO_HEX,x
+                        beq  +
+                        sec  
+                        bcs  ++
+            +           clc
+            +           pla
+            """)
+                null -> {
+                }
+                else -> throw AssemblyError("can only use Carry as status flag parameter")
+            }
+        }
     }
 
     private fun argumentViaVariable(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
