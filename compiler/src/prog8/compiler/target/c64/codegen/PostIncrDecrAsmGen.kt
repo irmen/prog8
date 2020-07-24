@@ -4,7 +4,6 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.RegisterExpr
 import prog8.ast.statements.PostIncrDecr
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
@@ -17,28 +16,10 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
         val targetIdent = stmt.target.identifier
         val targetMemory = stmt.target.memoryAddress
         val targetArrayIdx = stmt.target.arrayindexed
-        val targetRegister = stmt.target.register
         when {
-            targetRegister!=null -> {
-                when(targetRegister) {
-                    Register.A -> {
-                        if(incr)
-                            asmgen.out("  clc |  adc  #1 ")
-                        else
-                            asmgen.out("  sec |  sbc  #1 ")
-                    }
-                    Register.X -> {
-                        if(incr) asmgen.out("  inx") else asmgen.out("  dex")
-                    }
-                    Register.Y -> {
-                        if(incr) asmgen.out("  iny") else asmgen.out("  dey")
-                    }
-                }
-            }
             targetIdent!=null -> {
                 val what = asmgen.asmIdentifierName(targetIdent)
-                val dt = stmt.target.inferType(program, stmt).typeOrElse(DataType.STRUCT)
-                when (dt) {
+                when (stmt.target.inferType(program, stmt).typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> asmgen.out(if (incr) "  inc  $what" else "  dec  $what")
                     in WordDatatypes -> {
                         if(incr)
@@ -102,10 +83,6 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                             }
                             else -> throw AssemblyError("need numeric type")
                         }
-                    }
-                    is RegisterExpr -> {
-                        asmgen.translateArrayIndexIntoA(targetArrayIdx)
-                        incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
                     }
                     is IdentifierReference -> {
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)

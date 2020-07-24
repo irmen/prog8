@@ -158,8 +158,7 @@ augassignment :
 	;
 
 assign_target:
-	register
-	| scoped_identifier
+	scoped_identifier
 	| arrayindexed
 	| directmemory
 	;
@@ -184,7 +183,6 @@ expression :
 	| left = expression EOL? bop = 'xor' EOL? right = expression
 	| prefix = 'not' expression
 	| literalvalue
-	| register
 	| scoped_identifier
 	| arrayindexed
 	| directmemory
@@ -221,12 +219,6 @@ continuestmt: 'continue';
 identifier :  NAME ;
 
 scoped_identifier :  NAME ('.' NAME)* ;
-
-register :  'A' | 'X' | 'Y' ;
-
-registerorpair :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;        // pairs can only be used in subroutine params and returnvalues
-
-statusregister :  'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 
 integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) wordsuffix? ;
 
@@ -287,15 +279,15 @@ asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns?
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' (registerorpair | statusregister | stack='stack') ;
+asmsub_param :  vardecl '@' (identifier | stack='stack') ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 
-clobber :  register (',' register)* ;
+clobber :  identifier (',' identifier)* ;       // A,X,Y allowed
 
 asmsub_returns :  '->' asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' (registerorpair | statusregister | stack='stack') ;
+asmsub_return :  datatype '@' (identifier | stack='stack') ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later
@@ -308,7 +300,7 @@ branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part?
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_z' | 'if_ne' | 'if_nz' | 'if_pl' | 'if_pos' | 'if_mi' | 'if_neg' | 'if_vs' | 'if_vc' ;
 
 
-forloop :  'for' (register | identifier) 'in' expression EOL? (statement | statement_block) ;
+forloop :  'for' identifier 'in' expression EOL? (statement | statement_block) ;
 
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 

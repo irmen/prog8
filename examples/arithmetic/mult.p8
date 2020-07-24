@@ -26,8 +26,6 @@ main {
         mul_float(0,0,0)
         mul_float(2.5,10,25)
         mul_float(-1.5,10,-15)
-
-        check_eval_stack()
     }
 
     sub mul_ubyte(ubyte a1, ubyte a2, ubyte c) {
@@ -104,13 +102,5 @@ main {
         c64scr.print(" = ")
         c64flt.print_f(r)
         c64.CHROUT('\n')
-    }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
     }
 }

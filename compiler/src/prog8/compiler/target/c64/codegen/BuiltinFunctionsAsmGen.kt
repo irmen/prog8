@@ -172,13 +172,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             asmgen.out("  jsr  prog8_lib.ror2_mem_ub")
                         }
                     }
-                    is RegisterExpr -> {
-                        when (what.register) {
-                            Register.A -> asmgen.out("  lsr  a |  bcc  + |  ora  #\$80 |+  ")
-                            Register.X -> asmgen.out("  txa |  lsr  a |  bcc  + |  ora  #\$80 |+  tax ")
-                            Register.Y -> asmgen.out("  tya |  lsr  a |  bcc  + |  ora  #\$80 |+  tay ")
-                        }
-                    }
                     is IdentifierReference -> {
                         val variable = asmgen.asmIdentifierName(what)
                         asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  $variable")
@@ -231,13 +224,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                         """)
                         }
                     }
-                    is RegisterExpr -> {
-                        when (what.register) {
-                            Register.A -> asmgen.out("  ror  a")
-                            Register.X -> asmgen.out("  txa |  ror  a |  tax")
-                            Register.Y -> asmgen.out("  tya |  ror  a |  tay")
-                        }
-                    }
                     is IdentifierReference -> {
                         val variable = asmgen.asmIdentifierName(what)
                         asmgen.out("  ror  $variable")
@@ -281,13 +267,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         } else {
                             asmgen.translateExpression(what.addressExpression)
                             asmgen.out("  jsr  prog8_lib.rol2_mem_ub")
-                        }
-                    }
-                    is RegisterExpr -> {
-                        when (what.register) {
-                            Register.A -> asmgen.out("  cmp  #\$80 |  rol  a  ")
-                            Register.X -> asmgen.out("  txa  |  cmp  #\$80 |  rol  a  |  tax")
-                            Register.Y -> asmgen.out("  tya  |  cmp  #\$80 |  rol  a  |  tay")
                         }
                     }
                     is IdentifierReference -> {
@@ -342,13 +321,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                         """)
                         }
                     }
-                    is RegisterExpr -> {
-                        when (what.register) {
-                            Register.A -> asmgen.out("  rol  a")
-                            Register.X -> asmgen.out("  txa |  rol  a |  tax")
-                            Register.Y -> asmgen.out("  tya |  rol  a |  tay")
-                        }
-                    }
                     is IdentifierReference -> {
                         val variable = asmgen.asmIdentifierName(what)
                         asmgen.out("  rol  $variable")
@@ -380,13 +352,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         when (dt.typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
                 when (what) {
-                    is RegisterExpr -> {
-                        when (what.register) {
-                            Register.A -> asmgen.out("  lsr  a")
-                            Register.X -> asmgen.out("  txa  |  lsr  a |  tax")
-                            Register.Y -> asmgen.out("  tya  |  lsr  a |  tay")
-                        }
-                    }
                     is IdentifierReference -> asmgen.out("  lsr  ${asmgen.asmIdentifierName(what)}")
                     is DirectMemoryRead -> {
                         if (what.addressExpression is NumericLiteralValue) {
@@ -464,13 +429,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         when (dt.typeOrElse(DataType.STRUCT)) {
             in ByteDatatypes -> {
                 when (what) {
-                    is RegisterExpr -> {
-                        when (what.register) {
-                            Register.A -> asmgen.out("  asl  a")
-                            Register.X -> asmgen.out("  txa  |  asl  a |  tax")
-                            Register.Y -> asmgen.out("  tya  |  asl  a |  tay")
-                        }
-                    }
                     is IdentifierReference -> asmgen.out("  asl  ${asmgen.asmIdentifierName(what)}")
                     is DirectMemoryRead -> {
                         if (what.addressExpression is NumericLiteralValue) {

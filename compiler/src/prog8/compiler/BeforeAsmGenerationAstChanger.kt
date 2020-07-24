@@ -39,7 +39,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                 return numericVarsWithValue.map {
                     val initValue = it.value!!  // assume here that value has always been set by now
                     it.value = null     // make sure no value init assignment for this vardecl will be created later (would be superfluous)
-                    val target = AssignTarget(null, IdentifierReference(listOf(it.name), it.position), null, null, it.position)
+                    val target = AssignTarget(IdentifierReference(listOf(it.name), it.position), null, null, it.position)
                     val assign = Assignment(target, null, initValue, it.position)
                     initValue.parent = assign
                     IAstModification.InsertFirst(assign, scope)

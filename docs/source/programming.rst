@@ -204,13 +204,6 @@ Example::
     byte  @zp  zeropageCounter = 42
 
 
-Variables that represent CPU hardware registers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The following variables are reserved
-and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``.
-
-
 Integers
 ^^^^^^^^
 
@@ -393,7 +386,7 @@ expected when the program is restarted.
 Loops
 -----
 
-The *for*-loop is used to let a variable (or register) iterate over a range of values. Iteration is done in steps of 1, but you can change this.
+The *for*-loop is used to let a variable iterate over a range of values. Iteration is done in steps of 1, but you can change this.
 The loop variable must be declared as byte or word earlier so you can reuse it for multiple occasions.
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 
@@ -407,7 +400,7 @@ a forever-loop.
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 
 .. attention::
-    The value of the loop variable or register after executing the loop *is undefined*. Don't use it immediately
+    The value of the loop variable after executing the loop *is undefined*. Don't use it immediately
     after the loop without first assigning a new value to it!
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
 
@@ -421,15 +414,15 @@ if statements
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
 
-	if A>4 goto overflow
+	if aa>4 goto overflow
 
-	if X==3  Y = 4
-	if X==3  Y = 4 else  A = 2
+	if xx==3  yy = 4
+	if xx==3  yy = 4 else  aa = 2
 
-	if X==5 {
-		Y = 99
+	if xx==5 {
+		yy = 99
 	} else {
-		A = 3
+		aa = 3
 	}
 
 
@@ -493,16 +486,16 @@ Assignments
 -----------
 
 Assignment statements assign a single value to a target variable or memory location.
-Augmented assignments (such as ``A += X``) are also available, but these are just shorthands
-for normal assignments (``A = A + X``).
+Augmented assignments (such as ``aa += xx``) are also available, but these are just shorthands
+for normal assignments (``aa = aa + xx``).
 
-Only register variables and variables of type byte, word and float can be assigned a new value.
+Only variables of type byte, word and float can be assigned a new value.
 It's not possible to set a new value to string or array variables etc, because they get allocated
-a fixed amount of memory which will not change.
+a fixed amount of memory which will not change.  (You *can* change the value of elements in a string or array though).
 
 .. attention::
     **Data type conversion (in assignments):**
-    When assigning a value with a 'smaller' datatype to a register or variable with a 'larger' datatype,
+    When assigning a value with a 'smaller' datatype to variable with a 'larger' datatype,
     the value will be automatically converted to the target datatype:  byte --> word --> float.
     So assigning a byte to a word variable, or a word to a floating point variable, is fine.
     The reverse is *not* true: it is *not* possible to assign a value of a 'larger' datatype to
@@ -518,7 +511,7 @@ as the memory mapped address $d021.
 If you want to access a memory location directly (by using the address itself), without defining
 a memory mapped location, you can do so by enclosing the address in ``@(...)``::
 
-    A = @($d020)      ; set the A register to the current c64 screen border color ("peek(53280)")
+    color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
 

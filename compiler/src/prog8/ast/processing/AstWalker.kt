@@ -110,7 +110,6 @@ abstract class AstWalker {
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(program: Program, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(range: RangeExpr, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun before(registerExpr: RegisterExpr, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = emptyList()
@@ -154,7 +153,6 @@ abstract class AstWalker {
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(program: Program, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun after(registerExpr: RegisterExpr, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = emptyList()
@@ -325,7 +323,7 @@ abstract class AstWalker {
 
     fun visit(forLoop: ForLoop, parent: Node) {
         track(before(forLoop, parent), forLoop, parent)
-        forLoop.loopVar?.accept(this, forLoop)
+        forLoop.loopVar.accept(this, forLoop)
         forLoop.iterable.accept(this, forLoop)
         forLoop.body.accept(this, forLoop)
         track(after(forLoop, parent), forLoop, parent)
@@ -405,11 +403,6 @@ abstract class AstWalker {
     fun visit(inlineAssembly: InlineAssembly, parent: Node) {
         track(before(inlineAssembly, parent), inlineAssembly, parent)
         track(after(inlineAssembly, parent), inlineAssembly, parent)
-    }
-
-    fun visit(registerExpr: RegisterExpr, parent: Node) {
-        track(before(registerExpr, parent), registerExpr, parent)
-        track(after(registerExpr, parent), registerExpr, parent)
     }
 
     fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder, parent: Node) {

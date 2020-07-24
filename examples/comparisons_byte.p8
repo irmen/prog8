@@ -52,7 +52,6 @@ main {
         c64scr.print("v1=20, v2=-111\n")
         compare()
 
-        check_eval_stack()
         return
 
         sub compare() {
@@ -91,13 +90,4 @@ main {
     }
 
     }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

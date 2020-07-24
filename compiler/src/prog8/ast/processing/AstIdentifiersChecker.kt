@@ -137,21 +137,6 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         super.visit(label)
     }
 
-    override fun visit(forLoop: ForLoop) {
-        if (forLoop.loopRegister != null) {
-            if (forLoop.loopRegister == Register.X)
-                errors.warn("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
-        }
-
-        super.visit(forLoop)
-    }
-
-    override fun visit(assignTarget: AssignTarget) {
-        if(assignTarget.register== Register.X)
-            errors.warn("writing to the X register is dangerous, because it's used as an internal pointer", assignTarget.position)
-        super.visit(assignTarget)
-    }
-
     override fun visit(string: StringLiteralValue) {
         if (string.value.length !in 1..255)
             errors.err("string literal length must be between 1 and 255", string.position)

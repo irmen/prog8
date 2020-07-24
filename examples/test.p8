@@ -8,5 +8,6 @@
 main {
 
     sub start() {
+        @($d020)=0
     }
 }

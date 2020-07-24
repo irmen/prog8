@@ -183,7 +183,7 @@ internal class AsmGen(private val program: Program,
             blockLevelVarInits.getValue(block).forEach { decl ->
                 val scopedFullName = decl.makeScopedName(decl.name).split('.')
                 require(scopedFullName.first()==block.name)
-                val target = AssignTarget(null, IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
+                val target = AssignTarget(IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
                 val assign = Assignment(target, null, decl.value!!, decl.position)
                 assign.linkParents(decl.parent)
                 assignmentAsmGen.translate(assign)
@@ -561,19 +561,19 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    internal fun saveRegister(register: Register) {
+    internal fun saveRegister(register: CpuRegister) {
         when(register) {
-            Register.A -> out("  pha")
-            Register.X -> out("  txa | pha")
-            Register.Y -> out("  tya | pha")
+            CpuRegister.A -> out("  pha")
+            CpuRegister.X -> out("  txa | pha")
+            CpuRegister.Y -> out("  tya | pha")
         }
     }
 
-    internal fun restoreRegister(register: Register) {
+    internal fun restoreRegister(register: CpuRegister) {
         when(register) {
-            Register.A -> out("  pla")
-            Register.X -> out("  pla | tax")
-            Register.Y -> out("  pla | tay")
+            CpuRegister.A -> out("  pla")
+            CpuRegister.X -> out("  pla | tax")
+            CpuRegister.Y -> out("  pla | tay")
         }
     }
 
@@ -836,7 +836,7 @@ internal class AsmGen(private val program: Program,
                 }
                 inits.add(stmt)
             } else {
-                val target = AssignTarget(null, IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
+                val target = AssignTarget(IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
                 val assign = Assignment(target, null, stmt.value!!, stmt.position)
                 assign.linkParents(stmt.parent)
                 translate(assign)
@@ -901,13 +901,6 @@ internal class AsmGen(private val program: Program,
     internal fun translateArrayIndexIntoA(expr: ArrayIndexedExpression) {
         when (val index = expr.arrayspec.index) {
             is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
-            is RegisterExpr -> {
-                when (index.register) {
-                    Register.A -> {}
-                    Register.X -> out("  txa")
-                    Register.Y -> out("  tya")
-                }
-            }
             is IdentifierReference -> {
                 val indexName = asmIdentifierName(index)
                 out("  lda  $indexName")
@@ -923,13 +916,6 @@ internal class AsmGen(private val program: Program,
     internal fun translateArrayIndexIntoY(expr: ArrayIndexedExpression) {
         when (val index = expr.arrayspec.index) {
             is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
-            is RegisterExpr -> {
-                when (index.register) {
-                    Register.A -> out("  tay")
-                    Register.X -> out("  txa |  tay")
-                    Register.Y -> {}
-                }
-            }
             is IdentifierReference -> {
                 val indexName = asmIdentifierName(index)
                 out("  ldy  $indexName")
@@ -972,9 +958,12 @@ internal class AsmGen(private val program: Program,
     fun assignFromFloatVariable(target: AssignTarget, variable: IdentifierReference) =
             assignmentAsmGen.assignFromFloatVariable(target, variable)
 
-    fun assignFromRegister(target: AssignTarget, register: Register) =
+    fun assignFromRegister(target: AssignTarget, register: CpuRegister) =
             assignmentAsmGen.assignFromRegister(target, register)
 
     fun assignFromMemoryByte(target: AssignTarget, address: Int?, identifier: IdentifierReference?) =
             assignmentAsmGen.assignFromMemoryByte(target, address, identifier)
+
+    fun assignToRegister(reg: CpuRegister, value: Short?, identifier: IdentifierReference?) =
+            assignmentAsmGen.assignToRegister(reg, value, identifier)
 }

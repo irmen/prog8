@@ -354,7 +354,6 @@ open class Assignment(var target: AssignTarget, var aug_op : String?, var value:
 
         val leftOperand: Expression =
                 when {
-                    target.register != null -> RegisterExpr(target.register!!, target.position)
                     target.identifier != null -> target.identifier!!
                     target.arrayindexed != null -> target.arrayindexed!!
                     target.memoryAddress != null -> DirectMemoryRead(target.memoryAddress!!.addressExpression, value.position)
@@ -374,8 +373,7 @@ open class Assignment(var target: AssignTarget, var aug_op : String?, var value:
     }
 }
 
-data class AssignTarget(val register: Register?,
-                        var identifier: IdentifierReference?,
+data class AssignTarget(var identifier: IdentifierReference?,
                         var arrayindexed: ArrayIndexedExpression?,
                         val memoryAddress: DirectMemoryWrite?,
                         override val position: Position) : Node {
@@ -403,19 +401,15 @@ data class AssignTarget(val register: Register?,
     companion object {
         fun fromExpr(expr: Expression): AssignTarget {
             return when (expr) {
-                is RegisterExpr -> AssignTarget(expr.register, null, null, null, expr.position)
-                is IdentifierReference -> AssignTarget(null, expr, null, null, expr.position)
-                is ArrayIndexedExpression -> AssignTarget(null, null, expr, null, expr.position)
-                is DirectMemoryRead -> AssignTarget(null, null, null, DirectMemoryWrite(expr.addressExpression, expr.position), expr.position)
+                is IdentifierReference -> AssignTarget(expr, null, null, expr.position)
+                is ArrayIndexedExpression -> AssignTarget(null, expr, null, expr.position)
+                is DirectMemoryRead -> AssignTarget(null, null, DirectMemoryWrite(expr.addressExpression, expr.position), expr.position)
                 else -> throw FatalAstException("invalid expression object $expr")
             }
         }
     }
 
     fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {
-        if(register!=null)
-            return InferredTypes.knownFor(DataType.UBYTE)
-
         if(identifier!=null) {
             val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
@@ -440,7 +434,6 @@ data class AssignTarget(val register: Register?,
                 else
                     false
             }
-            this.register!=null -> value is RegisterExpr && value.register==register
             this.identifier!=null -> value is IdentifierReference && value.nameInSource==identifier!!.nameInSource
             this.arrayindexed!=null -> value is ArrayIndexedExpression &&
                     value.identifier.nameInSource==arrayindexed!!.identifier.nameInSource &&
@@ -454,8 +447,6 @@ data class AssignTarget(val register: Register?,
     fun isSameAs(other: AssignTarget, program: Program): Boolean {
         if(this===other)
             return true
-        if(this.register!=null && other.register!=null)
-            return this.register==other.register
         if(this.identifier!=null && other.identifier!=null)
             return this.identifier!!.nameInSource==other.identifier!!.nameInSource
         if(this.memoryAddress!=null && other.memoryAddress!=null) {
@@ -474,8 +465,6 @@ data class AssignTarget(val register: Register?,
     }
 
     fun isNotMemory(namespace: INameScope): Boolean {
-        if(this.register!=null)
-            return true
         if(this.memoryAddress!=null)
             return false
         if(this.arrayindexed!=null) {
@@ -616,14 +605,6 @@ class NopStatement(override val position: Position): Statement() {
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    companion object {
-        fun insteadOf(stmt: Statement): NopStatement {
-            val nop = NopStatement(stmt.position)
-            nop.parent = stmt.parent
-            return nop
-        }
-    }
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
@@ -634,7 +615,7 @@ class Subroutine(override val name: String,
                  val returntypes: List<DataType>,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
-                 val asmClobbers: Set<Register>,
+                 val asmClobbers: Set<CpuRegister>,
                  val asmAddress: Int?,
                  val isAsmSubroutine: Boolean,
                  override var statements: MutableList<Statement>,
@@ -671,32 +652,6 @@ class Subroutine(override val name: String,
             .filter { it is InlineAssembly }
             .map { (it as InlineAssembly).assembly }
             .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
-
-    fun countStatements(): Int {
-        class StatementCounter: IAstVisitor {
-            var count = 0
-
-            override fun visit(block: Block) {
-                count += block.statements.size
-                super.visit(block)
-            }
-
-            override fun visit(subroutine: Subroutine) {
-                count += subroutine.statements.size
-                super.visit(subroutine)
-            }
-
-            override fun visit(scope: AnonymousScope) {
-                count += scope.statements.size
-                super.visit(scope)
-            }
-        }
-
-        // the (recursive) number of statements
-        val counter = StatementCounter()
-        counter.visit(this)
-        return counter.count
-    }
 }
 
 
@@ -768,8 +723,7 @@ class BranchStatement(var condition: BranchCondition,
 
 }
 
-class ForLoop(val loopRegister: Register?,
-              var loopVar: IdentifierReference?,
+class ForLoop(var loopVar: IdentifierReference,
               var iterable: Expression,
               var body: AnonymousScope,
               override val position: Position) : Statement() {
@@ -777,7 +731,7 @@ class ForLoop(val loopRegister: Register?,
 
     override fun linkParents(parent: Node) {
         this.parent=parent
-        loopVar?.linkParents(this)
+        loopVar.linkParents(this)
         iterable.linkParents(this)
         body.linkParents(this)
     }
@@ -796,14 +750,10 @@ class ForLoop(val loopRegister: Register?,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
-        return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
+        return "ForLoop(loopVar: $loopVar, iterable: $iterable, pos=$position)"
     }
 
-    fun loopVarDt(program: Program): InferredTypes.InferredType {
-        val lv = loopVar
-        return if(loopRegister!=null) InferredTypes.InferredType.known(DataType.UBYTE)
-                else lv?.inferType(program) ?: InferredTypes.InferredType.unknown()
-    }
+    fun loopVarDt(program: Program) = loopVar.inferType(program)
 }
 
 class WhileLoop(var condition: Expression,

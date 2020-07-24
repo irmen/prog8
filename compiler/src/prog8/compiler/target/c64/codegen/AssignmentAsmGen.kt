@@ -28,10 +28,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         require(assign.aug_op != null)
 
         when {
-            assign.target.register != null -> {
-                if (inplaceAssignToRegister(assign))
-                    return
-            }
             assign.target.identifier != null -> {
                 if (inplaceAssignToIdentifier(assign))
                     return
@@ -99,37 +95,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         // non-const value.
         // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
         when (assign.value) {
-            is RegisterExpr -> {
-                when(assign.aug_op) {
-                    "setvalue" -> {
-                        val reg = (assign.value as RegisterExpr).register
-                        if(reg!=Register.Y) {
-                            if (arrayIndex is NumericLiteralValue)
-                                asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
-                            else
-                                asmgen.translateArrayIndexIntoY(targetArray)
-                        }
-                        when (reg) {
-                            Register.A -> asmgen.out(" sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" stx  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> {
-                                if (arrayIndex is NumericLiteralValue)
-                                    asmgen.out(" lda  #${arrayIndex.number.toHex()}")
-                                else
-                                    asmgen.translateArrayIndexIntoA(targetArray)
-                                asmgen.out("""
-                                    sta  ${C64Zeropage.SCRATCH_REG}
-                                    tya
-                                    ldy  ${C64Zeropage.SCRATCH_REG}
-                                    sta  (${C64Zeropage.SCRATCH_W1}),y
-                                """)
-                            }
-                        }
-                    }
-                    else -> TODO("$assign")
-                }
-                return true
-            }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                 when(arrayDt) {
@@ -171,11 +136,8 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     return false   // we don't put effort into optimizing anything beside simple assignment
                 val valueArrayExpr = assign.value as ArrayIndexedExpression
                 val valueArrayIndex = valueArrayExpr.arrayspec.index
-                if(valueArrayIndex is RegisterExpr || arrayIndex is RegisterExpr) {
-                    throw AssemblyError("cannot generate code for array operations with registers as index")
-                }
                 val valueVariablename = asmgen.asmIdentifierName(valueArrayExpr.identifier)
-                val valueDt = valueArrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                // val valueDt = valueArrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 when(arrayDt) {
                     DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> {
                         if (valueArrayIndex is NumericLiteralValue)
@@ -309,59 +271,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
 
         // non-const value.
         when (assign.value) {
-            is RegisterExpr -> {
-                when (assign.aug_op) {
-                    "setvalue" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" sta  $hexAddr")
-                            Register.X -> asmgen.out(" stx  $hexAddr")
-                            Register.Y -> asmgen.out(" sty  $hexAddr")
-                        }
-                    }
-                    "+=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" clc |  adc  $hexAddr |  sta  $hexAddr")
-                            Register.X -> asmgen.out(" txa |  clc |  adc  $hexAddr |  sta  $hexAddr")
-                            Register.Y -> asmgen.out(" tya |  clc |  adc  $hexAddr |  sta  $hexAddr")
-                        }
-                    }
-                    "-=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" sta  ${C64Zeropage.SCRATCH_B1} | lda  $hexAddr |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  $hexAddr")
-                            Register.X -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} | lda  $hexAddr |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  $hexAddr")
-                            Register.Y -> asmgen.out(" sty  ${C64Zeropage.SCRATCH_B1} | lda  $hexAddr |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  $hexAddr")
-                        }
-                    }
-                    "/=" -> TODO("membyte /= register")
-                    "*=" -> TODO("membyte *= register")
-                    "&=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" and  $hexAddr |  sta  $hexAddr")
-                            Register.X -> asmgen.out(" txa |  and  $hexAddr |  sta  $hexAddr")
-                            Register.Y -> asmgen.out(" tya |  and  $hexAddr |  sta  $hexAddr")
-                        }
-                    }
-                    "|=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ora  $hexAddr |  sta  $hexAddr")
-                            Register.X -> asmgen.out(" txa |  ora  $hexAddr |  sta  $hexAddr")
-                            Register.Y -> asmgen.out(" tya |  ora  $hexAddr |  sta  $hexAddr")
-                        }
-                    }
-                    "^=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" eor  $hexAddr |  sta  $hexAddr")
-                            Register.X -> asmgen.out(" txa |  eor  $hexAddr |  sta  $hexAddr")
-                            Register.Y -> asmgen.out(" tya |  eor  $hexAddr |  sta  $hexAddr")
-                        }
-                    }
-                    "%=" -> TODO("membyte %= register")
-                    "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                    ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                    else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                }
-                return true
-            }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                 when(assign.aug_op) {
@@ -426,59 +335,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         // non-const value.
         // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
         when (assign.value) {
-            is RegisterExpr -> {
-                when (assign.aug_op) {
-                    "setvalue" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ldy  #0 |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" ldy  #0 |  stx  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> asmgen.out(" tya  | ldy  #0 |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                        }
-                    }
-                    "+=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ldy  #0 |  clc |  adc  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" ldy  #0 |  txa |  clc |  adc  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> asmgen.out(" tya  | ldy  #0 |  clc |  adc  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                        }
-                    }
-                    "-=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ldy  #0 |  sta  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" ldy  #0 |  stx  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> asmgen.out(" tya  | ldy  #0 |  sta  ${C64Zeropage.SCRATCH_B1} | lda  (${C64Zeropage.SCRATCH_W1}),y |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                        }
-                    }
-                    "/=" -> TODO("membyte /= register")
-                    "*=" -> TODO("membyte *= register")
-                    "&=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ldy  #0 |  and  (${C64Zeropage.SCRATCH_W1}),y|  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" ldy  #0 |  txa |  and  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> asmgen.out(" tya |  ldy  #0 |  and  (${C64Zeropage.SCRATCH_W1}),y|  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                        }
-                    }
-                    "|=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ldy  #0 |  ora  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" ldy  #0 |  txa |  ora  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> asmgen.out(" tya |  ldy  #0 |  ora  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                        }
-                    }
-                    "^=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> asmgen.out(" ldy  #0 |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.X -> asmgen.out(" ldy  #0 |  txa |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                            Register.Y -> asmgen.out(" tya |  ldy  #0 |  eor  (${C64Zeropage.SCRATCH_W1}),y |  sta  (${C64Zeropage.SCRATCH_W1}),y")
-                        }
-                    }
-                    "%=" -> TODO("membyte %= register")
-                    "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                    ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                    else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                }
-                return true
-            }
             is IdentifierReference -> {
                 val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                 TODO("membyte = variable $assign")
@@ -551,19 +407,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 // non-const (u)byte value
                 // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
                 when (assign.value) {
-                    is RegisterExpr -> {
-                        when(assign.aug_op) {
-                            "setvalue" -> {
-                                when ((assign.value as RegisterExpr).register) {
-                                    Register.A -> asmgen.out(" sta  $targetName")
-                                    Register.X -> asmgen.out(" stx  $targetName")
-                                    Register.Y -> asmgen.out(" sty  $targetName")
-                                }
-                            }
-                            else -> TODO("aug.assign variable = register $assign")
-                        }
-                        return true
-                    }
                     is IdentifierReference -> {
                         val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                         when (assign.aug_op) {
@@ -654,7 +497,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 // non-const value
                 // !!! DON'T FORGET :  CAN BE AUGMENTED ASSIGNMENT !!!
                 when (assign.value) {
-                    is RegisterExpr -> throw AssemblyError("expected a typecast for assigning register to word")
                     is IdentifierReference -> {
                         val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
                         when (assign.aug_op) {
@@ -867,324 +709,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         return false
     }
 
-    private fun inplaceAssignToRegister(assign: Assignment): Boolean {
-        val constValue = assign.value.constValue(program)
-        if (constValue != null) {
-            val hexValue = constValue.number.toHex()
-            when (assign.target.register) {
-                Register.A -> {
-                    when (assign.aug_op) {
-                        "setvalue" -> asmgen.out(" lda  #$hexValue")
-                        "+=" -> asmgen.out(" clc |  adc  #$hexValue")
-                        "-=" -> asmgen.out(" sec |  sbc  #$hexValue")
-                        "/=" -> TODO("A /= const $hexValue")
-                        "*=" -> TODO("A *= const $hexValue")
-                        "&=" -> asmgen.out(" and  #$hexValue")
-                        "|=" -> asmgen.out(" ora  #$hexValue")
-                        "^=" -> asmgen.out(" eor  #$hexValue")
-                        "%=" -> TODO("A %= const $hexValue")
-                        "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                        ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                        else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                    }
-                }
-                Register.X -> {
-                    when (assign.aug_op) {
-                        "setvalue" -> asmgen.out(" ldx  #$hexValue")
-                        "+=" -> asmgen.out(" txa |  clc |  adc  #$hexValue |  tax")
-                        "-=" -> asmgen.out(" txa |  sec |  sbc  #$hexValue |  tax")
-                        "/=" -> TODO("X /= const $hexValue")
-                        "*=" -> TODO("X *= const $hexValue")
-                        "&=" -> asmgen.out(" txa |  and  #$hexValue |  tax")
-                        "|=" -> asmgen.out(" txa |  ora  #$hexValue |  tax")
-                        "^=" -> asmgen.out(" txa |  eor  #$hexValue |  tax")
-                        "%=" -> TODO("X %= const $hexValue")
-                        "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                        ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                        else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                    }
-                }
-                Register.Y -> {
-                    when (assign.aug_op) {
-                        "setvalue" -> asmgen.out(" ldy  #$hexValue")
-                        "+=" -> asmgen.out(" tya |  clc |  adc  #$hexValue |  tay")
-                        "-=" -> asmgen.out(" tya |  sec |  sbc  #$hexValue |  tay")
-                        "/=" -> TODO("Y /= const $hexValue")
-                        "*=" -> TODO("Y *= const $hexValue")
-                        "&=" -> asmgen.out(" tya |  and  #$hexValue |  tay")
-                        "|=" -> asmgen.out(" tya |  ora  #$hexValue |  tay")
-                        "^=" -> asmgen.out(" tya |  eor  #$hexValue |  tay")
-                        "%=" -> TODO("Y %= const $hexValue")
-                        "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                        ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                        else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                    }
-                }
-            }
-            return true
-        }
-
-        // non-const value.
-        when (assign.value) {
-            is IdentifierReference -> {
-                val sourceName = asmgen.asmIdentifierName(assign.value as IdentifierReference)
-                when (assign.target.register) {
-                    Register.A -> {
-                        when (assign.aug_op) {
-                            "setvalue" -> asmgen.out(" lda  $sourceName")
-                            "+=" -> asmgen.out(" clc |  adc  $sourceName")
-                            "-=" -> asmgen.out(" sec |  sbc  $sourceName")
-                            "/=" -> TODO("A /= variable")
-                            "*=" -> TODO("A *= variable")
-                            "&=" -> asmgen.out(" and  $sourceName")
-                            "|=" -> asmgen.out(" ora  $sourceName")
-                            "^=" -> asmgen.out(" eor  $sourceName")
-                            "%=" -> TODO("A %= variable")
-                            "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                            ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                            else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                        }
-                    }
-                    Register.X -> {
-                        when (assign.aug_op) {
-                            "setvalue" -> asmgen.out(" ldx  $sourceName")
-                            "+=" -> asmgen.out(" txa |  clc |  adc  $sourceName |  tax")
-                            "-=" -> asmgen.out(" txa |  sec |  sbc  $sourceName |  tax")
-                            "/=" -> TODO("X /= variable")
-                            "*=" -> TODO("X *= variable")
-                            "&=" -> asmgen.out(" txa |  and  $sourceName |  tax")
-                            "|=" -> asmgen.out(" txa |  ora  $sourceName |  tax")
-                            "^=" -> asmgen.out(" txa |  eor  $sourceName |  tax")
-                            "%=" -> TODO("X %= variable")
-                            "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                            ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                            else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                        }
-                    }
-                    Register.Y -> {
-                        when (assign.aug_op) {
-                            "setvalue" -> asmgen.out(" ldy  $sourceName")
-                            "+=" -> asmgen.out(" tya |  clc |  adc  $sourceName |  tay")
-                            "-=" -> asmgen.out(" tya |  sec |  sbc  $sourceName |  tay")
-                            "/=" -> TODO("Y /= variable")
-                            "*=" -> TODO("Y *= variable")
-                            "&=" -> asmgen.out(" tya |  and  $sourceName |  tay")
-                            "|=" -> asmgen.out(" tya |  ora  $sourceName |  tay")
-                            "^=" -> asmgen.out(" tya |  eor  $sourceName |  tay")
-                            "%=" -> TODO("Y %= variable")
-                            "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                            ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                            else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                        }
-                    }
-                }
-                return true
-            }
-            is RegisterExpr -> {
-                when (assign.aug_op) {
-                    "setvalue" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> {}
-                                    Register.X -> asmgen.out("  tax")
-                                    Register.Y -> asmgen.out("  tay")
-                                }
-                            }
-                            Register.X -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out("  txa")
-                                    Register.X -> {}
-                                    Register.Y -> asmgen.out("  txa |  tay")
-                                }
-                            }
-                            Register.Y -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out("  tya")
-                                    Register.X -> asmgen.out("  tya |  tax")
-                                    Register.Y -> {}
-                                }
-                            }
-                        }
-                    }
-                    "+=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> throw AssemblyError("should have been optimized away")
-                                    Register.X -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  clc |  adc  ${C64Zeropage.SCRATCH_B1} |  tax")
-                                    Register.Y -> asmgen.out(" sty  ${C64Zeropage.SCRATCH_B1} |  clc |  adc  ${C64Zeropage.SCRATCH_B1} |  tay")
-                                }
-                            }
-                            Register.X -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  clc |  adc  ${C64Zeropage.SCRATCH_B1}")
-                                    Register.X -> throw AssemblyError("should have been optimized away")
-                                    Register.Y -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  tya |  clc |  adc  ${C64Zeropage.SCRATCH_B1} |  tay")
-                                }
-                            }
-                            Register.Y -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1} |  clc |  adc  ${C64Zeropage.SCRATCH_B1}")
-                                    Register.X -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1} |  txa |  clc |  adc  ${C64Zeropage.SCRATCH_B1} |  tax")
-                                    Register.Y -> throw AssemblyError("should have been optimized away")
-                                }
-                            }
-                        }
-                    }
-                    "-=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> throw AssemblyError("should have been optimized away")
-                                    Register.X -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  tax")
-                                    Register.Y -> asmgen.out(" sty  ${C64Zeropage.SCRATCH_B1} |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  tay")
-                                }
-                            }
-                            Register.X -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  sec |  sbc  ${C64Zeropage.SCRATCH_B1}")
-                                    Register.X -> throw AssemblyError("should have been optimized away")
-                                    Register.Y -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  tya |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  tay")
-                                }
-                            }
-                            Register.Y -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1} |  sec |  sbc  ${C64Zeropage.SCRATCH_B1}")
-                                    Register.X -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1} |  txa |  sec |  sbc  ${C64Zeropage.SCRATCH_B1} |  tax")
-                                    Register.Y -> throw AssemblyError("should have been optimized away")
-                                }
-                            }
-                        }
-                    }
-                    "/=" -> TODO("register /= register")
-                    "*=" -> TODO("register *= register")
-                    "&=" -> {
-                        when ((assign.value as RegisterExpr).register) {
-                            Register.A -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> throw AssemblyError("should have been optimized away")
-                                    Register.X -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  and  ${C64Zeropage.SCRATCH_B1} |  tax")
-                                    Register.Y -> asmgen.out(" sty  ${C64Zeropage.SCRATCH_B1} |  and  ${C64Zeropage.SCRATCH_B1} |  tay")
-                                }
-                            }
-                            Register.X -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  and  ${C64Zeropage.SCRATCH_B1}")
-                                    Register.X -> throw AssemblyError("should have been optimized away")
-                                    Register.Y -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  tya |  and  ${C64Zeropage.SCRATCH_B1} |  tay")
-                                }
-                            }
-                            Register.Y -> {
-                                when (assign.target.register!!) {
-                                    Register.A -> asmgen.out(" sty  ${C64Zeropage.SCRATCH_B1} |  and  ${C64Zeropage.SCRATCH_B1}")
-                                    Register.X -> asmgen.out(" stx  ${C64Zeropage.SCRATCH_B1} |  tya |  and  ${C64Zeropage.SCRATCH_B1} |  tax")
-                                    Register.Y -> throw AssemblyError("should have been optimized away")
-                                }
-                            }
-                        }
-                    }
-                    "|=" -> TODO("register |= register")
-                    "^=" -> TODO("register ^= register")
-                    "%=" -> TODO("register %= register")
-                    "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                    ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                    else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                }
-                return true
-            }
-            is DirectMemoryRead -> {
-                val address = (assign.value as DirectMemoryRead).addressExpression.constValue(program)?.number
-                if (address != null) {
-                    val hexAddr = address.toHex()
-                    when (assign.target.register) {
-                        Register.A -> {
-                            when (assign.aug_op) {
-                                "setvalue" -> asmgen.out(" lda  $hexAddr")
-                                "+=" -> asmgen.out(" clc |  adc  $hexAddr")
-                                "-=" -> asmgen.out(" sec |  sbc  $hexAddr")
-                                "/=" -> TODO("A /= memory $hexAddr")
-                                "*=" -> TODO("A *= memory $hexAddr")
-                                "&=" -> asmgen.out(" and  $hexAddr")
-                                "|=" -> asmgen.out(" ora  $hexAddr")
-                                "^=" -> asmgen.out(" eor  $hexAddr")
-                                "%=" -> TODO("A %= memory $hexAddr")
-                                "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                                ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                                else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                            }
-                        }
-                        Register.X -> {
-                            when (assign.aug_op) {
-                                "setvalue" -> asmgen.out(" ldx  $hexAddr")
-                                "+=" -> asmgen.out(" txa |  clc |  adc  $hexAddr |  tax")
-                                "-=" -> asmgen.out(" txa |  sec |  sbc  $hexAddr |  tax")
-                                "/=" -> TODO("X /= memory $hexAddr")
-                                "*=" -> TODO("X *= memory $hexAddr")
-                                "&=" -> asmgen.out(" txa |  and  $hexAddr |  tax")
-                                "|=" -> asmgen.out(" txa |  ora  $hexAddr |  tax")
-                                "^=" -> asmgen.out(" txa |  eor  $hexAddr |  tax")
-                                "%=" -> TODO("X %= memory $hexAddr")
-                                "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                                ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                                else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                            }
-                        }
-                        Register.Y -> {
-                            when (assign.aug_op) {
-                                "setvalue" -> asmgen.out(" ldy  $hexAddr")
-                                "+=" -> asmgen.out(" tya |  clc |  adc  $hexAddr |  tay")
-                                "-=" -> asmgen.out(" tya |  sec |  sbc  $hexAddr |  tay")
-                                "/=" -> TODO("Y /= memory $hexAddr")
-                                "*=" -> TODO("Y *= memory $hexAddr")
-                                "&=" -> asmgen.out(" tya |  and  $hexAddr |  tay")
-                                "|=" -> asmgen.out(" tya |  ora  $hexAddr |  tay")
-                                "^=" -> asmgen.out(" tya |  eor  $hexAddr |  tay")
-                                "%=" -> TODO("Y %= memory $hexAddr")
-                                "<<=" -> throw AssemblyError("<<= should have been replaced by lsl()")
-                                ">>=" -> throw AssemblyError("<<= should have been replaced by lsr()")
-                                else -> throw AssemblyError("invalid aug_op ${assign.aug_op}")
-                            }
-                        }
-                    }
-                    return true
-                }
-            }
-            is ArrayIndexedExpression -> {
-                if (assign.aug_op == "setvalue") {
-                    val arrayExpr = assign.value as ArrayIndexedExpression
-                    val arrayIndex = arrayExpr.arrayspec.index
-                    val variablename = asmgen.asmIdentifierName(arrayExpr.identifier)
-                    val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
-                    if (arrayDt != DataType.ARRAY_B && arrayDt != DataType.ARRAY_UB && arrayDt != DataType.STR)
-                        throw AssemblyError("assign to register: expected byte array or string source")
-                    if (arrayIndex is NumericLiteralValue)
-                        asmgen.out(" ldy  #${arrayIndex.number.toHex()}")
-                    else
-                        asmgen.translateArrayIndexIntoY(arrayExpr)
-                    when(assign.target.register!!) {
-                        Register.A -> asmgen.out(" lda  $variablename,y")
-                        Register.X -> asmgen.out(" ldx  $variablename,y")
-                        Register.Y -> asmgen.out(" lda  $variablename,y |  tay")
-                    }
-                } else {
-                    // TODO optimize more augmented assignment cases
-                    val normalAssign = assign.asDesugaredNonaugmented()
-                    asmgen.translateExpression(normalAssign.value)
-                    assignFromEvalResult(normalAssign.target)
-                }
-                return true
-            }
-            is AddressOf -> throw AssemblyError("can't load a memory address into a register")
-            else -> {
-                fallbackAssignment(assign)
-                return true
-            }
-        }
-
-        return false
-    }
-
     private fun fallbackAssignment(assign: Assignment) {
         if (assign.aug_op != "setvalue") {
             /* stack-based evaluation of the expression is required */
@@ -1226,12 +750,8 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     else -> throw AssemblyError("weird numval type")
                 }
             }
-            is RegisterExpr -> {
-                assignFromRegister(assign.target, (assign.value as RegisterExpr).register)
-            }
             is IdentifierReference -> {
-                val type = assign.target.inferType(program, assign).typeOrElse(DataType.STRUCT)
-                when (type) {
+                when (val type = assign.target.inferType(program, assign).typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE, DataType.BYTE -> assignFromByteVariable(assign.target, assign.value as IdentifierReference)
                     DataType.UWORD, DataType.WORD -> assignFromWordVariable(assign.target, assign.value as IdentifierReference)
                     DataType.FLOAT -> assignFromFloatVariable(assign.target, assign.value as IdentifierReference)
@@ -1320,15 +840,9 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
     internal fun assignFromEvalResult(target: AssignTarget) {
         val targetIdent = target.identifier
         when {
-            target.register != null -> {
-                if (target.register == Register.X)
-                    throw AssemblyError("can't pop into X register - use variable instead")
-                asmgen.out(" inx | ld${target.register.name.toLowerCase()}  $ESTACK_LO_HEX,x ")
-            }
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
-                val targetDt = targetIdent.inferType(program).typeOrElse(DataType.STRUCT)
-                when (targetDt) {
+                when (val targetDt = targetIdent.inferType(program).typeOrElse(DataType.STRUCT)) {
                     DataType.UBYTE, DataType.BYTE -> {
                         asmgen.out(" inx | lda  $ESTACK_LO_HEX,x  | sta  $targetName")
                     }
@@ -1353,7 +867,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             }
             target.memoryAddress != null -> {
                 asmgen.out("  inx  | ldy  $ESTACK_LO_HEX,x")
-                storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
+                storeRegisterInMemoryAddress(CpuRegister.Y, target.memoryAddress)
             }
             target.arrayindexed != null -> {
                 val arrayDt = target.arrayindexed!!.identifier.inferType(program).typeOrElse(DataType.STRUCT)
@@ -1470,9 +984,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
         when {
-            target.register != null -> {
-                asmgen.out("  ld${target.register.name.toLowerCase()}  $sourceName")
-            }
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
                 asmgen.out("""
@@ -1516,35 +1027,13 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         }
     }
 
-    internal fun assignFromRegister(target: AssignTarget, register: Register) {
+    internal fun assignFromRegister(target: AssignTarget, register: CpuRegister) {
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
         when {
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
                 asmgen.out("  st${register.name.toLowerCase()}  $targetName")
-            }
-            target.register != null -> {
-                when (register) {
-                    Register.A -> when (target.register) {
-                        Register.A -> {
-                        }
-                        Register.X -> asmgen.out("  tax")
-                        Register.Y -> asmgen.out("  tay")
-                    }
-                    Register.X -> when (target.register) {
-                        Register.A -> asmgen.out("  txa")
-                        Register.X -> {
-                        }
-                        Register.Y -> asmgen.out("  txy")
-                    }
-                    Register.Y -> when (target.register) {
-                        Register.A -> asmgen.out("  tya")
-                        Register.X -> asmgen.out("  tyx")
-                        Register.Y -> {
-                        }
-                    }
-                }
             }
             target.memoryAddress != null -> {
                 storeRegisterInMemoryAddress(register, target.memoryAddress)
@@ -1556,34 +1045,16 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                     is NumericLiteralValue -> {
                         val memindex = index.number.toInt()
                         when (register) {
-                            Register.A -> asmgen.out("  sta  $targetName+$memindex")
-                            Register.X -> asmgen.out("  stx  $targetName+$memindex")
-                            Register.Y -> asmgen.out("  sty  $targetName+$memindex")
+                            CpuRegister.A -> asmgen.out("  sta  $targetName+$memindex")
+                            CpuRegister.X -> asmgen.out("  stx  $targetName+$memindex")
+                            CpuRegister.Y -> asmgen.out("  sty  $targetName+$memindex")
                         }
-                    }
-                    is RegisterExpr -> {
-                        when (register) {
-                            Register.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
-                            Register.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
-                            Register.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
-                        }
-                        when (index.register) {
-                            Register.A -> {
-                            }
-                            Register.X -> asmgen.out("  txa")
-                            Register.Y -> asmgen.out("  tya")
-                        }
-                        asmgen.out("""
-                            tay
-                            lda  ${C64Zeropage.SCRATCH_B1}
-                            sta  $targetName,y
-                            """)
                     }
                     is IdentifierReference -> {
                         when (register) {
-                            Register.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
-                            Register.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
-                            Register.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
                         }
                         asmgen.out("""
                             lda  ${asmgen.asmIdentifierName(index)}
@@ -1597,9 +1068,9 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                         asmgen.translateExpression(index)
                         asmgen.restoreRegister(register)
                         when (register) {
-                            Register.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
-                            Register.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
-                            Register.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
                         }
                         asmgen.out("""
                             inx
@@ -1615,7 +1086,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         }
     }
 
-    private fun storeRegisterInMemoryAddress(register: Register, memoryAddress: DirectMemoryWrite) {
+    private fun storeRegisterInMemoryAddress(register: CpuRegister, memoryAddress: DirectMemoryWrite) {
         val addressExpr = memoryAddress.addressExpression
         val addressLv = addressExpr as? NumericLiteralValue
         val registerName = register.name.toLowerCase()
@@ -1624,19 +1095,19 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
             addressExpr is IdentifierReference -> {
                 val targetName = asmgen.asmIdentifierName(addressExpr)
                 when (register) {
-                    Register.A -> asmgen.out("""
+                    CpuRegister.A -> asmgen.out("""
         ldy  $targetName
         sty  (+) +1
         ldy  $targetName+1
         sty  (+) +2
 +       sta  ${'$'}ffff     ; modified""")
-                    Register.X -> asmgen.out("""
+                    CpuRegister.X -> asmgen.out("""
         ldy  $targetName
         sty  (+) +1
         ldy  $targetName+1
         sty  (+) +2
 +       stx  ${'$'}ffff    ; modified""")
-                    Register.Y -> asmgen.out("""
+                    CpuRegister.Y -> asmgen.out("""
         lda  $targetName
         sta  (+) +1
         lda  $targetName+1
@@ -1649,10 +1120,9 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 asmgen.translateExpression(addressExpr)
                 asmgen.restoreRegister(register)
                 when (register) {
-                    Register.A -> asmgen.out("  tay")
-                    Register.X -> throw AssemblyError("can't use X register here")
-                    Register.Y -> {
-                    }
+                    CpuRegister.A -> asmgen.out("  tay")
+                    CpuRegister.X -> throw AssemblyError("can't use X register here")
+                    CpuRegister.Y -> {}
                 }
                 asmgen.out("""
      inx
@@ -1715,16 +1185,13 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
         when {
-            target.register != null -> {
-                asmgen.out("  ld${target.register.name.toLowerCase()}  #${byte.toHex()}")
-            }
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
                 asmgen.out(" lda  #${byte.toHex()} |  sta  $targetName ")
             }
             target.memoryAddress != null -> {
                 asmgen.out("  ldy  #${byte.toHex()}")
-                storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
+                storeRegisterInMemoryAddress(CpuRegister.Y, target.memoryAddress)
             }
             targetArrayIdx != null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -1847,9 +1314,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         val targetArrayIdx = target.arrayindexed
         if (address != null) {
             when {
-                target.register != null -> {
-                    asmgen.out("  ld${target.register.name.toLowerCase()}  ${address.toHex()}")
-                }
                 targetIdent != null -> {
                     val targetName = asmgen.asmIdentifierName(targetIdent)
                     asmgen.out("""
@@ -1859,7 +1323,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 }
                 target.memoryAddress != null -> {
                     asmgen.out("  ldy  ${address.toHex()}")
-                    storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
+                    storeRegisterInMemoryAddress(CpuRegister.Y, target.memoryAddress)
                 }
                 targetArrayIdx != null -> {
                     val index = targetArrayIdx.arrayspec.index
@@ -1871,18 +1335,6 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
         } else if (identifier != null) {
             val sourceName = asmgen.asmIdentifierName(identifier)
             when {
-                target.register != null -> {
-                    asmgen.out("""
-                        lda  $sourceName
-                        sta  (+) + 1
-                        lda  $sourceName+1
-                        sta  (+) + 2""")
-                    when (target.register) {
-                        Register.A -> asmgen.out("+       lda  ${'$'}ffff\t; modified")
-                        Register.X -> asmgen.out("+       ldx  ${'$'}ffff\t; modified")
-                        Register.Y -> asmgen.out("+       ldy  ${'$'}ffff\t; modified")
-                    }
-                }
                 targetIdent != null -> {
                     val targetName = asmgen.asmIdentifierName(targetIdent)
                     asmgen.out("""
@@ -1895,7 +1347,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 }
                 target.memoryAddress != null -> {
                     asmgen.out("  ldy  $sourceName")
-                    storeRegisterInMemoryAddress(Register.Y, target.memoryAddress)
+                    storeRegisterInMemoryAddress(CpuRegister.Y, target.memoryAddress)
                 }
                 targetArrayIdx != null -> {
                     val index = targetArrayIdx.arrayspec.index
@@ -1924,6 +1376,15 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                 """)
             else ->
                 throw AssemblyError("weird array type")
+        }
+    }
+
+    fun assignToRegister(reg: CpuRegister, value: Short?, identifier: IdentifierReference?) {
+        if(value!=null) {
+            asmgen.out("  ld${reg.toString().toLowerCase()}  #${value.toHex()}")
+        } else if(identifier!=null) {
+            val name = asmgen.asmIdentifierName(identifier)
+            asmgen.out("  ld${reg.toString().toLowerCase()}  $name")
         }
     }
 }

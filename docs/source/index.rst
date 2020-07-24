@@ -139,8 +139,8 @@ Design principles and features
 - 'One statement per line' code, resulting in clear readable programs.
 - Modular programming and scoping via modules, code blocks, and subroutines.
 - Provide high level programming constructs but at the same time stay close to the metal;
-  still able to directly use memory addresses, CPU registers and ROM subroutines,
-  and inline assembly to have full control when every cycle or byte matters
+  still able to directly use memory addresses and ROM subroutines,
+  and inline assembly to have full control when every register, cycle or byte matters
 - Arbitrary number of subroutine parameters
 - Complex nested expressions are possible
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters

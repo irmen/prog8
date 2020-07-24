@@ -15,8 +15,6 @@ main {
         remainder_uword(40000,511,142)
         remainder_uword(40000,500,0)
         remainder_uword(43211,12,11)
-
-        check_eval_stack()
     }
 
     sub remainder_ubyte(ubyte a1, ubyte a2, ubyte c) {
@@ -47,13 +45,5 @@ main {
         c64scr.print(" = ")
         c64scr.print_uw(r)
         c64.CHROUT('\n')
-    }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
     }
 }

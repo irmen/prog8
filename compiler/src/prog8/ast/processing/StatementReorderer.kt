@@ -78,7 +78,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
             if(declConstValue==null) {
                 // move the vardecl (without value) to the scope and replace this with a regular assignment
                 decl.value = null
-                val target = AssignTarget(null, IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
                 val assign = Assignment(target, null, declValue, decl.position)
                 return listOf(
                         IAstModification.ReplaceNode(decl, assign, parent),
@@ -136,7 +136,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
             targetDecl as VarDecl
             val mangled = mangledStructMemberName(identifierName, targetDecl.name)
             val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+            val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position),
                     null, sourceValue, sourceValue.position)
             assign.linkParents(structAssignment)
             assign
@@ -168,7 +168,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                     val idref = IdentifierReference(listOf(mangled), structAssignment.position)
                     val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
                     val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
-                    val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                    val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position),
                             null, sourceIdref, member.second.position)
                     assign.linkParents(structAssignment)
                     assign

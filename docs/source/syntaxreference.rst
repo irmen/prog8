@@ -24,7 +24,7 @@ Everything after a semicolon ``;`` is a comment and is ignored.
 If the whole line is just a comment, it will be copied into the resulting assembly source code.
 This makes it easier to understand and relate the generated code. Examples::
 
-	A = 42    ; set the initial value to 42
+	counter = 42    ; set the initial value to 42
 	; next is the code that...
 
 
@@ -313,7 +313,7 @@ Direct access to memory locations
 Instead of defining a memory mapped name for a specific memory location, you can also
 directly access the memory. Enclose a numeric expression or literal with ``@(...)`` to do that::
 
-    A = @($d020)      ; set the A register to the current c64 screen border color ("peek(53280)")
+    color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; a dynamic expression to 'calculate' the address
 
@@ -333,8 +333,6 @@ Reserved names
 
 The following names are reserved, they have a special meaning::
 
-	A     X    Y              ; 6502 hardware registers
-	Pc    Pz   Pn  Pv         ; 6502 status register flags
 	true  false              ; boolean values 1 and 0
 
 
@@ -406,10 +404,10 @@ assignment: ``=``
     Note that an assignment sometimes is not possible or supported.
 
 augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
-	Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
+	Syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
 
 postfix increment and decrement: ``++``  ``--``
-	Syntactic sugar; ``A++`` is equivalent to ``A = A + 1``, and ``A--`` is equivalent to ``A = A - 1``.
+	Syntactic sugar; ``aa++`` is equivalent to ``aa = aa + 1``, and ``aa--`` is equivalent to ``aa = aa - 1``.
 	Because these operations are so common, we have these short forms.
 
 comparison: ``!=``  ``<``  ``>``  ``<=``  ``>=``
@@ -427,9 +425,9 @@ range creation:  ``to``
 
 		0 to 7		; range of values 0, 1, 2, 3, 4, 5, 6, 7  (constant)
 
-		A = 5
-		X = 10
-		A to X		; range of 5, 6, 7, 8, 9, 10
+		aa = 5
+		aa = 10
+	    aa to xx		; range of 5, 6, 7, 8, 9, 10
 
 		byte[] array = 10 to 13   ; sets the array to [1, 2, 3, 4]
 
@@ -551,7 +549,7 @@ Loops
 for loop
 ^^^^^^^^
 
-The loop variable must be a register or a byte/word variable,
+The loop variable must be a byte or word variable,
 and must be defined first in the local scope of the for loop.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
@@ -702,3 +700,4 @@ case you have to use { } to enclose them::
         }
         else -> c64scr.print("don't know")
     }
+

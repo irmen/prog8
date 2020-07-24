@@ -310,10 +310,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
     override fun visit(forLoop: ForLoop) {
         output("for ")
-        if(forLoop.loopRegister!=null)
-            output(forLoop.loopRegister.toString())
-        else
-            forLoop.loopVar!!.accept(this)
+        forLoop.loopVar.accept(this)
         output(" in ")
         forLoop.iterable.accept(this)
         output(" ")
@@ -352,12 +349,8 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(assignTarget: AssignTarget) {
-        if(assignTarget.register!=null)
-            output(assignTarget.register.toString())
-        else {
-            assignTarget.memoryAddress?.accept(this)
-            assignTarget.identifier?.accept(this)
-        }
+        assignTarget.memoryAddress?.accept(this)
+        assignTarget.identifier?.accept(this)
         assignTarget.arrayindexed?.accept(this)
     }
 
@@ -396,10 +389,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         outputlni("%asm {{")
         outputln(inlineAssembly.assembly)
         outputlni("}}")
-    }
-
-    override fun visit(registerExpr: RegisterExpr) {
-        output(registerExpr.register.toString())
     }
 
     override fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder) {

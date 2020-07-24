@@ -6,7 +6,11 @@
 main {
     sub start() {
         c64scr.print("fibonacci sequence\n")
-        for A in 0 to 20 {
+
+        ; TODO fix the double i=0 assignment generation in the asm code:
+
+        ubyte i
+        for i in 0 to 20 {
             c64scr.print_uw(fib_next())
             c64.CHROUT('\n')
         }

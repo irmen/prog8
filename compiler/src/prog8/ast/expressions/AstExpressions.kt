@@ -28,22 +28,20 @@ sealed class Expression: Node {
     infix fun isSameAs(other: Expression): Boolean {
         if(this===other)
             return true
-        when(this) {
-            is RegisterExpr ->
-                return (other is RegisterExpr && other.register==register)
+        return when(this) {
             is IdentifierReference ->
-                return (other is IdentifierReference && other.nameInSource==nameInSource)
+                (other is IdentifierReference && other.nameInSource==nameInSource)
             is PrefixExpression ->
-                return (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
+                (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
             is BinaryExpression ->
-                return (other is BinaryExpression && other.operator==operator
+                (other is BinaryExpression && other.operator==operator
                         && other.left isSameAs left
                         && other.right isSameAs right)
             is ArrayIndexedExpression -> {
-                return (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
+                (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
                         && other.arrayspec.index isSameAs arrayspec.index)
             }
-            else -> return other==this
+            else -> other==this
         }
     }
 }
@@ -696,29 +694,6 @@ internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
     }
 }
 
-class RegisterExpr(val register: Register, override val position: Position) : Expression(), IAssignable {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        throw FatalAstException("can't replace here")
-    }
-
-    override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
-
-    override fun referencesIdentifiers(vararg name: String): Boolean = register.name in name
-    override fun toString(): String {
-        return "RegisterExpr(register=$register, pos=$position)"
-    }
-
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UBYTE)
-}
-
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
@@ -732,6 +707,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     fun targetSubroutine(namespace: INameScope): Subroutine? = targetStatement(namespace) as? Subroutine
 
     override fun equals(other: Any?) = other is IdentifierReference && other.nameInSource==nameInSource
+    override fun hashCode() = nameInSource.hashCode()
 
     override fun linkParents(parent: Node) {
         this.parent = parent

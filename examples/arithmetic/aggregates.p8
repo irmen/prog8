@@ -104,17 +104,6 @@ main {
         ub = all(farr)
         if ub==0 c64scr.print("error all10\n")
 
-        check_eval_stack()
-
         c64scr.print("\nyou should see no errors printed above (only at first run).")
     }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

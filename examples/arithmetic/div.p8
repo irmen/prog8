@@ -24,8 +24,6 @@ main {
 
         div_float(0,1,0)
         div_float(999.9,111.0,9.008108108108107)
-
-        check_eval_stack()
     }
 
     sub div_ubyte(ubyte a1, ubyte a2, ubyte c) {
@@ -102,13 +100,5 @@ main {
         c64scr.print(" = ")
         c64flt.print_f(r)
         c64.CHROUT('\n')
-    }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
     }
 }

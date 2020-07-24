@@ -64,7 +64,7 @@ enum class DataType {
     }
 }
 
-enum class Register {
+enum class CpuRegister {
     A,
     X,
     Y
@@ -76,14 +76,23 @@ enum class RegisterOrPair {
     Y,
     AX,
     AY,
-    XY
+    XY;
+
+    companion object {
+        val names by lazy { values().map { it.toString()} }
+    }
+
 }       // only used in parameter and return value specs in asm subroutines
 
 enum class Statusflag {
     Pc,
     Pz,
     Pv,
-    Pn
+    Pn;
+
+    companion object {
+        val names by lazy { values().map { it.toString()} }
+    }
 }
 
 enum class BranchCondition {

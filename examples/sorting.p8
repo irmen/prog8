@@ -30,7 +30,6 @@ main {
         c64scr.print("reversed\n")
         print_arrays()
 
-        check_eval_stack()
         return
 
 
@@ -65,14 +64,4 @@ main {
             c64.CHROUT('\n')
         }
     }
-
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("stack x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

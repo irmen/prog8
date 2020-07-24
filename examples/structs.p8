@@ -1,7 +1,7 @@
 %import c64utils
 %zeropage basicsafe
 
-; TODO fix compiler errors when compiling ( /= )
+; TODO fix compiler errors when compiling without optimization ( /= )
 
 
 main {
@@ -30,17 +30,5 @@ main {
         c64.CHROUT(',')
         c64scr.print_ub(other.blue)
         c64.CHROUT('\n')
-
-        check_eval_stack()
     }
-
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("stack x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

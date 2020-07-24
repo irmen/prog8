@@ -5,6 +5,8 @@
 main {
 
     sub start() {
+        ubyte A
+
         c64scr.print("ubyte shift left\n")
         A = shiftlb0()
         c64scr.print_ubbin(A, true)

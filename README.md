@@ -18,7 +18,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - automatic variable allocations, automatic string and array variables and string sharing
-- subroutines with a input- and output parameter signature
+- subroutines with an input- and output parameter signature
 - constant folding in expressions
 - conditional branches
 - 'when' statement to provide a concise jump table alternative to if/elseif chains

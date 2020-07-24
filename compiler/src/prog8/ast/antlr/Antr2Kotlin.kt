@@ -247,7 +247,7 @@ private class AsmsubDecl(val name: String,
                          val returntypes: List<DataType>,
                          val asmParameterRegisters: List<RegisterOrStatusflag>,
                          val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
-                         val asmClobbers: Set<Register>)
+                         val asmClobbers: Set<CpuRegister>)
 
 private fun prog8Parser.Asmsub_declContext.toAst(): AsmsubDecl {
     val name = identifier().text
@@ -274,23 +274,42 @@ private class AsmSubroutineReturn(val type: DataType,
                                   val stack: Boolean,
                                   val position: Position)
 
-private fun prog8Parser.ClobberContext.toAst(): Set<Register>
-        = this.register().asSequence().map { it.toAst() }.toSet()
-
 private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
-        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), !it.stack?.text.isNullOrEmpty(), toPosition()) }
+        = asmsub_return().map {
+            val register = it.identifier()?.toAst()
+            var registerorpair: RegisterOrPair? = null
+            var statusregister: Statusflag? = null
+            if(register!=null) {
+                when (val name = register.nameInSource.single()) {
+                    in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(name)
+                    in Statusflag.names -> statusregister = Statusflag.valueOf(name)
+                    else -> throw FatalAstException("invalid register or status flag in $it")
+                }
+            }
+            AsmSubroutineReturn(
+                    it.datatype().toAst(),
+                    registerorpair,
+                    statusregister,
+                    !it.stack?.text.isNullOrEmpty(), toPosition())
+        }
 
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
         = asmsub_param().map {
     val vardecl = it.vardecl()
     val datatype = vardecl.datatype()?.toAst() ?: DataType.STRUCT
-    AsmSubroutineParameter(vardecl.varname.text, datatype,
-            it.registerorpair()?.toAst(),
-            it.statusregister()?.toAst(),
+    val register = it.identifier()?.toAst()
+    var registerorpair: RegisterOrPair? = null
+    var statusregister: Statusflag? = null
+    if(register!=null) {
+        when (val name = register.nameInSource.single()) {
+            in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(name)
+            in Statusflag.names -> statusregister = Statusflag.valueOf(name)
+            else -> throw FatalAstException("invalid register or status flag in $it")
+        }
+    }
+    AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister,
             !it.stack?.text.isNullOrEmpty(), toPosition())
 }
-
-private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
 
 private fun prog8Parser.Functioncall_stmtContext.toAst(): Statement {
     val void = this.VOID() != null
@@ -350,22 +369,21 @@ private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         }
 
 private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
-    val register = register()?.toAst()
     val identifier = scoped_identifier()
     return when {
-        register!=null -> AssignTarget(register, null, null, null, toPosition())
-        identifier!=null -> AssignTarget(null, identifier.toAst(), null, null, toPosition())
-        arrayindexed()!=null -> AssignTarget(null, null, arrayindexed().toAst(), null, toPosition())
-        directmemory()!=null -> AssignTarget(null, null, null, DirectMemoryWrite(directmemory().expression().toAst(), toPosition()), toPosition())
-        else -> AssignTarget(null, scoped_identifier()?.toAst(), null, null, toPosition())
+        identifier!=null -> AssignTarget(identifier.toAst(), null, null, toPosition())
+        arrayindexed()!=null -> AssignTarget(null, arrayindexed().toAst(), null, toPosition())
+        directmemory()!=null -> AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), toPosition()), toPosition())
+        else -> AssignTarget(scoped_identifier()?.toAst(), null, null, toPosition())
     }
 }
 
-private fun prog8Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
+private fun prog8Parser.ClobberContext.toAst() : Set<CpuRegister> {
+    val names = this.identifier().map { it.toAst().nameInSource.single() }
+    return names.map { CpuRegister.valueOf(it) }.toSet()
+}
 
 private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
-
-private fun prog8Parser.RegisterorpairContext.toAst() = RegisterOrPair.valueOf(text.toUpperCase())
 
 private fun prog8Parser.ArrayindexContext.toAst() : ArrayIndex =
         ArrayIndex(expression().toAst(), toPosition())
@@ -478,9 +496,6 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
         }
     }
 
-    if(register()!=null)
-        return RegisterExpr(register().toAst(), register().toPosition())
-
     if(scoped_identifier()!=null)
         return scoped_identifier().toAst()
 
@@ -572,15 +587,14 @@ private fun prog8Parser.Branch_stmtContext.toAst(): BranchStatement {
 private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())
 
 private fun prog8Parser.ForloopContext.toAst(): ForLoop {
-    val loopregister = register()?.toAst()
-    val loopvar = identifier()?.toAst()
+    val loopvar = identifier().toAst()
     val iterable = expression()!!.toAst()
     val scope =
             if(statement()!=null)
                 AnonymousScope(mutableListOf(statement().toAst()), statement().toPosition())
             else
                 AnonymousScope(statement_block().toAst(), statement_block().toPosition())
-    return ForLoop(loopregister, loopvar, iterable, scope, toPosition())
+    return ForLoop(loopvar, iterable, scope, toPosition())
 }
 
 private fun prog8Parser.ContinuestmtContext.toAst() = Continue(toPosition())

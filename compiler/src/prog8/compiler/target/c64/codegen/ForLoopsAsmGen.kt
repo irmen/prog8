@@ -2,7 +2,6 @@ package prog8.compiler.target.c64.codegen
 
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.base.Register
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.AssignTarget
@@ -55,31 +54,11 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                     // bytes, step 1 or -1
 
                     val incdec = if(stepsize==1) "inc" else "dec"
-                    if (stmt.loopRegister != null) {
-                        // loop register over range
-                        if(stmt.loopRegister!= Register.A)
-                            throw AssemblyError("can only use A")
-                        asmgen.translateExpression(range.to)
-                        asmgen.translateExpression(range.from)
-                        asmgen.out("""
-                inx
-                lda  ${ESTACK_LO_HEX},x
-                sta  $loopLabel+1
-$loopLabel      lda  #0                 ; modified""")
-                        asmgen.translate(stmt.body)
-                        asmgen.out("""
-$continueLabel  lda  $loopLabel+1
-                cmp  $ESTACK_LO_PLUS1_HEX,x
-                beq  $endLabel
-                $incdec  $loopLabel+1
-                jmp  $loopLabel
-$endLabel       inx""")
-                    } else {
-                        // loop over byte range via loopvar
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                        asmgen.translateExpression(range.to)
-                        asmgen.translateExpression(range.from)
-                        asmgen.out("""
+                    // loop over byte range via loopvar
+                    val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                    asmgen.translateExpression(range.to)
+                    asmgen.translateExpression(range.from)
+                    asmgen.out("""
                 inx
                 lda  ${ESTACK_LO_HEX},x
                 sta  $varname
@@ -92,76 +71,41 @@ $continueLabel  lda  $varname
                 $incdec  $varname
                 jmp  $loopLabel
 $endLabel       inx""")
-                    }
                 }
                 else {
 
                     // bytes, step >= 2 or <= -2
 
-                    if (stmt.loopRegister != null) {
-                        // loop register over range
-                        if(stmt.loopRegister!= Register.A)
-                            throw AssemblyError("can only use A")
-                        asmgen.translateExpression(range.to)
-                        asmgen.translateExpression(range.from)
-                        asmgen.out("""
-                inx
-                lda  ${ESTACK_LO_HEX},x
-                sta  $loopLabel+1
-$loopLabel      lda  #0                 ; modified""")
-                        asmgen.translate(stmt.body)
-                        asmgen.out("""
-$continueLabel  lda  $loopLabel+1""")
-                        if(stepsize>0) {
-                            asmgen.out("""
-                clc
-                adc  #$stepsize
-                sta  $loopLabel+1
-                cmp  $ESTACK_LO_PLUS1_HEX,x
-                bcc  $loopLabel
-                beq  $loopLabel""")
-                        } else {
-                            asmgen.out("""
-                sec
-                sbc  #${stepsize.absoluteValue}
-                sta  $loopLabel+1
-                cmp  $ESTACK_LO_PLUS1_HEX,x
-                bcs  $loopLabel""")
-                        }
-                        asmgen.out("""
-$endLabel       inx""")
-                    } else {
-                        // loop over byte range via loopvar
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                        asmgen.translateExpression(range.to)
-                        asmgen.translateExpression(range.from)
-                        asmgen.out("""
+                    // loop over byte range via loopvar
+                    val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                    asmgen.translateExpression(range.to)
+                    asmgen.translateExpression(range.from)
+                    asmgen.out("""
                 inx
                 lda  ${ESTACK_LO_HEX},x
                 sta  $varname
 $loopLabel""")
-                        asmgen.translate(stmt.body)
-                        asmgen.out("""
+                    asmgen.translate(stmt.body)
+                    asmgen.out("""
 $continueLabel  lda  $varname""")
-                        if(stepsize>0) {
-                            asmgen.out("""
+                    if(stepsize>0) {
+                        asmgen.out("""
                 clc
                 adc  #$stepsize
                 sta  $varname
                 cmp  $ESTACK_LO_PLUS1_HEX,x
                 bcc  $loopLabel
                 beq  $loopLabel""")
-                        } else {
-                            asmgen.out("""
+                    } else {
+                        asmgen.out("""
                 sec
                 sbc  #${stepsize.absoluteValue}
                 sta  $varname
                 cmp  $ESTACK_LO_PLUS1_HEX,x
                 bcs  $loopLabel""")
-                        }
-                        asmgen.out("""
-$endLabel       inx""")
                     }
+                    asmgen.out("""
+$endLabel       inx""")
                 }
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
@@ -171,8 +115,8 @@ $endLabel       inx""")
 
                     stepsize == 1 || stepsize == -1 -> {
                         asmgen.translateExpression(range.to)
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                        val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
+                        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position),
                                 null, range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
@@ -207,8 +151,8 @@ $endLabel       inx""")
                         // (u)words, step >= 2
 
                         asmgen.translateExpression(range.to)
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                        val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
+                        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position),
                                 null, range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
@@ -256,8 +200,8 @@ $endLabel       inx""")
 
                         // (u)words, step <= -2
                         asmgen.translateExpression(range.to)
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                        val assignLoopvar = Assignment(AssignTarget(null, stmt.loopVar, null, null, stmt.loopVar!!.position),
+                        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position),
                                 null, range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
@@ -319,8 +263,6 @@ $endLabel       inx""")
         val decl = ident.targetVarDecl(program.namespace)!!
         when(iterableDt) {
             DataType.STR -> {
-                if(stmt.loopRegister!=null && stmt.loopRegister!= Register.A)
-                    throw AssemblyError("can only use A")
                 asmgen.out("""
                     lda  #<$iterableName
                     ldy  #>$iterableName
@@ -328,8 +270,7 @@ $endLabel       inx""")
                     sty  $loopLabel+2
 $loopLabel          lda  ${65535.toHex()}       ; modified
                     beq  $endLabel""")
-                if(stmt.loopVar!=null)
-                    asmgen.out("  sta  ${asmgen.asmIdentifierName(stmt.loopVar!!)}")
+                asmgen.out("  sta  ${asmgen.asmIdentifierName(stmt.loopVar)}")
                 asmgen.translate(stmt.body)
                 asmgen.out("""
 $continueLabel      inc  $loopLabel+1
@@ -341,8 +282,6 @@ $endLabel""")
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter var in such cases
                 val length = decl.arraysize!!.size()!!
-                if(stmt.loopRegister!=null && stmt.loopRegister!= Register.A)
-                    throw AssemblyError("can only use A")
                 val counterLabel = asmgen.makeLabel("for_counter")
                 val modifiedLabel = asmgen.makeLabel("for_modified")
                 asmgen.out("""
@@ -353,8 +292,7 @@ $endLabel""")
                     ldy  #0
 $loopLabel          sty  $counterLabel
 $modifiedLabel      lda  ${65535.toHex()},y       ; modified""")
-                if(stmt.loopVar!=null)
-                    asmgen.out("  sta  ${asmgen.asmIdentifierName(stmt.loopVar!!)}")
+                asmgen.out("  sta  ${asmgen.asmIdentifierName(stmt.loopVar)}")
                 asmgen.translate(stmt.body)
                 asmgen.out("""
 $continueLabel      ldy  $counterLabel
@@ -368,12 +306,10 @@ $endLabel""")
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 // TODO: optimize loop code when the length of the array is < 256, don't need a separate counter var in such cases
                 val length = decl.arraysize!!.size()!! * 2
-                if(stmt.loopRegister!=null)
-                    throw AssemblyError("can't use register to loop over words")
                 val counterLabel = asmgen.makeLabel("for_counter")
                 val modifiedLabel = asmgen.makeLabel("for_modified")
                 val modifiedLabel2 = asmgen.makeLabel("for_modified2")
-                val loopvarName = asmgen.asmIdentifierName(stmt.loopVar!!)
+                val loopvarName = asmgen.asmIdentifierName(stmt.loopVar)
                 asmgen.out("""
                     lda  #<$iterableName
                     ldy  #>$iterableName
@@ -421,93 +357,12 @@ $endLabel""")
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 val counterLabel = asmgen.makeLabel("for_counter")
-                if(stmt.loopRegister!=null) {
-
-                    // loop register over range
-
-                    if(stmt.loopRegister!= Register.A)
-                        throw AssemblyError("can only use A")
-                    when {
-                        range.step==1 -> {
-                            // step = 1
-                            asmgen.out("""
-                lda  #${range.first}
-                sta  $loopLabel+1
-                lda  #${range.last-range.first+1 and 255}
-                sta  $counterLabel
-$loopLabel      lda  #0                 ; modified""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                inc  $loopLabel+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        }
-                        range.step==-1 -> {
-                            // step = -1
-                            asmgen.out("""
-                lda  #${range.first}
-                sta  $loopLabel+1
-                lda  #${range.first-range.last+1 and 255}
-                sta  $counterLabel
-$loopLabel      lda  #0                 ; modified """)
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  dec  $counterLabel
-                beq  $endLabel
-                dec  $loopLabel+1
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        }
-                        range.step >= 2 -> {
-                            // step >= 2
-                            asmgen.out("""
-                lda  #${(range.last-range.first) / range.step + 1}
-                sta  $counterLabel
-                lda  #${range.first}
-$loopLabel      pha""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  pla
-                dec  $counterLabel
-                beq  $endLabel
-                clc
-                adc  #${range.step}
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        }
-                        else -> {
-                            // step <= -2
-                            asmgen.out("""
-                lda  #${(range.first-range.last) / range.step.absoluteValue + 1}
-                sta  $counterLabel
-                lda  #${range.first}
-$loopLabel      pha""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
-$continueLabel  pla
-                dec  $counterLabel
-                beq  $endLabel
-                sec
-                sbc  #${range.step.absoluteValue}
-                jmp  $loopLabel
-$counterLabel   .byte  0                
-$endLabel""")
-                        }
-                    }
-
-                } else {
-
-                    // loop over byte range via loopvar
-                    val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
-                    when {
-                        range.step==1 -> {
-                            // step = 1
-                            asmgen.out("""
+                // loop over byte range via loopvar
+                val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                when {
+                    range.step==1 -> {
+                        // step = 1
+                        asmgen.out("""
                 lda  #${range.first}
                 sta  $varname
                 lda  #${range.last-range.first+1 and 255}
@@ -521,34 +376,34 @@ $continueLabel  dec  $counterLabel
                 jmp  $loopLabel
 $counterLabel   .byte  0                
 $endLabel""")
-                        }
-                        range.step==-1 -> {
-                            // step = -1
-                            asmgen.out("""
+                    }
+                    range.step==-1 -> {
+                        // step = -1
+                        asmgen.out("""
                 lda  #${range.first}
                 sta  $varname
                 lda  #${range.first-range.last+1 and 255}
                 sta  $counterLabel
 $loopLabel""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
 $continueLabel  dec  $counterLabel
                 beq  $endLabel
                 dec  $varname
                 jmp  $loopLabel
 $counterLabel   .byte  0                
 $endLabel""")
-                        }
-                        range.step >= 2 -> {
-                            // step >= 2
-                            asmgen.out("""
+                    }
+                    range.step >= 2 -> {
+                        // step >= 2
+                        asmgen.out("""
                 lda  #${(range.last-range.first) / range.step + 1}
                 sta  $counterLabel
                 lda  #${range.first}
                 sta  $varname
 $loopLabel""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
 $continueLabel  dec  $counterLabel
                 beq  $endLabel
                 lda  $varname
@@ -558,17 +413,17 @@ $continueLabel  dec  $counterLabel
                 jmp  $loopLabel
 $counterLabel   .byte  0                
 $endLabel""")
-                        }
-                        else -> {
-                            // step <= -2
-                            asmgen.out("""
+                    }
+                    else -> {
+                        // step <= -2
+                        asmgen.out("""
                 lda  #${(range.first-range.last) / range.step.absoluteValue + 1}
                 sta  $counterLabel
                 lda  #${range.first}
                 sta  $varname
 $loopLabel""")
-                            asmgen.translate(stmt.body)
-                            asmgen.out("""
+                        asmgen.translate(stmt.body)
+                        asmgen.out("""
 $continueLabel  dec  $counterLabel
                 beq  $endLabel
                 lda  $varname
@@ -578,13 +433,12 @@ $continueLabel  dec  $counterLabel
                 jmp  $loopLabel
 $counterLabel   .byte  0                
 $endLabel""")
-                        }
                     }
                 }
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 // loop over word range via loopvar
-                val varname = asmgen.asmIdentifierName(stmt.loopVar!!)
+                val varname = asmgen.asmIdentifierName(stmt.loopVar)
                 when {
                     range.step == 1 -> {
                         // word, step = 1

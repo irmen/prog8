@@ -105,16 +105,5 @@ main {
             c64scr.print("ok: -22.2 >= -22.2\n")
         else
             c64scr.print("error in -22.2>=-22.2!\n")
-
-        check_eval_stack()
     }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

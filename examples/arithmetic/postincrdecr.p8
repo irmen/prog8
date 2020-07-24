@@ -9,6 +9,7 @@ main {
 
         c64scr.plot(0,24)
 
+        ubyte Y
         ubyte ub=200
         byte bb=-100
         uword uw = 2000
@@ -76,8 +77,6 @@ main {
         check_b(barr[1], -100)
         check_uw(uwarr[1], 2000)
         check_w(warr[1], -1000)
-
-        check_eval_stack()
     }
 
     sub check_ub(ubyte value, ubyte expected) {
@@ -138,14 +137,5 @@ main {
         c64.CHROUT(',')
         c64flt.print_f(expected)
         c64.CHROUT('\n')
-    }
-
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
     }
 }

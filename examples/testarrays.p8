@@ -29,6 +29,7 @@ main {
         &uword[4] muwarray = $c000
         &float[4] mflarray = $c000
 
+        ubyte A
         byte bb
         ubyte ub
         word ww

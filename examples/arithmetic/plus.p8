@@ -30,8 +30,6 @@ main {
         plus_float(1.5,2.5,4.0)
         plus_float(-1.5,3.5,2.0)
         plus_float(-1.1,3.3,2.2)
-
-        check_eval_stack()
     }
 
     sub plus_ubyte(ubyte a1, ubyte a2, ubyte c) {
@@ -109,13 +107,4 @@ main {
         c64flt.print_f(r)
         c64.CHROUT('\n')
     }
-
-    sub check_eval_stack() {
-        if X!=255 {
-            c64scr.print("x=")
-            c64scr.print_ub(X)
-            c64scr.print(" error!\n")
-        }
-    }
-
 }

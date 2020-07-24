@@ -117,42 +117,33 @@ internal class AstChecker(private val program: Program,
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
-            if (forLoop.loopRegister != null) {
-                // loop register
-                if (iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_B && iterableDt != DataType.STR)
-                    errors.err("register can only loop over bytes", forLoop.position)
-                if(forLoop.loopRegister!=Register.A)
-                    errors.err("it's only possible to use A as a loop register", forLoop.position)
+            val loopvar = forLoop.loopVar.targetVarDecl(program.namespace)
+            if(loopvar==null || loopvar.type== VarDeclType.CONST) {
+                errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
-                // loop variable
-                val loopvar = forLoop.loopVar!!.targetVarDecl(program.namespace)
-                if(loopvar==null || loopvar.type== VarDeclType.CONST) {
-                    errors.err("for loop requires a variable to loop with", forLoop.position)
-                } else {
-                    when (loopvar.datatype) {
-                        DataType.UBYTE -> {
-                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
-                                errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
-                        }
-                        DataType.UWORD -> {
-                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
-                                    iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
-                                errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
-                        }
-                        DataType.BYTE -> {
-                            if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
-                                errors.err("byte loop variable can only loop over bytes", forLoop.position)
-                        }
-                        DataType.WORD -> {
-                            if(iterableDt!= DataType.BYTE && iterableDt!= DataType.WORD &&
-                                    iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W)
-                                errors.err("word loop variable can only loop over bytes or words", forLoop.position)
-                        }
-                        DataType.FLOAT -> {
-                            errors.err("for loop only supports integers", forLoop.position)
-                        }
-                        else -> errors.err("loop variable must be numeric type", forLoop.position)
+                when (loopvar.datatype) {
+                    DataType.UBYTE -> {
+                        if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
+                            errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
                     }
+                    DataType.UWORD -> {
+                        if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
+                                iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
+                            errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
+                    }
+                    DataType.BYTE -> {
+                        if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
+                            errors.err("byte loop variable can only loop over bytes", forLoop.position)
+                    }
+                    DataType.WORD -> {
+                        if(iterableDt!= DataType.BYTE && iterableDt!= DataType.WORD &&
+                                iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W)
+                            errors.err("word loop variable can only loop over bytes or words", forLoop.position)
+                    }
+                    DataType.FLOAT -> {
+                        errors.err("for loop only supports integers", forLoop.position)
+                    }
+                    else -> errors.err("loop variable must be numeric type", forLoop.position)
                 }
             }
         }
@@ -260,27 +251,27 @@ internal class AstChecker(private val program: Program,
                 }
             }
 
-            val regCounts = mutableMapOf<Register, Int>().withDefault { 0 }
+            val regCounts = mutableMapOf<CpuRegister, Int>().withDefault { 0 }
             val statusflagCounts = mutableMapOf<Statusflag, Int>().withDefault { 0 }
             fun countRegisters(from: Iterable<RegisterOrStatusflag>) {
                 regCounts.clear()
                 statusflagCounts.clear()
                 for(p in from) {
                     when(p.registerOrPair) {
-                        RegisterOrPair.A -> regCounts[Register.A]=regCounts.getValue(Register.A)+1
-                        RegisterOrPair.X -> regCounts[Register.X]=regCounts.getValue(Register.X)+1
-                        RegisterOrPair.Y -> regCounts[Register.Y]=regCounts.getValue(Register.Y)+1
+                        RegisterOrPair.A -> regCounts[CpuRegister.A]=regCounts.getValue(CpuRegister.A)+1
+                        RegisterOrPair.X -> regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
+                        RegisterOrPair.Y -> regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
                         RegisterOrPair.AX -> {
-                            regCounts[Register.A]=regCounts.getValue(Register.A)+1
-                            regCounts[Register.X]=regCounts.getValue(Register.X)+1
+                            regCounts[CpuRegister.A]=regCounts.getValue(CpuRegister.A)+1
+                            regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
                         }
                         RegisterOrPair.AY -> {
-                            regCounts[Register.A]=regCounts.getValue(Register.A)+1
-                            regCounts[Register.Y]=regCounts.getValue(Register.Y)+1
+                            regCounts[CpuRegister.A]=regCounts.getValue(CpuRegister.A)+1
+                            regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
                         }
                         RegisterOrPair.XY -> {
-                            regCounts[Register.X]=regCounts.getValue(Register.X)+1
-                            regCounts[Register.Y]=regCounts.getValue(Register.Y)+1
+                            regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
+                            regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
                         }
                         null ->
                             if(p.statusflag!=null)
@@ -326,16 +317,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(repeatLoop: RepeatLoop) {
-        if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
-            errors.warn("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
         if(repeatLoop.untilCondition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", repeatLoop.untilCondition.position)
         super.visit(repeatLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
-            errors.warn("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
         if(whileLoop.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", whileLoop.condition.position)
         super.visit(whileLoop)
@@ -397,8 +384,7 @@ internal class AstChecker(private val program: Program,
         val targetIdentifier = assignTarget.identifier
         if (targetIdentifier != null) {
             val targetName = targetIdentifier.nameInSource
-            val targetSymbol = program.namespace.lookup(targetName, assignment)
-            when (targetSymbol) {
+            when (val targetSymbol = program.namespace.lookup(targetName, assignment)) {
                 null -> {
                     errors.err("undefined symbol: ${targetIdentifier.nameInSource.joinToString(".")}", targetIdentifier.position)
                     return
@@ -844,7 +830,7 @@ internal class AstChecker(private val program: Program,
 
         if(functionCallStatement.target.nameInSource.last() in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
-            if(functionCallStatement.args.any { it !is IdentifierReference && it !is RegisterExpr && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
+            if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                 errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
             }
         }

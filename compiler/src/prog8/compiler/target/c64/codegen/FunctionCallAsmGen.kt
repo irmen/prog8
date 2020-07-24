@@ -19,7 +19,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // output the code to setup the parameters and perform the actual call
         // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
-        val saveX = Register.X in sub.asmClobbers || sub.regXasResult()
+        val saveX = CpuRegister.X in sub.asmClobbers || sub.regXasResult()
         if(saveX)
             asmgen.out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
 
@@ -48,14 +48,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                             // no risk of clobbering for these simple argument types. Optimize the register loading.
                             for(arg in sub.parameters.withIndex().zip(stmt.args)) {
                                 argumentViaRegister(sub, arg.first, arg.second)
-                            }
-                        }
-                        stmt.args.all {it is RegisterExpr} -> {
-                            val argRegisters = stmt.args.map {(it as RegisterExpr).register.toString()}
-                            val paramRegisters = sub.asmParameterRegisters.map { it.registerOrPair?.toString() }
-                            if(argRegisters != paramRegisters) {
-                                // all args are registers but differ from the function params. Can't pass directly, work via stack.
-                                argsViaStackEvaluation(stmt, sub)
                             }
                         }
                         else -> {
@@ -115,7 +107,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         val paramVar = parameter.value
         val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
-        val target = AssignTarget(null, IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
+        val target = AssignTarget(IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
         target.linkParents(value.parent)
         when (value) {
             is NumericLiteralValue -> {
@@ -138,9 +130,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     else -> throw AssemblyError("weird parameter datatype")
                 }
             }
-            is RegisterExpr -> {
-                asmgen.assignFromRegister(target, value.register)
-            }
             is DirectMemoryRead -> {
                 when(value.addressExpression) {
                     is NumericLiteralValue -> {
@@ -153,7 +142,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     else -> {
                         asmgen.translateExpression(value.addressExpression)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address |  inx")
-                        asmgen.assignFromRegister(target, Register.A)
+                        asmgen.assignFromRegister(target, CpuRegister.A)
                     }
                 }
             }
@@ -203,20 +192,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 +
 """)
                         }
-                        is RegisterExpr -> {
-                            when(value.register) {
-                                Register.A -> asmgen.out("  cmp  #0")
-                                Register.X -> asmgen.out("  txa")
-                                Register.Y -> asmgen.out("  tya")
-                            }
-                            asmgen.out("""
-            beq  +
-            sec
-            bcs  ++
-+           clc
-+
-""")
-                        }
                         else -> {
                             asmgen.translateExpression(value)
                             asmgen.out("""
@@ -237,14 +212,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             register!=null && register.name.length==1 -> {
                 when (value) {
                     is NumericLiteralValue -> {
-                        val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
-                        target.linkParents(value.parent)
-                        asmgen.assignFromByteConstant(target, value.number.toShort())
+                        asmgen.assignToRegister(CpuRegister.valueOf(register.name), value.number.toShort(), null)
                     }
                     is IdentifierReference -> {
-                        val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
-                        target.linkParents(value.parent)
-                        asmgen.assignFromByteVariable(target, value)
+                        asmgen.assignToRegister(CpuRegister.valueOf(register.name), null, value)
                     }
                     else -> {
                         asmgen.translateExpression(value)

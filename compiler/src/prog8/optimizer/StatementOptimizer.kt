@@ -46,7 +46,11 @@ internal class StatementOptimizer(private val program: Program,
         if(subroutine.asmAddress==null && !forceOutput) {
             if(subroutine.containsNoCodeNorVars()) {
                 errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
-                return listOf(IAstModification.Remove(subroutine, parent))
+                val removals = callgraph.calledBy.getValue(subroutine).map {
+                    IAstModification.Remove(it, it.parent)
+                }.toMutableList()
+                removals += IAstModification.Remove(subroutine, parent)
+                return removals
             }
         }
 
@@ -195,7 +199,7 @@ internal class StatementOptimizer(private val program: Program,
             return listOf(IAstModification.Remove(forLoop, parent))
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl
-            if(loopvar!=null && loopvar.name==forLoop.loopVar?.nameInSource?.singleOrNull()) {
+            if(loopvar!=null && loopvar.name==forLoop.loopVar.nameInSource.singleOrNull()) {
                 // remove empty for loop (only loopvar decl in it)
                 return listOf(IAstModification.Remove(forLoop, parent))
             }
@@ -207,7 +211,7 @@ internal class StatementOptimizer(private val program: Program,
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                scope.statements.add(Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, range.from, forLoop.position))
+                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, range.from, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
@@ -222,7 +226,7 @@ internal class StatementOptimizer(private val program: Program,
                     val character = CompilationTarget.encodeString(sv.value, sv.altEncoding)[0]
                     val byte = NumericLiteralValue(DataType.UBYTE, character, iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                    scope.statements.add(Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, byte, forLoop.position))
+                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, byte, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
@@ -235,7 +239,7 @@ internal class StatementOptimizer(private val program: Program,
                     if(av!=null) {
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
-                                AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position), null, NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
+                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
                                 forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))

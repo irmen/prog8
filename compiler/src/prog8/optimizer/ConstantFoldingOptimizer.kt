@@ -342,40 +342,38 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
         val rangeTo = iterableRange.to as? NumericLiteralValue
         if(rangeFrom==null || rangeTo==null) return noModifications
 
-        val loopvar = forLoop.loopVar?.targetVarDecl(program.namespace)
-        if(loopvar!=null) {
-            val stepLiteral = iterableRange.step as? NumericLiteralValue
-            when(loopvar.datatype) {
-                DataType.UBYTE -> {
-                    if(rangeFrom.type!= DataType.UBYTE) {
-                        // attempt to translate the iterable into ubyte values
-                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
-                    }
+        val loopvar = forLoop.loopVar.targetVarDecl(program.namespace)!!
+        val stepLiteral = iterableRange.step as? NumericLiteralValue
+        when(loopvar.datatype) {
+            DataType.UBYTE -> {
+                if(rangeFrom.type!= DataType.UBYTE) {
+                    // attempt to translate the iterable into ubyte values
+                    val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
                 }
-                DataType.BYTE -> {
-                    if(rangeFrom.type!= DataType.BYTE) {
-                        // attempt to translate the iterable into byte values
-                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
-                    }
-                }
-                DataType.UWORD -> {
-                    if(rangeFrom.type!= DataType.UWORD) {
-                        // attempt to translate the iterable into uword values
-                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
-                    }
-                }
-                DataType.WORD -> {
-                    if(rangeFrom.type!= DataType.WORD) {
-                        // attempt to translate the iterable into word values
-                        val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
-                    }
-                }
-                else -> throw FatalAstException("invalid loopvar datatype $loopvar")
             }
+            DataType.BYTE -> {
+                if(rangeFrom.type!= DataType.BYTE) {
+                    // attempt to translate the iterable into byte values
+                    val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                }
+            }
+            DataType.UWORD -> {
+                if(rangeFrom.type!= DataType.UWORD) {
+                    // attempt to translate the iterable into uword values
+                    val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                }
+            }
+            DataType.WORD -> {
+                if(rangeFrom.type!= DataType.WORD) {
+                    // attempt to translate the iterable into word values
+                    val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                }
+            }
+            else -> throw FatalAstException("invalid loopvar datatype $loopvar")
         }
 
         return noModifications

@@ -610,8 +610,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         if (amount == 0) {
             return expr.left
         }
-        val targetDt = expr.left.inferType(program).typeOrElse(DataType.STRUCT)
-        when (targetDt) {
+        when (expr.left.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)

@@ -25,7 +25,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is AddressOf -> translateExpression(expression)
             is DirectMemoryRead -> translateExpression(expression)
             is NumericLiteralValue -> translateExpression(expression)
-            is RegisterExpr -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCall -> translateExpression(expression)
             is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
@@ -172,14 +171,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
             }
             else -> throw AssemblyError("weird type")
-        }
-    }
-
-    private fun translateExpression(expr: RegisterExpr) {
-        when(expr.register) {
-            Register.A -> asmgen.out(" sta  $ESTACK_LO_HEX,x | dex")
-            Register.X -> asmgen.out(" pha |  txa |  sta  $ESTACK_LO_HEX,x |  dex |  pla")
-            Register.Y -> asmgen.out(" pha |  tya |  sta  $ESTACK_LO_HEX,x |  dex |  pla")
         }
     }
 

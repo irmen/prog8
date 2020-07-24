@@ -113,22 +113,14 @@ CPU
 Directly Usable Registers
 -------------------------
 
-The following 6502 CPU hardware registers are directly usable in program code (and are reserved symbols):
+The hardware CPU registers are not directly accessible from regular Prog8 code.
+If you need to mess with them, you'll have to use inline assembly.
+Be extra wary of the ``X`` register because it is used as an evaluation stack pointer and
+changing its value you will destroy the evaluation stack and likely crash the program.
 
-- ``A``, ``X``, ``Y``  the three main cpu registers (8 bits)
-- the status register (P) carry flag and interrupt disable flag can be written via a couple of special
-  builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
-  and read via the ``read_flags()`` function.
-
-However, you must assume that the 3 hardware registers ``A``, ``X`` and ``Y``
-are volatile. Their values cannot be depended upon, the compiler will use them as required.
-Even simple assignments may require modification of one or more of the registers (for instance, when using arrays).
-
-Even more important, the ``X`` register is used as an evaluation stack pointer.
-If you mess with it, you will destroy the evaluation stack and likely crash your program.
-In some cases the compiler will warn you about this, but you should really avoid to use
-this register. It's possible to store/restore the register's value (using special built in functions)
-for the cases you really really need to use it directly.
+The status register (P) carry flag and interrupt disable flag can be written via a couple of special
+builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
+and read via the ``read_flags()`` function.
 
 
 Subroutine Calling Conventions
@@ -173,3 +165,4 @@ as a subroutine ``irq`` in the module ``irq`` so like this::
             ; ... irq handling here ...
         }
     }
+

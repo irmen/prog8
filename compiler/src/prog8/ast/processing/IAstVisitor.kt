@@ -102,7 +102,7 @@ interface IAstVisitor {
     }
 
     fun visit(forLoop: ForLoop) {
-        forLoop.loopVar?.accept(this)
+        forLoop.loopVar.accept(this)
         forLoop.iterable.accept(this)
         forLoop.body.accept(this)
     }
@@ -157,9 +157,6 @@ interface IAstVisitor {
     }
 
     fun visit(inlineAssembly: InlineAssembly) {
-    }
-
-    fun visit(registerExpr: RegisterExpr) {
     }
 
     fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder) {
