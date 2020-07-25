@@ -110,9 +110,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(forLoop: ForLoop) {
-        if(forLoop.body.containsNoCodeNorVars())
-            errors.warn("for loop body is empty", forLoop.position)
-
         val iterableDt = forLoop.iterable.inferType(program).typeOrElse(DataType.BYTE)
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             errors.err("can only loop over an iterable type", forLoop.position)

@@ -195,7 +195,7 @@ internal class StatementOptimizer(private val program: Program,
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         if(forLoop.body.containsNoCodeNorVars()) {
-            // remove empty for loop
+            errors.warn("removing empty for loop", forLoop.position)
             return listOf(IAstModification.Remove(forLoop, parent))
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl

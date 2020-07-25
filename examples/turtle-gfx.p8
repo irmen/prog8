@@ -11,12 +11,12 @@ main {
         graphics.enable_bitmap_mode()
         turtle.init()
 
-        ubyte i
-        for i in 0 to 255 {
+        repeat 100 {
             while c64.RASTER {
             }
         }
 
+        ubyte i
         for i in 0 to 100 {
             turtle.fd(i+20)
             turtle.rt(94)

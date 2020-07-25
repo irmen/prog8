@@ -7,8 +7,7 @@ main {
     sub start() {
         c64scr.print("fibonacci sequence\n")
 
-        ubyte i
-        for i in 0 to 20 {
+        repeat 21 {
             c64scr.print_uw(fib_next())
             c64.CHROUT('\n')
         }

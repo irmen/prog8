@@ -37,10 +37,8 @@ sub start() {
 }
 
 sub delay() {
-    ubyte d
-    for d in 0 to 12 {
-        while c64.RASTER!=0 {
-            ; tempo delay synced to screen refresh
+    repeat 32 {
+        while c64.RASTER {
         }
     }
 }
