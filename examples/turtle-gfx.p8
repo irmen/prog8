@@ -10,11 +10,9 @@ main {
     sub start() {
         graphics.enable_bitmap_mode()
         turtle.init()
-
-        repeat 100 {
-            while c64.RASTER {
-            }
-        }
+;        turtle.pu()
+;        turtle.pos(150, 110)
+;        turtle.pd()
 
         ubyte i
         for i in 0 to 100 {

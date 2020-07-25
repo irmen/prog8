@@ -695,25 +695,56 @@ internal class AsmGen(private val program: Program,
                 when {
                     iterations == 0 -> {}
                     iterations <= 255 -> {
-                        out("""
-                lda  #${iterations}
-                sta  $counterLabel
-$repeatLabel    lda  $counterLabel
-                beq  $endLabel
-                dec  $counterLabel
-""")
-                        translate(stmt.body)
-                        out("""
-            jmp  $repeatLabel
-$counterLabel    .byte  0
-$endLabel""")
+                        out("  lda  #${iterations}")
+                        repeatByteCountInA(counterLabel, repeatLabel, endLabel, stmt.body)
                     }
                     else -> {
-                        out("""
-                lda  #<${iterations}
+                        out("  lda  #<${iterations} |  ldy  #>${iterations}")
+                        repeatWordCountInAY(counterLabel, repeatLabel, endLabel, stmt.body)
+                    }
+                }
+            }
+            is IdentifierReference -> {
+                val vardecl = (stmt.iterations as IdentifierReference).targetStatement(program.namespace) as VarDecl
+                val name = asmIdentifierName(stmt.iterations as IdentifierReference)
+                when(vardecl.datatype) {
+                    DataType.UBYTE, DataType.BYTE -> {
+                        out("  lda  $name")
+                        repeatByteCountInA(counterLabel, repeatLabel, endLabel, stmt.body)
+                    }
+                    DataType.UWORD, DataType.WORD -> {
+                        out("  lda  $name |  ldy  $name+1")
+                        repeatWordCountInAY(counterLabel, repeatLabel, endLabel, stmt.body)
+                    }
+                    else -> throw AssemblyError("invalid loop variable datatype $vardecl")
+                }
+            }
+            else -> {
+                translateExpression(stmt.iterations!!)
+                val dt = stmt.iterations!!.inferType(program).typeOrElse(DataType.STRUCT)
+                when (dt) {
+                    in ByteDatatypes -> {
+                        out("  inx |  lda  ${ESTACK_LO_HEX},x")
+                        repeatByteCountInA(counterLabel, repeatLabel, endLabel, stmt.body)
+                    }
+                    in WordDatatypes -> {
+                        out("  inx |  lda  ${ESTACK_LO_HEX},x |  ldy  ${ESTACK_HI_HEX},x")
+                        repeatWordCountInAY(counterLabel, repeatLabel, endLabel, stmt.body)
+                    }
+                    else -> throw AssemblyError("invalid loop expression datatype $dt")
+                }
+            }
+        }
+
+        loopEndLabels.pop()
+        loopContinueLabels.pop()
+    }
+
+    private fun repeatWordCountInAY(counterLabel: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // note: A/Y must have been loaded with the number of iterations already!
+        out("""
                 sta  $counterLabel
-                lda  #>${iterations}
-                sta  $counterLabel+1
+                sty  $counterLabel+1
 $repeatLabel    lda  $counterLabel
                 bne  +
                 lda  $counterLabel+1
@@ -723,24 +754,25 @@ $repeatLabel    lda  $counterLabel
                 dec  $counterLabel+1
 +               dec  $counterLabel
 """)
-                        translate(stmt.body)
-                        out("""
+        translate(body)
+        out("""
             jmp  $repeatLabel
 $counterLabel    .word  0
 $endLabel""")
-                    }
-                }
-            }
-            is IdentifierReference -> {
-                TODO("iterations ${stmt.iterations}")
-            }
-            else -> {
-                TODO("repeat loop with iterations ${stmt.iterations}")
-            }
-        }
+    }
 
-        loopEndLabels.pop()
-        loopContinueLabels.pop()
+    private fun repeatByteCountInA(counterLabel: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // note: A must have been loaded with the number of iterations already!
+        out("""
+                sta  $counterLabel
+$repeatLabel    lda  $counterLabel
+                beq  $endLabel
+                dec  $counterLabel""")
+        translate(body)
+        out("""
+                jmp  $repeatLabel
+$counterLabel    .byte  0
+$endLabel""")
     }
 
     private fun translate(stmt: WhileLoop) {
