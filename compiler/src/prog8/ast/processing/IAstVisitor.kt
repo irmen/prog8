@@ -112,13 +112,14 @@ interface IAstVisitor {
         whileLoop.body.accept(this)
     }
 
-    fun visit(foreverLoop: ForeverLoop) {
-        foreverLoop.body.accept(this)
+    fun visit(repeatLoop: RepeatLoop) {
+        repeatLoop.iterations?.accept(this)
+        repeatLoop.body.accept(this)
     }
 
-    fun visit(repeatLoop: RepeatLoop) {
-        repeatLoop.untilCondition.accept(this)
-        repeatLoop.body.accept(this)
+    fun visit(untilLoop: UntilLoop) {
+        untilLoop.untilCondition.accept(this)
+        untilLoop.body.accept(this)
     }
 
     fun visit(returnStmt: Return) {
@@ -177,9 +178,5 @@ interface IAstVisitor {
 
     fun visit(structDecl: StructDecl) {
         structDecl.statements.forEach { it.accept(this) }
-    }
-
-    fun visit(structLv: StructLiteralValue) {
-        structLv.values.forEach { it.accept(this) }
     }
 }

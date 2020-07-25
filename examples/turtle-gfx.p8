@@ -22,7 +22,7 @@ main {
             turtle.rt(94)
         }
 
-        forever {
+        repeat {
         }
     }
 }

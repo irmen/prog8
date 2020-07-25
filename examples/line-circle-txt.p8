@@ -77,7 +77,7 @@ main {
             ubyte y = y1
 
             if dx >= dy {
-                forever {
+                repeat {
                     c64scr.setcc(x, y, 42, 5)
                     if x==x2
                         return
@@ -89,7 +89,7 @@ main {
                     }
                 }
             } else {
-                forever {
+                repeat {
                     c64scr.setcc(x, y, 42, 5)
                     if y == y2
                         return

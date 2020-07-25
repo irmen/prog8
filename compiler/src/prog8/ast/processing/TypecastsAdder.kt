@@ -179,51 +179,6 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         return noModifications
     }
 
-    override fun after(structLv: StructLiteralValue, parent: Node): Iterable<IAstModification> {
-        // assignment of a struct literal value, some member values may need proper typecast
-
-        fun addTypecastsIfNeeded(struct: StructDecl): Iterable<IAstModification> {
-            val newValues = struct.statements.zip(structLv.values).map { (structMemberDecl, memberValue) ->
-                val memberDt = (structMemberDecl as VarDecl).datatype
-                val valueDt = memberValue.inferType(program)
-                if (valueDt.typeOrElse(memberDt) != memberDt)
-                    TypecastExpression(memberValue, memberDt, true, memberValue.position)
-                else
-                    memberValue
-            }
-
-            class StructLvValueReplacer(val targetStructLv: StructLiteralValue, val typecastValues: List<Expression>) : IAstModification {
-                override fun perform() {
-                    targetStructLv.values = typecastValues
-                    typecastValues.forEach { it.linkParents(targetStructLv) }
-                }
-            }
-
-            return if(structLv.values.zip(newValues).any { (v1, v2) -> v1 !== v2})
-                listOf(StructLvValueReplacer(structLv, newValues))
-            else
-                emptyList()
-        }
-
-        val decl = structLv.parent as? VarDecl
-        if(decl != null) {
-            val struct = decl.struct
-            if(struct != null)
-                return addTypecastsIfNeeded(struct)
-        } else {
-            val assign = structLv.parent as? Assignment
-            if (assign != null) {
-                val decl2 = assign.target.identifier?.targetVarDecl(program.namespace)
-                if(decl2 != null) {
-                    val struct = decl2.struct
-                    if(struct != null)
-                        return addTypecastsIfNeeded(struct)
-                }
-            }
-        }
-        return noModifications
-    }
-
     override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
         // add a typecast to the return type if it doesn't match the subroutine's signature
         val returnValue = returnStmt.value

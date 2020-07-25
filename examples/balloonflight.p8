@@ -21,7 +21,7 @@ main {
         ubyte active_height = 24
         ubyte upwards = true
 
-        forever {
+        repeat {
             ubyte mountain = 223        ; slope upwards
             if active_height < target_height {
                 active_height++

@@ -596,30 +596,32 @@ You can use a single statement, or a statement block like in the example below::
 	}
 
 
-repeat-until loop
-^^^^^^^^^^^^^^^^^
+do-until loop
+^^^^^^^^^^^^^
 
 Until the given condition is true (1), repeat the given statement(s).
 You can use a single statement, or a statement block like in the example below::
 
-	repeat  {
+	do  {
 		; do something...
 		break		; break out of the loop
 		continue	; immediately enter next iteration
 	} until  <condition>
 
 
-forever loop
-^^^^^^^^^^^^
+repeat loop
+^^^^^^^^^^^
 
-Simply run the code in a loop, forever. It's the same as a while true or until false loop,
-or just a jump back to a previous label. You can still break out of this loop as well, if you want::
+When you're only interested in repeating something a given number of times.
+It's a short hand for a for loop without an explicit loop variable::
 
-    forever {
-        ; .. do stuff
-        if something
-            break        ; you can exit the loop if you want
+    repeat 15 {
+        ; do something...
+        break		; you can break out of the loop
     }
+
+If you omit the iteration count, it simply loops forever.
+You can still ``break`` out of such a loop if you want though.
 
 
 Conditional Execution and Jumps

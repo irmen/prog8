@@ -57,8 +57,8 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
                 return super.visit(decl)
             }
 
-            if (decl.value != null && decl.value !is StructLiteralValue) {
-                errors.err("initializing requires struct literal value", decl.value?.position ?: decl.position)
+            if (decl.value != null && decl.value !is ArrayLiteralValue) {
+                errors.err("initializing a struct requires array literal value", decl.value?.position ?: decl.position)
                 return super.visit(decl)
             }
         }

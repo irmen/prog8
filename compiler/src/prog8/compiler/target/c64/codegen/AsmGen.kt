@@ -641,8 +641,8 @@ internal class AsmGen(private val program: Program,
             is Continue -> out("  jmp  ${loopContinueLabels.peek()}")
             is Break -> out("  jmp  ${loopEndLabels.peek()}")
             is WhileLoop -> translate(stmt)
-            is ForeverLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
+            is UntilLoop -> translate(stmt)
             is WhenStatement -> translate(stmt)
             is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
             is AnonymousScope -> translate(stmt)
@@ -673,15 +673,72 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    private fun translate(stmt: ForeverLoop) {
-        val foreverLabel = makeLabel("forever")
-        val endLabel = makeLabel("foreverend")
+    private fun translate(stmt: RepeatLoop) {
+        val repeatLabel = makeLabel("repeat")
+        val endLabel = makeLabel("repeatend")
+        val counterLabel = makeLabel("repeatcounter")
         loopEndLabels.push(endLabel)
-        loopContinueLabels.push(foreverLabel)
-        out(foreverLabel)
-        translate(stmt.body)
-        out("  jmp  $foreverLabel")
-        out(endLabel)
+        loopContinueLabels.push(repeatLabel)
+
+        when (stmt.iterations) {
+            null -> {
+                // endless loop
+                out(repeatLabel)
+                translate(stmt.body)
+                out("  jmp  $repeatLabel")
+                out(endLabel)
+            }
+            is NumericLiteralValue -> {
+                val iterations = (stmt.iterations as NumericLiteralValue).number.toInt()
+                if(iterations<0 || iterations > 65536)
+                    throw AssemblyError("invalid number of iterations")
+                when {
+                    iterations == 0 -> {}
+                    iterations <= 255 -> {
+                        out("""
+                lda  #${iterations}
+                sta  $counterLabel
+$repeatLabel    lda  $counterLabel
+                beq  $endLabel
+                dec  $counterLabel
+""")
+                        translate(stmt.body)
+                        out("""
+            jmp  $repeatLabel
+$counterLabel    .byte  0
+$endLabel""")
+                    }
+                    else -> {
+                        out("""
+                lda  #<${iterations}
+                sta  $counterLabel
+                lda  #>${iterations}
+                sta  $counterLabel+1
+$repeatLabel    lda  $counterLabel
+                bne  +
+                lda  $counterLabel+1
+                beq  $endLabel
++               lda  $counterLabel
+                bne  +
+                dec  $counterLabel+1
++               dec  $counterLabel
+""")
+                        translate(stmt.body)
+                        out("""
+            jmp  $repeatLabel
+$counterLabel    .word  0
+$endLabel""")
+                    }
+                }
+            }
+            is IdentifierReference -> {
+                TODO("iterations ${stmt.iterations}")
+            }
+            else -> {
+                TODO("repeat loop with iterations ${stmt.iterations}")
+            }
+        }
+
         loopEndLabels.pop()
         loopContinueLabels.pop()
     }
@@ -714,7 +771,7 @@ internal class AsmGen(private val program: Program,
         loopContinueLabels.pop()
     }
 
-    private fun translate(stmt: RepeatLoop) {
+    private fun translate(stmt: UntilLoop) {
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         loopEndLabels.push(endLabel)
@@ -770,7 +827,7 @@ internal class AsmGen(private val program: Program,
                             bne  +
                             cpy  #>${value.toHex()}
                             beq  $choiceLabel
-+                            
++
                             """)
                     }
                 }

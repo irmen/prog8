@@ -106,8 +106,8 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program, assignment)
         if(valueType.istype(DataType.STRUCT) && targetType.istype(DataType.STRUCT)) {
-            val assignments = if (assignment.value is StructLiteralValue) {
-                flattenStructAssignmentFromStructLiteral(assignment, program)    //  'structvar = { ..... } '
+            val assignments = if (assignment.value is ArrayLiteralValue) {
+                flattenStructAssignmentFromStructLiteral(assignment, program)    //  'structvar = [ ..... ] '
             } else {
                 flattenStructAssignmentFromIdentifier(assignment, program)    //   'structvar1 = structvar2'
             }
@@ -128,11 +128,11 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         val targetVar = identifier.targetVarDecl(program.namespace)!!
         val struct = targetVar.struct!!
 
-        val slv = structAssignment.value as? StructLiteralValue
-        if(slv==null || slv.values.size != struct.numberOfElements)
+        val slv = structAssignment.value as? ArrayLiteralValue
+        if(slv==null || slv.value.size != struct.numberOfElements)
             throw FatalAstException("element count mismatch")
 
-        return struct.statements.zip(slv.values).map { (targetDecl, sourceValue) ->
+        return struct.statements.zip(slv.value).map { (targetDecl, sourceValue) ->
             targetDecl as VarDecl
             val mangled = mangledStructMemberName(identifierName, targetDecl.name)
             val idref = IdentifierReference(listOf(mangled), structAssignment.position)
@@ -174,7 +174,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                     assign
                 }
             }
-            is StructLiteralValue -> {
+            is ArrayLiteralValue -> {
                 throw IllegalArgumentException("not going to flatten a structLv assignment here")
             }
             else -> throw FatalAstException("strange struct value")

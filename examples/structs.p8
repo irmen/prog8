@@ -14,7 +14,7 @@ main {
 
     sub start() {
 
-        Color purple = {255, 0, 255}
+        Color purple = [255, 0, 255]
 
         Color other
 

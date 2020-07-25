@@ -39,7 +39,7 @@ graphics {
 
         if dx >= dy {
             if positive_ix {
-                forever {
+                repeat {
                     plot(y1)
                     if plotx==x2
                         return
@@ -51,7 +51,7 @@ graphics {
                     }
                 }
             } else {
-                forever {
+                repeat {
                     plot(y1)
                     if plotx==x2
                         return
@@ -66,7 +66,7 @@ graphics {
         }
         else {
             if positive_ix {
-                forever {
+                repeat {
                     plot(y1)
                     if y1 == y2
                         return
@@ -78,7 +78,7 @@ graphics {
                     }
                 }
             } else {
-                forever {
+                repeat {
                     plot(y1)
                     if y1 == y2
                         return

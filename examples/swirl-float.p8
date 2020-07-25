@@ -11,7 +11,7 @@ main {
         float t
         ubyte color
 
-        forever {
+        repeat {
             ubyte xx=(sin(t) * width/2.2) + width/2.0 as ubyte
             ubyte yy=(cos(t*1.1356) * height/2.2) + height/2.0 as ubyte
             c64scr.setcc(xx, yy, 81, color)

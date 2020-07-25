@@ -41,7 +41,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     when {
                         stmt.args.all {it is AddressOf ||
                                 it is NumericLiteralValue ||
-                                it is StructLiteralValue ||
                                 it is StringLiteralValue ||
                                 it is ArrayLiteralValue ||
                                 it is IdentifierReference} -> {

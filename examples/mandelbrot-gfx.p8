@@ -48,7 +48,7 @@ main {
             }
         }
 
-        forever {
+        repeat {
         }
     }
 }

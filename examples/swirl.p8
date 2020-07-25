@@ -15,7 +15,7 @@ main {
 
         Ball ball
 
-        forever {
+        repeat {
             ubyte x = msb(sin8u(msb(ball.anglex)) as uword * width)
             ubyte y = msb(cos8u(msb(ball.angley)) as uword * height)
             c64scr.setcc(x, y, 81, ball.color)

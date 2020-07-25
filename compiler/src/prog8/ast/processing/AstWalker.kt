@@ -94,7 +94,7 @@ abstract class AstWalker {
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun before(foreverLoop: ForeverLoop, parent: Node): Iterable<IAstModification> = emptyList()
+    open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = emptyList()
@@ -110,12 +110,11 @@ abstract class AstWalker {
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(program: Program, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(range: RangeExpr, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = emptyList()
+    open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(structDecl: StructDecl, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun before(structLv: StructLiteralValue, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = emptyList()
@@ -137,7 +136,7 @@ abstract class AstWalker {
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun after(foreverLoop: ForeverLoop, parent: Node): Iterable<IAstModification> = emptyList()
+    open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = emptyList()
@@ -153,12 +152,11 @@ abstract class AstWalker {
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(program: Program, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = emptyList()
+    open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(structDecl: StructDecl, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun after(structLv: StructLiteralValue, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = emptyList()
@@ -336,17 +334,18 @@ abstract class AstWalker {
         track(after(whileLoop, parent), whileLoop, parent)
     }
 
-    fun visit(foreverLoop: ForeverLoop, parent: Node) {
-        track(before(foreverLoop, parent), foreverLoop, parent)
-        foreverLoop.body.accept(this, foreverLoop)
-        track(after(foreverLoop, parent), foreverLoop, parent)
-    }
-
     fun visit(repeatLoop: RepeatLoop, parent: Node) {
         track(before(repeatLoop, parent), repeatLoop, parent)
-        repeatLoop.untilCondition.accept(this, repeatLoop)
+        repeatLoop.iterations?.accept(this, repeatLoop)
         repeatLoop.body.accept(this, repeatLoop)
         track(after(repeatLoop, parent), repeatLoop, parent)
+    }
+
+    fun visit(untilLoop: UntilLoop, parent: Node) {
+        track(before(untilLoop, parent), untilLoop, parent)
+        untilLoop.untilCondition.accept(this, untilLoop)
+        untilLoop.body.accept(this, untilLoop)
+        track(after(untilLoop, parent), untilLoop, parent)
     }
 
     fun visit(returnStmt: Return, parent: Node) {
@@ -433,12 +432,6 @@ abstract class AstWalker {
         track(before(structDecl, parent), structDecl, parent)
         structDecl.statements.forEach { it.accept(this, structDecl) }
         track(after(structDecl, parent), structDecl, parent)
-    }
-
-    fun visit(structLv: StructLiteralValue, parent: Node) {
-        track(before(structLv, parent), structLv, parent)
-        structLv.values.forEach { it.accept(this, structLv) }
-        track(after(structLv, parent), structLv, parent)
     }
 }
 

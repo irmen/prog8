@@ -57,7 +57,7 @@ interface INameScope {
             when(stmt) {
                 // NOTE: if other nodes are introduced that are a scope, or contain subscopes, they must be added here!
                 is ForLoop -> if(stmt.body.name==name) return stmt.body
-                is RepeatLoop -> if(stmt.body.name==name) return stmt.body
+                is UntilLoop -> if(stmt.body.name==name) return stmt.body
                 is WhileLoop -> if(stmt.body.name==name) return stmt.body
                 is BranchStatement -> {
                     if(stmt.truepart.name==name) return stmt.truepart
@@ -175,8 +175,8 @@ interface INameScope {
                         find(it.truepart)
                         find(it.elsepart)
                     }
+                    is UntilLoop -> find(it.body)
                     is RepeatLoop -> find(it.body)
-                    is ForeverLoop -> find(it.body)
                     is WhileLoop -> find(it.body)
                     is WhenStatement -> it.choices.forEach { choice->find(choice.statements) }
                     else -> { /* do nothing */ }

@@ -94,8 +94,8 @@ statement :
 	| returnstmt
 	| forloop
 	| whileloop
+	| untilloop
 	| repeatloop
-	| foreverloop
 	| whenstmt
 	| breakstmt
 	| continuestmt
@@ -228,8 +228,6 @@ booleanliteral :  'true' | 'false' ;
 
 arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the values over several lines
 
-structliteral :  '{' EOL? expression (',' EOL? expression)* EOL? '}' ;       // you can split the values over several lines
-
 stringliteral : ALT_STRING_ENCODING? STRING ;
 
 charliteral : ALT_STRING_ENCODING? SINGLECHAR ;
@@ -244,7 +242,6 @@ literalvalue :
 	| stringliteral
 	| charliteral
 	| floatliteral
-	| structliteral
 	;
 
 inlineasm :  '%asm' INLINEASMBLOCK;
@@ -304,9 +301,9 @@ forloop :  'for' identifier 'in' expression EOL? (statement | statement_block) ;
 
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 
-repeatloop:  'repeat' (statement | statement_block) EOL? 'until' expression ;
+untilloop:  'do' (statement | statement_block) EOL? 'until' expression ;
 
-foreverloop:  'forever' EOL? (statement | statement_block) ;
+repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
 
 whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
 

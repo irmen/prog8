@@ -205,14 +205,14 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
     val forloop = forloop()?.toAst()
     if(forloop!=null) return forloop
 
-    val repeatloop = repeatloop()?.toAst()
-    if(repeatloop!=null) return repeatloop
+    val untilloop = untilloop()?.toAst()
+    if(untilloop!=null) return untilloop
 
     val whileloop = whileloop()?.toAst()
     if(whileloop!=null) return whileloop
 
-    val foreverloop = foreverloop()?.toAst()
-    if(foreverloop!=null) return foreverloop
+    val repeatloop = repeatloop()?.toAst()
+    if(repeatloop!=null) return repeatloop
 
     val breakstmt = breakstmt()?.toAst()
     if(breakstmt!=null) return breakstmt
@@ -487,10 +487,6 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                     // the ConstantFold takes care of that and converts the type if needed.
                     ArrayLiteralValue(InferredTypes.InferredType.unknown(), array, position = litval.toPosition())
                 }
-                litval.structliteral()!=null -> {
-                    val values = litval.structliteral().expression().map { it.toAst() }
-                    StructLiteralValue(values, litval.toPosition())
-                }
                 else -> throw FatalAstException("invalid parsed literal")
             }
         }
@@ -609,19 +605,20 @@ private fun prog8Parser.WhileloopContext.toAst(): WhileLoop {
     return WhileLoop(condition, scope, toPosition())
 }
 
-private fun prog8Parser.ForeverloopContext.toAst(): ForeverLoop {
+private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
+    val iterations = expression()?.toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
-    return ForeverLoop(scope, toPosition())
+    return RepeatLoop(iterations, scope, toPosition())
 }
 
-private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
+private fun prog8Parser.UntilloopContext.toAst(): UntilLoop {
     val untilCondition = expression().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
-    return RepeatLoop(scope, untilCondition, toPosition())
+    return UntilLoop(scope, untilCondition, toPosition())
 }
 
 private fun prog8Parser.WhenstmtContext.toAst(): WhenStatement {

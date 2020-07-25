@@ -455,31 +455,6 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 }
 
-class StructLiteralValue(var values: List<Expression>,
-                         override val position: Position): Expression() {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent=parent
-        values.forEach { it.linkParents(this) }
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        throw FatalAstException("can't replace here")
-    }
-
-    override fun constValue(program: Program): NumericLiteralValue?  = null
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
-
-    override fun referencesIdentifiers(vararg name: String) = values.any { it.referencesIdentifiers(*name) }
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.STRUCT)
-
-    override fun toString(): String {
-        return "struct{ ${values.joinToString(", ")} }"
-    }
-}
-
 private var heapIdSequence = 0   // unique ids for strings and arrays "on the heap"
 
 class StringLiteralValue(val value: String,

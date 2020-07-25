@@ -7,7 +7,7 @@ main {
         c64.SCROLY &= %11101111             ; blank the screen
         c64utils.set_rasterirq_excl(40)     ; register exclusive raster irq handler
 
-        forever {
+        repeat {
             ; enjoy the moving bars :)
         }
 

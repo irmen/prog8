@@ -316,10 +316,10 @@ internal class AstChecker(private val program: Program,
         visitStatements(subroutine.statements)
     }
 
-    override fun visit(repeatLoop: RepeatLoop) {
-        if(repeatLoop.untilCondition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
-            errors.err("condition value should be an integer type", repeatLoop.untilCondition.position)
-        super.visit(repeatLoop)
+    override fun visit(untilLoop: UntilLoop) {
+        if(untilLoop.untilCondition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
+            errors.err("condition value should be an integer type", untilLoop.untilCondition.position)
+        super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
@@ -348,9 +348,9 @@ internal class AstChecker(private val program: Program,
         if(targetIdent!=null) {
             val targetVar = targetIdent.targetVarDecl(program.namespace)
             if(targetVar?.struct != null) {
-                val sourceStructLv = assignment.value as? StructLiteralValue
+                val sourceStructLv = assignment.value as? ArrayLiteralValue
                 if (sourceStructLv != null) {
-                    if (sourceStructLv.values.size != targetVar.struct?.numberOfElements)
+                    if (sourceStructLv.value.size != targetVar.struct?.numberOfElements)
                         errors.err("number of elements doesn't match struct definition", sourceStructLv.position)
                 } else {
                     val sourceIdent = assignment.value as? IdentifierReference
@@ -503,21 +503,14 @@ internal class AstChecker(private val program: Program,
                         checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteralValue)
                     }
                     is ArrayLiteralValue -> {
-                        val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteralValue)
-                        checkValueTypeAndRangeArray(decl.datatype, decl.struct, arraySpec, decl.value as ArrayLiteralValue)
-                    }
-                    is NumericLiteralValue -> {
-                        checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
-                    }
-                    is StructLiteralValue -> {
                         if(decl.datatype==DataType.STRUCT) {
                             val struct = decl.struct!!
-                            val structLv = decl.value as StructLiteralValue
-                            if(struct.numberOfElements != structLv.values.size) {
+                            val structLv = decl.value as ArrayLiteralValue
+                            if(struct.numberOfElements != structLv.value.size) {
                                 errors.err("struct value has incorrect number of elements", structLv.position)
                                 return
                             }
-                            for(value in structLv.values.zip(struct.statements)) {
+                            for(value in structLv.value.zip(struct.statements)) {
                                 val memberdecl = value.second as VarDecl
                                 val constValue = value.first.constValue(program)
                                 if(constValue==null) {
@@ -531,8 +524,12 @@ internal class AstChecker(private val program: Program,
                                 }
                             }
                         } else {
-                            errors.err("struct literal is wrong type to initialize this variable", decl.value!!.position)
+                            val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteralValue)
+                            checkValueTypeAndRangeArray(decl.datatype, decl.struct, arraySpec, decl.value as ArrayLiteralValue)
                         }
+                    }
+                    is NumericLiteralValue -> {
+                        checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
                     }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
@@ -570,8 +567,18 @@ internal class AstChecker(private val program: Program,
         }
 
         val declValue = decl.value
-        if(declValue!=null && decl.type==VarDeclType.VAR && !declValue.inferType(program).istype(decl.datatype))
-            err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
+        if(declValue!=null && decl.type==VarDeclType.VAR) {
+            if(decl.datatype==DataType.STRUCT) {
+                val valueIdt = declValue.inferType(program)
+                if(valueIdt.isUnknown)
+                    throw AstException("invalid value type")
+                val valueDt = valueIdt.typeOrElse(DataType.STRUCT)
+                if(valueDt !in ArrayDatatypes)
+                    err("initialisation of struct should be with array value", declValue.position)
+            } else if (!declValue.inferType(program).istype(decl.datatype)) {
+                err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
+            }
+        }
 
         super.visit(decl)
     }
@@ -1278,8 +1285,8 @@ internal class AstChecker(private val program: Program,
             DataType.STR -> sourceDatatype== DataType.STR
             DataType.STRUCT -> {
                 if(sourceDatatype==DataType.STRUCT) {
-                    val structLv = sourceValue as StructLiteralValue
-                    val numValues = structLv.values.size
+                    val structLv = sourceValue as ArrayLiteralValue
+                    val numValues = structLv.value.size
                     val targetstruct = target.identifier!!.targetVarDecl(program.namespace)!!.struct!!
                     return targetstruct.numberOfElements == numValues
                 }

@@ -50,7 +50,7 @@ Code
     There are different kinds of instructions ('statements' is a better name) such as:
 
     - value assignment
-    - looping  (for, while, repeat, unconditional jumps)
+    - looping  (for, while, do-until, repeat, unconditional jumps)
     - conditional execution (if - then - else, when, and conditional jumps)
     - subroutine calls
     - label definition
@@ -137,7 +137,7 @@ Scopes are created using either of these two statements:
 
 .. important::
     Unlike most other programming languages, a new scope is *not* created inside
-    for, while and repeat statements, the if statement, and the branching conditionals.
+    for, while, repeat, and do-until statements, the if statement, and the branching conditionals.
     These all share the same scope from the subroutine they're defined in.
     You can define variables in these blocks, but these will be treated as if they
     were defined in the subroutine instead.
@@ -391,11 +391,9 @@ The loop variable must be declared as byte or word earlier so you can reuse it f
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
-The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.
-
-The *forever*-loop is used to simply run a piece of code in a loop, forever. You can still
-break out of this loop if desired. A "while true" or "until false" loop is equivalent to
-a forever-loop.
+The *do--until* loop is used to repeat a piece of code until a certain condition is true.
+The *repeat* loop is used as a short notation of a for loop where the loop variable doesn't matter and you're only interested in the number of iterations.
+(without iteration count specified it simply loops forever).
 
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 

@@ -10,7 +10,7 @@ main {
         graphics.enable_bitmap_mode()
         draw_lines()
         draw_circles()
-        forever {
+        repeat {
         }
     }
 

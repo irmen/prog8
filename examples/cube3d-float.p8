@@ -19,7 +19,7 @@ main {
 
     sub start()  {
         float time=0.0
-        forever {
+        repeat {
             rotate_vertices(time)
             c64scr.clear_screenchars(32)
             draw_edges()

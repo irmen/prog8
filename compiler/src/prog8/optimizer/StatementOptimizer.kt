@@ -251,18 +251,18 @@ internal class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
-        val constvalue = repeatLoop.untilCondition.constValue(program)
+    override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+        val constvalue = untilLoop.untilCondition.constValue(program)
         if(constvalue!=null) {
             if(constvalue.asBooleanValue) {
                 // always true -> keep only the statement block (if there are no continue and break statements)
-                errors.warn("condition is always true", repeatLoop.untilCondition.position)
-                if(!hasContinueOrBreak(repeatLoop.body))
-                    return listOf(IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent))
+                errors.warn("condition is always true", untilLoop.untilCondition.position)
+                if(!hasContinueOrBreak(untilLoop.body))
+                    return listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
             } else {
                 // always false
-                val forever = ForeverLoop(repeatLoop.body, repeatLoop.position)
-                return listOf(IAstModification.ReplaceNode(repeatLoop, forever, parent))
+                val forever = RepeatLoop(null, untilLoop.body, untilLoop.position)
+                return listOf(IAstModification.ReplaceNode(untilLoop, forever, parent))
             }
         }
         return noModifications
@@ -273,13 +273,31 @@ internal class StatementOptimizer(private val program: Program,
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue) {
                 // always true
-                val forever = ForeverLoop(whileLoop.body, whileLoop.position)
+                val forever = RepeatLoop(null, whileLoop.body, whileLoop.position)
                 listOf(IAstModification.ReplaceNode(whileLoop, forever, parent))
             } else {
                 // always false -> remove the while statement altogether
                 errors.warn("condition is always false", whileLoop.condition.position)
                 listOf(IAstModification.Remove(whileLoop, parent))
             }
+        }
+        return noModifications
+    }
+
+    override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
+        val iter = repeatLoop.iterations
+        if(iter!=null) {
+            if(repeatLoop.body.containsNoCodeNorVars()) {
+                errors.warn("empty loop removed", repeatLoop.position)
+                return listOf(IAstModification.Remove(repeatLoop, parent))
+            }
+            val iterations = iter.constValue(program)?.number?.toInt()
+            if (iterations == 0) {
+                errors.warn("iterations is always 0, removed loop", iter.position)
+                return listOf(IAstModification.Remove(repeatLoop, parent))
+            }
+            if (iterations == 1)
+                errors.warn("iterations is always 1", iter.position)
         }
         return noModifications
     }

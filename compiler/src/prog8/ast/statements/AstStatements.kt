@@ -270,7 +270,7 @@ open class VarDecl(val type: VarDeclType,
     fun flattenStructMembers(): MutableList<Statement> {
         val result = struct!!.statements.withIndex().map {
             val member = it.value as VarDecl
-            val initvalue = if(value!=null) (value as StructLiteralValue).values[it.index] else null
+            val initvalue = if(value!=null) (value as ArrayLiteralValue).value[it.index] else null
             VarDecl(
                     VarDeclType.VAR,
                     member.datatype,
@@ -780,17 +780,21 @@ class WhileLoop(var condition: Expression,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class ForeverLoop(var body: AnonymousScope, override val position: Position) : Statement() {
+class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+        iterations?.linkParents(this)
         body.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is AnonymousScope && node===body)
-        body = replacement
+        when {
+            node===iterations -> iterations = replacement as Expression
+            node===body -> body = replacement as AnonymousScope
+            else -> throw FatalAstException("invalid replace")
+        }
         replacement.parent = this
     }
 
@@ -798,9 +802,9 @@ class ForeverLoop(var body: AnonymousScope, override val position: Position) : S
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class RepeatLoop(var body: AnonymousScope,
-                 var untilCondition: Expression,
-                 override val position: Position) : Statement() {
+class UntilLoop(var body: AnonymousScope,
+                var untilCondition: Expression,
+                override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

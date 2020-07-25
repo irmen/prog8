@@ -324,16 +324,18 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         whileLoop.body.accept(this)
     }
 
-    override fun visit(foreverLoop: ForeverLoop) {
-        output("forever ")
-        foreverLoop.body.accept(this)
-    }
-
     override fun visit(repeatLoop: RepeatLoop) {
         output("repeat ")
+        repeatLoop.iterations?.accept(this)
+        output(" ")
         repeatLoop.body.accept(this)
+    }
+
+    override fun visit(untilLoop: UntilLoop) {
+        output("do ")
+        untilLoop.body.accept(this)
         output(" until ")
-        repeatLoop.untilCondition.accept(this)
+        untilLoop.untilCondition.accept(this)
     }
 
     override fun visit(returnStmt: Return) {
@@ -423,10 +425,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         else
             whenChoice.statements.accept(this)
         outputln("")
-    }
-
-    override fun visit(structLv: StructLiteralValue) {
-        outputListMembers(structLv.values.asSequence(), '{', '}')
     }
 
     override fun visit(nopStatement: NopStatement) {
