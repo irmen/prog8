@@ -1,5 +1,6 @@
 package prog8.compiler.target.c64.codegen
 
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.antlr.escape
@@ -836,10 +837,13 @@ internal class AsmGen(private val program: Program,
                 }
                 inits.add(stmt)
             } else {
-                val target = AssignTarget(IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
-                val assign = Assignment(target, null, stmt.value!!, stmt.position)
-                assign.linkParents(stmt.parent)
-                translate(assign)
+                val next = (stmt.parent as INameScope).nextSibling(stmt)
+                if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
+                    val target = AssignTarget(IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
+                    val assign = Assignment(target, null, stmt.value!!, stmt.position)
+                    assign.linkParents(stmt.parent)
+                    translate(assign)
+                }
             }
         }
     }

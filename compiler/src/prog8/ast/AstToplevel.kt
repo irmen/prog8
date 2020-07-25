@@ -187,6 +187,14 @@ interface INameScope {
         find(this)
         return result
     }
+
+    fun nextSibling(stmt: Statement): Statement? {
+        val nextIdx = statements.indexOfFirst { it===stmt } + 1
+        return if(nextIdx < statements.size)
+            statements[nextIdx]
+        else
+            null
+    }
 }
 
 interface IAssignable {
@@ -230,7 +238,7 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Module && replacement is Module)
-        val idx = modules.withIndex().find { it.value===node }!!.index
+        val idx = modules.indexOfFirst { it===node }
         modules[idx] = replacement
         replacement.parent = this
     }
@@ -257,7 +265,7 @@ class Module(override val name: String,
     override fun definingScope(): INameScope = program.namespace
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Statement && replacement is Statement)
-        val idx = statements.withIndex().find { it.value===node }!!.index
+        val idx = statements.indexOfFirst { it===node }
         statements[idx] = replacement
         replacement.parent = this
     }

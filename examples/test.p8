@@ -8,6 +8,10 @@
 main {
 
     sub start() {
-        @($d020)=0
-    }
+        ubyte i
+        for i in 0 to 20 {
+            c64scr.print_ub(i)
+            c64.CHROUT('\n')
+        }
+     }
 }

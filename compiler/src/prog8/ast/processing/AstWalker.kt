@@ -52,7 +52,7 @@ interface IAstModification {
     class InsertAfter(val after: Statement, val stmt: Statement, val parent: Node) : IAstModification {
         override fun perform() {
             if(parent is INameScope) {
-                val idx = parent.statements.withIndex().find { it.value===after }!!.index + 1
+                val idx = parent.statements.indexOfFirst { it===after } + 1
                 parent.statements.add(idx, stmt)
                 stmt.linkParents(parent)
             } else {

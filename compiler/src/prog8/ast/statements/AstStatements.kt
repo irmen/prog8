@@ -64,7 +64,7 @@ class Block(override val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.withIndex().find { it.value===node }!!.index
+        val idx = statements.indexOfFirst { it ===node }
         statements[idx] = replacement
         replacement.parent = this
     }
@@ -539,7 +539,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
         if(node===target)
             target = replacement as IdentifierReference
         else {
-            val idx = args.withIndex().find { it.value===node }!!.index
+            val idx = args.indexOfFirst { it===node }
             args[idx] = replacement as Expression
         }
         replacement.parent = this
@@ -586,7 +586,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.withIndex().find { it.value===node }!!.index
+        val idx = statements.indexOfFirst { it===node }
         statements[idx] = replacement
         replacement.parent = this
     }
@@ -633,7 +633,7 @@ class Subroutine(override val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.withIndex().find { it.value===node }!!.index
+        val idx = statements.indexOfFirst { it===node }
         statements[idx] = replacement
         replacement.parent = this
     }
@@ -903,7 +903,7 @@ class StructDecl(override val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Statement)
-        val idx = statements.withIndex().find { it.value===node }!!.index
+        val idx = statements.indexOfFirst { it===node }
         statements[idx] = replacement
         replacement.parent = this
     }
