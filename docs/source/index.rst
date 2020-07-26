@@ -55,7 +55,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
             c64scr.print("prime numbers up to 255:\n\n")
             ubyte amount=0
-            while true {
+            repeat {
                 ubyte prime = find_next_prime()
                 if prime==0
                     break
