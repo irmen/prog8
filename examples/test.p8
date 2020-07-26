@@ -16,9 +16,7 @@ main {
     }
 
     sub wot(uword text) {
-        ;c64scr.print(text)          ; TODO better type error
-        ;c64.CHROUT('\n')
-        c64scr.print_uwhex(text, 1)
+        c64scr.print(4.4, 1)
         c64.CHROUT('\n')
     }
 }

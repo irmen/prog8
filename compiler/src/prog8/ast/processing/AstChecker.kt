@@ -810,6 +810,10 @@ internal class AstChecker(private val program: Program,
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCall.args.first().position)
         }
 
+        val error = VerifyFunctionArgTypes.checkTypes(functionCall, functionCall.definingScope(), program)
+        if(error!=null)
+            errors.err(error, functionCall.args.first().position)
+
         super.visit(functionCall)
     }
 
@@ -838,6 +842,11 @@ internal class AstChecker(private val program: Program,
                 errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
             }
         }
+
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, functionCallStatement.definingScope(), program)
+        if(error!=null)
+            errors.err(error, functionCallStatement.args.first().position)
+
         super.visit(functionCallStatement)
     }
 
