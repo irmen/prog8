@@ -287,9 +287,16 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(assignment: Assignment) {
-        assignment.target.accept(this)
-        output(" = ")
-        assignment.value.accept(this)
+        val binExpr = assignment.value as? BinaryExpression
+        if(binExpr!=null && binExpr.left isSameAs assignment.target) {
+            assignment.target.accept(this)
+            output(" ${binExpr.operator}= ")
+            binExpr.right.accept(this)
+        } else {
+            assignment.target.accept(this)
+            output(" = ")
+            assignment.value.accept(this)
+        }
     }
 
     override fun visit(postIncrDecr: PostIncrDecr) {

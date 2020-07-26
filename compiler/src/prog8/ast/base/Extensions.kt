@@ -5,7 +5,6 @@ import prog8.ast.Program
 import prog8.ast.processing.*
 import prog8.compiler.CompilationOptions
 import prog8.compiler.BeforeAsmGenerationAstChanger
-import prog8.optimizer.AssignmentTransformer
 
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {
@@ -34,17 +33,6 @@ internal fun Program.addTypecasts(errors: ErrorReporter) {
 internal fun Program.verifyFunctionArgTypes() {
     val fixer = VerifyFunctionArgTypes(this)
     fixer.visit(this)
-}
-
-internal fun Program.transformAssignments(errors: ErrorReporter) {
-    val transform = AssignmentTransformer(this, errors)
-    transform.visit(this)
-    while(transform.optimizationsDone>0 && errors.isEmpty()) {
-        transform.applyModifications()
-        transform.optimizationsDone = 0
-        transform.visit(this)
-    }
-    transform.applyModifications()
 }
 
 internal fun Module.checkImportedValid() {

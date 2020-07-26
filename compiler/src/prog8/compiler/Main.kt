@@ -175,8 +175,6 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
 }
 
 private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
-    programAst.transformAssignments(errors)
-    errors.handle()
     programAst.addTypecasts(errors)
     errors.handle()
     programAst.variousCleanups()
