@@ -192,7 +192,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
-    // printAst(programAst)
+    printAst(programAst)    // TODO
 
     val assembly = CompilationTarget.asmGenerator(
             programAst,
