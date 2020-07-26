@@ -25,6 +25,8 @@ sealed class Expression: Node {
     abstract fun referencesIdentifiers(vararg name: String): Boolean
     abstract fun inferType(program: Program): InferredTypes.InferredType
 
+    infix fun isSameAs(assigntarget: AssignTarget) = assigntarget.isSameAs(this)
+
     infix fun isSameAs(other: Expression): Boolean {
         if(this===other)
             return true

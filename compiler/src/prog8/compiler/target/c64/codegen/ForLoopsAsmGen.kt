@@ -116,8 +116,7 @@ $endLabel       inx""")
                     stepsize == 1 || stepsize == -1 -> {
                         asmgen.translateExpression(range.to)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
-                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position),
-                                null, range.from, range.position)
+                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
                         asmgen.out(loopLabel)
@@ -152,8 +151,7 @@ $endLabel       inx""")
 
                         asmgen.translateExpression(range.to)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
-                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position),
-                                null, range.from, range.position)
+                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
                         asmgen.out(loopLabel)
@@ -201,8 +199,7 @@ $endLabel       inx""")
                         // (u)words, step <= -2
                         asmgen.translateExpression(range.to)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
-                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position),
-                                null, range.from, range.position)
+                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
                         asmgen.out(loopLabel)

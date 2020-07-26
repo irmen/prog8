@@ -324,7 +324,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
     fun size() = (index as? NumericLiteralValue)?.number?.toInt()
 }
 
-open class Assignment(var target: AssignTarget, var aug_op : String?, var value: Expression, override val position: Position) : Statement() {
+open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -346,30 +346,7 @@ open class Assignment(var target: AssignTarget, var aug_op : String?, var value:
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String {
-        return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
-    }
-
-    fun asDesugaredNonaugmented(): Assignment {
-        val augmented = aug_op ?: return this
-
-        val leftOperand: Expression =
-                when {
-                    target.identifier != null -> target.identifier!!
-                    target.arrayindexed != null -> target.arrayindexed!!
-                    target.memoryAddress != null -> DirectMemoryRead(target.memoryAddress!!.addressExpression, value.position)
-                    else -> throw FatalAstException("strange this")
-                }
-
-        val assignment =
-            if(augmented=="setvalue") {
-                Assignment(target, null, value, position)
-            } else {
-                val expression = BinaryExpression(leftOperand, augmented.substringBeforeLast('='), value, position)
-                Assignment(target, null, expression, position)
-            }
-        assignment.linkParents(parent)
-
-        return assignment
+        return("Assignment(target: $target, value: $value, pos=$position)")
     }
 }
 
@@ -423,6 +400,15 @@ data class AssignTarget(var identifier: IdentifierReference?,
             return InferredTypes.knownFor(DataType.UBYTE)
 
         return InferredTypes.unknown()
+    }
+
+    fun toExpression(): Expression {
+        return when {
+            identifier!=null -> identifier!!
+            arrayindexed!=null -> arrayindexed!!
+            memoryAddress!=null -> DirectMemoryRead(memoryAddress.addressExpression, memoryAddress.position)
+            else -> throw FatalAstException("invalid assignmenttarget $this")
+        }
     }
 
     infix fun isSameAs(value: Expression): Boolean {

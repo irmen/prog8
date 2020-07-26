@@ -211,7 +211,7 @@ internal class StatementOptimizer(private val program: Program,
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, range.from, forLoop.position))
+                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), range.from, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
@@ -226,7 +226,7 @@ internal class StatementOptimizer(private val program: Program,
                     val character = CompilationTarget.encodeString(sv.value, sv.altEncoding)[0]
                     val byte = NumericLiteralValue(DataType.UBYTE, character, iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, byte, forLoop.position))
+                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
@@ -239,7 +239,7 @@ internal class StatementOptimizer(private val program: Program,
                     if(av!=null) {
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
-                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
+                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
                                 forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
@@ -325,9 +325,6 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        if(assignment.aug_op!=null)
-            throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
-
         // remove assignments to self
         if(assignment.target isSameAs assignment.value) {
             if(assignment.target.isNotMemory(program.namespace))
@@ -337,7 +334,6 @@ internal class StatementOptimizer(private val program: Program,
         val targetIDt = assignment.target.inferType(program, assignment)
         if(!targetIDt.isKnown)
             throw FatalAstException("can't infer type of assignment target")
-
 
         // optimize binary expressions a bit
         val targetDt = targetIDt.typeOrElse(DataType.STRUCT)

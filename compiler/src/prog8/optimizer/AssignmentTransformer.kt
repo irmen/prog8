@@ -9,6 +9,7 @@ import prog8.ast.processing.IAstModification
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.PostIncrDecr
 
+// TODO integrate this in the StatementOptimizer
 
 
 internal class AssignmentTransformer(val program: Program, val errors: ErrorReporter) : AstWalker() {
@@ -17,23 +18,16 @@ internal class AssignmentTransformer(val program: Program, val errors: ErrorRepo
     private val noModifications = emptyList<IAstModification>()
 
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        // modify A = A + 5 back into augmented form A += 5 for easier code generation for optimized in-place assignments
-        // also to put code generation stuff together, single value assignment (A = 5) is converted to a special
-        // augmented form as wel (with the operator "setvalue")
-        if (assignment.aug_op == null) {
-            val binExpr = assignment.value as? BinaryExpression
-            if (binExpr != null) {
-                if (assignment.target.isSameAs(binExpr.left)) {
-                    assignment.value = binExpr.right
-                    assignment.aug_op = binExpr.operator + "="
-                    assignment.value.parent = assignment
-                    optimizationsDone++
-                    return noModifications
-                }
-            }
-            assignment.aug_op = "setvalue"
-            optimizationsDone++
-        } else if(assignment.aug_op == "+=") {
+        if(assignment.target isSameAs assignment.value) {
+            TODO("remove assignment to self")
+        }
+
+        return noModifications
+
+        // TODO add these optimizations back:
+
+        /*
+        if(assignment.aug_op == "+=") {
             val binExpr = assignment.value as? BinaryExpression
             if (binExpr != null) {
                 val leftnum = binExpr.left.constValue(program)?.number?.toDouble()
@@ -153,5 +147,6 @@ internal class AssignmentTransformer(val program: Program, val errors: ErrorRepo
             }
         }
         return noModifications
+        */
     }
 }

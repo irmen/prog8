@@ -161,14 +161,14 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
     if(vardecl!=null) return vardecl
 
     assignment()?.let {
-        return Assignment(it.assign_target().toAst(), null, it.expression().toAst(), it.toPosition())
+        return Assignment(it.assign_target().toAst(), it.expression().toAst(), it.toPosition())
     }
 
     augassignment()?.let {
-        return Assignment(it.assign_target().toAst(),
-                it.operator.text,
-                it.expression().toAst(),
-                it.toPosition())
+        // replace A += X  with  A = A + X
+        val target = it.assign_target().toAst()
+        val expression = BinaryExpression(target.toExpression(), it.operator.text.substring(0, 1), it.expression().toAst(), it.expression().toPosition())
+        return Assignment(it.assign_target().toAst(), expression, it.toPosition())
     }
 
     postincrdecr()?.let {

@@ -24,12 +24,6 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
     private val noModifications = emptyList<IAstModification>()
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        if (assignment.aug_op != null)
-            throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
-        return noModifications
-    }
-
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         val mods = mutableListOf<IAstModification>()
 

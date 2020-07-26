@@ -79,7 +79,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                 // move the vardecl (without value) to the scope and replace this with a regular assignment
                 decl.value = null
                 val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                val assign = Assignment(target, null, declValue, decl.position)
+                val assign = Assignment(target, declValue, decl.position)
                 return listOf(
                         IAstModification.ReplaceNode(decl, assign, parent),
                         IAstModification.InsertFirst(decl, decl.definingScope() as Node)
@@ -99,10 +99,6 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
     }
 
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        if(assignment.aug_op!=null) {
-            return listOf(IAstModification.ReplaceNode(assignment, assignment.asDesugaredNonaugmented(), parent))
-        }
-
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program, assignment)
         if(valueType.istype(DataType.STRUCT) && targetType.istype(DataType.STRUCT)) {
@@ -137,7 +133,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
             val mangled = mangledStructMemberName(identifierName, targetDecl.name)
             val idref = IdentifierReference(listOf(mangled), structAssignment.position)
             val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position),
-                    null, sourceValue, sourceValue.position)
+                    sourceValue, sourceValue.position)
             assign.linkParents(structAssignment)
             assign
         }
@@ -168,8 +164,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                     val idref = IdentifierReference(listOf(mangled), structAssignment.position)
                     val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
                     val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
-                    val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position),
-                            null, sourceIdref, member.second.position)
+                    val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position), sourceIdref, member.second.position)
                     assign.linkParents(structAssignment)
                     assign
                 }
