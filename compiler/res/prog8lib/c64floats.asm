@@ -215,23 +215,13 @@ pop_float_to_indexed_var	.proc
 copy_float	.proc
 		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
 		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
-		sta  c64.SCRATCH_ZPWORD2
-		sty  c64.SCRATCH_ZPWORD2+1
-		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD1),y
-		sta  (c64.SCRATCH_ZPWORD2),y
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		sta  (c64.SCRATCH_ZPWORD2),y
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		sta  (c64.SCRATCH_ZPWORD2),y
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		sta  (c64.SCRATCH_ZPWORD2),y
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		sta  (c64.SCRATCH_ZPWORD2),y
+		sta  _target+1
+		sty  _target+2
+		ldy  #4
+_loop		lda  (c64.SCRATCH_ZPWORD1),y
+_target		sta  $ffff,y			; modified
+		dey
+		bpl  _loop
 		rts
 		.pend
 
@@ -772,7 +762,6 @@ set_array_float		.proc
 		asl  a
 		clc
 		adc  c64.ESTACK_LO,x
-		clc
 		adc  c64.SCRATCH_ZPWORD2
 		ldy  c64.SCRATCH_ZPWORD2+1
 		bcc  +

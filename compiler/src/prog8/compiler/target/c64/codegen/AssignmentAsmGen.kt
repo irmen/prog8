@@ -573,8 +573,7 @@ internal class AssignmentAsmGen(private val program: Program, private val errors
                             sta  $arrayVarName+$indexValue+4
                         """)
                     } else {
-                        // TODO the index in A below seems to be clobbered?
-                        asmgen.translateArrayIndexIntoA(targetArrayIdx)
+                        asmgen.translateExpression(index)
                         asmgen.out("""
                             lda  #<${constFloat}
                             sta  ${C64Zeropage.SCRATCH_W1}

@@ -7,43 +7,30 @@
 
 main {
 
+    float[]  fa = [1,2,3,4]
+
     sub start() {
+        float x = 9.9
 
-        ubyte wv
-        ubyte wv2
+        fa[2] = 8.8
 
-        wv *= wv2
+        p()
 
-        wv += 10
-        wv += 20
-        wv += 30
+        ubyte b = 2
+        fa[b] = 9.8
+        p()
+        fa[b] = 9.9
+        p()
 
-        wv += 1 + wv2
-        wv += 2 + wv2
-        wv += 3 + wv2
+    }
 
-        wv += wv2 + 1
-        wv += wv2 + 2
-        wv += wv2 + 3
-
-        wv = wv + 1 + wv2
-        wv = wv + 2 + wv2
-        wv = wv + 3 + wv2
-
-        wv = 1 + wv2 + wv
-        wv = 2 + wv2 + wv
-        wv = 3 + wv2 + wv
-
-        wv = wv  + wv2  + 1
-        wv = wv  + wv2  + 2
-        wv = wv  + wv2  + 3
-
-        wv = wv2  + 1 + wv
-        wv = wv2  + 2 + wv
-        wv = wv2  + 3 + wv
-
-        wv = wv2  + wv + 1
-        wv = wv2  + wv + 2
-        wv = wv2  + wv + 3
+    sub p() {
+        byte i
+        for i in 0 to len(fa)-1 {
+            c64flt.print_f(fa[i])
+            c64.CHROUT(',')
+            c64.CHROUT(' ')
+        }
+        c64.CHROUT('\n')
     }
 }
