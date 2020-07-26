@@ -3,8 +3,6 @@
 %import c64graphics
 %option enable_floats
 
-; TODO fix compiler errors when compiling without optimizations
-
 main {
 
     sub start() {

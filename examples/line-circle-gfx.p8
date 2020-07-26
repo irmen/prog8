@@ -1,9 +1,6 @@
 %import c64lib
 %import c64graphics
 
-; TODO fix compiler errors when compiling without optimizations
-
-
 main {
 
     sub start() {

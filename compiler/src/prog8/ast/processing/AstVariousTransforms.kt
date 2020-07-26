@@ -26,19 +26,16 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 val tempvar = IdentifierReference(listOf(tempname), first.position)
                 val assignTemp = Assignment(
                         AssignTarget(tempvar, null, null, first.position),
-                        null,
                         first,
                         first.position
                 )
                 val assignFirst = Assignment(
                         AssignTarget.fromExpr(first),
-                        null,
                         second,
                         first.position
                 )
                 val assignSecond = Assignment(
                         AssignTarget.fromExpr(second),
-                        null,
                         tempvar,
                         first.position
                 )

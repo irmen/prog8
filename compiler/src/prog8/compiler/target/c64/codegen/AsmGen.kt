@@ -185,7 +185,7 @@ internal class AsmGen(private val program: Program,
                 val scopedFullName = decl.makeScopedName(decl.name).split('.')
                 require(scopedFullName.first()==block.name)
                 val target = AssignTarget(IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
-                val assign = Assignment(target, null, decl.value!!, decl.position)
+                val assign = Assignment(target, decl.value!!, decl.position)
                 assign.linkParents(decl.parent)
                 assignmentAsmGen.translate(assign)
             }
@@ -929,7 +929,7 @@ $endLabel""")
                 val next = (stmt.parent as INameScope).nextSibling(stmt)
                 if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
                     val target = AssignTarget(IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
-                    val assign = Assignment(target, null, stmt.value!!, stmt.position)
+                    val assign = Assignment(target, stmt.value!!, stmt.position)
                     assign.linkParents(stmt.parent)
                     translate(assign)
                 }

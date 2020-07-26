@@ -211,7 +211,7 @@ internal class StatementOptimizer(private val program: Program,
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, range.from, forLoop.position))
+                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), range.from, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
@@ -226,7 +226,7 @@ internal class StatementOptimizer(private val program: Program,
                     val character = CompilationTarget.encodeString(sv.value, sv.altEncoding)[0]
                     val byte = NumericLiteralValue(DataType.UBYTE, character, iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, byte, forLoop.position))
+                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
@@ -239,7 +239,7 @@ internal class StatementOptimizer(private val program: Program,
                     if(av!=null) {
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
-                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), null, NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
+                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
                                 forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
@@ -324,20 +324,72 @@ internal class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        if(assignment.aug_op!=null)
-            throw FatalAstException("augmented assignments should have been converted to normal assignments before this optimizer: $assignment")
+    override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
 
-        // remove assignments to self
+        val binExpr = assignment.value as? BinaryExpression
+        if(binExpr!=null) {
+            if(binExpr.left isSameAs assignment.target) {
+                val rExpr = binExpr.right as? BinaryExpression
+                if(rExpr!=null) {
+                    val op1 = binExpr.operator
+                    val op2 = rExpr.operator
+
+                    if(rExpr.left is NumericLiteralValue && op2 in setOf("+", "*", "&", "|")) {
+                        // associative operator, make sure the constant numeric value is second (right)
+                        return listOf(IAstModification.SwapOperands(rExpr))
+                    }
+
+                    val rNum = (rExpr.right as? NumericLiteralValue)?.number
+                    if(rNum!=null) {
+                        if (op1 == "+" || op1 == "-") {
+                            if (op2 == "+") {
+                                // A = A +/- B + N
+                                val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
+                                val addConstant = Assignment(
+                                        assignment.target,
+                                        BinaryExpression(binExpr.left, "+", rExpr.right, rExpr.position),
+                                        assignment.position
+                                )
+                                return listOf(
+                                        IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
+                                        IAstModification.InsertAfter(assignment, addConstant, parent))
+                            } else if (op2 == "-") {
+                                // A = A +/- B - N
+                                val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
+                                val subConstant = Assignment(
+                                        assignment.target,
+                                        BinaryExpression(binExpr.left, "-", rExpr.right, rExpr.position),
+                                        assignment.position
+                                )
+                                return listOf(
+                                        IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
+                                        IAstModification.InsertAfter(assignment, subConstant, parent))
+                            }
+                        }
+                    }
+                }
+            }
+            if(binExpr.right isSameAs assignment.target) {
+                if(binExpr.operator in setOf("+", "*", "&", "|")) {
+                    // associative operator, swap the operands so that the assignment target is first (left)
+                    return listOf(IAstModification.SwapOperands(binExpr))
+                }
+            }
+
+        }
+
+        return noModifications
+    }
+
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if(assignment.target isSameAs assignment.value) {
-            if(assignment.target.isNotMemory(program.namespace))
-                return listOf(IAstModification.Remove(assignment, parent))
+            // remove assignment to self
+            return listOf(IAstModification.Remove(assignment, parent))
         }
 
         val targetIDt = assignment.target.inferType(program, assignment)
         if(!targetIDt.isKnown)
             throw FatalAstException("can't infer type of assignment target")
-
 
         // optimize binary expressions a bit
         val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
