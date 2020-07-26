@@ -105,32 +105,34 @@ internal class StatementOptimizer(private val program: Program,
             }
             if(stringVar!=null) {
                 val vardecl = stringVar.targetVarDecl(program.namespace)!!
-                val string = vardecl.value!! as StringLiteralValue
-                val pos = functionCallStatement.position
-                if(string.value.length==1) {
-                    val firstCharEncoded = CompilationTarget.encodeString(string.value, string.altEncoding)[0]
-                    val chrout = FunctionCallStatement(
-                            IdentifierReference(listOf("c64", "CHROUT"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
-                            functionCallStatement.void, pos
-                    )
-                    return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
-                } else if(string.value.length==2) {
-                    val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2), string.altEncoding)
-                    val chrout1 = FunctionCallStatement(
-                            IdentifierReference(listOf("c64", "CHROUT"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
-                            functionCallStatement.void, pos
-                    )
-                    val chrout2 = FunctionCallStatement(
-                            IdentifierReference(listOf("c64", "CHROUT"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toInt(), pos)),
-                            functionCallStatement.void, pos
-                    )
-                    val anonscope = AnonymousScope(mutableListOf(), pos)
-                    anonscope.statements.add(chrout1)
-                    anonscope.statements.add(chrout2)
-                    return listOf(IAstModification.ReplaceNode(functionCallStatement, anonscope, parent))
+                val string = vardecl.value as? StringLiteralValue
+                if(string!=null) {
+                    val pos = functionCallStatement.position
+                    if (string.value.length == 1) {
+                        val firstCharEncoded = CompilationTarget.encodeString(string.value, string.altEncoding)[0]
+                        val chrout = FunctionCallStatement(
+                                IdentifierReference(listOf("c64", "CHROUT"), pos),
+                                mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
+                                functionCallStatement.void, pos
+                        )
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
+                    } else if (string.value.length == 2) {
+                        val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2), string.altEncoding)
+                        val chrout1 = FunctionCallStatement(
+                                IdentifierReference(listOf("c64", "CHROUT"), pos),
+                                mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
+                                functionCallStatement.void, pos
+                        )
+                        val chrout2 = FunctionCallStatement(
+                                IdentifierReference(listOf("c64", "CHROUT"), pos),
+                                mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toInt(), pos)),
+                                functionCallStatement.void, pos
+                        )
+                        val anonscope = AnonymousScope(mutableListOf(), pos)
+                        anonscope.statements.add(chrout1)
+                        anonscope.statements.add(chrout2)
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, anonscope, parent))
+                    }
                 }
             }
         }

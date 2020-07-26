@@ -10,27 +10,15 @@ main {
     float[]  fa = [1,2,3,4]
 
     sub start() {
-        float x = 9.9
-
-        fa[2] = 8.8
-
-        p()
-
-        ubyte b = 2
-        fa[b] = 9.8
-        p()
-        fa[b] = 9.9
-        p()
-
+        wot("asdfasdf")
+        wot("asdfasdf")
+        wot("asdfasdf1")
     }
 
-    sub p() {
-        byte i
-        for i in 0 to len(fa)-1 {
-            c64flt.print_f(fa[i])
-            c64.CHROUT(',')
-            c64.CHROUT(' ')
-        }
+    sub wot(uword text) {
+        ;c64scr.print(text)          ; TODO better type error
+        ;c64.CHROUT('\n')
+        c64scr.print_uwhex(text, 1)
         c64.CHROUT('\n')
     }
 }

@@ -115,7 +115,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     in ByteDatatypes -> asmgen.assignFromByteConstant(target, value.number.toShort())
                     in WordDatatypes -> asmgen.assignFromWordConstant(target, value.number.toInt())
                     DataType.FLOAT -> asmgen.assignFromFloatConstant(target, value.number.toDouble())
-                    in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as argument via a variable?")    // TODO huh
                     else -> throw AssemblyError("weird parameter datatype")
                 }
             }
@@ -125,7 +124,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     in ByteDatatypes -> asmgen.assignFromByteVariable(target, value)
                     in WordDatatypes -> asmgen.assignFromWordVariable(target, value)
                     DataType.FLOAT -> asmgen.assignFromFloatVariable(target, value)
-                    in PassByReferenceDatatypes -> throw AssemblyError("can't pass string/array as argument via a variable?")     // TODO huh
+                    in PassByReferenceDatatypes -> asmgen.assignFromAddressOf(target, value)
                     else -> throw AssemblyError("weird parameter datatype")
                 }
             }

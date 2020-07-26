@@ -1048,6 +1048,9 @@ $endLabel""")
     fun assignFromWordVariable(target: AssignTarget, variable: IdentifierReference) =
             assignmentAsmGen.assignFromWordVariable(target, variable)
 
+    fun assignFromAddressOf(target: AssignTarget, variable: IdentifierReference) =
+            assignmentAsmGen.assignFromAddressOf(target, variable)
+
     fun assignFromFloatVariable(target: AssignTarget, variable: IdentifierReference) =
             assignmentAsmGen.assignFromFloatVariable(target, variable)
 
