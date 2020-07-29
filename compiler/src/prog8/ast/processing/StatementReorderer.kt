@@ -14,8 +14,8 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
     // - in every scope, most directives and vardecls are moved to the top.
     // - the 'start' subroutine is moved to the top.
     // - (syntax desugaring) a vardecl with a non-const initializer value is split into a regular vardecl and an assignment statement.
-    // - (syntax desugaring) augmented assignment is turned into regular assignment.
     // - (syntax desugaring) struct value assignment is expanded into several struct member assignments.
+    // - in-place assignments are reordered a bit so that they are mostly of the form A = A <operator> <rest>
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc).
 
@@ -112,6 +112,55 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                 assignments.reversed().mapTo(modifications) { IAstModification.InsertAfter(assignment, it, parent) }
                 modifications.add(IAstModification.Remove(assignment, parent))
                 return modifications
+            }
+        }
+
+        return noModifications
+    }
+
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        // rewrite in-place assignment expressions a bit so that the assignment target usually is the leftmost operand
+        val binExpr = assignment.value as? BinaryExpression
+        if(binExpr!=null) {
+            if(binExpr.left isSameAs assignment.target) {
+                // A = A <operator> 5, unchanged
+                return noModifications
+            }
+
+            if(binExpr.operator in associativeOperators) {
+                if (binExpr.right isSameAs assignment.target) {
+                    // A = v <associative-operator> A  ==>  A = A <associative-operator> v
+                    return listOf(IAstModification.SwapOperands(binExpr))
+                }
+
+                val leftBinExpr = binExpr.left as? BinaryExpression
+                if(leftBinExpr?.operator == binExpr.operator) {
+                    return if(leftBinExpr.left isSameAs assignment.target) {
+                        // A = (A <associative-operator> x) <same-operator> y ==> A = A <associative-operator> (x <same-operator> y)
+                        val newRight = BinaryExpression(leftBinExpr.right, binExpr.operator, binExpr.right, binExpr.position)
+                        val newValue = BinaryExpression(leftBinExpr.left, binExpr.operator, newRight, binExpr.position)
+                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
+                    } else {
+                        // A = (x <associative-operator> A) <same-operator> y ==> A = A <associative-operator> (x <same-operator> y)
+                        val newRight = BinaryExpression(leftBinExpr.left, binExpr.operator, binExpr.right, binExpr.position)
+                        val newValue = BinaryExpression(leftBinExpr.right, binExpr.operator, newRight, binExpr.position)
+                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
+                    }
+                }
+                val rightBinExpr = binExpr.right as? BinaryExpression
+                if(rightBinExpr?.operator == binExpr.operator) {
+                    return if(rightBinExpr.left isSameAs assignment.target) {
+                        // A = x <associative-operator> (A <same-operator> y) ==> A = A <associative-operator> (x <same-operator> y)
+                        val newRight = BinaryExpression(binExpr.left, binExpr.operator, rightBinExpr.right, binExpr.position)
+                        val newValue = BinaryExpression(rightBinExpr.left, binExpr.operator, newRight, binExpr.position)
+                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
+                    } else {
+                        // A = x <associative-operator> (y <same-operator> A) ==> A = A <associative-operator> (x <same-operator> y)
+                        val newRight = BinaryExpression(binExpr.left, binExpr.operator, rightBinExpr.left, binExpr.position)
+                        val newValue = BinaryExpression(rightBinExpr.right, binExpr.operator, newRight, binExpr.position)
+                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
+                    }
+                }
             }
         }
 

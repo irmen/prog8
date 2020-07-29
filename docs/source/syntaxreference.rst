@@ -404,7 +404,7 @@ assignment: ``=``
     Note that an assignment sometimes is not possible or supported.
 
 augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
-	Syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
+	This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
 
 postfix increment and decrement: ``++``  ``--``
 	Syntactic sugar; ``aa++`` is equivalent to ``aa = aa + 1``, and ``aa--`` is equivalent to ``aa = aa - 1``.

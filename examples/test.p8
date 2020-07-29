@@ -4,11 +4,6 @@
 %zeropage basicsafe
 %option enable_floats
 
-; todo: add these to the Expression Simplifier so that all the below assignments become a simple in-place assignment:
-;  (A +/- B) +/- C   ==>  A +/- ( B +/- C)
-;  (A * / B) * / C   ==>  A * / ( B * / C)
-
-
 main {
 
     sub start() {
@@ -16,35 +11,37 @@ main {
         ubyte wv
         ubyte wv2
 
-        wv *= wv2
+        wv = wv + wv + wv
 
-        wv += 10
-        wv += 20
-        wv += 30
-
-        wv += 1 + wv2
-        wv += 2 + wv2
-        wv += 3 + wv2
-
-        wv += wv2 + 1
-        wv += wv2 + 2
-        wv += wv2 + 3
-
-        wv = wv + 1 + wv2
-        wv = wv + 2 + wv2
-        wv = wv + 3 + wv2
-
-        wv = 1 + wv2 + wv
-        wv = 2 + wv2 + wv
-        wv = 3 + wv2 + wv
-
-        wv = wv  + wv2  + 1
-        wv = wv  + wv2  + 2
-        wv = wv  + wv2  + 3
-
-        wv = wv2  + 1 + wv
-        wv = wv2  + 2 + wv
-        wv = wv2  + 3 + wv
+;        wv *= wv2
+;
+;        wv += 10
+;        wv += 20
+;        wv += 30
+;
+;        wv += 1 + wv2
+;        wv += 2 + wv2
+;        wv += 3 + wv2
+;
+;        wv += wv2 + 1
+;        wv += wv2 + 2
+;        wv += wv2 + 3
+;
+;        wv = wv + 1 + wv2
+;        wv = wv + 2 + wv2
+;        wv = wv + 3 + wv2
+;
+;        wv = 1 + wv2 + wv
+;        wv = 2 + wv2 + wv
+;        wv = 3 + wv2 + wv
+;
+;        wv = wv  + wv2  + 1
+;        wv = wv  + wv2  + 2
+;        wv = wv  + wv2  + 3
+;
+;        wv = wv2  + 1 + wv
+;        wv = wv2  + 2 + wv
+;        wv = wv2  + 3 + wv
 
         wv = wv2  + wv + 1
         wv = wv2  + wv + 2

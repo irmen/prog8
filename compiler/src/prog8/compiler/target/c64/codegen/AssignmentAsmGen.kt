@@ -18,8 +18,10 @@ import prog8.compiler.toHex
 internal class AssignmentAsmGen(private val program: Program, private val errors: ErrorReporter, private val asmgen: AsmGen) {
 
     internal fun translate(assign: Assignment) {
-        // TODO check for in-place assignment A = A <operator> X and generate better code for that
-        translateNormalAssignment(assign)
+        if(assign.isInplace)
+            translateNormalAssignment(assign) // TODO generate better code here for in-place assignments
+        else
+            translateNormalAssignment(assign)
     }
 
     //  old code-generation below:

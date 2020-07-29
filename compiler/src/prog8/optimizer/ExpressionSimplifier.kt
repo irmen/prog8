@@ -84,10 +84,6 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-
-        // TODO:   (A +/- B) +/- C   ==>  A +/- ( B +/- C)
-        // TODO:   (A * / B) * / C   ==>  A * / ( B * / C)
-
         val leftVal = expr.left.constValue(program)
         val rightVal = expr.right.constValue(program)
 
