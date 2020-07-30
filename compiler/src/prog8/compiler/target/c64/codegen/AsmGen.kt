@@ -740,38 +740,40 @@ internal class AsmGen(private val program: Program,
         loopContinueLabels.pop()
     }
 
-    private fun repeatWordCountInAY(counterLabel: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+    private fun repeatWordCountInAY(counterVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
         // note: A/Y must have been loaded with the number of iterations already!
+        // TODO allocate word counterVar on zeropage preferrably
         out("""
-                sta  $counterLabel
-                sty  $counterLabel+1
-$repeatLabel    lda  $counterLabel
+                sta  $counterVar
+                sty  $counterVar+1
+$repeatLabel    lda  $counterVar
                 bne  +
-                lda  $counterLabel+1
+                lda  $counterVar+1
                 beq  $endLabel
-+               lda  $counterLabel
++               lda  $counterVar
                 bne  +
-                dec  $counterLabel+1
-+               dec  $counterLabel
+                dec  $counterVar+1
++               dec  $counterVar
 """)
         translate(body)
         out("""
             jmp  $repeatLabel
-$counterLabel    .word  0
+$counterVar    .word  0
 $endLabel""")
     }
 
-    private fun repeatByteCountInA(counterLabel: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+    private fun repeatByteCountInA(counterVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
         // note: A must have been loaded with the number of iterations already!
+        // TODO allocate word counterVar on zeropage preferrably
         out("""
-                sta  $counterLabel
-$repeatLabel    lda  $counterLabel
+                sta  $counterVar
+$repeatLabel    lda  $counterVar
                 beq  $endLabel
-                dec  $counterLabel""")
+                dec  $counterVar""")
         translate(body)
         out("""
                 jmp  $repeatLabel
-$counterLabel    .byte  0
+$counterVar    .byte  0
 $endLabel""")
     }
 
