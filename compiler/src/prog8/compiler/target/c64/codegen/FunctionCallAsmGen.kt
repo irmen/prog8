@@ -182,12 +182,13 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         is IdentifierReference -> {
                             val sourceName = asmgen.asmIdentifierName(value)
                             asmgen.out("""
+            pha
             lda  $sourceName
             beq  +
             sec  
             bcs  ++
 +           clc
-+
++           pla
 """)
                         }
                         else -> {
