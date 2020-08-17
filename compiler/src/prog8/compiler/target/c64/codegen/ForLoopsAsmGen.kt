@@ -37,8 +37,11 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
     }
 
     private fun translateForOverNonconstRange(stmt: ForLoop, iterableDt: DataType, range: RangeExpr) {
+        // TODO get rid of all cmp stack,x  by using modifying code
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
+        val modifiedLabel = asmgen.makeLabel("for_modified")
+        val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
         asmgen.loopEndLabels.push(endLabel)
         val stepsize=range.step.constValue(program)!!.number.toInt()
         when(iterableDt) {
@@ -54,13 +57,15 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                     asmgen.translateExpression(range.from)
                     asmgen.out("""
                 inx
-                lda  ${ESTACK_LO_HEX},x
+                lda  $ESTACK_LO_HEX,x
                 sta  $varname
+                lda  $ESTACK_LO_PLUS1_HEX,x
+                sta  $modifiedLabel+1
 $loopLabel""")
                         asmgen.translate(stmt.body)
                         asmgen.out("""
                 lda  $varname
-                cmp  $ESTACK_LO_PLUS1_HEX,x             TODO modifying code 
+$modifiedLabel  cmp  #0         ; modified 
                 beq  $endLabel
                 $incdec  $varname
                 jmp  $loopLabel
@@ -76,8 +81,10 @@ $endLabel       inx""")
                     asmgen.translateExpression(range.from)
                     asmgen.out("""
                 inx
-                lda  ${ESTACK_LO_HEX},x
+                lda  $ESTACK_LO_HEX,x
                 sta  $varname
+                lda  $ESTACK_LO_PLUS1_HEX,x
+                sta  $modifiedLabel+1
 $loopLabel""")
                     asmgen.translate(stmt.body)
                     asmgen.out("""
@@ -87,7 +94,7 @@ $loopLabel""")
                 clc
                 adc  #$stepsize
                 sta  $varname
-                cmp  $ESTACK_LO_PLUS1_HEX,x    TODO modifying code 
+$modifiedLabel  cmp  #0    ; modified
                 bcc  $loopLabel
                 beq  $loopLabel""")
                     } else {
@@ -95,7 +102,7 @@ $loopLabel""")
                 sec
                 sbc  #${stepsize.absoluteValue}
                 sta  $varname
-                cmp  $ESTACK_LO_PLUS1_HEX,x    TODO modifying code 
+$modifiedLabel  cmp  #0     ; modified 
                 bcs  $loopLabel""")
                     }
                     asmgen.out("""
@@ -113,14 +120,19 @@ $endLabel       inx""")
                         val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
-                        asmgen.out(loopLabel)
+                        asmgen.out("""
+                            lda  $ESTACK_HI_PLUS1_HEX,x
+                            sta  $modifiedLabel+1
+                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            sta  $modifiedLabel2+1
+$loopLabel""")
                         asmgen.translate(stmt.body)
                         asmgen.out("""
                 lda  $varname+1
-                cmp  $ESTACK_HI_PLUS1_HEX,x     TODO modifying code 
+$modifiedLabel  cmp  #0    ; modified 
                 bne  +
                 lda  $varname
-                cmp  $ESTACK_LO_PLUS1_HEX,x     TODO modifying code 
+$modifiedLabel2 cmp  #0    ; modified 
                 beq  $endLabel""")
                         if(stepsize==1) {
                             asmgen.out("""
@@ -160,12 +172,12 @@ $endLabel       inx""")
                 lda  $varname+1
                 adc  #>$stepsize
                 sta  $varname+1
-                lda  $ESTACK_HI_PLUS1_HEX,x    TODO modifying code 
+                lda  $ESTACK_HI_PLUS1_HEX,x    TODO modifying code1
                 cmp  $varname+1
                 bcc  $endLabel
                 bne  $loopLabel
                 lda  $varname
-                cmp  $ESTACK_LO_PLUS1_HEX,x       TODO modifying code 
+                cmp  $ESTACK_LO_PLUS1_HEX,x       TODO modifying code1
                 bcc  $endLabel
                 bcs  $loopLabel
 $endLabel       inx""")
@@ -178,9 +190,9 @@ $endLabel       inx""")
                 lda  $varname+1
                 adc  #>$stepsize
                 sta  $varname+1
-                lda  $ESTACK_LO_PLUS1_HEX,x   TODO modifying code 
+                lda  $ESTACK_LO_PLUS1_HEX,x   TODO modifying code2
                 cmp  $varname
-                lda  $ESTACK_HI_PLUS1_HEX,x   TODO modifying code 
+                lda  $ESTACK_HI_PLUS1_HEX,x   TODO modifying code2 
                 sbc  $varname+1
                 bvc  +
                 eor  #$80
@@ -208,11 +220,11 @@ $endLabel       inx""")
                 lda  $varname+1
                 sbc  #>${stepsize.absoluteValue}
                 sta  $varname+1
-                cmp  $ESTACK_HI_PLUS1_HEX,x    TODO modifying code 
+                cmp  $ESTACK_HI_PLUS1_HEX,x    TODO modifying code3 
                 bcc  $endLabel
                 bne  $loopLabel
                 lda  $varname
-                cmp  $ESTACK_LO_PLUS1_HEX,x    TODO modifying code 
+                cmp  $ESTACK_LO_PLUS1_HEX,x    TODO modifying code3 
                 bcs  $loopLabel
 $endLabel       inx""")
                         } else {
@@ -226,9 +238,9 @@ $endLabel       inx""")
                 sbc  #>${stepsize.absoluteValue}
                 sta  $varname+1
                 pla
-                cmp  $ESTACK_LO_PLUS1_HEX,x    TODO modifying code 
+                cmp  $ESTACK_LO_PLUS1_HEX,x    TODO modifying code4 
                 lda  $varname+1
-                sbc  $ESTACK_HI_PLUS1_HEX,x    TODO modifying code 
+                sbc  $ESTACK_HI_PLUS1_HEX,x    TODO modifying code4
                 bvc  +
                 eor  #$80
 +               bpl  $loopLabel                
@@ -244,6 +256,7 @@ $endLabel       inx""")
     }
 
     private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
+        // TODO optimize this more
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)

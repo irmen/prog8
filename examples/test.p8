@@ -6,82 +6,52 @@
 main {
 
     sub start() {
-        byte counterb
-        word counterw
+;        byte[] data = [11,22,33,44,55,66]
+;        word[] dataw = [1111,2222,3333,4444,5555,6666]
+;
+;        byte d
+;        word w
+;
+;        for d in data {
+;            c64scr.print_b(d)
+;            c64.CHROUT(',')
+;        }
+;        c64.CHROUT('\n')
+;        for w in dataw {
+;            c64scr.print_w(w)
+;            c64.CHROUT(',')
+;        }
+;        c64.CHROUT('\n')
 
-        for counterb in -10 to 11  {
-            c64scr.print_b(counterb)
+
+        ubyte bb
+        ubyte from = 10
+        ubyte end = 20
+
+        for bb in from to end step 3 {
+            c64scr.print_ub(bb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+        for bb in end to from step -3 {
+            c64scr.print_ub(bb)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
 
-        for counterb in 11 to -10 step -1 {
-            c64scr.print_b(counterb)
+        uword ww
+        uword fromw = 10
+        uword endw = 20
+
+        for ww in fromw to endw step 3 {
+            c64scr.print_uw(ww)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
-
-        for counterb in -10 to 11 step 2 {
-            c64scr.print_b(counterb)
+        for ww in endw to fromw step -3 {
+            c64scr.print_uw(ww)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
-
-        for counterb in 11 to -10 step -2 {
-            c64scr.print_b(counterb)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterb in -10 to 11 step 3 {
-            c64scr.print_b(counterb)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterb in 11 to -10 step -3 {
-            c64scr.print_b(counterb)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
-
-        for counterw in -10 to 11  {
-            c64scr.print_w(counterw)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterw in 11 to -10 step -1 {
-            c64scr.print_w(counterw)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterw in -10 to 11 step 2 {
-            c64scr.print_w(counterw)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterw in 11 to -10 step -2 {
-            c64scr.print_w(counterw)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterw in -10 to 11 step 3 {
-            c64scr.print_w(counterw)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        for counterw in 11 to -10 step -3 {
-            c64scr.print_w(counterw)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
     }
 }
