@@ -43,13 +43,11 @@ internal class AsmGen(private val program: Program,
     private val assignmentAsmGen = AssignmentAsmGen(program, errors, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     internal val loopEndLabels = ArrayDeque<String>()
-    internal val loopContinueLabels = ArrayDeque<String>()
     internal val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
 
     override fun compileToAssembly(optimize: Boolean): IAssemblyProgram {
         assemblyLines.clear()
         loopEndLabels.clear()
-        loopContinueLabels.clear()
 
         println("Generating assembly code... ")
 
@@ -638,7 +636,6 @@ internal class AsmGen(private val program: Program,
             is BranchStatement -> translate(stmt)
             is IfStatement -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
-            is Continue -> out("  jmp  ${loopContinueLabels.peek()}")
             is Break -> out("  jmp  ${loopEndLabels.peek()}")
             is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
@@ -674,11 +671,11 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun translate(stmt: RepeatLoop) {
+        // TODO more optimized code possible now that continue is gone?
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         val counterLabel = makeLabel("repeatcounter")
         loopEndLabels.push(endLabel)
-        loopContinueLabels.push(repeatLabel)
 
         when (stmt.iterations) {
             null -> {
@@ -737,7 +734,6 @@ internal class AsmGen(private val program: Program,
         }
 
         loopEndLabels.pop()
-        loopContinueLabels.pop()
     }
 
     private fun repeatWordCountInAY(counterVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
@@ -778,10 +774,10 @@ $endLabel""")
     }
 
     private fun translate(stmt: WhileLoop) {
+        // TODO more optimized code possible now that continue is gone?
         val whileLabel = makeLabel("while")
         val endLabel = makeLabel("whileend")
         loopEndLabels.push(endLabel)
-        loopContinueLabels.push(whileLabel)
         out(whileLabel)
         expressionsAsmGen.translateExpression(stmt.condition)
         val conditionDt = stmt.condition.inferType(program)
@@ -802,14 +798,13 @@ $endLabel""")
         out("  jmp  $whileLabel")
         out(endLabel)
         loopEndLabels.pop()
-        loopContinueLabels.pop()
     }
 
     private fun translate(stmt: UntilLoop) {
+        // TODO more optimized code possible now that continue is gone?
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         loopEndLabels.push(endLabel)
-        loopContinueLabels.push(repeatLabel)
         out(repeatLabel)
         translate(stmt.body)
         expressionsAsmGen.translateExpression(stmt.untilCondition)
@@ -829,7 +824,6 @@ $endLabel""")
         }
         out(endLabel)
         loopEndLabels.pop()
-        loopContinueLabels.pop()
     }
 
     private fun translate(stmt: WhenStatement) {

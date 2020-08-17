@@ -88,7 +88,6 @@ abstract class AstWalker {
     open fun before(branchStatement: BranchStatement, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun before(contStmt: Continue, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = emptyList()
@@ -130,7 +129,6 @@ abstract class AstWalker {
     open fun after(branchStatement: BranchStatement, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun after(contStmt: Continue, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = emptyList()
@@ -307,11 +305,6 @@ abstract class AstWalker {
         track(before(postIncrDecr, parent), postIncrDecr, parent)
         postIncrDecr.target.accept(this, postIncrDecr)
         track(after(postIncrDecr, parent), postIncrDecr, parent)
-    }
-
-    fun visit(contStmt: Continue, parent: Node) {
-        track(before(contStmt, parent), contStmt, parent)
-        track(after(contStmt, parent), contStmt, parent)
     }
 
     fun visit(breakStmt: Break, parent: Node) {

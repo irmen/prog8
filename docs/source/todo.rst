@@ -2,9 +2,10 @@
 TODO
 ====
 
-- finalize (most) of the still missing "new" assignment asm code generation
-- aliases for imported symbols for example perhaps '%alias print = c64scr.print'
-- option to load library files from a directory instead of the embedded ones (easier library development/debugging)
+- get rid of all TODO's ;-)
+- allow declaring arrays on specific memory location and page-aligned
+- option to load the built-inlibrary files from a directory instead of the embedded ones (for easier library development/debugging)
+- aliases for imported symbols for example perhaps '%alias print = c64scr.print' ?
 - investigate support for 8bitguy's Commander X16 platform https://www.commanderx16.com  and https://github.com/commanderx16/x16-docs
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 

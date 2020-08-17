@@ -217,9 +217,6 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
     val breakstmt = breakstmt()?.toAst()
     if(breakstmt!=null) return breakstmt
 
-    val continuestmt = continuestmt()?.toAst()
-    if(continuestmt!=null) return continuestmt
-
     val whenstmt = whenstmt()?.toAst()
     if(whenstmt!=null) return whenstmt
 
@@ -592,8 +589,6 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
                 AnonymousScope(statement_block().toAst(), statement_block().toPosition())
     return ForLoop(loopvar, iterable, scope, toPosition())
 }
-
-private fun prog8Parser.ContinuestmtContext.toAst() = Continue(toPosition())
 
 private fun prog8Parser.BreakstmtContext.toAst() = Break(toPosition())
 

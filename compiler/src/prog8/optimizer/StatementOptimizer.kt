@@ -14,11 +14,6 @@ import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
 
-/*
-    TODO: remove unreachable code after return and exit()
-*/
-
-
 internal class StatementOptimizer(private val program: Program,
                                   private val errors: ErrorReporter) : AstWalker() {
 
@@ -257,9 +252,9 @@ internal class StatementOptimizer(private val program: Program,
         val constvalue = untilLoop.untilCondition.constValue(program)
         if(constvalue!=null) {
             if(constvalue.asBooleanValue) {
-                // always true -> keep only the statement block (if there are no continue and break statements)
+                // always true -> keep only the statement block (if there are no break statements)
                 errors.warn("condition is always true", untilLoop.untilCondition.position)
-                if(!hasContinueOrBreak(untilLoop.body))
+                if(!hasBreak(untilLoop.body))
                     return listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
             } else {
                 // always false
@@ -495,17 +490,13 @@ internal class StatementOptimizer(private val program: Program,
         return linesToRemove
     }
 
-    private fun hasContinueOrBreak(scope: INameScope): Boolean {
+    private fun hasBreak(scope: INameScope): Boolean {
 
         class Searcher: IAstVisitor
         {
             var count=0
 
             override fun visit(breakStmt: Break) {
-                count++
-            }
-
-            override fun visit(contStmt: Continue) {
                 count++
             }
         }

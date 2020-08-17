@@ -6,6 +6,9 @@ import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.Block
 
+/*
+    TODO: remove unreachable code after return and exit()
+*/
 
 internal class UnusedCodeRemover: AstWalker() {
 

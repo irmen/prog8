@@ -2,49 +2,97 @@
 %import c64utils
 %import c64flt
 %zeropage basicsafe
-%option enable_floats
 
 main {
 
     sub start() {
+        ubyte counterb
+        uword counterw
 
-        ubyte wv
-        ubyte wv2
 
-        wv = wv + wv + wv
+        for counterb in 0 to 10 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
 
-;        wv *= wv2
-;
-;        wv += 10
-;        wv += 20
-;        wv += 30
-;
-;        wv += 1 + wv2
-;        wv += 2 + wv2
-;        wv += 3 + wv2
-;
-;        wv += wv2 + 1
-;        wv += wv2 + 2
-;        wv += wv2 + 3
-;
-;        wv = wv + 1 + wv2
-;        wv = wv + 2 + wv2
-;        wv = wv + 3 + wv2
-;
-;        wv = 1 + wv2 + wv
-;        wv = 2 + wv2 + wv
-;        wv = 3 + wv2 + wv
-;
-;        wv = wv  + wv2  + 1
-;        wv = wv  + wv2  + 2
-;        wv = wv  + wv2  + 3
-;
-;        wv = wv2  + 1 + wv
-;        wv = wv2  + 2 + wv
-;        wv = wv2  + 3 + wv
+        for counterb in 10 to 30 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
 
-        wv = wv2  + wv + 1
-        wv = wv2  + wv + 2
-        wv = wv2  + wv + 3
+        for counterb in 250 to 255 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterb in 10 to 0 step -1 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterb in 10 to 1 step -1 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterb in 30 to 10 step -1 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterb in 255 to 250 step -1 {
+            c64scr.print_ub(counterb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+        for counterw in 0 to 10 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterw in 10 to 30 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterw in 250 to 255 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterw in 10 to 0 step -1 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterw in 10 to 1 step -1 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterw in 30 to 10 step -1 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+
+        for counterw in 255 to 250 step -1 {
+            c64scr.print_uw(counterw)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
     }
 }

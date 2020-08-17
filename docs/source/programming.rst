@@ -397,6 +397,8 @@ The *repeat* loop is used as a short notation of a for loop where the loop varia
 
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 
+Breaking out of a loop prematurely is possible with the ``break`` statement.
+
 .. attention::
     The value of the loop variable after executing the loop *is undefined*. Don't use it immediately
     after the loop without first assigning a new value to it!

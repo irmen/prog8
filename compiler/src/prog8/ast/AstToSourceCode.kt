@@ -305,10 +305,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         output(postIncrDecr.operator)
     }
 
-    override fun visit(contStmt: Continue) {
-        output("continue")
-    }
-
     override fun visit(breakStmt: Break) {
         output("break")
     }

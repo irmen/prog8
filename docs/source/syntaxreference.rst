@@ -559,7 +559,6 @@ You can use a single statement, or a statement block like in the example below::
 	for <loopvar>  in  <expression>  [ step <amount> ]   {
 		; do something...
 		break		; break out of the loop
-		continue	; immediately enter next iteration
 	}
 
 For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
@@ -592,7 +591,6 @@ You can use a single statement, or a statement block like in the example below::
 	while  <condition>  {
 		; do something...
 		break		; break out of the loop
-		continue	; immediately enter next iteration
 	}
 
 
@@ -605,7 +603,6 @@ You can use a single statement, or a statement block like in the example below::
 	do  {
 		; do something...
 		break		; break out of the loop
-		continue	; immediately enter next iteration
 	} until  <condition>
 
 

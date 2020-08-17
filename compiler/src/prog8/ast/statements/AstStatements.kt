@@ -148,18 +148,6 @@ class ReturnFromIrq(override val position: Position) : Return(null, position) {
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
 }
 
-class Continue(override val position: Position) : Statement() {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent=parent
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-}
-
 class Break(override val position: Position) : Statement() {
     override lateinit var parent: Node
 

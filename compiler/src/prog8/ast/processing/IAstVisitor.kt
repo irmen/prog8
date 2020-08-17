@@ -95,9 +95,6 @@ interface IAstVisitor {
         postIncrDecr.target.accept(this)
     }
 
-    fun visit(contStmt: Continue) {
-    }
-
     fun visit(breakStmt: Break) {
     }
 
