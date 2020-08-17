@@ -79,7 +79,7 @@ fun compileProgram(filepath: Path,
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
     println("Parsing...")
-    val importer = ModuleImporter(errors)
+    val importer = ModuleImporter()
     val programAst = Program(moduleName(filepath.fileName), mutableListOf())
     importer.importModule(programAst, filepath)
     errors.handle()

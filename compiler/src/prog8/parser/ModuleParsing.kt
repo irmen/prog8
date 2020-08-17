@@ -34,7 +34,7 @@ internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexe
 internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 
 
-internal class ModuleImporter(private val errors: ErrorReporter) {
+internal class ModuleImporter() {
 
     internal fun importModule(program: Program, filePath: Path): Module {
         print("importing '${moduleName(filePath.fileName)}'")

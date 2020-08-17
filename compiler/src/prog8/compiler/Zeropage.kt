@@ -39,13 +39,13 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
         if(free.size > 0) {
             if(size==1) {
-                for(candidate in free.min()!! .. free.max()!!+1) {
+                for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1) {
                     if(loneByte(candidate))
                         return makeAllocation(candidate, 1, datatype, scopedname)
                 }
                 return makeAllocation(free[0], 1, datatype, scopedname)
             }
-            for(candidate in free.min()!! .. free.max()!!+1) {
+            for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1) {
                 if (sequentialFree(candidate, size))
                     return makeAllocation(candidate, size, datatype, scopedname)
             }

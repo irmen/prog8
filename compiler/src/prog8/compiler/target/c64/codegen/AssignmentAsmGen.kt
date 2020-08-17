@@ -15,7 +15,7 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.toHex
 
 
-internal class AssignmentAsmGen(private val program: Program, private val errors: ErrorReporter, private val asmgen: AsmGen) {
+internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     internal fun translate(assign: Assignment) {
         if(assign.isInplace)

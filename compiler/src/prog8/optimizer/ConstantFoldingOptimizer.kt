@@ -179,7 +179,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
 }
 
 
-internal class ConstantFoldingOptimizer(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
+internal class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {

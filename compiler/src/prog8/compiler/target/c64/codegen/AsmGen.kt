@@ -40,7 +40,7 @@ internal class AsmGen(private val program: Program,
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, errors, this)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     internal val loopEndLabels = ArrayDeque<String>()
     internal val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
@@ -998,21 +998,6 @@ $endLabel""")
             else -> {
                 expressionsAsmGen.translateExpression(index)
                 out("  inx |  lda  $ESTACK_LO_HEX,x")
-            }
-        }
-    }
-
-    internal fun translateArrayIndexIntoY(expr: ArrayIndexedExpression) {
-        when (val index = expr.arrayspec.index) {
-            is NumericLiteralValue -> throw AssemblyError("this should be optimized directly")
-            is IdentifierReference -> {
-                val indexName = asmIdentifierName(index)
-                out("  ldy  $indexName")
-            }
-            // TODO optimize more cases, see translateArrayIndexIntoA
-            else -> {
-                expressionsAsmGen.translateExpression(index)
-                out("  inx |  ldy  $ESTACK_LO_HEX,x")
             }
         }
     }

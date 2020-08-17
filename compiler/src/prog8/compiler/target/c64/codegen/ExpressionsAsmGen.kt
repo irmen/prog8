@@ -194,7 +194,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40)
     private val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40)
-    private val powersOfTwo = setOf(0,1,2,4,8,16,32,64,128,256)
 
     private fun translateExpression(expr: BinaryExpression) {
         val leftIDt = expr.left.inferType(program)

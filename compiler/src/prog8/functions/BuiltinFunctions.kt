@@ -103,9 +103,9 @@ val BuiltinFunctions = mapOf(
             FParam("length", setOf(DataType.UBYTE))), null)
 )
 
-fun builtinMax(array: List<Number>): Number = array.maxBy { it.toDouble() }!!
+fun builtinMax(array: List<Number>): Number = array.maxByOrNull { it.toDouble() }!!
 
-fun builtinMin(array: List<Number>): Number = array.minBy { it.toDouble() }!!
+fun builtinMin(array: List<Number>): Number = array.minByOrNull { it.toDouble() }!!
 
 fun builtinSum(array: List<Number>): Number = array.sumByDouble { it.toDouble() }
 
@@ -312,7 +312,7 @@ private fun builtinSin8(args: List<Expression>, position: Position, program: Pro
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number.toDouble() /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, (127.0 * sin(rad)).toShort(), position)
+    return NumericLiteralValue(DataType.BYTE, (127.0 * sin(rad)).toInt().toShort(), position)
 }
 
 private fun builtinSin8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
@@ -320,7 +320,7 @@ private fun builtinSin8u(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("sin8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number.toDouble() /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toShort(), position)
+    return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toInt().toShort(), position)
 }
 
 private fun builtinCos8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
@@ -328,7 +328,7 @@ private fun builtinCos8(args: List<Expression>, position: Position, program: Pro
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number.toDouble() /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, (127.0 * cos(rad)).toShort(), position)
+    return NumericLiteralValue(DataType.BYTE, (127.0 * cos(rad)).toInt().toShort(), position)
 }
 
 private fun builtinCos8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
@@ -336,7 +336,7 @@ private fun builtinCos8u(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("cos8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number.toDouble() /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toShort(), position)
+    return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toInt().toShort(), position)
 }
 
 private fun builtinSin16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
@@ -375,7 +375,7 @@ private fun builtinSgn(args: List<Expression>, position: Position, program: Prog
     if (args.size != 1)
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return NumericLiteralValue(DataType.BYTE, constval.number.toDouble().sign.toShort(), position)
+    return NumericLiteralValue(DataType.BYTE, constval.number.toDouble().sign.toInt().toShort(), position)
 }
 
 private fun numericLiteral(value: Number, position: Position): NumericLiteralValue {

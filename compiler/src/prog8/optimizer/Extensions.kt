@@ -10,7 +10,7 @@ internal fun Program.constantFold(errors: ErrorReporter) {
     if(errors.isEmpty()) {
         replacer.applyModifications()
 
-        val optimizer = ConstantFoldingOptimizer(this, errors)
+        val optimizer = ConstantFoldingOptimizer(this)
         optimizer.visit(this)
         while (errors.isEmpty() && optimizer.applyModifications() > 0) {
             optimizer.visit(this)

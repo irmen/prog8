@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
-import prog8.ast.statements.Assignment
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
