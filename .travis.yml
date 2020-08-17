@@ -4,8 +4,8 @@ sudo: false
 # dist: xenial
 
 before_install:
-  - chmod +x gradlew
+  - chmod +x ./gradlew
 
 script:
-  - gradle test
+  - ./gradlew test
 
