@@ -110,3 +110,7 @@ dokka {
     outputFormat = 'html'
     outputDirectory = "$buildDir/kdoc"
 }
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '6.1.1'
+}
