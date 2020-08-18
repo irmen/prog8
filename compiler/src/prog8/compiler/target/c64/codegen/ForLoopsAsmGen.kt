@@ -314,7 +314,7 @@ $loopLabel          sty  $indexVar
                         beq  $endLabel""")
                 }
                 if(length>=16 && asmgen.zeropage.available() > 0) {
-                    // allocate index var on ZP if possible
+                    // allocate index var on ZP
                     val zpAddr = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, stmt.position, asmgen.errors)
                     asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""")
                 } else {
@@ -353,7 +353,7 @@ $loopLabel          sty  $indexVar
                         beq  $endLabel""")
                 }
                 if(length>=16 && asmgen.zeropage.available() > 0) {
-                    // allocate index var on ZP if possible
+                    // allocate index var on ZP
                     val zpAddr = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, stmt.position, asmgen.errors)
                     asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""")
                 } else {

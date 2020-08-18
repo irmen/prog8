@@ -293,8 +293,10 @@ internal class StatementOptimizer(private val program: Program,
                 errors.warn("iterations is always 0, removed loop", iter.position)
                 return listOf(IAstModification.Remove(repeatLoop, parent))
             }
-            if (iterations == 1)
+            if (iterations == 1) {
                 errors.warn("iterations is always 1", iter.position)
+                return listOf(IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent))
+            }
         }
         return noModifications
     }

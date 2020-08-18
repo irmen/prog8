@@ -671,10 +671,8 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun translate(stmt: RepeatLoop) {
-        // TODO more optimized code possible now that continue is gone?
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
-        val counterLabel = makeLabel("repeatcounter")
         loopEndLabels.push(endLabel)
 
         when (stmt.iterations) {
@@ -691,13 +689,13 @@ internal class AsmGen(private val program: Program,
                     throw AssemblyError("invalid number of iterations")
                 when {
                     iterations == 0 -> {}
-                    iterations <= 255 -> {
-                        out("  lda  #${iterations}")
-                        repeatByteCountInA(counterLabel, repeatLabel, endLabel, stmt.body)
+                    iterations <= 256 -> {
+                        out("  lda  #${iterations and 255}")
+                        repeatByteCountInA(iterations, repeatLabel, endLabel, stmt.body)
                     }
                     else -> {
                         out("  lda  #<${iterations} |  ldy  #>${iterations}")
-                        repeatWordCountInAY(counterLabel, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountInAY(iterations, repeatLabel, endLabel, stmt.body)
                     }
                 }
             }
@@ -707,11 +705,11 @@ internal class AsmGen(private val program: Program,
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
                         out("  lda  $name")
-                        repeatByteCountInA(counterLabel, repeatLabel, endLabel, stmt.body)
+                        repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
                     }
                     DataType.UWORD, DataType.WORD -> {
                         out("  lda  $name |  ldy  $name+1")
-                        repeatWordCountInAY(counterLabel, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
                 }
@@ -722,11 +720,11 @@ internal class AsmGen(private val program: Program,
                 when (dt) {
                     in ByteDatatypes -> {
                         out("  inx |  lda  ${ESTACK_LO_HEX},x")
-                        repeatByteCountInA(counterLabel, repeatLabel, endLabel, stmt.body)
+                        repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
                     }
                     in WordDatatypes -> {
                         out("  inx |  lda  ${ESTACK_LO_HEX},x |  ldy  ${ESTACK_HI_HEX},x")
-                        repeatWordCountInAY(counterLabel, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype $dt")
                 }
@@ -736,9 +734,9 @@ internal class AsmGen(private val program: Program,
         loopEndLabels.pop()
     }
 
-    private fun repeatWordCountInAY(counterVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+    private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
         // note: A/Y must have been loaded with the number of iterations already!
-        // TODO allocate word counterVar on zeropage preferrably
+        val counterVar = makeLabel("repeatcounter")
         out("""
                 sta  $counterVar
                 sty  $counterVar+1
@@ -752,29 +750,42 @@ $repeatLabel    lda  $counterVar
 +               dec  $counterVar
 """)
         translate(body)
-        out("""
-            jmp  $repeatLabel
-$counterVar    .word  0
-$endLabel""")
+        out("  jmp  $repeatLabel")
+        if(constIterations!=null && constIterations>=16 && zeropage.available() > 1) {
+            // allocate count var on ZP
+            val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, body.position, errors)
+            out("""$counterVar = $zpAddr  ; auto zp UWORD""")
+        } else {
+            out("""
+$counterVar    .word  0""")
+        }
+        out(endLabel)
+
     }
 
-    private fun repeatByteCountInA(counterVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+    private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
         // note: A must have been loaded with the number of iterations already!
-        // TODO allocate word counterVar on zeropage preferrably
+        val counterVar = makeLabel("repeatcounter")
         out("""
-                sta  $counterVar
-$repeatLabel    lda  $counterVar
-                beq  $endLabel
-                dec  $counterVar""")
+            sta  $counterVar
+$repeatLabel""")
         translate(body)
         out("""
-                jmp  $repeatLabel
-$counterVar    .byte  0
-$endLabel""")
+             dec  $counterVar
+             bne  $repeatLabel
+             beq  $endLabel""")
+        if(constIterations!=null && constIterations>=16 && zeropage.available() > 0) {
+            // allocate count var on ZP
+            val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, body.position, errors)
+            out("""$counterVar = $zpAddr  ; auto zp UBYTE""")
+        } else {
+            out("""
+$counterVar    .byte  0""")
+        }
+        out(endLabel)
     }
 
     private fun translate(stmt: WhileLoop) {
-        // TODO more optimized code possible now that continue is gone?
         val whileLabel = makeLabel("while")
         val endLabel = makeLabel("whileend")
         loopEndLabels.push(endLabel)
@@ -801,7 +812,6 @@ $endLabel""")
     }
 
     private fun translate(stmt: UntilLoop) {
-        // TODO more optimized code possible now that continue is gone?
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         loopEndLabels.push(endLabel)
