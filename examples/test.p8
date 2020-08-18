@@ -24,32 +24,33 @@ main {
 ;        c64.CHROUT('\n')
 
 
-        ubyte bb
-        ubyte from = 10
-        ubyte end = 20
+;        ubyte bb
+;        ubyte from = 10
+;        ubyte end = 20
+;
+;        for bb in from to end step 3 {
+;            c64scr.print_ub(bb)
+;            c64.CHROUT(',')
+;        }
+;        c64.CHROUT('\n')
+;        for bb in end to from step -3 {
+;            c64scr.print_ub(bb)
+;            c64.CHROUT(',')
+;        }
+;        c64.CHROUT('\n')
 
-        for bb in from to end step 3 {
-            c64scr.print_ub(bb)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-        for bb in end to from step -3 {
-            c64scr.print_ub(bb)
-            c64.CHROUT(',')
-        }
-        c64.CHROUT('\n')
-
-        uword ww
-        uword fromw = 10
-        uword endw = 20
+        word ww
+        word fromw = -10
+        word endw = 21
 
         for ww in fromw to endw step 3 {
-            c64scr.print_uw(ww)
+            c64scr.print_w(ww)
             c64.CHROUT(',')
         }
+
         c64.CHROUT('\n')
         for ww in endw to fromw step -3 {
-            c64scr.print_uw(ww)
+            c64scr.print_w(ww)
             c64.CHROUT(',')
         }
         c64.CHROUT('\n')
