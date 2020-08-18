@@ -37,8 +37,9 @@ sub start() {
 }
 
 sub delay() {
-    repeat 32 {
-        while c64.RASTER {
+    repeat 8 {
+        ubyte jiffy = c64.TIME_LO
+        while c64.TIME_LO==jiffy {
         }
     }
 }
