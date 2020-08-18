@@ -27,9 +27,9 @@ import kotlin.math.absoluteValue
 
 
 internal class AsmGen(private val program: Program,
-                      private val errors: ErrorReporter,
-                      private val zeropage: Zeropage,
-                      private val options: CompilationOptions,
+                      val errors: ErrorReporter,
+                      val zeropage: Zeropage,
+                      val options: CompilationOptions,
                       private val outputDir: Path): IAssemblyGenerator {
 
     private val assemblyLines = mutableListOf<String>()

@@ -291,7 +291,7 @@ $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 val length = decl.arraysize!!.size()!!
-                val indexVar = asmgen.makeLabel("for_index")      // TODO allocate dynamically, zero page preferred if length >= 16
+                val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
@@ -313,13 +313,19 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                asmgen.out("""
-$indexVar           .byte  0
-$endLabel""")
+                if(length>=16 && asmgen.zeropage.available() > 0) {
+                    // allocate index var on ZP if possible
+                    val zpAddr = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, stmt.position, asmgen.errors)
+                    asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""")
+                } else {
+                    asmgen.out("""
+$indexVar           .byte  0""")
+                }
+                asmgen.out(endLabel)
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 val length = decl.arraysize!!.size()!! * 2
-                val indexVar = asmgen.makeLabel("for_index")    // todo allocate dynamically, zero page preferred if length >= 16
+                val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmIdentifierName(stmt.loopVar)
                 asmgen.out("""
                     ldy  #0
@@ -346,9 +352,15 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                asmgen.out("""
-$indexVar           .byte  0
-$endLabel""")
+                if(length>=16 && asmgen.zeropage.available() > 0) {
+                    // allocate index var on ZP if possible
+                    val zpAddr = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, stmt.position, asmgen.errors)
+                    asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""")
+                } else {
+                    asmgen.out("""
+$indexVar           .byte  0""")
+                }
+                asmgen.out(endLabel)
             }
             DataType.ARRAY_F -> {
                 throw AssemblyError("for loop with floating point variables is not supported")

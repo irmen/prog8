@@ -16,7 +16,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     fun available() = if(options.zeropage==ZeropageType.DONTUSE) 0 else free.size
 
     fun allocate(scopedname: String, datatype: DataType, position: Position?, errors: ErrorReporter): Int {
-        assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"isSameAs scopedname can't be allocated twice"}
+        assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
 
         if(options.zeropage==ZeropageType.DONTUSE)
             throw CompilerException("zero page usage has been disabled")
