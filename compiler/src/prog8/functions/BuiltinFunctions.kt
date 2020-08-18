@@ -274,22 +274,16 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             arraySize = target.arraysize?.size()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")
-            if(arraySize>256)
-                throw CompilerException("array length exceeds byte limit ${target.position}")
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)
         }
         DataType.ARRAY_F -> {
             arraySize = target.arraysize?.size()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")
-            if(arraySize>256)
-                throw CompilerException("array length exceeds byte limit ${target.position}")
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)
         }
         DataType.STR -> {
             val refLv = target.value as StringLiteralValue
-            if(refLv.value.length>255)
-                throw CompilerException("string length exceeds byte limit ${refLv.position}")
             NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
         }
         in NumericDatatypes -> throw SyntaxError("len of weird argument ${args[0]}", position)

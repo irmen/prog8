@@ -257,6 +257,16 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
+**Arrays at a specific memory location:**
+Using the memory-mapped syntax it is possible to define an array to be located at a specific memory location.
+For instance to reference the first 5 rows of the Commodore 64's screen matrix as an array, you can define::
+
+    &ubyte[5*40]  top5screenrows = $0400
+
+This way you can set the second character on the second row from the top like this::
+
+    top5screenrows[41] = '!'
+
 
 Strings
 ^^^^^^^

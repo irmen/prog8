@@ -24,20 +24,20 @@ main {
 ;        c64.CHROUT('\n')
 
 
-;        ubyte bb
-;        ubyte from = 10
-;        ubyte end = 20
-;
-;        for bb in from to end step 3 {
-;            c64scr.print_ub(bb)
-;            c64.CHROUT(',')
-;        }
-;        c64.CHROUT('\n')
-;        for bb in end to from step -3 {
-;            c64scr.print_ub(bb)
-;            c64.CHROUT(',')
-;        }
-;        c64.CHROUT('\n')
+        ubyte bb
+        ubyte from = 10
+        ubyte end = 20
+
+        for bb in from to end step 3 {
+            c64scr.print_ub(bb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
+        for bb in end to from step -3 {
+            c64scr.print_ub(bb)
+            c64.CHROUT(',')
+        }
+        c64.CHROUT('\n')
 
         word ww
         word fromw = -10

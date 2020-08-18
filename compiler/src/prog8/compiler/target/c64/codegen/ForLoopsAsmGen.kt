@@ -266,7 +266,6 @@ $endLabel       inx""")
     }
 
     private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
-        // TODO optimize this more
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
@@ -291,9 +290,9 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                // TODO: optimize loop code when the length of the array is < 256   (i.e. always)
+                // TODO: optimize loop code when the length of the array is 255 or less instead of 256
                 val length = decl.arraysize!!.size()!!
-                val counterLabel = asmgen.makeLabel("for_counter")      // todo allocate dynamically, zero page preferred if iterations >= 8
+                val counterLabel = asmgen.makeLabel("for_counter")      // todo allocate dynamically, zero page preferred if len >= 16
                 val modifiedLabel = asmgen.makeLabel("for_modified")
                 asmgen.out("""
                     lda  #<$iterableName
@@ -315,9 +314,9 @@ $counterLabel       .byte  0
 $endLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                // TODO: optimize loop code when the length of the array is < 256  (i.e. always)
+                // TODO: optimize loop code when the length of the array is 255 or less instead of 256
                 val length = decl.arraysize!!.size()!! * 2
-                val counterLabel = asmgen.makeLabel("for_counter")    // todo allocate dynamically, zero page preferred if iterations >= 8
+                val counterLabel = asmgen.makeLabel("for_counter")    // todo allocate dynamically, zero page preferred if len >= 16
                 val modifiedLabel = asmgen.makeLabel("for_modified")
                 val modifiedLabel2 = asmgen.makeLabel("for_modified2")
                 val loopvarName = asmgen.asmIdentifierName(stmt.loopVar)

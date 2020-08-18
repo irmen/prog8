@@ -492,8 +492,7 @@ internal class AstChecker(private val program: Program,
 
                 when(decl.value) {
                     null -> {
-                        // a vardecl without an initial value, don't bother with the rest
-                        return super.visit(decl)
+                        // a vardecl without an initial value, don't bother with it
                     }
                     is RangeExpr -> throw FatalAstException("range expression should have been converted to a true array value")
                     is StringLiteralValue -> {
@@ -574,6 +573,26 @@ internal class AstChecker(private val program: Program,
                     err("initialisation of struct should be with array value", declValue.position)
             } else if (!declValue.inferType(program).istype(decl.datatype)) {
                 err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
+            }
+        }
+
+        // array length limits
+        if(decl.isArray) {
+            val length = decl.arraysize!!.size() ?: 1
+            when (decl.datatype) {
+                DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                    if(length==0 || length>256)
+                        err("string and byte array length must be 1-256")
+                }
+                DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    if(length==0 || length>128)
+                        err("word array length must be 1-128")
+                }
+                DataType.ARRAY_F -> {
+                    if(length==0 || length>51)
+                        err("float array length must be 1-51")
+                }
+                else -> {}
             }
         }
 

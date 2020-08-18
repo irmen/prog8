@@ -306,6 +306,7 @@ should be allocated by the compiler. Instead, the (mandatory) value assigned to 
 should be the *memory address* where the value is located::
 
 	&byte BORDERCOLOR = $d020
+    &ubyte[5*40]  top5screenrows = $0400        ; works for array as well
 
 
 Direct access to memory locations
