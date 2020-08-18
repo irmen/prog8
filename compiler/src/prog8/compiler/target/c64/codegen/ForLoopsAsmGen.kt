@@ -279,8 +279,8 @@ $endLabel       inx""")
                     sta  $loopLabel+1
                     sty  $loopLabel+2
 $loopLabel          lda  ${65535.toHex()}       ; modified
-                    beq  $endLabel""")
-                asmgen.out("  sta  ${asmgen.asmIdentifierName(stmt.loopVar)}")
+                    beq  $endLabel
+                    sta  ${asmgen.asmIdentifierName(stmt.loopVar)}""")
                 asmgen.translate(stmt.body)
                 asmgen.out("""
                     inc  $loopLabel+1
@@ -290,60 +290,64 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                // TODO: optimize loop code when the length of the array is 255 or less instead of 256
                 val length = decl.arraysize!!.size()!!
-                val counterLabel = asmgen.makeLabel("for_counter")      // todo allocate dynamically, zero page preferred if len >= 16
-                val modifiedLabel = asmgen.makeLabel("for_modified")
+                val indexVar = asmgen.makeLabel("for_index")      // TODO allocate dynamically, zero page preferred if length >= 16
                 asmgen.out("""
-                    lda  #<$iterableName
-                    ldy  #>$iterableName
-                    sta  $modifiedLabel+1
-                    sty  $modifiedLabel+2
                     ldy  #0
-$loopLabel          sty  $counterLabel
-$modifiedLabel      lda  ${65535.toHex()},y       ; modified""")
-                asmgen.out("  sta  ${asmgen.asmIdentifierName(stmt.loopVar)}")
+$loopLabel          sty  $indexVar
+                    lda  $iterableName,y
+                    sta  ${asmgen.asmIdentifierName(stmt.loopVar)}""")
                 asmgen.translate(stmt.body)
+                if(length<=255) {
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        cpy  #$length
+                        beq  $endLabel
+                        bne  $loopLabel""")
+                } else {
+                    // length is 256
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        bne  $loopLabel
+                        beq  $endLabel""")
+                }
                 asmgen.out("""
-                    ldy  $counterLabel
-                    iny
-                    cpy  #${length and 255}
-                    beq  $endLabel
-                    bne  $loopLabel
-$counterLabel       .byte  0
+$indexVar           .byte  0
 $endLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                // TODO: optimize loop code when the length of the array is 255 or less instead of 256
                 val length = decl.arraysize!!.size()!! * 2
-                val counterLabel = asmgen.makeLabel("for_counter")    // todo allocate dynamically, zero page preferred if len >= 16
-                val modifiedLabel = asmgen.makeLabel("for_modified")
-                val modifiedLabel2 = asmgen.makeLabel("for_modified2")
+                val indexVar = asmgen.makeLabel("for_index")    // todo allocate dynamically, zero page preferred if length >= 16
                 val loopvarName = asmgen.asmIdentifierName(stmt.loopVar)
                 asmgen.out("""
-                    lda  #<$iterableName
-                    ldy  #>$iterableName
-                    sta  $modifiedLabel+1
-                    sty  $modifiedLabel+2
-                    lda  #<$iterableName+1
-                    ldy  #>$iterableName+1
-                    sta  $modifiedLabel2+1
-                    sty  $modifiedLabel2+2
                     ldy  #0
-$loopLabel          sty  $counterLabel
-$modifiedLabel      lda  ${65535.toHex()},y       ; modified
+$loopLabel          sty  $indexVar
+                    lda  $iterableName,y
                     sta  $loopvarName
-$modifiedLabel2     lda  ${65535.toHex()},y       ; modified
+                    lda  $iterableName+1,y
                     sta  $loopvarName+1""")
                 asmgen.translate(stmt.body)
+                if(length<=127) {
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        iny
+                        cpy  #$length
+                        beq  $endLabel
+                        bne  $loopLabel""")
+                } else {
+                    // length is 128 words, 256 bytes
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        iny
+                        bne  $loopLabel
+                        beq  $endLabel""")
+                }
                 asmgen.out("""
-                    ldy  $counterLabel
-                    iny
-                    iny
-                    cpy  #${length and 255}
-                    beq  $endLabel
-                    bne  $loopLabel
-$counterLabel       .byte  0
+$indexVar           .byte  0
 $endLabel""")
             }
             DataType.ARRAY_F -> {
