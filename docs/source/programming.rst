@@ -724,10 +724,16 @@ reverse(array)
 
 len(x)
     Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).
-    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte.
+    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
     Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
     length of the string during execution, the value of len(string) may no longer be correct!
     (use strlen function if you want to dynamically determine the length)
+
+sizeof(name)
+    Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
+    the object. For instance, for a variable of type uword, the sizeof is 2.
+    For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
+    Note: usually you will be interested in the number of elements in an array, use len() for that.
 
 strlen(str)
     Number of bytes in the string. This value is determined during runtime and counts upto

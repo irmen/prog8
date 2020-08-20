@@ -15,44 +15,45 @@ main {
 
         Color c = [11,22222,3.1234]
 
-;        c64scr.print_ub(c.red)
-;        c64.CHROUT('\n')
-;        c64scr.print_uw(c.green)
-;        c64.CHROUT('\n')
-;        c64flt.print_f(c.blue)
-;        c64.CHROUT('\n')
+        str string = "irmen"
+        byte[]  ab = [1,2,3]
+        ubyte[]  aub = [1,2,3]
+        word[]  aw = [11,22,33]
+        uword[]  auw = [11,22,33]
+        float[]  af = [1.1,2.2,3.3]
 
-        uword xx = 4.5678
-        ubyte bb = 33
-        float ff = 1.234
+        c64scr.print_ub(sizeof(ab))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(aub))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(aw))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(auw))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(af))
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
 
-        foo(1.234, 4.456)   ; TODO truncation warning
-        foo2(2.3456)        ; TODO truncation warning
-        foo2(bb)
-        foo2(4.55)          ; TODO truncation warning
+        c64scr.print_ub(c.red)
+        c64.CHROUT('\n')
+        c64scr.print_uw(c.green)
+        c64.CHROUT('\n')
+        c64flt.print_f(c.blue)
+        c64.CHROUT('\n')
 
-        ;foo("zzz", 8.777)
-        ;len(13)
-
-;        uword size = len(Color)
-;        c64scr.print_uw(size)
-;        c64.CHROUT('\n')
-
-;        c64scr.print_ub(len(Color))
-;        c64.CHROUT('\n')
-;        c64scr.print_ub(len(c))
-;        c64.CHROUT('\n')
-;        c64scr.print_ub(len(c.green))
-;        c64.CHROUT('\n')
-    }
-
-    sub foo(ubyte aa, word ww) {
-        ww += aa
-    }
-
-    asmsub foo2(ubyte aa @Pc) {
-        %asm {{
-            rts
-        }}
+        ubyte size = sizeof(Color)
+        c64scr.print_ub(size)
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(Color))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(c))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(c.red))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(c.green))
+        c64.CHROUT('\n')
+        c64scr.print_ub(sizeof(c.blue))
+        c64.CHROUT('\n')
     }
 }

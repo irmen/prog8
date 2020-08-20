@@ -716,11 +716,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun referencesIdentifiers(vararg name: String): Boolean = nameInSource.last() in name
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        val targetStmt = targetStatement(program.namespace)
-        return if(targetStmt is VarDecl) {
-            InferredTypes.knownFor(targetStmt.datatype)
-        } else {
-            InferredTypes.InferredType.unknown()
+        return when (val targetStmt = targetStatement(program.namespace)) {
+            is VarDecl -> InferredTypes.knownFor(targetStmt.datatype)
+            is StructDecl -> InferredTypes.knownFor(DataType.STRUCT)
+            else -> InferredTypes.InferredType.unknown()
         }
     }
 

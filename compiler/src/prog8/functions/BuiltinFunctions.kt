@@ -3,6 +3,8 @@ package prog8.functions
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.statements.StructDecl
+import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
 import kotlin.math.*
 
@@ -35,6 +37,7 @@ val BuiltinFunctions = mapOf(
     "sum"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
     "abs"         to FSignature(true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     "len"         to FSignature(true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
+    "sizeof"      to FSignature(true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinSizeof),
         // normal functions follow:
     "sgn"         to FSignature(true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
     "sin"         to FSignature(true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
@@ -240,6 +243,42 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
     }
 }
 
+private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+    // 1 arg, type = anything, result type = ubyte
+    if(args.size!=1)
+        throw SyntaxError("sizeof requires one argument", position)
+    if(args[0] !is IdentifierReference)
+        throw SyntaxError("sizeof argument should be an identifier", position)
+
+    val dt = args[0].inferType(program)
+    if(dt.isKnown) {
+        val target = (args[0] as IdentifierReference).targetStatement(program.namespace)
+                ?: throw CannotEvaluateException("sizeof", "no target")
+
+        fun structSize(target: StructDecl) =
+                NumericLiteralValue(DataType.UBYTE, target.statements.map { (it as VarDecl).datatype.memorySize() }.sum(), position)
+
+        return when {
+            dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {
+                val length = (target as VarDecl).arraysize!!.size() ?: throw CannotEvaluateException("sizeof", "unknown array size")
+                val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.STRUCT))
+                numericLiteral(elementDt.memorySize() * length, position)
+            }
+            dt.istype(DataType.STRUCT) -> {
+                when (target) {
+                    is VarDecl -> structSize(target.struct!!)
+                    is StructDecl -> structSize(target)
+                    else -> throw CompilerException("weird struct type $target")
+                }
+            }
+            dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
+            else -> NumericLiteralValue(DataType.UBYTE, dt.typeOrElse(DataType.STRUCT).memorySize(), position)
+        }
+    } else {
+        throw SyntaxError("sizeof invalid argument type", position)
+    }
+}
+
 private fun builtinStrlen(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("strlen requires one argument", position)
@@ -262,18 +301,12 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     if(args[0] is ArrayLiteralValue)
         return NumericLiteralValue.optimalInteger((args[0] as ArrayLiteralValue).value.size, position)
     if(args[0] !is IdentifierReference)
-        throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
+        throw SyntaxError("len argument should be an identifier", position)
     val target = (args[0] as IdentifierReference).targetVarDecl(program.namespace)
             ?: throw CannotEvaluateException("len", "no target vardecl")
 
     return when(target.datatype) {
-        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-            arraySize = target.arraysize?.size()
-            if(arraySize==null)
-                throw CannotEvaluateException("len", "arraysize unknown")
-            NumericLiteralValue.optimalInteger(arraySize, args[0].position)
-        }
-        DataType.ARRAY_F -> {
+        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
             arraySize = target.arraysize?.size()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")

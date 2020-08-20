@@ -14,6 +14,7 @@ object C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
     override val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
     override val FLOAT_MEM_SIZE = 5
+    override val POINTER_MEM_SIZE = 2
     const val BASIC_LOAD_ADDRESS = 0x0801
     const val RAW_LOAD_ADDRESS = 0xc000
 

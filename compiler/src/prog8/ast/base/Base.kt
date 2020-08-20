@@ -58,7 +58,7 @@ enum class DataType {
             in ByteDatatypes -> 1
             in WordDatatypes -> 2
             FLOAT -> CompilationTarget.machine.FLOAT_MEM_SIZE
-            in PassByReferenceDatatypes -> 2
+            in PassByReferenceDatatypes -> CompilationTarget.machine.POINTER_MEM_SIZE
             else -> -9999999
         }
     }
