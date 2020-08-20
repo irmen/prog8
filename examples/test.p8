@@ -7,21 +7,10 @@ main {
 
     sub start() {
 
-        c64scr.print_ub(5)
-        c64.CHROUT('\n')
-        return
+        ubyte A=5
+        uword clr = $d020
+        @(clr+1) = A
 
-        c64scr.print_ub(5)
-        c64.CHROUT('\n')
-
-        goto start
-
-        c64scr.print_ub(5)
-        c64.CHROUT('\n')
-
-        exit(11)
-
-        c64scr.print_ub(5)
-        c64.CHROUT('\n')
+;        uword xx = @(clr+1)
     }
 }

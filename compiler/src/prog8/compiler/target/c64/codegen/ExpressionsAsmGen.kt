@@ -140,10 +140,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 val sourceName = asmgen.asmIdentifierName(expr.addressExpression as IdentifierReference)
                 asmgen.out("""
         lda  $sourceName
-        sta  (+) +1
+        sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_W1}
         lda  $sourceName+1
-        sta  (+) +2
-+       lda  ${'$'}ffff     ; modified
+        sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_W1+1}
+        ldy  #0
+        lda  (${C64MachineDefinition.C64Zeropage.SCRATCH_W1}),y
         sta  $ESTACK_LO_HEX,x
         dex""")
             }

@@ -328,7 +328,7 @@ open class Assignment(var target: AssignTarget, var value: Expression, override 
         return("Assignment(target: $target, value: $value, pos=$position)")
     }
 
-    val isInplace: Boolean
+    val isAugmentable: Boolean
         get() {
             val binExpr = value as? BinaryExpression
             if(binExpr!=null) {

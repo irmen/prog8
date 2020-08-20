@@ -5,6 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
+import prog8.ast.statements.Assignment
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
 import prog8.compiler.AssemblyError
@@ -107,48 +108,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val paramVar = parameter.value
         val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
         val target = AssignTarget(IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
-        target.linkParents(value.parent)
-        when (value) {
-            is NumericLiteralValue -> {
-                // optimize when the argument is a constant literal
-                when(parameter.value.type) {
-                    in ByteDatatypes -> asmgen.assignFromByteConstant(target, value.number.toShort())
-                    in WordDatatypes -> asmgen.assignFromWordConstant(target, value.number.toInt())
-                    DataType.FLOAT -> asmgen.assignFromFloatConstant(target, value.number.toDouble())
-                    else -> throw AssemblyError("weird parameter datatype")
-                }
-            }
-            is IdentifierReference -> {
-                // optimize when the argument is a variable
-                when (parameter.value.type) {
-                    in ByteDatatypes -> asmgen.assignFromByteVariable(target, value)
-                    in WordDatatypes -> asmgen.assignFromWordVariable(target, value)
-                    DataType.FLOAT -> asmgen.assignFromFloatVariable(target, value)
-                    in PassByReferenceDatatypes -> asmgen.assignFromAddressOf(target, value)
-                    else -> throw AssemblyError("weird parameter datatype")
-                }
-            }
-            is DirectMemoryRead -> {
-                when(value.addressExpression) {
-                    is NumericLiteralValue -> {
-                        val address = (value.addressExpression as NumericLiteralValue).number.toInt()
-                        asmgen.assignFromMemoryByte(target, address, null)
-                    }
-                    is IdentifierReference -> {
-                        asmgen.assignFromMemoryByte(target, null, value.addressExpression as IdentifierReference)
-                    }
-                    else -> {
-                        asmgen.translateExpression(value.addressExpression)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address |  inx")
-                        asmgen.assignFromRegister(target, CpuRegister.A)
-                    }
-                }
-            }
-            else -> {
-                asmgen.translateExpression(value)
-                asmgen.assignFromEvalResult(target)
-            }
-        }
+        val assign = Assignment(target, value, value.position)
+        assign.linkParents(value.parent)
+        asmgen.translate(assign)
     }
 
     private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {

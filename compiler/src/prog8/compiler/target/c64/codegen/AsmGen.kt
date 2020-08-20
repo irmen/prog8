@@ -1025,36 +1025,6 @@ $counterVar    .byte  0""")
     internal fun translateFunctionCall(functionCall: FunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCall)
 
-    internal fun assignFromEvalResult(target: AssignTarget) =
-            assignmentAsmGen.assignFromEvalResult(target)
-
-    fun assignFromByteConstant(target: AssignTarget, value: Short) =
-            assignmentAsmGen.assignFromByteConstant(target, value)
-
-    fun assignFromWordConstant(target: AssignTarget, value: Int) =
-            assignmentAsmGen.assignFromWordConstant(target, value)
-
-    fun assignFromFloatConstant(target: AssignTarget, value: Double) =
-            assignmentAsmGen.assignFromFloatConstant(target, value)
-
-    fun assignFromByteVariable(target: AssignTarget, variable: IdentifierReference) =
-            assignmentAsmGen.assignFromByteVariable(target, variable)
-
-    fun assignFromWordVariable(target: AssignTarget, variable: IdentifierReference) =
-            assignmentAsmGen.assignFromWordVariable(target, variable)
-
-    fun assignFromAddressOf(target: AssignTarget, variable: IdentifierReference) =
-            assignmentAsmGen.assignFromAddressOf(target, variable)
-
-    fun assignFromFloatVariable(target: AssignTarget, variable: IdentifierReference) =
-            assignmentAsmGen.assignFromFloatVariable(target, variable)
-
-    fun assignFromRegister(target: AssignTarget, register: CpuRegister) =
-            assignmentAsmGen.assignFromRegister(target, register)
-
-    fun assignFromMemoryByte(target: AssignTarget, address: Int?, identifier: IdentifierReference?) =
-            assignmentAsmGen.assignFromMemoryByte(target, address, identifier)
-
-    fun assignToRegister(reg: CpuRegister, value: Short?, identifier: IdentifierReference?) =
+    internal fun assignToRegister(reg: CpuRegister, value: Short?, identifier: IdentifierReference?) =
             assignmentAsmGen.assignToRegister(reg, value, identifier)
 }
