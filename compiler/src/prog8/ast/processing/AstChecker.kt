@@ -360,8 +360,14 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(assignment.value.inferType(program) != assignment.target.inferType(program, assignment))
+        val targetDt = assignment.target.inferType(program, assignment)
+        if(assignment.value.inferType(program) != targetDt)
             errors.err("assignment value is of different type as the target", assignment.value.position)
+
+        if(assignment.value is TypecastExpression) {
+            if(assignment.isAugmentable && targetDt.istype(DataType.FLOAT))
+                errors.err("typecasting a float value in-place makes no sense", assignment.value.position)
+        }
 
         super.visit(assignment)
     }
@@ -708,11 +714,19 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: PrefixExpression) {
+        val dt = expr.inferType(program).typeOrElse(DataType.STRUCT)
         if(expr.operator=="-") {
-            val dt = expr.inferType(program).typeOrElse(DataType.STRUCT)
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 errors.err("can only take negative of a signed number type", expr.position)
             }
+        }
+        else if(expr.operator == "not") {
+            if(dt !in IntegerDatatypes)
+                errors.err("can only use boolean not on integer types", expr.position)
+        }
+        else if(expr.operator == "~") {
+            if(dt !in IntegerDatatypes)
+                errors.err("can only use bitwise invert on integer types", expr.position)
         }
         super.visit(expr)
     }

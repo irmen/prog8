@@ -113,10 +113,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             is TypecastExpression -> {
                 val cast = assign.value as TypecastExpression
                 val sourceType = cast.expression.inferType(program)
-                val targetType = assign.target.inferType(program, assign)
-                if (sourceType.isKnown && targetType.isKnown &&
-                        (sourceType.typeOrElse(DataType.STRUCT) in ByteDatatypes && targetType.typeOrElse(DataType.STRUCT) in ByteDatatypes) ||
-                        (sourceType.typeOrElse(DataType.STRUCT) in WordDatatypes && targetType.typeOrElse(DataType.STRUCT) in WordDatatypes)) {
+                if (sourceType.isKnown &&
+                        (sourceType.typeOrElse(DataType.STRUCT) in ByteDatatypes && cast.type in ByteDatatypes) ||
+                        (sourceType.typeOrElse(DataType.STRUCT) in WordDatatypes && cast.type in WordDatatypes)) {
                     // no need for a type cast
                     assign.value = cast.expression
                     translate(assign)
@@ -131,7 +130,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array assignment  $assign")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values ${assign.value.position}")
-            else -> throw AssemblyError("assignment value type should have been handled elsewhere")
+            else -> throw AssemblyError("assignment value type ${assign.value} should have been handled elsewhere")
         }
     }
 

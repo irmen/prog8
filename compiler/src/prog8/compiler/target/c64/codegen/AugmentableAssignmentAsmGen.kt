@@ -2,12 +2,14 @@ package prog8.compiler.target.c64.codegen
 
 import prog8.ast.Program
 import prog8.ast.base.DataType
+import prog8.ast.base.IterableDatatypes
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                   private val assignmentAsmGen: AssignmentAsmGen,
@@ -28,17 +30,53 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> throw AssemblyError("invalid prefix operator")
                 }
             }
-            is TypecastExpression -> {
-                println("TODO optimize typecast assignment ${assign.position}")
-                assignmentAsmGen.translateOtherAssignment(assign) // TODO get rid of this fallback
+            is TypecastExpression -> inplaceCast(assign.target, assign.value as TypecastExpression, assign)
+            is BinaryExpression -> inplaceBinary(assign.target, assign.value as BinaryExpression, assign)
+            else -> throw AssemblyError("invalid aug assign value type")
+        }
+    }
+
+    private fun inplaceBinary(target: AssignTarget, binaryExpression: BinaryExpression, assign: Assignment) {
+        println("TODO optimize binexpr assignment ${binaryExpression.position}")
+        assignmentAsmGen.translateOtherAssignment(assign) // TODO get rid of this fallback
+    }
+
+    private fun inplaceCast(target: AssignTarget, cast: TypecastExpression, assign: Assignment) {
+        val targetDt = target.inferType(program, assign).typeOrElse(DataType.STRUCT)
+        val outerCastDt = cast.type
+        val innerCastDt = (cast.expression as? TypecastExpression)?.type
+
+        if(innerCastDt==null) {
+            // simple typecast where the value is the target
+            when(targetDt) {
+                DataType.UBYTE, DataType.BYTE -> { /* byte target can't be casted to anything else at all */ }
+                DataType.UWORD, DataType.WORD -> {
+                    when(outerCastDt) {
+                        DataType.UBYTE, DataType.BYTE -> {
+                            if(target.identifier!=null) {
+                                val name = asmgen.asmIdentifierName(target.identifier!!)
+                                asmgen.out(" lda  #0 |  sta  $name+1")
+                            } else
+                                throw AssemblyError("weird value")
+                        }
+                        DataType.UWORD, DataType.WORD, in IterableDatatypes -> {}
+                        DataType.FLOAT -> throw AssemblyError("incompatible cast type")
+                        else -> throw AssemblyError("weird cast type")
+                    }
+                }
+                DataType.FLOAT -> {
+                    if(outerCastDt!=DataType.FLOAT)
+                        throw AssemblyError("in-place cast of a float makes no sense")
+                }
+                else -> throw AssemblyError("invalid cast target type")
             }
-            is BinaryExpression -> {
-                println("TODO optimize binexpr assignment ${assign.position}")
-                assignmentAsmGen.translateOtherAssignment(assign) // TODO get rid of this fallback
-            }
-            else -> {
-                throw AssemblyError("invalid aug assign value type")
-            }
+        } else {
+            // typecast with nested typecast, that has the target as a value
+            // calculate singular cast that is required
+            val castDt = if(outerCastDt largerThan innerCastDt) innerCastDt else outerCastDt
+            val value = (cast.expression as TypecastExpression).expression
+            val resultingCast = TypecastExpression(value, castDt, false, assign.position)
+            inplaceCast(target, resultingCast, assign)
         }
     }
 
@@ -60,10 +98,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  $name""")
                     }
                     memory!=null -> {
-                        TODO()
+                        TODO("in-place not of ubyte memory")
                     }
                     arrayIdx!=null -> {
-                        TODO()
+                        TODO("in-place not of ubyte array")
                     }
                 }
             }
@@ -81,12 +119,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             lsr  a
                             sta  $name+1""")
                     }
-                    memory!=null -> {
-                        TODO()
-                    }
-                    arrayIdx!=null -> {
-                        TODO()
-                    }
+                    arrayIdx!=null -> TODO("in-place not of uword array")
+                    memory!=null -> throw AssemblyError("no asm gen for uword-memory not")
                 }
             }
             else -> throw AssemblyError("boolean-not of invalid type")
@@ -109,10 +143,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  $name""")
                     }
                     memory!=null -> {
-                        TODO()
+                        TODO("in-place invert ubyte memory")
                     }
                     arrayIdx!=null -> {
-                        TODO()
+                        TODO("in-place invert ubyte array")
                     }
                 }
             }
@@ -128,12 +162,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             eor  #255
                             sta  $name+1""")
                     }
-                    memory!=null -> {
-                        TODO()
-                    }
-                    arrayIdx!=null -> {
-                        TODO()
-                    }
+                    arrayIdx!=null -> TODO("in-place invert uword array")
+                    memory!=null -> throw AssemblyError("no asm gen for uword-memory invert")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
@@ -157,10 +187,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  $name""")
                     }
                     memory!=null -> {
-                        TODO()
+                        TODO("in-place negate byte memory")
                     }
                     arrayIdx!=null -> {
-                        TODO()
+                        TODO("in-place negate byte array")
                     }
                 }
             }
@@ -177,16 +207,29 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sbc  $name+1
                             sta  $name+1""")
                     }
-                    memory!=null -> {
-                        TODO()
-                    }
-                    arrayIdx!=null -> {
-                        TODO()
-                    }
+                    arrayIdx!=null -> TODO("in-place negate word array")
+                    memory!=null -> throw AssemblyError("no asm gen for word memory negate")
                 }
             }
             DataType.FLOAT -> {
-                TODO()
+                when {
+                    identifier!=null -> {
+                        val name = asmgen.asmIdentifierName(identifier)
+                        asmgen.out("""
+                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            lda  #<$name
+                            ldy  #>$name
+                            jsr  c64flt.MOVFM
+                            jsr  c64flt.NEGOP
+                            ldx  #<$name
+                            ldy  #>$name
+                            jsr  c64flt.MOVMF
+                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                        """)
+                    }
+                    arrayIdx!=null -> TODO("in-place negate float array")
+                    memory!=null -> throw AssemblyError("no asm gen for float memory negate")
+                }
             }
             else -> throw AssemblyError("negate of invalid type")
         }
