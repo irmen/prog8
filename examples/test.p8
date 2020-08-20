@@ -24,8 +24,10 @@ main {
 
         uword xx = 4.5678
         ubyte bb = 33
+        float ff = 1.234
 
-        foo2(-33)
+        foo(1.234, 4.456)   ; TODO truncation warning
+        foo2(2.3456)        ; TODO truncation warning
         foo2(bb)
         foo2(4.55)          ; TODO truncation warning
 

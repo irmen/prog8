@@ -277,7 +277,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
-        return cv.cast(type)
+        return cv.castNoCheck(type)
         // val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
         // return LiteralValue.fromNumber(value.numericValue(), value.type, position).cast(type)
     }
@@ -398,7 +398,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     operator fun compareTo(other: NumericLiteralValue): Int = number.toDouble().compareTo(other.number.toDouble())
 
-    fun cast(targettype: DataType): NumericLiteralValue {
+    fun castNoCheck(targettype: DataType): NumericLiteralValue {
         if(type==targettype)
             return this
         val numval = number.toDouble()
@@ -567,7 +567,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
                     it
                 } else {
                     try {
-                        num.cast(elementType)
+                        num.castNoCheck(elementType)
                     } catch(x: ExpressionError) {
                         return null
                     }

@@ -52,7 +52,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                             assignment))
                 } else {
                     fun castLiteral(cvalue: NumericLiteralValue): List<IAstModification.ReplaceNode> =
-                        listOf(IAstModification.ReplaceNode(cvalue, cvalue.cast(targettype), cvalue.parent))
+                        listOf(IAstModification.ReplaceNode(cvalue, cvalue.castNoCheck(targettype), cvalue.parent))
                     val cvalue = assignment.value.constValue(program)
                     if(cvalue!=null) {
                         val number = cvalue.number.toDouble()
@@ -109,14 +109,16 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                                         AddressOf(arg.second.value as IdentifierReference, arg.second.value.position),
                                         call as Node)
                             } else if(arg.second.value is NumericLiteralValue) {
-                                try {
-                                    val castedValue = (arg.second.value as NumericLiteralValue).cast(requiredType)
-                                    modifications += IAstModification.ReplaceNode(
-                                            call.args[arg.second.index],
-                                            castedValue,
-                                            call as Node)
-                                } catch (x: ExpressionError) {
-                                    // no cast possible
+                                if(argtype.isAssignableTo(requiredType)) {
+                                    try {
+                                        val castedValue = (arg.second.value as NumericLiteralValue).castNoCheck(requiredType)
+                                        modifications += IAstModification.ReplaceNode(
+                                                call.args[arg.second.index],
+                                                castedValue,
+                                                call as Node)
+                                    } catch (x: ExpressionError) {
+                                        // cast failed
+                                    }
                                 }
                             }
                         }
@@ -161,7 +163,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         // make sure the memory address is an uword
         val dt = memread.addressExpression.inferType(program)
         if(dt.isKnown && dt.typeOrElse(DataType.UWORD)!=DataType.UWORD) {
-            val typecast = (memread.addressExpression as? NumericLiteralValue)?.cast(DataType.UWORD)
+            val typecast = (memread.addressExpression as? NumericLiteralValue)?.castNoCheck(DataType.UWORD)
                     ?: TypecastExpression(memread.addressExpression, DataType.UWORD, true, memread.addressExpression.position)
             return listOf(IAstModification.ReplaceNode(memread.addressExpression, typecast, memread))
         }
@@ -172,7 +174,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         // make sure the memory address is an uword
         val dt = memwrite.addressExpression.inferType(program)
         if(dt.isKnown && dt.typeOrElse(DataType.UWORD)!=DataType.UWORD) {
-            val typecast = (memwrite.addressExpression as? NumericLiteralValue)?.cast(DataType.UWORD)
+            val typecast = (memwrite.addressExpression as? NumericLiteralValue)?.castNoCheck(DataType.UWORD)
                     ?: TypecastExpression(memwrite.addressExpression, DataType.UWORD, true, memwrite.addressExpression.position)
             return listOf(IAstModification.ReplaceNode(memwrite.addressExpression, typecast, memwrite))
         }
@@ -189,7 +191,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                 if (returnValue.inferType(program).istype(subReturnType))
                     return noModifications
                 if (returnValue is NumericLiteralValue) {
-                    returnStmt.value = returnValue.cast(subroutine.returntypes.single())
+                    returnStmt.value = returnValue.castNoCheck(subroutine.returntypes.single())
                 } else {
                     return listOf(IAstModification.ReplaceNode(
                             returnValue,

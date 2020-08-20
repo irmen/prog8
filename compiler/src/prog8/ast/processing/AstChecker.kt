@@ -1225,7 +1225,7 @@ internal class AstChecker(private val program: Program,
                 is AddressOf -> it.identifier.heapId(program.namespace)
                 is TypecastExpression -> {
                     val constVal = it.expression.constValue(program)
-                    constVal?.cast(it.type)?.number?.toInt() ?: -9999999
+                    constVal?.castNoCheck(it.type)?.number?.toInt() ?: -9999999
                 }
                 else -> -9999999
             }

@@ -171,7 +171,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
         if(declValue!=null && decl.type==VarDeclType.VAR
                 && declValue is NumericLiteralValue && !declValue.inferType(program).istype(decl.datatype)) {
             // cast the numeric literal to the appropriate datatype of the variable
-            return listOf(IAstModification.ReplaceNode(decl.value!!, declValue.cast(decl.datatype), decl))
+            return listOf(IAstModification.ReplaceNode(decl.value!!, declValue.castNoCheck(decl.datatype), decl))
         }
 
         return noModifications
@@ -323,13 +323,13 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
             val newFrom: NumericLiteralValue
             val newTo: NumericLiteralValue
             try {
-                newFrom = rangeFrom.cast(targetDt)
-                newTo = rangeTo.cast(targetDt)
+                newFrom = rangeFrom.castNoCheck(targetDt)
+                newTo = rangeTo.castNoCheck(targetDt)
             } catch (x: ExpressionError) {
                 return range
             }
             val newStep: Expression = try {
-                stepLiteral?.cast(targetDt)?: range.step
+                stepLiteral?.castNoCheck(targetDt)?: range.step
             } catch(ee: ExpressionError) {
                 range.step
             }
