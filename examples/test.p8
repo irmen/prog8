@@ -9,7 +9,9 @@ main {
 
         ubyte A=5
         uword clr = $d020
-        @(clr+1) = A
+        A = @(clr)
+        A++
+        @(clr) = A
 
 ;        uword xx = @(clr+1)
     }

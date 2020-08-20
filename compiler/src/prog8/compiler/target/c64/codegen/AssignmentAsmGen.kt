@@ -303,18 +303,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
             }
             target.memoryAddress != null -> {
-                val addressExpr = target.memoryAddress.addressExpression
-                val addressLv = addressExpr as? NumericLiteralValue
-                when {
-                    addressLv != null -> asmgen.out("  lda  $sourceName |  sta  ${addressLv.number.toHex()}")
-                    addressExpr is IdentifierReference -> {
-                        val targetName = asmgen.asmIdentifierName(addressExpr)
-                        asmgen.out("  lda  $sourceName |  sta  $targetName")
-                    }
-                    else -> {
-                        storeByteViaRegisterAInMemoryAddress(sourceName, target.memoryAddress)
-                    }
-                }
+                storeByteViaRegisterAInMemoryAddress(sourceName, target.memoryAddress)
             }
             else -> throw AssemblyError("no asm gen for assign bytevar to $target")
         }
@@ -497,6 +486,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
         val targetMemory = target.memoryAddress
+        // TODO all via method?
         when {
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
@@ -623,6 +613,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private fun assignFromMemoryByte(target: AssignTarget, address: Int?, identifier: IdentifierReference?) {
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
+        val targetMemory = target.memoryAddress
         if (address != null) {
             when {
                 targetIdent != null -> {
@@ -632,8 +623,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         sta  $targetName
                         """)
                 }
-                target.memoryAddress != null -> {
-                    storeByteViaRegisterAInMemoryAddress(address.toHex(), target.memoryAddress)
+                targetMemory != null -> {
+                    storeByteViaRegisterAInMemoryAddress(address.toHex(), targetMemory)
                 }
                 targetArrayIdx != null -> {
                     val index = targetArrayIdx.arrayspec.index
@@ -649,14 +640,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     val targetName = asmgen.asmIdentifierName(targetIdent)
                     asmgen.out("""
     lda  $sourceName
-    sta  (+) + 1
+    sta  ${C64Zeropage.SCRATCH_W1}
     lda  $sourceName+1
-    sta  (+) + 2
-+   lda  ${'$'}ffff\t; modified
+    sta  ${C64Zeropage.SCRATCH_W1+1}
+    ldy  #0
+    lda  (${C64Zeropage.SCRATCH_W1}),y
     sta  $targetName""")
                 }
-                target.memoryAddress != null -> {
-                    storeByteViaRegisterAInMemoryAddress(sourceName, target.memoryAddress)
+                targetMemory != null -> {
+                    storeByteViaRegisterAInMemoryAddress(sourceName, targetMemory)
                 }
                 targetArrayIdx != null -> {
                     val index = targetArrayIdx.arrayspec.index
