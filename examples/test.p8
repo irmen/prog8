@@ -7,22 +7,79 @@ main {
 
     sub start() {
 
-        @($d020) += @($d020)        ; TODO fix compiler hang
+        ;ubyte @(addr)=0
+        uword addr = $02
+        uword addr2 = $03
+        ubyte B = 22
+        ; all optimized:
+        @(addr) = B
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr2-1) = @(addr2-1) +33
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
 
-        ubyte A
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = 33 + @(addr)
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
 
-        A = 44+A
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = (@(addr) + 33) + B
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
 
-;        ubyte A = 10
-;        @($c00a) = $4a
-;        @($c000+A) ++       ; TODO implement this
-;
-;        c64scr.print_ubhex(@($c00a), true)
-;        c64.CHROUT('\n')
-;        @($c000+A) --      ; TODO implement this
-;
-;        c64scr.print_ubhex(@($c00a), true)
-;        c64.CHROUT('\n')
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = (33 + @(addr)) + B
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
 
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = (@(addr) + B) + 33
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = (B + @(addr)) + 33
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = B+ (@(addr) + 33)
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = B+(33 + @(addr))
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = 33+(@(addr) + B)
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+
+        @(addr) = 11
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
+        @(addr) = 33+(B + @(addr))
+        c64scr.print_ub(@(addr))
+        c64.CHROUT('\n')
     }
 }

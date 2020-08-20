@@ -336,24 +336,28 @@ open class Assignment(var target: AssignTarget, var value: Expression, override 
         get() {
             val binExpr = value as? BinaryExpression
             if(binExpr!=null) {
-                if(binExpr.left isSameAs target)
-                    return true  // A = A <operator> 5
+                if(binExpr.right !is BinaryExpression && binExpr.left isSameAs target)
+                    return true  // A = A <operator> v
 
                 if(binExpr.operator in associativeOperators) {
-                    if (binExpr.right isSameAs target)
+                    if (binExpr.left !is BinaryExpression && binExpr.right isSameAs target)
                         return true  // A = v <associative-operator> A
 
                     val leftBinExpr = binExpr.left as? BinaryExpression
                     if(leftBinExpr?.operator == binExpr.operator) {
+                        // one of these?
                         // A = (A <associative-operator> x) <same-operator> y
                         // A = (x <associative-operator> A) <same-operator> y
-                        return leftBinExpr.left isSameAs target || leftBinExpr.right isSameAs target
+                        // A = (x <associative-operator> y) <same-operator> A
+                        return leftBinExpr.left isSameAs target || leftBinExpr.right isSameAs target || binExpr.right isSameAs target
                     }
                     val rightBinExpr = binExpr.right as? BinaryExpression
                     if(rightBinExpr?.operator == binExpr.operator) {
+                        // one of these?
                         // A = y <associative-operator> (A <same-operator> x)
                         // A = y <associative-operator> (x <same-operator> y)
-                        return rightBinExpr.left isSameAs target || rightBinExpr.right isSameAs target
+                        // A = A <associative-operator> (x <same-operator> y)
+                        return rightBinExpr.left isSameAs target || rightBinExpr.right isSameAs target || binExpr.left isSameAs target
                     }
                 }
             }

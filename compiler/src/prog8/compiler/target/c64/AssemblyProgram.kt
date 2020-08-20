@@ -14,9 +14,9 @@ class AssemblyProgram(override val name: String, outputDir: Path) : IAssemblyPro
     private val viceMonListFile = outputDir.resolve("$name.vice-mon-list")
 
     override fun assemble(options: CompilationOptions) {
-        // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps
+        // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                "-Wall", "-Wno-strict-bool", "-Wno-shadow", "-Werror", "-Wno-error=long-branch",
+                "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
                 "--dump-labels", "--vice-labels", "-l", viceMonListFile.toString(), "--no-monitor")
 
         val outFile = when (options.output) {

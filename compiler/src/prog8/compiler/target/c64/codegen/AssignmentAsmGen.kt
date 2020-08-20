@@ -72,9 +72,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignFromMemoryByte(assign.target, null, read.addressExpression as IdentifierReference)
                     }
                     else -> {
-                        asmgen.translateExpression(read.addressExpression)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
-                        assignFromRegister(assign.target, CpuRegister.A)
+                        TODO("assign from memread  $assign") // see inplaceModification() ?
+//                        asmgen.translateExpression(read.addressExpression)
+//                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
+//                        assignFromRegister(assign.target, CpuRegister.A)
                     }
                 }
             }
@@ -375,24 +376,24 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val pointerVarName = asmgen.asmIdentifierName(addressExpr)
                 asmgen.out("""
         lda  $pointerVarName
-        sta  ${C64Zeropage.SCRATCH_W1}
+        sta  ${C64Zeropage.SCRATCH_W2}
         lda  $pointerVarName+1
-        sta  ${C64Zeropage.SCRATCH_W1+1}
+        sta  ${C64Zeropage.SCRATCH_W2+1}
         lda  $ldaInstructionArg
         ldy  #0
-        sta  (${C64Zeropage.SCRATCH_W1}),y""")
+        sta  (${C64Zeropage.SCRATCH_W2}),y""")
             }
             else -> {
                 asmgen.translateExpression(addressExpr)
                 asmgen.out("""
         inx
         lda  $ESTACK_LO_HEX,x
-        sta  ${C64Zeropage.SCRATCH_W1}
+        sta  ${C64Zeropage.SCRATCH_W2}
         lda  $ESTACK_HI_HEX,x
-        sta  ${C64Zeropage.SCRATCH_W1+1}
+        sta  ${C64Zeropage.SCRATCH_W2+1}
         lda  $ldaInstructionArg
         ldy  #0
-        sta  (${C64Zeropage.SCRATCH_W1}),y""")
+        sta  (${C64Zeropage.SCRATCH_W2}),y""")
             }
         }
     }

@@ -40,9 +40,22 @@ read_byte_from_address_on_stack	.proc
 	; -- read the byte from the memory address on the top of the stack, return in A (stack remains unchanged)
 		lda  c64.ESTACK_LO+1,x
 		ldy  c64.ESTACK_HI+1,x
-		sta  (+) +1
-		sty  (+) +2
-+		lda  $ffff		; modified
+		sta  c64.SCRATCH_ZPWORD2
+		sty  c64.SCRATCH_ZPWORD2+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD2),y
+		rts
+		.pend
+
+
+write_byte_to_address_on_stack	.proc
+	; -- write the byte in A to the memory address on the top of the stack (stack remains unchanged)
+		ldy  c64.ESTACK_LO+1,x
+		sty  c64.SCRATCH_ZPWORD2
+		ldy  c64.ESTACK_HI+1,x
+		sty  c64.SCRATCH_ZPWORD2+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD2),y
 		rts
 		.pend
 
