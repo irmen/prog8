@@ -136,7 +136,7 @@ internal class StatementOptimizer(private val program: Program,
         val subroutine = functionCallStatement.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is ReturnFromIrq || first is Return)
+            if(first is Return)
                 return listOf(IAstModification.Remove(functionCallStatement, parent))
         }
 

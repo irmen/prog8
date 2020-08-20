@@ -1,16 +1,14 @@
 package prog8.optimizer
 
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.ErrorReporter
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
-import prog8.ast.statements.Block
+import prog8.ast.statements.*
 
-/*
-    TODO: remove unreachable code after return and exit()
-*/
-
-internal class UnusedCodeRemover: AstWalker() {
+internal class UnusedCodeRemover(private val errors: ErrorReporter): AstWalker() {
 
     override fun before(program: Program, parent: Node): Iterable<IAstModification> {
         val callgraph = CallGraph(program)
@@ -37,5 +35,34 @@ internal class UnusedCodeRemover: AstWalker() {
         }
 
         return removals
+    }
+
+
+    override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
+        reportUnreachable(breakStmt, parent as INameScope)
+        return emptyList()
+    }
+
+    override fun before(jump: Jump, parent: Node): Iterable<IAstModification> {
+        reportUnreachable(jump, parent as INameScope)
+        return emptyList()
+    }
+
+    override fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> {
+        reportUnreachable(returnStmt, parent as INameScope)
+        return emptyList()
+    }
+
+    override fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        if(functionCallStatement.target.nameInSource.last() == "exit")
+            reportUnreachable(functionCallStatement, parent as INameScope)
+        return emptyList()
+    }
+
+    private fun reportUnreachable(stmt: Statement, parent: INameScope) {
+        when(val next = parent.nextSibling(stmt)) {
+            null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine, is StructDecl -> {}
+            else -> errors.warn("unreachable code", next.position)
+        }
     }
 }

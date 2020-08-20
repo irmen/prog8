@@ -139,15 +139,6 @@ open class Return(var value: Expression?, override val position: Position) : Sta
     }
 }
 
-class ReturnFromIrq(override val position: Position) : Return(null, position) {
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-
-    override fun toString(): String {
-        return "ReturnFromIrq(pos=$position)"
-    }
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-}
-
 class Break(override val position: Position) : Statement() {
     override lateinit var parent: Node
 

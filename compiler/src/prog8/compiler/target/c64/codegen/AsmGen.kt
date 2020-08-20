@@ -636,7 +636,11 @@ internal class AsmGen(private val program: Program,
             is BranchStatement -> translate(stmt)
             is IfStatement -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
-            is Break -> out("  jmp  ${loopEndLabels.peek()}")
+            is Break -> {
+                if(loopEndLabels.isEmpty())
+                    throw AssemblyError("break statement out of context  ${stmt.position}")
+                out("  jmp  ${loopEndLabels.peek()}")
+            }
             is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
             is UntilLoop -> translate(stmt)
