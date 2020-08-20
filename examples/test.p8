@@ -7,12 +7,18 @@ main {
 
     sub start() {
 
-        ubyte A=5
-        uword clr = $d020
-        A = @(clr)
-        A++
-        @(clr) = A
+        byte A
+        byte B = +A
+        byte C = -A
+        uword W = 43210
+        A = -A
 
-;        uword xx = @(clr+1)
+        c64scr.print_uw(W)
+        c64.CHROUT('\n')
+
+        W = W as ubyte      ; TODO  cast(W as ubyte) as uword  ->  W and 255
+        c64scr.print_uw(W)
+        c64.CHROUT('\n')
+
     }
 }

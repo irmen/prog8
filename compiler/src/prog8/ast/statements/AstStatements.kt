@@ -328,6 +328,10 @@ open class Assignment(var target: AssignTarget, var value: Expression, override 
         return("Assignment(target: $target, value: $value, pos=$position)")
     }
 
+    /**
+     * Is the assigment value an expression that references the assignment target itself?
+     * The expression can be a BinaryExpression, PrefixExpression or TypecastExpression (possibly with one sub-cast).
+     */
     val isAugmentable: Boolean
         get() {
             val binExpr = value as? BinaryExpression
@@ -352,6 +356,16 @@ open class Assignment(var target: AssignTarget, var value: Expression, override 
                         return rightBinExpr.left isSameAs target || rightBinExpr.right isSameAs target
                     }
                 }
+            }
+
+            val prefixExpr = value as? PrefixExpression
+            if(prefixExpr!=null)
+                return prefixExpr.expression isSameAs target
+
+            val castExpr = value as? TypecastExpression
+            if(castExpr!=null) {
+                val subCast = castExpr.expression as? TypecastExpression
+                return if(subCast!=null) subCast.expression isSameAs target else castExpr.expression isSameAs target
             }
 
             return false

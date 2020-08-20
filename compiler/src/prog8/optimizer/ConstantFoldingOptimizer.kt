@@ -203,7 +203,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                 "-" -> when (subexpr.type) {
                     in IntegerDatatypes -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position),
+                                NumericLiteralValue.optimalInteger(-subexpr.number.toInt(), subexpr.position),
                                 parent))
                     }
                     DataType.FLOAT -> {
@@ -216,7 +216,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                 "~" -> when (subexpr.type) {
                     in IntegerDatatypes -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position),
+                                NumericLiteralValue.optimalInteger(subexpr.number.toInt().inv(), subexpr.position),
                                 parent))
                     }
                     else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)

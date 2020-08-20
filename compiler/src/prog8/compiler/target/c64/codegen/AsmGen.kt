@@ -1008,7 +1008,6 @@ $counterVar    .byte  0""")
                 val indexName = asmIdentifierName(index)
                 out("  lda  $indexName")
             }
-            // TODO optimize more cases
             else -> {
                 expressionsAsmGen.translateExpression(index)
                 out("  inx |  lda  $ESTACK_LO_HEX,x")

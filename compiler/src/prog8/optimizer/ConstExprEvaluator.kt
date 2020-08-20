@@ -163,7 +163,7 @@ class ConstExprEvaluator {
         val error = "cannot add $left and $right"
         return when (left.type) {
             in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() + right.number.toInt(), left.position)
+                in IntegerDatatypes -> NumericLiteralValue.optimalInteger(left.number.toInt() + right.number.toInt(), left.position)
                 DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() + right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
@@ -180,7 +180,7 @@ class ConstExprEvaluator {
         val error = "cannot subtract $left and $right"
         return when (left.type) {
             in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() - right.number.toInt(), left.position)
+                in IntegerDatatypes -> NumericLiteralValue.optimalInteger(left.number.toInt() - right.number.toInt(), left.position)
                 DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() - right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
@@ -197,7 +197,7 @@ class ConstExprEvaluator {
         val error = "cannot multiply ${left.type} and ${right.type}"
         return when (left.type) {
             in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() * right.number.toInt(), left.position)
+                in IntegerDatatypes -> NumericLiteralValue.optimalInteger(left.number.toInt() * right.number.toInt(), left.position)
                 DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() * right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
@@ -220,7 +220,7 @@ class ConstExprEvaluator {
                 in IntegerDatatypes -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
                     val result: Int = left.number.toInt() / right.number.toInt()
-                    NumericLiteralValue.optimalNumeric(result, left.position)
+                    NumericLiteralValue.optimalInteger(result, left.position)
                 }
                 DataType.FLOAT -> {
                     if(right.number.toDouble()==0.0) divideByZeroError(right.position)

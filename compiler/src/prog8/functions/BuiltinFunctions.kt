@@ -412,8 +412,8 @@ private fun numericLiteral(value: Number, position: Position): NumericLiteralVal
                 floatNum
 
     return when(tweakedValue) {
-        is Int -> NumericLiteralValue.optimalNumeric(value.toInt(), position)
-        is Short -> NumericLiteralValue.optimalNumeric(value.toInt(), position)
+        is Int -> NumericLiteralValue.optimalInteger(value.toInt(), position)
+        is Short -> NumericLiteralValue.optimalInteger(value.toInt(), position)
         is Byte -> NumericLiteralValue(DataType.UBYTE, value.toShort(), position)
         is Double -> NumericLiteralValue(DataType.FLOAT, value.toDouble(), position)
         is Float -> NumericLiteralValue(DataType.FLOAT, value.toDouble(), position)

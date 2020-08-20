@@ -14,14 +14,13 @@ import prog8.compiler.toHex
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
+    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
+
     internal fun translate(assign: Assignment) {
         when {
             assign.value is NumericLiteralValue -> translateConstantValueAssignment(assign)
             assign.value is IdentifierReference -> translateVariableAssignment(assign)
-            assign.isAugmentable -> {
-                println("TODO: optimize augmentable assignment  ${assign.position}")   // TODO
-                translateOtherAssignment(assign) // TODO generate better code here for augmentable assignments
-            }
+            assign.isAugmentable -> augmentableAsmGen.translate(assign)
             else -> translateOtherAssignment(assign)
         }
     }
@@ -56,7 +55,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun translateOtherAssignment(assign: Assignment) {
+    internal fun translateOtherAssignment(assign: Assignment) {
         when (assign.value) {
             is AddressOf -> {
                 val identifier = (assign.value as AddressOf).identifier
@@ -74,23 +73,20 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     else -> {
                         asmgen.translateExpression(read.addressExpression)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address |  inx")
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
                         assignFromRegister(assign.target, CpuRegister.A)
                     }
                 }
             }
             is PrefixExpression -> {
-                // TODO optimize common cases
                 asmgen.translateExpression(assign.value as PrefixExpression)
                 assignFromEvalResult(assign.target)
             }
             is BinaryExpression -> {
-                // TODO optimize common cases
                 asmgen.translateExpression(assign.value as BinaryExpression)
                 assignFromEvalResult(assign.target)
             }
             is ArrayIndexedExpression -> {
-                // TODO optimize common cases
                 val arrayExpr = assign.value as ArrayIndexedExpression
                 val arrayDt = arrayExpr.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 val index = arrayExpr.arrayspec.index
@@ -141,6 +137,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private fun assignFromEvalResult(target: AssignTarget) {
         val targetIdent = target.identifier
+        val targetArrayIdx = target.arrayindexed
+        val targetMemory = target.memoryAddress
         when {
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
@@ -167,14 +165,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("weird target variable type $targetDt")
                 }
             }
-            target.memoryAddress != null -> {
+            targetMemory != null -> {
                 asmgen.out("  inx")
-                storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", target.memoryAddress)
+                storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", targetMemory)
             }
-            target.arrayindexed != null -> {
-                val arrayDt = target.arrayindexed!!.identifier.inferType(program).typeOrElse(DataType.STRUCT)
-                val arrayVarName = asmgen.asmIdentifierName(target.arrayindexed!!.identifier)
-                asmgen.translateExpression(target.arrayindexed!!.arrayspec.index)
+            targetArrayIdx != null -> {
+                val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                val arrayVarName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
+                asmgen.translateExpression(targetArrayIdx.arrayspec.index)
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithIndexA(arrayDt, arrayVarName)
             }
@@ -285,6 +283,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val sourceName = asmgen.asmIdentifierName(variable)
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
+        val targetMemory = target.memoryAddress
         when {
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
@@ -292,6 +291,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     lda  $sourceName
                     sta  $targetName
                     """)
+            }
+            targetMemory != null -> {
+                storeByteViaRegisterAInMemoryAddress(sourceName, targetMemory)
             }
             targetArrayIdx != null -> {
                 val index = targetArrayIdx.arrayspec.index
@@ -301,9 +303,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(index)
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithIndexA(arrayDt, targetName)
-            }
-            target.memoryAddress != null -> {
-                storeByteViaRegisterAInMemoryAddress(sourceName, target.memoryAddress)
             }
             else -> throw AssemblyError("no asm gen for assign bytevar to $target")
         }
@@ -374,11 +373,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         when {
             addressLv != null -> asmgen.out("  lda $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
             addressExpr is IdentifierReference -> {
-                val targetName = asmgen.asmIdentifierName(addressExpr)
+                val pointerVarName = asmgen.asmIdentifierName(addressExpr)
                 asmgen.out("""
-        lda  $targetName
+        lda  $pointerVarName
         sta  ${C64Zeropage.SCRATCH_W1}
-        lda  $targetName+1
+        lda  $pointerVarName+1
         sta  ${C64Zeropage.SCRATCH_W1+1}
         lda  $ldaInstructionArg
         ldy  #0
@@ -465,7 +464,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             targetArrayIdx != null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                // TODO optimize common cases
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
@@ -486,7 +484,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val targetIdent = target.identifier
         val targetArrayIdx = target.arrayindexed
         val targetMemory = target.memoryAddress
-        // TODO all via method?
         when {
             targetIdent != null -> {
                 val targetName = asmgen.asmIdentifierName(targetIdent)
@@ -498,7 +495,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             targetArrayIdx != null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val targetName = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                // TODO optimize common cases
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx

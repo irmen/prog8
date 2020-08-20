@@ -150,7 +150,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             else -> {
                 translateExpression(expr.addressExpression)
-                asmgen.out("  jsr  prog8_lib.read_byte_from_address")
+                asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack")
                 asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
             }
         }

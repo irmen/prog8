@@ -36,7 +36,7 @@ init_system	.proc
 		.pend
 
 
-read_byte_from_address	.proc
+read_byte_from_address_on_stack	.proc
 	; -- read the byte from the memory address on the top of the stack, return in A (stack remains unchanged)
 		lda  c64.ESTACK_LO+1,x
 		ldy  c64.ESTACK_HI+1,x
@@ -2079,7 +2079,7 @@ ror2_array_uw	.proc
 +		rts
 		.pend
 
-		
+
 strcpy		.proc
 		; copy a string (0-terminated) from A/Y to (ZPWORD1)
 		; it is assumed the target string is large enough.
@@ -2092,8 +2092,8 @@ strcpy		.proc
 		bne  -
 		rts
 		.pend
-		
-		
+
+
 func_leftstr	.proc
 		; leftstr(source, target, length) with params on stack
 		inx
@@ -2175,12 +2175,12 @@ func_substr	.proc
 		lda  c64.ESTACK_LO,x	; start
 		sta  c64.SCRATCH_ZPB1
 		inx
-		lda  c64.ESTACK_LO,x	
+		lda  c64.ESTACK_LO,x
 		sta  c64.SCRATCH_ZPWORD2
 		lda  c64.ESTACK_HI,x
 		sta  c64.SCRATCH_ZPWORD2+1
 		inx
-		lda  c64.ESTACK_LO,x	
+		lda  c64.ESTACK_LO,x
 		sta  c64.SCRATCH_ZPWORD1
 		lda  c64.ESTACK_HI,x
 		sta  c64.SCRATCH_ZPWORD1+1
