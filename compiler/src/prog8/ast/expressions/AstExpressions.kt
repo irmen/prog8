@@ -43,6 +43,23 @@ sealed class Expression: Node {
                 (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
                         && other.arrayspec.index isSameAs arrayspec.index)
             }
+            is DirectMemoryRead -> {
+                (other is DirectMemoryRead && other.addressExpression isSameAs addressExpression)
+            }
+            is TypecastExpression -> {
+                (other is TypecastExpression && other.implicit==implicit && other.type==type && other.expression isSameAs expression)
+            }
+            is AddressOf -> {
+                (other is AddressOf && other.identifier.nameInSource == identifier.nameInSource)
+            }
+            is RangeExpr -> {
+                (other is RangeExpr && other.from==from && other.to==to && other.step==step)
+            }
+            is FunctionCall -> {
+                (other is FunctionCall && other.target.nameInSource == target.nameInSource
+                        && other.args.size == args.size
+                        && other.args.zip(args).all { it.first isSameAs it.second } )
+            }
             else -> other==this
         }
     }

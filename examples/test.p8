@@ -7,18 +7,22 @@ main {
 
     sub start() {
 
-        ;@($d020) += @($d020)        ; TODO fix compiler hang
+        @($d020) += @($d020)        ; TODO fix compiler hang
 
-        ubyte A = 10
-        @($c00a) = $4a
-        @($c000+A) ++       ; TODO implement this
+        ubyte A
 
-        c64scr.print_ubhex(@($c00a), true)
-        c64.CHROUT('\n')
-        @($c000+A) --      ; TODO implement this
+        A = 44+A
 
-        c64scr.print_ubhex(@($c00a), true)
-        c64.CHROUT('\n')
+;        ubyte A = 10
+;        @($c00a) = $4a
+;        @($c000+A) ++       ; TODO implement this
+;
+;        c64scr.print_ubhex(@($c00a), true)
+;        c64.CHROUT('\n')
+;        @($c000+A) --      ; TODO implement this
+;
+;        c64scr.print_ubhex(@($c00a), true)
+;        c64.CHROUT('\n')
 
     }
 }
