@@ -53,7 +53,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                         else
                             asmgen.out("+\tdec  ${'$'}ffff\t; modified")
                     }
-                    else -> throw AssemblyError("weird target type $targetMemory")
+                    else -> TODO("asmgen postincrdecr on memory expression")
                 }
             }
             targetArrayIdx!=null -> {

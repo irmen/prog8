@@ -3,13 +3,12 @@ package prog8.compiler.target.c64.codegen
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.IterableDatatypes
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.PrefixExpression
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
+import prog8.compiler.toHex
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                   private val assignmentAsmGen: AssignmentAsmGen,
@@ -98,7 +97,32 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  $name""")
                     }
                     memory!=null -> {
-                        TODO("in-place not of ubyte memory")
+                        when (memory.addressExpression) {
+                            is NumericLiteralValue -> {
+                                val addr = (memory.addressExpression as NumericLiteralValue).number.toHex()
+                                asmgen.out("""
+                                    lda  $addr
+                                    beq  +
+                                    lda  #1
++                                   eor  #1
+                                    sta  $addr""")
+                            }
+                            is IdentifierReference -> {
+                                val name = asmgen.asmIdentifierName(memory.addressExpression as IdentifierReference)
+                                asmgen.out("""
+                                    lda  $name
+                                    sta  ${C64Zeropage.SCRATCH_W1}
+                                    lda  $name+1
+                                    sta  ${C64Zeropage.SCRATCH_W1+1}
+                                    ldy  #0
+                                    lda  (${C64Zeropage.SCRATCH_W1}),y
+                                    beq  +
+                                    lda  #1
++                                   eor  #1
+                                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                            }
+                            else -> throw AssemblyError("weird address value")
+                        }
                     }
                     arrayIdx!=null -> {
                         TODO("in-place not of ubyte array")
@@ -143,8 +167,28 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  $name""")
                     }
                     memory!=null -> {
-                        TODO("in-place invert ubyte memory")
-                    }
+                        when (memory.addressExpression) {
+                            is NumericLiteralValue -> {
+                                val addr = (memory.addressExpression as NumericLiteralValue).number.toHex()
+                                asmgen.out("""
+                                    lda  $addr
+                                    eor  #255
+                                    sta  $addr""")
+                            }
+                            is IdentifierReference -> {
+                                val name = asmgen.asmIdentifierName(memory.addressExpression as IdentifierReference)
+                                asmgen.out("""
+                                    lda  $name
+                                    sta  ${C64Zeropage.SCRATCH_W1}
+                                    lda  $name+1
+                                    sta  ${C64Zeropage.SCRATCH_W1+1}
+                                    ldy  #0
+                                    lda  (${C64Zeropage.SCRATCH_W1}),y
+                                    eor  #255
+                                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                            }
+                            else -> throw AssemblyError("weird address value")
+                        }                    }
                     arrayIdx!=null -> {
                         TODO("in-place invert ubyte array")
                     }
@@ -186,12 +230,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sbc  $name
                             sta  $name""")
                     }
-                    memory!=null -> {
-                        TODO("in-place negate byte memory")
-                    }
-                    arrayIdx!=null -> {
-                        TODO("in-place negate byte array")
-                    }
+                    memory!=null -> throw AssemblyError("can't in-place negate memory ubyte")
+                    arrayIdx!=null -> TODO("in-place negate byte array")
                 }
             }
             DataType.WORD -> {

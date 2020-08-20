@@ -7,55 +7,21 @@ main {
 
     sub start() {
 
-        byte A = 99
-        ubyte U = $18
-        word B = 9999
-        uword W = $18f0
-
-        c64scr.print_b(A)
-        c64.CHROUT('\n')
-        A = -A
-        c64scr.print_b(A)
-        c64.CHROUT('\n')
-
-        U = ~U
-        c64scr.print_ubhex(U, true)
-        c64.CHROUT('\n')
-        U = not U
-        c64scr.print_ubhex(U, true)
-        c64.CHROUT('\n')
-        U = not U
-        c64scr.print_ubhex(U, true)
-        c64.CHROUT('\n')
-
-        c64scr.print_w(B)
-        c64.CHROUT('\n')
-        B = -B
-        c64scr.print_w(B)
-        c64.CHROUT('\n')
-
-        W = ~W
-        c64scr.print_uwhex(W, true)
-        c64.CHROUT('\n')
-        W = not W
-        c64scr.print_uwhex(W, true)
-        c64.CHROUT('\n')
-        W = not W
-        c64scr.print_uwhex(W, true)
-        c64.CHROUT('\n')
-
         ;@($d020) += @($d020)        ; TODO fix compiler hang
+        ;@($c000+A) ++       ; TODO implement this
 
-        W += 3
-        @($d020) += 3
-
-        W = 43210
-        W = W as ubyte
-        c64scr.print_uw(W)
+        uword addr = $c000
+        @(addr) = $f1
+        c64scr.print_ubhex(@(addr), true)
+        c64.CHROUT('\n')
+        @(addr) = - @(addr)
+        c64scr.print_ubhex(@(addr), true)
+        c64.CHROUT('\n')
+        @(addr) = - @(addr)
+        c64scr.print_ubhex(@(addr), true)
         c64.CHROUT('\n')
 
-        ubyte[] array = [1,2,3]
-        array[1] = array[1] as ubyte
-        W = array[0]
+        ;@($c000) = ! @($c000)
+        ;@($c000) = ~ @($c000)
     }
 }
