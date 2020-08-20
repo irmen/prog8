@@ -254,9 +254,6 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     // note: in some cases the length is > 255 and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
-    val constArg = args[0].constValue(program)
-    if(constArg!=null)
-        throw SyntaxError("len of weird argument ${args[0]}", position)
 
     val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program.namespace)
     var arraySize = directMemVar?.arraysize?.size()
@@ -286,7 +283,8 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             val refLv = target.value as StringLiteralValue
             NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
         }
-        in NumericDatatypes -> throw SyntaxError("len of weird argument ${args[0]}", position)
+        DataType.STRUCT -> throw SyntaxError("cannot use len on struct, did you mean sizeof?", args[0].position)
+        in NumericDatatypes -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
         else -> throw CompilerException("weird datatype")
     }
 }

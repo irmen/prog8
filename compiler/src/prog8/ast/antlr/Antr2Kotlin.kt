@@ -301,7 +301,7 @@ private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParamete
         when (val name = register.nameInSource.single()) {
             in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(name)
             in Statusflag.names -> statusregister = Statusflag.valueOf(name)
-            else -> throw FatalAstException("invalid register or status flag in $it")
+            else -> throw FatalAstException("invalid register or status flag '$name'")
         }
     }
     AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister,

@@ -6,36 +6,51 @@
 main {
 
     sub start() {
-        uword count=0
 
-
-        count=0
-        repeat 10 {
-            count++
+        struct Color {
+            ubyte red
+            uword green
+            float blue
         }
-        c64scr.print_uw(count)
-        c64.CHROUT('\n')
 
-        count=0
-        repeat 255 {
-            count++
-        }
-        c64scr.print_uw(count)
-        c64.CHROUT('\n')
+        Color c = [11,22222,3.1234]
 
-        count=0
-        repeat 256 {
-            count++
-        }
-        c64scr.print_uw(count)
-        c64.CHROUT('\n')
+;        c64scr.print_ub(c.red)
+;        c64.CHROUT('\n')
+;        c64scr.print_uw(c.green)
+;        c64.CHROUT('\n')
+;        c64flt.print_f(c.blue)
+;        c64.CHROUT('\n')
 
-        count=0
-        repeat 40000 {
-            count++
-        }
-        c64scr.print_uw(count)
-        c64.CHROUT('\n')
+        uword xx = 4.5678
+        ubyte bb = 33
 
+        foo2(-33)
+        foo2(bb)
+        foo2(4.55)          ; TODO truncation warning
+
+        ;foo("zzz", 8.777)
+        ;len(13)
+
+;        uword size = len(Color)
+;        c64scr.print_uw(size)
+;        c64.CHROUT('\n')
+
+;        c64scr.print_ub(len(Color))
+;        c64.CHROUT('\n')
+;        c64scr.print_ub(len(c))
+;        c64.CHROUT('\n')
+;        c64scr.print_ub(len(c.green))
+;        c64.CHROUT('\n')
+    }
+
+    sub foo(ubyte aa, word ww) {
+        ww += aa
+    }
+
+    asmsub foo2(ubyte aa @Pc) {
+        %asm {{
+            rts
+        }}
     }
 }

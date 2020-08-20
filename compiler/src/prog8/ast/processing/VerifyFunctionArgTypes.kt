@@ -29,24 +29,32 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
         fun checkTypes(call: IFunctionCall, scope: INameScope, program: Program): String? {
             val argtypes = call.args.map { it.inferType(program).typeOrElse(DataType.STRUCT) }
             val target = call.target.targetStatement(scope)
-            when (target) {
-                is Subroutine -> {
-                    val paramtypes = target.parameters.map { it.type }
-                    val mismatch = argtypes.zip(paramtypes).indexOfFirst { it.first != it.second}
-                    if(mismatch>=0)
-                        return "argument ${mismatch+1} type mismatch"
-                }
-                is BuiltinFunctionStatementPlaceholder -> {
-                    val func = BuiltinFunctions.getValue(target.name)
-                    val paramtypes = func.parameters.map { it.possibleDatatypes }
-                    for (x in argtypes.zip(paramtypes).withIndex()) {
-                        if (x.value.first !in x.value.second)
-                            return "argument ${x.index+1} type mismatch"
-                    }
-                }
-                else -> {
+            if (target is Subroutine) {
+                // asmsub types are not checked specifically at this time
+                if(call.args.size != target.parameters.size)
+                    return "invalid number of arguments"
+                val paramtypes = target.parameters.map { it.type }
+                val mismatch = argtypes.zip(paramtypes).indexOfFirst { it.first != it.second}
+                if(mismatch>=0) {
+                    val actual = argtypes[mismatch].toString()
+                    val expected = paramtypes[mismatch].toString()
+                    return "argument ${mismatch + 1} type mismatch, was: $actual expected: $expected"
                 }
             }
+            else if (target is BuiltinFunctionStatementPlaceholder) {
+                val func = BuiltinFunctions.getValue(target.name)
+                if(call.args.size != func.parameters.size)
+                    return "invalid number of arguments"
+                val paramtypes = func.parameters.map { it.possibleDatatypes }
+                for (x in argtypes.zip(paramtypes).withIndex()) {
+                    if (x.value.first !in x.value.second) {
+                        val actual = x.value.first.toString()
+                        val expected = x.value.second.toString()
+                        return "argument ${x.index + 1} type mismatch, was: $actual expected: $expected"
+                    }
+                }
+            }
+
             return null
         }
     }

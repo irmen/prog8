@@ -314,9 +314,9 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
         }
         // lookup something from the module.
         return when (val stmt = localContext.definingModule().lookup(scopedName, localContext)) {
-            is Label, is VarDecl, is Block, is Subroutine -> stmt
+            is Label, is VarDecl, is Block, is Subroutine, is StructDecl -> stmt
             null -> null
-            else -> throw SyntaxError("wrong identifier target for $scopedName: $stmt", stmt.position)
+            else -> throw SyntaxError("invalid identifier target type", stmt.position)
         }
     }
 }

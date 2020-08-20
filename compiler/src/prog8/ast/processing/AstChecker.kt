@@ -304,7 +304,7 @@ internal class AstChecker(private val program: Program,
         } else {
             // Pass-by-reference datatypes can not occur as parameters to a subroutine directly
             // Instead, their reference (address) should be passed (as an UWORD).
-            // TODO The language has no typed pointers at this time!  This should be handled better.
+            // TODO The language has no (typed) pointers at this time.  Should this be handled better?
             if(subroutine.parameters.any{it.type in PassByReferenceDatatypes }) {
                 err("Pass-by-reference types (str, array) cannot occur as a parameter type directly. Instead, use an uword to receive their address, or access the variable from the outer scope directly.")
             }
@@ -863,8 +863,9 @@ internal class AstChecker(private val program: Program,
         }
 
         val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, functionCallStatement.definingScope(), program)
-        if(error!=null)
-            errors.err(error, functionCallStatement.args.first().position)
+        if(error!=null) {
+            errors.err(error, functionCallStatement.args.firstOrNull()?.position ?: functionCallStatement.position)
+        }
 
         super.visit(functionCallStatement)
     }
@@ -874,79 +875,38 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot use arguments when calling a label", position)
 
         if(target is BuiltinFunctionStatementPlaceholder) {
-            // it's a call to a builtin function.
-            val func = BuiltinFunctions.getValue(target.name)
-            if(args.size!=func.parameters.size)
-                errors.err("invalid number of arguments", position)
-            else {
-                val paramTypesForAddressOf = PassByReferenceDatatypes + DataType.UWORD
-                for (arg in args.withIndex().zip(func.parameters)) {
-                    val argDt=arg.first.value.inferType(program)
-                    if (argDt.isKnown
-                            && !(argDt.typeOrElse(DataType.STRUCT) isAssignableTo arg.second.possibleDatatypes)
-                            && (argDt.typeOrElse(DataType.STRUCT) != DataType.UWORD || arg.second.possibleDatatypes.intersect(paramTypesForAddressOf).isEmpty())) {
-                        errors.err("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position)
-                    }
+            if(target.name=="swap") {
+                // swap() is a bit weird because this one is translated into a operations directly, instead of being a function call
+                val dt1 = args[0].inferType(program)
+                val dt2 = args[1].inferType(program)
+                if (dt1 != dt2)
+                    errors.err("swap requires 2 args of identical type", position)
+                else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
+                    errors.err("swap requires 2 variables, not constant value(s)", position)
+                else if(args[0] isSameAs args[1])
+                    errors.err("swap should have 2 different args", position)
+                else if(dt1.typeOrElse(DataType.STRUCT) !in NumericDatatypes)
+                    errors.err("swap requires args of numerical type", position)
+            }
+            else if(target.name=="all" || target.name=="any") {
+                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype == DataType.STR) {
+                    errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
                 }
-                if(target.name=="swap") {
-                    // swap() is a bit weird because this one is translated into a operations directly, instead of being a function call
-                    val dt1 = args[0].inferType(program)
-                    val dt2 = args[1].inferType(program)
-                    if (dt1 != dt2)
-                        errors.err("swap requires 2 args of identical type", position)
-                    else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
-                        errors.err("swap requires 2 variables, not constant value(s)", position)
-                    else if(args[0] isSameAs args[1])
-                        errors.err("swap should have 2 different args", position)
-                    else if(dt1.typeOrElse(DataType.STRUCT) !in NumericDatatypes)
-                        errors.err("swap requires args of numerical type", position)
-                }
-                else if(target.name=="all" || target.name=="any") {
-                    if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype == DataType.STR) {
-                        errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
-                    }
-                    if(args[0].inferType(program).typeOrElse(DataType.STR) == DataType.STR) {
-                        errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
-                    }
+                if(args[0].inferType(program).typeOrElse(DataType.STR) == DataType.STR) {
+                    errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
                 }
             }
         } else if(target is Subroutine) {
             if(target.regXasResult())
                 errors.warn("subroutine call return value in X register is discarded and replaced by 0", position)
-            if(args.size!=target.parameters.size)
-                errors.err("invalid number of arguments", position)
-            else {
+            if(target.isAsmSubroutine) {
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argIDt = arg.first.value.inferType(program)
-                    if(!argIDt.isKnown) {
+                    if (!argIDt.isKnown)
                         return
-                    }
-                    val argDt=argIDt.typeOrElse(DataType.STRUCT)
-                    if(!(argDt isAssignableTo arg.second.type)) {
-                        // for asm subroutines having STR param it's okay to provide a UWORD (address value)
-                        if(!(target.isAsmSubroutine && arg.second.type == DataType.STR && argDt == DataType.UWORD))
-                            errors.err("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position)
-                    }
-
-                    if(target.isAsmSubroutine) {
-                        if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {
-                            if (arg.first.value !is NumericLiteralValue && arg.first.value !is IdentifierReference)
-                                errors.warn("calling a subroutine that expects X as a parameter is problematic. If you see a compiler error/crash about this later, try to change this call", position)
-                        }
-
-                        // check if the argument types match the register(pairs)
-                        val asmParamReg = target.asmParameterRegisters[arg.first.index]
-                        if(asmParamReg.statusflag!=null) {
-                            if(argDt !in ByteDatatypes)
-                                errors.err("subroutine '${target.name}' argument ${arg.first.index + 1} must be byte type for statusflag", position)
-                        } else if(asmParamReg.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
-                            if(argDt !in ByteDatatypes)
-                                errors.err("subroutine '${target.name}' argument ${arg.first.index + 1} must be byte type for single register", position)
-                        } else if(asmParamReg.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                            if(argDt !in WordDatatypes + IterableDatatypes)
-                                errors.err("subroutine '${target.name}' argument ${arg.first.index + 1} must be word type for register pair", position)
-                        }
-                    }
+                    if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)
+                            && arg.first.value !is NumericLiteralValue && arg.first.value !is IdentifierReference)
+                        errors.warn("calling a subroutine that expects X as a parameter is problematic. If you see a compiler error/crash about this later, try to change this call", position)
                 }
             }
         }
