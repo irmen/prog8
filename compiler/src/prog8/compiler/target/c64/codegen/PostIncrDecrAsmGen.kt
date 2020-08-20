@@ -7,6 +7,8 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.PostIncrDecr
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.toHex
 
 
@@ -53,7 +55,20 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                         else
                             asmgen.out("+\tdec  ${'$'}ffff\t; modified")
                     }
-                    else -> TODO("asmgen postincrdecr on memory expression")
+                    else -> {
+                        asmgen.translateExpression(addressExpr)
+                        asmgen.out("""
+                            inx
+                            lda  $ESTACK_LO_HEX,x
+                            sta  (+) + 1
+                            lda  $ESTACK_HI_HEX,x
+                            sta  (+) + 2
+                        """)
+                        if(incr)
+                            asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                        else
+                            asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                    }
                 }
             }
             targetArrayIdx!=null -> {

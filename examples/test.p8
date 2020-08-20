@@ -8,20 +8,17 @@ main {
     sub start() {
 
         ;@($d020) += @($d020)        ; TODO fix compiler hang
-        ;@($c000+A) ++       ; TODO implement this
 
-        uword addr = $c000
-        @(addr) = $f1
-        c64scr.print_ubhex(@(addr), true)
+        ubyte A = 10
+        @($c00a) = $4a
+        @($c000+A) ++       ; TODO implement this
+
+        c64scr.print_ubhex(@($c00a), true)
         c64.CHROUT('\n')
-        @(addr) = - @(addr)
-        c64scr.print_ubhex(@(addr), true)
-        c64.CHROUT('\n')
-        @(addr) = - @(addr)
-        c64scr.print_ubhex(@(addr), true)
+        @($c000+A) --      ; TODO implement this
+
+        c64scr.print_ubhex(@($c00a), true)
         c64.CHROUT('\n')
 
-        ;@($c000) = ! @($c000)
-        ;@($c000) = ~ @($c000)
     }
 }
