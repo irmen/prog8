@@ -167,7 +167,8 @@ private fun prog8Parser.StatementContext.toAst() : Statement {
     augassignment()?.let {
         // replace A += X  with  A = A + X
         val target = it.assign_target().toAst()
-        val expression = BinaryExpression(target.toExpression(), it.operator.text.substring(0, 1), it.expression().toAst(), it.expression().toPosition())
+        val oper = it.operator.text.substringBefore('=')
+        val expression = BinaryExpression(target.toExpression(), oper, it.expression().toAst(), it.expression().toPosition())
         return Assignment(it.assign_target().toAst(), expression, it.toPosition())
     }
 
