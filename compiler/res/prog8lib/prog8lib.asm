@@ -55,7 +55,7 @@ write_byte_to_address_on_stack	.proc
 		ldy  c64.ESTACK_HI+1,x
 		sty  c64.SCRATCH_ZPWORD2+1
 		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD2),y
+		sta  (c64.SCRATCH_ZPWORD2),y
 		rts
 		.pend
 
@@ -343,9 +343,7 @@ mul_word	.proc
 		sta  c64.SCRATCH_ZPWORD1+1
 		lda  c64.ESTACK_LO+1,x
 		ldy  c64.ESTACK_HI+1,x
-		stx  c64.SCRATCH_ZPREGX
 		jsr  math.multiply_words
-		ldx  c64.SCRATCH_ZPREGX
 		lda  math.multiply_words.result
 		sta  c64.ESTACK_LO+1,x
 		lda  math.multiply_words.result+1

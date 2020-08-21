@@ -371,29 +371,31 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val addressExpr = memoryAddress.addressExpression
         val addressLv = addressExpr as? NumericLiteralValue
         when {
-            addressLv != null -> asmgen.out("  lda $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
+            addressLv != null -> {
+                asmgen.out("  lda $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
+            }
             addressExpr is IdentifierReference -> {
                 val pointerVarName = asmgen.asmIdentifierName(addressExpr)
                 asmgen.out("""
-        lda  $pointerVarName
-        sta  ${C64Zeropage.SCRATCH_W2}
-        lda  $pointerVarName+1
-        sta  ${C64Zeropage.SCRATCH_W2+1}
-        lda  $ldaInstructionArg
-        ldy  #0
-        sta  (${C64Zeropage.SCRATCH_W2}),y""")
+                    lda  $pointerVarName
+                    sta  ${C64Zeropage.SCRATCH_W2}
+                    lda  $pointerVarName+1
+                    sta  ${C64Zeropage.SCRATCH_W2+1}
+                    lda  $ldaInstructionArg
+                    ldy  #0
+                    sta  (${C64Zeropage.SCRATCH_W2}),y""")
             }
             else -> {
                 asmgen.translateExpression(addressExpr)
                 asmgen.out("""
-        inx
-        lda  $ESTACK_LO_HEX,x
-        sta  ${C64Zeropage.SCRATCH_W2}
-        lda  $ESTACK_HI_HEX,x
-        sta  ${C64Zeropage.SCRATCH_W2+1}
-        lda  $ldaInstructionArg
-        ldy  #0
-        sta  (${C64Zeropage.SCRATCH_W2}),y""")
+                    inx
+                    lda  $ESTACK_LO_HEX,x
+                    sta  ${C64Zeropage.SCRATCH_W2}
+                    lda  $ESTACK_HI_HEX,x
+                    sta  ${C64Zeropage.SCRATCH_W2+1}
+                    lda  $ldaInstructionArg
+                    ldy  #0
+                    sta  (${C64Zeropage.SCRATCH_W2}),y""")
             }
         }
     }
@@ -404,7 +406,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val addressLv = addressExpr as? NumericLiteralValue
         val registerName = register.name.toLowerCase()
         when {
-            addressLv != null -> asmgen.out("  st$registerName  ${addressLv.number.toHex()}")
+            addressLv != null -> {
+                asmgen.out("  st$registerName  ${addressLv.number.toHex()}")
+            }
             addressExpr is IdentifierReference -> {
                 val targetName = asmgen.asmIdentifierName(addressExpr)
                 when (register) {
@@ -413,25 +417,25 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     CpuRegister.Y -> asmgen.out(" tya")
                 }
                 asmgen.out("""
-        ldy  $targetName
-        sty  ${C64Zeropage.SCRATCH_W1}
-        ldy  $targetName+1
-        sty  ${C64Zeropage.SCRATCH_W1+1}
-        ldy  #0
-        sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                    ldy  $targetName
+                    sty  ${C64Zeropage.SCRATCH_W1}
+                    ldy  $targetName+1
+                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                    ldy  #0
+                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
             }
             else -> {
                 asmgen.saveRegister(register)
                 asmgen.translateExpression(addressExpr)
                 asmgen.restoreRegister(CpuRegister.A)
                 asmgen.out("""
-        inx
-        ldy  $ESTACK_LO_HEX,x
-        sty  ${C64Zeropage.SCRATCH_W1}
-        ldy  $ESTACK_HI_HEX,x
-        sty  ${C64Zeropage.SCRATCH_W1+1}
-        ldy  #0
-        sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                    inx
+                    ldy  $ESTACK_LO_HEX,x
+                    sty  ${C64Zeropage.SCRATCH_W1}
+                    ldy  $ESTACK_HI_HEX,x
+                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                    ldy  #0
+                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
             }
         }
     }

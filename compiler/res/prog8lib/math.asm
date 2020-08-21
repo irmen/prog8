@@ -52,6 +52,7 @@ multiply_words	.proc
 	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
 	;      input: A/Y = first 16-bit number, c64.SCRATCH_ZPWORD1 in ZP = second 16-bit number
 	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)
+	;      clobbers: A
 
 		sta  c64.SCRATCH_ZPWORD2
 		sty  c64.SCRATCH_ZPWORD2+1
