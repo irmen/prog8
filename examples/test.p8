@@ -7,14 +7,38 @@ main {
 
     sub start() {
 
-        uword addr = $c002
+        ubyte A =$22
+        uword addr = $c080
 
-        @(addr-2) = $f8
-        @(addr-2) = not @(addr-2)
-        c64scr.print_ubhex(@($c000), true)
+        c64scr.print_uwhex(addr, true)
         c64.CHROUT('\n')
-        @(addr-2) = not @(addr-2)
-        c64scr.print_ubhex(@($c000), true)
+        addr += $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr += $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr += $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr += $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr += $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+
+        addr -= $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr -= $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr -= $21
+        c64scr.print_uwhex(addr, true)
+        c64.CHROUT('\n')
+        addr -= $21
+        c64scr.print_uwhex(addr, true)
         c64.CHROUT('\n')
     }
 }
