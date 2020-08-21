@@ -72,10 +72,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignFromMemoryByte(assign.target, null, read.addressExpression as IdentifierReference)
                     }
                     else -> {
-                        TODO("assign from memread  $assign") // see inplaceModification() ?
-//                        asmgen.translateExpression(read.addressExpression)
-//                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
-//                        assignFromRegister(assign.target, CpuRegister.A)
+                        asmgen.translateExpression(read.addressExpression)
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
+                        assignFromRegister(assign.target, CpuRegister.A)
                     }
                 }
             }

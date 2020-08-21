@@ -8,37 +8,14 @@ main {
     sub start() {
 
         ubyte A =$22
-        uword addr = $c080
+        ubyte V
+        uword addr = $c0f0
 
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr += $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr += $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr += $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr += $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr += $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
+        @($c000) = 123
 
-        addr -= $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr -= $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr -= $21
-        c64scr.print_uwhex(addr, true)
-        c64.CHROUT('\n')
-        addr -= $21
-        c64scr.print_uwhex(addr, true)
+        A = @($c022-A)
+
+        c64scr.print_ub(A)
         c64.CHROUT('\n')
     }
 }

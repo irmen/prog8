@@ -89,7 +89,14 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
         }
-        else if(sourceDt in PassByReferenceDatatypes) {
+
+
+        // Note: for various reasons (most importantly, code simplicity), the code generator assumes/requires
+        // that the types of assignment values and their target are the same,
+        // and that the types of both operands of a binaryexpression node are the same.
+        // So, it is not easily possible to remove the typecasts that are there to make these conditions true.
+
+        if(sourceDt in PassByReferenceDatatypes) {
             if(typecast.type==DataType.UWORD) {
                 return listOf(IAstModification.ReplaceNode(
                         typecast,
