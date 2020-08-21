@@ -124,7 +124,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     in WordDatatypes -> {
                         when {
-                            valueLv != null -> inplaceModification_word_litval_to_variable(name, operator, valueLv)
+                            valueLv != null -> inplaceModification_word_litval_to_variable(name, operator, valueLv, origAssign)
                             ident != null -> inplaceModification_word_variable_to_variable(name, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             else -> inplaceModification_word_value_to_variable(name, operator, value)
@@ -407,7 +407,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun inplaceModification_word_litval_to_variable(name: String, operator: String, value: Double) {
+    private fun inplaceModification_word_litval_to_variable(name: String, operator: String, value: Double, origAssign: Assignment) {
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #<$value |  sta  $name |  lda  $name+1 |  adc  #>$value |  sta  $name+1")
@@ -425,7 +425,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     lda  math.multiply_words.result
                     sta  $name
                     lda  math.multiply_words.result+1
-                    sta  $name+1,x""")
+                    sta  $name+1""")
             }
             "/" -> TODO("word   $name  /=  $value")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
