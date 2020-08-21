@@ -106,7 +106,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val arrayIdx = target.arrayindexed
         val identifier = target.identifier
         val memory = target.memoryAddress
-        val targetDt = target.inferType(program, origAssign).typeOrElse(DataType.STRUCT)
         val valueLv = (value as? NumericLiteralValue)?.number
         val ident = value as? IdentifierReference
 
@@ -120,6 +119,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_byte_litval_to_variable(name, dt, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(name, dt, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
+                            value is TypecastExpression -> {
+                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                inplaceModification_byte_value_to_variable(name, dt, operator, value)
+                            }
                             else -> inplaceModification_byte_value_to_variable(name, dt, operator, value)
                         }
                     }
@@ -129,7 +132,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_word_variable_to_variable(name, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
 //                            value is DirectMemoryRead -> {
-//                                asmgen.errors.warn("slow stack evaluation used (8):  $name $operator= ${value::class.simpleName}", value.position) // TODO
+//                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
 //                                // assignmentAsmGen.translateOtherAssignment(origAssign)
 //                                asmgen.translateExpression(value.addressExpression)
 //                                asmgen.out("""
@@ -141,16 +144,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                                // TODO
 //                            }
                             value is TypecastExpression -> {
-                                if(targetDt == value.type) {
-                                    // this typecast is redundant here.
-                                    // the rest of the code knows how to deal with
-                                    val childDt = value.expression.inferType(program).typeOrElse(DataType.STRUCT)
-                                    if(value.type == childDt || value.type.largerThan(childDt)) {
-                                        println("***(test) removing redundant typecast ${value.position}  $childDt")   // TODO
-                                        inplaceModification(target, operator, value.expression, origAssign)
-                                        return
-                                    }
-                                }
+                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
                                 inplaceModification_word_value_to_variable(name, operator, value)
                             }
                             else -> inplaceModification_word_value_to_variable(name, operator, value)
@@ -161,6 +155,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_float_litval_to_variable(name, operator, valueLv.toDouble())
                             ident != null -> inplaceModification_float_variable_to_variable(name, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
+                            value is TypecastExpression -> {
+                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                inplaceModification_float_value_to_variable(name, operator, value)
+                            }
                             else -> inplaceModification_float_value_to_variable(name, operator, value)
                         }
                     }
@@ -176,6 +174,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_byte_litval_to_variable(addr.toHex(), DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
+                            value is TypecastExpression -> {
+                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
+                            }
                             else -> inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
                         }
                     }
@@ -185,11 +187,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_byte_litval_to_memory(name, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_memory(name, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
+                            value is TypecastExpression -> {
+                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                inplaceModification_byte_value_to_memory(name, operator, value, origAssign)
+                            }
                             else -> inplaceModification_byte_value_to_memory(name, operator, value, origAssign)
                         }
                     }
                     else -> {
-                        asmgen.errors.warn("slow stack evaluation used (1): ${memory.addressExpression::class.simpleName}", memory.addressExpression.position) // TODO
+                        println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
                         asmgen.translateExpression(memory.addressExpression)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  ${C64Zeropage.SCRATCH_B1}")
                         // the original memory byte's value is now in the scratch B1 location.
@@ -197,6 +203,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_byte_litval_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
+                            value is TypecastExpression -> {
+                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                inplaceModification_byte_value_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
+                            }
                             else -> inplaceModification_byte_value_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
                         }
                         asmgen.out("  lda  ${C64Zeropage.SCRATCH_B1} |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
@@ -210,10 +220,24 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
+    private fun tryRemoveRedundantCast(value: TypecastExpression, target: AssignTarget, operator: String, origAssign: Assignment): Boolean {
+        val targetDt = target.inferType(program, origAssign).typeOrElse(DataType.STRUCT)
+        if (targetDt == value.type) {
+            val childDt = value.expression.inferType(program).typeOrElse(DataType.STRUCT)
+            if (value.type.equalsSize(childDt) || value.type.largerThan(childDt)) {
+                // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
+                println("***(test) removing redundant typecast ${value.position}  $childDt")   // TODO
+                inplaceModification(target, operator, value.expression, origAssign)
+                return true
+            }
+        }
+        return false
+    }
+
     private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-        asmgen.errors.warn("slow stack evaluation used (2):  $name $operator= ${value::class.simpleName}", value.position) // TODO
+        println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         when (operator) {
             "**" -> TODO("pow")
@@ -325,7 +349,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_byte_value_to_memory(pointername: String, operator: String, value: Expression, origAssign: Assignment) {
-        asmgen.errors.warn("slow stack evaluation used (3):  @($pointername) $operator= ${value::class.simpleName}", value.position) // TODO
+        println("warning: slow stack evaluation used (3):  @($pointername) $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         fun loadByteFromPointerIntoA() {
             asmgen.out("""
@@ -657,7 +681,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_word_value_to_variable(name: String, operator: String, value: Expression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-        asmgen.errors.warn("slow stack evaluation used (4):  $name $operator= ${value::class.simpleName}", value.position) // TODO
+        println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
 
@@ -726,7 +750,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_byte_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-        asmgen.errors.warn("slow stack evaluation used (5):  $name $operator= ${value::class.simpleName}", value.position) // TODO
+        println("warning: slow stack evaluation used (5):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         when (operator) {
             // note: ** (power) operator requires floats.
@@ -908,7 +932,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  (${C64Zeropage.SCRATCH_W1}),y""")
                             }
                             else -> {
-                                asmgen.errors.warn("slow stack evaluation used (6): ${memory.addressExpression::class.simpleName}", memory.addressExpression.position) // TODO
+                                println("warning: slow stack evaluation used (6): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
                                 asmgen.translateExpression(memory.addressExpression)
                                 asmgen.out("""
                                     jsr  prog8_lib.read_byte_from_address_on_stack
@@ -984,7 +1008,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  (${C64Zeropage.SCRATCH_W1}),y""")
                             }
                             else -> {
-                                asmgen.errors.warn("slow stack evaluation used (7): ${memory.addressExpression::class.simpleName}", memory.addressExpression.position) // TODO
+                                println("warning: slow stack evaluation used (7): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
                                 asmgen.translateExpression(memory.addressExpression)
                                 asmgen.out("""
                                     jsr  prog8_lib.read_byte_from_address_on_stack
