@@ -438,7 +438,9 @@ internal class AstChecker(private val program: Program,
         if(variable==null)
             errors.err("pointer-of operand must be the name of a heap variable", addressOf.position)
         else {
-            if(variable.datatype !in ArrayDatatypes && variable.datatype != DataType.STR && variable.datatype!=DataType.STRUCT)
+            if(variable.datatype !in ArrayDatatypes
+                    && variable.type!=VarDeclType.MEMORY
+                    && variable.datatype != DataType.STR && variable.datatype!=DataType.STRUCT)
                 errors.err("invalid pointer-of operand type", addressOf.position)
         }
         super.visit(addressOf)

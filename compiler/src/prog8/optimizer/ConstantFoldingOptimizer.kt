@@ -273,11 +273,8 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         // const fold when both operands are a const
         if(leftconst != null && rightconst != null) {
             val evaluator = ConstExprEvaluator()
-            return listOf(IAstModification.ReplaceNode(
-                    expr,
-                    evaluator.evaluate(leftconst, expr.operator, rightconst),
-                    parent
-            ))
+            val result = evaluator.evaluate(leftconst, expr.operator, rightconst)
+            return listOf(IAstModification.ReplaceNode(expr, result, parent))
         }
 
         return noModifications
@@ -376,6 +373,18 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
             else -> throw FatalAstException("invalid loopvar datatype $loopvar")
         }
 
+        return noModifications
+    }
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        val numval = decl.value as? NumericLiteralValue
+        if(decl.type== VarDeclType.CONST && numval!=null) {
+            val valueDt = numval.inferType(program)
+            if(!valueDt.istype(decl.datatype)) {
+                val adjustedVal = numval.castNoCheck(decl.datatype)
+                return listOf(IAstModification.ReplaceNode(numval, adjustedVal, decl))
+            }
+        }
         return noModifications
     }
 

@@ -47,18 +47,6 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         return noModifications
     }
 
-    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-        if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0]=="lsb") {
-            // lsb(...) is just an alias for type cast to ubyte, so replace with "... as ubyte"
-            val typecast = TypecastExpression(functionCall.args.single(), DataType.UBYTE, false, functionCall.position)
-            return listOf(IAstModification.ReplaceNode(
-                    functionCall, typecast, parent
-            ))
-        }
-
-        return noModifications
-    }
-
     override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         // is it a struct variable? then define all its struct members as mangled names,
         //    and include the original decl as well.

@@ -35,6 +35,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         when (functionName) {
             "msb" -> funcMsb(fcall)
+            "lsb" -> funcLsb(fcall)
             "mkword" -> funcMkword(fcall, func)
             "abs" -> funcAbs(fcall, func)
             "swap" -> funcSwap(fcall)
@@ -584,13 +585,28 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("msb required word argument")
         if (arg is NumericLiteralValue)
-            throw AssemblyError("should have been const-folded")
+            throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmIdentifierName(arg)
             asmgen.out("  lda  $sourceName+1 |  sta  $ESTACK_LO_HEX,x |  dex")
         } else {
             asmgen.translateExpression(arg)
             asmgen.out("  lda  $ESTACK_HI_PLUS1_HEX,x |  sta  $ESTACK_LO_PLUS1_HEX,x")
+        }
+    }
+
+    private fun funcLsb(fcall: IFunctionCall) {
+        val arg = fcall.args.single()
+        if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
+            throw AssemblyError("lsb required word argument")
+        if (arg is NumericLiteralValue)
+            throw AssemblyError("lsb(const) should have been const-folded away")
+        if (arg is IdentifierReference) {
+            val sourceName = asmgen.asmIdentifierName(arg)
+            asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+        } else {
+            asmgen.translateExpression(arg)
+            // just ignore any high-byte
         }
     }
 

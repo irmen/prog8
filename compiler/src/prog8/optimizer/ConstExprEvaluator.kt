@@ -132,11 +132,11 @@ class ConstExprEvaluator {
     private fun bitwiseand(left: NumericLiteralValue, right: NumericLiteralValue): NumericLiteralValue {
         if(left.type== DataType.UBYTE) {
             if(right.type in IntegerDatatypes) {
-                return NumericLiteralValue(DataType.UBYTE, (left.number.toInt() or (right.number.toInt() and 255)).toShort(), left.position)
+                return NumericLiteralValue(DataType.UBYTE, (left.number.toInt() and (right.number.toInt() and 255)).toShort(), left.position)
             }
         } else if(left.type== DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
-                return NumericLiteralValue(DataType.UWORD, left.number.toInt() or right.number.toInt(), left.position)
+                return NumericLiteralValue(DataType.UWORD, left.number.toInt() and right.number.toInt(), left.position)
             }
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
