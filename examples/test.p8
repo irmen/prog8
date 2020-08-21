@@ -7,15 +7,20 @@ main {
 
     sub start() {
 
-        ubyte A =$22
-        ubyte V
-        uword addr = $c0f0
+        uword zz = $ee22
 
-        @($c000) = 123
+        const uword SCREEN1 = $E000
+        const uword CHARSET = $E800
+        const ubyte PAGE1 = ((SCREEN1 >> 6) & $F0) | ((CHARSET >> 10) & $0E)
+        ubyte cmsb = msb(zz)
+        ubyte clsb = lsb(zz)
 
-        A = @($c022-A)
-
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
+        c64scr.print("\ncmsb=")
+        c64scr.print_ubhex(cmsb, false)
+        c64scr.print("\nclsb=")
+        c64scr.print_ubhex(clsb, false)
+        c64scr.print("\nPAGE1=")
+        ubyte p1 = PAGE1            ; TODO fix type error of PAGE1
+        c64scr.print_ubhex(PAGE1, false)
     }
 }
