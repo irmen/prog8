@@ -46,7 +46,7 @@ turtle {
         uword xx = xpos as uword
         c64.SPXY[0] = lsb(xx) + 12
         c64.MSIGX = msb(xx) > 0
-        c64.SPXY[1] = lsb(ypos) + 40
+        c64.SPXY[1] = ypos as ubyte + 40
     }
 
     sub pos(float x, float y) {
@@ -66,7 +66,7 @@ turtle {
         ypos -= flen * cos(angle)
         update_turtle_sprite()
         if pendown {
-            graphics.line(sx as uword, lsb(sy), xpos as uword, lsb(ypos))
+            graphics.line(sx as uword, sy as ubyte, xpos as uword, ypos as ubyte)
         }
     }
 
