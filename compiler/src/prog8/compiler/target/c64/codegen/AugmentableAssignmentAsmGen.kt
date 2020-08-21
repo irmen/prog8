@@ -130,8 +130,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             else -> inplaceModification_word_value_to_variable(name, operator, value)
                         }
                     }
+                    DataType.FLOAT -> {
+                        when {
+                            valueLv!=null -> inplaceModification_float_litval_to_variable(name, operator, valueLv)
+                            ident!=null -> inplaceModification_float_variable_to_variable(name, operator, ident)
+                            // TODO more specialized code for types such as memory read etc.
+                            else -> inplaceModification_float_value_to_variable(name, operator, value)
+                        }
+                    }
                     else -> {
-                        // TODO fix this one it is used in several examples.
                         println("TODO 1c optimize simple inplace assignment [$dt] $name  $operator=  $value")
                         assignmentAsmGen.translateOtherAssignment(origAssign) // TODO get rid of this fallback
                     }
@@ -176,6 +183,93 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 println("TODO 3 optimize simple inplace array assignment $arrayIdx  $operator=  $value")
                 assignmentAsmGen.translateOtherAssignment(origAssign) // TODO get rid of this fallback
             }
+        }
+    }
+
+    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression) {
+        // this should be the last resort for code generation for this,
+        // because the value is evaluated onto the eval stack (=slow).
+        asmgen.translateExpression(value)
+        when(operator) {
+            "**" -> TODO("pow")
+            "+" -> {
+                asmgen.out("""
+                            jsr  c64flt.pop_float_fac1
+                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            lda  #<$name
+                            ldy  #>$name
+                            jsr  c64flt.CONUPK
+                            jsr  c64flt.FADDT
+                            ldx  #<$name
+                            ldy  #>$name
+                            jsr  c64flt.MOVMF
+                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                        """)
+            }
+            "-" -> {
+                TODO("-")
+            }
+            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> {
+                TODO()
+                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            }
+            "%" -> {
+                TODO("float remainder???")
+//                if(types==DataType.BYTE)
+//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+//                asmgen.out("  jsr prog8_lib.remainder_ub")
+            }
+            else -> throw AssemblyError("invalid operator for in-place float modification $operator")
+        }
+    }
+
+    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference) {
+        val otherName = asmgen.asmIdentifierName(ident)
+        TODO("Not yet implemented $name  $operator=   $otherName")
+    }
+
+    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
+        val constValueName = asmgen.getFloatConst(value)
+        when(operator) {
+            "**" -> TODO("pow")
+            "+" -> {
+                if(value==0.0)
+                    return
+                asmgen.out("""
+                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            lda  #<$name
+                            ldy  #>$name
+                            jsr  c64flt.MOVFM
+                            lda  #<$constValueName
+                            ldy  #>$constValueName
+                            jsr  c64flt.CONUPK
+                            jsr  c64flt.FADDT
+                            ldx  #<$name
+                            ldy  #>$name
+                            jsr  c64flt.MOVMF
+                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                        """)
+            }
+            "-" -> {
+                if(value==0.0)
+                    return
+                TODO("-")
+            }
+            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> {
+                if(value==0.0)
+                    throw AssemblyError("division by zero")
+                TODO()
+                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            }
+            "%" -> {
+                TODO("float remainder???")
+//                if(types==DataType.BYTE)
+//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+//                asmgen.out("  jsr prog8_lib.remainder_ub")
+            }
+            else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
     }
 

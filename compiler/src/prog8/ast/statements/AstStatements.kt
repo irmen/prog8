@@ -633,7 +633,6 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 
-    var keepAlways: Boolean = false
     override lateinit var parent: Node
     val scopedname: String by lazy { makeScopedName(name) }
 

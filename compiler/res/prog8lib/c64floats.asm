@@ -201,6 +201,16 @@ pop_float_fac1	.proc
 		jmp  MOVFM
 		.pend
 
+pop_float_fac2	.proc
+		; -- pops float from stack into FAC2
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  pop_float
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jmp  CONUPK
+		.pend
+
 pop_float_to_indexed_var	.proc
 		; -- pop the float on the stack, to the memory in the array at A/Y indexed by the byte on stack
 		sta  c64.SCRATCH_ZPWORD1
