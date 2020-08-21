@@ -1,5 +1,4 @@
 %import c64lib
-%zeropage basicsafe
 
 
 ;/*****************************************************************************\
@@ -22,10 +21,11 @@ main {
 
     sub start() {
         c64.COLOR = 1
-        c64scr.print("creating charset...")
+        c64scr.print("creating charset...\n")
         makechar()
 
         ubyte block = c64.CIA2PRA
+        ; ubyte v = c64.VMCSB
         c64.CIA2PRA = (block & $FC) | (lsb(SCREEN1 >> 14) ^ $03)
 
         repeat {
@@ -34,6 +34,11 @@ main {
             doplasma(SCREEN2)
             c64.VMCSB = PAGE2
         }
+
+        ; restore screen (if you want)
+        ;c64.VMCSB = v
+        ;c64.CIA2PRA = block
+        ;c64scr.print("done!\n")
     }
 
     ; several variables outside of doplasma to make them retain their value
@@ -49,33 +54,32 @@ main {
         ubyte c1b = c1B
         ubyte c2a = c2A
         ubyte c2b = c2B
-        ubyte @zp i
-        ubyte @zp ii
+        ubyte @zp x
+        ubyte @zp y
 
-        for ii in 0 to 24 {
-            ybuf[ii] = sin8u(c1a) + sin8u(c1b)
+        for y in 0 to 24 {
+            ybuf[y] = sin8u(c1a) + sin8u(c1b)
             c1a += 4
             c1b += 9
         }
         c1A += 3
         c1B -= 5
-        for i in 0 to 39 {
-            xbuf[i] = sin8u(c2a) + sin8u(c2b)
+        for x in 0 to 39 {
+            xbuf[x] = sin8u(c2a) + sin8u(c2b)
             c2a += 3
             c2b += 7
         }
         c2A += 2
         c2B -= 3
-        for ii in 0 to 24 {
-            for i in 0 to 39 {
-                @(screen) = xbuf[i] + ybuf[ii]
+        for y in 0 to 24 {
+            for x in 0 to 39 {
+                @(screen) = xbuf[x] + ybuf[y]
                 screen++
             }
         }
     }
 
     sub makechar() {
-
         ubyte[8] bittab = [ $01, $02, $04, $08, $10, $20, $40, $80 ]
         ubyte c
         for c in 0 to 255 {
