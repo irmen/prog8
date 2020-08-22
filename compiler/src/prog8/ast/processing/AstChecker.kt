@@ -1039,7 +1039,10 @@ internal class AstChecker(private val program: Program,
         val targetStatement = target.targetStatement(program.namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
-        errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position)
+        else if(targetStatement==null)
+            errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position)
+        else
+            errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", statement.position)
         return null
     }
 

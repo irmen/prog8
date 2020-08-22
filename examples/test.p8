@@ -10,28 +10,10 @@ main {
     sub start() {
 
         byte nop2
-
         nop2=4
-        nop2++
-        foo.xxx()
 
-    derp:
-        goto main.nop2
-        main.nop2()
-    }
-
-    sub nop2 () {
-        c64.CHROUT('\n')
+        ; nop2()  ; better error
+        nop2()
     }
 }
 
-foo {
-
-    sub xxx() {
-
-    bar:
-        goto bar
-    }
-
-
-}

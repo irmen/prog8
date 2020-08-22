@@ -22,6 +22,9 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(block: Block) {
+        if(block.name in CompilationTarget.machine.opcodeNames)
+            errors.err("can't use a cpu opcode name as a symbol: '${block.name}'", block.position)
+
         val existing = blocks[block.name]
         if(existing!=null)
             nameError(block.name, block.position, existing)
