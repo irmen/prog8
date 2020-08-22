@@ -304,7 +304,6 @@ internal class AstChecker(private val program: Program,
         } else {
             // Pass-by-reference datatypes can not occur as parameters to a subroutine directly
             // Instead, their reference (address) should be passed (as an UWORD).
-            // TODO The language has no (typed) pointers at this time.  Should this be handled better?
             if(subroutine.parameters.any{it.type in PassByReferenceDatatypes }) {
                 err("Pass-by-reference types (str, array) cannot occur as a parameter type directly. Instead, use an uword to receive their address, or access the variable from the outer scope directly.")
             }
@@ -361,8 +360,12 @@ internal class AstChecker(private val program: Program,
         }
 
         val targetDt = assignment.target.inferType(program, assignment)
-        if(assignment.value.inferType(program) != targetDt)
-            errors.err("assignment value is of different type as the target", assignment.value.position)
+        if(assignment.value.inferType(program) != targetDt) {
+            if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
+                errors.err("cannot assign value to string or array", assignment.value.position)
+            else
+                errors.err("value's type doesn't match target", assignment.value.position)
+        }
 
         if(assignment.value is TypecastExpression) {
             if(assignment.isAugmentable && targetDt.istype(DataType.FLOAT))
