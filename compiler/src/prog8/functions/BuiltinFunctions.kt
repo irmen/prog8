@@ -27,8 +27,6 @@ val BuiltinFunctions = mapOf(
     "ror"         to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "rol2"        to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "ror2"        to FSignature(false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "lsl"         to FSignature(false, listOf(FParam("item", IntegerDatatypes)), null),
-    "lsr"         to FSignature(false, listOf(FParam("item", IntegerDatatypes)), null),
     "sort"        to FSignature(false, listOf(FParam("array", ArrayDatatypes)), null),
     "reverse"     to FSignature(false, listOf(FParam("array", ArrayDatatypes)), null),
         // these few have a return value depending on the argument(s):

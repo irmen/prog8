@@ -438,28 +438,10 @@ internal class StatementOptimizer(private val program: Program,
                     "<<" -> {
                         if (cv == 0.0)
                             return listOf(IAstModification.Remove(assignment, parent))
-                        // replace by in-place lsl(...) call
-                        val scope = AnonymousScope(mutableListOf(), assignment.position)
-                        var numshifts = cv.toInt()
-                        while (numshifts > 0) {
-                            scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position),
-                                    mutableListOf(bexpr.left), true, assignment.position))
-                            numshifts--
-                        }
-                        return listOf(IAstModification.ReplaceNode(assignment, scope, parent))
                     }
                     ">>" -> {
                         if (cv == 0.0)
                             return listOf(IAstModification.Remove(assignment, parent))
-                        // replace by in-place lsr(...) call
-                        val scope = AnonymousScope(mutableListOf(), assignment.position)
-                        var numshifts = cv.toInt()
-                        while (numshifts > 0) {
-                            scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position),
-                                    mutableListOf(bexpr.left), true, assignment.position))
-                            numshifts--
-                        }
-                        return listOf(IAstModification.ReplaceNode(assignment, scope, parent))
                     }
                 }
 

@@ -55,7 +55,7 @@ irq {
             uword @zp x = sin8u(angle*2-spri*16) as uword + 50
             ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(lsb(x), y)
-            lsl(c64.MSIGX)
+            c64.MSIGX <<= 1
             if msb(x) c64.MSIGX++
             c64.EXTCOL++
         }
