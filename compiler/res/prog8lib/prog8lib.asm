@@ -663,6 +663,33 @@ greatereq_w	.proc
 		.pend
 
 
+shiftleft_b	.proc
+		inx
+		ldy  c64.ESTACK_LO,x
+		bne  +
+		rts
++		lda  c64.ESTACK_LO+1,x
+-		asl  a
+		dey
+		bne  -
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+shiftright_b	.proc
+		inx
+		ldy  c64.ESTACK_LO,x
+		bne  +
+		rts
++		lda  c64.ESTACK_LO+1,x
+-		lsr  a
+		dey
+		bne  -
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+
 orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
 
 func_exit	.proc

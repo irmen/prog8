@@ -336,8 +336,8 @@ open class Assignment(var target: AssignTarget, var value: Expression, override 
         get() {
             val binExpr = value as? BinaryExpression
             if(binExpr!=null) {
-                if(binExpr.right !is BinaryExpression && binExpr.left isSameAs target)
-                    return true  // A = A <operator> v
+                if(binExpr.left isSameAs target)
+                    return true  // A = A <operator> Something
 
                 if(binExpr.operator in associativeOperators) {
                     if (binExpr.left !is BinaryExpression && binExpr.right isSameAs target)

@@ -766,16 +766,6 @@ rndw()
 rndf()
     returns a pseudo-random float between 0.0 and 1.0
 
-lsl(x)
-    Shift the bits in x (byte or word) one position to the left.
-    Bit 0 is set to 0 (and the highest bit is shifted into the status register's Carry flag)
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-lsr(x)
-    Shift the bits in x (byte or word) one position to the right.
-    The highest bit is set to 0 (and bit 0 is shifted into the status register's Carry flag)
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
 rol(x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,

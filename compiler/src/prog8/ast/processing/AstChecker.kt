@@ -771,12 +771,6 @@ internal class AstChecker(private val program: Program,
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     errors.err("bitwise operator can only be used on integer operands", expr.right.position)
             }
-            "<<", ">>" -> {
-                // for now, bit-shifts can only shift by a constant number  TODO remove this restriction
-                val constRight = expr.right.constValue(program)
-                if(constRight==null)
-                    errors.err("bit-shift can only be done by a constant number (for now)", expr.right.position)
-            }
         }
 
         if(leftDt !in NumericDatatypes)

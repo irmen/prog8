@@ -38,19 +38,18 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceBinary(target: AssignTarget, binExpr: BinaryExpression, assign: Assignment) {
-
-        if (binExpr.right !is BinaryExpression && binExpr.left isSameAs target) {
-            // A = A <operator> 5
+        if (binExpr.left isSameAs target) {
+            // A = A <operator> Something
             return inplaceModification(target, binExpr.operator, binExpr.right, assign)
         }
 
         if (binExpr.operator in associativeOperators) {
-            val leftBinExpr = binExpr.left as? BinaryExpression
-            if (leftBinExpr != null && binExpr.right isSameAs target) {
+            if (binExpr.right isSameAs target) {
                 // A = 5 <operator> A
                 return inplaceModification(target, binExpr.operator, binExpr.left, assign)
             }
 
+            val leftBinExpr = binExpr.left as? BinaryExpression
             if (leftBinExpr?.operator == binExpr.operator) {
                 // TODO better optimize the chained asm to avoid intermediate stores/loads?
                 when {
@@ -128,8 +127,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     in WordDatatypes -> {
                         when {
-                            valueLv != null -> inplaceModification_word_litval_to_variable(name, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_word_variable_to_variable(name, operator, ident)
+                            valueLv != null -> inplaceModification_word_litval_to_variable(name, dt, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_word_variable_to_variable(name, dt, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
 //                            value is DirectMemoryRead -> {
 //                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
@@ -145,9 +144,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                            }
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
-                                inplaceModification_word_value_to_variable(name, operator, value)
+                                inplaceModification_word_value_to_variable(name, dt, operator, value)
                             }
-                            else -> inplaceModification_word_value_to_variable(name, operator, value)
+                            else -> inplaceModification_word_value_to_variable(name, dt, operator, value)
                         }
                     }
                     DataType.FLOAT -> {
@@ -226,7 +225,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             val childDt = value.expression.inferType(program).typeOrElse(DataType.STRUCT)
             if (value.type.equalsSize(childDt) || value.type.largerThan(childDt)) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
-                println("***(test) removing redundant typecast ${value.position}  $childDt")   // TODO
                 inplaceModification(target, operator, value.expression, origAssign)
                 return true
             }
@@ -269,9 +267,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  ${C64Zeropage.SCRATCH_REG_X}
                         """)
             }
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> {
-                TODO()
+                TODO("div")
                 // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             }
             "%" -> {
@@ -331,11 +329,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  ${C64Zeropage.SCRATCH_REG_X}
                         """)
             }
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> {
                 if (value == 0.0)
                     throw AssemblyError("division by zero")
-                TODO()
+                TODO("div")
                 // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             }
             "%" -> {
@@ -370,16 +368,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 loadByteFromPointerIntoA()
                 asmgen.out(" sec |  sbc  $ESTACK_LO_PLUS1_HEX,x | sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("byte remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
-            "<<" -> TODO("byte asl")
-            ">>" -> TODO("byte lsr")
+            "<<" -> TODO("ubyte asl")
+            ">>" -> TODO("ubyte lsr")
             "&" -> {
                 loadByteFromPointerIntoA()
                 asmgen.out(" and  $ESTACK_LO_PLUS1_HEX,x |  sta  (${C64Zeropage.SCRATCH_W1}),y")
@@ -418,16 +416,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 loadByteFromPointerIntoA()
                 asmgen.out(" sec |  sbc  $otherName | sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("byte remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
-            "<<" -> TODO("byte asl")
-            ">>" -> TODO("byte lsr")
+            "<<" -> TODO("ubyte asl")
+            ">>" -> TODO("ubyte lsr")
             "&" -> {
                 loadByteFromPointerIntoA()
                 asmgen.out(" and  $otherName |  sta  (${C64Zeropage.SCRATCH_W1}),y")
@@ -464,8 +462,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 loadByteFromPointerInA()
                 asmgen.out(" sec |  sbc  #$value | sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("byte remainder")
 //                if(types==DataType.BYTE)
@@ -473,16 +471,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
             "<<" -> {
-                if (value > 1) {
+                if (value > 0) {
                     loadByteFromPointerInA()
-                    repeat(value.toInt()) { asmgen.out(" asl  a") }
+                    repeat(value) { asmgen.out(" asl  a") }
                     asmgen.out(" sta  (${C64Zeropage.SCRATCH_W1}),y")
                 }
             }
             ">>" -> {
-                if (value > 1) {
+                if (value > 0) {
                     loadByteFromPointerInA()
-                    repeat(value.toInt()) { asmgen.out(" lsr  a") }
+                    repeat(value) { asmgen.out(" lsr  a") }
                     asmgen.out(" sta  (${C64Zeropage.SCRATCH_W1}),y")
                 }
             }
@@ -502,7 +500,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun inplaceModification_word_litval_to_variable(name: String, operator: String, value: Int) {
+    private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
             // TODO use the + and - optimizations in the expression asm code as well.
@@ -577,17 +575,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
             "<<" -> {
-                if (value > 1) {
-                    asmgen.out(" lda  $name")
-                    TODO("word asl")
-                    asmgen.out(" sta  $name")
-                }
+                repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
             }
             ">>" -> {
-                if (value > 1) {
-                    asmgen.out(" lda  $name")
-                    TODO("word lsr")
-                    asmgen.out(" sta  $name")
+                if (value > 0) {
+                    if(dt==DataType.UWORD) {
+                        repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
+                    } else {
+                        repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
+                    }
                 }
             }
             "&" -> {
@@ -615,7 +611,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun inplaceModification_word_variable_to_variable(name: String, operator: String, ident: IdentifierReference) {
+    private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
         val otherName = asmgen.asmIdentifierName(ident)
         val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
         when (valueDt) {
@@ -639,14 +635,39 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         bcs  +
                         dec  $name+1
 +                           """)
-                    "*" -> TODO()
-                    "/" -> TODO()
+                    "*" -> TODO("mul")
+                    "/" -> TODO("div")
                     "%" -> TODO("word remainder")
-                    "<<" -> TODO()
-                    ">>" -> TODO()
-                    "&" -> TODO()
-                    "^" -> TODO()
-                    "|" -> TODO()
+                    "<<" -> {
+                        asmgen.out("""
+                        ldy  $otherName
+-                       asl  $name
+                        rol  $name+1
+                        dey
+                        bne  -""")
+                    }
+                    ">>" -> {
+                        if(dt==DataType.UWORD) {
+                            asmgen.out("""
+                            ldy  $otherName
+-                           lsr  $name+1
+                            ror  $name
+                            dey
+                            bne  -""")
+                        } else {
+                            asmgen.out("""
+                            ldy  $otherName
+-                           lda  $name+1
+                            asl  a
+                            ror  $name+1
+                            ror  $name
+                            dey
+                            bne  -""")
+                        }
+                    }
+                    "&" -> TODO("bitand")
+                    "^" -> TODO("bitxor")
+                    "|" -> TODO("bitor")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -656,16 +677,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     // note: ** (power) operator requires floats.
                     "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
-                    "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-                    "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+                    "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+                    "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
                     "%" -> {
                         TODO("word remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
                     }
-                    "<<" -> TODO()
-                    ">>" -> TODO()
+                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
                     "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
                     "^" -> asmgen.out(" lda  $name |  xor  $otherName |  sta  $name |  lda  $name+1 |  xor  $otherName+1 |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
@@ -678,7 +698,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun inplaceModification_word_value_to_variable(name: String, operator: String, value: Expression) {
+    private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
         println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
@@ -706,14 +726,50 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         bcs  +
                         dec  $name+1
 +                           """)
-                    "*" -> TODO()
-                    "/" -> TODO()
+                    "*" -> TODO("mul")
+                    "/" -> TODO("div")
                     "%" -> TODO("word remainder")
-                    "<<" -> TODO()
-                    ">>" -> TODO()
-                    "&" -> TODO()
-                    "^" -> TODO()
-                    "|" -> TODO()
+                    "<<" -> {
+                        asmgen.translateExpression(value)
+                        asmgen.out("""
+                        inx
+                        ldy  c64.ESTACK_LO,x
+                        beq  +
+-                   	asl  $name
+                        rol  $name+1
+                        dey
+                        bne  -
++""")
+                    }
+                    ">>" -> {
+                        asmgen.translateExpression(value)
+                        if(dt==DataType.UWORD) {
+                        asmgen.out("""
+                            inx
+                            ldy  c64.ESTACK_LO,x
+                            beq  +
+-                           lsr  $name+1
+                            ror  $name
+                            dey
+                            bne  -
++""") }
+                        else {
+                            asmgen.out("""
+                            inx
+                            ldy  c64.ESTACK_LO,x
+                            beq  +
+-                           lda  $name+1
+                            asl  a
+                            ror  $name+1
+                            ror  $name
+                            dey
+                            bne  -
++""")
+                        }
+                    }
+                    "&" -> TODO("bitand")
+                    "^" -> TODO("bitxor")
+                    "|" -> TODO("bitor")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -723,16 +779,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     // note: ** (power) operator requires floats.
                     "+" -> asmgen.out(" lda  $name |  clc |  adc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name |  lda  $name+1 |  adc  $ESTACK_HI_PLUS1_HEX,x |  sta  $name+1")
                     "-" -> asmgen.out(" lda  $name |  sec |  sbc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name |  lda  $name+1 |  sbc  $ESTACK_HI_PLUS1_HEX,x |  sta  $name+1")
-                    "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-                    "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+                    "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+                    "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
                     "%" -> {
                         TODO("word remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
                     }
-                    "<<" -> TODO()
-                    ">>" -> TODO()
+                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
                     "&" -> asmgen.out(" lda  $name |  and  $ESTACK_LO_PLUS1_HEX,x |  sta  $name | lda  $name+1 |  and  $ESTACK_HI_PLUS1_HEX,x  |  sta  $name+1")
                     "^" -> asmgen.out(" lda  $name |  xor  $ESTACK_LO_PLUS1_HEX,x |  sta  $name | lda  $name+1 |  xor  $ESTACK_HI_PLUS1_HEX,x  |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  $ESTACK_LO_PLUS1_HEX,x |  sta  $name | lda  $name+1 |  ora  $ESTACK_HI_PLUS1_HEX,x  |  sta  $name+1")
@@ -756,16 +811,49 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("byte remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
-            "<<" -> TODO()
-            ">>" -> TODO()
+            "<<" -> {
+                asmgen.translateExpression(value)
+                asmgen.out("""
+                    inx
+                    ldy  c64.ESTACK_LO,x
+                    beq  +
+-                   asl  $name
+                    dey
+                    bne  -
++""")
+            }
+            ">>" -> {
+                asmgen.translateExpression(value)
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        inx
+                        ldy  c64.ESTACK_LO,x
+                        beq  +
+-                       lsr  $name
+                        dey
+                        bne  -
++""")
+                } else {
+                    asmgen.out("""
+                        inx
+                        ldy  c64.ESTACK_LO,x
+                        beq  +
+-                       lda  $name
+                        asl  a
+                        ror  $name
+                        dey
+                        bne  -
++""")
+                }
+            }
             "&" -> asmgen.out(" lda  $name |  and  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
             "^" -> asmgen.out(" lda  $name |  xor  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
@@ -780,16 +868,38 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name")
-            "*" -> TODO()// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO()// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("byte remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
-            "<<" -> TODO()
-            ">>" -> TODO()
+            "<<" -> {
+                asmgen.out("""
+                    ldy  $otherName
+-                   asl  $name
+                    dey
+                    bne  -""")
+            }
+            ">>" -> {
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        ldy  $otherName
+-                       lsr  $name
+                        dey
+                        bne  -""")
+                } else {
+                    asmgen.out("""
+                        ldy  $otherName
+-                       lda  $name
+                        asl  a
+                        ror  $name
+                        dey
+                        bne  -""")
+                }
+            }
             "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
             "^" -> asmgen.out(" lda  $name |  xor  $otherName |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
@@ -828,17 +938,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
             "<<" -> {
-                if (value > 1) {
-                    asmgen.out(" lda  $name")
-                    repeat(value.toInt()) { asmgen.out(" asl  a") }
-                    asmgen.out(" sta  $name")
-                }
+                repeat(value) { asmgen.out(" asl  $name") }
             }
             ">>" -> {
-                if (value > 1) {
-                    asmgen.out(" lda  $name")
-                    repeat(value.toInt()) { asmgen.out(" lsr  a") }
-                    asmgen.out(" sta  $name")
+                if(value>0) {
+                    if (dt == DataType.UBYTE) {
+                        repeat(value) { asmgen.out(" lsr  $name") }
+                    } else {
+                        repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
+                    }
                 }
             }
             "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")

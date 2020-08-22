@@ -207,79 +207,78 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         // see if we can apply some optimized routines
         when(expr.operator) {
             ">>" -> {
-                // bit-shifts are always by a constant number (for now)
                 translateExpression(expr.left)
-                val amount = expr.right.constValue(program)!!.number.toInt()
-                when (leftDt) {
-                    DataType.UBYTE -> {
-                        if(amount<=2)
-                            repeat(amount) { asmgen.out(" lsr  $ESTACK_LO_PLUS1_HEX,x") }
-                        else {
-                            asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x")
-                            repeat(amount) { asmgen.out(" lsr  a") }
-                            asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
+                val amount = expr.right.constValue(program)?.number?.toInt()
+                if(amount!=null) {
+                    when (leftDt) {
+                        DataType.UBYTE -> {
+                            if (amount <= 2)
+                                repeat(amount) { asmgen.out(" lsr  $ESTACK_LO_PLUS1_HEX,x") }
+                            else {
+                                asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x")
+                                repeat(amount) { asmgen.out(" lsr  a") }
+                                asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
+                            }
                         }
-                    }
-                    DataType.BYTE -> {
-                        if(amount<=2)
-                            repeat(amount) { asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                        else {
-                            asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                            repeat(amount) { asmgen.out(" asl  a |  ror  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1} |  lda  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}") }
-                            asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
+                        DataType.BYTE -> {
+                            if (amount <= 2)
+                                repeat(amount) { asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                            else {
+                                asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}")
+                                repeat(amount) { asmgen.out(" asl  a |  ror  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1} |  lda  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}") }
+                                asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
+                            }
                         }
-                    }
-                    DataType.UWORD -> {
-                        var left = amount
-                        while(left>=7) {
-                            asmgen.out(" jsr  math.shift_right_uw_7")
-                            left -= 7
+                        DataType.UWORD -> {
+                            var left = amount
+                            while (left >= 7) {
+                                asmgen.out(" jsr  math.shift_right_uw_7")
+                                left -= 7
+                            }
+                            if (left in 0..2)
+                                repeat(left) { asmgen.out(" lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                            else
+                                asmgen.out(" jsr  math.shift_right_uw_$left")
                         }
-                        if (left in 0..2)
-                            repeat(left) { asmgen.out(" lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                        else
-                            asmgen.out(" jsr  math.shift_right_uw_$left")
-                    }
-                    DataType.WORD -> {
-                        var left = amount
-                        while(left>=7) {
-                            asmgen.out(" jsr  math.shift_right_w_7")
-                            left -= 7
+                        DataType.WORD -> {
+                            var left = amount
+                            while (left >= 7) {
+                                asmgen.out(" jsr  math.shift_right_w_7")
+                                left -= 7
+                            }
+                            if (left in 0..2)
+                                repeat(left) { asmgen.out(" lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                            else
+                                asmgen.out(" jsr  math.shift_right_w_$left")
                         }
-                        if (left in 0..2)
-                            repeat(left) { asmgen.out(" lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
-                        else
-                            asmgen.out(" jsr  math.shift_right_w_$left")
+                        else -> throw AssemblyError("weird type")
                     }
-                    else -> throw AssemblyError("weird type")
                 }
-                return
             }
             "<<" -> {
-                // bit-shifts are always by a constant number (for now)
                 translateExpression(expr.left)
-                val amount = expr.right.constValue(program)!!.number.toInt()
-                if (leftDt in ByteDatatypes) {
-                    if(amount<=2)
-                        repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
-                    else {
-                        asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x")
-                        repeat(amount) { asmgen.out("  asl  a") }
-                        asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                val amount = expr.right.constValue(program)?.number?.toInt()
+                if(amount!=null) {
+                    if (leftDt in ByteDatatypes) {
+                        if (amount <= 2)
+                            repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
+                        else {
+                            asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x")
+                            repeat(amount) { asmgen.out("  asl  a") }
+                            asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                        }
+                    } else {
+                        var left = amount
+                        while (left >= 7) {
+                            asmgen.out(" jsr  math.shift_left_w_7")
+                            left -= 7
+                        }
+                        if (left in 0..2)
+                            repeat(left) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                        else
+                            asmgen.out(" jsr  math.shift_left_w_$left")
                     }
                 }
-                else {
-                    var left=amount
-                    while(left>=7) {
-                        asmgen.out(" jsr  math.shift_left_w_7")
-                        left -= 7
-                    }
-                    if (left in 0..2)
-                        repeat(left) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
-                    else
-                        asmgen.out(" jsr  math.shift_left_w_$left")
-                }
-                return
             }
             "*" -> {
                 val value = expr.right.constValue(program)
@@ -433,7 +432,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 inx
                 sta  $ESTACK_LO_PLUS1_HEX,x
                 """)
-            "<<", ">>" -> throw AssemblyError("bit-shifts not via stack")
+            "<<" -> asmgen.out("  jsr  prog8_lib.shiftleft_b")
+            ">>" -> asmgen.out("  jsr  prog8_lib.shiftright_b")
             "<" -> asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.less_ub" else "  jsr  prog8_lib.less_b")
             ">" -> asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.greater_ub" else "  jsr  prog8_lib.greater_b")
             "<=" -> asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.lesseq_ub" else "  jsr  prog8_lib.lesseq_b")
