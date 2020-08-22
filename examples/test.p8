@@ -7,14 +7,16 @@ main {
 
     sub start() {
 
-        ubyte a = 1
-        ubyte b = 2
-        ubyte c = 20
-        ubyte d = 4
+        &ubyte[256] foo= $c000
+        ubyte[] array=[1,2,3]
+        str string = "hello"
 
-        a = c % 6
+        string = 3
+        array = 5
+        foo = $c100
+        c64scr.print_uwhex(foo, 1)
 
-        c64scr.print_ub(a)
+        foo[100]=10
     }
 }
 

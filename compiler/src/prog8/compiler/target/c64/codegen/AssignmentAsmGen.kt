@@ -12,6 +12,30 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.toHex
 
 
+enum class AsmAssignTargetType {
+    VARIABLE,
+    ARRAY,
+    MEMORY,
+    REGISTER,
+    STACK
+}
+
+internal sealed class AsmAssignTarget(type: AsmAssignTargetType,
+                                      astVariable: IdentifierReference?,
+                                      astArray: ArrayIndexedExpression?,
+                                      astMemory: DirectMemoryWrite?,
+                                      register: RegisterOrPair?,
+                                      program: Program
+                                      )
+{
+    val constMemoryAddress by lazy { astMemory?.addressExpression.constValue(program) }
+    val constArrayIndexValue by lazy { astArray?.arrayspec.index
+
+    init {
+        astMemory!!.addressExpression.
+    }
+}
+
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
