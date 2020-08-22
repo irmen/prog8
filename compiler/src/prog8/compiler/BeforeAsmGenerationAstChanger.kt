@@ -21,6 +21,25 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         return noModifications
     }
 
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        // Try to replace A = B <operator> Something  by A= B, A = A <operator> Something
+        // this triggers the more efficent augmented assignment code generation more often.
+        if(!assignment.isAugmentable
+                && assignment.target.identifier != null
+                && assignment.target.isNotMemory(program.namespace)) {
+            val binExpr = assignment.value as? BinaryExpression
+            if(binExpr!=null && binExpr.operator !in comparisonOperators) {
+                if(binExpr.left !is BinaryExpression) {
+                    val assignLeft = Assignment(assignment.target, binExpr.left, assignment.position)
+                    return listOf(
+                            IAstModification.InsertBefore(assignment, assignLeft, parent),
+                            IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
+                }
+            }
+        }
+        return noModifications
+    }
+
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         val decls = scope.statements.filterIsInstance<VarDecl>()
         val sub = scope.definingSubroutine()

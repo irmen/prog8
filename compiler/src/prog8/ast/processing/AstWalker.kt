@@ -61,6 +61,18 @@ interface IAstModification {
         }
     }
 
+    class InsertBefore(val before: Statement, val stmt: Statement, val parent: Node) : IAstModification {
+        override fun perform() {
+            if(parent is INameScope) {
+                val idx = parent.statements.indexOfFirst { it===before }
+                parent.statements.add(idx, stmt)
+                stmt.linkParents(parent)
+            } else {
+                throw FatalAstException("parent of an insert modification is not an INameScope")
+            }
+        }
+    }
+
     class ReplaceNode(val node: Node, val replacement: Node, val parent: Node) : IAstModification {
         override fun perform() {
             parent.replaceChildNode(node, replacement)

@@ -16,6 +16,7 @@ import kotlin.math.abs
 
 
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
+val comparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
 
 
 sealed class Expression: Node {
