@@ -159,7 +159,7 @@ main {
             ubyte sx = rotatedx[i] / persp + width/2 as ubyte + 20
             ubyte sy = rotatedy[i] / persp + height/2 as ubyte + 40
 
-            c64.SPXYW[i] = mkword(sx, sy)
+            c64.SPXYW[i] = mkword(sy, sx)
 
             if(zc < 30*128)
                 c64.SPRPTR[i] = $2000/64 +1     ; large ball

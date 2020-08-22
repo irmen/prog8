@@ -27,7 +27,7 @@ main {
             c64.CHROUT(bye[char])
 
 
-        float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60
+        float clock_seconds = ((mkword(c64.TIME_MID, c64.TIME_LO) as float) + (c64.TIME_HI as float)*65536.0) / 60
         float hours = floor(clock_seconds / 3600)
         clock_seconds -= hours*3600
         float minutes = floor(clock_seconds / 60)

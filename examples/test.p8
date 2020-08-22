@@ -8,19 +8,14 @@ main {
     sub start() {
 
         ubyte ub
-        uword uw
-        word w
-        byte b
-        float f
+        uword uw = $ee44
+        ubyte vlsb = $11
+        ubyte vmsb = $ff
 
-
-        ub = 4 |  ub | 2
-        ub = ub | 2 | 7
-        ub = 4 | 2 | ub
-
-        ub = 4 + ub + 2
-        ub = ub + 2 + 7
-        ub = 4 + 2 + ub
+        uw = mkword(vmsb, vlsb)           ; todo flip the order of the operands  , MSB first
+        c64scr.print_uwhex(uw, 1)
+        uw = mkword($ee, $22)           ; todo flip the order of the operands  , MSB first
+        c64scr.print_uwhex(uw, 1)
     }
 }
 

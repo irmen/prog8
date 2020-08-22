@@ -63,7 +63,7 @@ val BuiltinFunctions = mapOf(
     "all"         to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
     "lsb"         to FSignature(true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 }},
     "msb"         to FSignature(true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255}},
-    "mkword"      to FSignature(true, listOf(FParam("lsb", setOf(DataType.UBYTE)), FParam("msb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
+    "mkword"      to FSignature(true, listOf(FParam("msb", setOf(DataType.UBYTE)), FParam("lsb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
     "rnd"         to FSignature(true, emptyList(), DataType.UBYTE),
     "rndw"        to FSignature(true, emptyList(), DataType.UWORD),
     "rndf"        to FSignature(true, emptyList(), DataType.FLOAT),
@@ -323,9 +323,9 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
 
 private fun builtinMkword(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
     if (args.size != 2)
-        throw SyntaxError("mkword requires lsb and msb arguments", position)
-    val constLsb = args[0].constValue(program) ?: throw NotConstArgumentException()
-    val constMsb = args[1].constValue(program) ?: throw NotConstArgumentException()
+        throw SyntaxError("mkword requires msb and lsb arguments", position)
+    val constMsb = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val constLsb = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = (constMsb.number.toInt() shl 8) or constLsb.number.toInt()
     return NumericLiteralValue(DataType.UWORD, result, position)
 }

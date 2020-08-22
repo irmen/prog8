@@ -586,10 +586,10 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 } else if (amount >= 8) {
                     val lsb = TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
                     if (amount == 8) {
-                        return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(NumericLiteralValue.optimalInteger(0, expr.position), lsb), expr.position)
+                        return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                     }
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
-                    return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(NumericLiteralValue.optimalInteger(0, expr.position), shifted), expr.position)
+                    return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                 }
             }
             else -> {

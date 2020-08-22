@@ -448,7 +448,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcMkword(fcall: IFunctionCall, func: FSignature) {
-        translateFunctionArguments(fcall.args, func)
+        // trick: push the args in reverse order (msb first, lsb second) this saves some instructions
+        asmgen.translateExpression(fcall.args[1])
+        asmgen.translateExpression(fcall.args[0])
         asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
     }
 

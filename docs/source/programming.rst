@@ -748,8 +748,9 @@ msb(x)
 sgn(x)
     Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
 
-mkword(lsb, msb)
-    Efficiently create a word value from two bytes (the lsb and the msb). Avoids multiplication and shifting.
+mkword(msb, lsb)
+    Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.
+    So mkword($80, $22) results in $8022.
 
 any(x)
     1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')

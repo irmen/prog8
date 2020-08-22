@@ -47,18 +47,17 @@ irq {
     ubyte angle
 
     sub irq() {
-        c64.EXTCOL--
         angle++
         c64.MSIGX=0
         ubyte @zp spri
         for spri in 7 downto 0 {
+            c64.EXTCOL++
             uword @zp x = sin8u(angle*2-spri*16) as uword + 50
             ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
-            c64.SPXYW[spri] = mkword(lsb(x), y)
+            c64.SPXYW[spri] = mkword(y, lsb(x))
             c64.MSIGX <<= 1
             if msb(x) c64.MSIGX++
-            c64.EXTCOL++
         }
-        c64.EXTCOL-=7
+        c64.EXTCOL-=8
     }
 }
