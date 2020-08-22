@@ -288,7 +288,9 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
     override fun visit(assignment: Assignment) {
         val binExpr = assignment.value as? BinaryExpression
-        if(binExpr!=null && binExpr.left isSameAs assignment.target) {
+        if(binExpr!=null && binExpr.left isSameAs assignment.target
+                && binExpr.operator !in setOf("and", "or", "xor")
+                && binExpr.operator !in comparisonOperators) {
             // we only support the inplace assignments of the form A = A <operator> <value>
             assignment.target.accept(this)
             output(" ${binExpr.operator}= ")
