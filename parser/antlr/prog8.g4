@@ -20,7 +20,7 @@ WS :  [ \t] -> skip ;
 EOL :  [\r\n]+ ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
-NAME :  [a-zA-Z_][a-zA-Z0-9_]* ;
+NAME :  [a-zA-Z][a-zA-Z0-9_]* ;
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
 BIN_INTEGER :  '%' ('0' | '1')+ ;

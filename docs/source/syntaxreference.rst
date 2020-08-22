@@ -157,7 +157,7 @@ Directives
 Identifiers
 -----------
 
-Naming things in Prog8 is done via valid *identifiers*. They start with a letter or underscore,
+Naming things in Prog8 is done via valid *identifiers*. They start with a letter,
 and after that, a combination of letters, numbers, or underscores. Examples of valid identifiers::
 
 	a
@@ -165,7 +165,7 @@ and after that, a combination of letters, numbers, or underscores. Examples of v
 	monkey
 	COUNTER
 	Better_Name_2
-	_something_strange_
+	something_strange__
 
 
 Code blocks
