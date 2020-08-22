@@ -4,6 +4,7 @@ TODO
 
 - optimize assignment codegeneration
 - get rid of all TODO's ;-)
+- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - aliases for imported symbols for example perhaps '%alias print = c64scr.print' ?
 - investigate support for 8bitguy's Commander X16 platform https://www.commanderx16.com  and https://github.com/commanderx16/x16-docs
