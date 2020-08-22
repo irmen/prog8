@@ -415,8 +415,9 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         // todo: this implements only a small set of possible reorderings at this time
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
-            // If + or *,  we can simply shuffle the const operands around to optimize.
-            if(expr.operator=="+" || expr.operator=="*") {
+
+            // If associative,  we can simply shuffle the const operands around to optimize.
+            if(expr.operator in associativeOperators) {
                 return if(leftIsConst) {
                     if(subleftIsConst)
                         ShuffleOperands(expr, null, subExpr, subExpr.right, null, null, expr.left)
