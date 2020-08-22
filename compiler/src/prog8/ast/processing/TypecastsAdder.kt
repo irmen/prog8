@@ -144,8 +144,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                     }
                 }
             }
-            null -> { }
-            else -> throw FatalAstException("call to something weird $sub   ${call.target}")
+            else -> { }
         }
 
         return modifications
