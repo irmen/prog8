@@ -65,9 +65,9 @@ main {
     const uword height = 200
 
     ; vertices
-    byte[] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
-    byte[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
-    byte[] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
+    word[] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
+    word[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
+    word[] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
 
     ; storage for rotated coordinates
     word[len(xcoor)] rotatedx

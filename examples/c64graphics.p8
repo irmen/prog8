@@ -13,6 +13,10 @@ graphics {
         ; enable bitmap screen, erase it and set colors to black/white.
         c64.SCROLY |= %00100000
         c64.VMCSB = (c64.VMCSB & %11110000) | %00001000   ; $2000-$3fff
+        clear_screen()
+    }
+
+    sub clear_screen() {
         memset(bitmap_address, 320*200/8, 0)
         c64scr.clear_screen($10, 0)         ; pixel color $1 (white) backround $0 (black)
     }
