@@ -253,6 +253,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         }
                         else -> throw AssemblyError("weird type")
                     }
+                    return
                 }
             }
             "<<" -> {
@@ -278,6 +279,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         else
                             asmgen.out(" jsr  math.shift_left_w_$left")
                     }
+                    return
                 }
             }
             "*" -> {

@@ -427,8 +427,4 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             whenChoice.statements.accept(this)
         outputln("")
     }
-
-    override fun visit(nopStatement: NopStatement) {
-        output("; NOP @ ${nopStatement.position}  $nopStatement")
-    }
 }
