@@ -153,7 +153,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
-            errors.warn("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
+            errors.warn("integer implicitly converted to float. Suggestion: use float literals, add an explicit cast, or revert to integer arithmetic", typecast.position)
         }
         return noModifications
     }
