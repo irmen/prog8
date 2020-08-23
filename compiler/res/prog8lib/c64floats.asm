@@ -1,5 +1,6 @@
 ; --- low level floating point assembly routines for the C64
 
+
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y
 		;    clobbers A, Y
@@ -154,17 +155,6 @@ func_rndf	.proc
 _rndf_rnum5	.byte  0,0,0,0,0
 		.pend
 
-push_float_from_indexed_var	.proc
-		; -- push the float from the array at A/Y with index on stack, onto the stack.
-		sta  c64.SCRATCH_ZPWORD1
-		sty  c64.SCRATCH_ZPWORD1+1
-		jsr  prog8_lib.pop_index_times_5
-		jsr  prog8_lib.add_a_to_zpword
-		lda  c64.SCRATCH_ZPWORD1
-		ldy  c64.SCRATCH_ZPWORD1+1
-		jmp  push_float
-		.pend
-
 pop_float	.proc
 		; ---- pops mflpt5 from stack to memory A/Y
 		; (frees 3 stack positions = 6 bytes of which 1 is padding)
@@ -267,42 +257,6 @@ dec_var_f	.proc
 		jsr  MOVMF
 		ldx  c64.SCRATCH_ZPREGX
 		rts
-		.pend
-
-inc_indexed_var_f	.proc
-		; -- add 1 to float in array pointed to by A/Y, at index X
-		pha
-		txa
-		sta  c64.SCRATCH_ZPB1
-		asl  a
-		asl  a
-		clc
-		adc  c64.SCRATCH_ZPB1
-		sta  c64.SCRATCH_ZPB1
-		pla
-		clc
-		adc  c64.SCRATCH_ZPB1
-		bcc  +
-		iny
-+		jmp  inc_var_f
-		.pend
-
-dec_indexed_var_f	.proc
-		; -- subtract 1 to float in array pointed to by A/Y, at index X
-		pha
-		txa
-		sta  c64.SCRATCH_ZPB1
-		asl  a
-		asl  a
-		clc
-		adc  c64.SCRATCH_ZPB1
-		sta  c64.SCRATCH_ZPB1
-		pla
-		clc
-		adc  c64.SCRATCH_ZPB1
-		bcc  +
-		iny
-+		jmp  dec_var_f
 		.pend
 
 

@@ -82,9 +82,28 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             throw AssemblyError("weird array type")
                     }
                 } else {
-                    // TODO rewrite to use Scaled
-                    loadUnscaledArrayIndexIntoA(value)
-                    readAndPushArrayvalueWithUnscaledIndexA(elementDt, arrayVarName)
+                    when (elementDt) {
+                        in ByteDatatypes -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  dex")
+                        }
+                        in WordDatatypes  -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+1,y |  sta  $ESTACK_HI_HEX,x |  dex")
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.A)
+                            asmgen.out("""
+                                ldy  #>$arrayVarName
+                                clc
+                                adc  #<$arrayVarName
+                                bcc  +
+                                iny
++                               jsr  c64flt.push_float""")
+                        }
+                        else ->
+                            throw AssemblyError("weird array elt type")
+                    }
                 }
                 assignStackValue(assign.target)
             }
@@ -635,42 +654,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             else ->
                 throw AssemblyError("weird array type")
-        }
-    }
-
-    private fun loadUnscaledArrayIndexIntoA(expr: ArrayIndexedExpression) {
-        // TODO this is only used once, remove this when that is rewritten using scaled
-        when (val index = expr.arrayspec.index) {
-            is NumericLiteralValue -> throw AssemblyError("constant array index should be optimized earlier")
-            is IdentifierReference -> {
-                val indexName = asmgen.asmIdentifierName(index)
-                asmgen.out("  lda  $indexName")
-            }
-            else -> {
-                asmgen.translateExpression(index)
-                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
-            }
-        }
-    }
-
-    private fun readAndPushArrayvalueWithUnscaledIndexA(elementDt: DataType, asmVarname: String) {
-        // TODO this is only used once, remove this when that is rewritten using scaled
-        when (elementDt) {
-            in ByteDatatypes ->
-                asmgen.out("  tay |  lda  $asmVarname,y |  sta  $ESTACK_LO_HEX,x |  dex")
-            in WordDatatypes  ->
-                asmgen.out("  asl  a |  tay |  lda  $asmVarname,y |  sta  $ESTACK_LO_HEX,x |  lda  $asmVarname+1,y |  sta  $ESTACK_HI_HEX,x | dex")
-            DataType.FLOAT ->
-                // index * 5 is done in the subroutine that's called
-                asmgen.out("""
-                    sta  $ESTACK_LO_HEX,x
-                    dex
-                    lda  #<$asmVarname
-                    ldy  #>$asmVarname
-                    jsr  c64flt.push_float_from_indexed_var
-                """)
-            else ->
-                throw AssemblyError("weird array elt type")
         }
     }
 }
