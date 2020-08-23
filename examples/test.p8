@@ -11,11 +11,17 @@ main {
         uword[] array=[1111 ,2222,3333]
         float[] farr = [1.111, 2.222, 3.333]
 
+        ubyte ub
+        uword uw
         float ff
         ubyte i = 1
 
-        farr[2] = farr[i]
-        c64flt.print_f(farr[2])
+        arr1[i] = ub
+        array[i] = uw
+        farr[2] = 3.15
+        farr[2] = ff
+        farr[i] = ff
+        c64flt.print_f(farr[1])
         c64.CHROUT('\n')
 
 ;        c64scr.print_ub(arr1[1])

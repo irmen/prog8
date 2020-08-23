@@ -181,12 +181,68 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                }
-                asmgen.translateExpression(target.array!!.arrayspec.index)
-                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
-                popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                val index = target.array!!.arrayspec.index
+                when {
+                    target.constArrayIndexValue!=null -> {
+                        val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                        when(target.datatype) {
+                            in ByteDatatypes -> {
+                                asmgen.out(" inx | lda  $ESTACK_LO_HEX,x  | sta  ${target.asmVarname}+$scaledIdx")
+                            }
+                            in WordDatatypes -> {
+                                asmgen.out("""
+                                    inx
+                                    lda  $ESTACK_LO_HEX,x
+                                    sta  ${target.asmVarname}+$scaledIdx
+                                    lda  $ESTACK_HI_HEX,x
+                                    sta  ${target.asmVarname}+$scaledIdx+1
+                                """)
+                            }
+                            DataType.FLOAT -> {
+                                asmgen.out("""
+                                    lda  #<${target.asmVarname}+$scaledIdx
+                                    ldy  #>${target.asmVarname}+$scaledIdx
+                                    jsr  c64flt.pop_float
+                                """)
+                            }
+                            else -> throw AssemblyError("weird target variable type ${target.datatype}")
+                        }
+                    }
+                    index is IdentifierReference -> {
+                        when(target.datatype) {
+                            DataType.UBYTE, DataType.BYTE -> {
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                                asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x |  sta  ${target.asmVarname},y")
+                            }
+                            DataType.UWORD, DataType.WORD -> {
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                                asmgen.out("""
+                                    inx
+                                    lda  $ESTACK_LO_HEX,x
+                                    sta  ${target.asmVarname},y
+                                    lda  $ESTACK_HI_HEX,x
+                                    sta  ${target.asmVarname}+1,y
+                                """)
+                            }
+                            DataType.FLOAT -> {
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
+                                asmgen.out("""
+                                    ldy  #>${target.asmVarname}
+                                    clc
+                                    adc  #<${target.asmVarname}
+                                    bcc  +
+                                    iny
++                                   jsr  c64flt.pop_float""")
+                            }
+                            else -> throw AssemblyError("weird dt")
+                        }
+                    }
+                    else -> {
+                        asmgen.translateExpression(index)
+                        asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+                        popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                    }
+                }
             }
             TargetStorageKind.REGISTER -> TODO()
             TargetStorageKind.STACK -> TODO()
@@ -242,14 +298,75 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign wordvar $sourceName to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                }
                 val index = target.array!!.arrayspec.index
-                asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
-                asmgen.translateExpression(index)
-                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
-                popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                when {
+                    target.constArrayIndexValue!=null -> {
+                        val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                        when(target.datatype) {
+                            in ByteDatatypes -> {
+                                asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
+                            }
+                            in WordDatatypes -> {
+                                asmgen.out("""
+                                    lda  $sourceName
+                                    sta  ${target.asmVarname}+$scaledIdx
+                                    lda  $sourceName+1
+                                    sta  ${target.asmVarname}+$scaledIdx+1
+                                """)
+                            }
+                            DataType.FLOAT -> {
+                                asmgen.out("""
+                                    lda  #<$sourceName
+                                    ldy  #>$sourceName
+                                    sta  ${C64Zeropage.SCRATCH_W1}
+                                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                                    lda  #<${target.asmVarname}+$scaledIdx
+                                    ldy  #>${target.asmVarname}+$scaledIdx
+                                    jsr  c64flt.copy_float
+                                """)
+                            }
+                            else -> throw AssemblyError("weird target variable type ${target.datatype}")
+                        }
+                    }
+                    index is IdentifierReference -> {
+                        when(target.datatype) {
+                            DataType.UBYTE, DataType.BYTE -> {
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                                asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
+                            }
+                            DataType.UWORD, DataType.WORD -> {
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                                asmgen.out("""
+                                    lda  $sourceName
+                                    sta  ${target.asmVarname},y
+                                    lda  $sourceName+1
+                                    sta  ${target.asmVarname}+1,y
+                                """)
+                            }
+                            DataType.FLOAT -> {
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
+                                asmgen.out("""
+                                    ldy  #<$sourceName
+                                    sty  ${C64Zeropage.SCRATCH_W1}
+                                    ldy  #>$sourceName
+                                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                                    ldy  #>${target.asmVarname}
+                                    clc
+                                    adc  #<${target.asmVarname}
+                                    bcc  +
+                                    iny
++                                   jsr  c64flt.copy_float""")
+                            }
+                            else -> throw AssemblyError("weird dt")
+                        }
+                    }
+                    else -> {
+                        asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
+                        asmgen.translateExpression(index)
+                        asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+                        popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                    }
+                }
             }
             TargetStorageKind.REGISTER -> TODO()
             TargetStorageKind.STACK -> TODO()
@@ -274,8 +391,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             }
             TargetStorageKind.ARRAY -> {
+                // TODO optimize this, but the situation doesn't occur very often
 //                if(target.constArrayIndexValue!=null) {
 //                    TODO("const index ${target.constArrayIndexValue}")
+//                } else if(target.array!!.arrayspec.index is IdentifierReference) {
+//                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
                 val index = target.array!!.arrayspec.index
                 asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
@@ -299,14 +419,23 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                }
                 val index = target.array!!.arrayspec.index
-                asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
-                asmgen.translateExpression(index)
-                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
-                popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                when {
+                    target.constArrayIndexValue!=null -> {
+                        val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                        asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
+                    }
+                    index is IdentifierReference -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                        asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
+                    }
+                    else -> {
+                        asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+                        asmgen.translateExpression(index)
+                        asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+                        popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                    }
+                }
             }
             TargetStorageKind.REGISTER -> TODO()
             TargetStorageKind.STACK -> TODO()
@@ -323,9 +452,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeRegisterInMemoryAddress(register, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                }
                 val index = target.array!!.arrayspec.index
                 when (index) {
                     is NumericLiteralValue -> {
@@ -338,16 +464,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     is IdentifierReference -> {
                         when (register) {
-                            CpuRegister.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
-                            CpuRegister.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
-                            CpuRegister.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> asmgen.out(" txa")
+                            CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        asmgen.out("""
-                            lda  ${asmgen.asmIdentifierName(index)}
-                            tay
-                            lda  ${C64Zeropage.SCRATCH_B1}
-                            sta  ${target.asmVarname},y
-                        """)
+                        asmgen.out(" ldy  ${asmgen.asmIdentifierName(index)} |  sta  ${target.asmVarname},y")
                     }
                     else -> {
                         asmgen.saveRegister(register)
@@ -396,8 +517,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
+                // TODO optimize this, but the situation doesn't occur very often
 //                if(target.constArrayIndexValue!=null) {
 //                    TODO("const index ${target.constArrayIndexValue}")
+//                } else if(target.array!!.arrayspec.index is IdentifierReference) {
+//                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
                 val index = target.array!!.arrayspec.index
                 asmgen.translateExpression(index)
@@ -420,23 +544,32 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private fun assignConstantByte(target: AsmAssignTarget, byte: Short) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                asmgen.out(" lda  #${byte.toHex()} |  sta  ${target.asmVarname} ")
+                asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname} ")
             }
             TargetStorageKind.MEMORY -> {
                 storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                }
                 val index = target.array!!.arrayspec.index
-                asmgen.translateExpression(index)
-                asmgen.out("""
-                    inx
-                    ldy  $ESTACK_LO_HEX,x
-                    lda  #${byte.toHex()}
-                    sta  ${target.asmVarname},y
-                """)
+                when {
+                    target.constArrayIndexValue!=null -> {
+                        val indexValue = target.constArrayIndexValue!!
+                        asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")
+                    }
+                    index is IdentifierReference -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
+                        asmgen.out("  lda  #<${byte.toHex()} |  sta  ${target.asmVarname},y |  lda  #>${byte.toHex()} |  sta  ${target.asmVarname}+1,y")
+                    }
+                    else -> {
+                        asmgen.translateExpression(index)
+                        asmgen.out("""
+                            inx
+                            ldy  $ESTACK_LO_HEX,x
+                            lda  #${byte.toHex()}
+                            sta  ${target.asmVarname},y
+                        """)
+                    }
+                }
             }
             else -> throw AssemblyError("no asm gen for assign byte $byte to $target")
         }
@@ -457,8 +590,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
+                    // TODO optimize this, but the situation doesn't occur very often
 //                    if(target.constArrayIndexValue!=null) {
 //                        TODO("const index ${target.constArrayIndexValue}")
+//                    } else if(target.array!!.arrayspec.index is IdentifierReference) {
+//                        TODO("array[var] ${target.constArrayIndexValue}")
 //                    }
                     val index = target.array!!.arrayspec.index
                     if (index is NumericLiteralValue) {
@@ -503,8 +639,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
+                    // TODO optimize this, but the situation doesn't occur very often
 //                    if(target.constArrayIndexValue!=null) {
 //                        TODO("const index ${target.constArrayIndexValue}")
+//                    } else if(target.array!!.arrayspec.index is IdentifierReference) {
+//                        TODO("array[var] ${target.constArrayIndexValue}")
 //                    }
                     val index = target.array!!.arrayspec.index
                     val arrayVarName = target.asmVarname
