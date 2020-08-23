@@ -20,7 +20,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         when(expression) {
             is PrefixExpression -> translateExpression(expression)
             is BinaryExpression -> translateExpression(expression)
-            is ArrayIndexedExpression -> translatePushFromArray(expression)
+            is ArrayIndexedExpression -> translateExpression(expression)
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
             is DirectMemoryRead -> translateExpression(expression)
@@ -384,8 +384,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
-    private fun translatePushFromArray(arrayExpr: ArrayIndexedExpression) {
-        // assume *reading* from an array
+    private fun translateExpression(arrayExpr: ArrayIndexedExpression) {
         val index = arrayExpr.arrayspec.index
         val elementDt = arrayExpr.inferType(program).typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmIdentifierName(arrayExpr.identifier)
@@ -404,8 +403,28 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 else -> throw AssemblyError("weird element type")
             }
         } else {
-            asmgen.translateArrayIndexIntoA(arrayExpr)
-            asmgen.readAndPushArrayvalueWithIndexA(elementDt, arrayExpr.identifier)
+            when(elementDt) {
+                in ByteDatatypes -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.Y)
+                    asmgen.out(" lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  dex")
+                }
+                in WordDatatypes -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.Y)
+                    asmgen.out(" lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+1,y |  sta  $ESTACK_HI_HEX,x |  dex")
+                }
+                DataType.FLOAT -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.A)
+                    asmgen.out("""
+                        ldy  #>$arrayVarName
+                        clc
+                        adc  #<$arrayVarName
+                        bcc  +
+                        iny
++                       jsr  c64flt.push_float""")
+                }
+                else -> throw AssemblyError("weird dt")
+            }
+
         }
     }
 

@@ -111,20 +111,20 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when (target.datatype) {
                     in ByteDatatypes -> {
                         when {
-                            valueLv != null -> inplaceModification_byte_litval_to_variable(target.asmName, target.datatype, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_byte_variable_to_variable(target.asmName, target.datatype, operator, ident)
+                            valueLv != null -> inplaceModification_byte_litval_to_variable(target.asmVarname, target.datatype, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_byte_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_byte_value_to_variable(target.asmName, target.datatype, operator, value)
+                                inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value)
                             }
-                            else -> inplaceModification_byte_value_to_variable(target.asmName, target.datatype, operator, value)
+                            else -> inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value)
                         }
                     }
                     in WordDatatypes -> {
                         when {
-                            valueLv != null -> inplaceModification_word_litval_to_variable(target.asmName, target.datatype, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_word_variable_to_variable(target.asmName, target.datatype, operator, ident)
+                            valueLv != null -> inplaceModification_word_litval_to_variable(target.asmVarname, target.datatype, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_word_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
 //                            value is DirectMemoryRead -> {
 //                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
@@ -140,21 +140,21 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                            }
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_word_value_to_variable(target.asmName, target.datatype, operator, value)
+                                inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value)
                             }
-                            else -> inplaceModification_word_value_to_variable(target.asmName, target.datatype, operator, value)
+                            else -> inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value)
                         }
                     }
                     DataType.FLOAT -> {
                         when {
-                            valueLv != null -> inplaceModification_float_litval_to_variable(target.asmName, operator, valueLv.toDouble())
-                            ident != null -> inplaceModification_float_variable_to_variable(target.asmName, operator, ident)
+                            valueLv != null -> inplaceModification_float_litval_to_variable(target.asmVarname, operator, valueLv.toDouble())
+                            ident != null -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_float_value_to_variable(target.asmName, operator, value)
+                                inplaceModification_float_value_to_variable(target.asmVarname, operator, value)
                             }
-                            else -> inplaceModification_float_value_to_variable(target.asmName, operator, value)
+                            else -> inplaceModification_float_value_to_variable(target.asmVarname, operator, value)
                         }
                     }
                     else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
@@ -1014,19 +1014,22 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         if (innerCastDt == null) {
             // simple typecast where the value is the target
             when (target.datatype) {
-                DataType.UBYTE, DataType.BYTE -> { /* byte target can't be casted to anything else at all */
-                }
+                DataType.UBYTE, DataType.BYTE -> { /* byte target can't be casted to anything else at all */ }
                 DataType.UWORD, DataType.WORD -> {
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {
-                            if(target.kind== TargetStorageKind.VARIABLE) {
-                                asmgen.out(" lda  #0 |  sta  ${target.asmName}+1")
-                            } else
-                                throw AssemblyError("weird value")
+                            when(target.kind) {
+                                TargetStorageKind.VARIABLE -> asmgen.out(" lda  #0 |  sta  ${target.asmVarname}+1")
+                                TargetStorageKind.ARRAY -> {
+                                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y, true)
+                                    asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
+                                }
+                                TargetStorageKind.STACK -> asmgen.out(" lda  #0 |  sta  $ESTACK_HI_PLUS1_HEX,x")
+                                else -> throw AssemblyError("weird target")
+                            }
                         }
-                        DataType.UWORD, DataType.WORD, in IterableDatatypes -> {
-                        }
-                        DataType.FLOAT -> throw AssemblyError("incompatible cast type")
+                        DataType.UWORD, DataType.WORD, in IterableDatatypes -> {}
+                        DataType.FLOAT -> throw AssemblyError("can't cast float in-place")
                         else -> throw AssemblyError("weird cast type")
                     }
                 }
@@ -1052,11 +1055,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
-                            lda  ${target.asmName}
+                            lda  ${target.asmVarname}
                             beq  +
                             lda  #1
 +                           eor  #1
-                            sta  ${target.asmName}""")
+                            sta  ${target.asmVarname}""")
                     }
                     TargetStorageKind.MEMORY -> {
                         val mem = target.memory!!
@@ -1108,14 +1111,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
-                            lda  ${target.asmName}
-                            ora  ${target.asmName}+1
+                            lda  ${target.asmVarname}
+                            ora  ${target.asmVarname}+1
                             beq  +
                             lda  #1
 +                           eor  #1
-                            sta  ${target.asmName}
+                            sta  ${target.asmVarname}
                             lsr  a
-                            sta  ${target.asmName}+1""")
+                            sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
                     TargetStorageKind.ARRAY -> TODO("in-place not of uword array")
@@ -1133,9 +1136,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
-                            lda  ${target.asmName}
+                            lda  ${target.asmVarname}
                             eor  #255
-                            sta  ${target.asmName}""")
+                            sta  ${target.asmVarname}""")
                     }
                     TargetStorageKind.MEMORY -> {
                         val memory = target.memory!!
@@ -1181,12 +1184,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
-                            lda  ${target.asmName}
+                            lda  ${target.asmVarname}
                             eor  #255
-                            sta  ${target.asmName}
-                            lda  ${target.asmName}+1
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
                             eor  #255
-                            sta  ${target.asmName}+1""")
+                            sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
                     TargetStorageKind.ARRAY -> TODO("in-place invert uword array")
@@ -1206,8 +1209,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.out("""
                             lda  #0
                             sec
-                            sbc  ${target.asmName}
-                            sta  ${target.asmName}""")
+                            sbc  ${target.asmVarname}
+                            sta  ${target.asmVarname}""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
                     TargetStorageKind.ARRAY -> TODO("in-place negate byte array")
@@ -1221,11 +1224,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.out("""
                             lda  #0
                             sec
-                            sbc  ${target.asmName}
-                            sta  ${target.asmName}
+                            sbc  ${target.asmVarname}
+                            sta  ${target.asmVarname}
                             lda  #0
-                            sbc  ${target.asmName}+1
-                            sta  ${target.asmName}+1""")
+                            sbc  ${target.asmVarname}+1
+                            sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate word array")
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
@@ -1238,12 +1241,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             stx  ${C64Zeropage.SCRATCH_REG_X}
-                            lda  #<${target.asmName}
-                            ldy  #>${target.asmName}
+                            lda  #<${target.asmVarname}
+                            ldy  #>${target.asmVarname}
                             jsr  c64flt.MOVFM
                             jsr  c64flt.NEGOP
-                            ldx  #<${target.asmName}
-                            ldy  #>${target.asmName}
+                            ldx  #<${target.asmVarname}
+                            ldy  #>${target.asmVarname}
                             jsr  c64flt.MOVMF
                             ldx  ${C64Zeropage.SCRATCH_REG_X}
                         """)

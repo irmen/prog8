@@ -42,7 +42,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
     val constArrayIndexValue by lazy { array?.arrayspec?.constIndex() }
     val vardecl by lazy { variable?.targetVarDecl(program.namespace)!! }
-    val asmName by lazy {
+    val asmVarname by lazy {
         if(variable!=null)
             asmgen.asmIdentifierName(variable)
         else

@@ -99,12 +99,14 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                         }
                     }
                     is IdentifierReference -> {
-                        asmgen.translateArrayIndexIntoA(targetArrayIdx)
-                        incrDecrArrayvalueWithIndexA(incr, elementDt, what)
+                        // TODO rewrite using scaled?
+                        asmgen.loadUnscaledArrayIndexIntoA(targetArrayIdx)
+                        incrDecrArrayvalueWithIndexA(incr, elementDt, what) // TODO is this ok for word/float array?
                     }
                     else -> {
-                        asmgen.translateArrayIndexIntoA(targetArrayIdx)
-                        incrDecrArrayvalueWithIndexA(incr, elementDt, what)
+                        // TODO rewrite using scaled?
+                        asmgen.loadUnscaledArrayIndexIntoA(targetArrayIdx)
+                        incrDecrArrayvalueWithIndexA(incr, elementDt, what)// TODO is this ok for word/float array?
                     }
                 }
             }
