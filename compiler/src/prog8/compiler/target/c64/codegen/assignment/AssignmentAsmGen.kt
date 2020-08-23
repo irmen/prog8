@@ -614,7 +614,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     index is IdentifierReference -> {
                         asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
-                        asmgen.out("  lda  #<${byte.toHex()} |  sta  ${target.asmVarname},y |  lda  #>${byte.toHex()} |  sta  ${target.asmVarname}+1,y")
+                        asmgen.out("  lda  #<${byte.toHex()} |  sta  ${target.asmVarname},y")
                     }
                     else -> {
                         asmgen.translateExpression(index)
