@@ -14,9 +14,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val asmgen: AsmGen) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
-        require(assign.source.type==AsmSourceStorageType.EXPRESSION)
+        require(assign.source.kind==SourceStorageKind.EXPRESSION)
 
-        val value = assign.source.astExpression!!
+        val value = assign.source.expression!!
         when (value) {
             is PrefixExpression -> {
                 // A = -A , A = +A, A = ~A, A = not A
@@ -105,8 +105,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val valueLv = (value as? NumericLiteralValue)?.number
         val ident = value as? IdentifierReference
 
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
                     in ByteDatatypes -> {
                         when {
@@ -159,8 +159,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                 }
             }
-            AsmTargetStorageType.MEMORY -> {
-                val memory = target.astMemory!!
+            TargetStorageKind.MEMORY -> {
+                val memory = target.memory!!
                 when (memory.addressExpression) {
                     is NumericLiteralValue -> {
                         val addr = (memory.addressExpression as NumericLiteralValue).number.toInt()
@@ -208,12 +208,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            AsmTargetStorageType.ARRAY -> {
-                println("*** TODO optimize simple inplace array assignment ${target.astArray}  $operator=  $value")
+            TargetStorageKind.ARRAY -> {
+                println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
                 assignmentAsmGen.translateOtherAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
@@ -1018,7 +1018,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 DataType.UWORD, DataType.WORD -> {
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {
-                            if(target.type==AsmTargetStorageType.VARIABLE) {
+                            if(target.kind==TargetStorageKind.VARIABLE) {
                                 asmgen.out(" lda  #0 |  sta  ${target.asmName}+1")
                             } else
                                 throw AssemblyError("weird value")
@@ -1048,8 +1048,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceBooleanNot(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.UBYTE -> {
-                when(target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmName}
                             beq  +
@@ -1057,8 +1057,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +                           eor  #1
                             sta  ${target.asmName}""")
                     }
-                    AsmTargetStorageType.MEMORY-> {
-                        val mem = target.astMemory!!
+                    TargetStorageKind.MEMORY-> {
+                        val mem = target.memory!!
                         when (mem.addressExpression) {
                             is NumericLiteralValue -> {
                                 val addr = (mem.addressExpression as NumericLiteralValue).number.toHex()
@@ -1096,16 +1096,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    AsmTargetStorageType.ARRAY -> {
+                    TargetStorageKind.ARRAY -> {
                         TODO("in-place not of ubyte array")
                     }
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             DataType.UWORD -> {
-                when(target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmName}
                             ora  ${target.asmName}+1
@@ -1116,10 +1116,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             lsr  a
                             sta  ${target.asmName}+1""")
                     }
-                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
-                    AsmTargetStorageType.ARRAY -> TODO("in-place not of uword array")
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
+                    TargetStorageKind.ARRAY -> TODO("in-place not of uword array")
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             else -> throw AssemblyError("boolean-not of invalid type")
@@ -1129,15 +1129,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceInvert(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.UBYTE -> {
-                when(target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmName}
                             eor  #255
                             sta  ${target.asmName}""")
                     }
-                    AsmTargetStorageType.MEMORY -> {
-                        val memory = target.astMemory!!
+                    TargetStorageKind.MEMORY -> {
+                        val memory = target.memory!!
                         when (memory.addressExpression) {
                             is NumericLiteralValue -> {
                                 val addr = (memory.addressExpression as NumericLiteralValue).number.toHex()
@@ -1169,16 +1169,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    AsmTargetStorageType.ARRAY -> {
+                    TargetStorageKind.ARRAY -> {
                         TODO("in-place invert ubyte array")
                     }
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             DataType.UWORD -> {
-                when(target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmName}
                             eor  #255
@@ -1187,10 +1187,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             eor  #255
                             sta  ${target.asmName}+1""")
                     }
-                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
-                    AsmTargetStorageType.ARRAY -> TODO("in-place invert uword array")
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
+                    TargetStorageKind.ARRAY -> TODO("in-place invert uword array")
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
@@ -1200,23 +1200,23 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceNegate(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.BYTE -> {
-                when (target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when (target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  #0
                             sec
                             sbc  ${target.asmName}
                             sta  ${target.asmName}""")
                     }
-                    AsmTargetStorageType.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
-                    AsmTargetStorageType.ARRAY -> TODO("in-place negate byte array")
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
+                    TargetStorageKind.ARRAY -> TODO("in-place negate byte array")
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             DataType.WORD -> {
-                when(target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  #0
                             sec
@@ -1226,15 +1226,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sbc  ${target.asmName}+1
                             sta  ${target.asmName}+1""")
                     }
-                    AsmTargetStorageType.ARRAY -> TODO("in-place negate word array")
-                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.ARRAY -> TODO("in-place negate word array")
+                    TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             DataType.FLOAT -> {
-                when(target.type) {
-                    AsmTargetStorageType.VARIABLE -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             stx  ${C64Zeropage.SCRATCH_REG_X}
                             lda  #<${target.asmName}
@@ -1247,10 +1247,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  ${C64Zeropage.SCRATCH_REG_X}
                         """)
                     }
-                    AsmTargetStorageType.ARRAY -> TODO("in-place negate float array")
-                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for float memory negate")
-                    AsmTargetStorageType.REGISTER -> TODO()
-                    AsmTargetStorageType.STACK -> TODO()
+                    TargetStorageKind.ARRAY -> TODO("in-place negate float array")
+                    TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for float memory negate")
+                    TargetStorageKind.REGISTER -> TODO()
+                    TargetStorageKind.STACK -> TODO()
                 }
             }
             else -> throw AssemblyError("negate of invalid type")

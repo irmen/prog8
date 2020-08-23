@@ -9,7 +9,7 @@ import prog8.ast.statements.DirectMemoryWrite
 import prog8.compiler.AssemblyError
 
 
-enum class AsmTargetStorageType {
+enum class TargetStorageKind {
     VARIABLE,
     ARRAY,
     MEMORY,
@@ -17,41 +17,41 @@ enum class AsmTargetStorageType {
     STACK
 }
 
-enum class AsmSourceStorageType {
+enum class SourceStorageKind {
     LITERALNUMBER,
     VARIABLE,
     ARRAY,
     MEMORY,
     REGISTER,
     STACK,              // value is already present on stack
-    EXPRESSION,         // expression still to be evaluated
+    EXPRESSION,         // expression in ast-form, still to be evaluated
 }
 
-internal class AsmAssignTarget(val type: AsmTargetStorageType,
+internal class AsmAssignTarget(val kind: TargetStorageKind,
                                program: Program,
                                asmgen: AsmGen,
                                val datatype: DataType,
-                               val astVariable: IdentifierReference?,
-                               val astArray: ArrayIndexedExpression?,
-                               val astMemory: DirectMemoryWrite?,
+                               val variable: IdentifierReference?,
+                               val array: ArrayIndexedExpression?,
+                               val memory: DirectMemoryWrite?,
                                val register: RegisterOrPair?,
                                val origAstTarget: AssignTarget?,        // TODO get rid of this eventually?
                                 )
 {
-    val constMemoryAddress by lazy { astMemory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { astArray?.arrayspec?.size() ?: 0 }
-    val vardecl by lazy { astVariable?.targetVarDecl(program.namespace)!! }
+    val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
+    val constArrayIndexValue by lazy { array?.arrayspec?.size() ?: 0 }
+    val vardecl by lazy { variable?.targetVarDecl(program.namespace)!! }
     val asmName by lazy {
-        if(astVariable!=null)
-            asmgen.asmIdentifierName(astVariable)
+        if(variable!=null)
+            asmgen.asmIdentifierName(variable)
         else
-            asmgen.asmIdentifierName(astArray!!.identifier)
+            asmgen.asmIdentifierName(array!!.identifier)
     }
 
     lateinit var origAssign: AsmAssignment
 
     init {
-        if(astVariable!=null && vardecl.type == VarDeclType.CONST)
+        if(variable!=null && vardecl.type == VarDeclType.CONST)
             throw AssemblyError("can't assign to a constant")
         if(register!=null && datatype !in IntegerDatatypes)
             throw AssemblyError("register must be integer type")
@@ -61,71 +61,71 @@ internal class AsmAssignTarget(val type: AsmTargetStorageType,
         fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget = with(assign.target) {
             val dt = inferType(program, assign).typeOrElse(DataType.STRUCT)
             when {
-                identifier != null -> AsmAssignTarget(AsmTargetStorageType.VARIABLE, program, asmgen, dt, identifier, null, null, null, this)
-                arrayindexed != null -> AsmAssignTarget(AsmTargetStorageType.ARRAY, program, asmgen, dt, null, arrayindexed, null, null, this)
-                memoryAddress != null -> AsmAssignTarget(AsmTargetStorageType.MEMORY, program, asmgen, dt, null, null, memoryAddress, null, this)
+                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, identifier, null, null, null, this)
+                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, null, arrayindexed, null, null, this)
+                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, null, null, memoryAddress, null, this)
                 else -> throw AssemblyError("weird target")
             }
         }
     }
 }
 
-internal class AsmAssignSource(val type: AsmSourceStorageType,
+internal class AsmAssignSource(val kind: SourceStorageKind,
                                private val program: Program,
                                val datatype: DataType,
-                               val astVariable: IdentifierReference? = null,
-                               val astArray: ArrayIndexedExpression? = null,
-                               val astMemory: DirectMemoryRead? = null,
+                               val variable: IdentifierReference? = null,
+                               val array: ArrayIndexedExpression? = null,
+                               val memory: DirectMemoryRead? = null,
                                val register: CpuRegister? = null,
-                               val numLitval: NumericLiteralValue? = null,
-                               val astExpression: Expression? = null
+                               val number: NumericLiteralValue? = null,
+                               val expression: Expression? = null
 )
 {
-    val constMemoryAddress by lazy { astMemory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { astArray?.arrayspec?.size() ?: 0 }
-    val vardecl by lazy { astVariable?.targetVarDecl(program.namespace)!! }
+    val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
+    val constArrayIndexValue by lazy { array?.arrayspec?.size() ?: 0 }
+    val vardecl by lazy { variable?.targetVarDecl(program.namespace)!! }
 
     companion object {
         fun fromAstSource(value: Expression, program: Program): AsmAssignSource {
             val cv = value.constValue(program)
             if(cv!=null)
-                return AsmAssignSource(AsmSourceStorageType.LITERALNUMBER, program, cv.type, numLitval = cv)
+                return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, cv.type, number = cv)
 
             return when(value) {
-                is NumericLiteralValue -> AsmAssignSource(AsmSourceStorageType.LITERALNUMBER, program, value.type, numLitval = cv)
+                is NumericLiteralValue -> AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, value.type, number = cv)
                 is StringLiteralValue -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    AsmAssignSource(AsmSourceStorageType.VARIABLE, program, dt, astVariable = value)
+                    AsmAssignSource(SourceStorageKind.VARIABLE, program, dt, variable = value)
                 }
                 is DirectMemoryRead -> {
-                    AsmAssignSource(AsmSourceStorageType.MEMORY, program, DataType.UBYTE, astMemory = value)
+                    AsmAssignSource(SourceStorageKind.MEMORY, program, DataType.UBYTE, memory = value)
                 }
                 is ArrayIndexedExpression -> {
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    AsmAssignSource(AsmSourceStorageType.ARRAY, program, dt, astArray = value)
+                    AsmAssignSource(SourceStorageKind.ARRAY, program, dt, array = value)
                 }
                 else -> {
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    AsmAssignSource(AsmSourceStorageType.EXPRESSION, program, dt, astExpression = value)
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, dt, expression = value)
                 }
             }
         }
     }
 
-    fun getAstValue(): Expression = when(type) {
-        AsmSourceStorageType.LITERALNUMBER -> numLitval!!
-        AsmSourceStorageType.VARIABLE -> astVariable!!
-        AsmSourceStorageType.ARRAY -> astArray!!
-        AsmSourceStorageType.MEMORY -> astMemory!!
-        AsmSourceStorageType.EXPRESSION -> astExpression!!
-        AsmSourceStorageType.REGISTER -> TODO()
-        AsmSourceStorageType.STACK -> TODO()
+    fun getAstValue(): Expression = when(kind) {
+        SourceStorageKind.LITERALNUMBER -> number!!
+        SourceStorageKind.VARIABLE -> variable!!
+        SourceStorageKind.ARRAY -> array!!
+        SourceStorageKind.MEMORY -> memory!!
+        SourceStorageKind.EXPRESSION -> expression!!
+        SourceStorageKind.REGISTER -> TODO()
+        SourceStorageKind.STACK -> TODO()
     }
 
     fun withAdjustedDt(newType: DataType) =
-            AsmAssignSource(type, program, newType, astVariable, astArray, astMemory, register, numLitval, astExpression)
+            AsmAssignSource(kind, program, newType, variable, array, memory, register, number, expression)
 
 }
 

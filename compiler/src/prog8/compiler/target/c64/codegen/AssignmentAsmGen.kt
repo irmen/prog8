@@ -34,8 +34,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
 
         when {
-            source.type==AsmSourceStorageType.LITERALNUMBER -> translateConstantValueAssignment(assign)
-            source.type==AsmSourceStorageType.VARIABLE -> translateVariableAssignment(assign)
+            source.kind==SourceStorageKind.LITERALNUMBER -> translateConstantValueAssignment(assign)
+            source.kind==SourceStorageKind.VARIABLE -> translateVariableAssignment(assign)
             assign.isAugmentable -> augmentableAsmGen.translate(assign)
             else -> translateOtherAssignment(assign)
         }
@@ -51,7 +51,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun translateVariableAssignment(assign: AsmAssignment) {
-        val identifier = assign.source.astVariable!!
+        val identifier = assign.source.variable!!
         when (assign.target.datatype) {
             DataType.UBYTE, DataType.BYTE -> assignFromByteVariable(assign.target, identifier)
             DataType.UWORD, DataType.WORD -> assignFromWordVariable(assign.target, identifier)
@@ -62,7 +62,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun translateConstantValueAssignment(assign: AsmAssignment) {
-        val numVal = assign.source.numLitval!!
+        val numVal = assign.source.number!!
         when (numVal.type) {
             DataType.UBYTE, DataType.BYTE -> assignFromByteConstant(assign.target, numVal.number.toShort())
             DataType.UWORD, DataType.WORD -> assignFromWordConstant(assign.target, numVal.number.toInt())
@@ -74,13 +74,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     internal fun translateOtherAssignment(assign: AsmAssignment) {
         // source: expression, register, stack  (only expression implemented for now)
 
-        when(assign.source.type) {
-            AsmSourceStorageType.LITERALNUMBER,
-            AsmSourceStorageType.VARIABLE -> {
-                throw AssemblyError("assignment value type ${assign.source.type} should have been handled elsewhere")
+        when(assign.source.kind) {
+            SourceStorageKind.LITERALNUMBER,
+            SourceStorageKind.VARIABLE -> {
+                throw AssemblyError("assignment value type ${assign.source.kind} should have been handled elsewhere")
             }
-            AsmSourceStorageType.ARRAY -> {
-                val value = assign.source.astArray!!
+            SourceStorageKind.ARRAY -> {
+                val value = assign.source.array!!
                 val elementDt = value.inferType(program).typeOrElse(DataType.STRUCT)
                 val index = value.arrayspec.index
                 if (index is NumericLiteralValue) {
@@ -103,8 +103,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 assignFromEvalResult(assign.target)
             }
-            AsmSourceStorageType.MEMORY -> {
-                val value = assign.source.astMemory!!
+            SourceStorageKind.MEMORY -> {
+                val value = assign.source.memory!!
                 when (value.addressExpression) {
                     is NumericLiteralValue -> {
                         val address = (value.addressExpression as NumericLiteralValue).number.toInt()
@@ -120,8 +120,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            AsmSourceStorageType.EXPRESSION -> {
-                val value = assign.source.astExpression!!
+            SourceStorageKind.EXPRESSION -> {
+                val value = assign.source.expression!!
                 if (value is AddressOf) {
                     assignFromAddressOf(assign.target, value.identifier)
                 }
@@ -130,10 +130,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     assignFromEvalResult(assign.target)
                 }
             }
-            AsmSourceStorageType.REGISTER -> {
+            SourceStorageKind.REGISTER -> {
                 assignByteFromRegister(assign.target, assign.source.register!!)
             }
-            AsmSourceStorageType.STACK -> {
+            SourceStorageKind.STACK -> {
                 when(assign.source.datatype) {
                     in ByteDatatypes -> {
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
@@ -148,8 +148,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignFromEvalResult(target: AsmAssignTarget) {
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
                         asmgen.out(" inx | lda  $ESTACK_LO_HEX,x  | sta  ${target.asmName}")
@@ -173,19 +173,19 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("weird target variable type ${target.datatype}")
                 }
             }
-            AsmTargetStorageType.MEMORY -> {
+            TargetStorageKind.MEMORY -> {
                 asmgen.out("  inx")
-                storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", target.astMemory!!)
+                storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", target.memory!!)
             }
-            AsmTargetStorageType.ARRAY -> {
-                val targetArrayIdx = target.astArray!!
+            TargetStorageKind.ARRAY -> {
+                val targetArrayIdx = target.array!!
                 val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 asmgen.translateExpression(targetArrayIdx.arrayspec.index)
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithIndexA(arrayDt, target.asmName)
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
@@ -203,8 +203,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             asmgen.fixNameSymbols(name.nameInSource.joinToString("."))
         }
 
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
                         lda  #<$sourceName
                         ldy  #>$sourceName
@@ -212,23 +212,23 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         sty  ${target.asmName}+1
                     """)
             }
-            AsmTargetStorageType.MEMORY -> {
+            TargetStorageKind.MEMORY -> {
                 throw AssemblyError("no asm gen for assign address $sourceName to memory word $target")
             }
-            AsmTargetStorageType.ARRAY -> {
-                val targetArrayIdx = target.astArray!!
+            TargetStorageKind.ARRAY -> {
+                val targetArrayIdx = target.array!!
                 val index = targetArrayIdx.arrayspec.index
                 throw AssemblyError("no asm gen for assign address $sourceName to array ${target.asmName} [ $index ]")
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
     private fun assignFromWordVariable(target: AsmAssignTarget, variable: IdentifierReference) {
         val sourceName = asmgen.asmIdentifierName(variable)
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
                     lda  $sourceName
                     ldy  $sourceName+1
@@ -236,11 +236,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sty  ${target.asmName}+1
                 """)
             }
-            AsmTargetStorageType.MEMORY -> {
-                throw AssemblyError("no asm gen for assign wordvar $sourceName to memory ${target.astMemory}")
+            TargetStorageKind.MEMORY -> {
+                throw AssemblyError("no asm gen for assign wordvar $sourceName to memory ${target.memory}")
             }
-            AsmTargetStorageType.ARRAY -> {
-                val targetArrayIdx = target.astArray!!
+            TargetStorageKind.ARRAY -> {
+                val targetArrayIdx = target.array!!
                 val index = targetArrayIdx.arrayspec.index
                 asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
                 asmgen.translateExpression(index)
@@ -248,15 +248,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 popAndWriteArrayvalueWithIndexA(arrayDt, target.asmName)
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
     private fun assignFromFloatVariable(target: AsmAssignTarget, variable: IdentifierReference) {
         val sourceName = asmgen.asmIdentifierName(variable)
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
                     lda  $sourceName
                     sta  ${target.asmName}
@@ -270,9 +270,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  ${target.asmName}+4
                 """)
             }
-            AsmTargetStorageType.ARRAY -> {
-                val index = target.astArray!!.arrayspec.index
-                val targetName = asmgen.asmIdentifierName(target.astArray.identifier)
+            TargetStorageKind.ARRAY -> {
+                val index = target.array!!.arrayspec.index
+                val targetName = asmgen.asmIdentifierName(target.array.identifier)
                 asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
                 asmgen.translateExpression(index)
                 asmgen.out("  lda  #<$targetName |  ldy  #>$targetName |  jsr  c64flt.pop_float_to_indexed_var")
@@ -283,18 +283,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private fun assignFromByteVariable(target: AsmAssignTarget, variable: IdentifierReference) {
         val sourceName = asmgen.asmIdentifierName(variable)
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
                     lda  $sourceName
                     sta  ${target.asmName}
                     """)
             }
-            AsmTargetStorageType.MEMORY -> {
-                storeByteViaRegisterAInMemoryAddress(sourceName, target.astMemory!!)
+            TargetStorageKind.MEMORY -> {
+                storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
             }
-            AsmTargetStorageType.ARRAY -> {
-                val targetArrayIdx = target.astArray!!
+            TargetStorageKind.ARRAY -> {
+                val targetArrayIdx = target.array!!
                 val index = targetArrayIdx.arrayspec.index
                 val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
@@ -302,22 +302,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithIndexA(arrayDt, target.asmName)
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
     private fun assignByteFromRegister(target: AsmAssignTarget, register: CpuRegister) {
         require(target.datatype in ByteDatatypes)
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 asmgen.out("  st${register.name.toLowerCase()}  ${target.asmName}")
             }
-            AsmTargetStorageType.MEMORY -> {
-                storeRegisterInMemoryAddress(register, target.astMemory!!)
+            TargetStorageKind.MEMORY -> {
+                storeRegisterInMemoryAddress(register, target.memory!!)
             }
-            AsmTargetStorageType.ARRAY -> {
-                val targetArrayIdx = target.astArray!!
+            TargetStorageKind.ARRAY -> {
+                val targetArrayIdx = target.array!!
                 val index = targetArrayIdx.arrayspec.index
                 when (index) {
                     is NumericLiteralValue -> {
@@ -360,8 +360,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
@@ -439,8 +439,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignFromWordConstant(target: AsmAssignTarget, word: Int) {
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 if (word ushr 8 == word and 255) {
                     // lsb=msb
                     asmgen.out("""
@@ -457,12 +457,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
                 }
             }
-            AsmTargetStorageType.MEMORY -> {
-                throw AssemblyError("no asm gen for assign word $word to memory ${target.astMemory}")
+            TargetStorageKind.MEMORY -> {
+                throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
             }
-            AsmTargetStorageType.ARRAY -> {
-                val index = target.astArray!!.arrayspec.index
-                val targetName = asmgen.asmIdentifierName(target.astArray.identifier)
+            TargetStorageKind.ARRAY -> {
+                val index = target.array!!.arrayspec.index
+                val targetName = asmgen.asmIdentifierName(target.array.identifier)
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
@@ -475,22 +475,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  $targetName+1,y
                 """)
             }
-            AsmTargetStorageType.REGISTER -> TODO()
-            AsmTargetStorageType.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
     private fun assignFromByteConstant(target: AsmAssignTarget, byte: Short) {
-        when(target.type) {
-            AsmTargetStorageType.VARIABLE -> {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
                 asmgen.out(" lda  #${byte.toHex()} |  sta  ${target.asmName} ")
             }
-            AsmTargetStorageType.MEMORY -> {
-                storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.astMemory!!)
+            TargetStorageKind.MEMORY -> {
+                storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
             }
-            AsmTargetStorageType.ARRAY -> {
-                val index = target.astArray!!.arrayspec.index
-                val targetName = asmgen.asmIdentifierName(target.astArray.identifier)
+            TargetStorageKind.ARRAY -> {
+                val index = target.array!!.arrayspec.index
+                val targetName = asmgen.asmIdentifierName(target.array.identifier)
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
@@ -506,8 +506,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private fun assignFromFloatConstant(target: AsmAssignTarget, float: Double) {
         if (float == 0.0) {
             // optimized case for float zero
-            when(target.type) {
-                AsmTargetStorageType.VARIABLE -> {
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
                             lda  #0
                             sta  ${target.asmName}
@@ -517,8 +517,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  ${target.asmName}+4
                         """)
                 }
-                AsmTargetStorageType.ARRAY -> {
-                    val index = target.astArray!!.arrayspec.index
+                TargetStorageKind.ARRAY -> {
+                    val index = target.array!!.arrayspec.index
                     if (index is NumericLiteralValue) {
                         val indexValue = index.number.toInt() * C64MachineDefinition.FLOAT_MEM_SIZE
                         asmgen.out("""
@@ -545,8 +545,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         } else {
             // non-zero value
             val constFloat = asmgen.getFloatConst(float)
-            when(target.type) {
-                AsmTargetStorageType.VARIABLE -> {
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
                             lda  $constFloat
                             sta  ${target.asmName}
@@ -560,9 +560,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  ${target.asmName}+4
                         """)
                 }
-                AsmTargetStorageType.ARRAY -> {
-                    val index = target.astArray!!.arrayspec.index
-                    val arrayVarName = asmgen.asmIdentifierName(target.astArray.identifier)
+                TargetStorageKind.ARRAY -> {
+                    val index = target.array!!.arrayspec.index
+                    val arrayVarName = asmgen.asmIdentifierName(target.array.identifier)
                     if (index is NumericLiteralValue) {
                         val indexValue = index.number.toInt() * C64MachineDefinition.FLOAT_MEM_SIZE
                         asmgen.out("""
@@ -599,28 +599,28 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private fun assignFromMemoryByte(target: AsmAssignTarget, address: Int?, identifier: IdentifierReference?) {
         if (address != null) {
-            when(target.type) {
-                AsmTargetStorageType.VARIABLE -> {
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
                         lda  ${address.toHex()}
                         sta  ${target.asmName}
                         """)
                 }
-                AsmTargetStorageType.MEMORY -> {
-                    storeByteViaRegisterAInMemoryAddress(address.toHex(), target.astMemory!!)
+                TargetStorageKind.MEMORY -> {
+                    storeByteViaRegisterAInMemoryAddress(address.toHex(), target.memory!!)
                 }
-                AsmTargetStorageType.ARRAY -> {
-                    val index = target.astArray!!.arrayspec.index
-                    val targetName = asmgen.asmIdentifierName(target.astArray.identifier)
+                TargetStorageKind.ARRAY -> {
+                    val index = target.array!!.arrayspec.index
+                    val targetName = asmgen.asmIdentifierName(target.array.identifier)
                     throw AssemblyError("no asm gen for assign memory byte at $address to array $targetName [ $index ]")
                 }
-                AsmTargetStorageType.REGISTER -> TODO()
-                AsmTargetStorageType.STACK -> TODO()
+                TargetStorageKind.REGISTER -> TODO()
+                TargetStorageKind.STACK -> TODO()
             }
         } else if (identifier != null) {
             val sourceName = asmgen.asmIdentifierName(identifier)
-            when(target.type) {
-                AsmTargetStorageType.VARIABLE -> {
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
     lda  $sourceName
     sta  ${C64Zeropage.SCRATCH_W1}
@@ -630,12 +630,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     lda  (${C64Zeropage.SCRATCH_W1}),y
     sta  ${target.asmName}""")
                 }
-                AsmTargetStorageType.MEMORY -> {
-                    storeByteViaRegisterAInMemoryAddress(sourceName, target.astMemory!!)
+                TargetStorageKind.MEMORY -> {
+                    storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
                 }
-                AsmTargetStorageType.ARRAY -> {
-                    val index = target.astArray!!.arrayspec.index
-                    val targetName = asmgen.asmIdentifierName(target.astArray.identifier)
+                TargetStorageKind.ARRAY -> {
+                    val index = target.array!!.arrayspec.index
+                    val targetName = asmgen.asmIdentifierName(target.array.identifier)
                     throw AssemblyError("no asm gen for assign memory byte $sourceName to array $targetName [ $index ]")
                 }
                 else -> throw AssemblyError("no asm gen for assign memory byte $target")
