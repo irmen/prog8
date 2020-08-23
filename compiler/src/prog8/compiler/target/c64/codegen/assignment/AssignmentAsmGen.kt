@@ -17,17 +17,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
 
     fun translate(assignment: Assignment) {
-        var source = AsmAssignSource.fromAstSource(assignment.value, program)
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
-
-        // allow some signed/unsigned relaxations
-        if(target.datatype!=source.datatype) {
-            if(target.datatype in ByteDatatypes && source.datatype in ByteDatatypes) {
-                source = source.withAdjustedDt(target.datatype)
-            } else if(target.datatype in WordDatatypes && source.datatype in WordDatatypes) {
-                source = source.withAdjustedDt(target.datatype)
-            }
-        }
+        val source = AsmAssignSource.fromAstSource(assignment.value, program).adjustDataTypeToTarget(target)
 
         val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
         target.origAssign = assign
@@ -127,6 +118,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 if (value is AddressOf) {
                     assignAddressOf(assign.target, value.identifier)
                 }
+                // TODO more special cases to avoid stack eval?
                 else {
                     asmgen.translateExpression(value)
                     assignStackValue(assign.target)

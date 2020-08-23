@@ -15,6 +15,7 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
 import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
@@ -694,6 +695,9 @@ internal class AsmGen(private val program: Program,
 
     internal fun translateFunctionCall(functionCall: FunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCall)
+
+    internal fun translateNormalAssignment(assign: AsmAssignment) =
+            assignmentAsmGen.translateNormalAssignment(assign)
 
     private fun translateSubroutine(sub: Subroutine) {
         out("")
