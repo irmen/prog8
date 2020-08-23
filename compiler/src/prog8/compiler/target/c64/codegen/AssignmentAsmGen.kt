@@ -23,6 +23,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
         val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
 
+        // assert that the source and target types are identical (with some signed/unsigned relaxations)
+        if(target.datatype!=source.datatype) {
+            if (!(target.datatype in ByteDatatypes && source.datatype in ByteDatatypes ||
+                            target.datatype in WordDatatypes && source.datatype in WordDatatypes)) {
+                throw AssemblyError("assignment type incompatibility  ${target.datatype}=${source.datatype}")
+            }
+        }
+
         when {
             source.type==AsmSourceStorageType.LITERALNUMBER -> translateConstantValueAssignment(assign)
             source.type==AsmSourceStorageType.VARIABLE -> translateVariableAssignment(assign)
