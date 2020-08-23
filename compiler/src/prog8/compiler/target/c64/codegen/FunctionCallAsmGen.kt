@@ -173,7 +173,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             register!=null && register.name.length==1 -> {
                 when (value) {
                     is NumericLiteralValue -> {
-                        asmgen.assignToRegister(CpuRegister.valueOf(register.name), value.number.toShort(), null)
+                        asmgen.assignToRegister(CpuRegister.valueOf(register.name), value.number.toInt(), null)
                     }
                     is IdentifierReference -> {
                         asmgen.assignToRegister(CpuRegister.valueOf(register.name), null, value)
