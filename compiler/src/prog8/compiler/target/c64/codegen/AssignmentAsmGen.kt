@@ -64,37 +64,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     internal fun translateOtherAssignment(assign: AsmAssignment) {
         // source: expression, register, stack  (only expression implemented for now)
 
-        // TODO use source type enum
-        val value=assign.source.getAstValue()
-        when (value) {
-            is AddressOf -> {
-                assignFromAddressOf(assign.target, value.identifier)
+        when(assign.source.type) {
+            AsmSourceStorageType.LITERALNUMBER,
+            AsmSourceStorageType.VARIABLE -> {
+                throw AssemblyError("assignment value type ${assign.source.type} should have been handled elsewhere")
             }
-            is DirectMemoryRead -> {
-                when (value.addressExpression) {
-                    is NumericLiteralValue -> {
-                        val address = (value.addressExpression as NumericLiteralValue).number.toInt()
-                        assignFromMemoryByte(assign.target, address, null)
-                    }
-                    is IdentifierReference -> {
-                        assignFromMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
-                    }
-                    else -> {
-                        asmgen.translateExpression(value.addressExpression)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
-                        assignFromRegister(assign.target, CpuRegister.A)
-                    }
-                }
-            }
-            is PrefixExpression -> {
-                asmgen.translateExpression(value)
-                assignFromEvalResult(assign.target)
-            }
-            is BinaryExpression -> {
-                asmgen.translateExpression(value)
-                assignFromEvalResult(assign.target)
-            }
-            is ArrayIndexedExpression -> {
+            AsmSourceStorageType.ARRAY -> {
+                val value = assign.source.astArray!!
                 val arrayDt = value.identifier.inferType(program).typeOrElse(DataType.STRUCT)
                 val index = value.arrayspec.index
                 if (index is NumericLiteralValue) {
@@ -117,28 +93,47 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 assignFromEvalResult(assign.target)
             }
-            is TypecastExpression -> {
-                val sourceType = value.expression.inferType(program)
-                if (sourceType.isKnown &&
-                        (sourceType.typeOrElse(DataType.STRUCT) in ByteDatatypes && value.type in ByteDatatypes) ||
-                        (sourceType.typeOrElse(DataType.STRUCT) in WordDatatypes && value.type in WordDatatypes)) {
-                    // no need for a type cast
-                    TODO("no typecast $value")
-//                    value = value.expression
-//                    val newAssign = AsmAssignment(assign.source, assign.target, assign.isAugmentable, assign.position)
-//                    translate(newAssign)
-                } else {
+            AsmSourceStorageType.MEMORY -> {
+                val value = assign.source.astMemory!!
+                when (value.addressExpression) {
+                    is NumericLiteralValue -> {
+                        val address = (value.addressExpression as NumericLiteralValue).number.toInt()
+                        assignFromMemoryByte(assign.target, address, null)
+                    }
+                    is IdentifierReference -> {
+                        assignFromMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
+                    }
+                    else -> {
+                        asmgen.translateExpression(value.addressExpression)
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
+                        assignByteFromRegister(assign.target, CpuRegister.A)
+                    }
+                }
+            }
+            AsmSourceStorageType.EXPRESSION -> {
+                val value = assign.source.astExpression!!
+                if (value is AddressOf) {
+                    assignFromAddressOf(assign.target, value.identifier)
+                }
+                else {
                     asmgen.translateExpression(value)
                     assignFromEvalResult(assign.target)
                 }
             }
-            is FunctionCall -> {
-                asmgen.translateExpression(value)
-                assignFromEvalResult(assign.target)
+            AsmSourceStorageType.REGISTER -> {
+                assignByteFromRegister(assign.target, assign.source.register!!)
             }
-            is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array assignment  $assign")
-            is RangeExpr -> throw AssemblyError("range expression should have been changed into array values ${value.position}")
-            else -> throw AssemblyError("assignment value type $value should have been handled elsewhere")
+            AsmSourceStorageType.STACK -> {
+                when(assign.source.datatype) {
+                    in ByteDatatypes -> {
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
+                        assignByteFromRegister(assign.target, CpuRegister.A)
+                    }
+                    in WordDatatypes -> TODO("assign word from stack")
+                    DataType.FLOAT -> TODO("assign float from stack")
+                    else -> throw AssemblyError("weird stack value type")
+                }
+            }
         }
     }
 
@@ -302,7 +297,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignFromRegister(target: AsmAssignTarget, register: CpuRegister) {
+    private fun assignByteFromRegister(target: AsmAssignTarget, register: CpuRegister) {
+        require(target.datatype in ByteDatatypes)
         when(target.type) {
             AsmTargetStorageType.VARIABLE -> {
                 asmgen.out("  st${register.name.toLowerCase()}  ${target.asmName}")

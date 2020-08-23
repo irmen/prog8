@@ -36,7 +36,7 @@ internal class AsmAssignTarget(val type: AsmTargetStorageType,
                                val astMemory: DirectMemoryWrite?,
                                val register: RegisterOrPair?,
                                val origAstTarget: AssignTarget?,        // TODO get rid of this eventually?
-)
+                                )
 {
     val constMemoryAddress by lazy { astMemory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
     val constArrayIndexValue by lazy { astArray?.arrayspec?.size() ?: 0 }
@@ -72,10 +72,11 @@ internal class AsmAssignTarget(val type: AsmTargetStorageType,
 
 internal class AsmAssignSource(val type: AsmSourceStorageType,
                                private val program: Program,
+                               val datatype: DataType,
                                val astVariable: IdentifierReference? = null,
                                val astArray: ArrayIndexedExpression? = null,
                                val astMemory: DirectMemoryRead? = null,
-                               val register: RegisterOrPair? = null,
+                               val register: CpuRegister? = null,
                                val numLitval: NumericLiteralValue? = null,
                                val astExpression: Expression? = null
 )
@@ -88,16 +89,27 @@ internal class AsmAssignSource(val type: AsmSourceStorageType,
         fun fromAstSource(value: Expression, program: Program): AsmAssignSource {
             val cv = value.constValue(program)
             if(cv!=null)
-                return AsmAssignSource(AsmSourceStorageType.LITERALNUMBER, program, numLitval = cv)
+                return AsmAssignSource(AsmSourceStorageType.LITERALNUMBER, program, cv.type, numLitval = cv)
 
             return when(value) {
-                is NumericLiteralValue -> AsmAssignSource(AsmSourceStorageType.LITERALNUMBER, program, numLitval = cv)
+                is NumericLiteralValue -> AsmAssignSource(AsmSourceStorageType.LITERALNUMBER, program, value.type, numLitval = cv)
                 is StringLiteralValue -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
-                is IdentifierReference -> AsmAssignSource(AsmSourceStorageType.VARIABLE, program, astVariable = value)
-                is DirectMemoryRead -> AsmAssignSource(AsmSourceStorageType.MEMORY, program, astMemory = value)
-                is ArrayIndexedExpression -> AsmAssignSource(AsmSourceStorageType.ARRAY, program, astArray = value)
-                else -> AsmAssignSource(AsmSourceStorageType.EXPRESSION, program, astExpression = value)
+                is IdentifierReference -> {
+                    val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
+                    AsmAssignSource(AsmSourceStorageType.VARIABLE, program, dt, astVariable = value)
+                }
+                is DirectMemoryRead -> {
+                    AsmAssignSource(AsmSourceStorageType.MEMORY, program, DataType.UBYTE, astMemory = value)
+                }
+                is ArrayIndexedExpression -> {
+                    val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
+                    AsmAssignSource(AsmSourceStorageType.ARRAY, program, dt, astArray = value)
+                }
+                else -> {
+                    val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
+                    AsmAssignSource(AsmSourceStorageType.EXPRESSION, program, dt, astExpression = value)
+                }
             }
         }
     }
