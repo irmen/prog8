@@ -539,14 +539,14 @@ internal class AsmGen(private val program: Program,
                 }
             }
 
-    internal fun readAndPushArrayvalueWithIndexA(arrayDt: DataType, variable: IdentifierReference) {
+    internal fun readAndPushArrayvalueWithIndexA(elementDt: DataType, variable: IdentifierReference) {
         val variablename = asmIdentifierName(variable)
-        when (arrayDt) {
-            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B ->
+        when (elementDt) {
+            in ByteDatatypes ->
                 out("  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  dex")
-            DataType.ARRAY_UW, DataType.ARRAY_W ->
+            in WordDatatypes  ->
                 out("  asl  a |  tay |  lda  $variablename,y |  sta  $ESTACK_LO_HEX,x |  lda  $variablename+1,y |  sta  $ESTACK_HI_HEX,x | dex")
-            DataType.ARRAY_F ->
+            DataType.FLOAT ->
                 // index * 5 is done in the subroutine that's called
                 out("""
                     sta  $ESTACK_LO_HEX,x
@@ -556,7 +556,7 @@ internal class AsmGen(private val program: Program,
                     jsr  c64flt.push_float_from_indexed_var
                 """)
             else ->
-                throw AssemblyError("weird array type")
+                throw AssemblyError("weird array elt type")
         }
     }
 

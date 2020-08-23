@@ -71,25 +71,25 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             AsmSourceStorageType.ARRAY -> {
                 val value = assign.source.astArray!!
-                val arrayDt = value.identifier.inferType(program).typeOrElse(DataType.STRUCT)
+                val elementDt = value.inferType(program).typeOrElse(DataType.STRUCT)
                 val index = value.arrayspec.index
                 if (index is NumericLiteralValue) {
                     // constant array index value
                     val arrayVarName = asmgen.asmIdentifierName(value.identifier)
-                    val indexValue = index.number.toInt() * ArrayElementTypes.getValue(arrayDt).memorySize()
-                    when (arrayDt) {
-                        DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B ->
+                    val indexValue = index.number.toInt() * elementDt.memorySize()
+                    when (elementDt) {
+                        in ByteDatatypes ->
                             asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
-                        DataType.ARRAY_UW, DataType.ARRAY_W ->
+                        in WordDatatypes ->
                             asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x | dex")
-                        DataType.ARRAY_F ->
+                        DataType.FLOAT ->
                             asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
                         else ->
                             throw AssemblyError("weird array type")
                     }
                 } else {
                     asmgen.translateArrayIndexIntoA(value)
-                    asmgen.readAndPushArrayvalueWithIndexA(arrayDt, value.identifier)
+                    asmgen.readAndPushArrayvalueWithIndexA(elementDt, value.identifier)
                 }
                 assignFromEvalResult(assign.target)
             }

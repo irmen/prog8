@@ -74,8 +74,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
                 val what = asmgen.asmIdentifierName(targetArrayIdx.identifier)
-                val arrayDt = targetArrayIdx.identifier.inferType(program).typeOrElse(DataType.STRUCT)
-                val elementDt = ArrayElementTypes.getValue(arrayDt)
+                val elementDt = targetArrayIdx.inferType(program).typeOrElse(DataType.STRUCT)
                 when(index) {
                     is NumericLiteralValue -> {
                         val indexValue = index.number.toInt() * elementDt.memorySize()
@@ -101,11 +100,11 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                     }
                     is IdentifierReference -> {
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
-                        incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
+                        incrDecrArrayvalueWithIndexA(incr, elementDt, what)
                     }
                     else -> {
                         asmgen.translateArrayIndexIntoA(targetArrayIdx)
-                        incrDecrArrayvalueWithIndexA(incr, arrayDt, what)
+                        incrDecrArrayvalueWithIndexA(incr, elementDt, what)
                     }
                 }
             }
@@ -113,14 +112,13 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
         }
     }
 
-    private fun incrDecrArrayvalueWithIndexA(incr: Boolean, arrayDt: DataType, arrayVarName: String) {
+    private fun incrDecrArrayvalueWithIndexA(incr: Boolean, elementDt: DataType, arrayVarName: String) {
         asmgen.out("  stx  ${C64Zeropage.SCRATCH_REG_X} |  tax")
-        when(arrayDt) {
-            DataType.STR,
-            DataType.ARRAY_UB, DataType.ARRAY_B -> {
+        when(elementDt) {
+            in ByteDatatypes -> {
                 asmgen.out(if(incr) "  inc  $arrayVarName,x" else "  dec  $arrayVarName,x")
             }
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+            in WordDatatypes -> {
                 if(incr)
                     asmgen.out(" inc  $arrayVarName,x |  bne  + |  inc  $arrayVarName+1,x |+")
                 else
@@ -131,11 +129,11 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
 +       dec  $arrayVarName 
 """)
             }
-            DataType.ARRAY_F -> {
+            DataType.FLOAT -> {
                 asmgen.out("  lda  #<$arrayVarName |  ldy  #>$arrayVarName")
                 asmgen.out(if(incr) "  jsr  c64flt.inc_indexed_var_f" else "  jsr  c64flt.dec_indexed_var_f")
             }
-            else -> throw AssemblyError("weird array dt")
+            else -> throw AssemblyError("weird array elt dt")
         }
         asmgen.out("  ldx  ${C64Zeropage.SCRATCH_REG_X}")
     }

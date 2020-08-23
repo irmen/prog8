@@ -387,10 +387,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     private fun translatePushFromArray(arrayExpr: ArrayIndexedExpression) {
         // assume *reading* from an array
         val index = arrayExpr.arrayspec.index
-        val arrayDt = arrayExpr.identifier.targetVarDecl(program.namespace)!!.datatype
+        val elementDt = arrayExpr.inferType(program).typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmIdentifierName(arrayExpr.identifier)
         if(index is NumericLiteralValue) {
-            val elementDt = ArrayElementTypes.getValue(arrayDt)
             val indexValue = index.number.toInt() * elementDt.memorySize()
             when(elementDt) {
                 in ByteDatatypes -> {
@@ -402,11 +401,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 DataType.FLOAT -> {
                     asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
                 }
-                else -> throw AssemblyError("weird type")
+                else -> throw AssemblyError("weird element type")
             }
         } else {
             asmgen.translateArrayIndexIntoA(arrayExpr)
-            asmgen.readAndPushArrayvalueWithIndexA(arrayDt, arrayExpr.identifier)
+            asmgen.readAndPushArrayvalueWithIndexA(elementDt, arrayExpr.identifier)
         }
     }
 
