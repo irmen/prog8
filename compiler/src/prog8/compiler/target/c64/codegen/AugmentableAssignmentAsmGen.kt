@@ -3,8 +3,6 @@ package prog8.compiler.target.c64.codegen
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
@@ -14,15 +12,16 @@ import prog8.compiler.toHex
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
                                            private val asmgen: AsmGen) {
-    fun translate(assign: Assignment) {
+    fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
+        require(assign.source.type==AsmSourceStorageType.EXPRESSION)
 
-        when (assign.value) {
+        val value = assign.source.astExpression!!
+        when (value) {
             is PrefixExpression -> {
                 // A = -A , A = +A, A = ~A, A = not A
-                val px = assign.value as PrefixExpression
-                val type = px.inferType(program).typeOrElse(DataType.STRUCT)
-                when (px.operator) {
+                val type = value.inferType(program).typeOrElse(DataType.STRUCT)
+                when (value.operator) {
                     "+" -> {
                     }
                     "-" -> inplaceNegate(assign.target, type)
@@ -31,44 +30,45 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> throw AssemblyError("invalid prefix operator")
                 }
             }
-            is TypecastExpression -> inplaceCast(assign.target, assign.value as TypecastExpression, assign)
-            is BinaryExpression -> inplaceBinary(assign.target, assign.value as BinaryExpression, assign)
+            is TypecastExpression -> inplaceCast(assign.target, value, assign.position)
+            is BinaryExpression -> inplaceBinary(assign.target, value)
             else -> throw AssemblyError("invalid aug assign value type")
         }
     }
 
-    private fun inplaceBinary(target: AssignTarget, binExpr: BinaryExpression, assign: Assignment) {
-        if (binExpr.left isSameAs target) {
+    private fun inplaceBinary(target: AsmAssignTarget, binExpr: BinaryExpression) {
+        val astTarget = target.origAstTarget!!
+        if (binExpr.left isSameAs astTarget) {
             // A = A <operator> Something
-            return inplaceModification(target, binExpr.operator, binExpr.right, assign)
+            return inplaceModification(target, binExpr.operator, binExpr.right)
         }
 
         if (binExpr.operator in associativeOperators) {
-            if (binExpr.right isSameAs target) {
+            if (binExpr.right isSameAs astTarget) {
                 // A = 5 <operator> A
-                return inplaceModification(target, binExpr.operator, binExpr.left, assign)
+                return inplaceModification(target, binExpr.operator, binExpr.left)
             }
 
             val leftBinExpr = binExpr.left as? BinaryExpression
             if (leftBinExpr?.operator == binExpr.operator) {
                 // TODO better optimize the chained asm to avoid intermediate stores/loads?
                 when {
-                    binExpr.right isSameAs target -> {
+                    binExpr.right isSameAs astTarget -> {
                         // A = (x <associative-operator> y) <same-operator> A
-                        inplaceModification(target, binExpr.operator, leftBinExpr.left, assign)
-                        inplaceModification(target, binExpr.operator, leftBinExpr.right, assign)
+                        inplaceModification(target, binExpr.operator, leftBinExpr.left)
+                        inplaceModification(target, binExpr.operator, leftBinExpr.right)
                         return
                     }
-                    leftBinExpr.left isSameAs target -> {
+                    leftBinExpr.left isSameAs astTarget -> {
                         // A = (A <associative-operator> x) <same-operator> y
-                        inplaceModification(target, binExpr.operator, leftBinExpr.right, assign)
-                        inplaceModification(target, binExpr.operator, binExpr.right, assign)
+                        inplaceModification(target, binExpr.operator, leftBinExpr.right)
+                        inplaceModification(target, binExpr.operator, binExpr.right)
                         return
                     }
-                    leftBinExpr.right isSameAs target -> {
+                    leftBinExpr.right isSameAs astTarget -> {
                         // A = (x <associative-operator> A) <same-operator> y
-                        inplaceModification(target, binExpr.operator, leftBinExpr.left, assign)
-                        inplaceModification(target, binExpr.operator, binExpr.right, assign)
+                        inplaceModification(target, binExpr.operator, leftBinExpr.left)
+                        inplaceModification(target, binExpr.operator, binExpr.right)
                         return
                     }
                 }
@@ -76,59 +76,54 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             val rightBinExpr = binExpr.right as? BinaryExpression
             if (rightBinExpr?.operator == binExpr.operator) {
                 when {
-                    binExpr.left isSameAs target -> {
+                    binExpr.left isSameAs astTarget -> {
                         // A = A <associative-operator> (x <same-operator> y)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.left, assign)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.right, assign)
+                        inplaceModification(target, binExpr.operator, rightBinExpr.left)
+                        inplaceModification(target, binExpr.operator, rightBinExpr.right)
                         return
                     }
-                    rightBinExpr.left isSameAs target -> {
+                    rightBinExpr.left isSameAs astTarget -> {
                         // A = y <associative-operator> (A <same-operator> x)
-                        inplaceModification(target, binExpr.operator, binExpr.left, assign)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.right, assign)
+                        inplaceModification(target, binExpr.operator, binExpr.left)
+                        inplaceModification(target, binExpr.operator, rightBinExpr.right)
                         return
                     }
-                    rightBinExpr.right isSameAs target -> {
+                    rightBinExpr.right isSameAs astTarget -> {
                         // A = y <associative-operator> (x <same-operator> y)
-                        inplaceModification(target, binExpr.operator, binExpr.left, assign)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.left, assign)
+                        inplaceModification(target, binExpr.operator, binExpr.left)
+                        inplaceModification(target, binExpr.operator, rightBinExpr.left)
                         return
                     }
                 }
             }
         }
 
-        throw FatalAstException("assignment should be augmentable  $assign\nleft=${binExpr.left}\nright=${binExpr.right}")
+        throw FatalAstException("assignment should be augmentable $binExpr")
     }
 
-    private fun inplaceModification(target: AssignTarget, operator: String, value: Expression, origAssign: Assignment) {
-        val arrayIdx = target.arrayindexed
-        val identifier = target.identifier
-        val memory = target.memoryAddress
+    private fun inplaceModification(target: AsmAssignTarget, operator: String, value: Expression) {
         val valueLv = (value as? NumericLiteralValue)?.number
         val ident = value as? IdentifierReference
 
-        when {
-            identifier != null -> {
-                val name = asmgen.asmIdentifierName(identifier)
-                val dt = identifier.inferType(program).typeOrElse(DataType.STRUCT)
-                when (dt) {
+        when(target.type) {
+            AsmTargetStorageType.VARIABLE -> {
+                when (target.datatype) {
                     in ByteDatatypes -> {
                         when {
-                            valueLv != null -> inplaceModification_byte_litval_to_variable(name, dt, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_byte_variable_to_variable(name, dt, operator, ident)
+                            valueLv != null -> inplaceModification_byte_litval_to_variable(target.asmName, target.datatype, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_byte_variable_to_variable(target.asmName, target.datatype, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
-                                inplaceModification_byte_value_to_variable(name, dt, operator, value)
+                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                inplaceModification_byte_value_to_variable(target.asmName, target.datatype, operator, value)
                             }
-                            else -> inplaceModification_byte_value_to_variable(name, dt, operator, value)
+                            else -> inplaceModification_byte_value_to_variable(target.asmName, target.datatype, operator, value)
                         }
                     }
                     in WordDatatypes -> {
                         when {
-                            valueLv != null -> inplaceModification_word_litval_to_variable(name, dt, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_word_variable_to_variable(name, dt, operator, ident)
+                            valueLv != null -> inplaceModification_word_litval_to_variable(target.asmName, target.datatype, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_word_variable_to_variable(target.asmName, target.datatype, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
 //                            value is DirectMemoryRead -> {
 //                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
@@ -143,28 +138,29 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                                // TODO
 //                            }
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
-                                inplaceModification_word_value_to_variable(name, dt, operator, value)
+                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                inplaceModification_word_value_to_variable(target.asmName, target.datatype, operator, value)
                             }
-                            else -> inplaceModification_word_value_to_variable(name, dt, operator, value)
+                            else -> inplaceModification_word_value_to_variable(target.asmName, target.datatype, operator, value)
                         }
                     }
                     DataType.FLOAT -> {
                         when {
-                            valueLv != null -> inplaceModification_float_litval_to_variable(name, operator, valueLv.toDouble())
-                            ident != null -> inplaceModification_float_variable_to_variable(name, operator, ident)
+                            valueLv != null -> inplaceModification_float_litval_to_variable(target.asmName, operator, valueLv.toDouble())
+                            ident != null -> inplaceModification_float_variable_to_variable(target.asmName, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
-                                inplaceModification_float_value_to_variable(name, operator, value)
+                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                inplaceModification_float_value_to_variable(target.asmName, operator, value)
                             }
-                            else -> inplaceModification_float_value_to_variable(name, operator, value)
+                            else -> inplaceModification_float_value_to_variable(target.asmName, operator, value)
                         }
                     }
-                    else -> throw AssemblyError("weird type to do in-place modification on $dt")
+                    else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                 }
             }
-            memory != null -> {
+            AsmTargetStorageType.MEMORY -> {
+                val memory = target.astMemory!!
                 when (memory.addressExpression) {
                     is NumericLiteralValue -> {
                         val addr = (memory.addressExpression as NumericLiteralValue).number.toInt()
@@ -174,7 +170,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
@@ -187,7 +183,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_byte_variable_to_memory(name, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_memory(name, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_memory(name, operator, value)
@@ -203,7 +199,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_byte_variable_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator, origAssign)) return
+                                if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
@@ -212,20 +208,21 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            arrayIdx != null -> {
-                println("*** TODO optimize simple inplace array assignment $arrayIdx  $operator=  $value")
-                assignmentAsmGen.translateOtherAssignment(origAssign) // TODO get rid of this fallback for the most common cases here
+            AsmTargetStorageType.ARRAY -> {
+                println("*** TODO optimize simple inplace array assignment ${target.astArray}  $operator=  $value")
+                assignmentAsmGen.translateOtherAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
             }
+            AsmTargetStorageType.REGISTER -> TODO()
+            AsmTargetStorageType.STACK -> TODO()
         }
     }
 
-    private fun tryRemoveRedundantCast(value: TypecastExpression, target: AssignTarget, operator: String, origAssign: Assignment): Boolean {
-        val targetDt = target.inferType(program, origAssign).typeOrElse(DataType.STRUCT)
-        if (targetDt == value.type) {
+    private fun tryRemoveRedundantCast(value: TypecastExpression, target: AsmAssignTarget, operator: String): Boolean {
+        if (target.datatype == value.type) {
             val childDt = value.expression.inferType(program).typeOrElse(DataType.STRUCT)
             if (value.type.equalsSize(childDt) || value.type.largerThan(childDt)) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
-                inplaceModification(target, operator, value.expression, origAssign)
+                inplaceModification(target, operator, value.expression)
                 return true
             }
         }
@@ -1009,22 +1006,20 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun inplaceCast(target: AssignTarget, cast: TypecastExpression, assign: Assignment) {
-        val targetDt = target.inferType(program, assign).typeOrElse(DataType.STRUCT)
+    private fun inplaceCast(target: AsmAssignTarget, cast: TypecastExpression, position: Position) {
         val outerCastDt = cast.type
         val innerCastDt = (cast.expression as? TypecastExpression)?.type
 
         if (innerCastDt == null) {
             // simple typecast where the value is the target
-            when (targetDt) {
+            when (target.datatype) {
                 DataType.UBYTE, DataType.BYTE -> { /* byte target can't be casted to anything else at all */
                 }
                 DataType.UWORD, DataType.WORD -> {
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {
-                            if (target.identifier != null) {
-                                val name = asmgen.asmIdentifierName(target.identifier!!)
-                                asmgen.out(" lda  #0 |  sta  $name+1")
+                            if(target.type==AsmTargetStorageType.VARIABLE) {
+                                asmgen.out(" lda  #0 |  sta  ${target.asmName}+1")
                             } else
                                 throw AssemblyError("weird value")
                         }
@@ -1045,32 +1040,28 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // calculate singular cast that is required
             val castDt = if (outerCastDt largerThan innerCastDt) innerCastDt else outerCastDt
             val value = (cast.expression as TypecastExpression).expression
-            val resultingCast = TypecastExpression(value, castDt, false, assign.position)
-            inplaceCast(target, resultingCast, assign)
+            val resultingCast = TypecastExpression(value, castDt, false, position)
+            inplaceCast(target, resultingCast, position)
         }
     }
 
-    private fun inplaceBooleanNot(target: AssignTarget, dt: DataType) {
-        val arrayIdx = target.arrayindexed
-        val identifier = target.identifier
-        val memory = target.memoryAddress
-
+    private fun inplaceBooleanNot(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.UBYTE -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when(target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
-                            lda  $name
+                            lda  ${target.asmName}
                             beq  +
                             lda  #1
 +                           eor  #1
-                            sta  $name""")
+                            sta  ${target.asmName}""")
                     }
-                    memory != null -> {
-                        when (memory.addressExpression) {
+                    AsmTargetStorageType.MEMORY-> {
+                        val mem = target.astMemory!!
+                        when (mem.addressExpression) {
                             is NumericLiteralValue -> {
-                                val addr = (memory.addressExpression as NumericLiteralValue).number.toHex()
+                                val addr = (mem.addressExpression as NumericLiteralValue).number.toHex()
                                 asmgen.out("""
                                     lda  $addr
                                     beq  +
@@ -1079,7 +1070,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  $addr""")
                             }
                             is IdentifierReference -> {
-                                val name = asmgen.asmIdentifierName(memory.addressExpression as IdentifierReference)
+                                val name = asmgen.asmIdentifierName(mem.addressExpression as IdentifierReference)
                                 asmgen.out("""
                                     lda  $name
                                     sta  ${C64Zeropage.SCRATCH_W1}
@@ -1093,8 +1084,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  (${C64Zeropage.SCRATCH_W1}),y""")
                             }
                             else -> {
-                                println("warning: slow stack evaluation used (6): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
-                                asmgen.translateExpression(memory.addressExpression)
+                                println("warning: slow stack evaluation used (6): ${mem.addressExpression::class.simpleName} at ${mem.addressExpression.position}") // TODO
+                                asmgen.translateExpression(mem.addressExpression)
                                 asmgen.out("""
                                     jsr  prog8_lib.read_byte_from_address_on_stack
                                     beq  +
@@ -1105,49 +1096,48 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    arrayIdx != null -> {
+                    AsmTargetStorageType.ARRAY -> {
                         TODO("in-place not of ubyte array")
                     }
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             DataType.UWORD -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when(target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
-                            lda  $name
-                            ora  $name+1
+                            lda  ${target.asmName}
+                            ora  ${target.asmName}+1
                             beq  +
                             lda  #1
 +                           eor  #1
-                            sta  $name
+                            sta  ${target.asmName}
                             lsr  a
-                            sta  $name+1""")
+                            sta  ${target.asmName}+1""")
                     }
-                    arrayIdx != null -> TODO("in-place not of uword array")
-                    memory != null -> throw AssemblyError("no asm gen for uword-memory not")
+                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
+                    AsmTargetStorageType.ARRAY -> TODO("in-place not of uword array")
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             else -> throw AssemblyError("boolean-not of invalid type")
         }
     }
 
-    private fun inplaceInvert(target: AssignTarget, dt: DataType) {
-        val arrayIdx = target.arrayindexed
-        val identifier = target.identifier
-        val memory = target.memoryAddress
-
+    private fun inplaceInvert(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.UBYTE -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when(target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
-                            lda  $name
+                            lda  ${target.asmName}
                             eor  #255
-                            sta  $name""")
+                            sta  ${target.asmName}""")
                     }
-                    memory != null -> {
+                    AsmTargetStorageType.MEMORY -> {
+                        val memory = target.astMemory!!
                         when (memory.addressExpression) {
                             is NumericLiteralValue -> {
                                 val addr = (memory.addressExpression as NumericLiteralValue).number.toHex()
@@ -1179,86 +1169,88 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    arrayIdx != null -> {
+                    AsmTargetStorageType.ARRAY -> {
                         TODO("in-place invert ubyte array")
                     }
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             DataType.UWORD -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when(target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
-                            lda  $name
+                            lda  ${target.asmName}
                             eor  #255
-                            sta  $name
-                            lda  $name+1
+                            sta  ${target.asmName}
+                            lda  ${target.asmName}+1
                             eor  #255
-                            sta  $name+1""")
+                            sta  ${target.asmName}+1""")
                     }
-                    arrayIdx != null -> TODO("in-place invert uword array")
-                    memory != null -> throw AssemblyError("no asm gen for uword-memory invert")
+                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
+                    AsmTargetStorageType.ARRAY -> TODO("in-place invert uword array")
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
         }
     }
 
-    private fun inplaceNegate(target: AssignTarget, dt: DataType) {
-        val arrayIdx = target.arrayindexed
-        val identifier = target.identifier
-        val memory = target.memoryAddress
-
+    private fun inplaceNegate(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.BYTE -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when (target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
                             lda  #0
                             sec
-                            sbc  $name
-                            sta  $name""")
+                            sbc  ${target.asmName}
+                            sta  ${target.asmName}""")
                     }
-                    memory != null -> throw AssemblyError("can't in-place negate memory ubyte")
-                    arrayIdx != null -> TODO("in-place negate byte array")
+                    AsmTargetStorageType.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
+                    AsmTargetStorageType.ARRAY -> TODO("in-place negate byte array")
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             DataType.WORD -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when(target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
                             lda  #0
                             sec
-                            sbc  $name
-                            sta  $name
+                            sbc  ${target.asmName}
+                            sta  ${target.asmName}
                             lda  #0
-                            sbc  $name+1
-                            sta  $name+1""")
+                            sbc  ${target.asmName}+1
+                            sta  ${target.asmName}+1""")
                     }
-                    arrayIdx != null -> TODO("in-place negate word array")
-                    memory != null -> throw AssemblyError("no asm gen for word memory negate")
+                    AsmTargetStorageType.ARRAY -> TODO("in-place negate word array")
+                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             DataType.FLOAT -> {
-                when {
-                    identifier != null -> {
-                        val name = asmgen.asmIdentifierName(identifier)
+                when(target.type) {
+                    AsmTargetStorageType.VARIABLE -> {
                         asmgen.out("""
                             stx  ${C64Zeropage.SCRATCH_REG_X}
-                            lda  #<$name
-                            ldy  #>$name
+                            lda  #<${target.asmName}
+                            ldy  #>${target.asmName}
                             jsr  c64flt.MOVFM
                             jsr  c64flt.NEGOP
-                            ldx  #<$name
-                            ldy  #>$name
+                            ldx  #<${target.asmName}
+                            ldy  #>${target.asmName}
                             jsr  c64flt.MOVMF
                             ldx  ${C64Zeropage.SCRATCH_REG_X}
                         """)
                     }
-                    arrayIdx != null -> TODO("in-place negate float array")
-                    memory != null -> throw AssemblyError("no asm gen for float memory negate")
+                    AsmTargetStorageType.ARRAY -> TODO("in-place negate float array")
+                    AsmTargetStorageType.MEMORY -> throw AssemblyError("no asm gen for float memory negate")
+                    AsmTargetStorageType.REGISTER -> TODO()
+                    AsmTargetStorageType.STACK -> TODO()
                 }
             }
             else -> throw AssemblyError("negate of invalid type")
