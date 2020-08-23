@@ -83,7 +83,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 } else {
                     // TODO rewrite to use Scaled
-                    asmgen.loadUnscaledArrayIndexIntoA(value)
+                    loadUnscaledArrayIndexIntoA(value)
                     readAndPushArrayvalueWithUnscaledIndexA(elementDt, arrayVarName)
                 }
                 assignStackValue(assign.target)
@@ -201,9 +201,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign address $sourceName to memory word $target")
             }
             TargetStorageKind.ARRAY -> {
-                val targetArrayIdx = target.array!!
-                val index = targetArrayIdx.arrayspec.index
-                throw AssemblyError("no asm gen for assign address $sourceName to array ${target.asmVarname} [ $index ]")
+                throw AssemblyError("no asm gen for assign address $sourceName to array ${target.asmVarname}")
             }
             TargetStorageKind.REGISTER -> TODO()
             TargetStorageKind.STACK -> TODO()
@@ -372,7 +370,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 val index = target.array!!.arrayspec.index
-                val targetName = asmgen.asmIdentifierName(target.array.identifier)
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
@@ -380,9 +377,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asl  a
                     tay
                     lda  #<${word.toHex()}
-                    sta  $targetName,y
+                    sta  ${target.asmVarname},y
                     lda  #>${word.toHex()}
-                    sta  $targetName+1,y
+                    sta  ${target.asmVarname}+1,y
                 """)
             }
             TargetStorageKind.REGISTER -> TODO()
@@ -400,13 +397,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 val index = target.array!!.arrayspec.index
-                val targetName = asmgen.asmIdentifierName(target.array.identifier)
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
                     ldy  $ESTACK_LO_HEX,x
                     lda  #${byte.toHex()}
-                    sta  $targetName,y
+                    sta  ${target.asmVarname},y
                 """)
             }
             else -> throw AssemblyError("no asm gen for assign byte $byte to $target")
@@ -472,7 +468,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.ARRAY -> {
                     val index = target.array!!.arrayspec.index
-                    val arrayVarName = asmgen.asmIdentifierName(target.array.identifier)
+                    val arrayVarName = target.asmVarname
                     if (index is NumericLiteralValue) {
                         val indexValue = index.number.toInt() * DataType.FLOAT.memorySize()
                         asmgen.out("""
@@ -520,9 +516,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     storeByteViaRegisterAInMemoryAddress(address.toHex(), target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    val index = target.array!!.arrayspec.index
-                    val targetName = asmgen.asmIdentifierName(target.array.identifier)
-                    throw AssemblyError("no asm gen for assign memory byte at $address to array $targetName [ $index ]")
+                    throw AssemblyError("no asm gen for assign memory byte at $address to array ${target.asmVarname}")
                 }
                 TargetStorageKind.REGISTER -> TODO()
                 TargetStorageKind.STACK -> TODO()
@@ -544,9 +538,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    val index = target.array!!.arrayspec.index
-                    val targetName = asmgen.asmIdentifierName(target.array.identifier)
-                    throw AssemblyError("no asm gen for assign memory byte $sourceName to array $targetName [ $index ]")
+                    throw AssemblyError("no asm gen for assign memory byte $sourceName to array ${target.asmVarname} ")
                 }
                 else -> throw AssemblyError("no asm gen for assign memory byte $target")
             }
@@ -643,6 +635,21 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             else ->
                 throw AssemblyError("weird array type")
+        }
+    }
+
+    private fun loadUnscaledArrayIndexIntoA(expr: ArrayIndexedExpression) {
+        // TODO this is only used once, remove this when that is rewritten using scaled
+        when (val index = expr.arrayspec.index) {
+            is NumericLiteralValue -> throw AssemblyError("constant array index should be optimized earlier")
+            is IdentifierReference -> {
+                val indexName = asmgen.asmIdentifierName(index)
+                asmgen.out("  lda  $indexName")
+            }
+            else -> {
+                asmgen.translateExpression(index)
+                asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+            }
         }
     }
 

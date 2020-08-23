@@ -8,7 +8,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*
-import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.c64.AssemblyProgram
@@ -583,20 +582,6 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    internal fun loadUnscaledArrayIndexIntoA(expr: ArrayIndexedExpression) {
-        when (val index = expr.arrayspec.index) {
-            is NumericLiteralValue -> throw AssemblyError("constant array index should be optimized earlier")
-            is IdentifierReference -> {
-                val indexName = asmIdentifierName(index)
-                out("  lda  $indexName")
-            }
-            else -> {
-                expressionsAsmGen.translateExpression(index)
-                out("  inx |  lda  $ESTACK_LO_HEX,x")
-            }
-        }
-    }
-
     internal fun loadScaledArrayIndexIntoRegister(expr: ArrayIndexedExpression,
                                                   elementDt: DataType,
                                                   register: CpuRegister,
@@ -648,7 +633,17 @@ internal class AsmGen(private val program: Program,
                 }
             }
             else {
-                TODO("+1")
+                expressionsAsmGen.translateExpression(index)
+                out("""
+                    inc  $ESTACK_LO_HEX,x
+                    bne  +
+                    inc  $ESTACK_HI_HEX,x
++""")
+                when(register) {
+                    CpuRegister.A -> out("  inx |  lda  $ESTACK_LO_HEX,x")
+                    CpuRegister.X -> throw AssemblyError("can't use X here")
+                    CpuRegister.Y -> out("  inx |  ldy  $ESTACK_LO_HEX,x")
+                }
             }
         } else {
             if (index is IdentifierReference) {
