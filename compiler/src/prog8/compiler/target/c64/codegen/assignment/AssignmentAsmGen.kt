@@ -141,15 +141,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    fun assignToRegister(reg: CpuRegister, value: Int?, identifier: IdentifierReference?) {
-        if(value!=null) {
-            asmgen.out("  ld${reg.toString().toLowerCase()}  #${value.toHex()}")
-        } else if(identifier!=null) {
-            val name = asmgen.asmIdentifierName(identifier)
-            asmgen.out("  ld${reg.toString().toLowerCase()}  $name")
-        }
-    }
-
     private fun assignStackValue(target: AsmAssignTarget) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -244,8 +235,28 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            TargetStorageKind.REGISTER -> TODO()
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.REGISTER -> {
+                when (target.datatype) {
+                    DataType.UBYTE, DataType.BYTE -> {
+                        when(target.register!!) {
+                            RegisterOrPair.A -> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x")
+                            RegisterOrPair.X -> throw AssemblyError("can't use X here")
+                            RegisterOrPair.Y -> asmgen.out(" inx |  ldy  $ESTACK_LO_HEX,x")
+                            else -> throw AssemblyError("can't assign byte to register pair word")
+                        }
+                    }
+                    DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> {
+                        when(target.register!!) {
+                            RegisterOrPair.AX -> throw AssemblyError("can't use X here")
+                            RegisterOrPair.AY-> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
+                            RegisterOrPair.XY-> throw AssemblyError("can't use X here")
+                            else -> throw AssemblyError("can't assign word to single byte register")
+                        }
+                    }
+                    else -> throw AssemblyError("weird dt")
+                }
+            }
+            TargetStorageKind.STACK -> {}
         }
     }
 
@@ -278,7 +289,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.ARRAY -> {
                 throw AssemblyError("no asm gen for assign address $sourceName to array ${target.asmVarname}")
             }
-            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.REGISTER -> {
+                when(target.register!!) {
+                    RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName |  ldx #>$sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName |  ldy #>$sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName |  ldy #>$sourceName")
+                    else -> throw AssemblyError("can't load address in a single 8-bit register")
+                }
+            }
             TargetStorageKind.STACK -> TODO()
         }
     }
@@ -368,7 +386,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.REGISTER -> {
+                when(target.register!!) {
+                    RegisterOrPair.AX -> asmgen.out("  lda  #$sourceName |  ldx #$sourceName+1")
+                    RegisterOrPair.AY -> asmgen.out("  lda  #$sourceName |  ldy #$sourceName+1")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  #$sourceName |  ldy #$sourceName+1")
+                    else -> throw AssemblyError("can't load word in a single 8-bit register")
+                }
+            }
             TargetStorageKind.STACK -> TODO()
         }
     }
@@ -402,7 +427,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(index)
                 asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  c64flt.pop_float_to_indexed_var")
             }
-            else -> throw AssemblyError("no asm gen for assign floatvar to $target")
+            TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
+            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
@@ -437,7 +464,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.REGISTER -> {
+                when(target.register!!) {
+                    RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
+                    RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
+                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx #0")
+                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy #0")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy #0")
+                }
+            }
             TargetStorageKind.STACK -> TODO()
         }
     }
@@ -489,7 +525,28 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.REGISTER -> {
+                when(register) {
+                    CpuRegister.A -> when(target.register!!) {
+                        RegisterOrPair.A -> {}
+                        RegisterOrPair.X -> { asmgen.out("  tax") }
+                        RegisterOrPair.Y -> { asmgen.out("  tay") }
+                        else -> throw AssemblyError("attempt to assign byte to register pair word")
+                    }
+                    CpuRegister.X -> when(target.register!!) {
+                        RegisterOrPair.A -> { asmgen.out("  txa") }
+                        RegisterOrPair.X -> {  }
+                        RegisterOrPair.Y -> { asmgen.out("  txy") }
+                        else -> throw AssemblyError("attempt to assign byte to register pair word")
+                    }
+                    CpuRegister.Y -> when(target.register!!) {
+                        RegisterOrPair.A -> { asmgen.out("  tya") }
+                        RegisterOrPair.X -> { asmgen.out("  tyx") }
+                        RegisterOrPair.Y -> { }
+                        else -> throw AssemblyError("attempt to assign byte to register pair word")
+                    }
+                }
+            }
             TargetStorageKind.STACK -> TODO()
         }
     }
@@ -536,7 +593,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  ${target.asmVarname}+1,y
                 """)
             }
-            TargetStorageKind.REGISTER -> TODO()
+            TargetStorageKind.REGISTER -> {
+                when(target.register!!) {
+                    RegisterOrPair.AX -> asmgen.out("  lda  #<${word.toHex()} |  ldx  #>${word.toHex()}")
+                    RegisterOrPair.AY -> asmgen.out("  lda  #<${word.toHex()} |  ldy  #>${word.toHex()}")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  #<${word.toHex()} |  ldy  #>${word.toHex()}")
+                    else -> throw AssemblyError("can't assign word to single byte register")
+                }
+            }
             TargetStorageKind.STACK -> TODO()
         }
     }
@@ -571,7 +635,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            else -> throw AssemblyError("no asm gen for assign byte $byte to $target")
+            TargetStorageKind.REGISTER -> when(target.register!!) {
+                RegisterOrPair.A -> asmgen.out("  lda  #${byte.toHex()}")
+                RegisterOrPair.X -> asmgen.out("  ldx  #${byte.toHex()}")
+                RegisterOrPair.Y -> asmgen.out("  ldy  #${byte.toHex()}")
+                else -> throw AssemblyError("can't assign byte to word register apir")
+            }
+            TargetStorageKind.STACK -> TODO()
         }
     }
 
@@ -618,7 +688,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                     }
                 }
-                else -> throw AssemblyError("no asm gen for assign float 0.0 to $target")
+                TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
+                TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+                TargetStorageKind.STACK -> TODO()
             }
         } else {
             // non-zero value
@@ -676,7 +748,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                     }
                 }
-                else -> throw AssemblyError("no asm gen for assign float $float to $target")
+                TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
+                TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+                TargetStorageKind.STACK -> TODO()
             }
         }
     }
@@ -696,7 +770,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.ARRAY -> {
                     throw AssemblyError("no asm gen for assign memory byte at $address to array ${target.asmVarname}")
                 }
-                TargetStorageKind.REGISTER -> TODO()
+                TargetStorageKind.REGISTER -> when(target.register!!) {
+                    RegisterOrPair.A -> asmgen.out("  lda  ${address.toHex()}")
+                    RegisterOrPair.X -> asmgen.out("  ldx  ${address.toHex()}")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  ${address.toHex()}")
+                    else -> throw AssemblyError("can't assign byte to word register apir")
+                }
                 TargetStorageKind.STACK -> TODO()
             }
         } else if (identifier != null) {
@@ -704,13 +783,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
-    lda  $sourceName
-    sta  ${C64Zeropage.SCRATCH_W1}
-    lda  $sourceName+1
-    sta  ${C64Zeropage.SCRATCH_W1+1}
-    ldy  #0
-    lda  (${C64Zeropage.SCRATCH_W1}),y
-    sta  ${target.asmVarname}""")
+                        lda  $sourceName
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        lda  $sourceName+1
+                        sta  ${C64Zeropage.SCRATCH_W1+1}
+                        ldy  #0
+                        lda  (${C64Zeropage.SCRATCH_W1}),y
+                        sta  ${target.asmVarname}""")
                 }
                 TargetStorageKind.MEMORY -> {
                     storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
@@ -718,7 +797,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.ARRAY -> {
                     throw AssemblyError("no asm gen for assign memory byte $sourceName to array ${target.asmVarname} ")
                 }
-                else -> throw AssemblyError("no asm gen for assign memory byte $target")
+                TargetStorageKind.REGISTER -> {
+                    asmgen.out("""
+                        lda  $sourceName
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        lda  $sourceName+1
+                        sta  ${C64Zeropage.SCRATCH_W1+1}
+                        ldy  #0
+                        lda  (${C64Zeropage.SCRATCH_W1}),y""")
+                    when(target.register!!) {
+                        RegisterOrPair.A -> {}
+                        RegisterOrPair.X -> asmgen.out("  tax")
+                        RegisterOrPair.Y -> asmgen.out("  tay")
+                        else -> throw AssemblyError("can't assign byte to word register apir")
+                    }
+                }
+                TargetStorageKind.STACK -> TODO()
             }
         }
     }

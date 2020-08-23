@@ -106,6 +106,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             throw AssemblyError("argument type incompatible")
 
         val paramVar = parameter.value
+
         val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
         val target = AssignTarget(IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
         val assign = Assignment(target, value, value.position)
@@ -173,11 +174,12 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             register!=null && register.name.length==1 -> {
                 when (value) {
                     is NumericLiteralValue -> {
-                        asmgen.assignToRegister(CpuRegister.valueOf(register.name), value.number.toInt(), null)
+                        asmgen.out("  ld${register.name.toLowerCase()}  #${value.number.toInt().toHex()}")
                     }
                     is IdentifierReference -> {
-                        asmgen.assignToRegister(CpuRegister.valueOf(register.name), null, value)
+                        asmgen.out("  ld${register.name.toLowerCase()}  ${asmgen.asmIdentifierName(value)}")
                     }
+                    // TODO more special cases to optimize argument passing in registers without intermediate stack usage
                     else -> {
                         asmgen.translateExpression(value)
                         when(register) {

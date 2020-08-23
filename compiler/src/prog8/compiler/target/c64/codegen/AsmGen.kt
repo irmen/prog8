@@ -695,9 +695,6 @@ internal class AsmGen(private val program: Program,
     internal fun translateFunctionCall(functionCall: FunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCall)
 
-    internal fun assignToRegister(reg: CpuRegister, value: Int?, identifier: IdentifierReference?) =
-            assignmentAsmGen.assignToRegister(reg, value, identifier)
-
     private fun translateSubroutine(sub: Subroutine) {
         out("")
         outputSourceLine(sub)
