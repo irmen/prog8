@@ -32,12 +32,12 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                program: Program,
                                asmgen: AsmGen,
                                val datatype: DataType,
-                               val variable: IdentifierReference?,
-                               val array: ArrayIndexedExpression?,
-                               val memory: DirectMemoryWrite?,
-                               val register: RegisterOrPair?,
-                               val origAstTarget: AssignTarget?,        // TODO get rid of this eventually?
-                                )
+                               val variable: IdentifierReference? = null,
+                               val array: ArrayIndexedExpression? = null,
+                               val memory: DirectMemoryWrite? = null,
+                               val register: RegisterOrPair? = null,
+                               val origAstTarget: AssignTarget? = null        // TODO get rid of this eventually?
+                               )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
     val constArrayIndexValue by lazy { array?.arrayspec?.constIndex() }
@@ -62,12 +62,22 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
         fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget = with(assign.target) {
             val dt = inferType(program, assign).typeOrElse(DataType.STRUCT)
             when {
-                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, identifier, null, null, null, this)
-                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, null, arrayindexed, null, null, this)
-                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, null, null, memoryAddress, null, this)
+                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, variable=identifier, origAstTarget =  this)
+                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, array = arrayindexed, origAstTarget =  this)
+                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, memory =  memoryAddress, origAstTarget =  this)
                 else -> throw AssemblyError("weird target")
             }
         }
+
+        fun fromRegisters(registers: RegisterOrPair, program: Program, asmgen: AsmGen): AsmAssignTarget =
+                when(registers) {
+                    RegisterOrPair.A,
+                    RegisterOrPair.X,
+                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UBYTE, register = registers)
+                    RegisterOrPair.AX,
+                    RegisterOrPair.AY,
+                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, register = registers)
+                }
     }
 }
 

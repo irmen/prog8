@@ -283,9 +283,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName |  ldx #>$sourceName")
-                    RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName |  ldy #>$sourceName")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName |  ldy #>$sourceName")
+                    RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName |  ldx  #>$sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName |  ldy  #>$sourceName")
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
@@ -380,9 +380,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  #$sourceName |  ldx #$sourceName+1")
-                    RegisterOrPair.AY -> asmgen.out("  lda  #$sourceName |  ldy #$sourceName+1")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  #$sourceName |  ldy #$sourceName+1")
+                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  $sourceName+1")
+                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  $sourceName+1")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  $sourceName+1")
                     else -> throw AssemblyError("can't load word in a single 8-bit register")
                 }
             }
@@ -461,9 +461,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
                     RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
                     RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
-                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx #0")
-                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy #0")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy #0")
+                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
+                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
                 }
             }
             TargetStorageKind.STACK -> TODO()
