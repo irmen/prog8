@@ -11,8 +11,6 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
-// TODO optimize the array indexes where the index is a constant
-
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
@@ -183,8 +181,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val targetArrayIdx = target.array!!
-                asmgen.translateExpression(targetArrayIdx.arrayspec.index)
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
+                asmgen.translateExpression(target.array!!.arrayspec.index)
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
                 popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
             }
@@ -242,8 +242,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign wordvar $sourceName to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
-                val targetArrayIdx = target.array!!
-                val index = targetArrayIdx.arrayspec.index
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
+                val index = target.array!!.arrayspec.index
                 asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
                 asmgen.translateExpression(index)
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
@@ -272,11 +274,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             }
             TargetStorageKind.ARRAY -> {
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
                 val index = target.array!!.arrayspec.index
-                val targetName = asmgen.asmIdentifierName(target.array.identifier)
                 asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
                 asmgen.translateExpression(index)
-                asmgen.out("  lda  #<$targetName |  ldy  #>$targetName |  jsr  c64flt.pop_float_to_indexed_var")
+                asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  c64flt.pop_float_to_indexed_var")
             }
             else -> throw AssemblyError("no asm gen for assign floatvar to $target")
         }
@@ -295,8 +299,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val targetArrayIdx = target.array!!
-                val index = targetArrayIdx.arrayspec.index
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
+                val index = target.array!!.arrayspec.index
                 asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
                 asmgen.translateExpression(index)
                 asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
@@ -317,8 +323,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeRegisterInMemoryAddress(register, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val targetArrayIdx = target.array!!
-                val index = targetArrayIdx.arrayspec.index
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
+                val index = target.array!!.arrayspec.index
                 when (index) {
                     is NumericLiteralValue -> {
                         val memindex = index.number.toInt()
@@ -388,6 +396,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
                 val index = target.array!!.arrayspec.index
                 asmgen.translateExpression(index)
                 asmgen.out("""
@@ -415,6 +426,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
+//                if(target.constArrayIndexValue!=null) {
+//                    TODO("const index ${target.constArrayIndexValue}")
+//                }
                 val index = target.array!!.arrayspec.index
                 asmgen.translateExpression(index)
                 asmgen.out("""
@@ -443,6 +457,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
+//                    if(target.constArrayIndexValue!=null) {
+//                        TODO("const index ${target.constArrayIndexValue}")
+//                    }
                     val index = target.array!!.arrayspec.index
                     if (index is NumericLiteralValue) {
                         val indexValue = index.number.toInt() * DataType.FLOAT.memorySize()
@@ -486,6 +503,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
+//                    if(target.constArrayIndexValue!=null) {
+//                        TODO("const index ${target.constArrayIndexValue}")
+//                    }
                     val index = target.array!!.arrayspec.index
                     val arrayVarName = target.asmVarname
                     if (index is NumericLiteralValue) {
