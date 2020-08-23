@@ -78,7 +78,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if (variable is IdentifierReference) {
             val decl = variable.targetVarDecl(program.namespace)!!
             val varName = asmgen.asmIdentifierName(variable)
-            val numElements = decl.arraysize!!.size()
+            val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
                     asmgen.out("""
@@ -120,7 +120,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if (variable is IdentifierReference) {
             val decl = variable.targetVarDecl(program.namespace)!!
             val varName = asmgen.asmIdentifierName(variable)
-            val numElements = decl.arraysize!!.size()
+            val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
                     asmgen.out("""
@@ -487,7 +487,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun outputPushAddressAndLenghtOfArray(arg: Expression) {
         arg as IdentifierReference
         val identifierName = asmgen.asmIdentifierName(arg)
-        val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.size()!!
+        val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.constIndex()!!
         asmgen.out("""
                     lda  #<$identifierName
                     sta  $ESTACK_LO_HEX,x

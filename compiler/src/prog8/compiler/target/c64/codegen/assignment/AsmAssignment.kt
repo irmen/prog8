@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package prog8.compiler.target.c64.codegen.assignment
 
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -7,9 +7,10 @@ import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.codegen.AsmGen
 
 
-enum class TargetStorageKind {
+internal enum class TargetStorageKind {
     VARIABLE,
     ARRAY,
     MEMORY,
@@ -17,7 +18,7 @@ enum class TargetStorageKind {
     STACK
 }
 
-enum class SourceStorageKind {
+internal enum class SourceStorageKind {
     LITERALNUMBER,
     VARIABLE,
     ARRAY,
@@ -39,7 +40,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                 )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { array?.arrayspec?.size() ?: 0 }
+    val constArrayIndexValue by lazy { array?.arrayspec?.constIndex() }
     val vardecl by lazy { variable?.targetVarDecl(program.namespace)!! }
     val asmName by lazy {
         if(variable!=null)
@@ -82,7 +83,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
 )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { array?.arrayspec?.size() ?: 0 }
+    val constArrayIndexValue by lazy { array?.arrayspec?.constIndex() }
     val vardecl by lazy { variable?.targetVarDecl(program.namespace)!! }
 
     companion object {

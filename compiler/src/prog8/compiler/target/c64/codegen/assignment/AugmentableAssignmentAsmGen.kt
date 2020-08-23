@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package prog8.compiler.target.c64.codegen.assignment
 
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -7,6 +7,7 @@ import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
@@ -14,7 +15,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val asmgen: AsmGen) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
-        require(assign.source.kind==SourceStorageKind.EXPRESSION)
+        require(assign.source.kind== SourceStorageKind.EXPRESSION)
 
         val value = assign.source.expression!!
         when (value) {
@@ -210,7 +211,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             TargetStorageKind.ARRAY -> {
                 println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
-                assignmentAsmGen.translateOtherAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
+                assignmentAsmGen.translateNormalAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
             }
             TargetStorageKind.REGISTER -> TODO()
             TargetStorageKind.STACK -> TODO()
@@ -1018,7 +1019,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 DataType.UWORD, DataType.WORD -> {
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {
-                            if(target.kind==TargetStorageKind.VARIABLE) {
+                            if(target.kind== TargetStorageKind.VARIABLE) {
                                 asmgen.out(" lda  #0 |  sta  ${target.asmName}+1")
                             } else
                                 throw AssemblyError("weird value")
@@ -1057,7 +1058,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +                           eor  #1
                             sta  ${target.asmName}""")
                     }
-                    TargetStorageKind.MEMORY-> {
+                    TargetStorageKind.MEMORY -> {
                         val mem = target.memory!!
                         when (mem.addressExpression) {
                             is NumericLiteralValue -> {

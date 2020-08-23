@@ -15,6 +15,7 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FSignature
@@ -317,7 +318,7 @@ internal class AsmGen(private val program: Program,
                         else {
                             // no init value, use zeros
                             val zero = decl.zeroElementValue()
-                            Array(decl.arraysize!!.size()!!) { zero }
+                            Array(decl.arraysize!!.constIndex()!!) { zero }
                         }
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
@@ -392,7 +393,7 @@ internal class AsmGen(private val program: Program,
                 else {
                     // no array init value specified, use a list of zeros
                     val zero = decl.zeroElementValue()
-                    Array(decl.arraysize!!.size()!!) { zero }
+                    Array(decl.arraysize!!.constIndex()!!) { zero }
                 }
         return when (decl.datatype) {
             DataType.ARRAY_UB ->
@@ -419,7 +420,7 @@ internal class AsmGen(private val program: Program,
                 else {
                     // no array init value specified, use a list of zeros
                     val zero = decl.zeroElementValue()
-                    Array(decl.arraysize!!.size()!!) { zero }
+                    Array(decl.arraysize!!.constIndex()!!) { zero }
                 }
         return when (decl.datatype) {
             DataType.ARRAY_UB ->

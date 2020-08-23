@@ -229,7 +229,7 @@ internal class StatementOptimizer(private val program: Program,
                 }
             }
             else if(iterable.datatype in ArrayDatatypes) {
-                val size = iterable.arraysize!!.size()
+                val size = iterable.arraysize!!.constIndex()
                 if(size==1) {
                     // loop over array of length 1 -> just assign the single value
                     val av = (iterable.value as ArrayLiteralValue).value[0].constValue(program)?.number

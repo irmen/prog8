@@ -4,7 +4,6 @@ import org.antlr.v4.runtime.*
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.antlr.toAst
-import prog8.ast.base.ErrorReporter
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.base.checkImportedValid
@@ -34,7 +33,7 @@ internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexe
 internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 
 
-internal class ModuleImporter() {
+internal class ModuleImporter {
 
     internal fun importModule(program: Program, filePath: Path): Module {
         print("importing '${moduleName(filePath.fileName)}'")

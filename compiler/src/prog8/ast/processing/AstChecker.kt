@@ -545,7 +545,7 @@ internal class AstChecker(private val program: Program,
             }
             VarDeclType.MEMORY -> {
                 if(decl.arraysize!=null) {
-                    val arraySize = decl.arraysize!!.size() ?: 1
+                    val arraySize = decl.arraysize!!.constIndex() ?: 1
                     when(decl.datatype) {
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)
@@ -587,7 +587,7 @@ internal class AstChecker(private val program: Program,
 
         // array length limits
         if(decl.isArray) {
-            val length = decl.arraysize!!.size() ?: 1
+            val length = decl.arraysize!!.constIndex() ?: 1
             when (decl.datatype) {
                 DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
                     if(length==0 || length>256)
@@ -957,7 +957,7 @@ internal class AstChecker(private val program: Program,
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
                 errors.err("indexing requires an iterable variable", arrayIndexedExpression.position)
-            val arraysize = target.arraysize?.size()
+            val arraysize = target.arraysize?.constIndex()
             if(arraysize!=null) {
                 // check out of bounds
                 val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
@@ -1078,7 +1078,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type.istype(targetDt)) {
                     if(!checkArrayValues(value, targetDt))
                         return false
-                    val arraySpecSize = arrayspec.size()
+                    val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
@@ -1100,7 +1100,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type.istype(targetDt)) {
                     if(!checkArrayValues(value, targetDt))
                         return false
-                    val arraySpecSize = arrayspec.size()
+                    val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
@@ -1123,7 +1123,7 @@ internal class AstChecker(private val program: Program,
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySize = value.value.size
-                    val arraySpecSize = arrayspec.size()
+                    val arraySpecSize = arrayspec.constIndex()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
                             return err("float array length must be 1-51")

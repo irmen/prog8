@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package prog8.compiler.target.c64.codegen.assignment
 
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -9,6 +9,7 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
 // TODO optimize the array indexes where the index is a constant
@@ -18,7 +19,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
 
-    internal fun translate(assignment: Assignment) {
+    fun translate(assignment: Assignment) {
         var source = AsmAssignSource.fromAstSource(assignment.value, program)
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
 
@@ -33,8 +34,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
         val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
 
-        when {
-            source.kind==SourceStorageKind.LITERALNUMBER -> {
+        if(assign.isAugmentable)
+            augmentableAsmGen.translate(assign)
+        else
+            translateNormalAssignment(assign)
+    }
+
+    fun translateNormalAssignment(assign: AsmAssignment) {
+        when(assign.source.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
                 val num = assign.source.number!!.number
                 when (assign.source.datatype) {
@@ -44,7 +52,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("weird numval type")
                 }
             }
-            source.kind==SourceStorageKind.VARIABLE -> {
+            SourceStorageKind.VARIABLE -> {
                 // simple case: assign from another variable
                 val variable = assign.source.variable!!
                 when (assign.source.datatype) {
@@ -54,22 +62,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     in PassByReferenceDatatypes -> assignAddressOf(assign.target, variable)
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
                 }
-            }
-            assign.isAugmentable -> {
-                // special case: the in-place assignment / modification
-                augmentableAsmGen.translate(assign)
-            }
-            else -> translateOtherAssignment(assign)
-        }
-    }
-
-    internal fun translateOtherAssignment(assign: AsmAssignment) {
-        // source kind: expression, register, stack  (only expression implemented for now)
-
-        when(assign.source.kind) {
-            SourceStorageKind.LITERALNUMBER,
-            SourceStorageKind.VARIABLE -> {
-                throw AssemblyError("assignment value type ${assign.source.kind} should have been handled elsewhere")
             }
             SourceStorageKind.ARRAY -> {
                 val value = assign.source.array!!
@@ -131,7 +123,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    internal fun assignToRegister(reg: CpuRegister, value: Int?, identifier: IdentifierReference?) {
+    fun assignToRegister(reg: CpuRegister, value: Int?, identifier: IdentifierReference?) {
         if(value!=null) {
             asmgen.out("  ld${reg.toString().toLowerCase()}  #${value.toHex()}")
         } else if(identifier!=null) {

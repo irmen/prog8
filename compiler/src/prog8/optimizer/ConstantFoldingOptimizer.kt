@@ -56,7 +56,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                         ))
                     }
                 }
-                else if(decl.arraysize?.size()==null) {
+                else if(decl.arraysize?.constIndex()==null) {
                     val size = decl.arraysize!!.index.constValue(program)
                     if(size!=null) {
                         return listOf(IAstModification.SetExpression(
@@ -81,7 +81,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     val rangeExpr = decl.value as? RangeExpr
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array
-                        val declArraySize = decl.arraysize?.size()
+                        val declArraySize = decl.arraysize?.constIndex()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
                         val constRange = rangeExpr.toConstantIntegerRange()
@@ -101,7 +101,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     }
                     if(numericLv!=null && numericLv.type==DataType.FLOAT)
                         errors.err("arraysize requires only integers here", numericLv.position)
-                    val size = decl.arraysize?.size() ?: return noModifications
+                    val size = decl.arraysize?.constIndex() ?: return noModifications
                     if (rangeExpr==null && numericLv!=null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = numericLv.number.toInt()
@@ -125,18 +125,18 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                             else -> {}
                         }
                         // create the array itself, filled with the fillvalue.
-                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayElementTypes.getValue(decl.datatype), it, numericLv.position) as Expression}.toTypedArray()
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayElementTypes.getValue(decl.datatype), it, numericLv.position) }.toTypedArray<Expression>()
                         val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
                     }
                 }
                 DataType.ARRAY_F  -> {
-                    val size = decl.arraysize?.size() ?: return noModifications
+                    val size = decl.arraysize?.constIndex() ?: return noModifications
                     val litval = decl.value as? NumericLiteralValue
                     val rangeExpr = decl.value as? RangeExpr
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array of floats
-                        val declArraySize = decl.arraysize?.size()
+                        val declArraySize = decl.arraysize?.constIndex()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
                         val constRange = rangeExpr.toConstantIntegerRange()
@@ -154,7 +154,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                             errors.err("float value overflow", litval.position)
                         else {
                             // create the array itself, filled with the fillvalue.
-                            val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) as Expression}.toTypedArray()
+                            val array = Array(size) {fillvalue}.map { NumericLiteralValue(DataType.FLOAT, it, litval.position) }.toTypedArray<Expression>()
                             val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_F), array, position = litval.position)
                             return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
                         }

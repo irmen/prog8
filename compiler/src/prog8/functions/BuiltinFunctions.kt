@@ -258,7 +258,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
 
         return when {
             dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {
-                val length = (target as VarDecl).arraysize!!.size() ?: throw CannotEvaluateException("sizeof", "unknown array size")
+                val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.STRUCT))
                 numericLiteral(elementDt.memorySize() * length, position)
             }
@@ -293,7 +293,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         throw SyntaxError("len requires one argument", position)
 
     val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program.namespace)
-    var arraySize = directMemVar?.arraysize?.size()
+    var arraySize = directMemVar?.arraysize?.constIndex()
     if(arraySize != null)
         return NumericLiteralValue.optimalInteger(arraySize, position)
     if(args[0] is ArrayLiteralValue)
@@ -305,7 +305,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
 
     return when(target.datatype) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
-            arraySize = target.arraysize?.size()
+            arraySize = target.arraysize?.constIndex()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)

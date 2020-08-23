@@ -261,8 +261,8 @@ open class VarDecl(val type: VarDeclType,
                     member.isArray,
                     true,
                     member.position
-            ) as Statement
-        }.toMutableList()
+            )
+        }.toMutableList<Statement>()
         structHasBeenFlattened = true
         return result
     }
@@ -300,7 +300,7 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
         return("ArrayIndex($index, pos=$position)")
     }
 
-    fun size() = (index as? NumericLiteralValue)?.number?.toInt()
+    fun constIndex() = (index as? NumericLiteralValue)?.number?.toInt()
 }
 
 open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
@@ -449,9 +449,9 @@ data class AssignTarget(var identifier: IdentifierReference?,
             this.identifier!=null -> value is IdentifierReference && value.nameInSource==identifier!!.nameInSource
             this.arrayindexed!=null -> value is ArrayIndexedExpression &&
                     value.identifier.nameInSource==arrayindexed!!.identifier.nameInSource &&
-                    value.arrayspec.size()!=null &&
-                    arrayindexed!!.arrayspec.size()!=null &&
-                    value.arrayspec.size()==arrayindexed!!.arrayspec.size()
+                    value.arrayspec.constIndex()!=null &&
+                    arrayindexed!!.arrayspec.constIndex()!=null &&
+                    value.arrayspec.constIndex()==arrayindexed!!.arrayspec.constIndex()
             else -> false
         }
     }

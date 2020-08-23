@@ -290,7 +290,7 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                val length = decl.arraysize!!.size()!!
+                val length = decl.arraysize!!.constIndex()!!
                 val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0
@@ -324,7 +324,7 @@ $indexVar           .byte  0""")
                 asmgen.out(endLabel)
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val length = decl.arraysize!!.size()!! * 2
+                val length = decl.arraysize!!.constIndex()!! * 2
                 val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmIdentifierName(stmt.loopVar)
                 asmgen.out("""
