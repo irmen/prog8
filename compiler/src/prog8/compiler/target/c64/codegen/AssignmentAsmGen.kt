@@ -19,17 +19,19 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
 
     internal fun translate(assignment: Assignment) {
-        val source = AsmAssignSource.fromAstSource(assignment.value, program)
+        var source = AsmAssignSource.fromAstSource(assignment.value, program)
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
-        val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
 
-        // assert that the source and target types are identical (with some signed/unsigned relaxations)
+        // allow some signed/unsigned relaxations
         if(target.datatype!=source.datatype) {
-            if (!(target.datatype in ByteDatatypes && source.datatype in ByteDatatypes ||
-                            target.datatype in WordDatatypes && source.datatype in WordDatatypes)) {
-                throw AssemblyError("assignment type incompatibility  ${target.datatype}=${source.datatype}")
+            if(target.datatype in ByteDatatypes && source.datatype in ByteDatatypes) {
+                source = source.withAdjustedDt(target.datatype)
+            } else if(target.datatype in WordDatatypes && source.datatype in WordDatatypes) {
+                source = source.withAdjustedDt(target.datatype)
             }
         }
+
+        val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
 
         when {
             source.type==AsmSourceStorageType.LITERALNUMBER -> translateConstantValueAssignment(assign)

@@ -124,6 +124,9 @@ internal class AsmAssignSource(val type: AsmSourceStorageType,
         AsmSourceStorageType.STACK -> TODO()
     }
 
+    fun withAdjustedDt(newType: DataType) =
+            AsmAssignSource(type, program, newType, astVariable, astArray, astMemory, register, numLitval, astExpression)
+
 }
 
 
@@ -131,4 +134,8 @@ internal class AsmAssignment(val source: AsmAssignSource,
                              val target: AsmAssignTarget,
                              val isAugmentable: Boolean,
                              val position: Position) {
+
+    init {
+        require(source.datatype==target.datatype) {"source and target datatype must be identical"}
+    }
 }
