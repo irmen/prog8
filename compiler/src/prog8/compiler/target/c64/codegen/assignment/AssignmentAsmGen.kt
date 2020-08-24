@@ -10,6 +10,7 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
+import prog8.functions.BuiltinFunctions
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -115,13 +116,42 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             SourceStorageKind.EXPRESSION -> {
                 val value = assign.source.expression!!
-                if (value is AddressOf) {
-                    assignAddressOf(assign.target, value.identifier)
-                }
-                // TODO more special cases to avoid stack eval?
-                else {
-                    asmgen.translateExpression(value)
-                    assignStackValue(assign.target)
+                when(value) {
+                    is AddressOf -> assignAddressOf(assign.target, value.identifier)
+                    is NumericLiteralValue -> throw AssemblyError("source kind should have been literalnumber")
+                    is IdentifierReference -> throw AssemblyError("source kind should have been variable")
+                    is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
+                    is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
+//                    is TypecastExpression -> {
+//                        if(assign.target.kind == TargetStorageKind.STACK) {
+//                            asmgen.translateExpression(value)
+//                            assignStackValue(assign.target)
+//                        } else {
+//                            println("!!!!TYPECAST to ${assign.target.kind} $value")
+//                            // TODO maybe we can do the typecast on the target directly instead of on the stack?
+//                            asmgen.translateExpression(value)
+//                            assignStackValue(assign.target)
+//                        }
+//                    }
+//                    is FunctionCall -> {
+//                        if (assign.target.kind == TargetStorageKind.STACK) {
+//                            asmgen.translateExpression(value)
+//                            assignStackValue(assign.target)
+//                        } else {
+//                            val functionName = value.target.nameInSource.last()
+//                            val builtinFunc = BuiltinFunctions[functionName]
+//                            if (builtinFunc != null) {
+//                                println("!!!!BUILTIN-FUNCCALL target=${assign.target.kind} $value") // TODO optimize certain functions?
+//                            }
+//                            asmgen.translateExpression(value)
+//                            assignStackValue(assign.target)
+//                        }
+//                    }
+                    else -> {
+                        // everything else just evaluate via the stack.
+                        asmgen.translateExpression(value)
+                        assignStackValue(assign.target)
+                    }
                 }
             }
             SourceStorageKind.REGISTER -> {

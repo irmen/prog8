@@ -184,6 +184,7 @@ internal class AsmGen(private val program: Program,
             blockLevelVarInits.getValue(block).forEach { decl ->
                 val scopedFullName = decl.makeScopedName(decl.name).split('.')
                 require(scopedFullName.first()==block.name)
+                // TODO use AsmAssignment
                 val target = AssignTarget(IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
                 val assign = Assignment(target, decl.value!!, decl.position)
                 assign.linkParents(decl.parent)
@@ -1035,6 +1036,7 @@ $counterVar    .byte  0""")
             } else {
                 val next = (stmt.parent as INameScope).nextSibling(stmt)
                 if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
+                    // TODO use AsmAssignment
                     val target = AssignTarget(IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
                     val assign = Assignment(target, stmt.value!!, stmt.position)
                     assign.linkParents(stmt.parent)

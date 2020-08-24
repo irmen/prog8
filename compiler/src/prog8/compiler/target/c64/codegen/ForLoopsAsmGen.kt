@@ -116,6 +116,7 @@ $endLabel       inx""")
                     stepsize == 1 || stepsize == -1 -> {
                         asmgen.translateExpression(range.to)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        // TODO use AsmAssignment
                         val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
@@ -162,6 +163,7 @@ $modifiedLabel2 cmp  #0    ; modified
                             sta  $modifiedLabel2+1
                         """)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        // TODO use AsmAssignment
                         val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
@@ -215,6 +217,7 @@ $endLabel       inx""")
                             sta  $modifiedLabel2+1
                         """)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        // TODO use AsmAssignment
                         val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
                         assignLoopvar.linkParents(stmt)
                         asmgen.translate(assignLoopvar)
