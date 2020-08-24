@@ -74,9 +74,7 @@ main {
         uword @zp scrptr = screen
         for y in 24 downto 0 {
             for x in 39 downto 0 {
-                @(scrptr) = xbuf[x]
-                @(scrptr) += ybuf[y]
-                ;@(scrptr) = xbuf[x] + ybuf[y]
+                @(scrptr) = xbuf[x] + ybuf[y]
 ;                %asm {{
 ;                     ldy  x
 ;                     lda  xbuf,y

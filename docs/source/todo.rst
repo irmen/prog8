@@ -2,6 +2,7 @@
 TODO
 ====
 
+- allocate sub params in zeropage as well (it already allows @zp tag on them!)
 - optimize assignment codegeneration
 - get rid of all TODO's ;-)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'

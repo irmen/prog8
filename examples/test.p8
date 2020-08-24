@@ -4,10 +4,9 @@
 main {
 
     sub start() {
-        ubyte bb = 1
         uword addr=$d020
-        @(addr) = bb
-        bb = @(addr)
+        ubyte q =2
+        @(addr) += q
     }
 }
 
