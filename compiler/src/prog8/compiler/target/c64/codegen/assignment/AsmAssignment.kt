@@ -36,7 +36,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                val array: ArrayIndexedExpression? = null,
                                val memory: DirectMemoryWrite? = null,
                                val register: RegisterOrPair? = null,
-                               val origAstTarget: AssignTarget? = null        // TODO get rid of this eventually?
+                               val origAstTarget: AssignTarget? = null
                                )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
@@ -131,8 +131,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
         SourceStorageKind.ARRAY -> array!!
         SourceStorageKind.MEMORY -> memory!!
         SourceStorageKind.EXPRESSION -> expression!!
-        SourceStorageKind.REGISTER -> TODO()
-        SourceStorageKind.STACK -> TODO()
+        SourceStorageKind.REGISTER -> throw AssemblyError("cannot get a register source as Ast node")
+        SourceStorageKind.STACK -> throw AssemblyError("cannot get a stack source as Ast node")
     }
 
     fun withAdjustedDt(newType: DataType) =

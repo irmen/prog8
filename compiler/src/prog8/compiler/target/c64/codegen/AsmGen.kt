@@ -15,8 +15,11 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
 import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
+import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FSignature
@@ -184,16 +187,22 @@ internal class AsmGen(private val program: Program,
             blockLevelVarInits.getValue(block).forEach { decl ->
                 val scopedFullName = decl.makeScopedName(decl.name).split('.')
                 require(scopedFullName.first()==block.name)
-                // TODO use AsmAssignment
-                val target = AssignTarget(IdentifierReference(scopedFullName.drop(1), decl.position), null, null, decl.position)
-                val assign = Assignment(target, decl.value!!, decl.position)
-                assign.linkParents(decl.parent)
-                assignmentAsmGen.translate(assign)
+                assignInitialValueToVar(decl, scopedFullName.drop(1))
             }
             out("  rts\n  .pend")
         }
 
         out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
+    }
+
+    private fun assignInitialValueToVar(decl: VarDecl, variableName: List<String>) {
+        val variable = IdentifierReference(variableName, decl.position)
+        variable.linkParents(decl.parent)
+        val asgn = AsmAssignment(
+                AsmAssignSource.fromAstSource(decl.value!!, program),
+                AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, decl.datatype, variable = variable),
+                false, decl.position)
+        assignmentAsmGen.translateNormalAssignment(asgn)
     }
 
     private var generatedLabelSequenceNumber: Int = 0
@@ -1036,11 +1045,7 @@ $counterVar    .byte  0""")
             } else {
                 val next = (stmt.parent as INameScope).nextSibling(stmt)
                 if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
-                    // TODO use AsmAssignment
-                    val target = AssignTarget(IdentifierReference(listOf(stmt.name), stmt.position), null, null, stmt.position)
-                    val assign = Assignment(target, stmt.value!!, stmt.position)
-                    assign.linkParents(stmt.parent)
-                    translate(assign)
+                    assignInitialValueToVar(stmt, listOf(stmt.name))
                 }
             }
         }

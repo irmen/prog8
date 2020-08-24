@@ -11,6 +11,10 @@ import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
+import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import kotlin.math.absoluteValue
 
@@ -115,11 +119,8 @@ $endLabel       inx""")
 
                     stepsize == 1 || stepsize == -1 -> {
                         asmgen.translateExpression(range.to)
+                        assignLoopvar(stmt, range)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
-                        // TODO use AsmAssignment
-                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
-                        assignLoopvar.linkParents(stmt)
-                        asmgen.translate(assignLoopvar)
                         asmgen.out("""
                             lda  $ESTACK_HI_PLUS1_HEX,x
                             sta  $modifiedLabel+1
@@ -162,11 +163,8 @@ $modifiedLabel2 cmp  #0    ; modified
                             lda  $ESTACK_LO_PLUS1_HEX,x
                             sta  $modifiedLabel2+1
                         """)
+                        assignLoopvar(stmt, range)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
-                        // TODO use AsmAssignment
-                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
-                        assignLoopvar.linkParents(stmt)
-                        asmgen.translate(assignLoopvar)
                         asmgen.out(loopLabel)
                         asmgen.translate(stmt.body)
 
@@ -216,11 +214,8 @@ $endLabel       inx""")
                             lda  $ESTACK_LO_PLUS1_HEX,x
                             sta  $modifiedLabel2+1
                         """)
+                        assignLoopvar(stmt, range)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
-                        // TODO use AsmAssignment
-                        val assignLoopvar = Assignment(AssignTarget(stmt.loopVar, null, null, stmt.loopVar.position), range.from, range.position)
-                        assignLoopvar.linkParents(stmt)
-                        asmgen.translate(assignLoopvar)
                         asmgen.out(loopLabel)
                         asmgen.translate(stmt.body)
 
@@ -266,6 +261,13 @@ $endLabel       inx""")
         }
 
         asmgen.loopEndLabels.pop()
+    }
+
+    private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) {
+        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), variable=stmt.loopVar)
+        val src = AsmAssignSource.fromAstSource(range.from, program).adjustDataTypeToTarget(target)
+        val assign = AsmAssignment(src, target, false, range.position)
+        asmgen.translateNormalAssignment(assign)
     }
 
     private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
