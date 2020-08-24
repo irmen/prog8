@@ -10,7 +10,6 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
-import prog8.functions.BuiltinFunctions
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -801,20 +800,20 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.STACK -> TODO()
             }
         } else if (identifier != null) {
-            val sourceName = asmgen.asmIdentifierName(identifier)
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    asmgen.loadByteFromPointerIntoA(sourceName)
+                    asmgen.loadByteFromPointerIntoA2(identifier)
                     asmgen.out(" sta  ${target.asmVarname}")
                 }
                 TargetStorageKind.MEMORY -> {
+                    val sourceName = asmgen.asmIdentifierName(identifier)
                     storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    throw AssemblyError("no asm gen for assign memory byte $sourceName to array ${target.asmVarname} ")
+                    throw AssemblyError("no asm gen for assign memory byte $identifier to array ${target.asmVarname} ")
                 }
                 TargetStorageKind.REGISTER -> {
-                    asmgen.loadByteFromPointerIntoA(sourceName)
+                    asmgen.loadByteFromPointerIntoA2(identifier)
                     when(target.register!!) {
                         RegisterOrPair.A -> {}
                         RegisterOrPair.X -> asmgen.out("  tax")
@@ -835,15 +834,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  lda $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
             }
             addressExpr is IdentifierReference -> {
-                val pointerVarName = asmgen.asmIdentifierName(addressExpr)
-                asmgen.out("""
-                    lda  $pointerVarName
-                    sta  ${C64Zeropage.SCRATCH_W2}
-                    lda  $pointerVarName+1
-                    sta  ${C64Zeropage.SCRATCH_W2+1}
-                    lda  $ldaInstructionArg
-                    ldy  #0
-                    sta  (${C64Zeropage.SCRATCH_W2}),y""")
+                asmgen.storeByteIntoPointer(addressExpr, ldaInstructionArg)
             }
             else -> {
                 asmgen.translateExpression(addressExpr)
@@ -870,19 +861,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  st$registerName  ${addressLv.number.toHex()}")
             }
             addressExpr is IdentifierReference -> {
-                val targetName = asmgen.asmIdentifierName(addressExpr)
                 when (register) {
                     CpuRegister.A -> {}
                     CpuRegister.X -> asmgen.out(" txa")
                     CpuRegister.Y -> asmgen.out(" tya")
                 }
-                asmgen.out("""
-                    ldy  $targetName
-                    sty  ${C64Zeropage.SCRATCH_W1}
-                    ldy  $targetName+1
-                    sty  ${C64Zeropage.SCRATCH_W1+1}
-                    ldy  #0
-                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                asmgen.storeByteIntoPointer(addressExpr, null)
             }
             else -> {
                 asmgen.saveRegister(register)

@@ -178,16 +178,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     is IdentifierReference -> {
-                        val name = asmgen.asmIdentifierName(memory.addressExpression as IdentifierReference)
+                        val pointer = memory.addressExpression as IdentifierReference
                         when {
-                            valueLv != null -> inplaceModification_byte_litval_to_memory(name, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_byte_variable_to_memory(name, operator, ident)
+                            valueLv != null -> inplaceModification_byte_litval_to_memory(pointer, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_byte_variable_to_memory(pointer, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_byte_value_to_memory(name, operator, value)
+                                inplaceModification_byte_value_to_memory(pointer, operator, value)
                             }
-                            else -> inplaceModification_byte_value_to_memory(name, operator, value)
+                            else -> inplaceModification_byte_value_to_memory(pointer, operator, value)
                         }
                     }
                     else -> {
@@ -362,18 +362,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun inplaceModification_byte_value_to_memory(pointername: String, operator: String, value: Expression) {
-        println("warning: slow stack evaluation used (3):  @($pointername) $operator= ${value::class.simpleName} at ${value.position}") // TODO
+    private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
+        println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" clc |  adc  $ESTACK_LO_PLUS1_HEX,x | sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" clc |  adc  $ESTACK_LO_PLUS1_HEX,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "-" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" sec |  sbc  $ESTACK_LO_PLUS1_HEX,x | sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" sec |  sbc  $ESTACK_LO_PLUS1_HEX,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
@@ -386,33 +394,53 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "<<" -> TODO("ubyte asl")
             ">>" -> TODO("ubyte lsr")
             "&" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" and  $ESTACK_LO_PLUS1_HEX,x |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" and  $ESTACK_LO_PLUS1_HEX,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "^" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" xor  $ESTACK_LO_PLUS1_HEX,x |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" xor  $ESTACK_LO_PLUS1_HEX,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "|" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" ora  $ESTACK_LO_PLUS1_HEX,x |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" ora  $ESTACK_LO_PLUS1_HEX,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.out(" inx")
     }
 
-    private fun inplaceModification_byte_variable_to_memory(pointername: String, operator: String, ident: IdentifierReference) {
-        val otherName = asmgen.asmIdentifierName(ident)
+    private fun inplaceModification_byte_variable_to_memory(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
+        val otherName = asmgen.asmIdentifierName(value)
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" clc |  adc  $otherName | sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" clc |  adc  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "-" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" sec |  sbc  $otherName | sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" sec |  sbc  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
@@ -425,31 +453,51 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "<<" -> TODO("ubyte asl")
             ">>" -> TODO("ubyte lsr")
             "&" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" and  $otherName |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" and  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "^" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" xor  $otherName |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" xor  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "|" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" ora  $otherName |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" ora  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
 
-    private fun inplaceModification_byte_litval_to_memory(pointername: String, operator: String, value: Int) {
+    private fun inplaceModification_byte_litval_to_memory(pointervar: IdentifierReference, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" clc |  adc  #$value | sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" clc |  adc  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "-" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" sec |  sbc  #$value | sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" sec |  sbc  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> {
@@ -468,29 +516,47 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "<<" -> {
                 if (value > 0) {
-                    asmgen.loadByteFromPointerIntoA(pointername)
+                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
                     repeat(value) { asmgen.out(" asl  a") }
-                    asmgen.out(" sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    if(ptrOnZp)
+                        asmgen.out("  sta  ($sourceName),y")
+                    else
+                        asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
                 }
             }
             ">>" -> {
                 if (value > 0) {
-                    asmgen.loadByteFromPointerIntoA(pointername)
+                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
                     repeat(value) { asmgen.out(" lsr  a") }
-                    asmgen.out(" sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    if(ptrOnZp)
+                        asmgen.out("  sta  ($sourceName),y")
+                    else
+                        asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
                 }
             }
             "&" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" and  #$value |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" and  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "^" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" xor  #$value |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" xor  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             "|" -> {
-                asmgen.loadByteFromPointerIntoA(pointername)
-                asmgen.out(" ora  #$value |  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(pointervar)
+                asmgen.out(" ora  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -1047,13 +1113,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  $addr""")
                             }
                             is IdentifierReference -> {
-                                val name = asmgen.asmIdentifierName(mem.addressExpression as IdentifierReference)
-                                asmgen.loadByteFromPointerIntoA(name)
+                                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(mem.addressExpression as IdentifierReference)
                                 asmgen.out("""
                                     beq  +
                                     lda  #1
-+                                   eor  #1
-                                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
++                                   eor  #1""")
+                                if(ptrOnZp)
+                                    asmgen.out("  sta  ($sourceName),y")
+                                else
+                                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
                             }
                             else -> {
                                 println("warning: slow stack evaluation used (6): ${mem.addressExpression::class.simpleName} at ${mem.addressExpression.position}") // TODO
@@ -1119,11 +1187,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  $addr""")
                             }
                             is IdentifierReference -> {
-                                val name = asmgen.asmIdentifierName(memory.addressExpression as IdentifierReference)
-                                asmgen.loadByteFromPointerIntoA(name)
-                                asmgen.out("""
-                                    eor  #255
-                                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA2(memory.addressExpression as IdentifierReference)
+                                asmgen.out("  eor  #255")
+                                if(ptrOnZp)
+                                    asmgen.out("  sta  ($sourceName),y")
+                                else
+                                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
                             }
                             else -> {
                                 println("warning: slow stack evaluation used (7): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO

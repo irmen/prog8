@@ -4,7 +4,6 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
@@ -146,8 +145,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             is IdentifierReference -> {
                 // the identifier is a pointer variable, so read the value from the address in it
-                val sourceName = asmgen.asmIdentifierName(expr.addressExpression as IdentifierReference)
-                asmgen.loadByteFromPointerIntoA(sourceName)
+                asmgen.loadByteFromPointerIntoA2(expr.addressExpression as IdentifierReference)
                 asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
             }
             else -> {
@@ -226,8 +224,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             if (amount <= 2)
                                 repeat(amount) { asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
                             else {
-                                asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}")
-                                repeat(amount) { asmgen.out(" asl  a |  ror  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1} |  lda  ${C64MachineDefinition.C64Zeropage.SCRATCH_B1}") }
+                                asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64Zeropage.SCRATCH_B1}")
+                                repeat(amount) { asmgen.out(" asl  a |  ror  ${C64Zeropage.SCRATCH_B1} |  lda  ${C64Zeropage.SCRATCH_B1}") }
                                 asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
                             }
                         }
