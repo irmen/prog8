@@ -145,7 +145,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             is IdentifierReference -> {
                 // the identifier is a pointer variable, so read the value from the address in it
-                asmgen.loadByteFromPointerIntoA2(expr.addressExpression as IdentifierReference)
+                asmgen.loadByteFromPointerIntoA(expr.addressExpression as IdentifierReference)
                 asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
             }
             else -> {

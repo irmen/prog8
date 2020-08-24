@@ -517,7 +517,7 @@ internal class AsmGen(private val program: Program,
         return fixNameSymbols(name)
     }
 
-    internal fun loadByteFromPointerIntoA2(pointervar: IdentifierReference): Pair<Boolean, String> {
+    internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
         // returns if the pointer is already on the ZP itself or not (in which case SCRATCH_W1 is used as intermediary)
         val sourceName = asmIdentifierName(pointervar)
         val vardecl = pointervar.targetVarDecl(program.namespace)!!

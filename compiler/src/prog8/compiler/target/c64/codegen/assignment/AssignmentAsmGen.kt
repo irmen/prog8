@@ -802,7 +802,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         } else if (identifier != null) {
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    asmgen.loadByteFromPointerIntoA2(identifier)
+                    asmgen.loadByteFromPointerIntoA(identifier)
                     asmgen.out(" sta  ${target.asmVarname}")
                 }
                 TargetStorageKind.MEMORY -> {
@@ -813,7 +813,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     throw AssemblyError("no asm gen for assign memory byte $identifier to array ${target.asmVarname} ")
                 }
                 TargetStorageKind.REGISTER -> {
-                    asmgen.loadByteFromPointerIntoA2(identifier)
+                    asmgen.loadByteFromPointerIntoA(identifier)
                     when(target.register!!) {
                         RegisterOrPair.A -> {}
                         RegisterOrPair.X -> asmgen.out("  tax")
