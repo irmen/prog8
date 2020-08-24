@@ -57,22 +57,22 @@ main {
         ubyte @zp x
         ubyte @zp y
 
-        for y in 0 to 24 {
+        for y in 24 downto 0 {
             ybuf[y] = sin8u(c1a) + sin8u(c1b)
             c1a += 4
             c1b += 9
         }
         c1A += 3
         c1B -= 5
-        for x in 0 to 39 {
+        for x in 39 downto 0 {
             xbuf[x] = sin8u(c2a) + sin8u(c2b)
             c2a += 3
             c2b += 7
         }
         c2A += 2
         c2B -= 3
-        for y in 0 to 24 {
-            for x in 0 to 39 {
+        for y in 24 downto 0 {
+            for x in 39 downto 0 {
                 @(screen) = xbuf[x] + ybuf[y]
                 screen++
             }
