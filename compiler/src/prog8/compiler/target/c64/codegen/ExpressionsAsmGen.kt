@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
@@ -84,7 +85,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             DataType.BYTE -> {
                 when(expr.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
-                    DataType.UWORD, DataType.WORD -> asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x  |  ${asmgen.signExtendAtoMsb("$ESTACK_HI_PLUS1_HEX,x")}")
+                    DataType.UWORD, DataType.WORD -> {
+                        // sign extend
+                        asmgen.out(""" 
+                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            ora  #$7f
+                            bmi  +
+                            lda  #0
++                           sta  $ESTACK_HI_PLUS1_HEX,x""")
+                    }
                     DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
@@ -138,15 +147,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is IdentifierReference -> {
                 // the identifier is a pointer variable, so read the value from the address in it
                 val sourceName = asmgen.asmIdentifierName(expr.addressExpression as IdentifierReference)
-                asmgen.out("""
-        lda  $sourceName
-        sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_W1}
-        lda  $sourceName+1
-        sta  ${C64MachineDefinition.C64Zeropage.SCRATCH_W1+1}
-        ldy  #0
-        lda  (${C64MachineDefinition.C64Zeropage.SCRATCH_W1}),y
-        sta  $ESTACK_LO_HEX,x
-        dex""")
+                asmgen.loadByteFromPointerIntoA(sourceName)
+                asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
             }
             else -> {
                 translateExpression(expr.addressExpression)

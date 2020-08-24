@@ -804,14 +804,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             val sourceName = asmgen.asmIdentifierName(identifier)
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    asmgen.out("""
-                        lda  $sourceName
-                        sta  ${C64Zeropage.SCRATCH_W1}
-                        lda  $sourceName+1
-                        sta  ${C64Zeropage.SCRATCH_W1+1}
-                        ldy  #0
-                        lda  (${C64Zeropage.SCRATCH_W1}),y
-                        sta  ${target.asmVarname}""")
+                    asmgen.loadByteFromPointerIntoA(sourceName)
+                    asmgen.out(" sta  ${target.asmVarname}")
                 }
                 TargetStorageKind.MEMORY -> {
                     storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
@@ -820,13 +814,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     throw AssemblyError("no asm gen for assign memory byte $sourceName to array ${target.asmVarname} ")
                 }
                 TargetStorageKind.REGISTER -> {
-                    asmgen.out("""
-                        lda  $sourceName
-                        sta  ${C64Zeropage.SCRATCH_W1}
-                        lda  $sourceName+1
-                        sta  ${C64Zeropage.SCRATCH_W1+1}
-                        ldy  #0
-                        lda  (${C64Zeropage.SCRATCH_W1}),y""")
+                    asmgen.loadByteFromPointerIntoA(sourceName)
                     when(target.register!!) {
                         RegisterOrPair.A -> {}
                         RegisterOrPair.X -> asmgen.out("  tax")
