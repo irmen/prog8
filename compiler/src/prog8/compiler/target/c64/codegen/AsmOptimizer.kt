@@ -1,8 +1,5 @@
 package prog8.compiler.target.c64.codegen
 
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
-
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
 
@@ -87,10 +84,10 @@ private fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): 
     // the repeated lda can be removed
     val mods = mutableListOf<Modification>()
     for(lines in linesByFour) {
-        if(lines[0].value.trim()=="lda  $ESTACK_LO_PLUS1_HEX,x" &&
+        if(lines[0].value.trim()=="lda  P8ESTACK_LO+1,x" &&
                 lines[1].value.trim().startsWith("cmp ") &&
                 lines[2].value.trim().startsWith("beq ") &&
-                lines[3].value.trim()=="lda  $ESTACK_LO_PLUS1_HEX,x") {
+                lines[3].value.trim()=="lda  P8ESTACK_LO+1,x") {
             mods.add(Modification(lines[3].index, true, null)) // remove the second lda
         }
     }
@@ -102,10 +99,10 @@ private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<S
     // this is a lot harder for word values because the instruction sequence varies.
     val mods = mutableListOf<Modification>()
     for(lines in linesByFour) {
-        if(lines[0].value.trim()=="sta  $ESTACK_LO_HEX,x" &&
+        if(lines[0].value.trim()=="sta  P8ESTACK_LO,x" &&
                 lines[1].value.trim()=="dex" &&
                 lines[2].value.trim()=="inx" &&
-                lines[3].value.trim()=="lda  $ESTACK_LO_HEX,x") {
+                lines[3].value.trim()=="lda  P8ESTACK_LO,x") {
             mods.add(Modification(lines[1].index, true, null))
             mods.add(Modification(lines[2].index, true, null))
             mods.add(Modification(lines[3].index, true, null))

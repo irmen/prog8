@@ -5,9 +5,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
@@ -62,9 +59,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     val indexValue = index.number.toInt() * elementDt.memorySize()
                     when (elementDt) {
                         in ByteDatatypes ->
-                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
+                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")
                         in WordDatatypes ->
-                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x | dex")
+                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+$indexValue+1 |  sta  P8ESTACK_HI,x | dex")
                         DataType.FLOAT ->
                             asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
                         else ->
@@ -74,11 +71,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     when (elementDt) {
                         in ByteDatatypes -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                            asmgen.out("  lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  dex")
+                            asmgen.out("  lda  $arrayVarName,y |  sta  P8ESTACK_LO,x |  dex")
                         }
                         in WordDatatypes  -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                            asmgen.out("  lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+1,y |  sta  $ESTACK_HI_HEX,x |  dex")
+                            asmgen.out("  lda  $arrayVarName,y |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+1,y |  sta  P8ESTACK_HI,x |  dex")
                         }
                         DataType.FLOAT -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.A)
@@ -167,14 +164,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        asmgen.out(" inx | lda  $ESTACK_LO_HEX,x  | sta  ${target.asmVarname}")
+                        asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}")
                     }
                     DataType.UWORD, DataType.WORD -> {
                         asmgen.out("""
                             inx
-                            lda  $ESTACK_LO_HEX,x
+                            lda  P8ESTACK_LO,x
                             sta  ${target.asmVarname}
-                            lda  $ESTACK_HI_HEX,x
+                            lda  P8ESTACK_HI,x
                             sta  ${target.asmVarname}+1
                         """)
                     }
@@ -190,7 +187,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.MEMORY -> {
                 asmgen.out("  inx")
-                storeByteViaRegisterAInMemoryAddress("$ESTACK_LO_HEX,x", target.memory!!)
+                storeByteViaRegisterAInMemoryAddress("P8ESTACK_LO,x", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 val index = target.array!!.arrayspec.index
@@ -199,14 +196,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
                         when(target.datatype) {
                             in ByteDatatypes -> {
-                                asmgen.out(" inx | lda  $ESTACK_LO_HEX,x  | sta  ${target.asmVarname}+$scaledIdx")
+                                asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
                             }
                             in WordDatatypes -> {
                                 asmgen.out("""
                                     inx
-                                    lda  $ESTACK_LO_HEX,x
+                                    lda  P8ESTACK_LO,x
                                     sta  ${target.asmVarname}+$scaledIdx
-                                    lda  $ESTACK_HI_HEX,x
+                                    lda  P8ESTACK_HI,x
                                     sta  ${target.asmVarname}+$scaledIdx+1
                                 """)
                             }
@@ -224,15 +221,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         when(target.datatype) {
                             DataType.UBYTE, DataType.BYTE -> {
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                                asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x |  sta  ${target.asmVarname},y")
+                                asmgen.out(" inx |  lda  P8ESTACK_LO,x |  sta  ${target.asmVarname},y")
                             }
                             DataType.UWORD, DataType.WORD -> {
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
                                 asmgen.out("""
                                     inx
-                                    lda  $ESTACK_LO_HEX,x
+                                    lda  P8ESTACK_LO,x
                                     sta  ${target.asmVarname},y
-                                    lda  $ESTACK_HI_HEX,x
+                                    lda  P8ESTACK_HI,x
                                     sta  ${target.asmVarname}+1,y
                                 """)
                             }
@@ -251,7 +248,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     else -> {
                         asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
                         popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
                     }
                 }
@@ -260,16 +257,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 when (target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
                         when(target.register!!) {
-                            RegisterOrPair.A -> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x")
+                            RegisterOrPair.A -> asmgen.out(" inx |  lda  P8ESTACK_LO,x")
                             RegisterOrPair.X -> throw AssemblyError("can't use X here")
-                            RegisterOrPair.Y -> asmgen.out(" inx |  ldy  $ESTACK_LO_HEX,x")
+                            RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
                             else -> throw AssemblyError("can't assign byte to register pair word")
                         }
                     }
                     DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> {
                         when(target.register!!) {
                             RegisterOrPair.AX -> throw AssemblyError("can't use X here")
-                            RegisterOrPair.AY-> asmgen.out(" inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
+                            RegisterOrPair.AY-> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
                             RegisterOrPair.XY-> throw AssemblyError("can't use X here")
                             else -> throw AssemblyError("can't assign word to single byte register")
                         }
@@ -322,9 +319,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val srcname = asmgen.asmIdentifierName(name)
                 asmgen.out("""
                     lda  #<$srcname
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     lda  #>$srcname
-                    sta  $ESTACK_HI_HEX,x
+                    sta  P8ESTACK_HI,x
                     dex""")
             }
         }
@@ -365,8 +362,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 asmgen.out("""
                                     lda  #<$sourceName
                                     ldy  #>$sourceName
-                                    sta  ${C64Zeropage.SCRATCH_W1}
-                                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
                                     lda  #<${target.asmVarname}+$scaledIdx
                                     ldy  #>${target.asmVarname}+$scaledIdx
                                     jsr  c64flt.copy_float
@@ -394,9 +391,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
                                 asmgen.out("""
                                     ldy  #<$sourceName
-                                    sty  ${C64Zeropage.SCRATCH_W1}
+                                    sty  P8ZP_SCRATCH_W1
                                     ldy  #>$sourceName
-                                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                                    sty  P8ZP_SCRATCH_W1+1
                                     ldy  #>${target.asmVarname}
                                     clc
                                     adc  #<${target.asmVarname}
@@ -408,9 +405,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         }
                     }
                     else -> {
-                        asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  lda  $sourceName+1 |  sta  $ESTACK_HI_HEX,x |  dex")
+                        asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  lda  $sourceName+1 |  sta  P8ESTACK_HI,x |  dex")
                         asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
                         popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
                     }
                 }
@@ -426,9 +423,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.STACK -> {
                 asmgen.out("""
                     lda  #$sourceName
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     lda  #$sourceName+1
-                    sta  $ESTACK_HI_HEX,x
+                    sta  P8ESTACK_HI,x
                     dex""")
             }
         }
@@ -493,9 +490,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                     }
                     else -> {
-                        asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+                        asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  dex")
                         asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  $ESTACK_LO_HEX,x")
+                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
                         popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
                     }
                 }
@@ -513,7 +510,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.STACK -> {
                 asmgen.out("""
                     lda  #$sourceName
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     dex""")
             }
         }
@@ -552,15 +549,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(index)
                         asmgen.restoreRegister(register)
                         when (register) {
-                            CpuRegister.A -> asmgen.out("  sta  ${C64Zeropage.SCRATCH_B1}")
-                            CpuRegister.X -> asmgen.out("  stx  ${C64Zeropage.SCRATCH_B1}")
-                            CpuRegister.Y -> asmgen.out("  sty  ${C64Zeropage.SCRATCH_B1}")
+                            CpuRegister.A -> asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                            CpuRegister.X -> asmgen.out("  stx  P8ZP_SCRATCH_B1")
+                            CpuRegister.Y -> asmgen.out("  sty  P8ZP_SCRATCH_B1")
                         }
                         asmgen.out("""
                             inx
-                            lda  $ESTACK_LO_HEX,x
+                            lda  P8ESTACK_LO,x
                             tay
-                            lda  ${C64Zeropage.SCRATCH_B1}
+                            lda  P8ZP_SCRATCH_B1
                             sta  ${target.asmVarname},y  
                         """)
                     }
@@ -590,9 +587,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.STACK -> {
                 when(register) {
-                    CpuRegister.A -> asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
+                    CpuRegister.A -> asmgen.out(" sta  P8ESTACK_LO,x |  dex")
                     CpuRegister.X -> throw AssemblyError("can't use X here")
-                    CpuRegister.Y -> asmgen.out(" tya |  sta  $ESTACK_LO_HEX,x |  dex")
+                    CpuRegister.Y -> asmgen.out(" tya |  sta  P8ESTACK_LO,x |  dex")
                 }
             }
         }
@@ -631,7 +628,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(index)
                 asmgen.out("""
                     inx
-                    lda  $ESTACK_LO_HEX,x
+                    lda  P8ESTACK_LO,x
                     asl  a
                     tay
                     lda  #<${word.toHex()}
@@ -651,9 +648,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.STACK -> {
                 asmgen.out("""
                     lda  #<${word.toHex()}
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     lda  #>${word.toHex()}
-                    sta  $ESTACK_HI_HEX,x
+                    sta  P8ESTACK_HI,x
                     dex""")
             }
         }
@@ -682,7 +679,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(index)
                         asmgen.out("""
                             inx
-                            ldy  $ESTACK_LO_HEX,x
+                            ldy  P8ESTACK_LO,x
                             lda  #${byte.toHex()}
                             sta  ${target.asmVarname},y
                         """)
@@ -698,7 +695,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.STACK -> {
                 asmgen.out("""
                     lda  #${byte.toHex()}
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     dex""")
             }
         }
@@ -740,9 +737,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(index)
                         asmgen.out("""
                             lda  #<${target.asmVarname}
-                            sta  ${C64Zeropage.SCRATCH_W1}
+                            sta  P8ZP_SCRATCH_W1
                             lda  #>${target.asmVarname}
-                            sta  ${C64Zeropage.SCRATCH_W1 + 1}
+                            sta  P8ZP_SCRATCH_W1+1
                             jsr  c64flt.set_0_array_float
                         """)
                     }
@@ -750,13 +747,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
                 TargetStorageKind.STACK -> {
-                    val floatConst = asmgen.getFloatConst(float)
+                    val floatConst = asmgen.getFloatAsmConst(float)
                     asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
                 }
             }
         } else {
             // non-zero value
-            val constFloat = asmgen.getFloatConst(float)
+            val constFloat = asmgen.getFloatAsmConst(float)
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
@@ -799,13 +796,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.translateExpression(index)
                         asmgen.out("""
                             lda  #<${constFloat}
-                            sta  ${C64Zeropage.SCRATCH_W1}
+                            sta  P8ZP_SCRATCH_W1
                             lda  #>${constFloat}
-                            sta  ${C64Zeropage.SCRATCH_W1 + 1}
+                            sta  P8ZP_SCRATCH_W1+1
                             lda  #<${arrayVarName}
-                            sta  ${C64Zeropage.SCRATCH_W2}
+                            sta  P8ZP_SCRATCH_W2
                             lda  #>${arrayVarName}
-                            sta  ${C64Zeropage.SCRATCH_W2 + 1}
+                            sta  P8ZP_SCRATCH_W2+1
                             jsr  c64flt.set_array_float
                         """)
                     }
@@ -813,7 +810,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
                 TargetStorageKind.STACK -> {
-                    val floatConst = asmgen.getFloatConst(float)
+                    val floatConst = asmgen.getFloatAsmConst(float)
                     asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
                 }
             }
@@ -844,7 +841,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.STACK -> {
                     asmgen.out("""
                         lda  ${address.toHex()}
-                        sta  $ESTACK_LO_HEX,x
+                        sta  P8ESTACK_LO,x
                         dex""")
                 }
             }
@@ -872,7 +869,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.STACK -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
-                    asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
+                    asmgen.out(" sta  P8ESTACK_LO,x |  dex")
                 }
             }
         }
@@ -892,13 +889,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.translateExpression(addressExpr)
                 asmgen.out("""
                     inx
-                    lda  $ESTACK_LO_HEX,x
-                    sta  ${C64Zeropage.SCRATCH_W2}
-                    lda  $ESTACK_HI_HEX,x
-                    sta  ${C64Zeropage.SCRATCH_W2+1}
+                    lda  P8ESTACK_LO,x
+                    sta  P8ZP_SCRATCH_W2
+                    lda  P8ESTACK_HI,x
+                    sta  P8ZP_SCRATCH_W2+1
                     lda  $ldaInstructionArg
                     ldy  #0
-                    sta  (${C64Zeropage.SCRATCH_W2}),y""")
+                    sta  (P8ZP_SCRATCH_W2),y""")
             }
         }
     }
@@ -926,12 +923,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.restoreRegister(CpuRegister.A)
                 asmgen.out("""
                     inx
-                    ldy  $ESTACK_LO_HEX,x
-                    sty  ${C64Zeropage.SCRATCH_W2}
-                    ldy  $ESTACK_HI_HEX,x
-                    sty  ${C64Zeropage.SCRATCH_W2+1}
+                    ldy  P8ESTACK_LO,x
+                    sty  P8ZP_SCRATCH_W2
+                    ldy  P8ESTACK_HI,x
+                    sty  P8ZP_SCRATCH_W2+1
                     ldy  #0
-                    sta  (${C64Zeropage.SCRATCH_W2}),y""")
+                    sta  (P8ZP_SCRATCH_W2),y""")
             }
         }
     }
@@ -939,13 +936,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private fun popAndWriteArrayvalueWithUnscaledIndexA(elementDt: DataType, asmArrayvarname: String) {
         when (elementDt) {
             in ByteDatatypes ->
-                asmgen.out("  tay |  inx |  lda  $ESTACK_LO_HEX,x  | sta  $asmArrayvarname,y")
+                asmgen.out("  tay |  inx |  lda  P8ESTACK_LO,x  | sta  $asmArrayvarname,y")
             in WordDatatypes ->
-                asmgen.out("  asl  a |  tay |  inx |  lda  $ESTACK_LO_HEX,x |  sta  $asmArrayvarname,y |  lda  $ESTACK_HI_HEX,x |  sta $asmArrayvarname+1,y")
+                asmgen.out("  asl  a |  tay |  inx |  lda  P8ESTACK_LO,x |  sta  $asmArrayvarname,y |  lda  P8ESTACK_HI,x |  sta $asmArrayvarname+1,y")
             DataType.FLOAT ->
                 // scaling * 5 is done in the subroutine that's called
                 asmgen.out("""
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     dex
                     lda  #<$asmArrayvarname
                     ldy  #>$asmArrayvarname

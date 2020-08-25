@@ -4,12 +4,6 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS2_HEX
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
@@ -46,20 +40,20 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     // result value in cpu or status registers, put it on the stack
                     if (reg.registerOrPair != null) {
                         when (reg.registerOrPair) {
-                            RegisterOrPair.A -> asmgen.out("  sta  $ESTACK_LO_HEX,x |  dex")
-                            RegisterOrPair.Y -> asmgen.out("  tya |  sta  $ESTACK_LO_HEX,x |  dex")
-                            RegisterOrPair.AY -> asmgen.out("  sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex")
+                            RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+                            RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
+                            RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
                             RegisterOrPair.X -> {
                                 // return value in X register has been discarded, just push a zero
-                                asmgen.out("  lda  #0 |  sta  $ESTACK_LO_HEX,x |  dex")
+                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x |  dex")
                             }
                             RegisterOrPair.AX -> {
                                 // return value in X register has been discarded, just push a zero in this place
-                                asmgen.out("  sta  $ESTACK_LO_HEX,x |  lda  #0 |  sta  $ESTACK_HI_HEX,x |  dex")
+                                asmgen.out("  sta  P8ESTACK_LO,x |  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
                             }
                             RegisterOrPair.XY -> {
                                 // return value in X register has been discarded, just push a zero in this place
-                                asmgen.out("  lda  #0 |  sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex")
+                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
                             }
                         }
                     }
@@ -75,7 +69,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             DataType.UBYTE -> {
                 when(expr.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
-                    DataType.UWORD, DataType.WORD -> asmgen.out("  lda  #0  |  sta  $ESTACK_HI_PLUS1_HEX,x")
+                    DataType.UWORD, DataType.WORD -> asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")
                     DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_ub2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
@@ -87,11 +81,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.UWORD, DataType.WORD -> {
                         // sign extend
                         asmgen.out(""" 
-                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            lda  P8ESTACK_LO+1,x
                             ora  #$7f
                             bmi  +
                             lda  #0
-+                           sta  $ESTACK_HI_PLUS1_HEX,x""")
++                           sta  P8ESTACK_HI+1,x""")
                     }
                     DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
@@ -134,40 +128,40 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateExpression(expr: AddressOf) {
         val name = asmgen.asmIdentifierName(expr.identifier)
-        asmgen.out("  lda  #<$name |  sta  $ESTACK_LO_HEX,x |  lda  #>$name  |  sta  $ESTACK_HI_HEX,x  | dex")
+        asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
     private fun translateExpression(expr: DirectMemoryRead) {
         when(expr.addressExpression) {
             is NumericLiteralValue -> {
                 val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
-                asmgen.out("  lda  ${address.toHex()} |  sta  $ESTACK_LO_HEX,x |  dex")
+                asmgen.out("  lda  ${address.toHex()} |  sta  P8ESTACK_LO,x |  dex")
             }
             is IdentifierReference -> {
                 // the identifier is a pointer variable, so read the value from the address in it
                 asmgen.loadByteFromPointerIntoA(expr.addressExpression as IdentifierReference)
-                asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
+                asmgen.out(" sta  P8ESTACK_LO,x |  dex")
             }
             else -> {
                 translateExpression(expr.addressExpression)
                 asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack")
-                asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                asmgen.out("  sta  P8ESTACK_LO+1,x")
             }
         }
     }
 
     private fun translateExpression(expr: NumericLiteralValue) {
         when(expr.type) {
-            DataType.UBYTE, DataType.BYTE -> asmgen.out(" lda  #${expr.number.toHex()}  | sta  $ESTACK_LO_HEX,x  | dex")
+            DataType.UBYTE, DataType.BYTE -> asmgen.out(" lda  #${expr.number.toHex()}  | sta  P8ESTACK_LO,x  | dex")
             DataType.UWORD, DataType.WORD -> asmgen.out("""
                 lda  #<${expr.number.toHex()}
-                sta  $ESTACK_LO_HEX,x
+                sta  P8ESTACK_LO,x
                 lda  #>${expr.number.toHex()}
-                sta  $ESTACK_HI_HEX,x
+                sta  P8ESTACK_HI,x
                 dex
             """)
             DataType.FLOAT -> {
-                val floatConst = asmgen.getFloatConst(expr.number.toDouble())
+                val floatConst = asmgen.getFloatAsmConst(expr.number.toDouble())
                 asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
             }
             else -> throw AssemblyError("weird type")
@@ -178,16 +172,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val varname = asmgen.asmIdentifierName(expr)
         when(expr.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE, DataType.BYTE -> {
-                asmgen.out("  lda  $varname  |  sta  $ESTACK_LO_HEX,x  |  dex")
+                asmgen.out("  lda  $varname  |  sta  P8ESTACK_LO,x  |  dex")
             }
             DataType.UWORD, DataType.WORD -> {
-                asmgen.out("  lda  $varname  |  sta  $ESTACK_LO_HEX,x  |  lda  $varname+1 |  sta  $ESTACK_HI_HEX,x |  dex")
+                asmgen.out("  lda  $varname  |  sta  P8ESTACK_LO,x  |  lda  $varname+1 |  sta  P8ESTACK_HI,x |  dex")
             }
             DataType.FLOAT -> {
                 asmgen.out(" lda  #<$varname |  ldy  #>$varname|  jsr  c64flt.push_float")
             }
             in IterableDatatypes -> {
-                asmgen.out("  lda  #<$varname  |  sta  $ESTACK_LO_HEX,x  |  lda  #>$varname |  sta  $ESTACK_HI_HEX,x |  dex")
+                asmgen.out("  lda  #<$varname  |  sta  P8ESTACK_LO,x  |  lda  #>$varname |  sta  P8ESTACK_HI,x |  dex")
             }
             else -> throw AssemblyError("stack push weird variable type $expr")
         }
@@ -213,20 +207,20 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     when (leftDt) {
                         DataType.UBYTE -> {
                             if (amount <= 2)
-                                repeat(amount) { asmgen.out(" lsr  $ESTACK_LO_PLUS1_HEX,x") }
+                                repeat(amount) { asmgen.out(" lsr  P8ESTACK_LO+1,x") }
                             else {
-                                asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x")
+                                asmgen.out(" lda  P8ESTACK_LO+1,x")
                                 repeat(amount) { asmgen.out(" lsr  a") }
-                                asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
+                                asmgen.out(" sta  P8ESTACK_LO+1,x")
                             }
                         }
                         DataType.BYTE -> {
                             if (amount <= 2)
-                                repeat(amount) { asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                                repeat(amount) { asmgen.out(" lda  P8ESTACK_LO+1,x |  asl  a |  ror  P8ESTACK_LO+1,x") }
                             else {
-                                asmgen.out(" lda  $ESTACK_LO_PLUS1_HEX,x |  sta  ${C64Zeropage.SCRATCH_B1}")
-                                repeat(amount) { asmgen.out(" asl  a |  ror  ${C64Zeropage.SCRATCH_B1} |  lda  ${C64Zeropage.SCRATCH_B1}") }
-                                asmgen.out(" sta  $ESTACK_LO_PLUS1_HEX,x")
+                                asmgen.out(" lda  P8ESTACK_LO+1,x |  sta  P8ZP_SCRATCH_B1")
+                                repeat(amount) { asmgen.out(" asl  a |  ror  P8ZP_SCRATCH_B1 |  lda  P8ZP_SCRATCH_B1") }
+                                asmgen.out(" sta  P8ESTACK_LO+1,x")
                             }
                         }
                         DataType.UWORD -> {
@@ -236,7 +230,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                 left -= 7
                             }
                             if (left in 0..2)
-                                repeat(left) { asmgen.out(" lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                                repeat(left) { asmgen.out(" lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
                                 asmgen.out(" jsr  math.shift_right_uw_$left")
                         }
@@ -247,7 +241,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                 left -= 7
                             }
                             if (left in 0..2)
-                                repeat(left) { asmgen.out(" lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x") }
+                                repeat(left) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
                                 asmgen.out(" jsr  math.shift_right_w_$left")
                         }
@@ -262,11 +256,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(amount!=null) {
                     if (leftDt in ByteDatatypes) {
                         if (amount <= 2)
-                            repeat(amount) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x") }
+                            repeat(amount) { asmgen.out("  asl  P8ESTACK_LO+1,x") }
                         else {
-                            asmgen.out("  lda  $ESTACK_LO_PLUS1_HEX,x")
+                            asmgen.out("  lda  P8ESTACK_LO+1,x")
                             repeat(amount) { asmgen.out("  asl  a") }
-                            asmgen.out("  sta  $ESTACK_LO_PLUS1_HEX,x")
+                            asmgen.out("  sta  P8ESTACK_LO+1,x")
                         }
                     } else {
                         var left = amount
@@ -275,7 +269,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             left -= 7
                         }
                         if (left in 0..2)
-                            repeat(left) { asmgen.out("  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x") }
+                            repeat(left) { asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x") }
                         else
                             asmgen.out(" jsr  math.shift_left_w_$left")
                     }
@@ -365,9 +359,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(type) {
                     in ByteDatatypes ->
                         asmgen.out("""
-                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            lda  P8ESTACK_LO+1,x
                             eor  #255
-                            sta  $ESTACK_LO_PLUS1_HEX,x
+                            sta  P8ESTACK_LO+1,x
                             """)
                     in WordDatatypes -> asmgen.out("  jsr  prog8_lib.inv_word")
                     else -> throw AssemblyError("weird type")
@@ -392,10 +386,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             val indexValue = index.number.toInt() * elementDt.memorySize()
             when(elementDt) {
                 in ByteDatatypes -> {
-                    asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  dex")
+                    asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")
                 }
                 in WordDatatypes -> {
-                    asmgen.out("  lda  $arrayVarName+$indexValue |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+$indexValue+1 |  sta  $ESTACK_HI_HEX,x |  dex")
+                    asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+$indexValue+1 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 DataType.FLOAT -> {
                     asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
@@ -406,11 +400,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             when(elementDt) {
                 in ByteDatatypes -> {
                     asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.Y)
-                    asmgen.out(" lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  dex")
+                    asmgen.out(" lda  $arrayVarName,y |  sta  P8ESTACK_LO,x |  dex")
                 }
                 in WordDatatypes -> {
                     asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.Y)
-                    asmgen.out(" lda  $arrayVarName,y |  sta  $ESTACK_LO_HEX,x |  lda  $arrayVarName+1,y |  sta  $ESTACK_HI_HEX,x |  dex")
+                    asmgen.out(" lda  $arrayVarName,y |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+1,y |  sta  P8ESTACK_HI,x |  dex")
                 }
                 DataType.FLOAT -> {
                     asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.A)
@@ -439,18 +433,18 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 asmgen.out("  jsr prog8_lib.remainder_ub")
             }
             "+" -> asmgen.out("""
-                lda  $ESTACK_LO_PLUS2_HEX,x
+                lda  P8ESTACK_LO+2,x
                 clc
-                adc  $ESTACK_LO_PLUS1_HEX,x
+                adc  P8ESTACK_LO+1,x
                 inx
-                sta  $ESTACK_LO_PLUS1_HEX,x
+                sta  P8ESTACK_LO+1,x
                 """)
             "-" -> asmgen.out("""
-                lda  $ESTACK_LO_PLUS2_HEX,x
+                lda  P8ESTACK_LO+2,x
                 sec
-                sbc  $ESTACK_LO_PLUS1_HEX,x
+                sbc  P8ESTACK_LO+1,x
                 inx
-                sta  $ESTACK_LO_PLUS1_HEX,x
+                sta  P8ESTACK_LO+1,x
                 """)
             "<<" -> asmgen.out("  jsr  prog8_lib.shiftleft_b")
             ">>" -> asmgen.out("  jsr  prog8_lib.shiftright_b")

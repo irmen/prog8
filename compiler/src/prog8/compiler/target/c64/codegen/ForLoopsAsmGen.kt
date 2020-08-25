@@ -4,13 +4,8 @@ import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpr
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
 import prog8.ast.statements.ForLoop
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
@@ -60,9 +55,9 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                     asmgen.translateExpression(range.from)
                     asmgen.out("""
                 inx
-                lda  $ESTACK_LO_HEX,x
+                lda  P8ESTACK_LO,x
                 sta  $varname
-                lda  $ESTACK_LO_PLUS1_HEX,x
+                lda  P8ESTACK_LO+1,x
                 sta  $modifiedLabel+1
 $loopLabel""")
                         asmgen.translate(stmt.body)
@@ -84,9 +79,9 @@ $endLabel       inx""")
                     asmgen.translateExpression(range.from)
                     asmgen.out("""
                 inx
-                lda  $ESTACK_LO_HEX,x
+                lda  P8ESTACK_LO,x
                 sta  $varname
-                lda  $ESTACK_LO_PLUS1_HEX,x
+                lda  P8ESTACK_LO+1,x
                 sta  $modifiedLabel+1
 $loopLabel""")
                     asmgen.translate(stmt.body)
@@ -122,9 +117,9 @@ $endLabel       inx""")
                         assignLoopvar(stmt, range)
                         val varname = asmgen.asmIdentifierName(stmt.loopVar)
                         asmgen.out("""
-                            lda  $ESTACK_HI_PLUS1_HEX,x
+                            lda  P8ESTACK_HI+1,x
                             sta  $modifiedLabel+1
-                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            lda  P8ESTACK_LO+1,x
                             sta  $modifiedLabel2+1
 $loopLabel""")
                         asmgen.translate(stmt.body)
@@ -158,9 +153,9 @@ $modifiedLabel2 cmp  #0    ; modified
                         // (u)words, step >= 2
                         asmgen.translateExpression(range.to)
                         asmgen.out("""
-                            lda  $ESTACK_HI_PLUS1_HEX,x
+                            lda  P8ESTACK_HI+1,x
                             sta  $modifiedLabel+1
-                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            lda  P8ESTACK_LO+1,x
                             sta  $modifiedLabel2+1
                         """)
                         assignLoopvar(stmt, range)
@@ -209,9 +204,9 @@ $endLabel       inx""")
                         // (u)words, step <= -2
                         asmgen.translateExpression(range.to)
                         asmgen.out("""
-                            lda  $ESTACK_HI_PLUS1_HEX,x
+                            lda  P8ESTACK_HI+1,x
                             sta  $modifiedLabel+1
-                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            lda  P8ESTACK_LO+1,x
                             sta  $modifiedLabel2+1
                         """)
                         assignLoopvar(stmt, range)

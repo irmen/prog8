@@ -6,9 +6,6 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.PostIncrDecr
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.toHex
 
 
@@ -59,9 +56,9 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                         asmgen.translateExpression(addressExpr)
                         asmgen.out("""
                             inx
-                            lda  $ESTACK_LO_HEX,x
+                            lda  P8ESTACK_LO,x
                             sta  (+) + 1
-                            lda  $ESTACK_HI_HEX,x
+                            lda  P8ESTACK_HI,x
                             sta  (+) + 2
                         """)
                         if(incr)
@@ -100,7 +97,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                     }
                     else -> {
                         asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
-                        asmgen.out("  stx  ${C64Zeropage.SCRATCH_REG_X} |  tax")
+                        asmgen.out("  stx  P8ZP_SCRATCH_REG_X |  tax")
                         when(elementDt) {
                             in ByteDatatypes -> {
                                 asmgen.out(if(incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
@@ -127,7 +124,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                             }
                             else -> throw AssemblyError("weird array elt dt")
                         }
-                        asmgen.out("  ldx  ${C64Zeropage.SCRATCH_REG_X}")
+                        asmgen.out("  ldx  P8ZP_SCRATCH_REG_X")
                     }
                 }
             }

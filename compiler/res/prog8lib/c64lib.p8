@@ -7,6 +7,7 @@
 
 
 c64 {
+        ; TODO get rid of those:
         const  uword  ESTACK_LO = $ce00     ; evaluation stack (lsb)
         const  uword  ESTACK_HI = $cf00     ; evaluation stack (msb)
         &ubyte  SCRATCH_ZPB1    = $02       ; scratch byte 1 in ZP

@@ -6,15 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
-import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import prog8.functions.FSignature
 
@@ -60,7 +51,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "rsave" -> {
                 // save cpu status flag and all registers A, X, Y.
                 // see http://6502.org/tutorials/register_preservation.html
-                asmgen.out(" php |  sta  ${C64Zeropage.SCRATCH_REG} | pha  | txa  | pha  | tya  | pha  | lda  ${C64Zeropage.SCRATCH_REG}")
+                asmgen.out(" php |  sta  P8ZP_SCRATCH_REG | pha  | txa  | pha  | tya  | pha  | lda  P8ZP_SCRATCH_REG")
             }
             "rrestore" -> {
                 // restore all registers and cpu status flag
@@ -88,8 +79,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
-                                    sta  ${C64Zeropage.SCRATCH_W1}
-                                    sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
                                     jsr  prog8_lib.reverse_b
                                 """)
@@ -98,8 +89,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
-                                    sta  ${C64Zeropage.SCRATCH_W1}
-                                    sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
                                     jsr  prog8_lib.reverse_w
                                 """)
@@ -108,8 +99,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
-                                    sta  ${C64Zeropage.SCRATCH_W1}
-                                    sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
                                     jsr  prog8_lib.reverse_f
                                 """)
@@ -130,10 +121,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
-                                    sta  ${C64Zeropage.SCRATCH_W1}
-                                    sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
-                                    sta  ${C64Zeropage.SCRATCH_B1}
+                                    sta  P8ZP_SCRATCH_B1
                                 """)
                     asmgen.out(if (decl.datatype == DataType.ARRAY_UB) "  jsr  prog8_lib.sort_ub" else "  jsr  prog8_lib.sort_b")
                 }
@@ -141,10 +132,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
-                                    sta  ${C64Zeropage.SCRATCH_W1}
-                                    sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
-                                    sta  ${C64Zeropage.SCRATCH_B1}
+                                    sta  P8ZP_SCRATCH_B1
                                 """)
                     asmgen.out(if (decl.datatype == DataType.ARRAY_UW) "  jsr  prog8_lib.sort_uw" else "  jsr  prog8_lib.sort_w")
                 }
@@ -219,9 +210,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             asmgen.translateExpression(what.addressExpression)
                             asmgen.out("""
                         inx
-                        lda  $ESTACK_LO_HEX,x
+                        lda  P8ESTACK_LO,x
                         sta  (+) + 1
-                        lda  $ESTACK_HI_HEX,x
+                        lda  P8ESTACK_HI,x
                         sta  (+) + 2
     +                   ror  ${'$'}ffff            ; modified                    
                                         """)
@@ -316,9 +307,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             asmgen.translateExpression(what.addressExpression)
                             asmgen.out("""
                         inx
-                        lda  $ESTACK_LO_HEX,x
+                        lda  P8ESTACK_LO,x
                         sta  (+) + 1
-                        lda  $ESTACK_HI_HEX,x
+                        lda  P8ESTACK_HI,x
                         sta  (+) + 2
     +                   rol  ${'$'}ffff            ; modified                    
                                         """)
@@ -397,7 +388,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             lda  #<$name
             ldy  #>$name
             jsr  prog8_lib.strlen
-            sta  $ESTACK_LO_HEX,x
+            sta  P8ESTACK_LO,x
             dex""")
     }
 
@@ -428,13 +419,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             if(dt.istype(DataType.FLOAT)) {
                 asmgen.out("""
                     lda  #<$firstName
-                    sta  ${C64Zeropage.SCRATCH_W1}
+                    sta  P8ZP_SCRATCH_W1
                     lda  #>$firstName
-                    sta  ${C64Zeropage.SCRATCH_W1+1}
+                    sta  P8ZP_SCRATCH_W1+1
                     lda  #<$secondName
-                    sta  ${C64Zeropage.SCRATCH_W2}
+                    sta  P8ZP_SCRATCH_W2
                     lda  #>$secondName
-                    sta  ${C64Zeropage.SCRATCH_W2+1}
+                    sta  P8ZP_SCRATCH_W2+1
                     jsr  c64flt.swap_floats
                 """)
                 return
@@ -460,7 +451,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         // trick: push the args in reverse order (msb first, lsb second) this saves some instructions
         asmgen.translateExpression(fcall.args[1])
         asmgen.translateExpression(fcall.args[0])
-        asmgen.out("  inx | lda  $ESTACK_LO_HEX,x  | sta  $ESTACK_HI_PLUS1_HEX,x")
+        asmgen.out("  inx | lda  P8ESTACK_LO,x  | sta  P8ESTACK_HI+1,x")
     }
 
     private fun funcMsb(fcall: IFunctionCall) {
@@ -471,10 +462,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmIdentifierName(arg)
-            asmgen.out("  lda  $sourceName+1 |  sta  $ESTACK_LO_HEX,x |  dex")
+            asmgen.out("  lda  $sourceName+1 |  sta  P8ESTACK_LO,x |  dex")
         } else {
             asmgen.translateExpression(arg)
-            asmgen.out("  lda  $ESTACK_HI_PLUS1_HEX,x |  sta  $ESTACK_LO_PLUS1_HEX,x")
+            asmgen.out("  lda  P8ESTACK_HI+1,x |  sta  P8ESTACK_LO+1,x")
         }
     }
 
@@ -486,7 +477,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("lsb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmIdentifierName(arg)
-            asmgen.out("  lda  $sourceName |  sta  $ESTACK_LO_HEX,x |  dex")
+            asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  dex")
         } else {
             asmgen.translateExpression(arg)
             // just ignore any high-byte
@@ -499,12 +490,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.constIndex()!!
         asmgen.out("""
                     lda  #<$identifierName
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     lda  #>$identifierName
-                    sta  $ESTACK_HI_HEX,x
+                    sta  P8ESTACK_HI,x
                     dex
                     lda  #$size
-                    sta  $ESTACK_LO_HEX,x
+                    sta  P8ESTACK_LO,x
                     dex
                     """)
     }

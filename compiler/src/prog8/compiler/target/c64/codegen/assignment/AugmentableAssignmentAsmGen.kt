@@ -4,9 +4,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
@@ -194,18 +192,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
                         asmgen.translateExpression(memory.addressExpression)
                         // TODO buggy?:
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  ${C64Zeropage.SCRATCH_B1}")
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
+                        val zp = CompilationTarget.machine.zeropage
                         when {
-                            valueLv != null -> inplaceModification_byte_litval_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_byte_variable_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
+                            valueLv != null -> inplaceModification_byte_litval_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_byte_variable_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_byte_value_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
+                                inplaceModification_byte_value_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
                             }
-                            else -> inplaceModification_byte_value_to_variable(C64Zeropage.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
+                            else -> inplaceModification_byte_value_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
                         }
-                        asmgen.out("  lda  ${C64Zeropage.SCRATCH_B1} |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
                     }
                 }
             }
@@ -240,27 +239,27 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> {
                 asmgen.out("""
                             jsr  c64flt.pop_float_fac1
-                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<$name
                             ldy  #>$name
                             jsr  c64flt.FADD
                             ldx  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVMF
-                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                            ldx  P8ZP_SCRATCH_REG_X
                         """)
             }
             "-" -> {
                 asmgen.out("""
                             jsr  c64flt.pop_float_fac1
-                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<$name
                             ldy  #>$name
                             jsr  c64flt.FSUB
                             ldx  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVMF
-                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                            ldx  P8ZP_SCRATCH_REG_X
                         """)
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
@@ -290,7 +289,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "-" -> TODO("-")
             "*" -> {
                 asmgen.out("""
-                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVFM
@@ -300,7 +299,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVMF
-                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                            ldx  P8ZP_SCRATCH_REG_X
                         """)
             }
             "/" -> TODO("div")
@@ -310,14 +309,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
-        val constValueName = asmgen.getFloatConst(value)
+        val constValueName = asmgen.getFloatAsmConst(value)
         when (operator) {
             "**" -> TODO("pow")
             "+" -> {
                 if (value == 0.0)
                     return
                 asmgen.out("""
-                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVFM
@@ -327,14 +326,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVMF
-                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                            ldx  P8ZP_SCRATCH_REG_X
                         """)
             }
             "-" -> {
                 if (value == 0.0)
                     return
                 asmgen.out("""
-                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<$constValueName
                             ldy  #>$constValueName
                             jsr  c64flt.MOVFM
@@ -344,7 +343,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  #<$name
                             ldy  #>$name
                             jsr  c64flt.MOVMF
-                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                            ldx  P8ZP_SCRATCH_REG_X
                         """)
             }
             "*" -> TODO("mul")
@@ -369,19 +368,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // note: ** (power) operator requires floats.
             "+" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  $ESTACK_LO_PLUS1_HEX,x")
+                asmgen.out(" clc |  adc  P8ESTACK_LO+1,x")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "-" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  $ESTACK_LO_PLUS1_HEX,x")
+                asmgen.out(" sec |  sbc  P8ESTACK_LO+1,x")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
@@ -395,27 +394,27 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ">>" -> TODO("ubyte lsr")
             "&" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  $ESTACK_LO_PLUS1_HEX,x")
+                asmgen.out(" and  P8ESTACK_LO+1,x")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "^" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" xor  $ESTACK_LO_PLUS1_HEX,x")
+                asmgen.out(" xor  P8ESTACK_LO+1,x")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "|" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  $ESTACK_LO_PLUS1_HEX,x")
+                asmgen.out(" ora  P8ESTACK_LO+1,x")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -432,7 +431,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "-" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -440,7 +439,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
@@ -458,7 +457,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "^" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -466,7 +465,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "|" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -474,7 +473,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -489,7 +488,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "-" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -497,7 +496,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> {
@@ -521,7 +520,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     if(ptrOnZp)
                         asmgen.out("  sta  ($sourceName),y")
                     else
-                        asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                 }
             }
             ">>" -> {
@@ -531,7 +530,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     if(ptrOnZp)
                         asmgen.out("  sta  ($sourceName),y")
                     else
-                        asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                 }
             }
             "&" -> {
@@ -540,7 +539,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "^" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -548,7 +547,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "|" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -556,7 +555,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
-                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -782,7 +781,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "+" -> asmgen.out("""
                         lda  $name
                         clc
-                        adc  $ESTACK_LO_PLUS1_HEX,x
+                        adc  P8ESTACK_LO+1,x
                         sta  $name
                         bcc  +
                         inc  $name+1
@@ -790,7 +789,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "-" -> asmgen.out("""
                         lda  $name
                         sec
-                        sbc  $ESTACK_LO_PLUS1_HEX,x
+                        sbc  P8ESTACK_LO+1,x
                         sta  $name
                         bcs  +
                         dec  $name+1
@@ -846,8 +845,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
                     // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out(" lda  $name |  clc |  adc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name |  lda  $name+1 |  adc  $ESTACK_HI_PLUS1_HEX,x |  sta  $name+1")
-                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name |  lda  $name+1 |  sbc  $ESTACK_HI_PLUS1_HEX,x |  sta  $name+1")
+                    "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  adc  P8ESTACK_HI+1,x |  sta  $name+1")
+                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  sbc  P8ESTACK_HI+1,x |  sta  $name+1")
                     "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
                     "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
                     "%" -> {
@@ -857,9 +856,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
                     }
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
-                    "&" -> asmgen.out(" lda  $name |  and  $ESTACK_LO_PLUS1_HEX,x |  sta  $name | lda  $name+1 |  and  $ESTACK_HI_PLUS1_HEX,x  |  sta  $name+1")
-                    "^" -> asmgen.out(" lda  $name |  xor  $ESTACK_LO_PLUS1_HEX,x |  sta  $name | lda  $name+1 |  xor  $ESTACK_HI_PLUS1_HEX,x  |  sta  $name+1")
-                    "|" -> asmgen.out(" lda  $name |  ora  $ESTACK_LO_PLUS1_HEX,x |  sta  $name | lda  $name+1 |  ora  $ESTACK_HI_PLUS1_HEX,x  |  sta  $name+1")
+                    "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  and  P8ESTACK_HI+1,x  |  sta  $name+1")
+                    "^" -> asmgen.out(" lda  $name |  xor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  xor  P8ESTACK_HI+1,x  |  sta  $name+1")
+                    "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  ora  P8ESTACK_HI+1,x  |  sta  $name+1")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -878,8 +877,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.translateExpression(value)
         when (operator) {
             // note: ** (power) operator requires floats.
-            "+" -> asmgen.out(" lda  $name |  clc |  adc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
-            "-" -> asmgen.out(" lda  $name |  sec |  sbc  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
+            "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name")
+            "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
             "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
@@ -923,9 +922,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                 }
             }
-            "&" -> asmgen.out(" lda  $name |  and  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  xor  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
-            "|" -> asmgen.out(" lda  $name |  ora  $ESTACK_LO_PLUS1_HEX,x |  sta  $name")
+            "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  xor  P8ESTACK_LO+1,x |  sta  $name")
+            "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.out(" inx")
@@ -1063,7 +1062,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y, true)
                                     asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
                                 }
-                                TargetStorageKind.STACK -> asmgen.out(" lda  #0 |  sta  $ESTACK_HI_PLUS1_HEX,x")
+                                TargetStorageKind.STACK -> asmgen.out(" lda  #0 |  sta  P8ESTACK_HI+1,x")
                                 else -> throw AssemblyError("weird target")
                             }
                         }
@@ -1121,7 +1120,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 if(ptrOnZp)
                                     asmgen.out("  sta  ($sourceName),y")
                                 else
-                                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                             }
                             else -> {
                                 println("warning: slow stack evaluation used (6): ${mem.addressExpression::class.simpleName} at ${mem.addressExpression.position}") // TODO
@@ -1192,7 +1191,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 if(ptrOnZp)
                                     asmgen.out("  sta  ($sourceName),y")
                                 else
-                                    asmgen.out("  sta  (${C64Zeropage.SCRATCH_W1}),y")
+                                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                             }
                             else -> {
                                 println("warning: slow stack evaluation used (7): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
@@ -1272,7 +1271,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
-                            stx  ${C64Zeropage.SCRATCH_REG_X}
+                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
                             jsr  c64flt.MOVFM
@@ -1280,7 +1279,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
                             jsr  c64flt.MOVMF
-                            ldx  ${C64Zeropage.SCRATCH_REG_X}
+                            ldx  P8ZP_SCRATCH_REG_X
                         """)
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate float array")

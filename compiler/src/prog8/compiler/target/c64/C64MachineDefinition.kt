@@ -5,31 +5,62 @@ import prog8.compiler.CompilerException
 import prog8.compiler.Zeropage
 import prog8.compiler.ZeropageType
 import prog8.compiler.target.IMachineDefinition
+import prog8.compiler.target.IMachineFloat
+import java.math.RoundingMode
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
-object C64MachineDefinition: IMachineDefinition {
+internal object C64MachineDefinition: IMachineDefinition {
 
     // 5-byte cbm MFLPT format limitations:
     override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
     override val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
     override val FLOAT_MEM_SIZE = 5
     override val POINTER_MEM_SIZE = 2
-    const val BASIC_LOAD_ADDRESS = 0x0801
-    const val RAW_LOAD_ADDRESS = 0xc000
+    override val BASIC_LOAD_ADDRESS = 0x0801
+    override val RAW_LOAD_ADDRESS = 0xc000
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     // and some heavily used string constants derived from the two values above
-    const val ESTACK_LO_VALUE       = 0xce00        //  $ce00-$ceff inclusive
-    const val ESTACK_HI_VALUE       = 0xcf00        //  $cf00-$cfff inclusive
-    const val ESTACK_LO_HEX         = "\$ce00"
-    const val ESTACK_LO_PLUS1_HEX   = "\$ce01"
-    const val ESTACK_LO_PLUS2_HEX   = "\$ce02"
-    const val ESTACK_HI_HEX         = "\$cf00"
-    const val ESTACK_HI_PLUS1_HEX   = "\$cf01"
-    const val ESTACK_HI_PLUS2_HEX   = "\$cf02"
+    override val ESTACK_LO = 0xce00        //  $ce00-$ceff inclusive
+    override val ESTACK_HI = 0xcf00        //  $ce00-$ceff inclusive
 
     override lateinit var zeropage: Zeropage
+    override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
+
+    override fun getFloatRomConst(number: Double): String? {
+        // try to match the ROM float constants to save memory
+        val mflpt5 = Mflpt5.fromNumber(number)
+        val floatbytes = shortArrayOf(mflpt5.b0, mflpt5.b1, mflpt5.b2, mflpt5.b3, mflpt5.b4)
+        when {
+            floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_ZERO"
+            floatbytes.contentEquals(shortArrayOf(0x82, 0x49, 0x0f, 0xda, 0xa1)) -> return "c64flt.FL_PIVAL"
+            floatbytes.contentEquals(shortArrayOf(0x90, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_N32768"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FONE"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x35, 0x04, 0xf3, 0x34)) -> return "c64flt.FL_SQRHLF"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x35, 0x04, 0xf3, 0x34)) -> return "c64flt.FL_SQRTWO"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_NEGHLF"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x31, 0x72, 0x17, 0xf8)) -> return "c64flt.FL_LOG2"
+            floatbytes.contentEquals(shortArrayOf(0x84, 0x20, 0x00, 0x00, 0x00)) -> return "c64flt.FL_TENC"
+            floatbytes.contentEquals(shortArrayOf(0x9e, 0x6e, 0x6b, 0x28, 0x00)) -> return "c64flt.FL_NZMIL"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FHALF"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x38, 0xaa, 0x3b, 0x29)) -> return "c64flt.FL_LOGEB2"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x49, 0x0f, 0xda, 0xa2)) -> return "c64flt.FL_PIHALF"
+            floatbytes.contentEquals(shortArrayOf(0x83, 0x49, 0x0f, 0xda, 0xa2)) -> return "c64flt.FL_TWOPI"
+            floatbytes.contentEquals(shortArrayOf(0x7f, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FR4"
+            else -> {
+                // attempt to correct for a few rounding issues
+                when (number.toBigDecimal().setScale(10, RoundingMode.HALF_DOWN).toDouble()) {
+                    3.1415926536 -> return "c64flt.FL_PIVAL"
+                    1.4142135624 -> return "c64flt.FL_SQRTWO"
+                    0.7071067812 -> return "c64flt.FL_SQRHLF"
+                    0.6931471806 -> return "c64flt.FL_LOG2"
+                    else -> {}
+                }
+            }
+        }
+        return null
+    }
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = C64Zeropage(compilerOptions)
@@ -47,16 +78,7 @@ object C64MachineDefinition: IMachineDefinition {
             "sta", "stx", "sty", "tas", "tax", "tay", "tsx", "txa", "txs", "tya", "xaa")
 
 
-    class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
-
-        companion object {
-            // TODO get rid of these static constants, use the properties from the Zeropage base class instead
-            const val SCRATCH_B1 = 0x02
-            const val SCRATCH_REG = 0x03    // temp storage for a register
-            const val SCRATCH_REG_X = 0xfa    // temp storage for register X (the evaluation stack pointer)
-            const val SCRATCH_W1 = 0xfb     // $fb+$fc
-            const val SCRATCH_W2 = 0xfd     // $fd+$fe
-        }
+    internal class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         override val SCRATCH_B1 = 0x02      // temp storage for a single byte
         override val SCRATCH_REG = 0x03     // temp storage for a register
@@ -130,8 +152,7 @@ object C64MachineDefinition: IMachineDefinition {
         }
     }
 
-
-    data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short) {
+    internal data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short): IMachineFloat {
 
         companion object {
             val zero = Mflpt5(0, 0, 0, 0, 0)
@@ -178,13 +199,22 @@ object C64MachineDefinition: IMachineDefinition {
             }
         }
 
-        fun toDouble(): Double {
+        override fun toDouble(): Double {
             if (this == zero) return 0.0
             val exp = b0 - 128
             val sign = (b1.toInt() and 0x80) > 0
             val number = 0x80000000L.or(b1.toLong() shl 24).or(b2.toLong() shl 16).or(b3.toLong() shl 8).or(b4.toLong())
             val result = number.toDouble() * (2.0).pow(exp) / 0x100000000
             return if (sign) -result else result
+        }
+
+        override fun makeFloatFillAsm(): String {
+            val b0 = "$" + b0.toString(16).padStart(2, '0')
+            val b1 = "$" + b1.toString(16).padStart(2, '0')
+            val b2 = "$" + b2.toString(16).padStart(2, '0')
+            val b3 = "$" + b3.toString(16).padStart(2, '0')
+            val b4 = "$" + b4.toString(16).padStart(2, '0')
+            return "$b0, $b1, $b2, $b3, $b4"
         }
     }
 }

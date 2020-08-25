@@ -123,7 +123,7 @@ class TestCompiler {
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestZeropage {
+class TestC64Zeropage {
 
     private val errors = ErrorReporter()
 

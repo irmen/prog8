@@ -8,13 +8,11 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*
+import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
@@ -91,7 +89,17 @@ internal class AsmGen(private val program: Program,
         program.actualLoadAddress = program.definedLoadAddress
         if (program.actualLoadAddress == 0)   // fix load address
             program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
-                C64MachineDefinition.BASIC_LOAD_ADDRESS else C64MachineDefinition.RAW_LOAD_ADDRESS
+                CompilationTarget.machine.BASIC_LOAD_ADDRESS else CompilationTarget.machine.RAW_LOAD_ADDRESS
+
+        // the global prog8 variables needed
+        val zp = CompilationTarget.machine.zeropage
+        out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
+        out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
+        out("P8ZP_SCRATCH_REG_X = ${zp.SCRATCH_REG_X}")
+        out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
+        out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
+        out("P8ESTACK_LO = ${CompilationTarget.machine.ESTACK_LO.toHex()}")
+        out("P8ESTACK_HI = ${CompilationTarget.machine.ESTACK_HI.toHex()}")
 
         when {
             options.launcher == LauncherType.BASIC -> {
@@ -154,8 +162,7 @@ internal class AsmGen(private val program: Program,
         // the global list of all floating point constants for the whole program
         out("; global float constants")
         for (flt in globalFloatConsts) {
-            val mflpt5 = C64MachineDefinition.Mflpt5.fromNumber(flt.key)
-            val floatFill = makeFloatFill(mflpt5)
+            val floatFill = CompilationTarget.machine.getFloat(flt.key).makeFloatFillAsm()
             val floatvalue = flt.key
             out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
         }
@@ -227,15 +234,6 @@ internal class AsmGen(private val program: Program,
                 assemblyLines.add(trimmed)
             }
         } else assemblyLines.add(fragment)
-    }
-
-    private fun makeFloatFill(flt: C64MachineDefinition.Mflpt5): String {
-        val b0 = "$" + flt.b0.toString(16).padStart(2, '0')
-        val b1 = "$" + flt.b1.toString(16).padStart(2, '0')
-        val b2 = "$" + flt.b2.toString(16).padStart(2, '0')
-        val b3 = "$" + flt.b3.toString(16).padStart(2, '0')
-        val b4 = "$" + flt.b4.toString(16).padStart(2, '0')
-        return "$b0, $b1, $b2, $b3, $b4"
     }
 
     private fun encode(str: String, altEncoding: Boolean): List<Short> {
@@ -333,7 +331,7 @@ internal class AsmGen(private val program: Program,
                         }
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
-                    makeFloatFill(C64MachineDefinition.Mflpt5.fromNumber(number))
+                    CompilationTarget.machine.getFloat(number).makeFloatFillAsm()
                 }
                 out(decl.name)
                 for (f in array.zip(floatFills))
@@ -466,45 +464,17 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    internal fun getFloatConst(number: Double): String {
-        // try to match the ROM float constants to save memory
-        val mflpt5 = C64MachineDefinition.Mflpt5.fromNumber(number)
-        val floatbytes = shortArrayOf(mflpt5.b0, mflpt5.b1, mflpt5.b2, mflpt5.b3, mflpt5.b4)
-        when {
-            floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_ZERO"
-            floatbytes.contentEquals(shortArrayOf(0x82, 0x49, 0x0f, 0xda, 0xa1)) -> return "c64flt.FL_PIVAL"
-            floatbytes.contentEquals(shortArrayOf(0x90, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_N32768"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FONE"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x35, 0x04, 0xf3, 0x34)) -> return "c64flt.FL_SQRHLF"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x35, 0x04, 0xf3, 0x34)) -> return "c64flt.FL_SQRTWO"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_NEGHLF"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x31, 0x72, 0x17, 0xf8)) -> return "c64flt.FL_LOG2"
-            floatbytes.contentEquals(shortArrayOf(0x84, 0x20, 0x00, 0x00, 0x00)) -> return "c64flt.FL_TENC"
-            floatbytes.contentEquals(shortArrayOf(0x9e, 0x6e, 0x6b, 0x28, 0x00)) -> return "c64flt.FL_NZMIL"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FHALF"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x38, 0xaa, 0x3b, 0x29)) -> return "c64flt.FL_LOGEB2"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x49, 0x0f, 0xda, 0xa2)) -> return "c64flt.FL_PIHALF"
-            floatbytes.contentEquals(shortArrayOf(0x83, 0x49, 0x0f, 0xda, 0xa2)) -> return "c64flt.FL_TWOPI"
-            floatbytes.contentEquals(shortArrayOf(0x7f, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FR4"
-            else -> {
-                // attempt to correct for a few rounding issues
-                when (number.toBigDecimal().setScale(10, RoundingMode.HALF_DOWN).toDouble()) {
-                    3.1415926536 -> return "c64flt.FL_PIVAL"
-                    1.4142135624 -> return "c64flt.FL_SQRTWO"
-                    0.7071067812 -> return "c64flt.FL_SQRHLF"
-                    0.6931471806 -> return "c64flt.FL_LOG2"
-                    else -> {}
-                }
-
-                // no ROM float const for this value, create our own
-                val name = globalFloatConsts[number]
-                if(name!=null)
-                    return name
-                val newName = "prog8_float_const_${globalFloatConsts.size}"
-                globalFloatConsts[number] = newName
-                return newName
+    internal fun getFloatAsmConst(number: Double): String {
+        var asmName = CompilationTarget.machine.getFloatRomConst(number)
+        if(asmName.isNullOrEmpty()) {
+            // no ROM float const for this value, create our own
+            asmName = globalFloatConsts[number]
+            if(asmName==null) {
+                asmName = "prog8_float_const_${globalFloatConsts.size}"
+                globalFloatConsts[number] = asmName
             }
         }
+        return asmName
     }
 
     internal fun asmIdentifierName(identifier: IdentifierReference): String {
@@ -529,10 +499,10 @@ internal class AsmGen(private val program: Program,
             out("""
                 lda  $sourceName
                 ldy  $sourceName+1
-                sta  ${C64Zeropage.SCRATCH_W1}
-                sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
                 ldy  #0
-                lda  (${C64Zeropage.SCRATCH_W1}),y""")
+                lda  (P8ZP_SCRATCH_W1),y""")
             return Pair(false, sourceName)
         }
     }
@@ -549,12 +519,12 @@ internal class AsmGen(private val program: Program,
         } else {
             out("""
                 ldy  $sourceName
-                sty  ${C64Zeropage.SCRATCH_W2}
+                sty  P8ZP_SCRATCH_W2
                 ldy  $sourceName+1
-                sty  ${C64Zeropage.SCRATCH_W2 + 1}
+                sty  P8ZP_SCRATCH_W2+1
                 ${if(ldaInstructionArg==null) "" else "lda  $ldaInstructionArg"}
                 ldy  #0
-                sta  (${C64Zeropage.SCRATCH_W2}),y""")
+                sta  (P8ZP_SCRATCH_W2),y""")
         }
     }
 
@@ -680,14 +650,14 @@ internal class AsmGen(private val program: Program,
             else {
                 expressionsAsmGen.translateExpression(index)
                 out("""
-                    inc  $ESTACK_LO_HEX,x
+                    inc  P8ESTACK_LO,x
                     bne  +
-                    inc  $ESTACK_HI_HEX,x
+                    inc  P8ESTACK_HI,x
 +""")
                 when(register) {
-                    CpuRegister.A -> out("  inx |  lda  $ESTACK_LO_HEX,x")
+                    CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
                     CpuRegister.X -> throw AssemblyError("can't use X here")
-                    CpuRegister.Y -> out("  inx |  ldy  $ESTACK_LO_HEX,x")
+                    CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
                 }
             }
         } else {
@@ -723,9 +693,9 @@ internal class AsmGen(private val program: Program,
             else {
                 expressionsAsmGen.translateExpression(index)
                 when(register) {
-                    CpuRegister.A -> out("  inx |  lda  $ESTACK_LO_HEX,x")
+                    CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
                     CpuRegister.X -> throw AssemblyError("can't use X here")
-                    CpuRegister.Y -> out("  inx |  ldy  $ESTACK_LO_HEX,x")
+                    CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
                 }
             }
         }
@@ -808,8 +778,8 @@ internal class AsmGen(private val program: Program,
 
     private fun translateTestStack(dataType: DataType) {
         when(dataType) {
-            in ByteDatatypes -> out("  inx |  lda  $ESTACK_LO_HEX,x")
-            in WordDatatypes -> out("  inx |  lda  $ESTACK_LO_HEX,x |  ora  $ESTACK_HI_HEX,x")
+            in ByteDatatypes -> out("  inx |  lda  P8ESTACK_LO,x")
+            in WordDatatypes -> out("  inx |  lda  P8ESTACK_LO,x |  ora  P8ESTACK_HI,x")
             DataType.FLOAT -> throw AssemblyError("conditional value should be an integer (boolean)")
             else -> throw AssemblyError("non-numerical dt")
         }
@@ -864,11 +834,11 @@ internal class AsmGen(private val program: Program,
                 val dt = stmt.iterations!!.inferType(program).typeOrElse(DataType.STRUCT)
                 when (dt) {
                     in ByteDatatypes -> {
-                        out("  inx |  lda  ${ESTACK_LO_HEX},x")
+                        out("  inx |  lda  P8ESTACK_LO,x")
                         repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
                     }
                     in WordDatatypes -> {
-                        out("  inx |  lda  ${ESTACK_LO_HEX},x |  ldy  ${ESTACK_HI_HEX},x")
+                        out("  inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
                         repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype $dt")
@@ -940,13 +910,13 @@ $counterVar    .byte  0""")
         if(!conditionDt.isKnown)
             throw AssemblyError("unknown condition dt")
         if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
-            out("  inx |  lda  $ESTACK_LO_HEX,x  |  beq  $endLabel")
+            out("  inx |  lda  P8ESTACK_LO,x  |  beq  $endLabel")
         } else {
             out("""
                 inx
-                lda  $ESTACK_LO_HEX,x
+                lda  P8ESTACK_LO,x
                 bne  +
-                lda  $ESTACK_HI_HEX,x
+                lda  P8ESTACK_HI,x
                 beq  $endLabel
 +  """)
         }
@@ -967,13 +937,13 @@ $counterVar    .byte  0""")
         if(!conditionDt.isKnown)
             throw AssemblyError("unknown condition dt")
         if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
-            out("  inx |  lda  $ESTACK_LO_HEX,x  |  beq  $repeatLabel")
+            out("  inx |  lda  P8ESTACK_LO,x  |  beq  $repeatLabel")
         } else {
             out("""
                 inx
-                lda  $ESTACK_LO_HEX,x
+                lda  P8ESTACK_LO,x
                 bne  +
-                lda  $ESTACK_HI_HEX,x
+                lda  P8ESTACK_HI,x
                 beq  $repeatLabel
 + """)
         }
@@ -989,9 +959,9 @@ $counterVar    .byte  0""")
         if(!conditionDt.isKnown)
             throw AssemblyError("unknown condition dt")
         if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes)
-            out("  inx |  lda  $ESTACK_LO_HEX,x")
+            out("  inx |  lda  P8ESTACK_LO,x")
         else
-            out("  inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x")
+            out("  inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
         for(choice in stmt.choices) {
             val choiceLabel = makeLabel("choice")
             if(choice.values==null) {
