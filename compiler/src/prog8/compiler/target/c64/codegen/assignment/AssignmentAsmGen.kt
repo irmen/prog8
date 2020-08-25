@@ -423,7 +423,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("can't load word in a single 8-bit register")
                 }
             }
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  #$sourceName
+                    sta  $ESTACK_LO_HEX,x
+                    lda  #$sourceName+1
+                    sta  $ESTACK_HI_HEX,x
+                    dex""")
+            }
         }
     }
 
@@ -458,7 +465,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
         }
     }
 
@@ -503,7 +510,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
                 }
             }
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  #$sourceName
+                    sta  $ESTACK_LO_HEX,x
+                    dex""")
+            }
         }
     }
 
@@ -576,7 +588,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
             }
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> {
+                when(register) {
+                    CpuRegister.A -> asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
+                    CpuRegister.X -> throw AssemblyError("can't use X here")
+                    CpuRegister.Y -> asmgen.out(" tya |  sta  $ESTACK_LO_HEX,x |  dex")
+                }
+            }
         }
     }
 
@@ -630,7 +648,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("can't assign word to single byte register")
                 }
             }
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  #<${word.toHex()}
+                    sta  $ESTACK_LO_HEX,x
+                    lda  #>${word.toHex()}
+                    sta  $ESTACK_HI_HEX,x
+                    dex""")
+            }
         }
     }
 
@@ -670,7 +695,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.Y -> asmgen.out("  ldy  #${byte.toHex()}")
                 else -> throw AssemblyError("can't assign byte to word register apir")
             }
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  #${byte.toHex()}
+                    sta  $ESTACK_LO_HEX,x
+                    dex""")
+            }
         }
     }
 
@@ -719,7 +749,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
-                TargetStorageKind.STACK -> TODO()
+                TargetStorageKind.STACK -> {
+                    val floatConst = asmgen.getFloatConst(float)
+                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
+                }
             }
         } else {
             // non-zero value
@@ -779,7 +812,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
-                TargetStorageKind.STACK -> TODO()
+                TargetStorageKind.STACK -> {
+                    val floatConst = asmgen.getFloatConst(float)
+                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
+                }
             }
         }
     }
@@ -805,7 +841,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.Y -> asmgen.out("  ldy  ${address.toHex()}")
                     else -> throw AssemblyError("can't assign byte to word register apir")
                 }
-                TargetStorageKind.STACK -> TODO()
+                TargetStorageKind.STACK -> {
+                    asmgen.out("""
+                        lda  ${address.toHex()}
+                        sta  $ESTACK_LO_HEX,x
+                        dex""")
+                }
             }
         } else if (identifier != null) {
             when(target.kind) {
@@ -829,7 +870,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         else -> throw AssemblyError("can't assign byte to word register apir")
                     }
                 }
-                TargetStorageKind.STACK -> TODO()
+                TargetStorageKind.STACK -> {
+                    asmgen.loadByteFromPointerIntoA(identifier)
+                    asmgen.out(" sta  $ESTACK_LO_HEX,x |  dex")
+                }
             }
         }
     }
