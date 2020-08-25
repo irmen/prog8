@@ -212,8 +212,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
                 assignmentAsmGen.translateNormalAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
             }
-            TargetStorageKind.REGISTER -> TODO()
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.REGISTER -> TODO("reg")
+            TargetStorageKind.STACK -> TODO("stack")
         }
     }
 
@@ -402,7 +402,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "^" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" xor  P8ESTACK_LO+1,x")
+                asmgen.out(" eor  P8ESTACK_LO+1,x")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
@@ -461,7 +461,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "^" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" xor  $otherName")
+                asmgen.out(" eor  $otherName")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
@@ -543,7 +543,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "^" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" xor  #$value")
+                asmgen.out(" eor  #$value")
                 if(ptrOnZp)
                     asmgen.out("  sta  ($sourceName),y")
                 else
@@ -564,7 +564,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
-            // TODO use the + and - optimizations in the expression asm code as well.
+            // TODO use these + and - optimizations in the expressionAsmGenerator as well.
             "+" -> {
                 when {
                     value<0x0100 -> asmgen.out("""
@@ -614,7 +614,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "*" -> {
-                // TODO what about the optimized routines?
+                // TODO what about the optimized mul_5 etc routines?
                 asmgen.out("""
                     lda  $name
                     sta  P8ZP_SCRATCH_W1
@@ -656,22 +656,25 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "&" -> {
                 when {
-                    value and 255 == 0 -> TODO("only high byte")
-                    value < 0x0100 -> TODO("only low byte")
+                    value == 0 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
+                    value and 255 == 0 -> asmgen.out(" lda  #0 |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out(" lda  $name |  and  #$value |  sta  $name |  lda  #0 |  sta  $name+1")
                     else -> asmgen.out(" lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
                 }
             }
             "^" -> {
                 when {
-                    value and 255 == 0 -> TODO("only high byte")
-                    value < 0x0100 -> TODO("only low byte")
-                    else -> asmgen.out(" lda  $name |  xor  #<$value |  sta  $name |  lda  $name+1 |  xor  #>$value |  sta  $name+1")
+                    value == 0 -> {}
+                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  eor  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
+                    else -> asmgen.out(" lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
                 }
             }
             "|" -> {
                 when {
-                    value and 255 == 0 -> TODO("only high byte")
-                    value < 0x0100 -> TODO("only low byte")
+                    value == 0 -> {}
+                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  ora  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
                     else -> asmgen.out(" lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
                 }
             }
@@ -755,7 +758,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
                     "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
-                    "^" -> asmgen.out(" lda  $name |  xor  $otherName |  sta  $name |  lda  $name+1 |  xor  $otherName+1 |  sta  $name+1")
+                    "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -857,7 +860,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
                     "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  and  P8ESTACK_HI+1,x  |  sta  $name+1")
-                    "^" -> asmgen.out(" lda  $name |  xor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  xor  P8ESTACK_HI+1,x  |  sta  $name+1")
+                    "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  eor  P8ESTACK_HI+1,x  |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  ora  P8ESTACK_HI+1,x  |  sta  $name+1")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -923,7 +926,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  xor  P8ESTACK_LO+1,x |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -969,7 +972,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  xor  $otherName |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
             "and" -> asmgen.out("""
                 lda  $name
@@ -999,7 +1002,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
-                // TODO what about the optimized routines?
+                // TODO what about the optimized mul_5 etc routines?
                 TODO("$dt mul  $name *=  $value")
                 // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             }
@@ -1039,7 +1042,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  xor  #$value |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -1135,11 +1138,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    TargetStorageKind.ARRAY -> {
-                        TODO("in-place not of ubyte array")
-                    }
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.ARRAY -> TODO("in-place not of ubyte array")
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             DataType.UWORD -> {
@@ -1157,8 +1158,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
                     TargetStorageKind.ARRAY -> TODO("in-place not of uword array")
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             else -> throw AssemblyError("boolean-not of invalid type")
@@ -1204,11 +1205,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    TargetStorageKind.ARRAY -> {
-                        TODO("in-place invert ubyte array")
-                    }
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.ARRAY -> TODO("in-place invert ubyte array")
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             DataType.UWORD -> {
@@ -1224,8 +1223,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
                     TargetStorageKind.ARRAY -> TODO("in-place invert uword array")
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
@@ -1245,8 +1244,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
                     TargetStorageKind.ARRAY -> TODO("in-place negate byte array")
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             DataType.WORD -> {
@@ -1263,8 +1262,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate word array")
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             DataType.FLOAT -> {
@@ -1284,8 +1283,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate float array")
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for float memory negate")
-                    TargetStorageKind.REGISTER -> TODO()
-                    TargetStorageKind.STACK -> TODO()
+                    TargetStorageKind.REGISTER -> TODO("reg")
+                    TargetStorageKind.STACK -> TODO("stack")
                 }
             }
             else -> throw AssemblyError("negate of invalid type")
