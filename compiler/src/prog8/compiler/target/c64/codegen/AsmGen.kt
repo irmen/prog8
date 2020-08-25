@@ -247,7 +247,6 @@ internal class AsmGen(private val program: Program,
         out("; vars allocated on zeropage")
         val variables = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
         for(variable in variables) {
-            // should NOT allocate subroutine parameters on the zero page
             val fullName = variable.makeScopedName(variable.name)
             val zpVar = allocatedZeropageVariables[fullName]
             if(zpVar==null) {

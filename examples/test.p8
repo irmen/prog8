@@ -4,9 +4,12 @@
 main {
 
     sub start() {
-        uword addr=$d020
-        ubyte q =2
-        @(addr) += q
+
+        subje(12345)
+    }
+
+    sub subje(uword xx) {
+        @($c000) = lsb(xx)
     }
 }
 

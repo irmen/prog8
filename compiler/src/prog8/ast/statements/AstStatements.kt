@@ -270,7 +270,7 @@ open class VarDecl(val type: VarDeclType,
 
 // a vardecl used only for subroutine parameters
 class ParameterVarDecl(name: String, declaredDatatype: DataType, position: Position)
-    : VarDecl(VarDeclType.VAR, declaredDatatype, ZeropageWish.NOT_IN_ZEROPAGE, null, name, null, null, false, true, position)
+    : VarDecl(VarDeclType.VAR, declaredDatatype, ZeropageWish.DONTCARE, null, name, null, null, false, true, position)
 
 
 class ArrayIndex(var index: Expression, override val position: Position) : Node {

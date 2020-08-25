@@ -71,10 +71,9 @@ main {
         }
         c2A += 2
         c2B -= 3
-        uword @zp scrptr = screen
         for y in 24 downto 0 {
             for x in 39 downto 0 {
-                @(scrptr) = xbuf[x] + ybuf[y]
+                @(screen) = xbuf[x] + ybuf[y]
 ;                %asm {{
 ;                     ldy  x
 ;                     lda  xbuf,y
@@ -82,9 +81,9 @@ main {
 ;                     clc
 ;                     adc  ybuf,y
 ;                     ldy  #0
-;                     sta  (scrptr),y
+;                     sta  (screen),y
 ;                 }}
-                scrptr++
+                screen++
              }
         }
     }
