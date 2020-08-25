@@ -21,6 +21,7 @@ interface IMachineDefinition {
 
     val opcodeNames: Set<String>
     var zeropage: Zeropage
+    val initSystemProcname: String
 
     fun initializeZeropage(compilerOptions: CompilationOptions)
     fun getFloat(num: Number): IMachineFloat

@@ -6,38 +6,6 @@
 ; indent format: TABS, size=8
 
 
-; TODO move this one to c64lib:
-init_system	.proc
-	; -- initializes the machine to a sane starting state
-	; Called automatically by the loader program logic.
-	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
-	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
-	; Also a different color scheme is chosen to identify ourselves a little.
-	; Uppercase charset is activated, and all three registers set to 0, status flags cleared.
-		sei
-		cld
-		lda  #%00101111
-		sta  $00
-		lda  #%00100111
-		sta  $01
-		jsr  c64.IOINIT
-		jsr  c64.RESTOR
-		jsr  c64.CINT
-		lda  #6
-		sta  c64.EXTCOL
-		lda  #7
-		sta  c64.COLOR
-		lda  #0
-		sta  c64.BGCOL0
-		tax
-		tay
-		clc
-		clv
-		cli
-		rts
-		.pend
-
-
 read_byte_from_address_on_stack	.proc
 	; -- read the byte from the memory address on the top of the stack, return in A (stack remains unchanged)
 		lda  P8ESTACK_LO+1,x

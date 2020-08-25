@@ -12,7 +12,6 @@ import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.c64.AssemblyProgram
-import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
@@ -22,7 +21,6 @@ import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FSignature
-import java.math.RoundingMode
 import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -93,6 +91,7 @@ internal class AsmGen(private val program: Program,
 
         // the global prog8 variables needed
         val zp = CompilationTarget.machine.zeropage
+        val initproc = CompilationTarget.machine.initSystemProcname
         out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
         out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         out("P8ZP_SCRATCH_REG_X = ${zp.SCRATCH_REG_X}")
@@ -114,14 +113,16 @@ internal class AsmGen(private val program: Program,
                 out("_prog8_entrypoint\t; assembly code starts here\n")
                 out("  tsx")
                 out("  stx  prog8_lib.orig_stackpointer")
-                out("  jsr  prog8_lib.init_system")
+                if(!initproc.isNullOrEmpty())
+                    out("  jsr  $initproc")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
                 out("  tsx")
                 out("  stx  prog8_lib.orig_stackpointer")
-                out("  jsr  prog8_lib.init_system")
+                if(!initproc.isNullOrEmpty())
+                    out("  jsr  $initproc")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")

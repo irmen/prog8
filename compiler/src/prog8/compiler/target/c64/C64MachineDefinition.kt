@@ -26,6 +26,8 @@ internal object C64MachineDefinition: IMachineDefinition {
     override val ESTACK_HI = 0xcf00        //  $ce00-$ceff inclusive
 
     override lateinit var zeropage: Zeropage
+    override val initSystemProcname = "c64.init_system"
+
     override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
 
     override fun getFloatRomConst(number: Double): String? {

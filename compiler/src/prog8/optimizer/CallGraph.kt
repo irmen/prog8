@@ -14,8 +14,7 @@ import prog8.compiler.loadAsmIncludeFile
 
 private val alwaysKeepSubroutines = setOf(
         Pair("main", "start"),
-        Pair("irq", "irq"),
-        Pair("prog8_lib", "init_system")
+        Pair("irq", "irq")
 )
 
 private val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
