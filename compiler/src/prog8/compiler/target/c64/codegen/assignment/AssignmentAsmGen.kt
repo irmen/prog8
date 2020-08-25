@@ -318,7 +318,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
-            TargetStorageKind.STACK -> TODO()
+            TargetStorageKind.STACK -> {
+                val srcname = asmgen.asmIdentifierName(name)
+                asmgen.out("""
+                    lda  #<$srcname
+                    sta  $ESTACK_LO_HEX,x
+                    lda  #>$srcname
+                    sta  $ESTACK_HI_HEX,x
+                    dex""")
+            }
         }
     }
 
@@ -875,11 +883,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("""
                     inx
                     ldy  $ESTACK_LO_HEX,x
-                    sty  ${C64Zeropage.SCRATCH_W1}
+                    sty  ${C64Zeropage.SCRATCH_W2}
                     ldy  $ESTACK_HI_HEX,x
-                    sty  ${C64Zeropage.SCRATCH_W1+1}
+                    sty  ${C64Zeropage.SCRATCH_W2+1}
                     ldy  #0
-                    sta  (${C64Zeropage.SCRATCH_W1}),y""")
+                    sta  (${C64Zeropage.SCRATCH_W2}),y""")
             }
         }
     }

@@ -5,11 +5,12 @@ main {
 
     sub start() {
 
-        subje(12345)
-    }
+        str tekst = "the quick brown fox"
 
-    sub subje(uword xx) {
-        @($c000) = lsb(xx)
+        c64scr.print_uw(strlen("aapje"))
+        c64.CHROUT('\n')
+        c64scr.print_uw(strlen(tekst))
+        c64.CHROUT('\n')
     }
 }
 

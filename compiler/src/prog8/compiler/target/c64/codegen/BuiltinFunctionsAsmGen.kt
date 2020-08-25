@@ -11,6 +11,10 @@ import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.C64MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
+import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import prog8.functions.FSignature
 
@@ -388,8 +392,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcStrlen(fcall: IFunctionCall) {
-        outputPushAddressOfIdentifier(fcall.args[0])
-        asmgen.out("  jsr  prog8_lib.func_strlen")
+        val name = asmgen.asmIdentifierName(fcall.args[0] as IdentifierReference)
+        asmgen.out("""
+            lda  #<$name
+            ldy  #>$name
+            jsr  prog8_lib.strlen
+            sta  $ESTACK_LO_HEX,x
+            dex""")
     }
 
     private fun funcSwap(fcall: IFunctionCall) {
@@ -496,17 +505,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     dex
                     lda  #$size
                     sta  $ESTACK_LO_HEX,x
-                    dex
-                    """)
-    }
-
-    private fun outputPushAddressOfIdentifier(arg: Expression) {
-        val identifierName = asmgen.asmIdentifierName(arg as IdentifierReference)
-        asmgen.out("""
-                    lda  #<$identifierName
-                    sta  $ESTACK_LO_HEX,x
-                    lda  #>$identifierName
-                    sta  $ESTACK_HI_HEX,x
                     dex
                     """)
     }

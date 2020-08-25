@@ -1224,19 +1224,6 @@ _gtequ		dey
 _result_minw	.word  0
 		.pend
 
-func_strlen	.proc
-	; -- push length of 0-terminated string on stack
-		jsr  peek_address
-		ldy  #0
--		lda  (c64.SCRATCH_ZPWORD1),y
-		beq  +
-		iny
-		bne  -
-+		tya
-		sta  c64.ESTACK_LO+1,x
-		rts
-		.pend
-
 func_rnd	.proc
 	; -- put a random ubyte on the estack
 		jsr  math.randbyte
@@ -1322,6 +1309,19 @@ func_memsetw	.proc
 		ldx  c64.SCRATCH_ZPREGX
 		inx
 		inx
+		rts
+		.pend
+
+strlen		.proc
+	; -- put length of 0-terminated string in A/Y into A
+		sta  c64.SCRATCH_ZPWORD1
+		sty  c64.SCRATCH_ZPWORD1+1
+		ldy  #0
+-		lda  (c64.SCRATCH_ZPWORD1),y
+		beq  +
+		iny
+		bne  -
++		tya
 		rts
 		.pend
 
