@@ -189,16 +189,16 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
 private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir: Path,
                           optimize: Boolean, compilerOptions: CompilationOptions): String {
     // asm generation directly from the Ast,
-    val zeropage = CompilationTarget.machine.getZeropage(compilerOptions)
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
     // printAst(programAst)
 
+    CompilationTarget.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.asmGenerator(
             programAst,
             errors,
-            zeropage,
+            CompilationTarget.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly(optimize)
     assembly.assemble(compilerOptions)

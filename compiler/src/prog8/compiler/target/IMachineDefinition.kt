@@ -11,6 +11,7 @@ interface IMachineDefinition {
     val POINTER_MEM_SIZE: Int
 
     val opcodeNames: Set<String>
+    var zeropage: Zeropage
 
-    fun getZeropage(compilerOptions: CompilationOptions): Zeropage
+    fun initializeZeropage(compilerOptions: CompilationOptions)
 }

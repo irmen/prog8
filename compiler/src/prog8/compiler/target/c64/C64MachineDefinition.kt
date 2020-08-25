@@ -29,7 +29,11 @@ object C64MachineDefinition: IMachineDefinition {
     const val ESTACK_HI_PLUS1_HEX   = "\$cf01"
     const val ESTACK_HI_PLUS2_HEX   = "\$cf02"
 
-    override fun getZeropage(compilerOptions: CompilationOptions) = C64Zeropage(compilerOptions)
+    override lateinit var zeropage: Zeropage
+
+    override fun initializeZeropage(compilerOptions: CompilationOptions) {
+        zeropage = C64Zeropage(compilerOptions)
+    }
 
     // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
     override val opcodeNames = setOf("adc", "ahx", "alr", "anc", "and", "ane", "arr", "asl", "asr", "axs", "bcc", "bcs",
@@ -46,12 +50,20 @@ object C64MachineDefinition: IMachineDefinition {
     class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         companion object {
+            // TODO get rid of these static constants, use the properties from the Zeropage base class instead
             const val SCRATCH_B1 = 0x02
             const val SCRATCH_REG = 0x03    // temp storage for a register
             const val SCRATCH_REG_X = 0xfa    // temp storage for register X (the evaluation stack pointer)
             const val SCRATCH_W1 = 0xfb     // $fb+$fc
             const val SCRATCH_W2 = 0xfd     // $fd+$fe
         }
+
+        override val SCRATCH_B1 = 0x02      // temp storage for a single byte
+        override val SCRATCH_REG = 0x03     // temp storage for a register
+        override val SCRATCH_REG_X = 0xfa   // temp storage for register X (the evaluation stack pointer)
+        override val SCRATCH_W1 = 0xfb      // temp storage 1 for a word  $fb+$fc
+        override val SCRATCH_W2 = 0xfd      // temp storage 2 for a word  $fb+$fc
+
 
         override val exitProgramStrategy: ExitProgramStrategy = when (options.zeropage) {
             ZeropageType.BASICSAFE, ZeropageType.DONTUSE -> ExitProgramStrategy.CLEAN_EXIT
