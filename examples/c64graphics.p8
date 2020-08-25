@@ -186,11 +186,11 @@ graphics {
     asmsub plot(ubyte ploty @A) {           ; plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{
         tay
-        stx  c64.SCRATCH_ZPREGX
+        stx  P8ZP_SCRATCH_REG_X
         lda  plotx+1
-        sta  c64.SCRATCH_ZPWORD2+1
+        sta  P8ZP_SCRATCH_W2+1
         lsr  a            ; 0
-        sta  c64.SCRATCH_ZPWORD2
+        sta  P8ZP_SCRATCH_W2
         lda  plotx
         pha
         and  #7
@@ -198,20 +198,20 @@ graphics {
 
         lda  _y_lookup_lo,y
         clc
-        adc  c64.SCRATCH_ZPWORD2
-        sta  c64.SCRATCH_ZPWORD2
+        adc  P8ZP_SCRATCH_W2
+        sta  P8ZP_SCRATCH_W2
         lda  _y_lookup_hi,y
-        adc  c64.SCRATCH_ZPWORD2+1
-        sta  c64.SCRATCH_ZPWORD2+1
+        adc  P8ZP_SCRATCH_W2+1
+        sta  P8ZP_SCRATCH_W2+1
 
         pla     ; plotx
         and  #%11111000
         tay
-        lda  (c64.SCRATCH_ZPWORD2),y
+        lda  (P8ZP_SCRATCH_W2),y
         ora  _ormask,x
-        sta  (c64.SCRATCH_ZPWORD2),y
+        sta  (P8ZP_SCRATCH_W2),y
 
-        ldx  c64.SCRATCH_ZPREGX
+        ldx  P8ZP_SCRATCH_REG_X
         rts
 
 _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1

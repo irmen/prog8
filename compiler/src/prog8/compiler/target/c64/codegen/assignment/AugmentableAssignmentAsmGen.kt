@@ -617,9 +617,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // TODO what about the optimized routines?
                 asmgen.out("""
                     lda  $name
-                    sta  c64.SCRATCH_ZPWORD1
+                    sta  P8ZP_SCRATCH_W1
                     lda  $name+1
-                    sta  c64.SCRATCH_ZPWORD1+1
+                    sta  P8ZP_SCRATCH_W1+1
                     lda  #<$value
                     ldy  #>$value
                     jsr  math.multiply_words
@@ -801,7 +801,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.translateExpression(value)
                         asmgen.out("""
                         inx
-                        ldy  c64.ESTACK_LO,x
+                        ldy  P8ESTACK_LO,x
                         beq  +
 -                   	asl  $name
                         rol  $name+1
@@ -814,7 +814,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         if(dt==DataType.UWORD) {
                         asmgen.out("""
                             inx
-                            ldy  c64.ESTACK_LO,x
+                            ldy  P8ESTACK_LO,x
                             beq  +
 -                           lsr  $name+1
                             ror  $name
@@ -824,7 +824,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         else {
                             asmgen.out("""
                             inx
-                            ldy  c64.ESTACK_LO,x
+                            ldy  P8ESTACK_LO,x
                             beq  +
 -                           lda  $name+1
                             asl  a
@@ -891,7 +891,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.translateExpression(value)
                 asmgen.out("""
                     inx
-                    ldy  c64.ESTACK_LO,x
+                    ldy  P8ESTACK_LO,x
                     beq  +
 -                   asl  $name
                     dey
@@ -903,7 +903,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
                         inx
-                        ldy  c64.ESTACK_LO,x
+                        ldy  P8ESTACK_LO,x
                         beq  +
 -                       lsr  $name
                         dey
@@ -912,7 +912,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 } else {
                     asmgen.out("""
                         inx
-                        ldy  c64.ESTACK_LO,x
+                        ldy  P8ESTACK_LO,x
                         beq  +
 -                       lda  $name
                         asl  a

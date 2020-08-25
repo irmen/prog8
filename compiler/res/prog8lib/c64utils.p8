@@ -59,9 +59,9 @@ asmsub  uword2decimal  (uword value @ AY) -> ubyte @Y, ubyte @A, ubyte @X  {
 
 
 ASCII_0_OFFSET 	= $30
-temp       	    = c64.SCRATCH_ZPB1	; byte in zeropage
-hexHigh      	= c64.SCRATCH_ZPWORD1	; byte in zeropage
-hexLow       	= c64.SCRATCH_ZPWORD1+1	; byte in zeropage
+temp       	    = P8ZP_SCRATCH_B1	; byte in zeropage
+hexHigh      	= P8ZP_SCRATCH_W1	; byte in zeropage
+hexLow       	= P8ZP_SCRATCH_W1+1	; byte in zeropage
 
 
 HexToDec65535; SUBROUTINE
@@ -221,7 +221,7 @@ asmsub  byte2decimal  (byte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
 asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
 	; ---- A to hex petscii string in AY (first hex char in A, second hex char in Y)
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		pha
 		and  #$0f
 		tax
@@ -233,7 +233,7 @@ asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
 		lsr  a
 		tax
 		lda  _hex_digits,x
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 
 _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well
@@ -243,12 +243,12 @@ _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as
 asmsub  uword2hex  (uword value @ AY) clobbers(A,Y)  {
 	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string 'uword2hex.output' (0-terminated)
 	%asm {{
-		sta  c64.SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
 		tya
 		jsr  ubyte2hex
 		sta  output
 		sty  output+1
-		lda  c64.SCRATCH_ZPREG
+		lda  P8ZP_SCRATCH_REG
 		jsr  ubyte2hex
 		sta  output+2
 		sty  output+3
@@ -262,7 +262,7 @@ asmsub str2uword(str string @ AY) -> uword @ AY {
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
 	%asm {{
-_result = c64.SCRATCH_ZPWORD2
+_result = P8ZP_SCRATCH_W2
 		sta  _mod+1
 		sty  _mod+2
 		ldy  #0
@@ -293,16 +293,16 @@ _done		; return result
 
 _result_times_10     ; (W*4 + W)*2
 		lda  _result+1
-		sta  c64.SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
 		lda  _result
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
 		adc  _result
 		sta  _result
-		lda  c64.SCRATCH_ZPREG
+		lda  P8ZP_SCRATCH_REG
 		adc  _result+1
 		asl  _result
 		rol  a
@@ -316,14 +316,14 @@ asmsub str2word(str string @ AY) -> word @ AY {
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
 	%asm {{
-_result = c64.SCRATCH_ZPWORD2
-		sta  c64.SCRATCH_ZPWORD1
-		sty  c64.SCRATCH_ZPWORD1+1
+_result = P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
 		sty  _result
 		sty  _result+1
 		sty  _negative
-		lda  (c64.SCRATCH_ZPWORD1),y
+		lda  (P8ZP_SCRATCH_W1),y
 		cmp  #'+'
 		bne  +
 		iny
@@ -331,7 +331,7 @@ _result = c64.SCRATCH_ZPWORD2
 		bne  _parse
 		inc  _negative
 		iny
-_parse		lda  (c64.SCRATCH_ZPWORD1),y
+_parse		lda  (P8ZP_SCRATCH_W1),y
 		sec
 		sbc  #48
 		bpl  _digit
@@ -402,19 +402,19 @@ _irq_handler    jsr  _irq_handler_init
 _irq_handler_init
 		; save all zp scratch registers and the X register as these might be clobbered by the irq routine
 		stx  IRQ_X_REG
-		lda  c64.SCRATCH_ZPB1
+		lda  P8ZP_SCRATCH_B1
 		sta  IRQ_SCRATCH_ZPB1
-		lda  c64.SCRATCH_ZPREG
+		lda  P8ZP_SCRATCH_REG
 		sta  IRQ_SCRATCH_ZPREG
-		lda  c64.SCRATCH_ZPREGX
+		lda  P8ZP_SCRATCH_REG_X
 		sta  IRQ_SCRATCH_ZPREGX
-		lda  c64.SCRATCH_ZPWORD1
+		lda  P8ZP_SCRATCH_W1
 		sta  IRQ_SCRATCH_ZPWORD1
-		lda  c64.SCRATCH_ZPWORD1+1
+		lda  P8ZP_SCRATCH_W1+1
 		sta  IRQ_SCRATCH_ZPWORD1+1
-		lda  c64.SCRATCH_ZPWORD2
+		lda  P8ZP_SCRATCH_W2
 		sta  IRQ_SCRATCH_ZPWORD2
-		lda  c64.SCRATCH_ZPWORD2+1
+		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
 		; stack protector; make sure we don't clobber the top of the evaluation stack
 		dex
@@ -429,19 +429,19 @@ _irq_handler_init
 _irq_handler_end
 		; restore all zp scratch registers and the X register
 		lda  IRQ_SCRATCH_ZPB1
-		sta  c64.SCRATCH_ZPB1
+		sta  P8ZP_SCRATCH_B1
 		lda  IRQ_SCRATCH_ZPREG
-		sta  c64.SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
 		lda  IRQ_SCRATCH_ZPREGX
-		sta  c64.SCRATCH_ZPREGX
+		sta  P8ZP_SCRATCH_REG_X
 		lda  IRQ_SCRATCH_ZPWORD1
-		sta  c64.SCRATCH_ZPWORD1
+		sta  P8ZP_SCRATCH_W1
 		lda  IRQ_SCRATCH_ZPWORD1+1
-		sta  c64.SCRATCH_ZPWORD1+1
+		sta  P8ZP_SCRATCH_W1+1
 		lda  IRQ_SCRATCH_ZPWORD2
-		sta  c64.SCRATCH_ZPWORD2
+		sta  P8ZP_SCRATCH_W2
 		lda  IRQ_SCRATCH_ZPWORD2+1
-		sta  c64.SCRATCH_ZPWORD2+1
+		sta  P8ZP_SCRATCH_W2+1
 		ldx  IRQ_X_REG
 		rts
 
@@ -595,7 +595,7 @@ asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	;      Carry flag determines if screen color data must be scrolled too
 
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		bcs  +
 		jmp  _scroll_screen
 
@@ -623,7 +623,7 @@ _scroll_screen  ; scroll the screen memory
 		dey
 		bpl  -
 
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -633,7 +633,7 @@ asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		bcs  +
 		jmp  _scroll_screen
 
@@ -657,7 +657,7 @@ _scroll_screen  ; scroll the screen memory
 		dex
 		bpl  -
 
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -667,7 +667,7 @@ asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		bcs  +
 		jmp  _scroll_screen
 
@@ -691,7 +691,7 @@ _scroll_screen  ; scroll the screen memory
 		dex
 		bpl  -
 
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -701,7 +701,7 @@ asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		bcs  +
 		jmp  _scroll_screen
 
@@ -725,7 +725,7 @@ _scroll_screen  ; scroll the screen memory
 		dex
 		bpl  -
 
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -737,10 +737,10 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 	;       a call to this subroutine with a string argument of just one char,
 	;       by just one call to c64.CHROUT of that single char.
 	%asm {{
-		sta  c64.SCRATCH_ZPB1
-		sty  c64.SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_B1
+		sty  P8ZP_SCRATCH_REG
 		ldy  #0
--		lda  (c64.SCRATCH_ZPB1),y
+-		lda  (P8ZP_SCRATCH_B1),y
 		beq  +
 		jsr  c64.CHROUT
 		iny
@@ -752,7 +752,7 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		jsr  c64utils.ubyte2decimal
 		pha
 		tya
@@ -761,7 +761,7 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		txa
 		jsr  c64.CHROUT
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -769,7 +769,7 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		jsr  c64utils.ubyte2decimal
 _print_byte_digits
 		pha
@@ -786,7 +786,7 @@ _print_byte_digits
         jsr  c64.CHROUT
 _ones   txa
 		jsr  c64.CHROUT
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -794,7 +794,7 @@ _ones   txa
 asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		pha
 		cmp  #0
 		bpl  +
@@ -803,7 +803,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 +		pla
 		jsr  c64utils.byte2decimal
 		jsr  print_ub._print_byte_digits
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -811,7 +811,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		bcc  +
 		pha
 		lda  #'$'
@@ -821,7 +821,7 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		tya
 		jsr  c64.CHROUT
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -829,20 +829,20 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
-		sta  c64.SCRATCH_ZPB1
+		stx  P8ZP_SCRATCH_REG_X
+		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
 		jsr  c64.CHROUT
 +		ldy  #8
 -		lda  #'0'
-		asl  c64.SCRATCH_ZPB1
+		asl  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'1'
 +		jsr  c64.CHROUT
 		dey
 		bne  -
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -875,7 +875,7 @@ asmsub print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-	    stx  c64.SCRATCH_ZPREGX
+	    stx  P8ZP_SCRATCH_REG_X
 		jsr  c64utils.uword2decimal
 		ldy  #0
 -		lda  c64utils.uword2decimal.decTenThousands,y
@@ -883,7 +883,7 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		iny
 		bne  -
-+		ldx  c64.SCRATCH_ZPREGX
++		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -891,9 +891,9 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-	    stx  c64.SCRATCH_ZPREGX
+	    stx  P8ZP_SCRATCH_REG_X
 		jsr  c64utils.uword2decimal
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		ldy  #0
 -		lda  c64utils.uword2decimal.decTenThousands,y
 		beq  _allzero
@@ -940,17 +940,17 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 	;      It assumes the keyboard is selected as I/O channel!
 
 	%asm {{
-		sta  c64.SCRATCH_ZPWORD1
-		sty  c64.SCRATCH_ZPWORD1+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0				; char counter = 0
 -		jsr  c64.CHRIN
 		cmp  #$0d			; return (ascii 13) pressed?
 		beq  +				; yes, end.
-		sta  (c64.SCRATCH_ZPWORD1),y	; else store char in buffer
+		sta  (P8ZP_SCRATCH_W1),y	; else store char in buffer
 		iny
 		bne  -
 +		lda  #0
-		sta  (c64.SCRATCH_ZPWORD1),y	; finish string with 0 byte
+		sta  (P8ZP_SCRATCH_W1),y	; finish string with 0 byte
 		rts
 
 	}}
@@ -959,18 +959,18 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 asmsub  setchr  (ubyte col @Y, ubyte row @A) clobbers(A)  {
 	; ---- set the character in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
-		sty  c64.SCRATCH_ZPREG
+		sty  P8ZP_SCRATCH_REG
 		asl  a
 		tay
 		lda  _screenrows+1,y
 		sta  _mod+2
 		lda  _screenrows,y
 		clc
-		adc  c64.SCRATCH_ZPREG
+		adc  P8ZP_SCRATCH_REG
 		sta  _mod+1
 		bcc  +
 		inc  _mod+2
-+		lda  c64.SCRATCH_ZPB1
++		lda  P8ZP_SCRATCH_B1
 _mod		sta  $ffff		; modified
 		rts
 
@@ -981,14 +981,14 @@ _screenrows	.word  $0400 + range(0, 1000, 40)
 asmsub  getchr  (ubyte col @Y, ubyte row @A) clobbers(Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
-		sty  c64.SCRATCH_ZPB1
+		sty  P8ZP_SCRATCH_B1
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
 		sta  _mod+2
 		lda  setchr._screenrows,y
 		clc
-		adc  c64.SCRATCH_ZPB1
+		adc  P8ZP_SCRATCH_B1
 		sta  _mod+1
 		bcc  _mod
 		inc  _mod+2
@@ -1000,18 +1000,18 @@ _mod		lda  $ffff		; modified
 asmsub  setclr  (ubyte col @Y, ubyte row @A) clobbers(A)  {
 	; ---- set the color in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
-		sty  c64.SCRATCH_ZPREG
+		sty  P8ZP_SCRATCH_REG
 		asl  a
 		tay
 		lda  _colorrows+1,y
 		sta  _mod+2
 		lda  _colorrows,y
 		clc
-		adc  c64.SCRATCH_ZPREG
+		adc  P8ZP_SCRATCH_REG
 		sta  _mod+1
 		bcc  +
 		inc  _mod+2
-+		lda  c64.SCRATCH_ZPB1
++		lda  P8ZP_SCRATCH_B1
 _mod		sta  $ffff		; modified
 		rts
 
@@ -1022,14 +1022,14 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 asmsub  getclr  (ubyte col @Y, ubyte row @A) clobbers(Y) -> ubyte @ A {
 	; ---- get the color in the screen color matrix at the given location
 	%asm  {{
-		sty  c64.SCRATCH_ZPB1
+		sty  P8ZP_SCRATCH_B1
 		asl  a
 		tay
 		lda  setclr._colorrows+1,y
 		sta  _mod+2
 		lda  setclr._colorrows,y
 		clc
-		adc  c64.SCRATCH_ZPB1
+		adc  P8ZP_SCRATCH_B1
 		sta  _mod+1
 		bcc  _mod
 		inc  _mod+2
@@ -1067,11 +1067,11 @@ _colormod	sta  $ffff		; modified
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	; ---- safe wrapper around PLOT kernel routine, to save the X register.
 	%asm  {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		tax
 		clc
 		jsr  c64.PLOT
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }

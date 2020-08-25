@@ -7,16 +7,6 @@
 
 
 c64 {
-        ; TODO get rid of those:
-        const  uword  ESTACK_LO = $ce00     ; evaluation stack (lsb)
-        const  uword  ESTACK_HI = $cf00     ; evaluation stack (msb)
-        &ubyte  SCRATCH_ZPB1    = $02       ; scratch byte 1 in ZP
-        &ubyte  SCRATCH_ZPREG   = $03       ; scratch register in ZP
-        &ubyte  SCRATCH_ZPREGX  = $fa       ; temp storage for X register (stack pointer)
-        &uword  SCRATCH_ZPWORD1 = $fb       ; scratch word in ZP ($fb/$fc)
-        &uword  SCRATCH_ZPWORD2 = $fd       ; scratch word in ZP ($fd/$fe)
-
-
         &ubyte  TIME_HI         = $a0       ; software jiffy clock, hi byte
         &ubyte  TIME_MID        = $a1       ;  .. mid byte
         &ubyte  TIME_LO         = $a2       ;    .. lo byte. Updated by IRQ every 1/60 sec

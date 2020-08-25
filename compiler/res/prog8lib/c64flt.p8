@@ -163,9 +163,9 @@ asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
-		sta  c64.SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
 		tya
-		ldy  c64.SCRATCH_ZPREG
+		ldy  P8ZP_SCRATCH_REG
 		jmp  GIVAYF		; this uses the inverse order, Y/A
 	}}
 }
@@ -174,9 +174,9 @@ asmsub  FTOSWRDAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to signed word in A/Y
 	%asm {{
 		jsr  FTOSWORDYA	; note the inverse Y/A order
-		sta  c64.SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
 		tya
-		ldy  c64.SCRATCH_ZPREG
+		ldy  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
@@ -185,9 +185,9 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to unsigned word in A/Y
 	%asm {{
 		jsr  GETADR		; this uses the inverse order, Y/A
-		sta  c64.SCRATCH_ZPB1
+		sta  P8ZP_SCRATCH_B1
 		tya
-		ldy  c64.SCRATCH_ZPB1
+		ldy  P8ZP_SCRATCH_B1
 		rts
 	}}
 }
@@ -195,13 +195,13 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 sub  print_f  (float value) {
 	; ---- prints the floating point value (without a newline) using basic rom routines.
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		lda  #<value
 		ldy  #>value
 		jsr  MOVFM		; load float into fac1
 		jsr  FOUT		; fac1 to string in A/Y
 		jsr  c64.STROUT			; print string in A/Y
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 }
@@ -209,12 +209,12 @@ sub  print_f  (float value) {
 sub  print_fln  (float value) {
 	; ---- prints the floating point value (with a newline at the end) using basic rom routines
 	%asm {{
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		lda  #<value
 		ldy  #>value
 		jsr  MOVFM		; load float into fac1
 		jsr  FPRINTLN		; print fac1 with newline
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
 

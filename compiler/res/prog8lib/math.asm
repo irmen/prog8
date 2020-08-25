@@ -1,4 +1,5 @@
 ; Prog8 internal Math library routines - always included by the compiler
+; Generic machine independent 6502 code.
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 ;
@@ -12,14 +13,14 @@
 
 multiply_bytes	.proc
 	; -- multiply 2 bytes A and Y, result as byte in A  (signed or unsigned)
-		sta  c64.SCRATCH_ZPB1         ; num1
-		sty  c64.SCRATCH_ZPREG        ; num2
+		sta  P8ZP_SCRATCH_B1         ; num1
+		sty  P8ZP_SCRATCH_REG        ; num2
 		lda  #0
 		beq  _enterloop
 _doAdd		clc
-		adc  c64.SCRATCH_ZPB1
-_loop		asl  c64.SCRATCH_ZPB1
-_enterloop	lsr  c64.SCRATCH_ZPREG
+		adc  P8ZP_SCRATCH_B1
+_loop		asl  P8ZP_SCRATCH_B1
+_enterloop	lsr  P8ZP_SCRATCH_REG
 		bcs  _doAdd
 		bne  _loop
 		rts
@@ -28,49 +29,49 @@ _enterloop	lsr  c64.SCRATCH_ZPREG
 
 multiply_bytes_16	.proc
 	; -- multiply 2 bytes A and Y, result as word in A/Y (unsigned)
-		sta  c64.SCRATCH_ZPB1
-		sty  c64.SCRATCH_ZPREG
-		stx  c64.SCRATCH_ZPREGX
+		sta  P8ZP_SCRATCH_B1
+		sty  P8ZP_SCRATCH_REG
+		stx  P8ZP_SCRATCH_REG_X
 		lda  #0
 		ldx  #8
-		lsr  c64.SCRATCH_ZPB1
+		lsr  P8ZP_SCRATCH_B1
 -		bcc  +
 		clc
-		adc  c64.SCRATCH_ZPREG
+		adc  P8ZP_SCRATCH_REG
 +		ror  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 		dex
 		bne  -
 		tay
-		lda  c64.SCRATCH_ZPB1
-		ldx  c64.SCRATCH_ZPREGX
+		lda  P8ZP_SCRATCH_B1
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 		.pend
 
 
 multiply_words	.proc
 	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
-	;      input: A/Y = first 16-bit number, c64.SCRATCH_ZPWORD1 in ZP = second 16-bit number
+	;      input: A/Y = first 16-bit number, P8ZP_SCRATCH_W1 in ZP = second 16-bit number
 	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)
 	;      clobbers: A
 
-		sta  c64.SCRATCH_ZPWORD2
-		sty  c64.SCRATCH_ZPWORD2+1
-		stx  c64.SCRATCH_ZPREGX
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		stx  P8ZP_SCRATCH_REG_X
 
 mult16		lda  #$00
 		sta  result+2	; clear upper bits of product
 		sta  result+3
 		ldx  #16			; for all 16 bits...
--	 	lsr  c64.SCRATCH_ZPWORD1+1	; divide multiplier by 2
-		ror  c64.SCRATCH_ZPWORD1
+-	 	lsr  P8ZP_SCRATCH_W1+1	; divide multiplier by 2
+		ror  P8ZP_SCRATCH_W1
 		bcc  +
 		lda  result+2	; get upper half of product and add multiplicand
 		clc
-		adc  c64.SCRATCH_ZPWORD2
+		adc  P8ZP_SCRATCH_W2
 		sta  result+2
 		lda  result+3
-		adc  c64.SCRATCH_ZPWORD2+1
+		adc  P8ZP_SCRATCH_W2+1
 + 		ror  a				; rotate partial product
 		sta  result+3
 		ror  result+2
@@ -78,7 +79,7 @@ mult16		lda  #$00
 		ror  result
 		dex
 		bne  -
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 
 result		.byte  0,0,0,0
@@ -88,39 +89,39 @@ result		.byte  0,0,0,0
 divmod_ub	.proc
 	; -- divide A by Y, result quotient in Y, remainder in A   (unsigned)
 	;    division by zero will result in quotient = 255 and remainder = original number
-		sty  c64.SCRATCH_ZPREG
-		sta  c64.SCRATCH_ZPB1
-		stx  c64.SCRATCH_ZPREGX
+		sty  P8ZP_SCRATCH_REG
+		sta  P8ZP_SCRATCH_B1
+		stx  P8ZP_SCRATCH_REG_X
 
 		lda  #0
 		ldx  #8
-		asl  c64.SCRATCH_ZPB1
+		asl  P8ZP_SCRATCH_B1
 -		rol  a
-		cmp  c64.SCRATCH_ZPREG
+		cmp  P8ZP_SCRATCH_REG
 		bcc  +
-		sbc  c64.SCRATCH_ZPREG
-+		rol  c64.SCRATCH_ZPB1
+		sbc  P8ZP_SCRATCH_REG
++		rol  P8ZP_SCRATCH_B1
 		dex
 		bne  -
-		ldy  c64.SCRATCH_ZPB1
-		ldx  c64.SCRATCH_ZPREGX
+		ldy  P8ZP_SCRATCH_B1
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 		.pend
 
 divmod_uw_asm	.proc
 	; -- divide two unsigned words (16 bit each) into 16 bit results
-	;    input:  c64.SCRATCH_ZPWORD1 in ZP: 16 bit number, A/Y: 16 bit divisor
-	;    output: c64.SCRATCH_ZPWORD2 in ZP: 16 bit remainder, A/Y: 16 bit division result
+	;    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
+	;    output: P8ZP_SCRATCH_W2 in ZP: 16 bit remainder, A/Y: 16 bit division result
 	;    division by zero will result in quotient = 65535 and remainder = divident
 
 
-dividend = c64.SCRATCH_ZPWORD1
-remainder = c64.SCRATCH_ZPWORD2
+dividend = P8ZP_SCRATCH_W1
+remainder = P8ZP_SCRATCH_W2
 result = dividend ;save memory by reusing divident to store the result
 
 		sta  _divisor
 		sty  _divisor+1
-		stx  c64.SCRATCH_ZPREGX
+		stx  P8ZP_SCRATCH_REG_X
 		lda  #0	        	;preset remainder to 0
 		sta  remainder
 		sta  remainder+1
@@ -147,7 +148,7 @@ result = dividend ;save memory by reusing divident to store the result
 
 		lda  result
 		ldy  result+1
-		ldx  c64.SCRATCH_ZPREGX
+		ldx  P8ZP_SCRATCH_REG_X
 		rts
 _divisor	.word 0
 		.pend
@@ -233,197 +234,197 @@ _seed		.word	$2c9e
 
 mul_byte_3	.proc
 		; X + X*2
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_3	.proc
 		; W*2 + W
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 
 mul_byte_5	.proc
 		; X*4 + X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_5	.proc
 		; W*4 + W
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 
 mul_byte_6	.proc
 		; (X*2 + X)*2
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
                 clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_6	.proc
 		; (W*2 + W)*2
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		asl  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		sta  c64.ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_7	.proc
 		; X*8 - X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		asl  a
 		sec
-		sbc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		sbc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_7	.proc
 		; W*8 - W
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		sec
-		sbc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		sbc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
+		sbc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		sbc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_9	.proc
 		; X*8 + X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_9	.proc
 		; W*8 + W
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_10	.proc
 		; (X*4 + X)*2
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_10	.proc
 		; (W*4 + W)*2
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		asl  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		sta  c64.ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_11	.proc
 		; (X*2 + X)*4 - X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		sec
-		sbc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		sbc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -431,47 +432,47 @@ mul_byte_11	.proc
 
 mul_byte_12	.proc
 		; (X*2 + X)*4
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_12	.proc
 		; (W*2 + W)*4
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		asl  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		asl  c64.ESTACK_LO+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		sta  c64.ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_13	.proc
 		; (X*2 + X)*4 + X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
                 clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
                 clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -479,14 +480,14 @@ mul_byte_13	.proc
 
 mul_byte_14	.proc
 		; (X*8 - X)*2
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		asl  a
                 sec
-		sbc  c64.ESTACK_LO+1,x
+		sbc  P8ESTACK_LO+1,x
                 asl  a
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -494,191 +495,191 @@ mul_byte_14	.proc
 
 mul_byte_15	.proc
 		; X*16 - X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		asl  a
 		asl  a
 		sec
-		sbc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		sbc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_15	.proc
 		; W*16 - W
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		sec
-		sbc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		sbc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
+		sbc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		sbc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_20	.proc
 		; (X*4 + X)*4
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_20	.proc
 		; (W*4 + W)*4
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		asl  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		asl  c64.ESTACK_LO+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		sta  c64.ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_25	.proc
 		; (X*2 + X)*8 + X
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		asl  a
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_25	.proc
 		; W + W*8 + W*16
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPWORD1+1
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1+1
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPWORD1+1
+		rol  P8ZP_SCRATCH_W1+1
 		asl  a
-		rol  c64.SCRATCH_ZPWORD1+1
+		rol  P8ZP_SCRATCH_W1+1
 		asl  a
-		rol  c64.SCRATCH_ZPWORD1+1
-		sta  c64.SCRATCH_ZPWORD1
+		rol  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W1
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPWORD1+1
-		adc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
-		lda  c64.SCRATCH_ZPWORD1
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
+		lda  P8ZP_SCRATCH_W1
 		asl  a
-		rol  c64.SCRATCH_ZPWORD1+1
+		rol  P8ZP_SCRATCH_W1+1
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPWORD1+1
-		adc  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_HI+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 mul_byte_40	.proc
 		; (X*4 + X)*8
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
                 clc
-		adc  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
 		asl  a
 		asl  a
 		asl  a
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 mul_word_40	.proc
 		; (W*4 + W)*8
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPREG
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+1,x
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		asl  a
-		rol  c64.SCRATCH_ZPREG
+		rol  P8ZP_SCRATCH_REG
 		clc
-		adc  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPREG
-		adc  c64.ESTACK_HI+1,x
-		asl  c64.ESTACK_LO+1,x
+		adc  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_REG
+		adc  P8ESTACK_HI+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		asl  c64.ESTACK_LO+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		asl  c64.ESTACK_LO+1,x
+		asl  P8ESTACK_LO+1,x
                 rol  a
-		sta  c64.ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 sign_b		.proc
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		beq  _sign_zero
 		bmi  _sign_neg
 _sign_pos	lda  #1
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 _sign_neg	lda  #-1
-_sign_zero	sta  c64.ESTACK_LO+1,x
+_sign_zero	sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 sign_ub		.proc
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_LO+1,x
 		beq  sign_b._sign_zero
 		bne  sign_b._sign_pos
 		.pend
 
 sign_w		.proc
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_HI+1,x
 		bmi  sign_b._sign_neg
 		beq  sign_ub
 		bne  sign_b._sign_pos
 		.pend
 
 sign_uw		.proc
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_HI+1,x
 		beq  _sign_possibly_zero
 _sign_pos	lda  #1
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
-_sign_possibly_zero	lda  c64.ESTACK_LO+1,x
+_sign_possibly_zero	lda  P8ESTACK_LO+1,x
 		bne  _sign_pos
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -688,185 +689,185 @@ _sign_possibly_zero	lda  c64.ESTACK_LO+1,x
 ; anything below 3 is done inline. anything above 7 is done via other optimizations.
 
 shift_left_w_7	.proc
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_LO+1,x
 
 		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 _shift6		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 _shift5		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 _shift4		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 _shift3		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 		asl  a
-		rol  c64.SCRATCH_ZPB1
+		rol  P8ZP_SCRATCH_B1
 
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPB1
-		sta  c64.ESTACK_HI+1,x
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_B1
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 shift_left_w_6	.proc
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_LO+1,x
 		jmp  shift_left_w_7._shift6
 		.pend
 
 shift_left_w_5	.proc
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_LO+1,x
 		jmp  shift_left_w_7._shift5
 		.pend
 
 shift_left_w_4	.proc
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_LO+1,x
 		jmp  shift_left_w_7._shift4
 		.pend
 
 shift_left_w_3	.proc
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_LO+1,x
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_LO+1,x
 		jmp  shift_left_w_7._shift3
 		.pend
 
 shift_right_uw_7	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_HI+1,x
 
 		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 _shift6		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 _shift5		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 _shift4		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 _shift3		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 		lsr  a
-		ror  c64.SCRATCH_ZPB1
+		ror  P8ZP_SCRATCH_B1
 
-		sta  c64.ESTACK_HI+1,x
-		lda  c64.SCRATCH_ZPB1
-		sta  c64.ESTACK_LO+1,x
+		sta  P8ESTACK_HI+1,x
+		lda  P8ZP_SCRATCH_B1
+		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
 shift_right_uw_6	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_HI+1,x
 		jmp  shift_right_uw_7._shift6
 		.pend
 
 shift_right_uw_5	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_HI+1,x
 		jmp  shift_right_uw_7._shift5
 		.pend
 
 shift_right_uw_4	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_HI+1,x
 		jmp  shift_right_uw_7._shift4
 		.pend
 
 shift_right_uw_3	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_HI+1,x
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_B1
+		lda  P8ESTACK_HI+1,x
 		jmp  shift_right_uw_7._shift3
 		.pend
 
 
 shift_right_w_7		.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPWORD1
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPWORD1+1
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1+1
 
 		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
 
-		lda  c64.SCRATCH_ZPWORD1+1
+		lda  P8ZP_SCRATCH_W1+1
 _shift6		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
-		lda  c64.SCRATCH_ZPWORD1+1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
 _shift5		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
-		lda  c64.SCRATCH_ZPWORD1+1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
 _shift4		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
-		lda  c64.SCRATCH_ZPWORD1+1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
 _shift3		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
-		lda  c64.SCRATCH_ZPWORD1+1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
 		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
-		lda  c64.SCRATCH_ZPWORD1+1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
 		asl  a
-		ror  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
+		ror  P8ZP_SCRATCH_W1+1
+		ror  P8ZP_SCRATCH_W1
 
-		lda  c64.SCRATCH_ZPWORD1
-		sta  c64.ESTACK_LO+1,x
-		lda  c64.SCRATCH_ZPWORD1+1
-		sta  c64.ESTACK_HI+1,x
+		lda  P8ZP_SCRATCH_W1
+		sta  P8ESTACK_LO+1,x
+		lda  P8ZP_SCRATCH_W1+1
+		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
 
 shift_right_w_6	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPWORD1
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPWORD1+1
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1+1
 		jmp  shift_right_w_7._shift6
 		.pend
 
 shift_right_w_5	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPWORD1
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPWORD1+1
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1+1
 		jmp  shift_right_w_7._shift5
 		.pend
 
 shift_right_w_4	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPWORD1
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPWORD1+1
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1+1
 		jmp  shift_right_w_7._shift4
 		.pend
 
 shift_right_w_3	.proc
-		lda  c64.ESTACK_LO+1,x
-		sta  c64.SCRATCH_ZPWORD1
-		lda  c64.ESTACK_HI+1,x
-		sta  c64.SCRATCH_ZPWORD1+1
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1+1
 		jmp  shift_right_w_7._shift3
 		.pend
 
