@@ -72,7 +72,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val variable = fcall.args.single()
         if (variable is IdentifierReference) {
             val decl = variable.targetVarDecl(program.namespace)!!
-            val varName = asmgen.asmIdentifierName(variable)
+            val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
@@ -114,7 +114,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val variable = fcall.args.single()
         if (variable is IdentifierReference) {
             val decl = variable.targetVarDecl(program.namespace)!!
-            val varName = asmgen.asmIdentifierName(variable)
+            val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
@@ -167,7 +167,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  $variable")
                     }
                     else -> throw AssemblyError("weird type")
@@ -181,7 +181,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         asmgen.out("  jsr  prog8_lib.ror2_array_uw")
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #\$80 |  sta  $variable+1 |+  ")
                     }
                     else -> throw AssemblyError("weird type")
@@ -219,7 +219,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable")
                     }
                     else -> throw AssemblyError("weird type")
@@ -233,7 +233,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         asmgen.out("  jsr  prog8_lib.ror_array_uw")
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable+1 |  ror  $variable")
                     }
                     else -> throw AssemblyError("weird type")
@@ -264,7 +264,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lda  $variable |  cmp  #\$80 |  rol  a |  sta  $variable")
                     }
                     else -> throw AssemblyError("weird type")
@@ -278,7 +278,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         asmgen.out("  jsr  prog8_lib.rol2_array_uw")
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  asl  $variable |  rol  $variable+1 |  bcc  + |  inc  $variable |+  ")
                     }
                     else -> throw AssemblyError("weird type")
@@ -316,7 +316,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable")
                     }
                     else -> throw AssemblyError("weird type")
@@ -330,7 +330,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         asmgen.out("  jsr  prog8_lib.rol_array_uw")
                     }
                     is IdentifierReference -> {
-                        val variable = asmgen.asmIdentifierName(what)
+                        val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable |  rol  $variable+1")
                     }
                     else -> throw AssemblyError("weird type")
@@ -383,7 +383,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcStrlen(fcall: IFunctionCall) {
-        val name = asmgen.asmIdentifierName(fcall.args[0] as IdentifierReference)
+        val name = asmgen.asmVariableName(fcall.args[0] as IdentifierReference)
         asmgen.out("""
             lda  #<$name
             ldy  #>$name
@@ -396,8 +396,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val first = fcall.args[0]
         val second = fcall.args[1]
         if(first is IdentifierReference && second is IdentifierReference) {
-            val firstName = asmgen.asmIdentifierName(first)
-            val secondName = asmgen.asmIdentifierName(second)
+            val firstName = asmgen.asmVariableName(first)
+            val secondName = asmgen.asmVariableName(second)
             val dt = first.inferType(program)
             if(dt.istype(DataType.BYTE) || dt.istype(DataType.UBYTE)) {
                 asmgen.out(" ldy  $firstName |  lda  $secondName |  sta  $firstName |  tya |  sta  $secondName")
@@ -461,7 +461,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if (arg is NumericLiteralValue)
             throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
-            val sourceName = asmgen.asmIdentifierName(arg)
+            val sourceName = asmgen.asmVariableName(arg)
             asmgen.out("  lda  $sourceName+1 |  sta  P8ESTACK_LO,x |  dex")
         } else {
             asmgen.translateExpression(arg)
@@ -476,7 +476,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if (arg is NumericLiteralValue)
             throw AssemblyError("lsb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
-            val sourceName = asmgen.asmIdentifierName(arg)
+            val sourceName = asmgen.asmVariableName(arg)
             asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  dex")
         } else {
             asmgen.translateExpression(arg)
@@ -486,7 +486,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun outputPushAddressAndLenghtOfArray(arg: Expression) {
         arg as IdentifierReference
-        val identifierName = asmgen.asmIdentifierName(arg)
+        val identifierName = asmgen.asmVariableName(arg)
         val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.constIndex()!!
         asmgen.out("""
                     lda  #<$identifierName

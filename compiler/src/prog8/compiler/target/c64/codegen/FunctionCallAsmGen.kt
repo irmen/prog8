@@ -20,7 +20,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(saveX)
             asmgen.out("  stx  P8ZP_SCRATCH_REG_X")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
 
-        val subName = asmgen.asmIdentifierName(stmt.target)
+        val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
             if(sub.asmParameterRegisters.isEmpty()) {
                 // via variables
@@ -139,7 +139,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                             asmgen.out(if(carrySet) "  sec" else "  clc")
                         }
                         is IdentifierReference -> {
-                            val sourceName = asmgen.asmIdentifierName(value)
+                            val sourceName = asmgen.asmVariableName(value)
                             asmgen.out("""
             pha
             lda  $sourceName

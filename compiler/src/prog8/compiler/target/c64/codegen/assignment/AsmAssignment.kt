@@ -44,9 +44,9 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     val vardecl by lazy { variable?.targetVarDecl(program.namespace)!! }
     val asmVarname by lazy {
         if(variable!=null)
-            asmgen.asmIdentifierName(variable)
+            asmgen.asmVariableName(variable)
         else
-            asmgen.asmIdentifierName(array!!.identifier)
+            asmgen.asmVariableName(array!!.identifier)
     }
 
     lateinit var origAssign: AsmAssignment

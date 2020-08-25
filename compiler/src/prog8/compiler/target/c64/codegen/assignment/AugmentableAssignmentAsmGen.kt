@@ -282,7 +282,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         if(valueDt != DataType.FLOAT)
             throw AssemblyError("float variable expected")
 
-        val otherName = asmgen.asmIdentifierName(ident)
+        val otherName = asmgen.asmVariableName(ident)
         when (operator) {
             "**" -> TODO("pow")
             "+" -> TODO("+")
@@ -422,7 +422,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_byte_variable_to_memory(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
-        val otherName = asmgen.asmIdentifierName(value)
+        val otherName = asmgen.asmVariableName(value)
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> {
@@ -680,7 +680,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
-        val otherName = asmgen.asmIdentifierName(ident)
+        val otherName = asmgen.asmVariableName(ident)
         val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
         when (valueDt) {
             in ByteDatatypes -> {
@@ -931,7 +931,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_byte_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
-        val otherName = asmgen.asmIdentifierName(ident)
+        val otherName = asmgen.asmVariableName(ident)
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name")

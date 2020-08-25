@@ -50,7 +50,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
 
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
-                    val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                    val varname = asmgen.asmVariableName(stmt.loopVar)
                     asmgen.translateExpression(range.to)
                     asmgen.translateExpression(range.from)
                     asmgen.out("""
@@ -74,7 +74,7 @@ $endLabel       inx""")
                     // bytes, step >= 2 or <= -2
 
                     // loop over byte range via loopvar
-                    val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                    val varname = asmgen.asmVariableName(stmt.loopVar)
                     asmgen.translateExpression(range.to)
                     asmgen.translateExpression(range.from)
                     asmgen.out("""
@@ -115,7 +115,7 @@ $endLabel       inx""")
                     stepsize == 1 || stepsize == -1 -> {
                         asmgen.translateExpression(range.to)
                         assignLoopvar(stmt, range)
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        val varname = asmgen.asmVariableName(stmt.loopVar)
                         asmgen.out("""
                             lda  P8ESTACK_HI+1,x
                             sta  $modifiedLabel+1
@@ -159,7 +159,7 @@ $modifiedLabel2 cmp  #0    ; modified
                             sta  $modifiedLabel2+1
                         """)
                         assignLoopvar(stmt, range)
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        val varname = asmgen.asmVariableName(stmt.loopVar)
                         asmgen.out(loopLabel)
                         asmgen.translate(stmt.body)
 
@@ -210,7 +210,7 @@ $endLabel       inx""")
                             sta  $modifiedLabel2+1
                         """)
                         assignLoopvar(stmt, range)
-                        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                        val varname = asmgen.asmVariableName(stmt.loopVar)
                         asmgen.out(loopLabel)
                         asmgen.translate(stmt.body)
 
@@ -269,7 +269,7 @@ $endLabel       inx""")
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val iterableName = asmgen.asmIdentifierName(ident)
+        val iterableName = asmgen.asmVariableName(ident)
         val decl = ident.targetVarDecl(program.namespace)!!
         when(iterableDt) {
             DataType.STR -> {
@@ -280,7 +280,7 @@ $endLabel       inx""")
                     sty  $loopLabel+2
 $loopLabel          lda  ${65535.toHex()}       ; modified
                     beq  $endLabel
-                    sta  ${asmgen.asmIdentifierName(stmt.loopVar)}""")
+                    sta  ${asmgen.asmVariableName(stmt.loopVar)}""")
                 asmgen.translate(stmt.body)
                 asmgen.out("""
                     inc  $loopLabel+1
@@ -296,7 +296,7 @@ $endLabel""")
                     ldy  #0
 $loopLabel          sty  $indexVar
                     lda  $iterableName,y
-                    sta  ${asmgen.asmIdentifierName(stmt.loopVar)}""")
+                    sta  ${asmgen.asmVariableName(stmt.loopVar)}""")
                 asmgen.translate(stmt.body)
                 if(length<=255) {
                     asmgen.out("""
@@ -326,7 +326,7 @@ $indexVar           .byte  0""")
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 val length = decl.arraysize!!.constIndex()!! * 2
                 val indexVar = asmgen.makeLabel("for_index")
-                val loopvarName = asmgen.asmIdentifierName(stmt.loopVar)
+                val loopvarName = asmgen.asmVariableName(stmt.loopVar)
                 asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
@@ -389,7 +389,7 @@ $indexVar           .byte  0""")
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 // loop over byte range via loopvar, step >= 2 or <= -2
-                val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                val varname = asmgen.asmVariableName(stmt.loopVar)
                 asmgen.out("""
                             lda  #${range.first}
                             sta  $varname
@@ -454,7 +454,7 @@ $loopLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 // loop over word range via loopvar, step >= 2 or <= -2
-                val varname = asmgen.asmIdentifierName(stmt.loopVar)
+                val varname = asmgen.asmVariableName(stmt.loopVar)
                 when (range.step) {
                     0, 1, -1 -> {
                         throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
@@ -498,7 +498,7 @@ $endLabel""")
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.loopVar)
         asmgen.out("""
                 lda  #${range.first}
                 sta  $varname
@@ -525,7 +525,7 @@ $endLabel""")
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.loopVar)
         asmgen.out("""
                     lda  #${range.first}
                     sta  $varname
@@ -563,7 +563,7 @@ $endLabel""")
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.loopVar)
         asmgen.out("""
             lda  #<${range.first}
             ldy  #>${range.first}
@@ -591,7 +591,7 @@ $endLabel""")
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmIdentifierName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.loopVar)
         asmgen.out("""
             lda  #<${range.first}
             ldy  #>${range.first}

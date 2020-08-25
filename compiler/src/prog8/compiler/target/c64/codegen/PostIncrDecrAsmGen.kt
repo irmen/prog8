@@ -17,7 +17,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
         val targetArrayIdx = stmt.target.arrayindexed
         when {
             targetIdent!=null -> {
-                val what = asmgen.asmIdentifierName(targetIdent)
+                val what = asmgen.asmVariableName(targetIdent)
                 when (stmt.target.inferType(program, stmt).typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> asmgen.out(if (incr) "  inc  $what" else "  dec  $what")
                     in WordDatatypes -> {
@@ -45,7 +45,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                         asmgen.out(if(incr) "  inc  $what" else "  dec  $what")
                     }
                     is IdentifierReference -> {
-                        val what = asmgen.asmIdentifierName(addressExpr)
+                        val what = asmgen.asmVariableName(addressExpr)
                         asmgen.out("  lda  $what |  sta  (+) +1 |  lda  $what+1 |  sta  (+) +2")
                         if(incr)
                             asmgen.out("+\tinc  ${'$'}ffff\t; modified")
@@ -70,7 +70,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
             }
             targetArrayIdx!=null -> {
                 val index = targetArrayIdx.arrayspec.index
-                val asmArrayvarname = asmgen.asmIdentifierName(targetArrayIdx.identifier)
+                val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.identifier)
                 val elementDt = targetArrayIdx.inferType(program).typeOrElse(DataType.STRUCT)
                 when(index) {
                     is NumericLiteralValue -> {

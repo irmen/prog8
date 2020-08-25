@@ -127,7 +127,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: AddressOf) {
-        val name = asmgen.asmIdentifierName(expr.identifier)
+        val name = asmgen.asmVariableName(expr.identifier)
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
@@ -169,7 +169,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: IdentifierReference) {
-        val varname = asmgen.asmIdentifierName(expr)
+        val varname = asmgen.asmVariableName(expr)
         when(expr.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("  lda  $varname  |  sta  P8ESTACK_LO,x  |  dex")
@@ -381,7 +381,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     private fun translateExpression(arrayExpr: ArrayIndexedExpression) {
         val index = arrayExpr.arrayspec.index
         val elementDt = arrayExpr.inferType(program).typeOrElse(DataType.STRUCT)
-        val arrayVarName = asmgen.asmIdentifierName(arrayExpr.identifier)
+        val arrayVarName = asmgen.asmVariableName(arrayExpr.identifier)
         if(index is NumericLiteralValue) {
             val indexValue = index.number.toInt() * elementDt.memorySize()
             when(elementDt) {

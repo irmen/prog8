@@ -53,7 +53,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val value = assign.source.array!!
                 val elementDt = assign.source.datatype
                 val index = value.arrayspec.index
-                val arrayVarName = asmgen.asmIdentifierName(value.identifier)
+                val arrayVarName = asmgen.asmVariableName(value.identifier)
                 if (index is NumericLiteralValue) {
                     // constant array index value
                     val indexValue = index.number.toInt() * elementDt.memorySize()
@@ -316,7 +316,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             TargetStorageKind.STACK -> {
-                val srcname = asmgen.asmIdentifierName(name)
+                val srcname = asmgen.asmVariableName(name)
                 asmgen.out("""
                     lda  #<$srcname
                     sta  P8ESTACK_LO,x
@@ -328,7 +328,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignVariableWord(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmIdentifierName(variable)
+        val sourceName = asmgen.asmVariableName(variable)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -432,7 +432,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignVariableFloat(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmIdentifierName(variable)
+        val sourceName = asmgen.asmVariableName(variable)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -467,7 +467,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignVariableByte(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmIdentifierName(variable)
+        val sourceName = asmgen.asmVariableName(variable)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -542,7 +542,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        asmgen.out(" ldy  ${asmgen.asmIdentifierName(index)} |  sta  ${target.asmVarname},y")
+                        asmgen.out(" ldy  ${asmgen.asmVariableName(index)} |  sta  ${target.asmVarname},y")
                     }
                     else -> {
                         asmgen.saveRegister(register)
@@ -852,7 +852,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asmgen.out(" sta  ${target.asmVarname}")
                 }
                 TargetStorageKind.MEMORY -> {
-                    val sourceName = asmgen.asmIdentifierName(identifier)
+                    val sourceName = asmgen.asmVariableName(identifier)
                     storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {

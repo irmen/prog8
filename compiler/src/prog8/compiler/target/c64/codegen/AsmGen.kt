@@ -270,12 +270,13 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun vardecl2asm(decl: VarDecl) {
+        val name = decl.name
         when (decl.datatype) {
-            DataType.UBYTE -> out("${decl.name}\t.byte  0")
-            DataType.BYTE -> out("${decl.name}\t.char  0")
-            DataType.UWORD -> out("${decl.name}\t.word  0")
-            DataType.WORD -> out("${decl.name}\t.sint  0")
-            DataType.FLOAT -> out("${decl.name}\t.byte  0,0,0,0,0  ; float")
+            DataType.UBYTE -> out("$name\t.byte  0")
+            DataType.BYTE -> out("$name\t.char  0")
+            DataType.UWORD -> out("$name\t.word  0")
+            DataType.WORD -> out("$name\t.sint  0")
+            DataType.FLOAT -> out("$name\t.byte  0,0,0,0,0  ; float")
             DataType.STRUCT -> {}       // is flattened
             DataType.STR -> {
                 val str = decl.value as StringLiteralValue
@@ -284,9 +285,9 @@ internal class AsmGen(private val program: Program,
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
                 if (data.size <= 16)
-                    out("${decl.name}\t.byte  ${data.joinToString()}")
+                    out("$name\t.byte  ${data.joinToString()}")
                 else {
-                    out(decl.name)
+                    out(name)
                     for (chunk in data.chunked(16))
                         out("  .byte  " + chunk.joinToString())
                 }
@@ -294,9 +295,9 @@ internal class AsmGen(private val program: Program,
             DataType.ARRAY_B -> {
                 val data = makeArrayFillDataSigned(decl)
                 if (data.size <= 16)
-                    out("${decl.name}\t.char  ${data.joinToString()}")
+                    out("$name\t.char  ${data.joinToString()}")
                 else {
-                    out(decl.name)
+                    out(name)
                     for (chunk in data.chunked(16))
                         out("  .char  " + chunk.joinToString())
                 }
@@ -304,9 +305,9 @@ internal class AsmGen(private val program: Program,
             DataType.ARRAY_UW -> {
                 val data = makeArrayFillDataUnsigned(decl)
                 if (data.size <= 16)
-                    out("${decl.name}\t.word  ${data.joinToString()}")
+                    out("$name\t.word  ${data.joinToString()}")
                 else {
-                    out(decl.name)
+                    out(name)
                     for (chunk in data.chunked(16))
                         out("  .word  " + chunk.joinToString())
                 }
@@ -314,9 +315,9 @@ internal class AsmGen(private val program: Program,
             DataType.ARRAY_W -> {
                 val data = makeArrayFillDataSigned(decl)
                 if (data.size <= 16)
-                    out("${decl.name}\t.sint  ${data.joinToString()}")
+                    out("$name\t.sint  ${data.joinToString()}")
                 else {
-                    out(decl.name)
+                    out(name)
                     for (chunk in data.chunked(16))
                         out("  .sint  " + chunk.joinToString())
                 }
@@ -334,7 +335,7 @@ internal class AsmGen(private val program: Program,
                     val number = (it as NumericLiteralValue).number
                     CompilationTarget.machine.getFloat(number).makeFloatFillAsm()
                 }
-                out(decl.name)
+                out(name)
                 for (f in array.zip(floatFills))
                     out("  .byte  ${f.second}  ; float ${f.first}")
             }
@@ -478,24 +479,33 @@ internal class AsmGen(private val program: Program,
         return asmName
     }
 
-    internal fun asmIdentifierName(identifier: IdentifierReference): String {
-        val name = if(identifier.memberOfStruct(program.namespace)!=null) {
-            identifier.targetVarDecl(program.namespace)!!.name
+    internal fun asmSymbolName(identifier: IdentifierReference): String {
+        return if(identifier.memberOfStruct(program.namespace)!=null) {
+            val name = identifier.targetVarDecl(program.namespace)!!.name
+            fixNameSymbols(name)
         } else {
-            identifier.nameInSource.joinToString(".")
+            fixNameSymbols(identifier.nameInSource.joinToString("."))
         }
-        return fixNameSymbols(name)
+    }
+
+    internal fun asmVariableName(identifier: IdentifierReference): String {
+        return if(identifier.memberOfStruct(program.namespace)!=null) {
+            val name = identifier.targetVarDecl(program.namespace)!!.name
+            fixNameSymbols(name)
+        } else {
+            fixNameSymbols(identifier.nameInSource.joinToString("."))
+        }
     }
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
         // returns if the pointer is already on the ZP itself or not (in which case SCRATCH_W1 is used as intermediary)
-        val sourceName = asmIdentifierName(pointervar)
+        val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
-        if(scopedName in allocatedZeropageVariables) {
+        return if(scopedName in allocatedZeropageVariables) {
             // pointervar is already in the zero page, no need to copy
             out(" ldy  #0 |  lda  ($sourceName),y")
-            return Pair(true, sourceName)
+            Pair(true, sourceName)
         } else {
             out("""
                 lda  $sourceName
@@ -504,12 +514,12 @@ internal class AsmGen(private val program: Program,
                 sty  P8ZP_SCRATCH_W1+1
                 ldy  #0
                 lda  (P8ZP_SCRATCH_W1),y""")
-            return Pair(false, sourceName)
+            Pair(false, sourceName)
         }
     }
 
     fun storeByteIntoPointer(pointervar: IdentifierReference, ldaInstructionArg: String?) {
-        val sourceName = asmIdentifierName(pointervar)
+        val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
         if(scopedName in allocatedZeropageVariables) {
@@ -613,7 +623,7 @@ internal class AsmGen(private val program: Program,
         if(addOneExtra) {
             // add 1 to the result
             if (index is IdentifierReference) {
-                val indexName = asmIdentifierName(index)
+                val indexName = asmVariableName(index)
                 when(elementDt) {
                     in ByteDatatypes -> {
                         out("  ldy  $indexName |  iny")
@@ -663,7 +673,7 @@ internal class AsmGen(private val program: Program,
             }
         } else {
             if (index is IdentifierReference) {
-                val indexName = asmIdentifierName(index)
+                val indexName = asmVariableName(index)
                 when(elementDt) {
                     in ByteDatatypes -> out("  ld$reg  $indexName")
                     in WordDatatypes -> {
@@ -817,7 +827,7 @@ internal class AsmGen(private val program: Program,
             }
             is IdentifierReference -> {
                 val vardecl = (stmt.iterations as IdentifierReference).targetStatement(program.namespace) as VarDecl
-                val name = asmIdentifierName(stmt.iterations as IdentifierReference)
+                val name = asmVariableName(stmt.iterations as IdentifierReference)
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
                         out("  lda  $name")
@@ -1088,7 +1098,7 @@ $counterVar    .byte  0""")
         return when {
             jmp.identifier!=null -> {
                 val target = jmp.identifier.targetStatement(program.namespace)
-                val asmName = asmIdentifierName(jmp.identifier)
+                val asmName = asmSymbolName(jmp.identifier)
                 if(target is Label)
                     "_$asmName"  // prefix with underscore to jump to local label
                 else
