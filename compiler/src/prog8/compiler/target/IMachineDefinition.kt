@@ -1,15 +1,17 @@
 package prog8.compiler.target
 
+import prog8.ast.Program
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
+import prog8.parser.ModuleImporter
 
 
-interface IMachineFloat {
+internal interface IMachineFloat {
     fun toDouble(): Double
     fun makeFloatFillAsm(): String
 }
 
-interface IMachineDefinition {
+internal interface IMachineDefinition {
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: Int
@@ -22,8 +24,11 @@ interface IMachineDefinition {
     val opcodeNames: Set<String>
     var zeropage: Zeropage
     val initSystemProcname: String
+    val cpu: String
 
     fun initializeZeropage(compilerOptions: CompilationOptions)
     fun getFloat(num: Number): IMachineFloat
     fun getFloatRomConst(number: Double): String?
+    fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program)
+    fun launchEmulator(programName: String)
 }

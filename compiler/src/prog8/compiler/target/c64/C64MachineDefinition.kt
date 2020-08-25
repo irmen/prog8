@@ -1,16 +1,18 @@
 package prog8.compiler.target.c64
 
-import prog8.compiler.CompilationOptions
-import prog8.compiler.CompilerException
-import prog8.compiler.Zeropage
-import prog8.compiler.ZeropageType
+import prog8.ast.Program
+import prog8.compiler.*
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.IMachineFloat
+import prog8.parser.ModuleImporter
+import java.io.IOException
 import java.math.RoundingMode
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
 internal object C64MachineDefinition: IMachineDefinition {
+
+    override val cpu = "6502"
 
     // 5-byte cbm MFLPT format limitations:
     override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
@@ -62,6 +64,31 @@ internal object C64MachineDefinition: IMachineDefinition {
             }
         }
         return null
+    }
+
+    override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
+        // if we're producing a PRG or BASIC program, include the c64utils and c64lib libraries
+        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG) {
+            importer.importLibraryModule(program, "c64lib")
+            importer.importLibraryModule(program, "c64utils")
+        }
+    }
+
+    override fun launchEmulator(programName: String) {
+        for(emulator in listOf("x64sc", "x64")) {
+            println("\nStarting C-64 emulator $emulator...")
+            val cmdline = listOf(emulator, "-silent", "-moncommands", "$programName.vice-mon-list",
+                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", programName + ".prg")
+            val processb = ProcessBuilder(cmdline).inheritIO()
+            val process: Process
+            try {
+                process=processb.start()
+            } catch(x: IOException) {
+                continue  // try the next emulator executable
+            }
+            process.waitFor()
+            break
+        }
     }
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
@@ -143,11 +170,11 @@ internal object C64MachineDefinition: IMachineDefinition {
                     free.clear()
                 }
             }
-            assert(SCRATCH_B1 !in free)
-            assert(SCRATCH_REG !in free)
-            assert(SCRATCH_REG_X !in free)
-            assert(SCRATCH_W1 !in free)
-            assert(SCRATCH_W2 !in free)
+            require(SCRATCH_B1 !in free)
+            require(SCRATCH_REG !in free)
+            require(SCRATCH_REG_X !in free)
+            require(SCRATCH_W1 !in free)
+            require(SCRATCH_W2 !in free)
 
             for (reserved in options.zpReserved)
                 reserve(reserved)

@@ -8,6 +8,7 @@ import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.codegen.AsmGen
+import prog8.compiler.target.cx16.CX16MachineDefinition
 import prog8.parser.ParsingFailedError
 import java.io.IOException
 import java.nio.file.FileSystems
@@ -52,7 +53,7 @@ private fun compileMain(args: Array<String>) {
     when(compilationTarget) {
         "c64" -> {
             with(CompilationTarget) {
-                name = "c64"
+                name = "Commodore-64"
                 machine = C64MachineDefinition
                 encodeString = { str, altEncoding ->
                     if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
@@ -63,8 +64,21 @@ private fun compileMain(args: Array<String>) {
                 asmGenerator = ::AsmGen
             }
         }
+        "cx16" -> {
+            with(CompilationTarget) {
+                name = "Commander X16"
+                machine = CX16MachineDefinition
+                encodeString = { str, altEncoding ->
+                    if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+                }
+                decodeString = { bytes, altEncoding ->
+                    if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+                }
+                asmGenerator = ::AsmGen
+            }
+        }
         else -> {
-            System.err.println("invalid compilation target")
+            System.err.println("invalid compilation target. Available are: c64, cx16")
             exitProcess(1)
         }
     }
@@ -121,20 +135,7 @@ private fun compileMain(args: Array<String>) {
                 if (compilationResult.programName.isEmpty())
                     println("\nCan't start emulator because no program was assembled.")
                 else if(startEmulator) {
-                    for(emulator in listOf("x64sc", "x64")) {
-                        println("\nStarting C-64 emulator $emulator...")
-                        val cmdline = listOf(emulator, "-silent", "-moncommands", "${compilationResult.programName}.vice-mon-list",
-                                "-autostartprgmode", "1", "-autostart-warp", "-autostart", compilationResult.programName + ".prg")
-                        val processb = ProcessBuilder(cmdline).inheritIO()
-                        val process: Process
-                        try {
-                            process=processb.start()
-                        } catch(x: IOException) {
-                            continue  // try the next emulator executable
-                        }
-                        process.waitFor()
-                        break
-                    }
+                    CompilationTarget.machine.launchEmulator(compilationResult.programName)
                 }
             }
         }

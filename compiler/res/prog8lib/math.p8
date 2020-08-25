@@ -4,8 +4,6 @@
 ;
 ; indent format: TABS, size=8
 
-%import c64lib
-
 math {
 	%asminclude "library:math.asm", ""
 }

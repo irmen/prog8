@@ -4,8 +4,6 @@
 ;
 ; indent format: TABS, size=8
 
-%import c64lib
-
 prog8_lib {
 	%asminclude "library:prog8lib.asm", ""
 }

@@ -94,7 +94,7 @@ internal class ModuleImporter {
 
     private fun discoverImportedModuleFile(name: String, source: Path, position: Position?): Path {
         val fileName = "$name.p8"
-        val locations = mutableListOf(source.parent)
+        val locations = if(source.toString().isEmpty()) mutableListOf<Path>() else mutableListOf(source.parent)
 
         val propPath = System.getProperty("prog8.libdir")
         if(propPath!=null)
@@ -109,7 +109,7 @@ internal class ModuleImporter {
             if (Files.isReadable(file)) return file
         }
 
-        throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: $locations)")
+        throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: embedded libs and $locations)")
     }
 
     private fun executeImportDirective(program: Program, import: Directive, source: Path): Module? {
@@ -128,10 +128,7 @@ internal class ModuleImporter {
                 if(resource!=null) {
                     // load the module from the embedded resource
                     resource.use {
-                        if(import.args[0].int==42)
-                            println("importing '$moduleName' (library, auto)")
-                        else
-                            println("importing '$moduleName' (library)")
+                        println("importing '$moduleName' (library)")
                         importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$moduleName"), true)
                     }
                 } else {

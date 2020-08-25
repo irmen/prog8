@@ -22,7 +22,7 @@ class AssemblyProgram(override val name: String, outputDir: Path) : IAssemblyPro
         val outFile = when (options.output) {
             OutputType.PRG -> {
                 command.add("--cbm-prg")
-                println("\nCreating C-64 prg.")
+                println("\nCreating prg.")
                 prgFile
             }
             OutputType.RAW -> {

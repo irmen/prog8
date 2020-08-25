@@ -90,11 +90,8 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
-    // if we're producing a PRG or BASIC program, include the c64utils and c64lib libraries
-    if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG) {
-        importer.importLibraryModule(programAst, "c64lib")
-        importer.importLibraryModule(programAst, "c64utils")
-    }
+    // depending on the mach9ine and compiler options we may have to include some libraries
+    CompilationTarget.machine.importLibs(compilerOptions, importer, programAst)
 
     // always import prog8lib and math
     importer.importLibraryModule(programAst, "math")
