@@ -119,7 +119,7 @@ romsub $ff4a = close_all()
 romsub $ff59 = lkupla()
 romsub $ff5c = lkupsa()
 romsub $ff5f = screen_set_mode()
-romsub $ff62 = dlchr()
+romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY) clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 romsub $ff65 = pfkey()
 romsub $ff6e = jsrfar()
 romsub $ff74 = fetch()
@@ -152,7 +152,7 @@ romsub $ff3b = GRAPH_set_font()
 romsub $ff3e = GRAPH_get_char_size()
 romsub $ff41 = GRAPH_put_char()
 
-; framebuffer API not yet included.
+; TODO framebuffer API not yet included, include it
 
 romsub $fef0 = sprite_set_image()
 romsub $fef3 = sprite_set_position()

@@ -2,15 +2,15 @@
 [![Build Status](https://travis-ci.org/irmen/prog8.svg?branch=master)](https://travis-ci.org/irmen/prog8)
 [![Documentation](https://readthedocs.org/projects/prog8/badge/?version=latest)](https://prog8.readthedocs.io/)
 
-Prog8 - Structured Programming Language for 8-bit 6502/6510 microprocessors
-===========================================================================
+Prog8 - Structured Programming Language for 8-bit 6502/6510/65c02 microprocessors
+=================================================================================
 
 *Written by Irmen de Jong (irmen@razorvine.net)*
 
 *Software license: GNU GPL 3.0, see file LICENSE*
 
 
-This is a structured programming language for the 8-bit 6502/6510 microprocessor from the late 1970's and 1980's
+This is a structured programming language for the 8-bit 6502/6510/65c02 microprocessor from the late 1970's and 1980's
 as used in many home computers from that era. It is a medium to low level programming language,
 which aims to provide many conveniences over raw assembly code (even when using a macro assembler):
 
@@ -37,8 +37,10 @@ Rapid edit-compile-run-debug cycle:
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 
-Prog8 is mainly targeted at the Commodore-64 machine at this time.
-Contributions to add support for other 8-bit (or other?!) machines are welcome.
+Prog8 is mainly targeted at the Commodore-64 machine.
+Preliminary support for the CommanderX16 is available as a second compilation target.
+Contributions to improve these or to add support for other machines are welcome!
+
 
 Documentation/manual
 --------------------
@@ -55,8 +57,9 @@ A **Java runtime (jre or jdk), version 8 or newer**  is required to run a prepac
 If you want to build it from source, you'll need a Java SDK + Kotlin 1.3.x SDK (or for instance,
 IntelliJ IDEA with the Kotlin plugin).
 
-It's handy to have a C-64 emulator or a real C-64 to run the programs on. The compiler assumes the presence
-of the [Vice emulator](http://vice-emu.sourceforge.net/)
+It's handy to have an emulator (or a real machine perhaps!) to run the programs on. The compiler assumes the presence
+of the [Vice emulator](http://vice-emu.sourceforge.net/)  for the C64 target,
+and the [x16emu emulator](https://github.com/commanderx16/x16-emulator) for the CommanderX16 target.
 
 
 Example code

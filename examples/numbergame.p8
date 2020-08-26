@@ -1,5 +1,6 @@
 %import c64utils
 %import c64lib
+%import conv
 %zeropage basicsafe
 
 ; The classic number guessing game.
@@ -28,7 +29,7 @@ main {
                 c64scr.print("es")
             c64scr.print(" left.\nWhat is your next guess? ")
             void c64scr.input_chars(input)
-            ubyte guess = lsb(c64utils.str2uword(input))
+            ubyte guess = lsb(conv.str2uword(input))
 
             if guess==secretnumber {
                 ending(true)

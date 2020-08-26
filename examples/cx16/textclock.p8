@@ -1,3 +1,6 @@
+; CommanderX16 text clock example!
+; make sure to compile with the cx16 compiler target.
+
 %zeropage basicsafe
 
 main {
@@ -12,7 +15,10 @@ main {
         cx16.r2H = 0
         cx16.r3L = 0
         cx16.clock_set_date_time()
-        c64.CHROUT(14)      ; lowercase charset
+
+
+        cx16.screen_set_charset(3, 0)
+        ; c64.CHROUT(14)      ; lowercase charset
 
         repeat {
             c64.CHROUT(19)      ; HOME
