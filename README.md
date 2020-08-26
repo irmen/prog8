@@ -38,7 +38,7 @@ Rapid edit-compile-run-debug cycle:
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 
 Prog8 is mainly targeted at the Commodore-64 machine.
-Preliminary support for the CommanderX16 is available as a second compilation target.
+Preliminary support for the [CommanderX16](https://www.commanderx16.com) is available as a second compilation target.
 Contributions to improve these or to add support for other machines are welcome!
 
 
