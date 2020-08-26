@@ -174,19 +174,11 @@ c64 {
 ; ---- end of SID registers ----
 
 
-
-; ---- C64 basic routines ----
-
-romsub $E544 = CLEARSCR() clobbers(A,X,Y)       ; clear the screen
-romsub $E566 = HOMECRSR() clobbers(A,X,Y)       ; cursor to top left of screen
-
-
-; ---- end of C64 basic routines ----
-
-
 ; ---- C64 kernal routines ----
 
 romsub $AB1E = STROUT(uword strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use c64scr.print instead)
+romsub $E544 = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
+romsub $E566 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
 romsub $EA31 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
 romsub $EA81 = IRQDFEND() clobbers(A,X,Y)                       ; default IRQ end/cleanup
 romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip

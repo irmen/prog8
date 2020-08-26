@@ -41,7 +41,7 @@ private fun compileMain(args: Array<String>) {
     val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
     val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes), greatly increases compilation speed")
-    val compilationTarget by cli.flagValueArgument("-target", "compilertarget", "target output of the compiler, currently only 'c64' (C64 6502 assembly) available", "c64")
+    val compilationTarget by cli.flagValueArgument("-target", "compilertarget", "target output of the compiler, currently 'c64' and 'cx16' available", "c64")
     val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
 
     try {

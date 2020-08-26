@@ -92,18 +92,20 @@ internal object CX16MachineDefinition: IMachineDefinition {
             if (options.floats && options.zeropage !in setOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 throw CompilerException("when floats are enabled, zero page type should be 'basicsafe' or 'dontuse'")
 
+            // the addresses 0x02 to 0x21 (inclusive) are taken for sixteen virtual 16-bit api registers.
+
             when (options.zeropage) {
                 ZeropageType.FULL -> {
-                    free.addAll(0x02..0xff)
+                    free.addAll(0x22..0xff)
                     free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.KERNALSAFE -> {
-                    free.addAll(0x02..0x7f)
+                    free.addAll(0x22..0x7f)
                     free.addAll(0xa9..0xff)
                     free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.BASICSAFE -> {
-                    free.addAll(0x02..0x7f)
+                    free.addAll(0x22..0x7f)
                     free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.DONTUSE -> {

@@ -387,14 +387,14 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
-	;       by just one call to cx16.CHROUT of that single char.
+	;       by just one call to c64.CHROUT of that single char.
 	%asm {{
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_B1),y
 		beq  +
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		iny
 		bne  -
 +		rts
@@ -408,11 +408,11 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		jsr  cx16utils.ubyte2decimal
 		pha
 		tya
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		pla
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		txa
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
@@ -428,16 +428,16 @@ _print_byte_digits
 		cpy  #'0'
 		beq  +
 		tya
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		pla
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		jmp  _ones
 +       pla
         cmp  #'0'
         beq  _ones
-        jsr  cx16.CHROUT
+        jsr  c64.CHROUT
 _ones   txa
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
@@ -451,7 +451,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 		cmp  #0
 		bpl  +
 		lda  #'-'
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 +		pla
 		jsr  cx16utils.byte2decimal
 		jsr  print_ub._print_byte_digits
@@ -467,12 +467,12 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		bcc  +
 		pha
 		lda  #'$'
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		pla
 +		jsr  cx16utils.ubyte2hex
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		tya
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
@@ -485,13 +485,13 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 +		ldy  #8
 -		lda  #'0'
 		asl  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'1'
-+		jsr  cx16.CHROUT
++		jsr  c64.CHROUT
 		dey
 		bne  -
 		ldx  P8ZP_SCRATCH_REG_X
@@ -532,7 +532,7 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		ldy  #0
 -		lda  cx16utils.uword2decimal.decTenThousands,y
         beq  +
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		iny
 		bne  -
 +		ldx  P8ZP_SCRATCH_REG_X
@@ -555,14 +555,14 @@ asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 		bne  -
 
 _gotdigit
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		iny
 		lda  cx16utils.uword2decimal.decTenThousands,y
 		bne  _gotdigit
 		rts
 _allzero
         lda  #'0'
-        jmp  cx16.CHROUT
+        jmp  c64.CHROUT
 	}}
 }
 
@@ -573,7 +573,7 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 		bpl  +
 		pha
 		lda  #'-'
-		jsr  cx16.CHROUT
+		jsr  c64.CHROUT
 		tya
 		eor  #255
 		tay
@@ -593,7 +593,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 		stx  P8ZP_SCRATCH_REG_X
 		tax
 		clc
-		jsr  cx16.PLOT
+		jsr  c64.PLOT
 		ldx  P8ZP_SCRATCH_REG_X
 		rts
 	}}
