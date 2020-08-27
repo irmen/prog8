@@ -95,7 +95,6 @@ when compiled an ran on a C-64 you get this:
     :alt: result when run on C-64
 
 
-// TODO fix code example
 The following programs shows a use of the high level ``struct`` type::
 
 
