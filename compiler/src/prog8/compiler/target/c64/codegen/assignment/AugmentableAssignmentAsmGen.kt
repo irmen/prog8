@@ -212,8 +212,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
                 assignmentAsmGen.translateNormalAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
             }
-            TargetStorageKind.REGISTER -> TODO("reg")
-            TargetStorageKind.STACK -> TODO("stack")
+            TargetStorageKind.REGISTER -> TODO("reg in-place modification")
+            TargetStorageKind.STACK -> TODO("stack in-place modification")
         }
     }
 
@@ -227,6 +227,813 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
         }
         return false
+    }
+
+    private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
+        println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        asmgen.translateExpression(value)
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            "+" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" clc |  adc  P8ESTACK_LO+1,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "-" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" sec |  sbc  P8ESTACK_LO+1,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "%" -> {
+                TODO("byte remainder")
+//                if(types==DataType.BYTE)
+//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+//                asmgen.out("  jsr prog8_lib.remainder_ub")
+            }
+            "<<" -> TODO("ubyte asl")
+            ">>" -> TODO("ubyte lsr")
+            "&" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" and  P8ESTACK_LO+1,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "^" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" eor  P8ESTACK_LO+1,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "|" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" ora  P8ESTACK_LO+1,x")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+        asmgen.out(" inx")
+    }
+
+    private fun inplaceModification_byte_variable_to_memory(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
+        val otherName = asmgen.asmVariableName(value)
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            "+" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" clc |  adc  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "-" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" sec |  sbc  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "%" -> {
+                TODO("byte remainder")
+//                if(types==DataType.BYTE)
+//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+//                asmgen.out("  jsr prog8_lib.remainder_ub")
+            }
+            "<<" -> TODO("ubyte asl")
+            ">>" -> TODO("ubyte lsr")
+            "&" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" and  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "^" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" eor  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "|" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" ora  $otherName")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplaceModification_byte_litval_to_memory(pointervar: IdentifierReference, operator: String, value: Int) {
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            "+" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" clc |  adc  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "-" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" sec |  sbc  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "*" -> {
+                TODO("mul byte litval")
+                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            }
+            "/" -> {
+                if(value==0)
+                    throw AssemblyError("division by zero")
+                TODO("div byte litval")
+                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            }
+            "%" -> {
+                if(value==0)
+                    throw AssemblyError("division by zero")
+                TODO("byte remainder litval")
+//                if(types==DataType.BYTE)
+//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+//                asmgen.out("  jsr prog8_lib.remainder_ub")
+            }
+            "<<" -> {
+                if (value > 0) {
+                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                    repeat(value) { asmgen.out(" asl  a") }
+                    if(ptrOnZp)
+                        asmgen.out("  sta  ($sourceName),y")
+                    else
+                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                }
+            }
+            ">>" -> {
+                if (value > 0) {
+                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                    repeat(value) { asmgen.out(" lsr  a") }
+                    if(ptrOnZp)
+                        asmgen.out("  sta  ($sourceName),y")
+                    else
+                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                }
+            }
+            "&" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" and  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "^" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" eor  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            "|" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out(" ora  #$value")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            }
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplaceModification_byte_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
+        // this should be the last resort for code generation for this,
+        // because the value is evaluated onto the eval stack (=slow).
+        println("warning: slow stack evaluation used (5):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        asmgen.translateExpression(value)
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name")
+            "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
+            "*" -> {
+                TODO("mul byte expr")
+                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            }
+            "/" -> {
+                TODO("div byte expr")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            }
+            "%" -> {
+                TODO("byte remainder expr")
+//                if(types==DataType.BYTE)
+//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+//                asmgen.out("  jsr prog8_lib.remainder_ub")
+            }
+            "<<" -> {
+                asmgen.translateExpression(value)
+                asmgen.out("""
+                    inx
+                    ldy  P8ESTACK_LO,x
+                    beq  +
+-                   asl  $name
+                    dey
+                    bne  -
++""")
+            }
+            ">>" -> {
+                asmgen.translateExpression(value)
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        inx
+                        ldy  P8ESTACK_LO,x
+                        beq  +
+-                       lsr  $name
+                        dey
+                        bne  -
++""")
+                } else {
+                    asmgen.out("""
+                        inx
+                        ldy  P8ESTACK_LO,x
+                        beq  +
+-                       lda  $name
+                        asl  a
+                        ror  $name
+                        dey
+                        bne  -
++""")
+                }
+            }
+            "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name")
+            "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+        asmgen.out(" inx")
+    }
+
+    private fun inplaceModification_byte_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
+        val otherName = asmgen.asmVariableName(ident)
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name")
+            "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name")
+            "*" -> asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.multiply_bytes |  sta  $name")
+            "/" -> {
+                if(dt==DataType.BYTE) {
+                    TODO("signed byte divide see prog8lib.idiv_b")
+                }
+                else {
+                    asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_ub_asm |  sty  $name")
+                }
+            }
+            "%" -> {
+                if(dt==DataType.BYTE)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_ub_asm |  sta  $name")
+            }
+            "<<" -> {
+                asmgen.out("""
+                    ldy  $otherName
+-                   asl  $name
+                    dey
+                    bne  -""")
+            }
+            ">>" -> {
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        ldy  $otherName
+-                       lsr  $name
+                        dey
+                        bne  -""")
+                } else {
+                    asmgen.out("""
+                        ldy  $otherName
+-                       lda  $name
+                        asl  a
+                        ror  $name
+                        dey
+                        bne  -""")
+                }
+            }
+            "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
+            "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
+            "and" -> asmgen.out("""
+                lda  $name
+                and  $otherName
+                beq  +
+                lda  #1
++               sta  $name""")
+            "or" -> asmgen.out("""
+                lda  $name
+                ora  $otherName
+                beq  +
+                lda  #1
++               sta  $name""")
+            "xor" -> asmgen.out("""
+                lda  $name
+                eor  $otherName
+                beq  +
+                lda  #1
++               sta  $name""")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplaceModification_byte_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
+            "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
+            "*" -> {
+                // TODO what about the optimized mul_5 etc routines?
+                TODO("byte mul litval")
+                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            }
+            "/" -> {
+                if (dt == DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        ldy  #$value
+                        jsr  math.divmod_ub_asm
+                        sty  $name                                              
+                    """)
+                } else {
+                    TODO("BYTE div  litval")
+                }
+            }
+            "%" -> {
+                if(dt==DataType.BYTE)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                asmgen.out("""
+                    lda  $name
+                    ldy  #$value
+                    jsr  math.divmod_ub_asm
+                    sta  $name""")
+            }
+            "<<" -> {
+                repeat(value) { asmgen.out(" asl  $name") }
+            }
+            ">>" -> {
+                if(value>0) {
+                    if (dt == DataType.UBYTE) {
+                        repeat(value) { asmgen.out(" lsr  $name") }
+                    } else {
+                        repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
+                    }
+                }
+            }
+            "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
+            "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
+        when (operator) {
+            // note: ** (power) operator requires floats.
+            // TODO use these + and - optimizations in the expressionAsmGenerator as well.
+            "+" -> {
+                when {
+                    value<0x0100 -> asmgen.out("""
+                        lda  $name
+                        clc
+                        adc  #$value
+                        sta  $name
+                        bcc  +
+                        inc  $name+1
++                           """)
+                    value==0x0100 -> asmgen.out(" inc  $name+1")
+                    value==0x0200 -> asmgen.out(" inc  $name+1 |  inc  $name+1")
+                    value==0x0300 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1")
+                    value and 255==0 -> asmgen.out(" lda  $name+1 |  clc |  adc  #>$value |  sta  $name+1")
+                    else -> asmgen.out("""
+                        lda  $name
+                        clc
+                        adc  #<$value
+                        sta  $name
+                        lda  $name+1
+                        adc  #>$value
+                        sta  $name+1""")
+                }
+            }
+            "-" -> {
+                when {
+                    value<0x0100 -> asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  #$value
+                        sta  $name
+                        bcs  +
+                        dec  $name+1
++                           """)
+                    value==0x0100 -> asmgen.out(" dec  $name+1")
+                    value==0x0200 -> asmgen.out(" dec  $name+1 |  dec  $name+1")
+                    value==0x0300 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1")
+                    value and 255==0 -> asmgen.out(" lda  $name+1 |  sec |  sbc  #>$value |  sta  $name+1")
+                    else -> asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  #<$value
+                        sta  $name
+                        lda  $name+1
+                        sbc  #>$value
+                        sta  $name+1""")
+                }
+            }
+            "*" -> {
+                // TODO what about the optimized mul_5 etc routines?
+                asmgen.out("""
+                    lda  $name
+                    sta  P8ZP_SCRATCH_W1
+                    lda  $name+1
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  #<$value
+                    ldy  #>$value
+                    jsr  math.multiply_words
+                    lda  math.multiply_words.result
+                    sta  $name
+                    lda  math.multiply_words.result+1
+                    sta  $name+1""")
+            }
+            "/" -> {
+                if(value==0)
+                    throw AssemblyError("division by zero")
+                if(dt==DataType.WORD) {
+                    TODO("signed word divide see prog8lib.idiv_w")
+                }
+                else {
+                    asmgen.out("""
+                        lda  $name
+                        ldy  $name+1
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<$value
+                        ldy  #>$value
+                        jsr  math.divmod_uw_asm
+                        sta  $name
+                        sty  $name+1
+                    """)
+                }
+            }
+            "%" -> {
+                if(value==0)
+                    throw AssemblyError("division by zero")
+                if(dt==DataType.WORD)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                asmgen.out("""
+                    lda  $name
+                    ldy  $name+1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$value
+                    ldy  #>$value
+                    jsr  math.divmod_uw_asm
+                    lda  P8ZP_SCRATCH_W2
+                    sta  $name
+                    lda  P8ZP_SCRATCH_W2+2
+                    sty  $name+1
+                """)
+            }
+            "<<" -> {
+                repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
+            }
+            ">>" -> {
+                if (value > 0) {
+                    if(dt==DataType.UWORD) {
+                        repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
+                    } else {
+                        repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
+                    }
+                }
+            }
+            "&" -> {
+                when {
+                    value == 0 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
+                    value and 255 == 0 -> asmgen.out(" lda  #0 |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out(" lda  $name |  and  #$value |  sta  $name |  lda  #0 |  sta  $name+1")
+                    else -> asmgen.out(" lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
+                }
+            }
+            "^" -> {
+                when {
+                    value == 0 -> {}
+                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  eor  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
+                    else -> asmgen.out(" lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
+                }
+            }
+            "|" -> {
+                when {
+                    value == 0 -> {}
+                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  ora  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
+                    else -> asmgen.out(" lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
+                }
+            }
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
+        val otherName = asmgen.asmVariableName(ident)
+        val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
+        when (valueDt) {
+            in ByteDatatypes -> {
+                // the other variable is a BYTE type so optimize for that    TODO does this even occur?
+                when (operator) {
+                    // note: ** (power) operator requires floats.
+                    "+" -> asmgen.out("""
+                        lda  $name
+                        clc
+                        adc  $otherName
+                        sta  $name
+                        bcc  +
+                        inc  $name+1
++                           """)
+                    "-" -> asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  $otherName
+                        sta  $name
+                        bcs  +
+                        dec  $name+1
++                           """)
+                    "*" -> TODO("mul word*byte")
+                    "/" -> TODO("div word/byte")
+                    "%" -> TODO("word remainder byte")
+                    "<<" -> {
+                        asmgen.out("""
+                        ldy  $otherName
+-                       asl  $name
+                        rol  $name+1
+                        dey
+                        bne  -""")
+                    }
+                    ">>" -> {
+                        if(dt==DataType.UWORD) {
+                            asmgen.out("""
+                            ldy  $otherName
+-                           lsr  $name+1
+                            ror  $name
+                            dey
+                            bne  -""")
+                        } else {
+                            asmgen.out("""
+                            ldy  $otherName
+-                           lda  $name+1
+                            asl  a
+                            ror  $name+1
+                            ror  $name
+                            dey
+                            bne  -""")
+                        }
+                    }
+                    "&" -> TODO("bitand word byte")
+                    "^" -> TODO("bitxor word byte")
+                    "|" -> TODO("bitor word byte")
+                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
+                }
+            }
+            in WordDatatypes -> {
+                // the value is a proper 16-bit word, so use both bytes of it.
+                when (operator) {
+                    // note: ** (power) operator requires floats.
+                    "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
+                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
+                    "*" -> {
+                        asmgen.out("""
+                            lda  $otherName
+                            ldy  $otherName+1
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            sta  $name
+                            lda  math.multiply_words.result+1
+                            sta  $name+1
+                        """)
+                    }
+                    "/" -> {
+                        if(dt==DataType.WORD) {
+                            TODO("signed word divide see prog8lib.idiv_w")
+                        }
+                        else {
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  $otherName
+                                ldy  $otherName+1
+                                jsr  math.divmod_uw_asm
+                                sta  $name
+                                sty  $name+1
+                            """)
+                        }
+                    }
+                    "%" -> {
+                        if(dt==DataType.WORD)
+                            throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  $otherName
+                            ldy  $otherName+1
+                            jsr  math.divmod_uw_asm
+                            lda  P8ZP_SCRATCH_W2
+                            sta  $name
+                            lda  P8ZP_SCRATCH_W2+1
+                            sta  $name+1
+                        """)
+                    }
+                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
+                    "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
+                    "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
+                    "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
+                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
+                }
+            }
+            else -> {
+                throw AssemblyError("can only use integer datatypes here")
+            }
+        }
+    }
+
+    private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
+        // this should be the last resort for code generation for this,
+        // because the value is evaluated onto the eval stack (=slow).
+        println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        asmgen.translateExpression(value)
+        val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
+
+        when(valueDt) {
+            in ByteDatatypes -> {
+                // the other variable is a BYTE type so optimize for that   TODO does this even occur?
+                when (operator) {
+                    // note: ** (power) operator requires floats.
+                    "+" -> asmgen.out("""
+                        lda  $name
+                        clc
+                        adc  P8ESTACK_LO+1,x
+                        sta  $name
+                        bcc  +
+                        inc  $name+1
++                           """)
+                    "-" -> asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  P8ESTACK_LO+1,x
+                        sta  $name
+                        bcs  +
+                        dec  $name+1
++                           """)
+                    "*" -> TODO("mul word byte")
+                    "/" -> TODO("div word byte")
+                    "%" -> TODO("word remainder byte")
+                    "<<" -> {
+                        asmgen.translateExpression(value)
+                        asmgen.out("""
+                        inx
+                        ldy  P8ESTACK_LO,x
+                        beq  +
+-                   	asl  $name
+                        rol  $name+1
+                        dey
+                        bne  -
++""")
+                    }
+                    ">>" -> {
+                        asmgen.translateExpression(value)
+                        if(dt==DataType.UWORD) {
+                            asmgen.out("""
+                            inx
+                            ldy  P8ESTACK_LO,x
+                            beq  +
+-                           lsr  $name+1
+                            ror  $name
+                            dey
+                            bne  -
++""") }
+                        else {
+                            asmgen.out("""
+                            inx
+                            ldy  P8ESTACK_LO,x
+                            beq  +
+-                           lda  $name+1
+                            asl  a
+                            ror  $name+1
+                            ror  $name
+                            dey
+                            bne  -
++""")
+                        }
+                    }
+                    "&" -> TODO("bitand word byte")
+                    "^" -> TODO("bitxor word byte")
+                    "|" -> TODO("bitor word byte")
+                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
+                }
+            }
+            in WordDatatypes -> {
+                // the value is a proper 16-bit word, so use both bytes of it.
+                when (operator) {
+                    // note: ** (power) operator requires floats.
+                    "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  adc  P8ESTACK_HI+1,x |  sta  $name+1")
+                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  sbc  P8ESTACK_HI+1,x |  sta  $name+1")
+                    "*" -> {
+                        asmgen.out("""
+                            lda  P8ESTACK_LO+1,x
+                            ldy  P8ESTACK_HI+1,x
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            sta  $name
+                            lda  math.multiply_words.result+1
+                            sta  $name+1
+                        """)
+                    }
+                    "/" -> {
+                        if (dt == DataType.WORD) {
+                            TODO("signed word divide see prog8lib.idiv_w")
+                        } else {
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  P8ESTACK_LO+1,x
+                                ldy  P8ESTACK_HI+1,x
+                                jsr  math.divmod_uw_asm
+                                sta  $name
+                                sty  $name+1
+                            """)
+                        }
+                    }
+                    "%" -> {
+                        if(dt==DataType.WORD)
+                            throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  P8ESTACK_LO+1,x
+                            ldy  P8ESTACK_HI+1,x
+                            jsr  math.divmod_uw_asm
+                            lda  P8ZP_SCRATCH_W2
+                            sta  $name
+                            lda  P8ZP_SCRATCH_W2+1
+                            sta  $name+1
+                        """)
+                    }
+                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
+                    "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  and  P8ESTACK_HI+1,x  |  sta  $name+1")
+                    "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  eor  P8ESTACK_HI+1,x  |  sta  $name+1")
+                    "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  ora  P8ESTACK_HI+1,x  |  sta  $name+1")
+                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
+                }
+            }
+            else -> {
+                throw AssemblyError("can only use integer datatypes here")
+            }
+        }
+
+        asmgen.out(" inx")
     }
 
     private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression) {
@@ -440,693 +1247,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         """)
     }
 
-    private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
-        println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
-        asmgen.translateExpression(value)
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            "+" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "-" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            "%" -> {
-                TODO("byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> TODO("ubyte asl")
-            ">>" -> TODO("ubyte lsr")
-            "&" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "^" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" eor  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "|" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-        asmgen.out(" inx")
-    }
-
-    private fun inplaceModification_byte_variable_to_memory(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
-        val otherName = asmgen.asmVariableName(value)
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            "+" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "-" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            "%" -> {
-                TODO("byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> TODO("ubyte asl")
-            ">>" -> TODO("ubyte lsr")
-            "&" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "^" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" eor  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "|" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-    }
-
-    private fun inplaceModification_byte_litval_to_memory(pointervar: IdentifierReference, operator: String, value: Int) {
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            "+" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "-" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> {
-                if(value==0)
-                    throw AssemblyError("division by zero")
-                TODO("div")
-                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            }
-            "%" -> {
-                if(value==0)
-                    throw AssemblyError("division by zero")
-                TODO("byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> {
-                if (value > 0) {
-                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                    repeat(value) { asmgen.out(" asl  a") }
-                    if(ptrOnZp)
-                        asmgen.out("  sta  ($sourceName),y")
-                    else
-                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-                }
-            }
-            ">>" -> {
-                if (value > 0) {
-                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                    repeat(value) { asmgen.out(" lsr  a") }
-                    if(ptrOnZp)
-                        asmgen.out("  sta  ($sourceName),y")
-                    else
-                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-                }
-            }
-            "&" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "^" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" eor  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "|" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-    }
-
-    private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            // TODO use these + and - optimizations in the expressionAsmGenerator as well.
-            "+" -> {
-                when {
-                    value<0x0100 -> asmgen.out("""
-                        lda  $name
-                        clc
-                        adc  #$value
-                        sta  $name
-                        bcc  +
-                        inc  $name+1
-+                           """)
-                    value==0x0100 -> asmgen.out(" inc  $name+1")
-                    value==0x0200 -> asmgen.out(" inc  $name+1 |  inc  $name+1")
-                    value==0x0300 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1")
-                    value and 255==0 -> asmgen.out(" lda  $name+1 |  clc |  adc  #>$value |  sta  $name+1")
-                    else -> asmgen.out("""
-                        lda  $name
-                        clc
-                        adc  #<$value
-                        sta  $name
-                        lda  $name+1
-                        adc  #>$value
-                        sta  $name+1""")
-                }
-            }
-            "-" -> {
-                when {
-                    value<0x0100 -> asmgen.out("""
-                        lda  $name
-                        sec
-                        sbc  #$value
-                        sta  $name
-                        bcs  +
-                        dec  $name+1
-+                           """)
-                    value==0x0100 -> asmgen.out(" dec  $name+1")
-                    value==0x0200 -> asmgen.out(" dec  $name+1 |  dec  $name+1")
-                    value==0x0300 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1")
-                    value and 255==0 -> asmgen.out(" lda  $name+1 |  sec |  sbc  #>$value |  sta  $name+1")
-                    else -> asmgen.out("""
-                        lda  $name
-                        sec
-                        sbc  #<$value
-                        sta  $name
-                        lda  $name+1
-                        sbc  #>$value
-                        sta  $name+1""")
-                }
-            }
-            "*" -> {
-                // TODO what about the optimized mul_5 etc routines?
-                asmgen.out("""
-                    lda  $name
-                    sta  P8ZP_SCRATCH_W1
-                    lda  $name+1
-                    sta  P8ZP_SCRATCH_W1+1
-                    lda  #<$value
-                    ldy  #>$value
-                    jsr  math.multiply_words
-                    lda  math.multiply_words.result
-                    sta  $name
-                    lda  math.multiply_words.result+1
-                    sta  $name+1""")
-            }
-            "/" -> {
-                if(value==0)
-                    throw AssemblyError("division by zero")
-                TODO("word   $name  /=  $value")
-                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            }
-            "%" -> {
-                if(value==0)
-                    throw AssemblyError("division by zero")
-                TODO("word remainder $value")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> {
-                repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
-            }
-            ">>" -> {
-                if (value > 0) {
-                    if(dt==DataType.UWORD) {
-                        repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
-                    } else {
-                        repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
-                    }
-                }
-            }
-            "&" -> {
-                when {
-                    value == 0 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
-                    value and 255 == 0 -> asmgen.out(" lda  #0 |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out(" lda  $name |  and  #$value |  sta  $name |  lda  #0 |  sta  $name+1")
-                    else -> asmgen.out(" lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
-                }
-            }
-            "^" -> {
-                when {
-                    value == 0 -> {}
-                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  eor  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
-                    else -> asmgen.out(" lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
-                }
-            }
-            "|" -> {
-                when {
-                    value == 0 -> {}
-                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  ora  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
-                    else -> asmgen.out(" lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
-                }
-            }
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-    }
-
-    private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
-        val otherName = asmgen.asmVariableName(ident)
-        val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
-        when (valueDt) {
-            in ByteDatatypes -> {
-                // the other variable is a BYTE type so optimize for that
-                when (operator) {
-                    // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out("""
-                        lda  $name
-                        clc
-                        adc  $otherName
-                        sta  $name
-                        bcc  +
-                        inc  $name+1
-+                           """)
-                    "-" -> asmgen.out("""
-                        lda  $name
-                        sec
-                        sbc  $otherName
-                        sta  $name
-                        bcs  +
-                        dec  $name+1
-+                           """)
-                    "*" -> TODO("mul")
-                    "/" -> TODO("div")
-                    "%" -> TODO("word remainder")
-                    "<<" -> {
-                        asmgen.out("""
-                        ldy  $otherName
--                       asl  $name
-                        rol  $name+1
-                        dey
-                        bne  -""")
-                    }
-                    ">>" -> {
-                        if(dt==DataType.UWORD) {
-                            asmgen.out("""
-                            ldy  $otherName
--                           lsr  $name+1
-                            ror  $name
-                            dey
-                            bne  -""")
-                        } else {
-                            asmgen.out("""
-                            ldy  $otherName
--                           lda  $name+1
-                            asl  a
-                            ror  $name+1
-                            ror  $name
-                            dey
-                            bne  -""")
-                        }
-                    }
-                    "&" -> TODO("bitand")
-                    "^" -> TODO("bitxor")
-                    "|" -> TODO("bitor")
-                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
-                }
-            }
-            in WordDatatypes -> {
-                // the value is a proper 16-bit word, so use both bytes of it.
-                when (operator) {
-                    // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
-                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
-                    "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-                    "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-                    "%" -> {
-                        TODO("word remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-                    }
-                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
-                    "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
-                    "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
-                    "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
-                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
-                }
-            }
-            else -> {
-                throw AssemblyError("can only use integer datatypes here")
-            }
-        }
-    }
-
-    private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
-        // this should be the last resort for code generation for this,
-        // because the value is evaluated onto the eval stack (=slow).
-        println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-        asmgen.translateExpression(value)
-        val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
-
-        when(valueDt) {
-            in ByteDatatypes -> {
-                // the other variable is a BYTE type so optimize for that
-                when (operator) {
-                    // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out("""
-                        lda  $name
-                        clc
-                        adc  P8ESTACK_LO+1,x
-                        sta  $name
-                        bcc  +
-                        inc  $name+1
-+                           """)
-                    "-" -> asmgen.out("""
-                        lda  $name
-                        sec
-                        sbc  P8ESTACK_LO+1,x
-                        sta  $name
-                        bcs  +
-                        dec  $name+1
-+                           """)
-                    "*" -> TODO("mul")
-                    "/" -> TODO("div")
-                    "%" -> TODO("word remainder")
-                    "<<" -> {
-                        asmgen.translateExpression(value)
-                        asmgen.out("""
-                        inx
-                        ldy  P8ESTACK_LO,x
-                        beq  +
--                   	asl  $name
-                        rol  $name+1
-                        dey
-                        bne  -
-+""")
-                    }
-                    ">>" -> {
-                        asmgen.translateExpression(value)
-                        if(dt==DataType.UWORD) {
-                        asmgen.out("""
-                            inx
-                            ldy  P8ESTACK_LO,x
-                            beq  +
--                           lsr  $name+1
-                            ror  $name
-                            dey
-                            bne  -
-+""") }
-                        else {
-                            asmgen.out("""
-                            inx
-                            ldy  P8ESTACK_LO,x
-                            beq  +
--                           lda  $name+1
-                            asl  a
-                            ror  $name+1
-                            ror  $name
-                            dey
-                            bne  -
-+""")
-                        }
-                    }
-                    "&" -> TODO("bitand")
-                    "^" -> TODO("bitxor")
-                    "|" -> TODO("bitor")
-                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
-                }
-            }
-            in WordDatatypes -> {
-                // the value is a proper 16-bit word, so use both bytes of it.
-                when (operator) {
-                    // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  adc  P8ESTACK_HI+1,x |  sta  $name+1")
-                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  sbc  P8ESTACK_HI+1,x |  sta  $name+1")
-                    "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-                    "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-                    "%" -> {
-                        TODO("word remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-                    }
-                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
-                    "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  and  P8ESTACK_HI+1,x  |  sta  $name+1")
-                    "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  eor  P8ESTACK_HI+1,x  |  sta  $name+1")
-                    "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  ora  P8ESTACK_HI+1,x  |  sta  $name+1")
-                    else -> throw AssemblyError("invalid operator for in-place modification $operator")
-                }
-            }
-            else -> {
-                throw AssemblyError("can only use integer datatypes here")
-            }
-        }
-
-        asmgen.out(" inx")
-    }
-
-    private fun inplaceModification_byte_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
-        // this should be the last resort for code generation for this,
-        // because the value is evaluated onto the eval stack (=slow).
-        println("warning: slow stack evaluation used (5):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-        asmgen.translateExpression(value)
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name")
-            "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            "%" -> {
-                TODO("byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> {
-                asmgen.translateExpression(value)
-                asmgen.out("""
-                    inx
-                    ldy  P8ESTACK_LO,x
-                    beq  +
--                   asl  $name
-                    dey
-                    bne  -
-+""")
-            }
-            ">>" -> {
-                asmgen.translateExpression(value)
-                if(dt==DataType.UBYTE) {
-                    asmgen.out("""
-                        inx
-                        ldy  P8ESTACK_LO,x
-                        beq  +
--                       lsr  $name
-                        dey
-                        bne  -
-+""")
-                } else {
-                    asmgen.out("""
-                        inx
-                        ldy  P8ESTACK_LO,x
-                        beq  +
--                       lda  $name
-                        asl  a
-                        ror  $name
-                        dey
-                        bne  -
-+""")
-                }
-            }
-            "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name")
-            "|" -> asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-        asmgen.out(" inx")
-    }
-
-    private fun inplaceModification_byte_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
-        val otherName = asmgen.asmVariableName(ident)
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name")
-            "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name")
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            "%" -> {
-                TODO("byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> {
-                asmgen.out("""
-                    ldy  $otherName
--                   asl  $name
-                    dey
-                    bne  -""")
-            }
-            ">>" -> {
-                if(dt==DataType.UBYTE) {
-                    asmgen.out("""
-                        ldy  $otherName
--                       lsr  $name
-                        dey
-                        bne  -""")
-                } else {
-                    asmgen.out("""
-                        ldy  $otherName
--                       lda  $name
-                        asl  a
-                        ror  $name
-                        dey
-                        bne  -""")
-                }
-            }
-            "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
-            "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
-            "and" -> asmgen.out("""
-                lda  $name
-                and  $otherName
-                beq  +
-                lda  #1
-+               sta  $name""")
-            "or" -> asmgen.out("""
-                lda  $name
-                ora  $otherName
-                beq  +
-                lda  #1
-+               sta  $name""")
-            "xor" -> asmgen.out("""
-                lda  $name
-                eor  $otherName
-                beq  +
-                lda  #1
-+               sta  $name""")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-    }
-
-    private fun inplaceModification_byte_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
-        when (operator) {
-            // note: ** (power) operator requires floats.
-            "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
-            "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
-            "*" -> {
-                // TODO what about the optimized mul_5 etc routines?
-                TODO("$dt mul  $name *=  $value")
-                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            }
-            "/" -> {
-                if (dt == DataType.UBYTE) {
-                    asmgen.out("""
-                        lda  $name
-                        ldy  #$value
-                        jsr  math.divmod_ub
-                        sty  $name                                              
-                    """)
-                } else {
-                    // BYTE
-                    // requires to use unsigned division and fix sign afterwards, see idiv_b in prog8lib
-                    TODO("BYTE div  $name /=  $value")
-                }
-            }
-            "%" -> {
-                if(dt==DataType.BYTE)
-                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.out("""
-                    lda  $name
-                    ldy  #$value
-                    jsr  math.divmod_ub
-                    sta  $name""")
-            }
-            "<<" -> {
-                repeat(value) { asmgen.out(" asl  $name") }
-            }
-            ">>" -> {
-                if(value>0) {
-                    if (dt == DataType.UBYTE) {
-                        repeat(value) { asmgen.out(" lsr  $name") }
-                    } else {
-                        repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
-                    }
-                }
-            }
-            "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
-            "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-    }
-
     private fun inplaceCast(target: AsmAssignTarget, cast: TypecastExpression, position: Position) {
         val outerCastDt = cast.type
         val innerCastDt = (cast.expression as? TypecastExpression)?.type
@@ -1218,8 +1338,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place not of ubyte array")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.REGISTER -> TODO("reg not")
+                    TargetStorageKind.STACK -> TODO("stack not")
                 }
             }
             DataType.UWORD -> {
@@ -1237,8 +1357,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
                     TargetStorageKind.ARRAY -> TODO("in-place not of uword array")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.REGISTER -> TODO("reg not")
+                    TargetStorageKind.STACK -> TODO("stack not")
                 }
             }
             else -> throw AssemblyError("boolean-not of invalid type")
@@ -1285,8 +1405,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place invert ubyte array")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.REGISTER -> TODO("reg invert")
+                    TargetStorageKind.STACK -> TODO("stack invert")
                 }
             }
             DataType.UWORD -> {
@@ -1302,8 +1422,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
                     TargetStorageKind.ARRAY -> TODO("in-place invert uword array")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.REGISTER -> TODO("reg invert")
+                    TargetStorageKind.STACK -> TODO("stack invert")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
@@ -1323,8 +1443,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
                     TargetStorageKind.ARRAY -> TODO("in-place negate byte array")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.REGISTER -> TODO("reg negate")
+                    TargetStorageKind.STACK -> TODO("stack negate")
                 }
             }
             DataType.WORD -> {
@@ -1341,8 +1461,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate word array")
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.REGISTER -> TODO("reg negate")
+                    TargetStorageKind.STACK -> TODO("stack negate")
                 }
             }
             DataType.FLOAT -> {
@@ -1361,9 +1481,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         """)
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate float array")
-                    TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for float memory negate")
-                    TargetStorageKind.REGISTER -> TODO("reg")
-                    TargetStorageKind.STACK -> TODO("stack")
+                    TargetStorageKind.STACK -> TODO("stack float negate")
+                    else -> throw AssemblyError("weird target kind for float")
                 }
             }
             else -> throw AssemblyError("negate of invalid type")

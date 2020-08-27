@@ -339,7 +339,7 @@ idiv_b		.proc
 		eor  #$ff
 		sec
 		adc  #0			; make num2 positive
-+		jsr  math.divmod_ub
++		jsr  math.divmod_ub_asm
 		sta  _remainder
 		tya
 		plp			; get sign of result
@@ -357,7 +357,7 @@ idiv_ub		.proc
 		inx
 		ldy  P8ESTACK_LO,x
 		lda  P8ESTACK_LO+1,x
-		jsr  math.divmod_ub
+		jsr  math.divmod_ub_asm
 		tya
 		sta  P8ESTACK_LO+1,x
 		rts
@@ -410,7 +410,7 @@ remainder_ub	.proc
 		inx
 		ldy  P8ESTACK_LO,x	; right operand
 		lda  P8ESTACK_LO+1,x  ; left operand
-		jsr  math.divmod_ub
+		jsr  math.divmod_ub_asm
 		sta  P8ESTACK_LO+1,x
 		rts
 		.pend

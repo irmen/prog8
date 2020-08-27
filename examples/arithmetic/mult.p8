@@ -2,8 +2,6 @@
 %import c64textio
 %zeropage basicsafe
 
-; TODO implement MUL asm generation
-
 main {
 
     sub start() {

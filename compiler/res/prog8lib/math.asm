@@ -86,7 +86,8 @@ result		.byte  0,0,0,0
 		.pend
 
 
-divmod_ub	.proc
+divmod_ub_asm	.proc
+	; TODO divmod_ub_asm doesn't work correctly.  (remainder = ok, quotient = FAULTY)
 	; -- divide A by Y, result quotient in Y, remainder in A   (unsigned)
 	;    division by zero will result in quotient = 255 and remainder = original number
 		sty  P8ZP_SCRATCH_REG

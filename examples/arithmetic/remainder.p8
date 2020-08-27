@@ -1,8 +1,6 @@
 %import c64textio
 %zeropage basicsafe
 
-; TODO implement  REMAINDER asmgeneration
-
 main {
 
     sub start() {
