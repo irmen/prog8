@@ -235,46 +235,61 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         when (operator) {
-            "**" -> TODO("pow")
+            "**" -> {
+                asmgen.out("""
+                    jsr  c64flt.pop_float_fac1
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.CONUPK
+                    jsr  c64flt.FPWRT
+                """)
+            }
             "+" -> {
                 asmgen.out("""
-                            jsr  c64flt.pop_float_fac1
-                            stx  P8ZP_SCRATCH_REG_X
-                            lda  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.FADD
-                            ldx  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVMF
-                            ldx  P8ZP_SCRATCH_REG_X
-                        """)
+                    jsr  c64flt.pop_float_fac1
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FADD
+                """)
             }
             "-" -> {
                 asmgen.out("""
-                            jsr  c64flt.pop_float_fac1
-                            stx  P8ZP_SCRATCH_REG_X
-                            lda  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.FSUB
-                            ldx  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVMF
-                            ldx  P8ZP_SCRATCH_REG_X
-                        """)
+                    jsr  c64flt.pop_float_fac1
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FSUB
+                """)
             }
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "*" -> {
+                asmgen.out("""
+                    jsr  c64flt.pop_float_fac1
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FMULT
+                """)
+            }
             "/" -> {
-                TODO("div")
-                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            }
-            "%" -> {
-                TODO("float remainder???")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
+                asmgen.out("""
+                    jsr  c64flt.pop_float_fac1
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FDIV
+                """)
             }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
+        // store Fac1 back into memory
+        asmgen.out("""
+            ldx  #<$name
+            ldy  #>$name
+            jsr  c64flt.MOVMF
+            ldx  P8ZP_SCRATCH_REG_X
+        """)
     }
 
     private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference) {
@@ -284,81 +299,145 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
         val otherName = asmgen.asmVariableName(ident)
         when (operator) {
-            "**" -> TODO("pow")
-            "+" -> TODO("+")
-            "-" -> TODO("-")
+            "**" -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.CONUPK
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  c64flt.FPWR
+                """)
+            }
+            "+" -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  c64flt.FADD
+                """)
+            }
+            "-" -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  c64flt.MOVFM
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FSUB
+                """)
+            }
             "*" -> {
                 asmgen.out("""
-                            stx  P8ZP_SCRATCH_REG_X
-                            lda  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVFM
-                            lda  #<$otherName
-                            ldy  #>$otherName
-                            jsr  c64flt.FMULT
-                            ldx  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVMF
-                            ldx  P8ZP_SCRATCH_REG_X
-                        """)
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  c64flt.FMULT
+                """)
             }
-            "/" -> TODO("div")
-            "%" -> TODO("float remainder???")
+            "/" -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  c64flt.MOVFM
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FDIV
+                """)
+            }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
+        // store Fac1 back into memory
+        asmgen.out("""
+            ldx  #<$name
+            ldy  #>$name
+            jsr  c64flt.MOVMF
+            ldx  P8ZP_SCRATCH_REG_X
+        """)
     }
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
         val constValueName = asmgen.getFloatAsmConst(value)
         when (operator) {
-            "**" -> TODO("pow")
+            "**" -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.CONUPK
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  c64flt.FPWR
+                """)
+            }
             "+" -> {
                 if (value == 0.0)
                     return
                 asmgen.out("""
-                            stx  P8ZP_SCRATCH_REG_X
-                            lda  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVFM
-                            lda  #<$constValueName
-                            ldy  #>$constValueName
-                            jsr  c64flt.FADD
-                            ldx  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVMF
-                            ldx  P8ZP_SCRATCH_REG_X
-                        """)
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  c64flt.FADD
+                """)
             }
             "-" -> {
                 if (value == 0.0)
                     return
                 asmgen.out("""
-                            stx  P8ZP_SCRATCH_REG_X
-                            lda  #<$constValueName
-                            ldy  #>$constValueName
-                            jsr  c64flt.MOVFM
-                            lda  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.FSUB
-                            ldx  #<$name
-                            ldy  #>$name
-                            jsr  c64flt.MOVMF
-                            ldx  P8ZP_SCRATCH_REG_X
-                        """)
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  c64flt.MOVFM
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FSUB
+                """)
             }
-            "*" -> TODO("mul")
+            "*" -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  c64flt.FMULT
+                """)
+            }
             "/" -> {
                 if (value == 0.0)
                     throw AssemblyError("division by zero")
-                TODO("div")
-            }
-            "%" -> {
-                if (value == 0.0)
-                    throw AssemblyError("division by zero")
-                TODO("float remainder???")
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG_X
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  c64flt.MOVFM
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  c64flt.FDIV
+                """)
             }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
+        // store Fac1 back into memory
+        asmgen.out("""
+            ldx  #<$name
+            ldy  #>$name
+            jsr  c64flt.MOVMF
+            ldx  P8ZP_SCRATCH_REG_X
+        """)
     }
 
     private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
