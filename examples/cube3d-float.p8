@@ -1,5 +1,5 @@
 %import c64lib
-%import c64utils
+%import c64textio
 %import c64flt
 
 main {
@@ -21,15 +21,15 @@ main {
         float time=0.0
         repeat {
             rotate_vertices(time)
-            c64scr.clear_screenchars(32)
+            txt.clear_screenchars(32)
             draw_edges()
             time+=0.2
-            c64scr.plot(0,0)
-            c64scr.print("3d cube! (float) ")
-            c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/fr = ")
-            c64scr.print_ub(60/c64.TIME_LO)
-            c64scr.print(" fps")
+            txt.plot(0,0)
+            txt.print("3d cube! (float) ")
+            txt.print_ub(c64.TIME_LO)
+            txt.print(" jiffies/fr = ")
+            txt.print_ub(60/c64.TIME_LO)
+            txt.print(" fps")
             c64.TIME_LO=0
         }
     }
@@ -81,7 +81,7 @@ main {
                 persp = (5.0+rz)/(height as float)
                 sx = rotatedx[i] / persp + width/2.0 as ubyte
                 sy = rotatedy[i] / persp + height/2.0 as ubyte
-                c64scr.setcc(sx, sy, 46, i+2)
+                txt.setcc(sx, sy, 46, i+2)
             }
         }
 
@@ -91,7 +91,7 @@ main {
                 persp = (5.0+rz)/(height as float)
                 sx = rotatedx[i] / persp + width/2.0 as ubyte
                 sy = rotatedy[i] / persp + height/2.0 as ubyte
-                c64scr.setcc(sx, sy, 81, i+2)
+                txt.setcc(sx, sy, 81, i+2)
             }
         }
     }

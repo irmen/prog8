@@ -1,14 +1,14 @@
-%import c64utils
+%import c64textio
 %zeropage basicsafe
 
 ; This example computes the first 20 values of the Fibonacci sequence.
 
 main {
     sub start() {
-        c64scr.print("fibonacci sequence\n")
+        txt.print("fibonacci sequence\n")
 
         repeat 21 {
-            c64scr.print_uw(fib_next())
+            txt.print_uw(fib_next())
             c64.CHROUT('\n')
         }
     }

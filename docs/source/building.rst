@@ -109,8 +109,8 @@ A module source file is a text file with the ``.p8`` suffix, containing the prog
 It consists of compilation options and other directives, imports of other modules,
 and source code for one or more code blocks.
 
-Prog8 has a couple of *LIBRARY* modules that are defined in special internal files provided by the compiler:
-``c64lib``, ``c64utils``, ``c64flt`` and ``prog8lib``. You should not overwrite these or reuse their names.
+Prog8 has various *LIBRARY* modules that are defined in special internal files provided by the compiler.
+You should not overwrite these or reuse their names.
 They are embedded into the packaged release version of the compiler so you don't have to worry about
 where they are, but their names are still reserved.
 

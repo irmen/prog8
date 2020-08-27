@@ -1,5 +1,5 @@
 %import c64lib
-%import c64utils
+%import c64textio
 
 main {
 
@@ -23,17 +23,17 @@ main {
         uword anglez
         repeat {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            c64scr.clear_screenchars(32)
+            txt.clear_screenchars(32)
             draw_edges()
             anglex+=1000
             angley+=433
             anglez+=907
-            c64scr.plot(0,0)
-            c64scr.print("3d cube! ")
-            c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/fr = ")
-            c64scr.print_ub(60/c64.TIME_LO)
-            c64scr.print(" fps")
+            txt.plot(0,0)
+            txt.print("3d cube! ")
+            txt.print_ub(c64.TIME_LO)
+            txt.print(" jiffies/fr = ")
+            txt.print_ub(60/c64.TIME_LO)
+            txt.print(" fps")
             c64.TIME_LO=0
         }
     }
@@ -88,7 +88,7 @@ main {
                 persp = 900 + rz/32
                 sx = rotatedx[i] / persp as byte + width/2
                 sy = rotatedy[i] / persp as byte + height/2
-                c64scr.setcc(sx as ubyte, sy as ubyte, 46, 7)
+                txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
             }
         }
 
@@ -98,7 +98,7 @@ main {
                 persp = 900 + rz/32
                 sx = rotatedx[i] / persp as byte + width/2
                 sy = rotatedy[i] / persp as byte + height/2
-                c64scr.setcc(sx as ubyte, sy as ubyte, 81, 7)
+                txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
             }
         }
     }

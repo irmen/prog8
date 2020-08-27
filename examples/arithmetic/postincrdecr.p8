@@ -1,13 +1,12 @@
-%import c64utils
 %import c64flt
-%option enable_floats
+%import c64textio
 %zeropage basicsafe
 
 main {
 
     sub start()  {
 
-        c64scr.plot(0,24)
+        txt.plot(0,24)
 
         ubyte Y
         ubyte ub=200
@@ -21,7 +20,7 @@ main {
         word[3] warr = -1000
         float[3] flarr = 999.99
 
-        c64scr.print("++\n")
+        txt.print("++\n")
         ub++
         bb++
         uw++
@@ -52,7 +51,7 @@ main {
         check_uw(uwarr[1], 2001)
         check_w(warr[1], -999)
 
-        c64scr.print("--\n")
+        txt.print("--\n")
         ub--
         bb--
         uw--
@@ -81,58 +80,58 @@ main {
 
     sub check_ub(ubyte value, ubyte expected) {
         if value==expected
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print(" ubyte ")
-        c64scr.print_ub(value)
+            txt.print("err! ")
+        txt.print(" ubyte ")
+        txt.print_ub(value)
         c64.CHROUT(',')
-        c64scr.print_ub(expected)
+        txt.print_ub(expected)
         c64.CHROUT('\n')
     }
 
     sub check_b(byte value, byte expected) {
         if value==expected
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print(" byte ")
-        c64scr.print_b(value)
+            txt.print("err! ")
+        txt.print(" byte ")
+        txt.print_b(value)
         c64.CHROUT(',')
-        c64scr.print_b(expected)
+        txt.print_b(expected)
         c64.CHROUT('\n')
     }
 
     sub check_uw(uword value, uword expected) {
         if value==expected
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print(" uword ")
-        c64scr.print_uw(value)
+            txt.print("err! ")
+        txt.print(" uword ")
+        txt.print_uw(value)
         c64.CHROUT(',')
-        c64scr.print_uw(expected)
+        txt.print_uw(expected)
         c64.CHROUT('\n')
     }
 
     sub check_w(word value, word expected) {
         if value==expected
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print(" word ")
-        c64scr.print_w(value)
+            txt.print("err! ")
+        txt.print(" word ")
+        txt.print_w(value)
         c64.CHROUT(',')
-        c64scr.print_w(expected)
+        txt.print_w(expected)
         c64.CHROUT('\n')
     }
 
     sub check_fl(float value, float expected) {
         if value==expected
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print(" float ")
+            txt.print("err! ")
+        txt.print(" float ")
         c64flt.print_f(value)
         c64.CHROUT(',')
         c64flt.print_f(expected)

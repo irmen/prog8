@@ -7,6 +7,9 @@
 ;   staged speed increase
 ;   some simple sound effects
 
+%import c64lib
+%import c64textio
+
 
 main {
 
@@ -196,7 +199,7 @@ waitkey:
                 num_lines++
                 ubyte x
                 for x in boardOffsetX to boardOffsetX+boardWidth-1
-                    c64scr.setcc(x, linepos, 160, 1)
+                    txt.setcc(x, linepos, 160, 1)
             }
         }
         if num_lines {
@@ -222,26 +225,26 @@ waitkey:
 
     sub gameOver() {
         sound.gameover()
-        c64scr.plot(7, 7)
+        txt.plot(7, 7)
         c64.CHROUT('U')
-        c64scr.print("────────────────────────")
+        txt.print("────────────────────────")
         c64.CHROUT('I')
-        c64scr.plot(7, 8)
-        c64scr.print("│*** g a m e  o v e r ***│")
-        c64scr.plot(7, 9)
+        txt.plot(7, 8)
+        txt.print("│*** g a m e  o v e r ***│")
+        txt.plot(7, 9)
         c64.CHROUT('J')
-        c64scr.print("────────────────────────")
+        txt.print("────────────────────────")
         c64.CHROUT('K')
 
-        c64scr.plot(7, 18)
+        txt.plot(7, 18)
         c64.CHROUT('U')
-        c64scr.print("────────────────────────")
+        txt.print("────────────────────────")
         c64.CHROUT('I')
-        c64scr.plot(7, 19)
-        c64scr.print("│    f1 for new game     │")
-        c64scr.plot(7, 20)
+        txt.plot(7, 19)
+        txt.print("│    f1 for new game     │")
+        txt.plot(7, 20)
         c64.CHROUT('J')
-        c64scr.print("────────────────────────")
+        txt.print("────────────────────────")
         c64.CHROUT('K')
 
         while c64.GETIN()!=133 {
@@ -278,61 +281,61 @@ waitkey:
     sub drawBoard() {
         c64.CLEARSCR()
         c64.COLOR = 7
-        c64scr.plot(1,1)
-        c64scr.print("irmen's")
-        c64scr.plot(2,2)
-        c64scr.print("teh▁triz")
+        txt.plot(1,1)
+        txt.print("irmen's")
+        txt.plot(2,2)
+        txt.print("teh▁triz")
         c64.COLOR = 5
-        c64scr.plot(6,4)
-        c64scr.print("hold:")
-        c64scr.plot(2,22)
-        c64scr.print("speed: ")
-        c64scr.plot(28,3)
-        c64scr.print("next:")
-        c64scr.plot(28,10)
-        c64scr.print("lines:")
-        c64scr.plot(28,14)
-        c64scr.print("score:")
+        txt.plot(6,4)
+        txt.print("hold:")
+        txt.plot(2,22)
+        txt.print("speed: ")
+        txt.plot(28,3)
+        txt.print("next:")
+        txt.plot(28,10)
+        txt.print("lines:")
+        txt.plot(28,14)
+        txt.print("score:")
         c64.COLOR = 12
-        c64scr.plot(27,18)
-        c64scr.print("controls:")
+        txt.plot(27,18)
+        txt.print("controls:")
         c64.COLOR = 11
-        c64scr.plot(28,19)
-        c64scr.print(",/  move")
-        c64scr.plot(28,20)
-        c64scr.print("zx  rotate")
-        c64scr.plot(29,21)
-        c64scr.print(".  descend")
-        c64scr.plot(27,22)
-        c64scr.print("spc  drop")
-        c64scr.plot(29,23)
-        c64scr.print("c  hold")
+        txt.plot(28,19)
+        txt.print(",/  move")
+        txt.plot(28,20)
+        txt.print("zx  rotate")
+        txt.plot(29,21)
+        txt.print(".  descend")
+        txt.plot(27,22)
+        txt.print("spc  drop")
+        txt.plot(29,23)
+        txt.print("c  hold")
 
-        c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
-        c64scr.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
-        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-2, 255, 0)  ; invisible barrier
-        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-3, 255, 0)  ; invisible barrier
+        txt.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
+        txt.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
+        txt.setcc(boardOffsetX+boardWidth, boardOffsetY-2, 255, 0)  ; invisible barrier
+        txt.setcc(boardOffsetX+boardWidth, boardOffsetY-3, 255, 0)  ; invisible barrier
 
-        c64scr.setcc(boardOffsetX-1, boardOffsetY-1, 108, 12)
-        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
-        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
-        c64scr.setcc(boardOffsetX-1, boardOffsetY+boardHeight, 124, 12)
-        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY+boardHeight, 126, 12)
+        txt.setcc(boardOffsetX-1, boardOffsetY-1, 108, 12)
+        txt.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
+        txt.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
+        txt.setcc(boardOffsetX-1, boardOffsetY+boardHeight, 124, 12)
+        txt.setcc(boardOffsetX+boardWidth, boardOffsetY+boardHeight, 126, 12)
         ubyte i
         for i in boardOffsetX+boardWidth-1 downto boardOffsetX {
-            c64scr.setcc(i, boardOffsetY-3, 255, 0)           ; invisible barrier
-            c64scr.setcc(i, boardOffsetY+boardHeight, 69, 11)
+            txt.setcc(i, boardOffsetY-3, 255, 0)           ; invisible barrier
+            txt.setcc(i, boardOffsetY+boardHeight, 69, 11)
         }
         for i in boardOffsetY+boardHeight-1 downto boardOffsetY {
-            c64scr.setcc(boardOffsetX-1, i, 89, 11)
-            c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
+            txt.setcc(boardOffsetX-1, i, 89, 11)
+            txt.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
         ubyte[] colors = [6,8,7,5,4]
         for i in len(colors)-1 downto 0 {
             ubyte x
             for x in 5 downto 0 {
-                c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])
+                txt.setcc(6+x-i, 11+2*i, 102, colors[i])
             }
         }
         drawScore()
@@ -340,12 +343,12 @@ waitkey:
 
     sub drawScore() {
         c64.COLOR=1
-        c64scr.plot(30,11)
-        c64scr.print_uw(lines)
-        c64scr.plot(30,15)
-        c64scr.print_uw(score)
-        c64scr.plot(9,22)
-        c64scr.print_ub(speedlevel)
+        txt.plot(30,11)
+        txt.print_uw(lines)
+        txt.plot(30,15)
+        txt.print_uw(score)
+        txt.plot(9,22)
+        txt.print_ub(speedlevel)
     }
 
     sub drawNextBlock() {
@@ -353,8 +356,8 @@ waitkey:
         const ubyte nextBlockYpos = 5
         ubyte x
         for x in nextBlockXpos+3 downto nextBlockXpos {
-            c64scr.setcc(x, nextBlockYpos, ' ', 0)
-            c64scr.setcc(x, nextBlockYpos+1, ' ', 0)
+            txt.setcc(x, nextBlockYpos, ' ', 0)
+            txt.setcc(x, nextBlockYpos+1, ' ', 0)
         }
 
         ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
@@ -369,8 +372,8 @@ waitkey:
         const ubyte holdBlockYpos = 6
         ubyte x
         for x in holdBlockXpos+3 downto holdBlockXpos {
-            c64scr.setcc(x, holdBlockYpos, '@', 0)
-            c64scr.setcc(x, holdBlockYpos+1, '@', 0)
+            txt.setcc(x, holdBlockYpos, '@', 0)
+            txt.setcc(x, holdBlockYpos+1, '@', 0)
         }
         if holding < 7 {
             ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
@@ -386,7 +389,7 @@ waitkey:
         for i in 15 downto 0 {
             ubyte c=blocklogic.currentBlock[i]
             if c
-                c64scr.setcc((i&3)+x, (i/4)+y, character, c)
+                txt.setcc((i&3)+x, (i/4)+y, character, c)
         }
     }
 }
@@ -533,7 +536,7 @@ blocklogic {
     sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
         ubyte i
         for i in 15 downto 0 {
-            if currentBlock[i] and c64scr.getchr(xpos + (i&3), ypos+i/4)!=32
+            if currentBlock[i] and txt.getchr(xpos + (i&3), ypos+i/4)!=32
                 return false
         }
         return true
@@ -549,7 +552,7 @@ blocklogic {
     sub isLineFull(ubyte ypos) -> ubyte {
         ubyte x
         for x in main.boardOffsetX to main.boardOffsetX+main.boardWidth-1 {
-            if c64scr.getchr(x, ypos)==32
+            if txt.getchr(x, ypos)==32
                 return false
         }
         return true
@@ -559,9 +562,9 @@ blocklogic {
         while ypos>main.startYpos+1 {
             ubyte x
             for x in main.boardOffsetX+main.boardWidth-1 downto main.boardOffsetX {
-                ubyte char = c64scr.getchr(x, ypos-1)
-                ubyte color = c64scr.getclr(x, ypos-1)
-                c64scr.setcc(x, ypos, char, color)
+                ubyte char = txt.getchr(x, ypos-1)
+                ubyte color = txt.getclr(x, ypos-1)
+                txt.setcc(x, ypos, char, color)
             }
             ypos--
         }

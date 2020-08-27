@@ -1,4 +1,4 @@
-%import c64utils
+%import c64textio
 %zeropage basicsafe
 
 main {
@@ -9,7 +9,7 @@ main {
         ubyte v2
         ubyte cr
 
-        c64scr.print("unsigned byte ")
+        txt.print("unsigned byte ")
 
         cr=v1==v2
         cr=v1==v2
@@ -39,52 +39,52 @@ main {
         ; comparisons:
         v1=20
         v2=199
-        c64scr.print("v1=20, v2=199\n")
+        txt.print("v1=20, v2=199\n")
         compare()
 
         v1=80
         v2=80
-        c64scr.print("v1 = v2 = 80\n")
+        txt.print("v1 = v2 = 80\n")
         compare()
 
         v1=220
         v2=10
-        c64scr.print("v1=220, v2=10\n")
+        txt.print("v1=220, v2=10\n")
         compare()
 
         return
 
         sub compare() {
-        c64scr.print("  ==  !=  <   >   <=  >=\n")
+        txt.print("  ==  !=  <   >   <=  >=\n")
 
         if v1==v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
         if v1!=v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1<v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1>v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1<=v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1>=v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
         c64.CHROUT('\n')
 
     }

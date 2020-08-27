@@ -1,4 +1,4 @@
-%import c64utils
+%import c64textio
 %zeropage basicsafe
 
 main {
@@ -10,19 +10,19 @@ main {
         memset(sieve, 256, false)   ; clear the sieve, to reset starting situation on subsequent runs
 
         ; calculate primes
-        c64scr.print("prime numbers up to 255:\n\n")
+        txt.print("prime numbers up to 255:\n\n")
         ubyte amount=0
         repeat {
             ubyte prime = find_next_prime()
             if prime==0
                 break
-            c64scr.print_ub(prime)
-            c64scr.print(", ")
+            txt.print_ub(prime)
+            txt.print(", ")
             amount++
         }
         c64.CHROUT('\n')
-        c64scr.print("number of primes (expected 54): ")
-        c64scr.print_ub(amount)
+        txt.print("number of primes (expected 54): ")
+        txt.print_ub(amount)
         c64.CHROUT('\n')
     }
 

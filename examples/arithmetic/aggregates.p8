@@ -1,7 +1,6 @@
-%import c64lib
-%import c64utils
 %import c64flt
-%zeropage dontuse
+%import c64textio
+%zeropage basicsafe
 
 main {
 
@@ -20,90 +19,90 @@ main {
 
         ; LEN/STRLEN
         ubyte length = len(name)
-        if length!=5 c64scr.print("error len1\n")
+        if length!=5 txt.print("error len1\n")
         length = len(uwarr)
-        if length!=5 c64scr.print("error len2\n")
+        if length!=5 txt.print("error len2\n")
         length=strlen(name)
-        if length!=5 c64scr.print("error strlen1\n")
+        if length!=5 txt.print("error strlen1\n")
         name[3] = 0
         length=strlen(name)
-        if length!=3 c64scr.print("error strlen2\n")
+        if length!=3 txt.print("error strlen2\n")
 
         ; MAX
         ub = max(ubarr)
-        if ub!=199 c64scr.print("error max1\n")
+        if ub!=199 txt.print("error max1\n")
         bb = max(barr)
-        if bb!=99 c64scr.print("error max2\n")
+        if bb!=99 txt.print("error max2\n")
         uw = max(uwarr)
-        if uw!=4444 c64scr.print("error max3\n")
+        if uw!=4444 txt.print("error max3\n")
         ww = max(warr)
-        if ww!=999 c64scr.print("error max4\n")
+        if ww!=999 txt.print("error max4\n")
         ff = max(farr)
-        if ff!=999.9 c64scr.print("error max5\n")
+        if ff!=999.9 txt.print("error max5\n")
 
         ; MIN
         ub = min(ubarr)
-        if ub!=0 c64scr.print("error min1\n")
+        if ub!=0 txt.print("error min1\n")
         bb = min(barr)
-        if bb!=-122 c64scr.print("error min2\n")
+        if bb!=-122 txt.print("error min2\n")
         uw = min(uwarr)
-        if uw!=0 c64scr.print("error min3\n")
+        if uw!=0 txt.print("error min3\n")
         ww = min(warr)
-        if ww!=-4444 c64scr.print("error min4\n")
+        if ww!=-4444 txt.print("error min4\n")
         ff = min(farr)
-        if ff!=-4444.4 c64scr.print("error min5\n")
+        if ff!=-4444.4 txt.print("error min5\n")
 
         ; SUM
         uw = sum(ubarr)
-        if uw!=420 c64scr.print("error sum1\n")
+        if uw!=420 txt.print("error sum1\n")
         ww = sum(barr)
-        if ww!=-101 c64scr.print("error sum2\n")
+        if ww!=-101 txt.print("error sum2\n")
         uw = sum(uwarr)
-        if uw!=6665 c64scr.print("error sum3\n")
+        if uw!=6665 txt.print("error sum3\n")
         ww = sum(warr)
-        if ww!=-4223 c64scr.print("error sum4\n")
+        if ww!=-4223 txt.print("error sum4\n")
         ff = sum(farr)
-        if ff!=-4222.4 c64scr.print("error sum5\n")
+        if ff!=-4222.4 txt.print("error sum5\n")
 
         ; ANY
         ub = any(ubarr)
-        if ub==0 c64scr.print("error any1\n")
+        if ub==0 txt.print("error any1\n")
         ub = any(barr)
-        if ub==0 c64scr.print("error any2\n")
+        if ub==0 txt.print("error any2\n")
         ub = any(uwarr)
-        if ub==0 c64scr.print("error any3\n")
+        if ub==0 txt.print("error any3\n")
         ub = any(warr)
-        if ub==0 c64scr.print("error any4\n")
+        if ub==0 txt.print("error any4\n")
         ub = any(farr)
-        if ub==0 c64scr.print("error any5\n")
+        if ub==0 txt.print("error any5\n")
 
         ; ALL
         ub = all(ubarr)
-        if ub==1 c64scr.print("error all1\n")
+        if ub==1 txt.print("error all1\n")
         ub = all(barr)
-        if ub==1 c64scr.print("error all2\n")
+        if ub==1 txt.print("error all2\n")
         ub = all(uwarr)
-        if ub==1 c64scr.print("error all3\n")
+        if ub==1 txt.print("error all3\n")
         ub = all(warr)
-        if ub==1 c64scr.print("error all4\n")
+        if ub==1 txt.print("error all4\n")
         ub = all(farr)
-        if ub==1 c64scr.print("error all5\n")
+        if ub==1 txt.print("error all5\n")
         ubarr[1]=$40
         barr[1]=$40
         uwarr[1]=$4000
         warr[1]=$4000
         farr[1]=1.1
         ub = all(ubarr)
-        if ub==0 c64scr.print("error all6\n")
+        if ub==0 txt.print("error all6\n")
         ub = all(barr)
-        if ub==0 c64scr.print("error all7\n")
+        if ub==0 txt.print("error all7\n")
         ub = all(uwarr)
-        if ub==0 c64scr.print("error all8\n")
+        if ub==0 txt.print("error all8\n")
         ub = all(warr)
-        if ub==0 c64scr.print("error all9\n")
+        if ub==0 txt.print("error all9\n")
         ub = all(farr)
-        if ub==0 c64scr.print("error all10\n")
+        if ub==0 txt.print("error all10\n")
 
-        c64scr.print("\nyou should see no errors printed above (only at first run).")
+        txt.print("\nyou should see no errors printed above (only at first run).")
     }
 }

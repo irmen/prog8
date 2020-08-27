@@ -1,4 +1,4 @@
-%import c64utils
+%import c64textio
 
 main {
 
@@ -18,7 +18,7 @@ main {
         repeat {
             ubyte x = msb(sin8u(msb(ball.anglex)) as uword * width)
             ubyte y = msb(cos8u(msb(ball.angley)) as uword * height)
-            c64scr.setcc(x, y, 81, ball.color)
+            txt.setcc(x, y, 81, ball.color)
 
             ball.anglex+=800
             ball.angley+=947

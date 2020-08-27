@@ -1,4 +1,4 @@
-%import c64lib
+%import c64textio
 
 ; bitmap pixel graphics module for the C64
 ; only black/white monchrome for now
@@ -18,7 +18,7 @@ graphics {
 
     sub clear_screen() {
         memset(bitmap_address, 320*200/8, 0)
-        c64scr.clear_screen($10, 0)         ; pixel color $1 (white) backround $0 (black)
+        txt.clear_screen($10, 0)         ; pixel color $1 (white) backround $0 (black)
     }
 
     sub line(uword x1, ubyte y1, uword x2, ubyte y2) {

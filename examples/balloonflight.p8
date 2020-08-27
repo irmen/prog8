@@ -1,5 +1,5 @@
 %import c64lib
-%import c64utils
+%import c64textio
 %zeropage basicsafe
 
 main {
@@ -15,7 +15,7 @@ main {
 
         c64.SCROLX &= %11110111     ; 38 column mode
 
-        c64utils.set_rasterirq(1)     ; enable animation
+        c64.set_rasterirq(1)     ; enable animation
 
         ubyte target_height = 10
         ubyte active_height = 24
@@ -43,7 +43,7 @@ main {
             }
 
             perform_scroll = false
-            c64scr.scroll_left_full(true)
+            txt.scroll_left_full(true)
             if c64.RASTER & 1
                 c64.SPXY[1] ++
             else
@@ -51,17 +51,17 @@ main {
 
             ubyte yy
             for yy in 0 to active_height-1 {
-                c64scr.setcc(39, yy, 32, 2)         ; clear top of screen
+                txt.setcc(39, yy, 32, 2)         ; clear top of screen
             }
-            c64scr.setcc(39, active_height, mountain, 8)    ; mountain edge
+            txt.setcc(39, active_height, mountain, 8)    ; mountain edge
             for yy in active_height+1 to 24 {
-                c64scr.setcc(39, yy, 160, 8)        ; draw mountain
+                txt.setcc(39, yy, 160, 8)        ; draw mountain
             }
 
             yy = rnd()
             if yy > 100 {
                 ; draw a star
-                c64scr.setcc(39, yy % (active_height-1), '.', rnd())
+                txt.setcc(39, yy % (active_height-1), '.', rnd())
             }
 
             if yy > 200 {
@@ -74,12 +74,12 @@ main {
                     tree = 65
                 if rnd() > 130
                     treecolor = 13
-                c64scr.setcc(39, active_height, tree, treecolor)
+                txt.setcc(39, active_height, tree, treecolor)
             }
 
             if yy > 235 {
                 ; draw a camel
-                c64scr.setcc(39, active_height, 94, 9)
+                txt.setcc(39, active_height, 94, 9)
             }
         }
     }

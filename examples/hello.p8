@@ -1,5 +1,5 @@
 %import c64lib
-%import c64utils
+%import c64textio
 %import c64flt
 %zeropage basicsafe
 
@@ -13,7 +13,7 @@ main {
         c64.VMCSB |= 2
 
         ; use optimized routine to write text
-        c64scr.print("Hello!\n")
+        txt.print("Hello!\n")
 
         ; use iteration to write text
         str question = "How are you?\n"
@@ -33,7 +33,7 @@ main {
         float minutes = floor(clock_seconds / 60)
         clock_seconds = floor(clock_seconds - minutes * 60.0)
 
-        c64scr.print("system time in ti$ is ")
+        txt.print("system time in ti$ is ")
         c64flt.print_f(hours)
         c64.CHROUT(':')
         c64flt.print_f(minutes)
@@ -41,6 +41,6 @@ main {
         c64flt.print_f(clock_seconds)
         c64.CHROUT('\n')
 
-        c64scr.print("bye!\n")
+        txt.print("bye!\n")
     }
 }

@@ -31,11 +31,8 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
     override fun getFloatRomConst(number: Double): String? = null       // TODO Does Cx16 have ROM float locations?
     override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
-        // if we're producing a PRG or BASIC program, include the cx16utils and cx16lib libraries
-        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG) {
+        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             importer.importLibraryModule(program, "cx16lib")
-            importer.importLibraryModule(program, "cx16utils")
-        }
     }
 
     override fun launchEmulator(programName: String) {

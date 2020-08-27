@@ -1,7 +1,8 @@
-%import c64lib
-%import c64utils
-%import c64flt
+%import c64textio
 %zeropage basicsafe
+
+; TODO implement  REMAINDER asmgeneration
+
 
 main {
 
@@ -20,30 +21,30 @@ main {
     sub remainder_ubyte(ubyte a1, ubyte a2, ubyte c) {
         ubyte r = a1%a2
         if r==c
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print("ubyte ")
-        c64scr.print_ub(a1)
-        c64scr.print(" % ")
-        c64scr.print_ub(a2)
-        c64scr.print(" = ")
-        c64scr.print_ub(r)
+            txt.print("err! ")
+        txt.print("ubyte ")
+        txt.print_ub(a1)
+        txt.print(" % ")
+        txt.print_ub(a2)
+        txt.print(" = ")
+        txt.print_ub(r)
         c64.CHROUT('\n')
     }
 
     sub remainder_uword(uword a1, uword  a2, uword c) {
         uword  r = a1%a2
         if r==c
-            c64scr.print(" ok  ")
+            txt.print(" ok  ")
         else
-            c64scr.print("err! ")
-        c64scr.print("uword ")
-        c64scr.print_uw(a1)
-        c64scr.print(" % ")
-        c64scr.print_uw(a2)
-        c64scr.print(" = ")
-        c64scr.print_uw(r)
+            txt.print("err! ")
+        txt.print("uword ")
+        txt.print_uw(a1)
+        txt.print(" % ")
+        txt.print_uw(a2)
+        txt.print(" = ")
+        txt.print_uw(r)
         c64.CHROUT('\n')
     }
 }

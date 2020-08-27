@@ -67,11 +67,8 @@ internal object C64MachineDefinition: IMachineDefinition {
     }
 
     override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
-        // if we're producing a PRG or BASIC program, include the c64utils and c64lib libraries
-        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG) {
+        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             importer.importLibraryModule(program, "c64lib")
-            importer.importLibraryModule(program, "c64utils")
-        }
     }
 
     override fun launchEmulator(programName: String) {

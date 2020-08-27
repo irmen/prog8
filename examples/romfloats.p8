@@ -1,6 +1,5 @@
 %import c64flt
 %zeropage basicsafe
-%option enable_floats
 
 main {
 

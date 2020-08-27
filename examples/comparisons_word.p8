@@ -1,4 +1,4 @@
-%import c64utils
+%import c64textio
 %zeropage basicsafe
 
 main {
@@ -9,7 +9,7 @@ main {
         word v2
         ubyte cr
 
-        c64scr.print("signed word ")
+        txt.print("signed word ")
 
         cr=v1==v2
         cr=v1==v2
@@ -39,118 +39,118 @@ main {
         ; comparisons:
         v1=20
         v2=$00aa
-        c64scr.print("v1=20, v2=$00aa\n")
+        txt.print("v1=20, v2=$00aa\n")
         compare()
 
         v1=20
         v2=$7a00
-        c64scr.print("v1=20, v2=$7a00\n")
+        txt.print("v1=20, v2=$7a00\n")
         compare()
 
         v1=$7400
         v2=$22
-        c64scr.print("v1=$7400, v2=$22\n")
+        txt.print("v1=$7400, v2=$22\n")
         compare()
 
         v1=$7400
         v2=$2a00
-        c64scr.print("v1=$7400, v2=$2a00\n")
+        txt.print("v1=$7400, v2=$2a00\n")
         compare()
 
         v1=$7433
         v2=$2a00
-        c64scr.print("v1=$7433, v2=$2a00\n")
+        txt.print("v1=$7433, v2=$2a00\n")
         compare()
 
         v1=$7433
         v2=$2aff
-        c64scr.print("v1=$7433, v2=$2aff\n")
+        txt.print("v1=$7433, v2=$2aff\n")
         compare()
 
         ;  with negative numbers:
         v1=-512
         v2=$00aa
-        c64scr.print("v1=-512, v2=$00aa\n")
+        txt.print("v1=-512, v2=$00aa\n")
         compare()
 
         v1=-512
         v2=$7a00
-        c64scr.print("v1=-512, v2=$7a00\n")
+        txt.print("v1=-512, v2=$7a00\n")
         compare()
 
         v1=$7400
         v2=-512
-        c64scr.print("v1=$7400, v2=-512\n")
+        txt.print("v1=$7400, v2=-512\n")
         compare()
 
         v1=-20000
         v2=-1000
-        c64scr.print("v1=-20000, v2=-1000\n")
+        txt.print("v1=-20000, v2=-1000\n")
         compare()
 
         v1=-1000
         v2=-20000
-        c64scr.print("v1=-1000, v2=-20000\n")
+        txt.print("v1=-1000, v2=-20000\n")
         compare()
 
         v1=-1
         v2=32767
-        c64scr.print("v1=-1, v2=32767\n")
+        txt.print("v1=-1, v2=32767\n")
         compare()
 
         v1=32767
         v2=-1
-        c64scr.print("v1=32767, v2=-1\n")
+        txt.print("v1=32767, v2=-1\n")
         compare()
 
         v1=$7abb
         v2=$7abb
-        c64scr.print("v1 = v2 = 7abb\n")
+        txt.print("v1 = v2 = 7abb\n")
         compare()
 
         v1=$7a00
         v2=$7a00
-        c64scr.print("v1 = v2 = 7a00\n")
+        txt.print("v1 = v2 = 7a00\n")
         compare()
 
         v1=$aa
         v2=$aa
-        c64scr.print("v1 = v2 = aa\n")
+        txt.print("v1 = v2 = aa\n")
         compare()
 
         return
 
         sub compare() {
-        c64scr.print("  ==  !=  <   >   <=  >=\n")
+        txt.print("  ==  !=  <   >   <=  >=\n")
 
         if v1==v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
         if v1!=v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1<v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1>v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1<=v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
 
         if v1>=v2
-            c64scr.print("  Q ")
+            txt.print("  Q ")
         else
-            c64scr.print("  . ")
+            txt.print("  . ")
         c64.CHROUT('\n')
 
     }

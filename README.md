@@ -67,7 +67,7 @@ Example code
 
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
-    %import c64utils
+    %import c64textio
     %zeropage basicsafe
 
     main {
@@ -76,35 +76,33 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
         ubyte candidate_prime = 2
 
         sub start() {
-            memset(sieve, 256, false)
-
-            c64scr.print("prime numbers up to 255:\n\n")
+            memset(sieve, 256, false)   ; clear the sieve
+            txt.print("prime numbers up to 255:\n\n")
             ubyte amount=0
             repeat {
                 ubyte prime = find_next_prime()
                 if prime==0
                     break
-                c64scr.print_ub(prime)
-                c64scr.print(", ")
+                txt.print_ub(prime)
+                txt.print(", ")
                 amount++
             }
             c64.CHROUT('\n')
-            c64scr.print("number of primes (expected 54): ")
-            c64scr.print_ub(amount)
+            txt.print("number of primes (expected 54): ")
+            txt.print_ub(amount)
             c64.CHROUT('\n')
         }
 
-
         sub find_next_prime() -> ubyte {
-
             while sieve[candidate_prime] {
                 candidate_prime++
                 if candidate_prime==0
-                    return 0
+                    return 0        ; we wrapped; no more primes available
             }
-
+            ; found next one, mark the multiples and return it.
             sieve[candidate_prime] = true
             uword multiple = candidate_prime
+
             while multiple < len(sieve) {
                 sieve[lsb(multiple)] = true
                 multiple += candidate_prime

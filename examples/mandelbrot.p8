@@ -1,5 +1,5 @@
 %import c64lib
-%import c64utils
+%import c64textio
 %import c64flt
 %zeropage basicsafe
 
@@ -9,7 +9,7 @@ main {
     const ubyte max_iter = 16
 
     sub start()  {
-        c64scr.print("calculating mandelbrot fractal...")
+        txt.print("calculating mandelbrot fractal...")
 
         c64.TIME_HI=0
         c64.TIME_MID=0
@@ -37,16 +37,16 @@ main {
                     ysquared = y*y
                     iter++
                 }
-                c64scr.setcc(pixelx+4, pixely+1, 160, max_iter-iter)
+                txt.setcc(pixelx+4, pixely+1, 160, max_iter-iter)
             }
         }
 
         float duration = ((c64.TIME_LO as float)
                                 + 256.0*(c64.TIME_MID as float)
                                 + 65536.0*(c64.TIME_HI as float))/60.0
-        c64scr.plot(0, 21)
-        c64scr.print("finished in ")
+        txt.plot(0, 21)
+        txt.print("finished in ")
         c64flt.print_f(duration)
-        c64scr.print(" seconds!\n")
+        txt.print(" seconds!\n")
     }
 }

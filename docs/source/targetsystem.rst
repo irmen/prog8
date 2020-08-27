@@ -149,13 +149,13 @@ but there are a few library routines available to make setting up C-64 IRQs and 
 
 These routines are::
 
-    c64utils.set_irqvec()
-    c64utils.set_irqvec_excl()
+    c64.set_irqvec()
+    c64.set_irqvec_excl()
 
-    c64utils.set_rasterirq( <raster line> )
-    c64utils.set_rasterirq_excl( <raster line> )
+    c64.set_rasterirq( <raster line> )
+    c64.set_rasterirq_excl( <raster line> )
 
-    c64utils.restore_irqvec()     ; set it back to the systems default irq handler
+    c64.restore_irqvec()     ; set it back to the systems default irq handler
 
 If you activate an IRQ handler with one of these, it expects the handler to be defined
 as a subroutine ``irq`` in the module ``irq`` so like this::

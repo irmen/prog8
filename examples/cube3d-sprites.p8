@@ -1,5 +1,5 @@
 %import c64lib
-%import c64utils
+%import c64textio
 
 
 spritedata $2000 {
@@ -89,12 +89,12 @@ main {
             anglex-=500
             angley+=217
             anglez+=452
-            c64scr.plot(0,0)
-            c64scr.print("3d cube! (sprites) ")
-            c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/fr = ")
-            c64scr.print_ub(60/c64.TIME_LO)
-            c64scr.print(" fps")
+            txt.plot(0,0)
+            txt.print("3d cube! (sprites) ")
+            txt.print_ub(c64.TIME_LO)
+            txt.print(" jiffies/fr = ")
+            txt.print_ub(60/c64.TIME_LO)
+            txt.print(" fps")
         }
     }
 

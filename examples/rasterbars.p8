@@ -1,11 +1,10 @@
-%import c64utils
 %import c64lib
 
 main {
 
     sub start() {
         c64.SCROLY &= %11101111             ; blank the screen
-        c64utils.set_rasterirq_excl(40)     ; register exclusive raster irq handler
+        c64.set_rasterirq_excl(40)     ; register exclusive raster irq handler
 
         repeat {
             ; enjoy the moving bars :)

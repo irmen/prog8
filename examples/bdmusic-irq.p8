@@ -1,11 +1,12 @@
-%zeropage basicsafe
 %import c64lib
+%import c64textio
+%zeropage basicsafe
 
 main {
 
     sub start() {
-        c64scr.print("playing the music from boulderdash,\nmade in 1984 by peter liepa.\n\n")
-        c64utils.set_rasterirq(60)     ; enable raster irq
+        txt.print("playing the music from boulderdash,\nmade in 1984 by peter liepa.\n\n")
+        c64.set_rasterirq(60)     ; enable raster irq
     }
 }
 

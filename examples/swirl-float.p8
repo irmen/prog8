@@ -1,4 +1,4 @@
-%import c64utils
+%import c64textio
 %import c64flt
 
 main {
@@ -14,7 +14,7 @@ main {
         repeat {
             ubyte xx=(sin(t) * width/2.2) + width/2.0 as ubyte
             ubyte yy=(cos(t*1.1356) * height/2.2) + height/2.0 as ubyte
-            c64scr.setcc(xx, yy, 81, color)
+            txt.setcc(xx, yy, 81, color)
             t  += 0.08
             color++
         }

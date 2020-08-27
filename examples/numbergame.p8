@@ -1,4 +1,4 @@
-%import c64utils
+%import c64textio
 %import c64lib
 %import conv
 %zeropage basicsafe
@@ -14,32 +14,32 @@ main {
         ubyte attempts_left
 
         c64.VMCSB |= 2  ; switch lowercase chars
-        c64scr.print("Please introduce yourself: ")
-        void c64scr.input_chars(name)
-        c64scr.print("\n\nHello, ")
-        c64scr.print(name)
-        c64scr.print(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
+        txt.print("Please introduce yourself: ")
+        void txt.input_chars(name)
+        txt.print("\n\nHello, ")
+        txt.print(name)
+        txt.print(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
         for attempts_left in 10 downto 1 {
 
-            c64scr.print("\nYou have ")
-            c64scr.print_ub(attempts_left)
-            c64scr.print(" guess")
+            txt.print("\nYou have ")
+            txt.print_ub(attempts_left)
+            txt.print(" guess")
             if attempts_left>1
-                c64scr.print("es")
-            c64scr.print(" left.\nWhat is your next guess? ")
-            void c64scr.input_chars(input)
+                txt.print("es")
+            txt.print(" left.\nWhat is your next guess? ")
+            void txt.input_chars(input)
             ubyte guess = lsb(conv.str2uword(input))
 
             if guess==secretnumber {
                 ending(true)
                 return
             } else {
-                c64scr.print("\n\nThat is too ")
+                txt.print("\n\nThat is too ")
                 if guess<secretnumber
-                    c64scr.print("low!\n")
+                    txt.print("low!\n")
                 else
-                    c64scr.print("high!\n")
+                    txt.print("high!\n")
             }
         }
 
@@ -49,15 +49,15 @@ main {
 
         sub ending(ubyte success) {
             if success
-                c64scr.print("\n\nYou guessed it, impressive!\n")
+                txt.print("\n\nYou guessed it, impressive!\n")
             else {
-                c64scr.print("\nToo bad! My number was: ")
-                c64scr.print_ub(secretnumber)
-                c64scr.print(".\n")
+                txt.print("\nToo bad! My number was: ")
+                txt.print_ub(secretnumber)
+                txt.print(".\n")
             }
-            c64scr.print("Thanks for playing, ")
-            c64scr.print(name)
-            c64scr.print(".\n")
+            txt.print("Thanks for playing, ")
+            txt.print(name)
+            txt.print(".\n")
         }
     }
 }

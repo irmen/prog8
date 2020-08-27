@@ -1,5 +1,4 @@
-; Prog8 definitions for the CommanderX16
-; These are utility subroutines.
+; Prog8 definitions for the Text I/O and Screen routines for the CommanderX16
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 ;
@@ -10,20 +9,7 @@
 %import conv
 
 
-cx16utils {
-
-    ; --- nothing here yet at this time.
-
-
-}  ; ------ end of block cx16utils
-
-
-
-
-screen {
-
-	; ---- this block contains (character) Screen and text I/O related functions ----
-
+txt {
 
 asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- clear the character screen with the given fill character and character color.
@@ -251,6 +237,4 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	}}
 }
 
-
-
-}  ; ---- end block screen
+}

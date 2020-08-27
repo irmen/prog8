@@ -1,4 +1,3 @@
-%import c64lib
 %import c64graphics
 
 main {

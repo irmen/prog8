@@ -803,7 +803,7 @@ memset(address, numbytes, bytevalue)
     Efficiently set a part of memory to the given (u)byte value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
     Note that for clearing the character screen, very fast specialized subroutines are
-    available in the ``c64scr`` block (part of the ``c64utils`` module)
+    available in the ``screen`` block (part of the ``c64textio`` or ``cx16textio`` modules)
 
 memsetw(address, numwords, wordvalue)
     Efficiently set a part of memory to the given (u)word value.

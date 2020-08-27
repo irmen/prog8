@@ -1,4 +1,4 @@
-%import c64lib
+%import c64textio
 
 main {
 
@@ -12,7 +12,7 @@ sub start() {
     c64.SR2 = %00000000
     c64.MVOL = 15
 
-    c64scr.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
+    txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
     void c64.CHRIN()
     c64.CLEARSCR()
 
@@ -46,10 +46,10 @@ sub delay() {
 
 sub print_notes(ubyte n1, ubyte n2) {
     c64.CHROUT('\n')
-    c64scr.plot(n1/2, 24)
+    txt.plot(n1/2, 24)
     c64.COLOR=7
     c64.CHROUT('Q')
-    c64scr.plot(n2/2, 24)
+    txt.plot(n2/2, 24)
     c64.COLOR=4
     c64.CHROUT('Q')
 }

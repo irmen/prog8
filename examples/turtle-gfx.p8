@@ -1,7 +1,5 @@
-%import c64lib
 %import c64flt
 %import c64graphics
-%option enable_floats
 
 main {
 

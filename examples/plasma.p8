@@ -1,4 +1,5 @@
 %import c64lib
+%import c64textio
 
 
 ;/*****************************************************************************\
@@ -21,7 +22,7 @@ main {
 
     sub start() {
         c64.COLOR = 1
-        c64scr.print("creating charset...\n")
+        txt.print("creating charset...\n")
         makechar()
 
         ubyte block = c64.CIA2PRA
@@ -38,7 +39,7 @@ main {
         ; restore screen (if you want)
         ;c64.VMCSB = v
         ;c64.CIA2PRA = block
-        ;c64scr.print("done!\n")
+        ;txt.print("done!\n")
     }
 
     ; several variables outside of doplasma to make them retain their value

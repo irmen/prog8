@@ -1,38 +1,38 @@
 %import c64lib
-%import c64utils
+%import c64textio
 %zeropage basicsafe
 
 
 main {
 
     sub start() {
-        c64scr.print("mid-point\ncircle\n and\nbresenham\nline\nalgorithms.\n")
+        txt.print("mid-point\ncircle\n and\nbresenham\nline\nalgorithms.\n")
 
         ubyte r
         for r in 3 to 12 step 3 {
             circle(20, 12, r)
         }
 
-        c64scr.print("enter for disc:")
+        txt.print("enter for disc:")
         void c64.CHRIN()
         c64.CHROUT('\n')
-        c64scr.clear_screen(' ', 1)
+        txt.clear_screen(' ', 1)
         disc(20, 12, 12)
 
-        c64scr.print("enter for lines:")
+        txt.print("enter for lines:")
         void c64.CHRIN()
         c64.CHROUT('\n')
-        c64scr.clear_screen(' ', 1)
+        txt.clear_screen(' ', 1)
 
         line(1, 10, 38, 24)
         line(1, 20, 38, 2)
         line(20, 4, 10, 24)
         line(39, 16, 12, 0)
 
-        c64scr.print("enter for rectangles:")
+        txt.print("enter for rectangles:")
         void c64.CHRIN()
         c64.CHROUT('\n')
-        c64scr.clear_screen(' ', 1)
+        txt.clear_screen(' ', 1)
 
         rect(4, 8, 37, 23, false)
         rect(20, 12, 30, 20, true)
@@ -46,18 +46,18 @@ main {
             if fill {
                 for y in y1 to y2 {
                     for x in x1 to x2 {
-                        c64scr.setcc(x, y, 42, x+y)
+                        txt.setcc(x, y, 42, x+y)
                     }
                 }
             } else {
                 for x in x1 to x2 {
-                    c64scr.setcc(x, y1, 42, 8)
-                    c64scr.setcc(x, y2, 42, 8)
+                    txt.setcc(x, y1, 42, 8)
+                    txt.setcc(x, y2, 42, 8)
                 }
                 if y2>y1 {
                     for y in y1+1 to y2-1 {
-                        c64scr.setcc(x1, y, 42, 7)
-                        c64scr.setcc(x2, y, 42, 7)
+                        txt.setcc(x1, y, 42, 7)
+                        txt.setcc(x2, y, 42, 7)
                     }
                 }
             }
@@ -78,7 +78,7 @@ main {
 
             if dx >= dy {
                 repeat {
-                    c64scr.setcc(x, y, 42, 5)
+                    txt.setcc(x, y, 42, 5)
                     if x==x2
                         return
                     x += ix
@@ -90,7 +90,7 @@ main {
                 }
             } else {
                 repeat {
-                    c64scr.setcc(x, y, 42, 5)
+                    txt.setcc(x, y, 42, 5)
                     if y == y2
                         return
                     y += iy
@@ -110,14 +110,14 @@ main {
             byte decisionOver2 = 1-x as byte
 
             while x>=y {
-                c64scr.setcc(xcenter + x, ycenter + y as ubyte, 81, 1)
-                c64scr.setcc(xcenter - x, ycenter + y as ubyte, 81, 2)
-                c64scr.setcc(xcenter + x, ycenter - y as ubyte, 81, 3)
-                c64scr.setcc(xcenter - x, ycenter - y as ubyte, 81, 4)
-                c64scr.setcc(xcenter + y, ycenter + x as ubyte, 81, 5)
-                c64scr.setcc(xcenter - y, ycenter + x as ubyte, 81, 6)
-                c64scr.setcc(xcenter + y, ycenter - x as ubyte, 81, 7)
-                c64scr.setcc(xcenter - y, ycenter - x as ubyte, 81, 8)
+                txt.setcc(xcenter + x, ycenter + y as ubyte, 81, 1)
+                txt.setcc(xcenter - x, ycenter + y as ubyte, 81, 2)
+                txt.setcc(xcenter + x, ycenter - y as ubyte, 81, 3)
+                txt.setcc(xcenter - x, ycenter - y as ubyte, 81, 4)
+                txt.setcc(xcenter + y, ycenter + x as ubyte, 81, 5)
+                txt.setcc(xcenter - y, ycenter + x as ubyte, 81, 6)
+                txt.setcc(xcenter + y, ycenter - x as ubyte, 81, 7)
+                txt.setcc(xcenter - y, ycenter - x as ubyte, 81, 8)
                 y++
                 if decisionOver2<=0
                     decisionOver2 += 2*y+1
@@ -137,20 +137,20 @@ main {
 
             while x>=y {
                 for xx in cx to cx+x {
-                    c64scr.setcc(xx, cy + y as ubyte, 81, 1)
-                    c64scr.setcc(xx, cy - y as ubyte, 81, 2)
+                    txt.setcc(xx, cy + y as ubyte, 81, 1)
+                    txt.setcc(xx, cy - y as ubyte, 81, 2)
                 }
                 for xx in cx-x to cx-1 {
-                    c64scr.setcc(xx, cy + y as ubyte, 81, 3)
-                    c64scr.setcc(xx, cy - y as ubyte, 81, 4)
+                    txt.setcc(xx, cy + y as ubyte, 81, 3)
+                    txt.setcc(xx, cy - y as ubyte, 81, 4)
                 }
                 for xx in cx to cx+y {
-                    c64scr.setcc(xx, cy + x as ubyte, 81, 5)
-                    c64scr.setcc(xx, cy - x as ubyte, 81, 6)
+                    txt.setcc(xx, cy + x as ubyte, 81, 5)
+                    txt.setcc(xx, cy - x as ubyte, 81, 6)
                 }
                 for xx in cx-y to cx {
-                    c64scr.setcc(xx, cy + x as ubyte, 81, 7)
-                    c64scr.setcc(xx, cy - x as ubyte, 81, 8)
+                    txt.setcc(xx, cy + x as ubyte, 81, 7)
+                    txt.setcc(xx, cy - x as ubyte, 81, 8)
                 }
                 y++
                 if decisionOver2<=0

@@ -174,7 +174,7 @@ c64 {
 ; ---- end of SID registers ----
 
 
-; ---- C64 kernal routines ----
+; ---- C64 ROM kernal routines ----
 
 romsub $AB1E = STROUT(uword strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use c64scr.print instead)
 romsub $E544 = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
@@ -221,9 +221,12 @@ romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of
 romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use c64scr.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
-; ---- end of C64 kernal routines ----
+; ---- end of C64 ROM kernal routines ----
 
-asmsub init_system()  {
+
+; ---- C64 specific system utility routines: ----
+
+asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.
     ; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
@@ -254,5 +257,176 @@ asmsub init_system()  {
         rts
     }}
 }
+
+asmsub  set_irqvec_excl() clobbers(A)  {
+	%asm {{
+		sei
+		lda  #<_irq_handler
+		sta  c64.CINV
+		lda  #>_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+_irq_handler	jsr  set_irqvec._irq_handler_init
+		jsr  irq.irq
+		jsr  set_irqvec._irq_handler_end
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		lda  c64.CIA1ICR		; acknowledge CIA1 interrupt
+		jmp  c64.IRQDFEND		; end irq processing - don't call kernel
+	}}
+}
+
+asmsub  set_irqvec() clobbers(A)  {
+	%asm {{
+		sei
+		lda  #<_irq_handler
+		sta  c64.CINV
+		lda  #>_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+_irq_handler    jsr  _irq_handler_init
+		jsr  irq.irq
+		jsr  _irq_handler_end
+		jmp  c64.IRQDFRT		; continue with normal kernel irq routine
+
+_irq_handler_init
+		; save all zp scratch registers and the X register as these might be clobbered by the irq routine
+		stx  IRQ_X_REG
+		lda  P8ZP_SCRATCH_B1
+		sta  IRQ_SCRATCH_ZPB1
+		lda  P8ZP_SCRATCH_REG
+		sta  IRQ_SCRATCH_ZPREG
+		lda  P8ZP_SCRATCH_REG_X
+		sta  IRQ_SCRATCH_ZPREGX
+		lda  P8ZP_SCRATCH_W1
+		sta  IRQ_SCRATCH_ZPWORD1
+		lda  P8ZP_SCRATCH_W1+1
+		sta  IRQ_SCRATCH_ZPWORD1+1
+		lda  P8ZP_SCRATCH_W2
+		sta  IRQ_SCRATCH_ZPWORD2
+		lda  P8ZP_SCRATCH_W2+1
+		sta  IRQ_SCRATCH_ZPWORD2+1
+		; stack protector; make sure we don't clobber the top of the evaluation stack
+		dex
+		dex
+		dex
+		dex
+		dex
+		dex
+		cld
+		rts
+
+_irq_handler_end
+		; restore all zp scratch registers and the X register
+		lda  IRQ_SCRATCH_ZPB1
+		sta  P8ZP_SCRATCH_B1
+		lda  IRQ_SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
+		lda  IRQ_SCRATCH_ZPREGX
+		sta  P8ZP_SCRATCH_REG_X
+		lda  IRQ_SCRATCH_ZPWORD1
+		sta  P8ZP_SCRATCH_W1
+		lda  IRQ_SCRATCH_ZPWORD1+1
+		sta  P8ZP_SCRATCH_W1+1
+		lda  IRQ_SCRATCH_ZPWORD2
+		sta  P8ZP_SCRATCH_W2
+		lda  IRQ_SCRATCH_ZPWORD2+1
+		sta  P8ZP_SCRATCH_W2+1
+		ldx  IRQ_X_REG
+		rts
+
+IRQ_X_REG		.byte  0
+IRQ_SCRATCH_ZPB1	.byte  0
+IRQ_SCRATCH_ZPREG	.byte  0
+IRQ_SCRATCH_ZPREGX	.byte  0
+IRQ_SCRATCH_ZPWORD1	.word  0
+IRQ_SCRATCH_ZPWORD2	.word  0
+
+		}}
+}
+
+asmsub  restore_irqvec() {
+	%asm {{
+		sei
+		lda  #<c64.IRQDFRT
+		sta  c64.CINV
+		lda  #>c64.IRQDFRT
+		sta  c64.CINV+1
+		lda  #0
+		sta  c64.IREQMASK	; disable raster irq
+		lda  #%10000001
+		sta  c64.CIA1ICR	; restore CIA1 irq
+		cli
+		rts
+	}}
+}
+
+asmsub  set_rasterirq(uword rasterpos @ AY) clobbers(A) {
+	%asm {{
+		sei
+		jsr  _setup_raster_irq
+		lda  #<_raster_irq_handler
+		sta  c64.CINV
+		lda  #>_raster_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+
+_raster_irq_handler
+		jsr  set_irqvec._irq_handler_init
+		jsr  irq.irq
+		jsr  set_irqvec._irq_handler_end
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		jmp  c64.IRQDFRT
+
+_setup_raster_irq
+		pha
+		lda  #%01111111
+		sta  c64.CIA1ICR    ; "switch off" interrupts signals from cia-1
+		sta  c64.CIA2ICR    ; "switch off" interrupts signals from cia-2
+		and  c64.SCROLY
+		sta  c64.SCROLY     ; clear most significant bit of raster position
+		lda  c64.CIA1ICR    ; ack previous irq
+		lda  c64.CIA2ICR    ; ack previous irq
+		pla
+		sta  c64.RASTER     ; set the raster line number where interrupt should occur
+		cpy  #0
+		beq  +
+		lda  c64.SCROLY
+		ora  #%10000000
+		sta  c64.SCROLY     ; set most significant bit of raster position
++		lda  #%00000001
+		sta  c64.IREQMASK   ;enable raster interrupt signals from vic
+		rts
+	}}
+}
+
+asmsub  set_rasterirq_excl(uword rasterpos @ AY) clobbers(A) {
+	%asm {{
+		sei
+		jsr  set_rasterirq._setup_raster_irq
+		lda  #<_raster_irq_handler
+		sta  c64.CINV
+		lda  #>_raster_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+
+_raster_irq_handler
+		jsr  set_irqvec._irq_handler_init
+		jsr  irq.irq
+		jsr  set_irqvec._irq_handler_end
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		jmp  c64.IRQDFEND		; end irq processing - don't call kernel
+
+	}}
+}
+
+; ---- end of C64 specific system utility routines ----
+
 
 }

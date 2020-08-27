@@ -1,6 +1,5 @@
-%import c64lib
-%import c64flt
 %import c64graphics
+%import c64flt
 %zeropage floatsafe
 
 ; Draw a mandelbrot in graphics mode (the image will be 256 x 200 pixels).
