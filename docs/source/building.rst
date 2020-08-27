@@ -83,7 +83,7 @@ For normal use the compiler is invoked with the command:
 By default, assembly code is generated and written to ``sourcefile.asm``.
 It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
 that assembles it into the final program.
-If you use the option to let the compiler auto-start a C-64 emulator, it will do so after
+If you use the option to let the compiler auto-start an emulator, it will do so after
 a successful compilation. This will load your program and the symbol and breakpoint lists
 (for the machine code monitor) into the emulator.
 

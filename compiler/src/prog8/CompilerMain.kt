@@ -36,7 +36,7 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 private fun compileMain(args: Array<String>) {
     val cli = CommandLineInterface("prog8compiler")
-    val startEmulator by cli.flagArgument("-emu", "auto-start the Vice C-64 emulator after successful compilation")
+    val startEmulator by cli.flagArgument("-emu", "auto-start emulator after successful compilation")
     val outputDir by cli.flagValueArgument("-out", "directory", "directory for output files instead of current directory", ".")
     val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")

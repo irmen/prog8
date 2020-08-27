@@ -178,6 +178,7 @@ Fnd for Windows it's possible to get that as well. Check out `AdoptOpenJDK <http
 
 Finally: a **C-64 emulator** (or a real C-64 ofcourse) can be nice to test and run your programs on.
 The compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
+If you're targeting the CommanderX16, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
 
 .. important::
     **Building the compiler itself:** (*Only needed if you have not downloaded a pre-built 'fat-jar'*)
