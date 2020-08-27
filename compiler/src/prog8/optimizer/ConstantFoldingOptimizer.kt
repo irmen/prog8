@@ -171,7 +171,9 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
         if(declValue!=null && decl.type==VarDeclType.VAR
                 && declValue is NumericLiteralValue && !declValue.inferType(program).istype(decl.datatype)) {
             // cast the numeric literal to the appropriate datatype of the variable
-            return listOf(IAstModification.ReplaceNode(decl.value!!, declValue.castNoCheck(decl.datatype), decl))
+            val cast = declValue.cast(decl.datatype)
+            if(cast.isValid)
+                return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
         }
 
         return noModifications
@@ -317,20 +319,23 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
-            val newFrom: NumericLiteralValue
-            val newTo: NumericLiteralValue
-            try {
-                newFrom = rangeFrom.castNoCheck(targetDt)
-                newTo = rangeTo.castNoCheck(targetDt)
-            } catch (x: ExpressionError) {
+            val fromCast = rangeFrom.cast(targetDt)
+            val toCast = rangeTo.cast(targetDt)
+            if(!fromCast.isValid || !toCast.isValid)
                 return range
-            }
-            val newStep: Expression = try {
-                stepLiteral?.castNoCheck(targetDt)?: range.step
-            } catch(ee: ExpressionError) {
-                range.step
-            }
-            return RangeExpr(newFrom, newTo, newStep, range.position)
+
+            val newStep =
+                if(stepLiteral!=null) {
+                    val stepCast = stepLiteral.cast(targetDt)
+                    if(stepCast.isValid)
+                        stepCast.valueOrZero()
+                    else
+                        range.step
+                } else {
+                    range.step
+                }
+
+            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.
@@ -381,8 +386,9 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         if(decl.type== VarDeclType.CONST && numval!=null) {
             val valueDt = numval.inferType(program)
             if(!valueDt.istype(decl.datatype)) {
-                val adjustedVal = numval.castNoCheck(decl.datatype)
-                return listOf(IAstModification.ReplaceNode(numval, adjustedVal, decl))
+                val cast = numval.cast(decl.datatype)
+                if(cast.isValid)
+                    return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
             }
         }
         return noModifications

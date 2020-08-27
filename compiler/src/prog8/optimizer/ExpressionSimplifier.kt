@@ -29,9 +29,9 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         // try to statically convert a literal value into one of the desired type
         val literal = typecast.expression as? NumericLiteralValue
         if (literal != null) {
-            val newLiteral = literal.castNoCheck(typecast.type)
-            if (newLiteral !== literal)
-                mods += IAstModification.ReplaceNode(typecast.expression, newLiteral, typecast)
+            val newLiteral = literal.cast(typecast.type)
+            if (newLiteral.isValid && newLiteral.valueOrZero() !== literal)
+                mods += IAstModification.ReplaceNode(typecast.expression, newLiteral.valueOrZero(), typecast)
         }
 
         // remove redundant nested typecasts

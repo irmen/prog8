@@ -2,6 +2,8 @@
 %import c64textio
 %zeropage basicsafe
 
+; TODO implement float MINUS asm generation
+
 main {
 
     sub start() {
@@ -10,11 +12,11 @@ main {
         minus_ubyte(200, 100, 100)
         minus_ubyte(100, 200, 156)
 
-        minus_byte(0, 0, 0)             ; TODO fix type error
-        minus_byte(100, 100, 0)         ; TODO fix type error
-        minus_byte(50, -50, 100)        ; TODO fix type error
-        minus_byte(0, -30, 30)          ; TODO fix type error
-        minus_byte(-30, 0, -30)         ; TODO fix type error
+        minus_byte(0, 0, 0)
+        minus_byte(100, 100, 0)
+        minus_byte(50, -50, 100)
+        minus_byte(0, -30, 30)
+        minus_byte(-30, 0, -30)
 
         minus_uword(0,0,0)
         minus_uword(50000,0, 50000)
@@ -22,10 +24,10 @@ main {
         minus_uword(20000,50000,35536)
 
         minus_word(0,0,0)
-        minus_word(1000,1000,0)         ; TODO fix type error
-        minus_word(-1000,1000,-2000)    ; TODO fix type error
-        minus_word(1000,500,500)        ; TODO fix type error
-        minus_word(0,-3333,3333)        ; TODO fix type error
+        minus_word(1000,1000,0)
+        minus_word(-1000,1000,-2000)
+        minus_word(1000,500,500)
+        minus_word(0,-3333,3333)
         minus_word(-3333,0,-3333)
 
         minus_float(0,0,0)

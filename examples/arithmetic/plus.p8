@@ -2,6 +2,8 @@
 %import c64textio
 %zeropage basicsafe
 
+; TODO implement float PLUS asm generation
+
 main {
 
     sub start() {
@@ -9,19 +11,19 @@ main {
         plus_ubyte(0, 200, 200)
         plus_ubyte(100, 200, 44)
 
-        plus_byte(0, 0, 0)      ; TODO fix type error
-        plus_byte(-100, 100, 0) ; TODO fix type error
-        plus_byte(-50, 100, 50) ; TODO fix type error
-        plus_byte(0, -30, -30)  ; TODO fix type error
-        plus_byte(-30, 0, -30)  ; TODO fix type error
+        plus_byte(0, 0, 0)
+        plus_byte(-100, 100, 0)
+        plus_byte(-50, 100, 50)
+        plus_byte(0, -30, -30)
+        plus_byte(-30, 0, -30)
 
         plus_uword(0,0,0)
         plus_uword(0,50000,50000)
         plus_uword(50000,20000,4464)
 
         plus_word(0,0,0)
-        plus_word(-1000,1000,0)     ; TODO fix type error
-        plus_word(-500,1000,500)    ; TODO fix type error
+        plus_word(-1000,1000,0)
+        plus_word(-500,1000,500)
         plus_word(0,-3333,-3333)
         plus_word(-3333,0,-3333)
 

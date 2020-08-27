@@ -34,8 +34,9 @@ internal class VariousCleanups: AstWalker() {
 
     override fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         if(typecast.expression is NumericLiteralValue) {
-            val value = (typecast.expression as NumericLiteralValue).castNoCheck(typecast.type)
-            return listOf(IAstModification.ReplaceNode(typecast, value, parent))
+            val value = (typecast.expression as NumericLiteralValue).cast(typecast.type)
+            if(value.isValid)
+                return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
         }
 
         return noModifications

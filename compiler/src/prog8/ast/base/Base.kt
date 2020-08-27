@@ -21,10 +21,9 @@ enum class DataType {
     STRUCT;             // pass by reference
 
     /**
-     * is the type assignable to the given other type?
+     * is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
      */
     infix fun isAssignableTo(targetType: DataType) =
-            // what types are assignable to others, perhaps via a typecast, without loss of precision?
             when(this) {
                 UBYTE -> targetType in setOf(UBYTE, WORD, UWORD, FLOAT)
                 BYTE -> targetType in setOf(BYTE, WORD, FLOAT)

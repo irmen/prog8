@@ -2,6 +2,8 @@
 %import c64textio
 %zeropage basicsafe
 
+; TODO implement DIV asm generation
+
 main {
 
     sub start() {
@@ -9,16 +11,16 @@ main {
         div_ubyte(100, 6, 16)
         div_ubyte(255, 2, 127)
 
-        div_byte(0, 1, 0)           ; TODO fix type error
-        div_byte(100, -6, -16)      ; TODO fix type error
-        div_byte(127, -2, -63)      ; TODO fix type error
+        div_byte(0, 1, 0)
+        div_byte(100, -6, -16)
+        div_byte(127, -2, -63)
 
         div_uword(0,1,0)
         div_uword(40000,500,80)
         div_uword(43211,2,21605)
 
         div_word(0,1,0)
-        div_word(-20000,500,-40)     ; TODO fix type error
+        div_word(-20000,500,-40)
         div_word(-2222,2,-1111)
 
         div_float(0,1,0)

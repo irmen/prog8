@@ -295,9 +295,11 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
-        return cv.castNoCheck(type)
-        // val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
-        // return LiteralValue.fromNumber(value.numericValue(), value.type, position).cast(type)
+        val cast = cv.cast(type)
+        return if(cast.isValid)
+            cast.valueOrZero()
+        else
+            null
     }
 
     override fun toString(): String {
@@ -416,62 +418,66 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     operator fun compareTo(other: NumericLiteralValue): Int = number.toDouble().compareTo(other.number.toDouble())
 
-    fun castNoCheck(targettype: DataType): NumericLiteralValue {
+    class CastValue(val isValid: Boolean, private val value: NumericLiteralValue?) {
+        fun valueOrZero() = if(isValid) value!! else NumericLiteralValue(DataType.UBYTE, 0, Position.DUMMY)
+    }
+
+    fun cast(targettype: DataType): CastValue {
         if(type==targettype)
-            return this
+            return CastValue(true, this)
         val numval = number.toDouble()
         when(type) {
             DataType.UBYTE -> {
                 if(targettype== DataType.BYTE && numval <= 127)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if(targettype== DataType.WORD || targettype== DataType.UWORD)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
                 if(targettype== DataType.FLOAT)
-                    return NumericLiteralValue(targettype, number.toDouble(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
             }
             DataType.BYTE -> {
                 if(targettype== DataType.UBYTE && numval >= 0)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if(targettype== DataType.UWORD && numval >= 0)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
                 if(targettype== DataType.WORD)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
                 if(targettype== DataType.FLOAT)
-                    return NumericLiteralValue(targettype, number.toDouble(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
             }
             DataType.UWORD -> {
                 if(targettype== DataType.BYTE && numval <= 127)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if(targettype== DataType.UBYTE && numval <= 255)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if(targettype== DataType.WORD && numval <= 32767)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
                 if(targettype== DataType.FLOAT)
-                    return NumericLiteralValue(targettype, number.toDouble(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
             }
             DataType.WORD -> {
                 if(targettype== DataType.BYTE && numval >= -128 && numval <=127)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if(targettype== DataType.UBYTE && numval >= 0 && numval <= 255)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if(targettype== DataType.UWORD && numval >=0)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
                 if(targettype== DataType.FLOAT)
-                    return NumericLiteralValue(targettype, number.toDouble(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
             }
             DataType.FLOAT -> {
                 if (targettype == DataType.BYTE && numval >= -128 && numval <=127)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if (targettype == DataType.UBYTE && numval >=0 && numval <= 255)
-                    return NumericLiteralValue(targettype, number.toShort(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
                 if (targettype == DataType.WORD && numval >= -32768 && numval <= 32767)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
                 if (targettype == DataType.UWORD && numval >=0 && numval <= 65535)
-                    return NumericLiteralValue(targettype, number.toInt(), position)
+                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
             }
             else -> {}
         }
-        throw ExpressionError("can't cast $type into $targettype", position)
+        return CastValue(false, null)
     }
 }
 
@@ -581,14 +587,14 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
                 if(num==null) {
                     // an array of UWORDs could possibly also contain AddressOfs, other stuff can't be casted
                     if (elementType != DataType.UWORD || it !is AddressOf)
-                        return null
+                        return null  // can't cast a value of  the array, abort
                     it
                 } else {
-                    try {
-                        num.castNoCheck(elementType)
-                    } catch(x: ExpressionError) {
-                        return null
-                    }
+                    val cast = num.cast(elementType)
+                    if(cast.isValid)
+                        cast.valueOrZero()
+                    else
+                        return null // can't cast a value of the array, abort
                 }
             }.toTypedArray()
             return ArrayLiteralValue(InferredTypes.InferredType.known(targettype), castArray, position = position)
