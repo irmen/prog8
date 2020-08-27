@@ -4,12 +4,15 @@ Target system specification
 
 Prog8 targets the following hardware:
 
-- 8 bit MOS 6502/6510 CPU
+- 8 bit MOS 6502/65c02/6510 CPU
 - 64 Kb addressable memory (RAM or ROM)
-- memory mapped I/O registers
+- optional use of memory mapped I/O registers
+- optional use of system ROM routines
 
-The main target machine is the Commodore-64, which is an example of this.
-This chapter explains the relevant system details of such a machine.
+The main target machine is the well-known Commodore-64, which is an example of this.
+Another (preliminary) supported target machine is the `CommanderX16 <https://www.commanderx16.com/>`_ .
+
+This chapter explains the relevant system details of such machines.
 
 
 Memory Model
@@ -147,7 +150,7 @@ You can however install your own IRQ handler.
 This is possible ofcourse by doing it all using customized inline assembly,
 but there are a few library routines available to make setting up C-64 IRQs and raster IRQs a lot easier (no assembly code required).
 
-These routines are::
+For the C64 these routines are::
 
     c64.set_irqvec()
     c64.set_irqvec_excl()
