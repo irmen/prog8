@@ -30,7 +30,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
     override fun getFloat(num: Number) = C64MachineDefinition.Mflpt5.fromNumber(num)
 
-    override fun getFloatRomConst(number: Double): String? = null       // TODO Does Cx16 have ROM float locations?
+    override fun getFloatRomConst(number: Double): String? = null       // Cx16 has no pulblic ROM float locations
     override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
         if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             importer.importLibraryModule(program, "cx16lib")
@@ -58,16 +58,17 @@ internal object CX16MachineDefinition: IMachineDefinition {
     }
 
     // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
-    // TODO add 65C02 opcodes
-    override val opcodeNames = setOf("adc", "ahx", "alr", "anc", "and", "ane", "arr", "asl", "asr", "axs", "bcc", "bcs",
+    override val opcodeNames = setOf("adc", "and", "asl", "bcc", "bcs",
             "beq", "bge", "bit", "blt", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
-            "cld", "cli", "clv", "cmp", "cpx", "cpy", "dcm", "dcp", "dec", "dex", "dey",
+            "cld", "cli", "clv", "cmp", "cpx", "cpy", "dec", "dex", "dey",
             "eor", "gcc", "gcs", "geq", "gge", "glt", "gmi", "gne", "gpl", "gvc", "gvs",
-            "inc", "ins", "inx", "iny", "isb", "isc", "jam", "jmp", "jsr", "lae", "las",
-            "lax", "lda", "lds", "ldx", "ldy", "lsr", "lxa", "nop", "ora", "pha", "php",
-            "pla", "plp", "rla", "rol", "ror", "rra", "rti", "rts", "sax", "sbc", "sbx",
-            "sec", "sed", "sei", "sha", "shl", "shr", "shs", "shx", "shy", "slo", "sre",
-            "sta", "stx", "sty", "tas", "tax", "tay", "tsx", "txa", "txs", "tya", "xaa")
+            "inc", "inx", "iny", "jmp", "jsr",
+            "lda", "ldx", "ldy", "lsr", "nop", "ora", "pha", "php",
+            "pla", "plp", "rol", "ror", "rti", "rts", "sbc",
+            "sec", "sed", "sei",
+            "sta", "stx", "sty", "tax", "tay", "tsx", "txa", "txs", "tya",
+            "bra", "phx", "phy", "plx", "ply", "stz", "trb", "tsb", "bbr", "bbs",
+            "rmb", "smb", "stp", "wai")
 
 
     internal class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {

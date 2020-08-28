@@ -86,8 +86,40 @@ result		.byte  0,0,0,0
 		.pend
 
 
+divmod_b_asm	.proc
+	; signed byte division: make everything positive and fix sign afterwards
+		sta  P8ZP_SCRATCH_B1
+		tya
+		eor  P8ZP_SCRATCH_B1
+		php			; save sign
+		lda  P8ZP_SCRATCH_B1
+		bpl  +
+		eor  #$ff
+		sec
+		adc  #0			; make it positive
++		pha
+		tya
+		bpl  +
+		eor  #$ff
+		sec
+		adc  #0			; make it positive
+		tay
++		pla
+		jsr  divmod_ub_asm
+		sta  _remainder
+		plp
+		bpl  +
+		tya
+		eor  #$ff
+		sec
+		adc  #0			; negate result
+		tay
++		rts
+_remainder	.byte  0
+		.pend
+
+
 divmod_ub_asm	.proc
-	; TODO divmod_ub_asm doesn't work correctly.  (remainder = ok, quotient = FAULTY)
 	; -- divide A by Y, result quotient in Y, remainder in A   (unsigned)
 	;    division by zero will result in quotient = 255 and remainder = original number
 		sty  P8ZP_SCRATCH_REG
@@ -107,6 +139,49 @@ divmod_ub_asm	.proc
 		ldy  P8ZP_SCRATCH_B1
 		ldx  P8ZP_SCRATCH_REG_X
 		rts
+		.pend
+
+divmod_w_asm	.proc
+	; signed word division: make everything positive and fix sign afterwards
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		lda  P8ZP_SCRATCH_W1+1
+		eor  P8ZP_SCRATCH_W2+1
+		php			; save sign
+		lda  P8ZP_SCRATCH_W1+1
+		bpl  +
+		lda  #0
+		sec
+		sbc  P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W1
+		lda  #0
+		sbc  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W1+1
++		lda  P8ZP_SCRATCH_W2+1
+		bpl  +
+		lda  #0
+		sec
+		sbc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W2
+		lda  #0
+		sbc  P8ZP_SCRATCH_W2+1
+		sta  P8ZP_SCRATCH_W2+1
++		tay
+		lda  P8ZP_SCRATCH_W2
+		jsr  divmod_uw_asm
+		plp			; restore sign
+		bpl  +
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		lda  #0
+		sec
+		sbc  P8ZP_SCRATCH_W2
+		pha
+		lda  #0
+		sbc  P8ZP_SCRATCH_W2+1
+		tay
+		pla
++		rts
 		.pend
 
 divmod_uw_asm	.proc

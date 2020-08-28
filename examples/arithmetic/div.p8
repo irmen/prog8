@@ -2,8 +2,6 @@
 %import c64textio
 %zeropage basicsafe
 
-; TODO implement signed byte/word DIV asm generation, fix unsigned DIV asm generation (for in-place)
-
 main {
 
     sub start() {
@@ -11,17 +9,17 @@ main {
         div_ubyte(100, 6, 16)
         div_ubyte(255, 2, 127)
 
-        ;div_byte(0, 1, 0)      ; TODO implement
-        ;div_byte(100, -6, -16) ; TODO implement
-        ;div_byte(127, -2, -63) ; TODO implement
+        div_byte(0, 1, 0)
+        div_byte(100, -6, -16)
+        div_byte(127, -2, -63)
 
         div_uword(0,1,0)
         div_uword(40000,500,80)
         div_uword(43211,2,21605)
 
-        ;div_word(0,1,0)            ; TODO implement
-        ;div_word(-20000,500,-40)   ; TODO implement
-        ;div_word(-2222,2,-1111)    ; TODO implement
+        div_word(0,1,0)
+        div_word(-20000,500,-40)
+        div_word(-2222,2,-1111)
 
         div_float(0,1,0)
         div_float(999.9,111.0,9.008108108108107)

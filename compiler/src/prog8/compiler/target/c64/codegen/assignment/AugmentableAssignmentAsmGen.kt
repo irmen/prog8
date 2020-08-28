@@ -251,16 +251,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 else
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mul mem byte")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("div mem byte")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
-                TODO("byte remainder")
+                TODO("mem byte remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
-            "<<" -> TODO("ubyte asl")
-            ">>" -> TODO("ubyte lsr")
+            "<<" -> TODO("mem ubyte asl")
+            ">>" -> TODO("mem ubyte lsr")
             "&" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out(" and  P8ESTACK_LO+1,x")
@@ -310,16 +310,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 else
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
-            "*" -> TODO("mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
-            "/" -> TODO("div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+            "*" -> TODO("mem mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "/" -> TODO("mem div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
-                TODO("byte remainder")
+                TODO("mem byte remainder")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
             }
-            "<<" -> TODO("ubyte asl")
-            ">>" -> TODO("ubyte lsr")
+            "<<" -> TODO("mem ubyte asl")
+            ">>" -> TODO("mem ubyte lsr")
             "&" -> {
                 val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out(" and  $otherName")
@@ -368,19 +368,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> {
-                TODO("mul byte litval")
+                TODO("mem mul byte litval")
                 // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             }
             "/" -> {
                 if(value==0)
                     throw AssemblyError("division by zero")
-                TODO("div byte litval")
+                TODO("mem div byte litval")
                 // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             }
             "%" -> {
                 if(value==0)
                     throw AssemblyError("division by zero")
-                TODO("byte remainder litval")
+                TODO("mem byte remainder litval")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
@@ -443,14 +443,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
             "*" -> {
-                TODO("mul byte expr")
+                TODO("var mul byte expr")
                 // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             }
             "/" -> {
-                TODO("div byte expr")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+                TODO("var div byte expr")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             }
             "%" -> {
-                TODO("byte remainder expr")
+                TODO("var byte remainder expr")
 //                if(types==DataType.BYTE)
 //                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
 //                asmgen.out("  jsr prog8_lib.remainder_ub")
@@ -507,7 +507,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "*" -> asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.multiply_bytes |  sta  $name")
             "/" -> {
                 if(dt==DataType.BYTE) {
-                    TODO("signed byte divide see prog8lib.idiv_b")
+                    asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_b_asm |  sty  $name")
                 }
                 else {
                     asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_ub_asm |  sty  $name")
@@ -574,7 +574,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
                 // TODO what about the optimized mul_5 etc routines?
-                TODO("byte mul litval")
+                TODO("var byte mul litval")
                 // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             }
             "/" -> {
@@ -586,7 +586,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         sty  $name                                              
                     """)
                 } else {
-                    TODO("BYTE div  litval")
+                    TODO("var BYTE div  litval")
                 }
             }
             "%" -> {
@@ -688,7 +688,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(value==0)
                     throw AssemblyError("division by zero")
                 if(dt==DataType.WORD) {
-                    TODO("signed word divide see prog8lib.idiv_w")
+                    asmgen.out("""
+                        lda  $name
+                        ldy  $name+1
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<$value
+                        ldy  #>$value
+                        jsr  math.divmod_w_asm
+                        sta  $name
+                        sty  $name+1
+                    """)
                 }
                 else {
                     asmgen.out("""
@@ -863,7 +873,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "/" -> {
                         if(dt==DataType.WORD) {
-                            TODO("signed word divide see prog8lib.idiv_w")
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  $otherName
+                                ldy  $otherName+1
+                                jsr  math.divmod_w_asm
+                                sta  $name
+                                sty  $name+1
+                            """)
                         }
                         else {
                             asmgen.out("""
@@ -1007,7 +1027,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "/" -> {
                         if (dt == DataType.WORD) {
-                            TODO("signed word divide see prog8lib.idiv_w")
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  P8ESTACK_LO+1,x
+                                ldy  P8ESTACK_HI+1,x
+                                jsr  math.divmod_w_asm
+                                sta  $name
+                                sty  $name+1
+                            """)
                         } else {
                             asmgen.out("""
                                 lda  $name
