@@ -32,7 +32,7 @@ main {
 
         repeat {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            graphics.clear_screen()
+            graphics.clear_screen(1, 0)
             draw_lines()
             anglex-=500
             angley+=217

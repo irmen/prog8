@@ -62,54 +62,22 @@ cx16 {
 ; spelling of the names is taken from the Commander X-16 rom sources
 
 ; the sixteen virtual 16-bit registers
-&ubyte r0  = $02
-&ubyte r0L = $02
-&ubyte r0H = $03
-&ubyte r1  = $04
-&ubyte r1L = $04
-&ubyte r1H = $05
-&ubyte r2  = $06
-&ubyte r2L = $06
-&ubyte r2H = $07
-&ubyte r3  = $08
-&ubyte r3L = $08
-&ubyte r3H = $09
-&ubyte r4  = $0a
-&ubyte r4L = $0a
-&ubyte r4H = $0b
-&ubyte r5  = $0c
-&ubyte r5L = $0c
-&ubyte r5H = $0d
-&ubyte r6  = $0e
-&ubyte r6L = $0e
-&ubyte r6H = $0f
-&ubyte r7  = $10
-&ubyte r7L = $10
-&ubyte r7H = $11
-&ubyte r8  = $12
-&ubyte r8L = $12
-&ubyte r8H = $13
-&ubyte r9  = $14
-&ubyte r9L = $14
-&ubyte r9H = $15
-&ubyte r10 = $16
-&ubyte r10L    = $16
-&ubyte r10H    = $17
-&ubyte r11     = $18
-&ubyte r11L    = $18
-&ubyte r11H    = $19
-&ubyte r12     = $1a
-&ubyte r12L    = $1a
-&ubyte r12H    = $1b
-&ubyte r13     = $1c
-&ubyte r13L    = $1c
-&ubyte r13H    = $1d
-&ubyte r14     = $1e
-&ubyte r14L    = $1e
-&ubyte r14H    = $1f
-&ubyte r15     = $20
-&ubyte r15L    = $20
-&ubyte r15H    = $21
+    &uword r0  = $02
+    &uword r1  = $04
+    &uword r2  = $06
+    &uword r3  = $08
+    &uword r4  = $0a
+    &uword r5  = $0c
+    &uword r6  = $0e
+    &uword r7  = $10
+    &uword r8  = $12
+    &uword r9  = $14
+    &uword r10 = $16
+    &uword r11 = $18
+    &uword r12 = $1a
+    &uword r13 = $1c
+    &uword r14 = $1e
+    &uword r15 = $20
 
 
 ; TODO subroutine args + soubroutine returnvalues + clobber registers
@@ -118,7 +86,7 @@ cx16 {
 romsub $ff4a = close_all()
 romsub $ff59 = lkupla()
 romsub $ff5c = lkupsa()
-romsub $ff5f = screen_set_mode()
+romsub $ff5f = screen_set_mode(ubyte mode @A) clobbers(A, X, Y) -> ubyte @Pc
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY) clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 romsub $ff65 = pfkey()
 romsub $ff6e = jsrfar()
@@ -129,44 +97,59 @@ romsub $ff7d = primm()
 
 ; X16 additions
 romsub $ff44 = macptr()
-romsub $ff47 = enter_basic()
-romsub $ff68 = mouse_config()
-romsub $ff6b = mouse_get()
-romsub $ff71 = mouse_scan()
-romsub $ff53 = joystick_scan()
-romsub $ff56 = joystick_get()
-romsub $ff4d = clock_set_date_time()
-romsub $ff50 = clock_get_date_time()
+romsub $ff47 = enter_basic(ubyte cold_or_warm @Pc)
+romsub $ff68 = mouse_config(ubyte shape @A, ubyte scale @X) clobbers (A, X, Y)
+romsub $ff6b = mouse_get(ubyte zpdataptr @X) clobbers(A)
+romsub $ff71 = mouse_scan() clobbers(A, X, Y)
+romsub $ff53 = joystick_scan() clobbers(A, X, Y)
+romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
+romsub $ff4d = clock_set_date_time() clobbers(A, X, Y)      ; args: r0, r1, r2, r3L
+romsub $ff50 = clock_get_date_time() clobbers(A)            ; outout args: r0, r1, r2, r3L
 
 ; high level graphics & fonts
-romsub $ff20 = GRAPH_init()
+romsub $ff20 = GRAPH_init()             ; uses vectors=r0
 romsub $ff23 = GRAPH_clear()
-romsub $ff26 = GRAPH_set_window()
-romsub $ff29 = GRAPH_set_colors()
-romsub $ff2c = GRAPH_draw_line()
-romsub $ff2f = GRAPH_draw_rect()
-romsub $ff32 = GRAPH_move_rect()
-romsub $ff35 = GRAPH_draw_oval()
-romsub $ff38 = GRAPH_draw_image()
-romsub $ff3b = GRAPH_set_font()
-romsub $ff3e = GRAPH_get_char_size()
-romsub $ff41 = GRAPH_put_char()
+romsub $ff26 = GRAPH_set_window()       ; uses x=r0, y=r1, width=r2, height=r3
+romsub $ff29 = GRAPH_set_colors(ubyte stroke @A, ubyte fill @X, ubyte background @Y)
+romsub $ff2c = GRAPH_draw_line()        ; uses x1=r0, y1=r1, x2=r2, y2=r3
+romsub $ff2f = GRAPH_draw_rect(ubyte fill @Pc)        ; uses x=r0, y=r1, width=r2, height=r3, cornerradius=r4
+romsub $ff32 = GRAPH_move_rect()        ; uses sx=r0, sy=r1, tx=r2, ty=r3, width=r4, height=r5
+romsub $ff35 = GRAPH_draw_oval(ubyte fill @Pc)        ; uses x=r0, y=r1, width=r2, height=r3
+romsub $ff38 = GRAPH_draw_image()       ; uses x=r0, y=r1, ptr=r2, width=r3, height=r4
+romsub $ff3b = GRAPH_set_font()         ; uses ptr=r0
+romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte height_or_style @Y, ubyte is_control @Pc)
+romsub $ff41 = GRAPH_put_char(ubyte char @A)   ; uses x=r0, y=r1
 
-; TODO framebuffer API not yet included, include it
+; framebuffer
+romsub $fef6 =  FB_init()
+romsub $fef9 =  FB_get_info() -> byte @A    ; also outputs width=r0, height=r1
+romsub $fefc =  FB_set_palette(ubyte index @A, ubyte bytecount @X)      ; also uses pointer=r0
+romsub $feff =  FB_cursor_position()    ; uses x=r0, y=r1
+romsub $ff02 =  FB_cursor_next_line()   ; uses x=r0
+romsub $ff05 =  FB_get_pixel() -> ubyte @A
+romsub $ff08 =  FB_get_pixels()         ; uses ptr=r0, count=r1
+romsub $ff0b =  FB_set_pixel(ubyte color @A)
+romsub $ff0e =  FB_set_pixels()         ; uses ptr=r0, count=r1
+romsub $ff11 =  FB_set_8_pixels(ubyte pattern @A, ubyte color @X)
+romsub $ff14 =  FB_set_8_pixels_opaque(ubyte pattern @A, ubyte color1 @X, ubyte color2 @Y)  ; also uses mask=r0L
+romsub $ff17 =  FB_fill_pixels(ubyte color @A)   ; also uses count=r0, step=r1
+romsub $ff1a =  FB_filter_pixels()      ; uses ptr=r0, count=r1
+romsub $ff1d =  FB_move_pixels()        ; uses sx=r0, sy=r1, tx=r2, ty=r3, count=r4
 
-romsub $fef0 = sprite_set_image()
-romsub $fef3 = sprite_set_position()
-romsub $fee4 = memory_fill()
-romsub $fee7 = memory_copy()
-romsub $feea = memory_crc()
-romsub $feed = memory_decompress()
-romsub $fedb = console_init()
-romsub $fede = console_put_char()
-romsub $fee1 = console_get_char()
-romsub $fed8 = console_put_image()
-romsub $fed5 = console_set_paging_message()
-romsub $fed2 = kbdbuf_put()
-romsub $fecf = entropy_get()
+; misc
+romsub $fef0 = sprite_set_image(ubyte number @A, ubyte width @X, ubyte height @Y, ubyte apply_mask @Pc) -> ubyte @Pc  ; also uses pixels=r0, mask=r1, bpp=r2L
+romsub $fef3 = sprite_set_position(ubyte number @A)  ; also uses x=r0 and y=r1
+romsub $fee4 = memory_fill(ubyte value @A)      ; uses address=r0, num_bytes=r1
+romsub $fee7 = memory_copy()                    ; uses source=r0, target=r1, num_bytes=r2
+romsub $feea = memory_crc()                     ; uses address=r0, num_bytes=r1     result->r2
+romsub $feed = memory_decompress()              ; uses input=r0, output=r1     result->r1
+romsub $fedb = console_init()           ; uses x=r0, y=r1, width=r2, height=r3
+romsub $fede = console_put_char(ubyte char @A, ubyte wrapping @Pc)
+romsub $fee1 = console_get_char() -> ubyte @A
+romsub $fed8 = console_put_image()      ; uses ptr=r0, width=r1, height=r2
+romsub $fed5 = console_set_paging_message()     ; uses messageptr=r0
+romsub $fed2 = kbdbuf_put(ubyte key @A)
+romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()
 
 
@@ -179,9 +162,8 @@ asmsub init_system()  {
     %asm {{
         sei
         cld
-        lda  #0
-        sta  $00
-        sta  $01
+        stz  $00
+        stz  $01
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
@@ -191,9 +173,6 @@ asmsub init_system()  {
         clc
         clv
         cli
-        lda  #66
-        clc
-        jsr  console_put_char
         rts
     }}
 }

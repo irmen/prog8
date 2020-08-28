@@ -11,6 +11,11 @@ internal interface IMachineFloat {
     fun makeFloatFillAsm(): String
 }
 
+internal enum class CpuType {
+    CPU6502,
+    CPU65c02
+}
+
 internal interface IMachineDefinition {
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
@@ -24,7 +29,7 @@ internal interface IMachineDefinition {
     val opcodeNames: Set<String>
     var zeropage: Zeropage
     val initSystemProcname: String
-    val cpu: String
+    val cpu: CpuType
 
     fun initializeZeropage(compilerOptions: CompilationOptions)
     fun getFloat(num: Number): IMachineFloat

@@ -657,6 +657,7 @@ class Subroutine(override val name: String,
     }
 
     fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
+    fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
 
     fun amountOfRtsInAsm(): Int = statements
             .asSequence()

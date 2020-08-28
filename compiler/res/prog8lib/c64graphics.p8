@@ -2,9 +2,7 @@
 
 ; bitmap pixel graphics module for the C64
 ; only black/white monchrome for now
-
-; you could put this code at $4000 which is after the bitmap screen in memory ($2000-$3fff),
-; this leaves more space for user program code.
+    ; assumes bitmap screen memory is $2000-$3fff
 
 graphics {
     const uword bitmap_address = $2000
@@ -13,26 +11,27 @@ graphics {
         ; enable bitmap screen, erase it and set colors to black/white.
         c64.SCROLY |= %00100000
         c64.VMCSB = (c64.VMCSB & %11110000) | %00001000   ; $2000-$3fff
-        clear_screen()
+        clear_screen(1, 0)
     }
 
-    sub clear_screen() {
+    sub clear_screen(ubyte pixelcolor, ubyte bgcolor) {
         memset(bitmap_address, 320*200/8, 0)
-        txt.clear_screen($10, 0)         ; pixel color $1 (white) backround $0 (black)
+        txt.clear_screen(pixelcolor << 4 | bgcolor, 0)
     }
 
-    sub line(uword x1, ubyte y1, uword x2, ubyte y2) {
+    sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special cases various quadrant loops to allow simple ++ and -- operations.
+        ; TODO rewrite this in optimized assembly
         if y1>y2 {
             ; make sure dy is always positive to avoid 8 instead of just 4 special cases
             swap(x1, x2)
             swap(y1, y2)
         }
-        word d = 0
+        word @zp d = 0
         ubyte positive_ix = true
-        word dx = x2 - x1 as word
-        word dy = y2 as word - y1 as word
+        word @zp dx = x2 - x1 as word
+        word @zp dy = y2 as word - y1 as word
         if dx < 0 {
             dx = -dx
             positive_ix = false
@@ -99,10 +98,10 @@ graphics {
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Midpoint algorithm
-        ubyte ploty
-        ubyte xx = radius
-        ubyte yy = 0
-        byte decisionOver2 = 1-xx as byte
+        ubyte @zp ploty
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        byte @zp decisionOver2 = 1-xx as byte
 
         while xx>=yy {
             plotx = xcenter + xx
@@ -219,6 +218,7 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 ; note: this can be even faster if we also have a 256 byte x-lookup table, but hey.
 ; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
 ; the y lookup tables encodes this formula:  bitmap_address + 320*(py>>3) + (py & 7)    (y from 0..199)
+; TODO can we use an assembly function for this to calc this?
 _y_lookup_hi
             .byte  $20, $20, $20, $20, $20, $20, $20, $20, $21, $21, $21, $21, $21, $21, $21, $21
             .byte  $22, $22, $22, $22, $22, $22, $22, $22, $23, $23, $23, $23, $23, $23, $23, $23

@@ -5,6 +5,8 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
@@ -706,7 +708,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             // optimized case for float zero
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    asmgen.out("""
+                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("""
+                            stz  ${target.asmVarname}
+                            stz  ${target.asmVarname}+1
+                            stz  ${target.asmVarname}+2
+                            stz  ${target.asmVarname}+3
+                            stz  ${target.asmVarname}+4
+                        """)
+                    else
+                        asmgen.out("""
                             lda  #0
                             sta  ${target.asmVarname}
                             sta  ${target.asmVarname}+1

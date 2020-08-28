@@ -59,7 +59,7 @@ multiply_words	.proc
 		sty  P8ZP_SCRATCH_W2+1
 		stx  P8ZP_SCRATCH_REG_X
 
-mult16		lda  #$00
+mult16		lda  #0
 		sta  result+2	; clear upper bits of product
 		sta  result+3
 		ldx  #16			; for all 16 bits...

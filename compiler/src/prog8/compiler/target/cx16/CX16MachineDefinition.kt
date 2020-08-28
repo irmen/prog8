@@ -2,6 +2,7 @@ package prog8.compiler.target.cx16
 
 import prog8.ast.Program
 import prog8.compiler.*
+import prog8.compiler.target.CpuType
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.parser.ModuleImporter
@@ -9,7 +10,7 @@ import java.io.IOException
 
 internal object CX16MachineDefinition: IMachineDefinition {
 
-    override val cpu = "65c02"
+    override val cpu = CpuType.CPU65c02
 
     // 5-byte cbm MFLPT format limitations:
     override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255

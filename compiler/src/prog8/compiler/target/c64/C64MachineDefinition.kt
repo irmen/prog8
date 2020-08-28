@@ -2,6 +2,7 @@ package prog8.compiler.target.c64
 
 import prog8.ast.Program
 import prog8.compiler.*
+import prog8.compiler.target.CpuType
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.IMachineFloat
 import prog8.parser.ModuleImporter
@@ -12,7 +13,7 @@ import kotlin.math.pow
 
 internal object C64MachineDefinition: IMachineDefinition {
 
-    override val cpu = "6502"
+    override val cpu = CpuType.CPU6502
 
     // 5-byte cbm MFLPT format limitations:
     override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255

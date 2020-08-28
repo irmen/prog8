@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
 
@@ -736,9 +737,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "&" -> {
                 when {
-                    value == 0 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
-                    value and 255 == 0 -> asmgen.out(" lda  #0 |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out(" lda  $name |  and  #$value |  sta  $name |  lda  #0 |  sta  $name+1")
+                    value == 0 -> {
+                        if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out(" stz  $name |  stz  $name+1")
+                        else
+                            asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
+                    }
+                    value and 255 == 0 -> {
+                        if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out(" stz  $name")
+                        else
+                            asmgen.out(" lda  #0 |  sta  $name")
+                        asmgen.out(" lda  $name+1 |  and  #>$value |  sta  $name+1")
+                    }
+                    value < 0x0100 -> {
+                        asmgen.out(" lda  $name |  and  #$value |  sta  $name")
+                        if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  stz  $name+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name+1")
+                    }
                     else -> asmgen.out(" lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
                 }
             }
@@ -1259,12 +1277,25 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {
                             when(target.kind) {
-                                TargetStorageKind.VARIABLE -> asmgen.out(" lda  #0 |  sta  ${target.asmVarname}+1")
+                                TargetStorageKind.VARIABLE -> {
+                                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                                        asmgen.out(" stz  ${target.asmVarname}+1")
+                                    else
+                                        asmgen.out(" lda  #0 |  sta  ${target.asmVarname}+1")
+                                }
                                 TargetStorageKind.ARRAY -> {
                                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y, true)
-                                    asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
+                                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                                        asmgen.out("  stz  ${target.asmVarname},y")
+                                    else
+                                        asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
                                 }
-                                TargetStorageKind.STACK -> asmgen.out(" lda  #0 |  sta  P8ESTACK_HI+1,x")
+                                TargetStorageKind.STACK -> {
+                                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                                        asmgen.out(" stz  P8ESTACK_HI+1,x")
+                                    else
+                                        asmgen.out(" lda  #0 |  sta  P8ESTACK_HI+1,x")
+                                }
                                 else -> throw AssemblyError("weird target")
                             }
                         }

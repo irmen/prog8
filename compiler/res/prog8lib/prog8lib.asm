@@ -960,7 +960,7 @@ _result_maxuw	.word  0
 		.pend
 
 func_max_w	.proc
-		lda  #$00
+		lda  #0
 		sta  _result_maxw
 		lda  #$80
 		sta  _result_maxw+1

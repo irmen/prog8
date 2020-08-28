@@ -4,6 +4,8 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.CpuType
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
@@ -45,15 +47,28 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
                             RegisterOrPair.X -> {
                                 // return value in X register has been discarded, just push a zero
-                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x |  dex")
+                                if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                                    asmgen.out("  stz  P8ESTACK_LO,x")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
+                                asmgen.out("  dex")
                             }
                             RegisterOrPair.AX -> {
                                 // return value in X register has been discarded, just push a zero in this place
-                                asmgen.out("  sta  P8ESTACK_LO,x |  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
+                                asmgen.out("  sta  P8ESTACK_LO,x")
+                                if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                                    asmgen.out("  stz  P8ESTACK_HI,x")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x")
+                                asmgen.out("  dex")
                             }
                             RegisterOrPair.XY -> {
                                 // return value in X register has been discarded, just push a zero in this place
-                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+                                if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                                    asmgen.out("  stz  P8ESTACK_LO,x")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
+                                asmgen.out("  tya |  sta  P8ESTACK_HI,x |  dex")
                             }
                         }
                     }
@@ -69,7 +84,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             DataType.UBYTE -> {
                 when(expr.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
-                    DataType.UWORD, DataType.WORD -> asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")
+                    DataType.UWORD, DataType.WORD -> {
+                        if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                            asmgen.out("  stz  P8ESTACK_HI+1,x")
+                        else
+                            asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")
+                    }
                     DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_ub2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
@@ -83,9 +103,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out(""" 
                             lda  P8ESTACK_LO+1,x
                             ora  #$7f
-                            bmi  +
-                            lda  #0
-+                           sta  P8ESTACK_HI+1,x""")
+                            bmi  +""")
+                        if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                            asmgen.out("""
++                               stz  P8ESTACK_HI+1,x""")
+                        else
+                            asmgen.out("""
+                                lda  #0
++                               sta  P8ESTACK_HI+1,x""")
                     }
                     DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")

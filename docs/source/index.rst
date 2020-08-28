@@ -12,6 +12,7 @@ What is Prog8?
 
 This is an experimental compiled programming language targeting the 8-bit
 `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
+`65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ /
 `6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ microprocessor.
 This CPU is from the late 1970's and early 1980's and was used in many home computers from that era,
 such as the `Commodore-64 <https://en.wikipedia.org/wiki/Commodore_64>`_.

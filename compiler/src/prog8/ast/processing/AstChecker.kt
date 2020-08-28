@@ -915,9 +915,6 @@ internal class AstChecker(private val program: Program,
                     val argIDt = arg.first.value.inferType(program)
                     if (!argIDt.isKnown)
                         return
-                    if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)
-                            && arg.first.value !is NumericLiteralValue && arg.first.value !is IdentifierReference)
-                        errors.warn("calling a subroutine that expects X as a parameter is problematic. If you see a compiler error/crash about this later, try to change this call", position)
                 }
             }
         }
