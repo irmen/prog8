@@ -97,7 +97,8 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                     }
                     else -> {
                         asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
-                        asmgen.out("  stx  P8ZP_SCRATCH_REG_X |  tax")
+                        asmgen.saveRegister(CpuRegister.X)
+                        asmgen.out("  tax")
                         when(elementDt) {
                             in ByteDatatypes -> {
                                 asmgen.out(if(incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
@@ -124,7 +125,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                             }
                             else -> throw AssemblyError("weird array elt dt")
                         }
-                        asmgen.out("  ldx  P8ZP_SCRATCH_REG_X")
+                        asmgen.restoreRegister(CpuRegister.X)
                     }
                 }
             }

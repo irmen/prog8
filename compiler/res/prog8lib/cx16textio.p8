@@ -42,7 +42,7 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		phx
 		jsr  conv.ubyte2decimal
 		pha
 		tya
@@ -51,7 +51,7 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		txa
 		jsr  c64.CHROUT
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		rts
 	}}
 }
@@ -59,7 +59,7 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		phx
 		jsr  conv.ubyte2decimal
 _print_byte_digits
 		pha
@@ -76,7 +76,7 @@ _print_byte_digits
         jsr  c64.CHROUT
 _ones   txa
 		jsr  c64.CHROUT
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		rts
 	}}
 }
@@ -84,7 +84,7 @@ _ones   txa
 asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		phx
 		pha
 		cmp  #0
 		bpl  +
@@ -93,7 +93,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 +		pla
 		jsr  conv.byte2decimal
 		jsr  print_ub._print_byte_digits
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		rts
 	}}
 }
@@ -101,7 +101,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		phx
 		bcc  +
 		pha
 		lda  #'$'
@@ -111,7 +111,7 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		tya
 		jsr  c64.CHROUT
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		rts
 	}}
 }
@@ -119,7 +119,7 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		phx
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
@@ -132,7 +132,7 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 +		jsr  c64.CHROUT
 		dey
 		bne  -
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		rts
 	}}
 }
@@ -165,7 +165,7 @@ asmsub  print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG_X
+	    phx
 		jsr  conv.uword2decimal
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
@@ -173,7 +173,7 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		iny
 		bne  -
-+		ldx  P8ZP_SCRATCH_REG_X
++		plx
 		rts
 	}}
 }
@@ -181,9 +181,9 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG_X
+	    phx
 		jsr  conv.uword2decimal
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
 		beq  _allzero
@@ -228,11 +228,11 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	; ---- safe wrapper around PLOT kernel routine, to save the X register.
 	%asm  {{
-		stx  P8ZP_SCRATCH_REG_X
+		phx
 		tax
 		clc
 		jsr  c64.PLOT
-		ldx  P8ZP_SCRATCH_REG_X
+		plx
 		rts
 	}}
 }

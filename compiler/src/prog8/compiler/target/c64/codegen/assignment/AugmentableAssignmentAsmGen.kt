@@ -1059,11 +1059,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         // because the value is evaluated onto the eval stack (=slow).
         println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
+        asmgen.saveRegister(CpuRegister.X)
         when (operator) {
             "**" -> {
                 asmgen.out("""
                     jsr  c64flt.pop_float_fac1
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.CONUPK
@@ -1073,7 +1073,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> {
                 asmgen.out("""
                     jsr  c64flt.pop_float_fac1
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FADD
@@ -1082,7 +1081,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "-" -> {
                 asmgen.out("""
                     jsr  c64flt.pop_float_fac1
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FSUB
@@ -1091,7 +1089,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "*" -> {
                 asmgen.out("""
                     jsr  c64flt.pop_float_fac1
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FMULT
@@ -1100,7 +1097,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "/" -> {
                 asmgen.out("""
                     jsr  c64flt.pop_float_fac1
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FDIV
@@ -1113,8 +1109,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldx  #<$name
             ldy  #>$name
             jsr  c64flt.MOVMF
-            ldx  P8ZP_SCRATCH_REG_X
         """)
+        asmgen.restoreRegister(CpuRegister.X)
     }
 
     private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference) {
@@ -1123,10 +1119,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             throw AssemblyError("float variable expected")
 
         val otherName = asmgen.asmVariableName(ident)
+        asmgen.saveRegister(CpuRegister.X)
         when (operator) {
             "**" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.CONUPK
@@ -1137,7 +1133,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "+" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.MOVFM
@@ -1148,7 +1143,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "-" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$otherName
                     ldy  #>$otherName
                     jsr  c64flt.MOVFM
@@ -1159,7 +1153,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "*" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.MOVFM
@@ -1170,7 +1163,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "/" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$otherName
                     ldy  #>$otherName
                     jsr  c64flt.MOVFM
@@ -1186,16 +1178,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldx  #<$name
             ldy  #>$name
             jsr  c64flt.MOVMF
-            ldx  P8ZP_SCRATCH_REG_X
         """)
+        asmgen.restoreRegister(CpuRegister.X)
     }
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
         val constValueName = asmgen.getFloatAsmConst(value)
+        asmgen.saveRegister(CpuRegister.X)
         when (operator) {
             "**" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.CONUPK
@@ -1208,7 +1200,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if (value == 0.0)
                     return
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.MOVFM
@@ -1221,7 +1212,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if (value == 0.0)
                     return
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$constValueName
                     ldy  #>$constValueName
                     jsr  c64flt.MOVFM
@@ -1232,7 +1222,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "*" -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.MOVFM
@@ -1245,7 +1234,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if (value == 0.0)
                     throw AssemblyError("division by zero")
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG_X
                     lda  #<$constValueName
                     ldy  #>$constValueName
                     jsr  c64flt.MOVFM
@@ -1261,8 +1249,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldx  #<$name
             ldy  #>$name
             jsr  c64flt.MOVMF
-            ldx  P8ZP_SCRATCH_REG_X
         """)
+        asmgen.restoreRegister(CpuRegister.X)
     }
 
     private fun inplaceCast(target: AsmAssignTarget, cast: TypecastExpression, position: Position) {
@@ -1499,8 +1487,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             DataType.FLOAT -> {
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
+                        asmgen.saveRegister(CpuRegister.X)
                         asmgen.out("""
-                            stx  P8ZP_SCRATCH_REG_X
                             lda  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
                             jsr  c64flt.MOVFM
@@ -1508,8 +1496,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ldx  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
                             jsr  c64flt.MOVMF
-                            ldx  P8ZP_SCRATCH_REG_X
                         """)
+                        asmgen.restoreRegister(CpuRegister.X)
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate float array")
                     TargetStorageKind.STACK -> TODO("stack float negate")

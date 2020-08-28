@@ -551,7 +551,12 @@ internal class AsmGen(private val program: Program,
     internal fun saveRegister(register: CpuRegister) {
         when(register) {
             CpuRegister.A -> out("  pha")
-            CpuRegister.X -> out("  txa | pha")
+            CpuRegister.X -> {
+                if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                    out("  phx")
+                else
+                    out("  stx  P8ZP_SCRATCH_REG_X")
+            }
             CpuRegister.Y -> out("  tya | pha")
         }
     }
@@ -559,7 +564,12 @@ internal class AsmGen(private val program: Program,
     internal fun restoreRegister(register: CpuRegister) {
         when(register) {
             CpuRegister.A -> out("  pla")
-            CpuRegister.X -> out("  pla | tax")
+            CpuRegister.X -> {
+                if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                    out("  plx")
+                else
+                    out("  ldx  P8ZP_SCRATCH_REG_X")
+            }
             CpuRegister.Y -> out("  pla | tay")
         }
     }
