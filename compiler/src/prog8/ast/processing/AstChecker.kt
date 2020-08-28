@@ -118,6 +118,11 @@ internal class AstChecker(private val program: Program,
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
+
+                fun checkLoopRangeValues() {
+
+                }
+
                 when (loopvar.datatype) {
                     DataType.UBYTE -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
@@ -141,6 +146,22 @@ internal class AstChecker(private val program: Program,
                         errors.err("for loop only supports integers", forLoop.position)
                     }
                     else -> errors.err("loop variable must be numeric type", forLoop.position)
+                }
+                if(errors.isEmpty()) {
+                    // check loop range values
+                    val range = forLoop.iterable as? RangeExpr
+                    if(range!=null) {
+                        val from = range.from as? NumericLiteralValue
+                        val to = range.to as? NumericLiteralValue
+                        if(from != null)
+                            checkValueTypeAndRange(loopvar.datatype, from)
+                        else if(!range.from.inferType(program).istype(loopvar.datatype))
+                            errors.err("range start value is incompatible with loop variable type", range.position)
+                        if(to != null)
+                            checkValueTypeAndRange(loopvar.datatype, to)
+                        else if(!range.to.inferType(program).istype(loopvar.datatype))
+                            errors.err("range end value is incompatible with loop variable type", range.position)
+                    }
                 }
             }
         }

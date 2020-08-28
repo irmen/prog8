@@ -3,6 +3,17 @@
 
 main {
     sub start() {
+
+            ubyte xx
+            ubyte yy
+            for yy in 199 downto 0 {
+                for xx in 255 downto 0 {
+                    ; TODO also fix that the asm is invalid for word iterator variable.
+                }
+            }
+
+
+
         byte b1
         byte b2
         byte b3

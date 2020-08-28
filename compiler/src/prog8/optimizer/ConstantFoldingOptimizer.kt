@@ -318,11 +318,11 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
     }
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
-        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
+        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr? {
             val fromCast = rangeFrom.cast(targetDt)
             val toCast = rangeTo.cast(targetDt)
             if(!fromCast.isValid || !toCast.isValid)
-                return range
+                return null
 
             val newStep =
                 if(stepLiteral!=null) {
@@ -351,28 +351,32 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                 if(rangeFrom.type!= DataType.UBYTE) {
                     // attempt to translate the iterable into ubyte values
                     val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    if(newIter!=null)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
                 }
             }
             DataType.BYTE -> {
                 if(rangeFrom.type!= DataType.BYTE) {
                     // attempt to translate the iterable into byte values
                     val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    if(newIter!=null)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
                 }
             }
             DataType.UWORD -> {
                 if(rangeFrom.type!= DataType.UWORD) {
                     // attempt to translate the iterable into uword values
                     val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    if(newIter!=null)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
                 }
             }
             DataType.WORD -> {
                 if(rangeFrom.type!= DataType.WORD) {
                     // attempt to translate the iterable into word values
                     val newIter = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
-                    return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
+                    if(newIter!=null)
+                        return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
                 }
             }
             else -> throw FatalAstException("invalid loopvar datatype $loopvar")
