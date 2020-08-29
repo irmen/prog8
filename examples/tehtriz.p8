@@ -280,12 +280,12 @@ waitkey:
 
     sub drawBoard() {
         c64.CLEARSCR()
-        c64.COLOR = 7
+        txt.color(7)
         txt.plot(1,1)
         txt.print("irmen's")
         txt.plot(2,2)
         txt.print("teh▁triz")
-        c64.COLOR = 5
+        txt.color(5)
         txt.plot(6,4)
         txt.print("hold:")
         txt.plot(2,22)
@@ -296,10 +296,10 @@ waitkey:
         txt.print("lines:")
         txt.plot(28,14)
         txt.print("score:")
-        c64.COLOR = 12
+        txt.color(12)
         txt.plot(27,18)
         txt.print("controls:")
-        c64.COLOR = 11
+        txt.color(11)
         txt.plot(28,19)
         txt.print(",/  move")
         txt.plot(28,20)
@@ -342,7 +342,7 @@ waitkey:
     }
 
     sub drawScore() {
-        c64.COLOR=1
+        txt.color(1)
         txt.plot(30,11)
         txt.print_uw(lines)
         txt.plot(30,15)

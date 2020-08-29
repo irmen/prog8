@@ -9,7 +9,7 @@ main {
     sub start() {
 
         ; set text color and activate lowercase charset
-        c64.COLOR = 13
+        txt.color(13)
         c64.VMCSB |= 2
 
         ; use optimized routine to write text

@@ -47,10 +47,10 @@ sub delay() {
 sub print_notes(ubyte n1, ubyte n2) {
     c64.CHROUT('\n')
     txt.plot(n1/2, 24)
-    c64.COLOR=7
+    txt.color(7)
     c64.CHROUT('Q')
     txt.plot(n2/2, 24)
-    c64.COLOR=4
+    txt.color(4)
     c64.CHROUT('Q')
 }
 

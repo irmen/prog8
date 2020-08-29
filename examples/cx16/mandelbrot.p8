@@ -32,7 +32,7 @@ main {
                     ysquared = y*y
                     iter++
                 }
-
+                ; txt.setchr(pixelx, pixely, '*')
                 txt.color2(1, max_iter-iter)
                 c64.CHROUT(' ')
             }

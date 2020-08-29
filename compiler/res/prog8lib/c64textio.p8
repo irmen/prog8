@@ -11,7 +11,7 @@
 
 txt {
 
-asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
+asmsub  clear_screen (ubyte char @ A, ubyte charcolor @ Y) clobbers(A)  {
 	; ---- clear the character screen with the given fill character and character color.
 	;      (assumes screen and color matrix are at their default addresses)
 
@@ -41,7 +41,7 @@ _loop		sta  c64.Screen,y
         }}
 }
 
-asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
+asmsub  clear_screencolors (ubyte scrcolor @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
@@ -54,6 +54,10 @@ _loop		sta  c64.Colors,y
 		bne  _loop
 		rts
         }}
+}
+
+sub color (ubyte txtcol) {
+    c64.COLOR = txtcol
 }
 
 asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
@@ -504,7 +508,7 @@ _mod		lda  $ffff		; modified
 	}}
 }
 
-sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
+sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
 		lda  row
@@ -524,7 +528,7 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 		inc  _colormod+2
 +		lda  char
 _charmod	sta  $ffff		; modified
-		lda  color
+		lda  charcolor
 _colormod	sta  $ffff		; modified
 		rts
 	}}

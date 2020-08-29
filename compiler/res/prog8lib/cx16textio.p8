@@ -20,6 +20,18 @@ asmsub  clear_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 
 }
 
+ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
+
+sub color (ubyte txtcol) {
+    c64.CHROUT(color_to_charcode[txtcol & 15])
+}
+
+sub color2 (ubyte txtcol, ubyte bgcol) {
+    c64.CHROUT(color_to_charcode[bgcol & 15])
+    c64.CHROUT(1)       ; switch fg and bg colors
+    c64.CHROUT(color_to_charcode[txtcol & 15])
+}
+
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
@@ -224,30 +236,20 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 	}}
 }
 
-ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
-
-sub color (ubyte txtcol) {
-    c64.CHROUT(color_to_charcode[txtcol & 15])
-}
-
-sub color2 (ubyte txtcol, ubyte bgcol) {
-    c64.CHROUT(color_to_charcode[bgcol & 15])
-    c64.CHROUT(1)       ; switch fg and bg colors
-    c64.CHROUT(color_to_charcode[txtcol & 15])
-}
-
-sub  setc  (ubyte column, ubyte row, ubyte char)  {
+sub  setchr  (ubyte column, ubyte row, ubyte char)  {
 	; ---- set char at the given position on the screen
-	%asm {{
-		phx
-		ldy  column
-		ldx  row
-		clc
-		jsr  c64.PLOT
-		plx
-		lda  char
-		jmp  c64.CHROUT
-	}}
+	; plot(column, row)
+	c64.CHROUT(char)
+;	%asm {{
+;		phx
+;		ldy  column
+;		ldx  row
+;		clc
+;		jsr  c64.PLOT
+;		plx
+;		lda  char
+;		jmp  c64.CHROUT
+;	}}
 }
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {

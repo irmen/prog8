@@ -21,7 +21,7 @@ main {
     const ubyte PAGE2 = ((SCREEN2 >> 6) & $F0) | ((CHARSET >> 10) & $0E)
 
     sub start() {
-        c64.COLOR = 1
+        txt.color(1)
         txt.print("creating charset...\n")
         makechar()
 

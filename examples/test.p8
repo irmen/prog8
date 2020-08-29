@@ -10,7 +10,6 @@ main {
 ;   sub color(...) {}
 ;   sub other(ubyte color) {}    ; TODO don't cause name conflict
 
-
         byte b1
         byte b2
         byte b3
