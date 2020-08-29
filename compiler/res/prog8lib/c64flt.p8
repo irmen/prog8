@@ -6,12 +6,12 @@
 
 %option enable_floats
 
-
 c64flt {
 	; ---- this block contains C-64 floating point related functions ----
 
         const  float  PI        = 3.141592653589793
         const  float  TWOPI	    = 6.283185307179586
+        const  float  ZERO      = 0.0
 
 
 ; ---- C64 basic and kernal ROM float constants and functions ----
@@ -35,13 +35,11 @@ c64flt {
 		&float  FL_TWOPI	= $e2e5  ; 2 * PI
 		&float  FL_FR4		= $e2ea  ; .25
 		; oddly enough, 0.0 isn't available in the kernel.
-        float   FL_ZERO     = 0.0    ; oddly enough 0.0 isn't available in the kernel
 
 
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
-; checked functions below:
 romsub $bba2 = MOVFM(uword mflpt @ AY) clobbers(A,Y)        ; load mflpt value from memory  in A/Y into fac1
 romsub $bba6 = FREADMEM() clobbers(A,Y)                     ; load mflpt value from memory  in $22/$23 into fac1
 romsub $ba8c = CONUPK(uword mflpt @ AY) clobbers(A,Y)       ; load mflpt value from memory  in A/Y into fac2
@@ -91,6 +89,7 @@ romsub $bb12 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  
 romsub $bb0f = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
 romsub $bf7b = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
 romsub $bf78 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** mflpt from A/Y
+romsub $bd7e = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
 
 romsub $aed4 = NOTOP() clobbers(A,X,Y)                      ; fac1 = NOT(fac1)
 romsub $bccc = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
@@ -193,33 +192,26 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 }
 
 sub  print_f  (float value) {
-	; ---- prints the floating point value (without a newline) using basic rom routines.
+	; ---- prints the floating point value (without a newline).
 	%asm {{
 		stx  P8ZP_SCRATCH_REG_X
 		lda  #<value
 		ldy  #>value
 		jsr  MOVFM		; load float into fac1
 		jsr  FOUT		; fac1 to string in A/Y
-		jsr  c64.STROUT			; print string in A/Y
+		sta  P8ZP_SCRATCH_B1
+		sty  P8ZP_SCRATCH_REG
+		ldy  #0
+-		lda  (P8ZP_SCRATCH_B1),y
+		beq  +
+		jsr  c64.CHROUT
+		iny
+		bne  -
 		ldx  P8ZP_SCRATCH_REG_X
-		rts
++		rts
 	}}
-}
-
-sub  print_fln  (float value) {
-	; ---- prints the floating point value (with a newline at the end) using basic rom routines
-	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
-		lda  #<value
-		ldy  #>value
-		jsr  MOVFM		; load float into fac1
-		jsr  FPRINTLN		; print fac1 with newline
-		ldx  P8ZP_SCRATCH_REG_X
-		rts
-	}}
-
 }
 
 %asminclude "library:c64floats.asm", ""
 
-}  ; ------ end of block c64flt
+}

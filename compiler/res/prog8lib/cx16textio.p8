@@ -11,7 +11,7 @@
 
 txt {
 
-asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
+asmsub  clear_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 	; ---- clear the character screen with the given fill character and character color.
 
 	%asm {{
@@ -221,6 +221,32 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 		bcc  +
 		iny
 +		jmp  print_uw
+	}}
+}
+
+ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
+
+sub color (ubyte txtcol) {
+    c64.CHROUT(color_to_charcode[txtcol & 15])
+}
+
+sub color2 (ubyte txtcol, ubyte bgcol) {
+    c64.CHROUT(color_to_charcode[bgcol & 15])
+    c64.CHROUT(1)       ; switch fg and bg colors
+    c64.CHROUT(color_to_charcode[txtcol & 15])
+}
+
+sub  setc  (ubyte column, ubyte row, ubyte char)  {
+	; ---- set char at the given position on the screen
+	%asm {{
+		phx
+		ldy  column
+		ldx  row
+		clc
+		jsr  c64.PLOT
+		plx
+		lda  char
+		jmp  c64.CHROUT
 	}}
 }
 

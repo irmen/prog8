@@ -4,19 +4,11 @@
 main {
     sub start() {
 
-            uword xx
-            ubyte yy
-                for xx in 319 downto 0 {
-                    ; TODO also fix that the asm is invalid for word iterator variable.
-                }
+;asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  { ...}
+; TODO dont cause name conflict if we define sub or sub with param 'color' or even a var 'color' later.
 
-
-            for yy in 199 downto 0 {
-                for xx in 319 downto 0 {
-                    ; TODO also fix that the asm is invalid for word iterator variable.
-                }
-            }
-
+;   sub color(...) {}
+;   sub other(ubyte color) {}    ; TODO don't cause name conflict
 
 
         byte b1

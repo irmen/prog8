@@ -8,7 +8,8 @@ ub2float	.proc
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  P8ZP_SCRATCH_B1
-		jsr  FREADUY
+		lda  #0
+		jsr  GIVAYF
 _fac_to_mem	ldx  P8ZP_SCRATCH_W2
 		ldy  P8ZP_SCRATCH_W2+1
 		jsr  MOVMF
@@ -74,7 +75,8 @@ stack_ub2float	.proc
 		lda  P8ESTACK_LO,x
 		stx  P8ZP_SCRATCH_REG_X
 		tay
-		jsr  FREADUY
+		lda  #0
+		jsr  GIVAYF
 		jmp  push_fac1_as_result
 		.pend
 
@@ -663,8 +665,8 @@ _largest_pos_float	.byte  255,127,255,255,255		; largest positive float
 		.pend
 
 func_sum_f	.proc
-		lda  #<FL_ZERO
-		ldy  #>FL_ZERO
+		lda  #<ZERO
+		ldy  #>ZERO
 		jsr  MOVFM
 		jsr  prog8_lib.pop_array_and_lengthmin1Y
 		stx  P8ZP_SCRATCH_REG_X
