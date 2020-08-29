@@ -46,7 +46,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 if (stepsize==1 || stepsize==-1) {
 
-                    // bytes, step 1 or -1
+                    // bytes array, step 1 or -1
 
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
@@ -256,13 +256,6 @@ $endLabel       inx""")
         }
 
         asmgen.loopEndLabels.pop()
-    }
-
-    private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) {
-        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), variable=stmt.loopVar)
-        val src = AsmAssignSource.fromAstSource(range.from, program).adjustDataTypeToTarget(target)
-        val assign = AsmAssignment(src, target, false, range.position)
-        asmgen.translateNormalAssignment(assign)
     }
 
     private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
@@ -614,5 +607,12 @@ $loopLabel""")
             jmp  $loopLabel
 $endLabel""")
         asmgen.loopEndLabels.pop()
+    }
+
+    private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) {
+        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), variable=stmt.loopVar)
+        val src = AsmAssignSource.fromAstSource(range.from, program).adjustDataTypeToTarget(target)
+        val assign = AsmAssignment(src, target, false, range.position)
+        asmgen.translateNormalAssignment(assign)
     }
 }

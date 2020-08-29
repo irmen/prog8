@@ -642,7 +642,14 @@ class RangeExpr(var from: Expression,
             fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(DataType.STR)
             fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.ARRAY_W)
             fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.ARRAY_B)
-            else -> InferredTypes.knownFor(DataType.ARRAY_UB)
+            else -> {
+                val fdt = fromDt.typeOrElse(DataType.STRUCT)
+                val tdt = toDt.typeOrElse(DataType.STRUCT)
+                if(fdt largerThan tdt)
+                    InferredTypes.knownFor(ElementArrayTypes.getValue(fdt))
+                else
+                    InferredTypes.knownFor(ElementArrayTypes.getValue(tdt))
+            }
         }
     }
     override fun toString(): String {

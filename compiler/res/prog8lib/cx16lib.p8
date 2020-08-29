@@ -80,8 +80,6 @@ cx16 {
     &uword r15 = $20
 
 
-; TODO subroutine args + soubroutine returnvalues + clobber registers
-
 ; supported C128 additions
 romsub $ff4a = close_all()
 romsub $ff59 = lkupla()

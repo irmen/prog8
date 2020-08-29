@@ -4,10 +4,15 @@
 main {
     sub start() {
 
-            ubyte xx
+            uword xx
             ubyte yy
+                for xx in 319 downto 0 {
+                    ; TODO also fix that the asm is invalid for word iterator variable.
+                }
+
+
             for yy in 199 downto 0 {
-                for xx in 255 downto 0 {
+                for xx in 319 downto 0 {
                     ; TODO also fix that the asm is invalid for word iterator variable.
                 }
             }
