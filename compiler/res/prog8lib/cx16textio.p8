@@ -30,7 +30,8 @@ asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 	    bne  +
 	    lda  #147       ; clear screen
 	    jmp  c64.CHROUT
-+       brk         ; TODO fill screen with another character than space....
++       ; TODO fill the screen with a different fillchar (not space) - not yet supported
+        rts
         }}
 
 }
@@ -118,9 +119,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 +		pla
 		jsr  conv.byte2decimal
-		jsr  print_ub._print_byte_digits
-		plx
-		rts
+		jmp  print_ub._print_byte_digits
 	}}
 }
 

@@ -5,7 +5,7 @@
 main {
     const uword width = 256
     const uword height = 200
-    const ubyte max_iter = 32
+    const ubyte max_iter = 16       ; 32 looks pretty nice
 
     sub start()  {
         initialize()
@@ -16,18 +16,24 @@ main {
     }
 
     sub mandel() {
+        const float XL=-2.000
+        const float XU=0.500
+        const float YL=-1.100
+        const float YU=1.100
+        float dx = (XU-XL)/width
+        float dy = (YU-YL)/height
         ubyte pixelx
         ubyte pixely
 
         for pixely in 0 to height-1 {
-            float yy = (pixely as float)/0.35/height - 1.35
+            float yy = YL+dy*pixely
 
             cx16.r0 = 0
             cx16.r1 = pixely
             cx16.FB_cursor_position()
 
             for pixelx in 0 to width-1 {
-                float xx = (pixelx as float)/0.3/width - 2.2
+                float xx = XL+dx*pixelx
 
                 float xsquared = 0.0
                 float ysquared = 0.0
@@ -61,7 +67,8 @@ main {
         txt.plot(32, 9)
         txt.print("floats")
         txt.plot(32, 10)
-        txt.print("32 iter")
+        txt.print_b(max_iter)
+        txt.print(" iter")
 
         cx16.r0 = 0
         cx16.r1 = 0
