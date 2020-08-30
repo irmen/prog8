@@ -38,7 +38,7 @@ internal object C64MachineDefinition: IMachineDefinition {
         val mflpt5 = Mflpt5.fromNumber(number)
         val floatbytes = shortArrayOf(mflpt5.b0, mflpt5.b1, mflpt5.b2, mflpt5.b3, mflpt5.b4)
         when {
-            floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_ZERO"
+            floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.ZERO"        // not a ROM const
             floatbytes.contentEquals(shortArrayOf(0x82, 0x49, 0x0f, 0xda, 0xa1)) -> return "c64flt.FL_PIVAL"
             floatbytes.contentEquals(shortArrayOf(0x90, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_N32768"
             floatbytes.contentEquals(shortArrayOf(0x81, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FONE"
