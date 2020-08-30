@@ -12,9 +12,18 @@ Prog8 - Structured Programming Language for 8-bit 6502/65c02 microprocessors
 
 This is a structured programming language for the 8-bit 6502/6510/65c02 microprocessor from the late 1970's and 1980's
 as used in many home computers from that era. It is a medium to low level programming language,
-which aims to provide many conveniences over raw assembly code (even when using a macro assembler):
+which aims to provide many conveniences over raw assembly code (even when using a macro assembler).
 
-- reduction of source code length
+Documentation
+-------------
+Full documentation (syntax reference, how to use the language and the compiler, etc.) can be found at:
+https://prog8.readthedocs.io/
+
+
+What use Prog8 provide?
+-----------------------
+
+- reduction of source code length over raw assembly
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - automatic variable allocations, automatic string and array variables and string sharing
@@ -29,7 +38,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - inline assembly allows you to have full control when every cycle or byte matters
 - many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
 
-Rapid edit-compile-run-debug cycle:
+*Rapid edit-compile-run-debug cycle:*
 
 - use a modern PC to do the work on
 - very quick compilation times
@@ -37,17 +46,16 @@ Rapid edit-compile-run-debug cycle:
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 
-Prog8 is mainly targeted at the Commodore-64 machine.
-Preliminary support for the [CommanderX16](https://www.commanderx16.com) is available as a second compilation target.
-Contributions to improve these or to add support for other machines are welcome!
+*Two supported compiler targets* (contributions to improve these or to add support for other machines are welcome!):
+
+- "c64": Commodore-64  (6510 CPU = almost a 6502)  premium support.
+- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)  experimental support.
 
 
-Documentation/manual
---------------------
-https://prog8.readthedocs.io/
 
-Required tools
---------------
+
+Additional required tools
+-------------------------
 
 [64tass](https://sourceforge.net/projects/tass64/) - cross assembler. Install this on your shell path.
 A recent .exe version of this tool for Windows can be obtained from my [clone](https://github.com/irmen/64tass/releases) of this project.

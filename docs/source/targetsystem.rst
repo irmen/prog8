@@ -9,10 +9,12 @@ Prog8 targets the following hardware:
 - optional use of memory mapped I/O registers
 - optional use of system ROM routines
 
-The main target machine is the well-known Commodore-64, which is an example of this.
-Another (preliminary) supported target machine is the `CommanderX16 <https://www.commanderx16.com/>`_ .
+Currently there are two machines that are supported as compiler target (via the ``-target`` compiler argument):
 
-This chapter explains the relevant system details of such machines.
+- 'c64': the well-known Commodore-64, premium support
+- 'cx16': the `CommanderX16 <https://www.commanderx16.com/>`_ a project from the 8-Bit Guy. Support for this is still experimental.
+
+This chapter explains the relevant system details of these machines.
 
 
 Memory Model
