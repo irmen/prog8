@@ -37,10 +37,10 @@ main {
                     iter++
                 }
 
-                if iter & 1 {
-                    graphics.plotx = pixelx
-                    graphics.plot(pixely)
-                }
+                if iter & 1
+                    ; TODO fix plot() so we don't have to use separate internal variable
+                    graphics.internal_plotx = pixelx
+                    graphics.internal_plot(pixely)
             }
         }
 

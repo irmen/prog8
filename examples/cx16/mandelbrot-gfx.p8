@@ -26,14 +26,14 @@ main {
         ubyte pixely
 
         for pixely in 0 to height-1 {
-            float yy = YL+dy*pixely
+            float yy = YL+dy*(pixely as float)
 
             cx16.r0 = 0
             cx16.r1 = pixely
             cx16.FB_cursor_position()
 
             for pixelx in 0 to width-1 {
-                float xx = XL+dx*pixelx
+                float xx = XL+dx*(pixelx as float)
 
                 float xsquared = 0.0
                 float ysquared = 0.0

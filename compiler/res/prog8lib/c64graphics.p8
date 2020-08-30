@@ -38,15 +38,15 @@ graphics {
         }
         dx *= 2
         dy *= 2
-        plotx = x1
+        internal_plotx = x1
 
         if dx >= dy {
             if positive_ix {
                 repeat {
-                    plot(y1)
-                    if plotx==x2
+                    internal_plot(y1)
+                    if internal_plotx==x2
                         return
-                    plotx++
+                    internal_plotx++
                     d += dy
                     if d > dx {
                         y1++
@@ -55,10 +55,10 @@ graphics {
                 }
             } else {
                 repeat {
-                    plot(y1)
-                    if plotx==x2
+                    internal_plot(y1)
+                    if internal_plotx==x2
                         return
-                    plotx--
+                    internal_plotx--
                     d += dy
                     if d > dx {
                         y1++
@@ -70,25 +70,25 @@ graphics {
         else {
             if positive_ix {
                 repeat {
-                    plot(y1)
+                    internal_plot(y1)
                     if y1 == y2
                         return
                     y1++
                     d += dx
                     if d > dy {
-                        plotx++
+                        internal_plotx++
                         d -= dy
                     }
                 }
             } else {
                 repeat {
-                    plot(y1)
+                    internal_plot(y1)
                     if y1 == y2
                         return
                     y1++
                     d += dx
                     if d > dy {
-                        plotx--
+                        internal_plotx--
                         d -= dy
                     }
                 }
@@ -104,26 +104,26 @@ graphics {
         byte @zp decisionOver2 = 1-xx as byte
 
         while xx>=yy {
-            plotx = xcenter + xx
+            internal_plotx = xcenter + xx
             ploty = ycenter + yy
-            plot(ploty)
-            plotx = xcenter - xx
-            plot(ploty)
-            plotx = xcenter + xx
+            internal_plot(ploty)
+            internal_plotx = xcenter - xx
+            internal_plot(ploty)
+            internal_plotx = xcenter + xx
             ploty = ycenter - yy
-            plot(ploty)
-            plotx = xcenter - xx
-            plot(ploty)
-            plotx = xcenter + yy
+            internal_plot(ploty)
+            internal_plotx = xcenter - xx
+            internal_plot(ploty)
+            internal_plotx = xcenter + yy
             ploty = ycenter + xx
-            plot(ploty)
-            plotx = xcenter - yy
-            plot(ploty)
-            plotx = xcenter + yy
+            internal_plot(ploty)
+            internal_plotx = xcenter - yy
+            internal_plot(ploty)
+            internal_plotx = xcenter + yy
             ploty = ycenter - xx
-            plot(ploty)
-            plotx = xcenter - yy
-            plot(ploty)
+            internal_plot(ploty)
+            internal_plotx = xcenter - yy
+            internal_plot(ploty)
             yy++
             if decisionOver2<=0
                 decisionOver2 += 2*yy+1
@@ -146,21 +146,21 @@ graphics {
             ubyte cy_plus_xx = cy + xx
             ubyte cy_min_xx = cy - xx
 
-            for plotx in cx to cx+xx {
-                plot(cy_plus_yy)
-                plot(cy_min_yy)
+            for internal_plotx in cx to cx+xx {
+                internal_plot(cy_plus_yy)
+                internal_plot(cy_min_yy)
             }
-            for plotx in cx-xx to cx-1 {
-                plot(cy_plus_yy)
-                plot(cy_min_yy)
+            for internal_plotx in cx-xx to cx-1 {
+                internal_plot(cy_plus_yy)
+                internal_plot(cy_min_yy)
             }
-            for plotx in cx to cx+yy {
-                plot(cy_plus_xx)
-                plot(cy_min_xx)
+            for internal_plotx in cx to cx+yy {
+                internal_plot(cy_plus_xx)
+                internal_plot(cy_min_xx)
             }
-            for plotx in cx-yy to cx {
-                plot(cy_plus_xx)
-                plot(cy_min_xx)
+            for internal_plotx in cx-yy to cx {
+                internal_plot(cy_plus_xx)
+                internal_plot(cy_min_xx)
             }
             yy++
             if decisionOver2<=0
@@ -180,17 +180,27 @@ graphics {
 ;        @(addr) |= ormask[lsb(px) & 7]
 ;    }
 
-    uword plotx     ; 0..319        ; separate 'parameter' for plot()
+    ; TODO fix the use of X (or XY) as parameter so we can actually use this plot() routine
+    ;   calling it with a byte results in a compiler crash, calling it with word results in clobbering X register I think
+    asmsub  plotXXX(uword plotx @XY, ubyte ploty @A) {
+        %asm {{
+            stx  internal_plotx
+            sty  internal_plotx+1
+            jmp  internal_plot
+        }}
+    }
 
-    asmsub plot(ubyte ploty @A) {           ; plotx is 16 bits 0 to 319... doesn't fit in a register
+    uword internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
+
+    asmsub  internal_plot(ubyte ploty @A) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{
         tay
         stx  P8ZP_SCRATCH_REG_X
-        lda  plotx+1
+        lda  internal_plotx+1
         sta  P8ZP_SCRATCH_W2+1
         lsr  a            ; 0
         sta  P8ZP_SCRATCH_W2
-        lda  plotx
+        lda  internal_plotx
         pha
         and  #7
         tax
@@ -203,7 +213,7 @@ graphics {
         adc  P8ZP_SCRATCH_W2+1
         sta  P8ZP_SCRATCH_W2+1
 
-        pla     ; plotx
+        pla     ; internal_plotx
         and  #%11111000
         tay
         lda  (P8ZP_SCRATCH_W2),y
