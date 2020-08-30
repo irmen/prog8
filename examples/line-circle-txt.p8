@@ -16,13 +16,13 @@ main {
         txt.print("enter for disc:")
         void c64.CHRIN()
         c64.CHROUT('\n')
-        txt.clear_screen(' ', 1)
+        txt.clear_screen()
         disc(20, 12, 12)
 
         txt.print("enter for lines:")
         void c64.CHRIN()
         c64.CHROUT('\n')
-        txt.clear_screen(' ', 1)
+        txt.clear_screen()
 
         line(1, 10, 38, 24)
         line(1, 20, 38, 2)
@@ -32,7 +32,7 @@ main {
         txt.print("enter for rectangles:")
         void c64.CHRIN()
         c64.CHROUT('\n')
-        txt.clear_screen(' ', 1)
+        txt.clear_screen()
 
         rect(4, 8, 37, 23, false)
         rect(20, 12, 30, 20, true)

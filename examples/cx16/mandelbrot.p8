@@ -14,10 +14,10 @@ main {
         ubyte pixely
 
         for pixely in 0 to height-1 {
-            float yy = (pixely as float)/0.4/height - 1.0
+            float yy = (pixely as float)/0.40/height - 1.3
 
             for pixelx in 0 to width-1 {
-                float xx = (pixelx as float)/0.3/width - 2.2
+                float xx = (pixelx as float)/0.32/width - 2.2
 
                 float xsquared = 0.0
                 float ysquared = 0.0

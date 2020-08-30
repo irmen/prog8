@@ -11,8 +11,16 @@
 
 txt {
 
-asmsub  clear_screen (ubyte char @ A, ubyte charcolor @ Y) clobbers(A)  {
-	; ---- clear the character screen with the given fill character and character color.
+asmsub  clear_screen() {
+    %asm {{
+        lda  #' '
+        jmp  clear_screenchars
+    }}
+}
+
+
+asmsub  fill_screen (ubyte char @ A, ubyte charcolor @ Y) clobbers(A)  {
+	; ---- fill the character screen with the given fill character and character color.
 	;      (assumes screen and color matrix are at their default addresses)
 
 	%asm {{

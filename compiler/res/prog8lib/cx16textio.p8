@@ -11,11 +11,26 @@
 
 txt {
 
-asmsub  clear_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
+sub  clear_screen() {
+    c64.CHROUT(147)         ; clear screen (spaces)
+}
+
+
+asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 	; ---- clear the character screen with the given fill character and character color.
 
 	%asm {{
-	    brk     ; TODO
+	    pha
+	    tya
+	    and  #$0f
+	    lda  txt.color_to_charcode,y
+	    jsr  c64.CHROUT
+	    pla
+	    cmp  #' '
+	    bne  +
+	    lda  #147       ; clear screen
+	    jmp  c64.CHROUT
++       brk         ; TODO fill screen with another character than space....
         }}
 
 }

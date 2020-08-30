@@ -16,7 +16,7 @@ graphics {
 
     sub clear_screen(ubyte pixelcolor, ubyte bgcolor) {
         memset(bitmap_address, 320*200/8, 0)
-        txt.clear_screen(pixelcolor << 4 | bgcolor, 0)
+        txt.fill_screen(pixelcolor << 4 | bgcolor, 0)
     }
 
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
@@ -218,7 +218,7 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 ; note: this can be even faster if we also have a 256 byte x-lookup table, but hey.
 ; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
 ; the y lookup tables encodes this formula:  bitmap_address + 320*(py>>3) + (py & 7)    (y from 0..199)
-; TODO can we use an assembly function for this to calc this?
+; TODO can we use an assembler function for this to calc this at assembly-time?
 _y_lookup_hi
             .byte  $20, $20, $20, $20, $20, $20, $20, $20, $21, $21, $21, $21, $21, $21, $21, $21
             .byte  $22, $22, $22, $22, $22, $22, $22, $22, $23, $23, $23, $23, $23, $23, $23, $23
