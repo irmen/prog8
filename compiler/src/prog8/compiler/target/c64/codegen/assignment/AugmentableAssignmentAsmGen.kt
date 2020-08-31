@@ -126,7 +126,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_word_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
 //                            value is DirectMemoryRead -> {
-//                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+//                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}")
 //                                // assignmentAsmGen.translateOtherAssignment(origAssign)
 //                                asmgen.translateExpression(value.addressExpression)
 //                                asmgen.out("""
@@ -135,7 +135,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 //                                    inx
 //                                    """)
 //                                inplaceModification_word_value_to_variable(name, operator, )
-//                                // TODO
 //                            }
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return

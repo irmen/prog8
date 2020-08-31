@@ -2,7 +2,7 @@
 
 ; bitmap pixel graphics module for the C64
 ; only black/white monchrome for now
-    ; assumes bitmap screen memory is $2000-$3fff
+; assumes bitmap screen memory is $2000-$3fff
 
 graphics {
     const uword bitmap_address = $2000
@@ -228,36 +228,13 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 ; note: this can be even faster if we also have a 256 byte x-lookup table, but hey.
 ; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
 ; the y lookup tables encodes this formula:  bitmap_address + 320*(py>>3) + (py & 7)    (y from 0..199)
-; TODO can we use an assembler function for this to calc this at assembly-time?
-_y_lookup_hi
-            .byte  $20, $20, $20, $20, $20, $20, $20, $20, $21, $21, $21, $21, $21, $21, $21, $21
-            .byte  $22, $22, $22, $22, $22, $22, $22, $22, $23, $23, $23, $23, $23, $23, $23, $23
-            .byte  $25, $25, $25, $25, $25, $25, $25, $25, $26, $26, $26, $26, $26, $26, $26, $26
-            .byte  $27, $27, $27, $27, $27, $27, $27, $27, $28, $28, $28, $28, $28, $28, $28, $28
-            .byte  $2a, $2a, $2a, $2a, $2a, $2a, $2a, $2a, $2b, $2b, $2b, $2b, $2b, $2b, $2b, $2b
-            .byte  $2c, $2c, $2c, $2c, $2c, $2c, $2c, $2c, $2d, $2d, $2d, $2d, $2d, $2d, $2d, $2d
-            .byte  $2f, $2f, $2f, $2f, $2f, $2f, $2f, $2f, $30, $30, $30, $30, $30, $30, $30, $30
-            .byte  $31, $31, $31, $31, $31, $31, $31, $31, $32, $32, $32, $32, $32, $32, $32, $32
-            .byte  $34, $34, $34, $34, $34, $34, $34, $34, $35, $35, $35, $35, $35, $35, $35, $35
-            .byte  $36, $36, $36, $36, $36, $36, $36, $36, $37, $37, $37, $37, $37, $37, $37, $37
-            .byte  $39, $39, $39, $39, $39, $39, $39, $39, $3a, $3a, $3a, $3a, $3a, $3a, $3a, $3a
-            .byte  $3b, $3b, $3b, $3b, $3b, $3b, $3b, $3b, $3c, $3c, $3c, $3c, $3c, $3c, $3c, $3c
-            .byte  $3e, $3e, $3e, $3e, $3e, $3e, $3e, $3e
+; We use the 64tass syntax for range expressions to calculate this table on assembly time.
 
-_y_lookup_lo
-            .byte $00, $01, $02, $03, $04, $05, $06, $07, $40, $41, $42, $43, $44, $45, $46, $47
-            .byte $80, $81, $82, $83, $84, $85, $86, $87, $c0, $c1, $c2, $c3, $c4, $c5, $c6, $c7
-            .byte $00, $01, $02, $03, $04, $05, $06, $07, $40, $41, $42, $43, $44, $45, $46, $47
-            .byte $80, $81, $82, $83, $84, $85, $86, $87, $c0, $c1, $c2, $c3, $c4, $c5, $c6, $c7
-            .byte $00, $01, $02, $03, $04, $05, $06, $07, $40, $41, $42, $43, $44, $45, $46, $47
-            .byte $80, $81, $82, $83, $84, $85, $86, $87, $c0, $c1, $c2, $c3, $c4, $c5, $c6, $c7
-            .byte $00, $01, $02, $03, $04, $05, $06, $07, $40, $41, $42, $43, $44, $45, $46, $47
-            .byte $80, $81, $82, $83, $84, $85, $86, $87, $c0, $c1, $c2, $c3, $c4, $c5, $c6, $c7
-            .byte $00, $01, $02, $03, $04, $05, $06, $07, $40, $41, $42, $43, $44, $45, $46, $47
-            .byte $80, $81, $82, $83, $84, $85, $86, $87, $c0, $c1, $c2, $c3, $c4, $c5, $c6, $c7
-            .byte $00, $01, $02, $03, $04, $05, $06, $07, $40, $41, $42, $43, $44, $45, $46, $47
-            .byte $80, $81, $82, $83, $84, $85, $86, $87, $c0, $c1, $c2, $c3, $c4, $c5, $c6, $c7
-            .byte $00, $01, $02, $03, $04, $05, $06, $07
+_plot_y_values := $2000 + 320*(range(200)>>3) + (range(200) & 7)
+
+_y_lookup_lo    .byte  <_plot_y_values
+_y_lookup_hi    .byte  >_plot_y_values
+
         }}
     }
 
