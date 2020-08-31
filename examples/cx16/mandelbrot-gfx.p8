@@ -5,7 +5,7 @@
 main {
     const uword width = 256
     const uword height = 200
-    const ubyte max_iter = 16       ; 32 looks pretty nice
+    const ubyte max_iter = 16       ; 32 actually looks pretty nice but takes longer
 
     sub start()  {
         initialize()

@@ -8,28 +8,6 @@ main {
 
     sub start() {
 
-;        %asm {{
-;            lda  #$80
-;            jsr  cx16.screen_set_mode
-;        }}
-;        cx16.r0=0
-;        cx16.GRAPH_init()
-;        %asm {{
-;            lda  #4
-;            ldy  #0
-;            ldx  #1
-;            jsr  cx16.GRAPH_set_colors
-;        }}
-;        cx16.GRAPH_clear()
-;        cx16.r0=10
-;        cx16.r1=10
-;        cx16.r2=100
-;        cx16.r3=150
-;        cx16.GRAPH_draw_line()
-;
-;        repeat {
-;        }
-
         cx16.r0 = mkword(8, 2020 - 1900)
         cx16.r1 = mkword(19, 27)
         cx16.r2 = mkword(0, 16)

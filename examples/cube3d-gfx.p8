@@ -4,9 +4,6 @@
 
 main {
 
-    const uword width = 255
-    const uword height = 200
-
     ; vertices
     word[] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
     word[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
