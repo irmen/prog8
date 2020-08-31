@@ -17,22 +17,40 @@ sub  clear_screen() {
 
 
 asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
-	; ---- clear the character screen with the given fill character and character color.
-
+	; ---- fill the character screen with the given fill character and character color.
 	%asm {{
-	    pha
-	    tya
-	    and  #$0f
-	    lda  txt.color_to_charcode,y
-	    jsr  c64.CHROUT
-	    pla
-	    cmp  #' '
-	    bne  +
-	    lda  #147       ; clear screen
-	    jmp  c64.CHROUT
-+       ; TODO fill the screen with a different fillchar (not space) - not yet supported
+        sta  P8ZP_SCRATCH_W1        ; fillchar
+        sty  P8ZP_SCRATCH_W1+1      ; textcolor
+        phx
+        jsr  c64.SCREEN             ; get dimensions in X/Y
+        dex
+        dey
+        txa
+        asl  a
+        adc  #1
+        sta  P8ZP_SCRATCH_B1
+-       ldx  P8ZP_SCRATCH_B1
+-       stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  cx16.VERA_DATA0
+        and  #$f0
+        ora  P8ZP_SCRATCH_W1+1
+        sta  cx16.VERA_DATA0
+        dex
+        stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  P8ZP_SCRATCH_W1
+        sta  cx16.VERA_DATA0
+        dex
+        cpx  #255
+        bne  -
+        dey
+        bpl  --
+        plx
         rts
-        }}
+    }}
 
 }
 

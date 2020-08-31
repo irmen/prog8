@@ -79,6 +79,49 @@ cx16 {
     &uword r14 = $1e
     &uword r15 = $20
 
+; VERA registers
+
+    const uword VERA_BASE = $9F20
+    &uword VERA_ADDR_L   	 = VERA_BASE + $00
+    &uword VERA_ADDR_M   	 = VERA_BASE + $01
+    &uword VERA_ADDR_H   	 = VERA_BASE + $02
+    &uword VERA_DATA0        = VERA_BASE + $03
+    &uword VERA_DATA1        = VERA_BASE + $04
+    &uword VERA_CTRL         = VERA_BASE + $05
+    &uword VERA_IEN          = VERA_BASE + $06
+    &uword VERA_ISR          = VERA_BASE + $07
+    &uword VERA_IRQ_LINE_L   = VERA_BASE + $08
+    &uword VERA_DC_VIDEO     = VERA_BASE + $09
+    &uword VERA_DC_HSCALE    = VERA_BASE + $0A
+    &uword VERA_DC_VSCALE    = VERA_BASE + $0B
+    &uword VERA_DC_BORDER    = VERA_BASE + $0C
+    &uword VERA_DC_HSTART    = VERA_BASE + $09
+    &uword VERA_DC_HSTOP     = VERA_BASE + $0A
+    &uword VERA_DC_VSTART    = VERA_BASE + $0B
+    &uword VERA_DC_VSTOP     = VERA_BASE + $0C
+    &uword VERA_L0_CONFIG    = VERA_BASE + $0D
+    &uword VERA_L0_MAPBASE   = VERA_BASE + $0E
+    &uword VERA_L0_TILEBASE  = VERA_BASE + $0F
+    &uword VERA_L0_HSCROLL_L = VERA_BASE + $10
+    &uword VERA_L0_HSCROLL_H = VERA_BASE + $11
+    &uword VERA_L0_VSCROLL_L = VERA_BASE + $12
+    &uword VERA_L0_VSCROLL_H = VERA_BASE + $13
+    &uword VERA_L1_CONFIG    = VERA_BASE + $14
+    &uword VERA_L1_MAPBASE   = VERA_BASE + $15
+    &uword VERA_L1_TILEBASE  = VERA_BASE + $16
+    &uword VERA_L1_HSCROLL_L = VERA_BASE + $17
+    &uword VERA_L1_HSCROLL_H = VERA_BASE + $18
+    &uword VERA_L1_VSCROLL_L = VERA_BASE + $19
+    &uword VERA_L1_VSCROLL_H = VERA_BASE + $1A
+    &uword VERA_AUDIO_CTRL   = VERA_BASE + $1B
+    &uword VERA_AUDIO_RATE   = VERA_BASE + $1C
+    &uword VERA_AUDIO_DATA   = VERA_BASE + $1D
+    &uword VERA_SPI_DATA     = VERA_BASE + $1E
+    &uword VERA_SPI_CTRL     = VERA_BASE + $1F
+; VERA_PSG_BASE     = $1F9C0
+; VERA_PALETTE_BASE = $1FA00
+; VERA_SPRITES_BASE = $1FC00
+
 
 ; supported C128 additions
 romsub $ff4a = close_all()
@@ -119,20 +162,20 @@ romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte heig
 romsub $ff41 = GRAPH_put_char(ubyte char @A)   ; uses x=r0, y=r1
 
 ; framebuffer
-romsub $fef6 =  FB_init()
-romsub $fef9 =  FB_get_info() -> byte @A    ; also outputs width=r0, height=r1
-romsub $fefc =  FB_set_palette(ubyte index @A, ubyte bytecount @X)      ; also uses pointer=r0
-romsub $feff =  FB_cursor_position()    ; uses x=r0, y=r1
-romsub $ff02 =  FB_cursor_next_line()   ; uses x=r0
-romsub $ff05 =  FB_get_pixel() -> ubyte @A
-romsub $ff08 =  FB_get_pixels()         ; uses ptr=r0, count=r1
-romsub $ff0b =  FB_set_pixel(ubyte color @A)
-romsub $ff0e =  FB_set_pixels()         ; uses ptr=r0, count=r1
-romsub $ff11 =  FB_set_8_pixels(ubyte pattern @A, ubyte color @X)
-romsub $ff14 =  FB_set_8_pixels_opaque(ubyte pattern @A, ubyte color1 @X, ubyte color2 @Y)  ; also uses mask=r0L
-romsub $ff17 =  FB_fill_pixels(ubyte color @A)   ; also uses count=r0, step=r1
-romsub $ff1a =  FB_filter_pixels()      ; uses ptr=r0, count=r1
-romsub $ff1d =  FB_move_pixels()        ; uses sx=r0, sy=r1, tx=r2, ty=r3, count=r4
+romsub $fef6 = FB_init()
+romsub $fef9 = FB_get_info() -> byte @A    ; also outputs width=r0, height=r1
+romsub $fefc = FB_set_palette(ubyte index @A, ubyte bytecount @X)      ; also uses pointer=r0
+romsub $feff = FB_cursor_position()    ; uses x=r0, y=r1
+romsub $ff02 = FB_cursor_next_line()   ; uses x=r0
+romsub $ff05 = FB_get_pixel() -> ubyte @A
+romsub $ff08 = FB_get_pixels()         ; uses ptr=r0, count=r1
+romsub $ff0b = FB_set_pixel(ubyte color @A)
+romsub $ff0e = FB_set_pixels()         ; uses ptr=r0, count=r1
+romsub $ff11 = FB_set_8_pixels(ubyte pattern @A, ubyte color @X)
+romsub $ff14 = FB_set_8_pixels_opaque(ubyte pattern @A, ubyte color1 @X, ubyte color2 @Y)  ; also uses mask=r0L
+romsub $ff17 = FB_fill_pixels(ubyte color @A)   ; also uses count=r0, step=r1
+romsub $ff1a = FB_filter_pixels()      ; uses ptr=r0, count=r1
+romsub $ff1d = FB_move_pixels()        ; uses sx=r0, sy=r1, tx=r2, ty=r3, count=r4
 
 ; misc
 romsub $fef0 = sprite_set_image(ubyte number @A, ubyte width @X, ubyte height @Y, ubyte apply_mask @Pc) -> ubyte @Pc  ; also uses pixels=r0, mask=r1, bpp=r2L
