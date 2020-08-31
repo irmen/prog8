@@ -268,20 +268,35 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 	}}
 }
 
-sub  setchr  (ubyte column, ubyte row, ubyte char)  {
-	; ---- set char at the given position on the screen
-	; plot(column, row)
-	c64.CHROUT(char)
-;	%asm {{
-;		phx
-;		ldy  column
-;		ldx  row
-;		clc
-;		jsr  c64.PLOT
-;		plx
-;		lda  char
-;		jmp  c64.CHROUT
-;	}}
+; TODO implement the "missing" txtio subroutines
+
+sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
+	; ---- set char+color at the given position on the screen
+	%asm {{
+	    phx
+		lda  column
+		asl  a
+		tax
+		ldy  row
+		lda  charcolor
+		and  #$0f
+	    sta  P8ZP_SCRATCH_B1
+        stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  char
+        sta  cx16.VERA_DATA0
+        inx
+        stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  cx16.VERA_DATA0
+        and  #$f0
+        ora  P8ZP_SCRATCH_B1
+        sta  cx16.VERA_DATA0
+		plx
+		rts
+    }}
 }
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
