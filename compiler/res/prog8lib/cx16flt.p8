@@ -61,7 +61,7 @@ romsub $fe6c = ABS()                                        ; fac1 = ABS(fac1)
 romsub $fe6f = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 romsub $fe78 = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
 romsub $fe7e = FINLOG(byte value @A) clobbers (A, X, Y)           ; fac1 += signed byte in A
-romsub $fe81 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY ($0100)
+romsub $fe81 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
 romsub $fe8a = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 romsub $fe8d = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
 romsub $fe93 = NEGOP() clobbers(A)                          ; switch the sign of fac1
@@ -77,7 +77,20 @@ romsub $feae = ATN() clobbers(A,X,Y)                        ; fac1 = ATN(fac1)
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
-	    jmp  GIVAYFAY       ; TODO make this work for unsigned!!
+        phx
+        sta  P8ZP_SCRATCH_REG
+        sty  P8ZP_SCRATCH_B1
+        tya
+        ldy  P8ZP_SCRATCH_REG
+        jsr  GIVAYF                 ; load it as signed... correct afterwards
+        lda  P8ZP_SCRATCH_B1
+	    bpl  +
+	    lda  #<_flt65536
+	    ldy  #>_flt65536
+	    jsr  FADD
++	    plx
+        rts
+_flt65536    .byte 145,0,0,0,0       ; 65536.0
 	}}
 }
 
