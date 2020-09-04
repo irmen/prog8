@@ -385,9 +385,9 @@ waitkey:
     }
 
     sub drawBlock(ubyte x, ubyte y, ubyte character) {
-        ubyte i
+        ubyte @zp i
         for i in 15 downto 0 {
-            ubyte c=blocklogic.currentBlock[i]
+            ubyte @zp c=blocklogic.currentBlock[i]
             if c
                 txt.setcc((i&3)+x, (i/4)+y, character, c)
         }
@@ -534,7 +534,7 @@ blocklogic {
     }
 
     sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
-        ubyte i
+        ubyte @zp i
         for i in 15 downto 0 {
             if currentBlock[i] and txt.getchr(xpos + (i&3), ypos+i/4)!=32
                 return false

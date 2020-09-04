@@ -54,6 +54,36 @@ asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 
 }
 
+asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
+	; ---- clear the character screen with the given fill character (leaves colors)
+	;      (assumes screen matrix is at the default address)
+	%asm {{
+        pha
+        phx
+        jsr  c64.SCREEN             ; get dimensions in X/Y
+        dex
+        dey
+        txa
+        asl  a
+        sta  P8ZP_SCRATCH_B1
+        pla
+-       ldx  P8ZP_SCRATCH_B1
+-       stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        sta  cx16.VERA_DATA0
+        dex
+        dex
+        cpx  #254
+        bne  -
+        dey
+        bpl  --
+        plx
+        rts
+        }}
+}
+
+
 ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
 
 sub color (ubyte txtcol) {

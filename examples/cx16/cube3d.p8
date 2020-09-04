@@ -1,10 +1,11 @@
-%import c64lib
-%import c64textio
+%import cx16textio
+; TODO fix compilation when zeropage is not basicsafe
+%zeropage basicsafe
 
 main {
 
-    const uword width = 40
-    const uword height = 25
+    const uword screen_width = 80
+    const uword screen_height = 60
 
     ; vertices
     word[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
@@ -21,20 +22,15 @@ main {
         uword anglex
         uword angley
         uword anglez
+        ubyte timer_jiffies
+
         repeat {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            txt.clear_screenchars(32)
+            txt.clear_screenchars(' ')
             draw_edges()
-            anglex+=1000
-            angley+=433
-            anglez+=907
-            txt.plot(0,0)
-            txt.print("3d cube! ")
-            txt.print_ub(c64.TIME_LO)
-            txt.print(" jiffies/fr = ")
-            txt.print_ub(60/c64.TIME_LO)
-            txt.print(" fps")
-            c64.TIME_LO=0
+            anglex+=500
+            angley+=215
+            anglez+=453
         }
     }
 
@@ -85,9 +81,9 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 10 {
-                persp = 900 + rz/32
-                sx = rotatedx[i] / persp as byte + width/2
-                sy = rotatedy[i] / persp as byte + height/2
+                persp = 500 + rz/64
+                sx = rotatedx[i] / persp as byte + screen_width/2
+                sy = rotatedy[i] / persp as byte + screen_height/2
                 txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
             }
         }
@@ -95,9 +91,9 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 10 {
-                persp = 900 + rz/32
-                sx = rotatedx[i] / persp as byte + width/2
-                sy = rotatedy[i] / persp as byte + height/2
+                persp = 500 + rz/64
+                sx = rotatedx[i] / persp as byte + screen_width/2
+                sy = rotatedy[i] / persp as byte + screen_height/2
                 txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
             }
         }

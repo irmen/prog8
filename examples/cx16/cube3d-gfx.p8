@@ -1,6 +1,6 @@
-%import c64lib
-%import c64graphics
-
+%import cx16lib
+; TODO fix compilation when zeropage is not basicsafe
+%zeropage basicsafe
 
 main {
 
@@ -24,21 +24,18 @@ main {
         uword angley
         uword anglez
 
-        graphics.enable_bitmap_mode()
-
+        void cx16.screen_set_mode($80)
+        cx16.r0 = 0
+        cx16.GRAPH_init()
+        cx16.GRAPH_set_colors(1, 2, 0)
 
         repeat {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            graphics.clear_screen(1, 0)
+            cx16.GRAPH_clear()
             draw_lines()
-            anglex-=500
-            angley+=217
-            anglez+=452
-
-            while c64.RASTER!=255 {
-            }
-            while c64.RASTER!=254 {
-            }
+            anglex-=250
+            angley+=109
+            anglez+=226
         }
     }
 
@@ -83,12 +80,13 @@ main {
         for i in len(edgesFrom) -1 downto 0 {
             ubyte @zp vFrom = edgesFrom[i]
             ubyte @zp vTo = edgesTo[i]
-            word @zp persp1 = 256 + rotatedz[vFrom]/256
-            word @zp persp2 = 256 + rotatedz[vTo]/256
-            graphics.line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-                          rotatedy[vFrom] / persp1 + screen_height/2 as ubyte,
-                          rotatedx[vTo] / persp2 + screen_width/2 as uword,
-                          rotatedy[vTo] / persp2 + screen_height/2 as ubyte)
+            word persp1 = 256 + rotatedz[vFrom]/256
+            word persp2 = 256 + rotatedz[vTo]/256
+            cx16.r0 = rotatedx[vFrom] / persp1 + screen_width/2 as uword
+            cx16.r1 = rotatedy[vFrom] / persp1 + screen_height/2 as uword
+            cx16.r2 = rotatedx[vTo] / persp2 + screen_width/2 as uword
+            cx16.r3 = rotatedy[vTo] / persp2 + screen_height/2 as uword
+            cx16.GRAPH_draw_line()      ; TODO are there bugs in here?  the lines are all wrong...
         }
     }
 }

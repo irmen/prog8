@@ -1,11 +1,12 @@
-%import c64lib
-%import c64textio
-%import c64flt
+%import cx16flt
+%import cx16textio
+; TODO fix compilation when zeropage is not basicsafe
+%zeropage basicsafe
 
 main {
 
-    const uword width = 40
-    const uword height = 25
+    const uword width = 80
+    const uword height = 60
 
     ; vertices
     float[] xcoor = [ -1.0, -1.0, -1.0, -1.0,  1.0,  1.0,  1.0, 1.0 ]
@@ -19,18 +20,29 @@ main {
 
     sub start()  {
         float time=0.0
+        ubyte timer_jiffies
+
         repeat {
             rotate_vertices(time)
-            txt.clear_screenchars(32)
+            txt.clear_screenchars(' ')
             draw_edges()
-            time+=0.2
+            time+=0.1
+
             txt.plot(0,0)
-            txt.print("3d cube! (float) ")
-            txt.print_ub(c64.TIME_LO)
+            txt.print("3d cube! (floating point calc) ")
+
+            %asm {{
+                phx
+                jsr  c64.RDTIM      ; A/X/Y
+                sta  timer_jiffies
+                lda  #0
+                jsr  c64.SETTIM
+                plx
+            }}
+            txt.print_ub(timer_jiffies)
             txt.print(" jiffies/fr = ")
-            txt.print_ub(60/c64.TIME_LO)
+            txt.print_ub(60/timer_jiffies)
             txt.print(" fps")
-            c64.TIME_LO=0
         }
     }
 
@@ -70,8 +82,8 @@ main {
         ; plot the points of the 3d cube
         ; first the points on the back, then the points on the front (painter algorithm)
         ubyte @zp i
-        float @zp rz                ; TODO compiler warning that float can't be in ZP?
-        float @zp persp
+        float rz
+        float persp
         ubyte sx
         ubyte sy
 
@@ -81,7 +93,7 @@ main {
                 persp = (5.0+rz)/(height as float)
                 sx = rotatedx[i] / persp + width/2.0 as ubyte
                 sy = rotatedy[i] / persp + height/2.0 as ubyte
-                txt.setcc(sx, sy, 46, i+2)
+                txt.setcc(sx, sy, 46, 1)
             }
         }
 
@@ -91,7 +103,7 @@ main {
                 persp = (5.0+rz)/(height as float)
                 sx = rotatedx[i] / persp + width/2.0 as ubyte
                 sy = rotatedy[i] / persp + height/2.0 as ubyte
-                txt.setcc(sx, sy, 81, i+2)
+                txt.setcc(sx, sy, 81, 1)
             }
         }
     }

@@ -233,8 +233,8 @@ inc_var_f	.proc
 		sty  P8ZP_SCRATCH_W1+1
 		stx  P8ZP_SCRATCH_REG_X
 		jsr  MOVFM
-		lda  #<FL_FONE
-		ldy  #>FL_FONE
+		lda  #<ONE
+		ldy  #>ONE
 		jsr  FADD
 		ldx  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
@@ -248,8 +248,8 @@ dec_var_f	.proc
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		stx  P8ZP_SCRATCH_REG_X
-		lda  #<FL_FONE
-		ldy  #>FL_FONE
+		lda  #<ONE
+		ldy  #>ONE
 		jsr  MOVFM
 		lda  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
@@ -573,8 +573,8 @@ func_ceil	.proc
 		jsr  FCOMP
 		cmp  #0
 		beq  +
-		lda  #<FL_FONE
-		ldy  #>FL_FONE
+		lda  #<ONE
+		ldy  #>ONE
 		jsr  FADD
 +		jmp  push_fac1_as_result
 		.pend

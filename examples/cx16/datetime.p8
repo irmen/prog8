@@ -1,4 +1,4 @@
-; CommanderX16 text clock example!
+; CommanderX16 text datetime example!
 ; make sure to compile with the cx16 compiler target.
 
 %import cx16textio

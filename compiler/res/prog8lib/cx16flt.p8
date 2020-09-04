@@ -9,9 +9,11 @@
 c64flt {
 	; ---- this block contains C-64 floating point related functions ----
 
-        const  float  PI        = 3.141592653589793
-        const  float  TWOPI	    = 6.283185307179586
-        const  float  ZERO      = 0.0
+        ; TODO fix var storage in ASM when declared const:
+        float  PI        = 3.141592653589793
+        float  TWOPI	 = 6.283185307179586
+        float  ZERO      = 0.0
+        float  ONE       = 1.0
 
 
 ; ---- ROM float functions ----

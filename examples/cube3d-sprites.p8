@@ -122,7 +122,7 @@ main {
         word Azy = wcosb*wsinc / 128
         word Azz = wcosb*wcosc / 128
 
-        ubyte i
+        ubyte @zp i
         for i in 0 to len(xcoor)-1 {
             ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
             rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i])
@@ -138,8 +138,8 @@ main {
 
         ; first sort vertices to sprite order so the back/front order is correct as well
         ; (simple bubble sort as it's only 8 items to sort)
-        ubyte i
-        ubyte i1
+        ubyte @zp i
+        ubyte @zp i1
         for i in 6 downto 0 {
             for i1 in 0 to i {
                 ubyte i2 = i1+1
@@ -154,7 +154,7 @@ main {
         ubyte[] spritecolors = [1,1,7,15,12,11,9,9]
 
         for i in 0 to 7 {
-            word zc = rotatedz[i]
+            word @zp zc = rotatedz[i]
             word persp = 300+zc/256
             ubyte sx = rotatedx[i] / persp + width/2 as ubyte + 20
             ubyte sy = rotatedy[i] / persp + height/2 as ubyte + 40

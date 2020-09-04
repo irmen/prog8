@@ -1,4 +1,4 @@
-%import c64textio
+%import cx16textio
 %zeropage basicsafe
 
 main {
@@ -10,6 +10,16 @@ main {
 ;   sub color(...) {}
 ;   sub other(ubyte color) {}    ; TODO don't cause name conflict
 
-        c64.CHROUT('\n')
+        ; TODO fix var storage in ASM when declared const:
+        float  PI        = 3.141592653589793
+        float  TWOPI	 = 6.283185307179586
+        float  ZERO      = 0.0
+        float  ONE       = 1.0
+
+
+        float @zp rz                ; TODO compiler warning that float can't be in ZP?
+
+
     }
+
 }
