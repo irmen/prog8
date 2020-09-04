@@ -471,14 +471,11 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(decl: VarDecl) {
-        fun err(msg: String, position: Position?=null) {
-            errors.err(msg, position ?: decl.position)
-        }
+        fun err(msg: String, position: Position?=null) = errors.err(msg, position ?: decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
+        if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true)
             err("recursive var declaration")
-        }
 
         // CONST can only occur on simple types (byte, word, float)
         if(decl.type== VarDeclType.CONST) {
@@ -486,10 +483,12 @@ internal class AstChecker(private val program: Program,
                 err("const modifier can only be used on numeric types (byte, word, float)")
         }
 
-        // FLOATS
-        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY) {
+        // FLOATS enabled?
+        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
             err("floating point used, but that is not enabled via options")
-        }
+
+        if(decl.datatype == DataType.FLOAT && (decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE))
+            errors.warn("floating point values won't be placed in Zeropage due to size constraints", decl.position)
 
         // ARRAY without size specifier MUST have an iterable initializer value
         if(decl.isArray && decl.arraysize==null) {
