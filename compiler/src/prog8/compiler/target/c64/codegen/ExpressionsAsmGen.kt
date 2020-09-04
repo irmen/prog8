@@ -103,14 +103,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out(""" 
                             lda  P8ESTACK_LO+1,x
                             ora  #$7f
-                            bmi  +""")
-                        if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
-                            asmgen.out("""
-+                               stz  P8ESTACK_HI+1,x""")
-                        else
-                            asmgen.out("""
-                                lda  #0
-+                               sta  P8ESTACK_HI+1,x""")
+                            bmi  +
+                            lda  #0
++                           sta  P8ESTACK_HI+1,x""")
                     }
                     DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
