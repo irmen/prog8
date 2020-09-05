@@ -1,5 +1,8 @@
 ; --- low level floating point assembly routines for the C64
 
+FL_ONE_const	.byte  129     			; 1.0
+FL_ZERO_const	.byte  0,0,0,0,0		; 0.0
+
 
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y
@@ -233,8 +236,8 @@ inc_var_f	.proc
 		sty  P8ZP_SCRATCH_W1+1
 		stx  P8ZP_SCRATCH_REG_X
 		jsr  MOVFM
-		lda  #<ONE
-		ldy  #>ONE
+		lda  #<FL_ONE_const
+		ldy  #>FL_ONE_const
 		jsr  FADD
 		ldx  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
@@ -248,8 +251,8 @@ dec_var_f	.proc
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		stx  P8ZP_SCRATCH_REG_X
-		lda  #<ONE
-		ldy  #>ONE
+		lda  #<FL_ONE_const
+		ldy  #>FL_ONE_const
 		jsr  MOVFM
 		lda  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
@@ -573,8 +576,8 @@ func_ceil	.proc
 		jsr  FCOMP
 		cmp  #0
 		beq  +
-		lda  #<ONE
-		ldy  #>ONE
+		lda  #<FL_ONE_const
+		ldy  #>FL_ONE_const
 		jsr  FADD
 +		jmp  push_fac1_as_result
 		.pend
@@ -665,8 +668,8 @@ _largest_pos_float	.byte  255,127,255,255,255		; largest positive float
 		.pend
 
 func_sum_f	.proc
-		lda  #<ZERO
-		ldy  #>ZERO
+		lda  #<FL_ZERO_const
+		ldy  #>FL_ZERO_const
 		jsr  MOVFM
 		jsr  prog8_lib.pop_array_and_lengthmin1Y
 		stx  P8ZP_SCRATCH_REG_X

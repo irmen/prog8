@@ -70,8 +70,8 @@ main {
         ; plot the points of the 3d cube
         ; first the points on the back, then the points on the front (painter algorithm)
         ubyte @zp i
-        float @zp rz                ; TODO compiler warning that float can't be in ZP?
-        float @zp persp
+        float rz
+        float persp
         ubyte sx
         ubyte sy
 
