@@ -514,18 +514,20 @@ and returning stuff in several registers as well. The ``clobbers`` clause is use
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
 
 
-Subroutines that are implemented purely in assembly code and which have an assembly calling convention (i.e.
-the parameters are strictly passed via cpu registers), are defined like this::
+User subroutines in the program source code that are implemented purely in assembly and which have an assembly calling convention (i.e.
+the parameters are strictly passed via cpu registers), are defined with ``asmsub`` like this::
 
-    asmsub  FREADS32() clobbers(A,X,Y)  {
+    asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
         %asm {{
-            lda  $62
-            eor  #$ff
-            asl  a
-            lda  #0
-            ldx  #$a0
-            jmp  $bc4f
-        }}
+            ldy  #0
+    _loop   sta  c64.Screen,y
+            sta  c64.Screen+$0100,y
+            sta  c64.Screen+$0200,y
+            sta  c64.Screen+$02e8,y
+            iny
+            bne  _loop
+            rts
+            }}
     }
 
 the statement body of such a subroutine should consist of just an inline assembly block.

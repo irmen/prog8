@@ -273,7 +273,7 @@ asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns?
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' (identifier | stack='stack') ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_param :  vardecl '@' identifier ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed.  TODO implement  stack='stack'
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 

@@ -140,7 +140,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
                             param.second.stack -> "stack"
                             param.second.registerOrPair!=null -> param.second.registerOrPair.toString()
                             param.second.statusflag!=null -> param.second.statusflag.toString()
-                            else -> "?????1"
+                            else -> "?????"
                         }
                 output("${datatypeString(param.first.type)} ${param.first.name} @$reg")
                 if(param.first!==subroutine.parameters.last())

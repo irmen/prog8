@@ -254,7 +254,7 @@ private fun prog8Parser.Asmsub_declContext.toAst(): AsmsubDecl {
     val clobbers = asmsub_clobbers()?.clobber()?.toAst() ?: emptySet()
     val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.position) }
     val normalReturntypes = returns.map { it.type }
-    val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
+    val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, false) }
     val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
     return AsmsubDecl(name, normalParameters, normalReturntypes, paramRegisters, returnRegisters, clobbers)
 }
@@ -263,7 +263,7 @@ private class AsmSubroutineParameter(name: String,
                                      type: DataType,
                                      val registerOrPair: RegisterOrPair?,
                                      val statusflag: Statusflag?,
-                                     val stack: Boolean,
+                                     // TODO implement: val stack: Boolean,
                                      position: Position) : SubroutineParameter(name, type, position)
 
 private class AsmSubroutineReturn(val type: DataType,
@@ -305,8 +305,7 @@ private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParamete
             else -> throw FatalAstException("invalid register or status flag '$name'")
         }
     }
-    AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister,
-            !it.stack?.text.isNullOrEmpty(), toPosition())
+    AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister, toPosition())
 }
 
 private fun prog8Parser.Functioncall_stmtContext.toAst(): Statement {
