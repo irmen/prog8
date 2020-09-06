@@ -684,7 +684,7 @@ internal class AsmGen(private val program: Program,
 +""")
                 when(register) {
                     CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
-                    CpuRegister.X -> throw AssemblyError("can't use X here")
+                    CpuRegister.X -> out("  inx |  lda  P8ESTACK_LO,x |  tax")
                     CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
                 }
             }
@@ -722,7 +722,7 @@ internal class AsmGen(private val program: Program,
                 expressionsAsmGen.translateExpression(index)
                 when(register) {
                     CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
-                    CpuRegister.X -> throw AssemblyError("can't use X here")
+                    CpuRegister.X -> out("  inx |  lda  P8ESTACK_LO,x |  tax")
                     CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
                 }
             }

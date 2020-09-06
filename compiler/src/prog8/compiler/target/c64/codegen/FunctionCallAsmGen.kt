@@ -4,6 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
 import prog8.compiler.AssemblyError
@@ -63,9 +64,21 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
-        for (arg in stmt.args.reversed())
-            asmgen.translateExpression(arg)
-        for (regparam in sub.asmParameterRegisters) {
+
+        // make sure the X register is loaded last so we can "safely" destroy the estack pointer
+        val argsOrig = stmt.args.zip(sub.asmParameterRegisters)
+        val args = mutableListOf<Pair<Expression, RegisterOrStatusflag>>()
+        for(argOrig in argsOrig) {
+            if(argOrig.second.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY))
+                args.add(argOrig)
+            else
+                args.add(0, argOrig)
+        }
+
+        for (arg in args.reversed())
+            asmgen.translateExpression(arg.first)
+        for (arg in args) {
+            val regparam = arg.second
             when {
                 regparam.statusflag==Statusflag.Pc -> {
                     asmgen.out("""
