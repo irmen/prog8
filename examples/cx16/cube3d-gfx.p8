@@ -1,6 +1,4 @@
 %import cx16lib
-; TODO fix compilation when zeropage is not basicsafe
-%zeropage basicsafe
 
 main {
 

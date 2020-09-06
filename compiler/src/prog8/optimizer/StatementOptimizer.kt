@@ -104,7 +104,7 @@ internal class StatementOptimizer(private val program: Program,
                 if(string!=null) {
                     val pos = functionCallStatement.position
                     if (string.value.length == 1) {
-                        val firstCharEncoded = CompilationTarget.encodeString(string.value, string.altEncoding)[0]
+                        val firstCharEncoded = CompilationTarget.instance.encodeString(string.value, string.altEncoding)[0]
                         val chrout = FunctionCallStatement(
                                 IdentifierReference(listOf("c64", "CHROUT"), pos),
                                 mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
@@ -112,7 +112,7 @@ internal class StatementOptimizer(private val program: Program,
                         )
                         return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
                     } else if (string.value.length == 2) {
-                        val firstTwoCharsEncoded = CompilationTarget.encodeString(string.value.take(2), string.altEncoding)
+                        val firstTwoCharsEncoded = CompilationTarget.instance.encodeString(string.value.take(2), string.altEncoding)
                         val chrout1 = FunctionCallStatement(
                                 IdentifierReference(listOf("c64", "CHROUT"), pos),
                                 mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
@@ -220,7 +220,7 @@ internal class StatementOptimizer(private val program: Program,
                 val size = sv.value.length
                 if(size==1) {
                     // loop over string of length 1 -> just assign the single character
-                    val character = CompilationTarget.encodeString(sv.value, sv.altEncoding)[0]
+                    val character = CompilationTarget.instance.encodeString(sv.value, sv.altEncoding)[0]
                     val byte = NumericLiteralValue(DataType.UBYTE, character, iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, forLoop.position))

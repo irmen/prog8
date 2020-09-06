@@ -708,7 +708,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             // optimized case for float zero
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                         asmgen.out("""
                             stz  ${target.asmVarname}
                             stz  ${target.asmVarname}+1

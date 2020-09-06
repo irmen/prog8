@@ -28,7 +28,6 @@ internal interface IMachineDefinition {
 
     val opcodeNames: Set<String>
     var zeropage: Zeropage
-    val initSystemProcname: String
     val cpu: CpuType
 
     fun initializeZeropage(compilerOptions: CompilationOptions)

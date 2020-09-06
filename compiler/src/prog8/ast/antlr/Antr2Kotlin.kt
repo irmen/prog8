@@ -472,7 +472,7 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                 litval.charliteral()!=null -> {
                     try {
                         val cc=litval.charliteral()
-                        NumericLiteralValue(DataType.UBYTE, CompilationTarget.encodeString(
+                        NumericLiteralValue(DataType.UBYTE, CompilationTarget.instance.encodeString(
                                 unescape(litval.charliteral().SINGLECHAR().text, litval.toPosition()),
                                 litval.charliteral().ALT_STRING_ENCODING()!=null)[0], litval.toPosition())
                     } catch (ce: CharConversionException) {

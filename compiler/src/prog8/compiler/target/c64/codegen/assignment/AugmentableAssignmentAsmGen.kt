@@ -193,7 +193,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.translateExpression(memory.addressExpression)
                         // TODO buggy?:
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
-                        val zp = CompilationTarget.machine.zeropage
+                        val zp = CompilationTarget.instance.machine.zeropage
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
@@ -747,13 +747,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&" -> {
                 when {
                     value == 0 -> {
-                        if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out(" stz  $name |  stz  $name+1")
                         else
                             asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
                     }
                     value and 255 == 0 -> {
-                        if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out(" stz  $name")
                         else
                             asmgen.out(" lda  #0 |  sta  $name")
@@ -761,7 +761,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     value < 0x0100 -> {
                         asmgen.out(" lda  $name |  and  #$value |  sta  $name")
-                        if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name+1")
@@ -1295,20 +1295,20 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         DataType.UBYTE, DataType.BYTE -> {
                             when(target.kind) {
                                 TargetStorageKind.VARIABLE -> {
-                                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                         asmgen.out(" stz  ${target.asmVarname}+1")
                                     else
                                         asmgen.out(" lda  #0 |  sta  ${target.asmVarname}+1")
                                 }
                                 TargetStorageKind.ARRAY -> {
                                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y, true)
-                                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                         asmgen.out("  stz  ${target.asmVarname},y")
                                     else
                                         asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
                                 }
                                 TargetStorageKind.STACK -> {
-                                    if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                         asmgen.out(" stz  P8ESTACK_HI+1,x")
                                     else
                                         asmgen.out(" lda  #0 |  sta  P8ESTACK_HI+1,x")

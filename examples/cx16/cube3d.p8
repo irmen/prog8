@@ -1,6 +1,4 @@
 %import cx16textio
-; TODO fix compilation when zeropage is not basicsafe
-%zeropage basicsafe
 
 main {
 

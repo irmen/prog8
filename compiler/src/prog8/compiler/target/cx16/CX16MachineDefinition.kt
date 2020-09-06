@@ -26,7 +26,6 @@ internal object CX16MachineDefinition: IMachineDefinition {
     override val ESTACK_HI = 0x0500        //  $0500-$05ff inclusive
 
     override lateinit var zeropage: Zeropage
-    override val initSystemProcname = "cx16.init_system"
 
     override fun getFloat(num: Number) = C64MachineDefinition.Mflpt5.fromNumber(num)
 

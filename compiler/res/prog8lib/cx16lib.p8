@@ -58,6 +58,12 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 cx16 {
 
+        ; 65c02 hardware vectors:
+        &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
+        &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
+        &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
+
+
 ; ---- Commander X-16 additions on top of C64 kernal routines ----
 ; spelling of the names is taken from the Commander X-16 rom sources
 
@@ -205,6 +211,8 @@ asmsub init_system()  {
         cld
         stz  $00
         stz  $01
+        lda  #$80
+        sta  VERA_CTRL
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT

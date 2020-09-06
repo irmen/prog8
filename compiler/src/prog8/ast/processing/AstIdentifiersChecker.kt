@@ -22,7 +22,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(block: Block) {
-        if(block.name in CompilationTarget.machine.opcodeNames)
+        if(block.name in CompilationTarget.instance.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${block.name}'", block.position)
 
         val existing = blocks[block.name]
@@ -40,7 +40,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if(decl.name in BuiltinFunctions)
             errors.err("builtin function cannot be redefined", decl.position)
 
-        if(decl.name in CompilationTarget.machine.opcodeNames)
+        if(decl.name in CompilationTarget.instance.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
         if(decl.datatype==DataType.STRUCT) {
@@ -74,7 +74,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(subroutine: Subroutine) {
-        if(subroutine.name in CompilationTarget.machine.opcodeNames) {
+        if(subroutine.name in CompilationTarget.instance.machine.opcodeNames) {
             errors.err("can't use a cpu opcode name as a symbol: '${subroutine.name}'", subroutine.position)
         } else if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
@@ -119,7 +119,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(label: Label) {
-        if(label.name in CompilationTarget.machine.opcodeNames)
+        if(label.name in CompilationTarget.instance.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${label.name}'", label.position)
 
         if(label.name in BuiltinFunctions) {

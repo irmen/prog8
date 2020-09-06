@@ -47,7 +47,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
                             RegisterOrPair.X -> {
                                 // return value in X register has been discarded, just push a zero
-                                if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
                                     asmgen.out("  stz  P8ESTACK_LO,x")
                                 else
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
@@ -56,7 +56,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             RegisterOrPair.AX -> {
                                 // return value in X register has been discarded, just push a zero in this place
                                 asmgen.out("  sta  P8ESTACK_LO,x")
-                                if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
                                     asmgen.out("  stz  P8ESTACK_HI,x")
                                 else
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x")
@@ -64,7 +64,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             }
                             RegisterOrPair.XY -> {
                                 // return value in X register has been discarded, just push a zero in this place
-                                if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
                                     asmgen.out("  stz  P8ESTACK_LO,x")
                                 else
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
@@ -85,7 +85,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(expr.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {
-                        if(CompilationTarget.machine.cpu==CpuType.CPU65c02)
+                        if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
                             asmgen.out("  stz  P8ESTACK_HI+1,x")
                         else
                             asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")

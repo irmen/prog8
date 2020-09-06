@@ -91,7 +91,7 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the mach9ine and compiler options we may have to include some libraries
-    CompilationTarget.machine.importLibs(compilerOptions, importer, programAst)
+    CompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst)
 
     // always import prog8lib and math
     importer.importLibraryModule(programAst, "math")
@@ -191,11 +191,11 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
 
     // printAst(programAst)
 
-    CompilationTarget.machine.initializeZeropage(compilerOptions)
-    val assembly = CompilationTarget.asmGenerator(
+    CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
+    val assembly = CompilationTarget.instance.asmGenerator(
             programAst,
             errors,
-            CompilationTarget.machine.zeropage,
+            CompilationTarget.instance.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly(optimize)
     assembly.assemble(compilerOptions)

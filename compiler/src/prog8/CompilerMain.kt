@@ -4,13 +4,10 @@ import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
+import prog8.compiler.target.C64Target
+import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.CompilationTarget
-import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.c64.codegen.AsmGen
-import prog8.compiler.target.cx16.CX16MachineDefinition
 import prog8.parser.ParsingFailedError
-import java.io.IOException
 import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
@@ -52,30 +49,10 @@ private fun compileMain(args: Array<String>) {
 
     when(compilationTarget) {
         "c64" -> {
-            with(CompilationTarget) {
-                name = "Commodore-64"
-                machine = C64MachineDefinition
-                encodeString = { str, altEncoding ->
-                    if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
-                }
-                decodeString = { bytes, altEncoding ->
-                    if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
-                }
-                asmGenerator = ::AsmGen
-            }
+            CompilationTarget.instance = C64Target()
         }
         "cx16" -> {
-            with(CompilationTarget) {
-                name = "Commander X16"
-                machine = CX16MachineDefinition
-                encodeString = { str, altEncoding ->
-                    if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
-                }
-                decodeString = { bytes, altEncoding ->
-                    if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
-                }
-                asmGenerator = ::AsmGen
-            }
+            CompilationTarget.instance = Cx16Target()
         }
         else -> {
             System.err.println("invalid compilation target. Available are: c64, cx16")
@@ -135,7 +112,7 @@ private fun compileMain(args: Array<String>) {
                 if (compilationResult.programName.isEmpty())
                     println("\nCan't start emulator because no program was assembled.")
                 else if(startEmulator) {
-                    CompilationTarget.machine.launchEmulator(compilationResult.programName)
+                    CompilationTarget.instance.machine.launchEmulator(compilationResult.programName)
                 }
             }
         }

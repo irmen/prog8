@@ -1155,7 +1155,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    if(doubles.any { it < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || it > CompilationTarget.machine.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < CompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || it > CompilationTarget.instance.machine.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }

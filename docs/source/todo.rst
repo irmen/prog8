@@ -2,7 +2,8 @@
 TODO
 ====
 
-- optimize assignment codegeneration
+- further optimize assignment codegeneration
+- auto select correct library to import based on target, instead of having c64- and  cx16-  prefix variants
 - get rid of all TODO's ;-)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)

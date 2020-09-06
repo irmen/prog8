@@ -671,8 +671,8 @@ class RangeExpr(var from: Expression,
         val toString = to as? StringLiteralValue
         if(fromString!=null && toString!=null ) {
             // string range -> int range over character values
-            fromVal = CompilationTarget.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
-            toVal = CompilationTarget.encodeString(toString.value, fromString.altEncoding)[0].toInt()
+            fromVal = CompilationTarget.instance.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
+            toVal = CompilationTarget.instance.encodeString(toString.value, fromString.altEncoding)[0].toInt()
         } else {
             val fromLv = from as? NumericLiteralValue
             val toLv = to as? NumericLiteralValue

@@ -79,7 +79,7 @@ internal class AsmGen(private val program: Program,
 
     private fun header() {
         val ourName = this.javaClass.name
-        val cpu = when(CompilationTarget.machine.cpu) {
+        val cpu = when(CompilationTarget.instance.machine.cpu) {
             CpuType.CPU6502 -> "6502"
             CpuType.CPU65c02 -> "65c02"
             else -> "unsupported"
@@ -94,18 +94,18 @@ internal class AsmGen(private val program: Program,
         program.actualLoadAddress = program.definedLoadAddress
         if (program.actualLoadAddress == 0)   // fix load address
             program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
-                CompilationTarget.machine.BASIC_LOAD_ADDRESS else CompilationTarget.machine.RAW_LOAD_ADDRESS
+                CompilationTarget.instance.machine.BASIC_LOAD_ADDRESS else CompilationTarget.instance.machine.RAW_LOAD_ADDRESS
 
         // the global prog8 variables needed
-        val zp = CompilationTarget.machine.zeropage
-        val initproc = CompilationTarget.machine.initSystemProcname
+        val zp = CompilationTarget.instance.machine.zeropage
+        val initproc = CompilationTarget.instance.name + ".init_system"
         out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
         out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         out("P8ZP_SCRATCH_REG_X = ${zp.SCRATCH_REG_X}")
         out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
-        out("P8ESTACK_LO = ${CompilationTarget.machine.ESTACK_LO.toHex()}")
-        out("P8ESTACK_HI = ${CompilationTarget.machine.ESTACK_HI.toHex()}")
+        out("P8ESTACK_LO = ${CompilationTarget.instance.machine.ESTACK_LO.toHex()}")
+        out("P8ESTACK_HI = ${CompilationTarget.instance.machine.ESTACK_HI.toHex()}")
 
         when {
             options.launcher == LauncherType.BASIC -> {
@@ -161,7 +161,7 @@ internal class AsmGen(private val program: Program,
             }
             Zeropage.ExitProgramStrategy.SYSTEM_RESET -> {
                 out("  jsr  main.start\t; call program entrypoint")
-                out("  jmp  (c64.RESET_VEC)\t; cold reset")
+                out("  jmp  (${CompilationTarget.instance.name}.RESET_VEC)\t; cold reset")
             }
         }
     }
@@ -170,7 +170,7 @@ internal class AsmGen(private val program: Program,
         // the global list of all floating point constants for the whole program
         out("; global float constants")
         for (flt in globalFloatConsts) {
-            val floatFill = CompilationTarget.machine.getFloat(flt.key).makeFloatFillAsm()
+            val floatFill = CompilationTarget.instance.machine.getFloat(flt.key).makeFloatFillAsm()
             val floatvalue = flt.key
             out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
         }
@@ -340,7 +340,7 @@ internal class AsmGen(private val program: Program,
                         }
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
-                    CompilationTarget.machine.getFloat(number).makeFloatFillAsm()
+                    CompilationTarget.instance.machine.getFloat(number).makeFloatFillAsm()
                 }
                 out(name)
                 for (f in array.zip(floatFills))
@@ -474,7 +474,7 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun getFloatAsmConst(number: Double): String {
-        var asmName = CompilationTarget.machine.getFloatRomConst(number)
+        var asmName = CompilationTarget.instance.machine.getFloatRomConst(number)
         if(asmName.isNullOrEmpty()) {
             // no ROM float const for this value, create our own
             asmName = globalFloatConsts[number]
@@ -552,7 +552,7 @@ internal class AsmGen(private val program: Program,
         when(register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
-                if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                     out("  phx")
                 else
                     out("  stx  P8ZP_SCRATCH_REG_X")
@@ -565,7 +565,7 @@ internal class AsmGen(private val program: Program,
         when(register) {
             CpuRegister.A -> out("  pla")
             CpuRegister.X -> {
-                if(CompilationTarget.machine.cpu == CpuType.CPU65c02)
+                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                     out("  plx")
                 else
                     out("  ldx  P8ZP_SCRATCH_REG_X")

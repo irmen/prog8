@@ -150,7 +150,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     if(rangeExpr==null && litval!=null) {
                         // arraysize initializer is a single int, and we know the size.
                         val fillvalue = litval.number.toDouble()
-                        if (fillvalue < CompilationTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.machine.FLOAT_MAX_POSITIVE)
+                        if (fillvalue < CompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.instance.machine.FLOAT_MAX_POSITIVE)
                             errors.err("float value overflow", litval.position)
                         else {
                             // create the array itself, filled with the fillvalue.
