@@ -98,7 +98,6 @@ internal class AsmGen(private val program: Program,
 
         // the global prog8 variables needed
         val zp = CompilationTarget.instance.machine.zeropage
-        val initproc = CompilationTarget.instance.name + ".init_system"
         out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
         out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         out("P8ZP_SCRATCH_REG_X = ${zp.SCRATCH_REG_X}")
@@ -120,16 +119,16 @@ internal class AsmGen(private val program: Program,
                 out("_prog8_entrypoint\t; assembly code starts here\n")
                 out("  tsx")
                 out("  stx  prog8_lib.orig_stackpointer")
-                if(!initproc.isNullOrEmpty())
-                    out("  jsr  $initproc")
+                if(!CompilationTarget.instance.initProcName.isNullOrEmpty())
+                    out("  jsr  ${CompilationTarget.instance.initProcName}")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
                 out("  tsx")
                 out("  stx  prog8_lib.orig_stackpointer")
-                if(!initproc.isNullOrEmpty())
-                    out("  jsr  $initproc")
+                if(!CompilationTarget.instance.initProcName.isNullOrEmpty())
+                    out("  jsr  ${CompilationTarget.instance.initProcName}")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")
@@ -161,7 +160,7 @@ internal class AsmGen(private val program: Program,
             }
             Zeropage.ExitProgramStrategy.SYSTEM_RESET -> {
                 out("  jsr  main.start\t; call program entrypoint")
-                out("  jmp  (${CompilationTarget.instance.name}.RESET_VEC)\t; cold reset")
+                out(CompilationTarget.instance.asmForSystemReset)
             }
         }
     }

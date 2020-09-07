@@ -64,9 +64,6 @@ cx16 {
         &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
 
 
-; ---- Commander X-16 additions on top of C64 kernal routines ----
-; spelling of the names is taken from the Commander X-16 rom sources
-
 ; the sixteen virtual 16-bit registers
     &uword r0  = $02
     &uword r1  = $04
@@ -88,46 +85,87 @@ cx16 {
 ; VERA registers
 
     const uword VERA_BASE = $9F20
-    &uword VERA_ADDR_L   	 = VERA_BASE + $00
-    &uword VERA_ADDR_M   	 = VERA_BASE + $01
-    &uword VERA_ADDR_H   	 = VERA_BASE + $02
-    &uword VERA_DATA0        = VERA_BASE + $03
-    &uword VERA_DATA1        = VERA_BASE + $04
-    &uword VERA_CTRL         = VERA_BASE + $05
-    &uword VERA_IEN          = VERA_BASE + $06
-    &uword VERA_ISR          = VERA_BASE + $07
-    &uword VERA_IRQ_LINE_L   = VERA_BASE + $08
-    &uword VERA_DC_VIDEO     = VERA_BASE + $09
-    &uword VERA_DC_HSCALE    = VERA_BASE + $0A
-    &uword VERA_DC_VSCALE    = VERA_BASE + $0B
-    &uword VERA_DC_BORDER    = VERA_BASE + $0C
-    &uword VERA_DC_HSTART    = VERA_BASE + $09
-    &uword VERA_DC_HSTOP     = VERA_BASE + $0A
-    &uword VERA_DC_VSTART    = VERA_BASE + $0B
-    &uword VERA_DC_VSTOP     = VERA_BASE + $0C
-    &uword VERA_L0_CONFIG    = VERA_BASE + $0D
-    &uword VERA_L0_MAPBASE   = VERA_BASE + $0E
-    &uword VERA_L0_TILEBASE  = VERA_BASE + $0F
-    &uword VERA_L0_HSCROLL_L = VERA_BASE + $10
-    &uword VERA_L0_HSCROLL_H = VERA_BASE + $11
-    &uword VERA_L0_VSCROLL_L = VERA_BASE + $12
-    &uword VERA_L0_VSCROLL_H = VERA_BASE + $13
-    &uword VERA_L1_CONFIG    = VERA_BASE + $14
-    &uword VERA_L1_MAPBASE   = VERA_BASE + $15
-    &uword VERA_L1_TILEBASE  = VERA_BASE + $16
-    &uword VERA_L1_HSCROLL_L = VERA_BASE + $17
-    &uword VERA_L1_HSCROLL_H = VERA_BASE + $18
-    &uword VERA_L1_VSCROLL_L = VERA_BASE + $19
-    &uword VERA_L1_VSCROLL_H = VERA_BASE + $1A
-    &uword VERA_AUDIO_CTRL   = VERA_BASE + $1B
-    &uword VERA_AUDIO_RATE   = VERA_BASE + $1C
-    &uword VERA_AUDIO_DATA   = VERA_BASE + $1D
-    &uword VERA_SPI_DATA     = VERA_BASE + $1E
-    &uword VERA_SPI_CTRL     = VERA_BASE + $1F
+    &ubyte  VERA_ADDR_L   	  = VERA_BASE + $00
+    &ubyte  VERA_ADDR_M   	  = VERA_BASE + $01
+    &ubyte  VERA_ADDR_H   	  = VERA_BASE + $02
+    &ubyte  VERA_DATA0        = VERA_BASE + $03
+    &ubyte  VERA_DATA1        = VERA_BASE + $04
+    &ubyte  VERA_CTRL         = VERA_BASE + $05
+    &ubyte  VERA_IEN          = VERA_BASE + $06
+    &ubyte  VERA_ISR          = VERA_BASE + $07
+    &ubyte  VERA_IRQ_LINE_L   = VERA_BASE + $08
+    &ubyte  VERA_DC_VIDEO     = VERA_BASE + $09
+    &ubyte  VERA_DC_HSCALE    = VERA_BASE + $0A
+    &ubyte  VERA_DC_VSCALE    = VERA_BASE + $0B
+    &ubyte  VERA_DC_BORDER    = VERA_BASE + $0C
+    &ubyte  VERA_DC_HSTART    = VERA_BASE + $09
+    &ubyte  VERA_DC_HSTOP     = VERA_BASE + $0A
+    &ubyte  VERA_DC_VSTART    = VERA_BASE + $0B
+    &ubyte  VERA_DC_VSTOP     = VERA_BASE + $0C
+    &ubyte  VERA_L0_CONFIG    = VERA_BASE + $0D
+    &ubyte  VERA_L0_MAPBASE   = VERA_BASE + $0E
+    &ubyte  VERA_L0_TILEBASE  = VERA_BASE + $0F
+    &ubyte  VERA_L0_HSCROLL_L = VERA_BASE + $10
+    &ubyte  VERA_L0_HSCROLL_H = VERA_BASE + $11
+    &ubyte  VERA_L0_VSCROLL_L = VERA_BASE + $12
+    &ubyte  VERA_L0_VSCROLL_H = VERA_BASE + $13
+    &ubyte  VERA_L1_CONFIG    = VERA_BASE + $14
+    &ubyte  VERA_L1_MAPBASE   = VERA_BASE + $15
+    &ubyte  VERA_L1_TILEBASE  = VERA_BASE + $16
+    &ubyte  VERA_L1_HSCROLL_L = VERA_BASE + $17
+    &ubyte  VERA_L1_HSCROLL_H = VERA_BASE + $18
+    &ubyte  VERA_L1_VSCROLL_L = VERA_BASE + $19
+    &ubyte  VERA_L1_VSCROLL_H = VERA_BASE + $1A
+    &ubyte  VERA_AUDIO_CTRL   = VERA_BASE + $1B
+    &ubyte  VERA_AUDIO_RATE   = VERA_BASE + $1C
+    &ubyte  VERA_AUDIO_DATA   = VERA_BASE + $1D
+    &ubyte  VERA_SPI_DATA     = VERA_BASE + $1E
+    &ubyte  VERA_SPI_CTRL     = VERA_BASE + $1F
 ; VERA_PSG_BASE     = $1F9C0
 ; VERA_PALETTE_BASE = $1FA00
 ; VERA_SPRITES_BASE = $1FC00
 
+; I/O
+
+    const uword  via1  = $9f60                  ;VIA 6522 #1
+    &ubyte  d1prb	= via1+0
+    &ubyte  d1pra	= via1+1
+    &ubyte  d1ddrb	= via1+2
+    &ubyte  d1ddra	= via1+3
+    &ubyte  d1t1l	= via1+4
+    &ubyte  d1t1h	= via1+5
+    &ubyte  d1t1ll	= via1+6
+    &ubyte  d1t1lh	= via1+7
+    &ubyte  d1t2l	= via1+8
+    &ubyte  d1t2h	= via1+9
+    &ubyte  d1sr	= via1+10
+    &ubyte  d1acr	= via1+11
+    &ubyte  d1pcr	= via1+12
+    &ubyte  d1ifr	= via1+13
+    &ubyte  d1ier	= via1+14
+    &ubyte  d1ora	= via1+15
+
+    const uword  via2  = $9f70                  ;VIA 6522 #2
+    &ubyte  d2prb	=via2+0
+    &ubyte  d2pra	=via2+1
+    &ubyte  d2ddrb	=via2+2
+    &ubyte  d2ddra	=via2+3
+    &ubyte  d2t1l	=via2+4
+    &ubyte  d2t1h	=via2+5
+    &ubyte  d2t1ll	=via2+6
+    &ubyte  d2t1lh	=via2+7
+    &ubyte  d2t2l	=via2+8
+    &ubyte  d2t2h	=via2+9
+    &ubyte  d2sr	=via2+10
+    &ubyte  d2acr	=via2+11
+    &ubyte  d2pcr	=via2+12
+    &ubyte  d2ifr	=via2+13
+    &ubyte  d2ier	=via2+14
+    &ubyte  d2ora	=via2+15
+
+
+; ---- Commander X-16 additions on top of C64 kernal routines ----
+; spelling of the names is taken from the Commander X-16 rom sources
 
 ; supported C128 additions
 romsub $ff4a = close_all()
@@ -209,8 +247,9 @@ asmsub init_system()  {
     %asm {{
         sei
         cld
-        stz  $00
-        stz  $01
+        ;stz  $00
+        ;stz  $01
+        ;stz  d1prb      ; select rom bank 0
         lda  #$80
         sta  VERA_CTRL
         jsr  c64.IOINIT

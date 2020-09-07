@@ -17,6 +17,8 @@ internal interface CompilationTarget {
     fun encodeString(str: String, altEncoding: Boolean): List<Short>
     fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
     fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path): IAssemblyGenerator
+    val asmForSystemReset: String
+    val initProcName: String?
 
     companion object {
         lateinit var instance: CompilationTarget
@@ -33,6 +35,8 @@ internal class C64Target: CompilationTarget {
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
     override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
             AsmGen(program, errors, zp, options, path)
+    override val asmForSystemReset = "  sei |  jmp  (c64.RESET_VEC)"        // TODO enable kernal rom bank
+    override val initProcName = "c64.init_system"
 }
 
 internal class Cx16Target: CompilationTarget {
@@ -44,4 +48,6 @@ internal class Cx16Target: CompilationTarget {
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
     override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
             AsmGen(program, errors, zp, options, path)
+    override val asmForSystemReset = "  sei |  stz  cx16.d1prb |  jmp  (cx16.RESET_VEC)"
+    override val initProcName = "cx16.init_system"
 }
