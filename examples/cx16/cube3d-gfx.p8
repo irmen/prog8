@@ -31,9 +31,9 @@ main {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             cx16.GRAPH_clear()
             draw_lines()
-            anglex-=250
-            angley+=109
-            anglez+=226
+            anglex-=500
+            angley+=217
+            anglez+=452
         }
     }
 
@@ -84,7 +84,7 @@ main {
             cx16.r1 = rotatedy[vFrom] / persp1 + screen_height/2 as uword
             cx16.r2 = rotatedx[vTo] / persp2 + screen_width/2 as uword
             cx16.r3 = rotatedy[vTo] / persp2 + screen_height/2 as uword
-            cx16.GRAPH_draw_line()      ; TODO are there bugs in here?  the lines are all wrong...
+            cx16.GRAPH_draw_line()
         }
     }
 }

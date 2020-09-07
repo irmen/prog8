@@ -192,11 +192,12 @@ romsub $ff4d = clock_set_date_time() clobbers(A, X, Y)      ; args: r0, r1, r2, 
 romsub $ff50 = clock_get_date_time() clobbers(A)            ; outout args: r0, r1, r2, r3L
 
 ; high level graphics & fonts
-romsub $ff20 = GRAPH_init()             ; uses vectors=r0
-romsub $ff23 = GRAPH_clear()
+; TODO specify the correct clobbers for GRAPH and FB functions
+romsub $ff20 = GRAPH_init()  clobbers(A,X,Y)           ; uses vectors=r0
+romsub $ff23 = GRAPH_clear()  clobbers(A,X,Y)
 romsub $ff26 = GRAPH_set_window()       ; uses x=r0, y=r1, width=r2, height=r3
-romsub $ff29 = GRAPH_set_colors(ubyte stroke @A, ubyte fill @X, ubyte background @Y)
-romsub $ff2c = GRAPH_draw_line()        ; uses x1=r0, y1=r1, x2=r2, y2=r3
+romsub $ff29 = GRAPH_set_colors(ubyte stroke @A, ubyte fill @X, ubyte background @Y) clobbers (A,X,Y)
+romsub $ff2c = GRAPH_draw_line()  clobbers(A,X,Y)       ; uses x1=r0, y1=r1, x2=r2, y2=r3
 romsub $ff2f = GRAPH_draw_rect(ubyte fill @Pc)        ; uses x=r0, y=r1, width=r2, height=r3, cornerradius=r4
 romsub $ff32 = GRAPH_move_rect()        ; uses sx=r0, sy=r1, tx=r2, ty=r3, width=r4, height=r5
 romsub $ff35 = GRAPH_draw_oval(ubyte fill @Pc)        ; uses x=r0, y=r1, width=r2, height=r3

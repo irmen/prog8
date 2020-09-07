@@ -11,6 +11,8 @@ main {
 
         c64.CHROUT('*')
 
+        uword value = lsb(rnd() & 31)   ; TODO fix compiler crash
+
 
 ;asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  { ...}
 ; TODO dont cause name conflict if we define sub or sub with param 'color' or even a var 'color' later.
