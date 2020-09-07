@@ -260,16 +260,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.UBYTE, DataType.BYTE -> {
                         when(target.register!!) {
                             RegisterOrPair.A -> asmgen.out(" inx |  lda  P8ESTACK_LO,x")
-                            RegisterOrPair.X -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  tax")
+                            RegisterOrPair.X -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
                             else -> throw AssemblyError("can't assign byte to register pair word")
                         }
                     }
                     DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> {
                         when(target.register!!) {
-                            RegisterOrPair.AX -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  pha  |  lda  P8ESTACK_HI,x |  tax |  pla")
+                            RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             RegisterOrPair.AY-> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
-                            RegisterOrPair.XY-> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x |  tax")
+                            RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             else -> throw AssemblyError("can't assign word to single byte register")
                         }
                     }
@@ -590,7 +590,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.STACK -> {
                 when(register) {
                     CpuRegister.A -> asmgen.out(" sta  P8ESTACK_LO,x |  dex")
-                    CpuRegister.X -> throw AssemblyError("can't store X itself on eval stack")
+                    CpuRegister.X -> throw AssemblyError("can't use X here")
                     CpuRegister.Y -> asmgen.out(" tya |  sta  P8ESTACK_LO,x |  dex")
                 }
             }

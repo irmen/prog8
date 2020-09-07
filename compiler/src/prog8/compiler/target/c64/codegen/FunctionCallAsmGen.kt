@@ -65,44 +65,77 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
 
-        // make sure the X register is loaded last so we can "safely" destroy the estack pointer
-        val argsOrig = stmt.args.zip(sub.asmParameterRegisters)
-        val args = mutableListOf<Pair<Expression, RegisterOrStatusflag>>()
-        for(argOrig in argsOrig) {
-            if(argOrig.second.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY))
-                args.add(argOrig)
-            else
-                args.add(0, argOrig)
-        }
+        if(sub.parameters.isEmpty())
+            return
 
-        for (arg in args.reversed())
-            asmgen.translateExpression(arg.first)
-        for (arg in args) {
-            val regparam = arg.second
+        // 1. load all arguments reversed onto the stack: first arg goes last (is on top).
+        for (arg in stmt.args.reversed())
+            asmgen.translateExpression(arg)
+
+        var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
+        var argForXregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
+        var argForAregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
+
+        asmgen.out("  inx")     // align estack pointer
+
+        for(argi in stmt.args.zip(sub.asmParameterRegisters).withIndex()) {
             when {
-                regparam.statusflag==Statusflag.Pc -> {
-                    asmgen.out("""
-                        inx
-                        pha
-                        lda  P8ESTACK_LO,x
-                        beq  +
-                        sec  
-                        bcs  ++
-+                       clc
-+                       pla""")
+                argi.value.second.stack -> TODO("asmsub @stack parameter")
+                argi.value.second.statusflag == Statusflag.Pc -> {
+                    require(argForCarry == null)
+                    argForCarry = argi
                 }
-                regparam.statusflag!=null -> {
-                    throw AssemblyError("can only use Carry as status flag parameter")
+                argi.value.second.statusflag != null -> throw AssemblyError("can only use Carry as status flag parameter")
+                argi.value.second.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) -> {
+                    require(argForXregister==null)
+                    argForXregister = argi
                 }
-                regparam.registerOrPair!=null -> {
-                    val tgt = AsmAssignTarget.fromRegisters(regparam.registerOrPair, program, asmgen)
-                    val source = AsmAssignSource(SourceStorageKind.STACK, program, tgt.datatype)
-                    val asgn = AsmAssignment(source, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(asgn)
+                argi.value.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.AY) -> {
+                    require(argForAregister == null)
+                    argForAregister = argi
                 }
-                else -> {}
+                argi.value.second.registerOrPair == RegisterOrPair.Y -> {
+                    asmgen.out("  ldy  P8ESTACK_LO+${argi.index},x")
+                }
+                else -> throw AssemblyError("weird argument")
             }
         }
+
+        if(argForCarry!=null) {
+            asmgen.out("""
+                lda  P8ESTACK_LO+${argForCarry.index},x
+                beq  +
+                sec
+                bcs  ++
++               clc
++               php""")             // push the status flags
+        }
+
+        if(argForAregister!=null) {
+            when(argForAregister.value.second.registerOrPair) {
+                RegisterOrPair.A -> asmgen.out("  lda  P8ESTACK_LO+${argForAregister.index},x")
+                RegisterOrPair.AY -> asmgen.out("  lda  P8ESTACK_LO+${argForAregister.index},x |  ldy  P8ESTACK_HI+${argForAregister.index},x")
+                else -> throw AssemblyError("weird arg")
+            }
+        }
+
+        if(argForXregister!=null) {
+            if(argForAregister!=null)
+                asmgen.out("  pha")
+            when(argForXregister.value.second.registerOrPair) {
+                RegisterOrPair.X -> asmgen.out("  lda  P8ESTACK_LO+${argForXregister.index},x |  tax")
+                RegisterOrPair.AX -> asmgen.out("  ldy  P8ESTACK_LO+${argForXregister.index},x |  lda  P8ESTACK_HI+${argForXregister.index},x |  tax |  tya")
+                RegisterOrPair.XY -> asmgen.out("  ldy  P8ESTACK_HI+${argForXregister.index},x |  lda  P8ESTACK_LO+${argForXregister.index},x |  tax")
+                else -> throw AssemblyError("weird arg")
+            }
+            if(argForAregister!=null)
+                asmgen.out("  pla")
+        } else {
+            repeat(sub.parameters.size - 1) { asmgen.out("  inx") }       // unwind stack
+        }
+
+        if(argForCarry!=null)
+            asmgen.out("  plp")       // set the carry flag back to correct value
     }
 
     private fun argumentViaVariable(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
