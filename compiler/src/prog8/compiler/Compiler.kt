@@ -27,7 +27,8 @@ data class CompilationOptions(val output: OutputType,
                               val launcher: LauncherType,
                               val zeropage: ZeropageType,
                               val zpReserved: List<IntRange>,
-                              val floats: Boolean)
+                              val floats: Boolean,
+                              val compilationTarget: String?)
 
 
 class CompilerException(message: String?) : Exception(message)

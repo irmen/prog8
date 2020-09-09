@@ -1,3 +1,4 @@
+%target cx16
 %import cx16flt
 %import cx16textio
 %zeropage basicsafe

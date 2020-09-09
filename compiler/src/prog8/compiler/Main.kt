@@ -4,7 +4,9 @@ import prog8.ast.AstToSourceCode
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.statements.Directive
+import prog8.compiler.target.C64Target
 import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.Cx16Target
 import prog8.optimizer.UnusedCodeRemover
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
@@ -129,16 +131,26 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
             .map { it[0].int!!..it[1].int!! }
             .toList()
 
+    var target = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%target" }
+            as? Directive)?.args?.single()?.name
+
+    when(target) {
+        C64Target.name -> CompilationTarget.instance = C64Target
+        Cx16Target.name -> CompilationTarget.instance = Cx16Target
+        null -> target = CompilationTarget.instance.name
+        else -> throw FatalAstException("invalid target")
+    }
+
     return CompilationOptions(
             if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
             if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-            zpType, zpReserved, floatsEnabled
+            zpType, zpReserved, floatsEnabled, target
     )
 }
 
 private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
-    println("Processing...")
+    println("Processing for target ${CompilationTarget.instance.name}...")
     programAst.checkIdentifiers(errors)
     errors.handle()
     programAst.constantFold(errors)
@@ -190,6 +202,9 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     errors.handle()
 
     // printAst(programAst)
+
+    if(compilerOptions.compilationTarget!=null && compilerOptions.compilationTarget != CompilationTarget.instance.name)
+        throw AssemblyError("program's compilation target differs from configured target")
 
     CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.instance.asmGenerator(

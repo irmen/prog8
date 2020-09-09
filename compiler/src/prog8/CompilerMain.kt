@@ -38,7 +38,8 @@ private fun compileMain(args: Array<String>) {
     val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
     val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes), greatly increases compilation speed")
-    val compilationTarget by cli.flagValueArgument("-target", "compilertarget", "target output of the compiler, currently 'c64' and 'cx16' available", "c64")
+    val compilationTarget by cli.flagValueArgument("-target", "compilertarget",
+            "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available", C64Target.name)
     val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
 
     try {
@@ -48,14 +49,10 @@ private fun compileMain(args: Array<String>) {
     }
 
     when(compilationTarget) {
-        "c64" -> {
-            CompilationTarget.instance = C64Target()
-        }
-        "cx16" -> {
-            CompilationTarget.instance = Cx16Target()
-        }
+        C64Target.name -> CompilationTarget.instance = C64Target
+        Cx16Target.name -> CompilationTarget.instance = Cx16Target
         else -> {
-            System.err.println("invalid compilation target. Available are: c64, cx16")
+            System.err.println("invalid compilation target")
             exitProcess(1)
         }
     }

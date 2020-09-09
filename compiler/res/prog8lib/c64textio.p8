@@ -5,6 +5,7 @@
 ; indent format: TABS, size=8
 
 
+%target c64
 %import c64lib
 %import conv
 

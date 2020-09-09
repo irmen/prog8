@@ -1,9 +1,8 @@
+%target cx16
 %import cx16textio
 ;%import c64flt
 ;%option enable_floats
 ; %zeropage kernalsafe
-
-; TODO add a directive to set the compiler target
 
 
 main {

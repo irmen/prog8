@@ -33,6 +33,14 @@ This makes it easier to understand and relate the generated code. Examples::
 Directives
 -----------
 
+.. data:: %target <target>
+
+    Level: module.
+    Global setting, selects a compilation target from within the source file.
+    The default compilation target is "c64" which targets the Commodore-64 machine.
+    You can also omit this and use the ``-target`` command line option.
+
+
 .. data:: %output <type>
 
 	Level: module.

@@ -4,6 +4,7 @@
 ;
 ; indent format: TABS, size=8
 
+%target cx16
 %option enable_floats
 
 c64flt {

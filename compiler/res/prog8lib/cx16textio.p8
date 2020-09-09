@@ -4,7 +4,7 @@
 ;
 ; indent format: TABS, size=8
 
-
+%target cx16
 %import cx16lib
 %import conv
 

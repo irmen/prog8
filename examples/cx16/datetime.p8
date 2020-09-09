@@ -1,6 +1,7 @@
 ; CommanderX16 text datetime example!
 ; make sure to compile with the cx16 compiler target.
 
+%target cx16
 %import cx16textio
 %zeropage basicsafe
 

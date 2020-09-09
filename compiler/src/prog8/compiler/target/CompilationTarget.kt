@@ -26,7 +26,7 @@ internal interface CompilationTarget {
 }
 
 
-internal class C64Target: CompilationTarget {
+internal object C64Target: CompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean) =
@@ -39,7 +39,7 @@ internal class C64Target: CompilationTarget {
     override val initProcName = "c64.init_system"
 }
 
-internal class Cx16Target: CompilationTarget {
+internal object Cx16Target: CompilationTarget {
     override val name = "cx16"
     override val machine = CX16MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean) =

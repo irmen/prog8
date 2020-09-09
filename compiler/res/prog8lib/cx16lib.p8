@@ -5,6 +5,8 @@
 ;
 ; indent format: TABS, size=8
 
+%target cx16
+
 
 c64 {
 
