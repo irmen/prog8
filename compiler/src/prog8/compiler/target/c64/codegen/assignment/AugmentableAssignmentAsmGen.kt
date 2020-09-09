@@ -8,6 +8,7 @@ import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.toHex
+import kotlin.math.absoluteValue
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
@@ -371,9 +372,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> {
-                // TODO make sure to check for optimized routines first: asmgen.optimizedByteMultiplications    don't use stack
-                TODO("mem mul byte litval")
-                // asmgen.out("  jsr  prog8_lib.mul_byte")
+                if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
+                    TODO("optimized mem mul byte litval $value")
+                } else {
+                    TODO("mem mul byte litval $value")
+                    // asmgen.out("  jsr  prog8_lib.mul_byte")
+                }
             }
             "/" -> {
                 if(value==0)
@@ -577,9 +581,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
-                // TODO make sure to check for optimized routines first: asmgen.optimizedByteMultiplications  don't use stack
-                TODO("var byte mul litval")
-                // asmgen.out("  jsr  prog8_lib.mul_byte")
+                if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
+                    TODO("optimized var mul byte litval $value")
+                } else {
+                    TODO("var mul byte litval $value")
+                    // asmgen.out("  jsr  prog8_lib.mul_byte")
+                }
             }
             "/" -> {
                 if (dt == DataType.UBYTE) {
@@ -674,19 +681,23 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "*" -> {
-                // TODO make sure to check for optimized routines first: asmgen.optimizedWordMultiplications   don't use stack
-                asmgen.out("""
-                    lda  $name
-                    sta  P8ZP_SCRATCH_W1
-                    lda  $name+1
-                    sta  P8ZP_SCRATCH_W1+1
-                    lda  #<$value
-                    ldy  #>$value
-                    jsr  math.multiply_words
-                    lda  math.multiply_words.result
-                    sta  $name
-                    lda  math.multiply_words.result+1
-                    sta  $name+1""")
+                if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
+                    TODO("optimized var word mul litval $value")
+                } else {
+                    // TODO don't use stack here
+                    asmgen.out("""
+                        lda  $name
+                        sta  P8ZP_SCRATCH_W1
+                        lda  $name+1
+                        sta  P8ZP_SCRATCH_W1+1
+                        lda  #<$value
+                        ldy  #>$value
+                        jsr  math.multiply_words
+                        lda  math.multiply_words.result
+                        sta  $name
+                        lda  math.multiply_words.result+1
+                        sta  $name+1""")
+                }
             }
             "/" -> {
                 if(value==0)

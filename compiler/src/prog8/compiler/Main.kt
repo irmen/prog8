@@ -15,6 +15,7 @@ import prog8.parser.ModuleImporter
 import prog8.parser.ParsingFailedError
 import prog8.parser.moduleName
 import java.nio.file.Path
+import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 
@@ -27,11 +28,21 @@ class CompilationResult(val success: Boolean,
 fun compileProgram(filepath: Path,
                    optimize: Boolean,
                    writeAssembly: Boolean,
+                   compilationTarget: String,
                    outputDir: Path): CompilationResult {
     var programName = ""
     lateinit var programAst: Program
     lateinit var importedFiles: List<Path>
     val errors = ErrorReporter()
+
+    when(compilationTarget) {
+        C64Target.name -> CompilationTarget.instance = C64Target
+        Cx16Target.name -> CompilationTarget.instance = Cx16Target
+        else -> {
+            System.err.println("invalid compilation target")
+            exitProcess(1)
+        }
+    }
 
     try {
         val totalTime = measureTimeMillis {
@@ -92,7 +103,7 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
-    // depending on the mach9ine and compiler options we may have to include some libraries
+    // depending on the machine and compiler options we may have to include some libraries
     CompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst)
 
     // always import prog8lib and math

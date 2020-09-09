@@ -48,15 +48,6 @@ private fun compileMain(args: Array<String>) {
         exitProcess(1)
     }
 
-    when(compilationTarget) {
-        C64Target.name -> CompilationTarget.instance = C64Target
-        Cx16Target.name -> CompilationTarget.instance = Cx16Target
-        else -> {
-            System.err.println("invalid compilation target")
-            exitProcess(1)
-        }
-    }
-
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
         System.err.println("Output path doesn't exist")
@@ -71,7 +62,7 @@ private fun compileMain(args: Array<String>) {
             println("Continuous watch mode active. Main module: $filepath")
 
             try {
-                val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, outputDir=outputPath)
+                val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, compilationTarget, outputPath)
                 println("Imported files (now watching:)")
                 for (importedFile in compilationResult.importedFiles) {
                     print("  ")
@@ -96,7 +87,7 @@ private fun compileMain(args: Array<String>) {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, outputDir=outputPath)
+                compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, compilationTarget, outputPath)
                 if(!compilationResult.success)
                     exitProcess(1)
             } catch (x: ParsingFailedError) {
