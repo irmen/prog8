@@ -36,6 +36,7 @@ internal class AsmGen(private val program: Program,
                       private val outputDir: Path): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
+    // TODO add 50, 80 and 100 as well  (especially for the commanderX16)
     val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40)
     val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40)
 

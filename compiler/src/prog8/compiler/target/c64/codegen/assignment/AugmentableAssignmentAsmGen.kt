@@ -372,10 +372,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> {
-                if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
-                    TODO("optimized mem mul byte litval $value")
+                if(value in asmgen.optimizedByteMultiplications) {
+                    TODO("optimized mem mul ubyte litval $value")
                 } else {
-                    TODO("mem mul byte litval $value")
+                    TODO("mem mul ubyte litval $value")
                     // asmgen.out("  jsr  prog8_lib.mul_byte")
                 }
             }
@@ -581,11 +581,20 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
-                if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
-                    TODO("optimized var mul byte litval $value")
+                if(dt == DataType.UBYTE) {
+                    if(value in asmgen.optimizedByteMultiplications) {
+                        TODO("optimized var mul ubyte litval $value")
+                    } else {
+                        TODO("var mul ubyte litval $value")
+                        // asmgen.out("  jsr  prog8_lib.mul_byte")
+                    }
                 } else {
-                    TODO("var mul byte litval $value")
-                    // asmgen.out("  jsr  prog8_lib.mul_byte")
+                    if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
+                        TODO("optimized var mul sbyte litval $value")
+                    } else {
+                        TODO("var mul sbyte litval $value")
+                        // asmgen.out("  jsr  prog8_lib.mul_byte")
+                    }
                 }
             }
             "/" -> {
@@ -681,11 +690,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "*" -> {
-                if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
-                    TODO("optimized var word mul litval $value")
+                if(dt == DataType.UWORD){
+                    if(value in asmgen.optimizedWordMultiplications) {
+                        TODO("optimized var uword mul litval $value")
+                    } else {
+                        TODO("var uword mul litval $value")
+                    }
                 } else {
-                    // TODO don't use stack here
-                    asmgen.out("""
+                    if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
+                        TODO("optimized var sword mul litval $value")
+                    } else {
+                        // TODO don't use stack here
+                        // TODO does this work for signed words?
+                        asmgen.out("""
                         lda  $name
                         sta  P8ZP_SCRATCH_W1
                         lda  $name+1
@@ -697,6 +714,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         sta  $name
                         lda  math.multiply_words.result+1
                         sta  $name+1""")
+                    }
                 }
             }
             "/" -> {
