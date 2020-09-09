@@ -297,6 +297,49 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         return noModifications
     }
 
+    override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+        if(functionCall.target.nameInSource == listOf("lsb")) {
+            val arg = functionCall.args[0]
+            if(arg is TypecastExpression) {
+                val valueDt = arg.expression.inferType(program)
+                if (valueDt.istype(DataType.BYTE) || valueDt.istype(DataType.UBYTE)) {
+                    // useless lsb() of byte value that was casted to word
+                    return listOf(IAstModification.ReplaceNode(functionCall, arg.expression, parent))
+                }
+            } else {
+                val argDt = arg.inferType(program)
+                if (argDt.istype(DataType.BYTE) || argDt.istype(DataType.UBYTE)) {
+                    // useless lsb() of byte value
+                    return listOf(IAstModification.ReplaceNode(functionCall, arg, parent))
+                }
+            }
+        }
+        else if(functionCall.target.nameInSource == listOf("msb")) {
+            val arg = functionCall.args[0]
+            if(arg is TypecastExpression) {
+                val valueDt = arg.expression.inferType(program)
+                if (valueDt.istype(DataType.BYTE) || valueDt.istype(DataType.UBYTE)) {
+                    // useless msb() of byte value that was casted to word, replace with 0
+                    return listOf(IAstModification.ReplaceNode(
+                            functionCall,
+                            NumericLiteralValue(valueDt.typeOrElse(DataType.UBYTE), 0, arg.expression.position),
+                            parent))
+                }
+            } else {
+                val argDt = arg.inferType(program)
+                if (argDt.istype(DataType.BYTE) || argDt.istype(DataType.UBYTE)) {
+                    // useless msb() of byte value, replace with 0
+                    return listOf(IAstModification.ReplaceNode(
+                            functionCall,
+                            NumericLiteralValue(argDt.typeOrElse(DataType.UBYTE), 0, arg.position),
+                            parent))
+                }
+            }
+        }
+
+        return noModifications
+    }
+
     private fun determineY(x: Expression, subBinExpr: BinaryExpression): Expression? {
         return when {
             subBinExpr.left isSameAs x -> subBinExpr.right

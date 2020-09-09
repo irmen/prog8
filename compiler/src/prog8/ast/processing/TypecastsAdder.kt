@@ -139,6 +139,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                                         call.args[arg.second.index],
                                         TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position),
                                         call as Node)
+                                break
                             }
                         }
                     }
