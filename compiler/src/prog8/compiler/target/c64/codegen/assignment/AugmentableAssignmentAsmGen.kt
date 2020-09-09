@@ -371,9 +371,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> {
-                // make sure to check for optimized routines first:
-                //asmgen.optimizedByteMultiplications
-                //asmgen.optimizedWordMultiplications
+                // TODO make sure to check for optimized routines first: asmgen.optimizedByteMultiplications    don't use stack
                 TODO("mem mul byte litval")
                 // asmgen.out("  jsr  prog8_lib.mul_byte")
             }
@@ -579,9 +577,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
-                // make sure to check for optimized routines first:
-                //asmgen.optimizedByteMultiplications
-                //asmgen.optimizedWordMultiplications
+                // TODO make sure to check for optimized routines first: asmgen.optimizedByteMultiplications  don't use stack
                 TODO("var byte mul litval")
                 // asmgen.out("  jsr  prog8_lib.mul_byte")
             }
@@ -678,9 +674,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "*" -> {
-                // TODO make sure to check for optimized routines first:
-                //asmgen.optimizedByteMultiplications
-                //asmgen.optimizedWordMultiplications
+                // TODO make sure to check for optimized routines first: asmgen.optimizedWordMultiplications   don't use stack
                 asmgen.out("""
                     lda  $name
                     sta  P8ZP_SCRATCH_W1
