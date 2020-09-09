@@ -308,7 +308,7 @@ _seed		.word	$2c9e
 		.pend
 
 
-mul_byte_3	.proc
+stack_mul_byte_3	.proc
 		; X + X*2
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -318,7 +318,7 @@ mul_byte_3	.proc
 		rts
 		.pend
 
-mul_word_3	.proc
+stack_mul_word_3	.proc
 		; W*2 + W
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -335,7 +335,7 @@ mul_word_3	.proc
 		.pend
 
 
-mul_byte_5	.proc
+stack_mul_byte_5	.proc
 		; X*4 + X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -346,7 +346,7 @@ mul_byte_5	.proc
 		rts
 		.pend
 
-mul_word_5	.proc
+stack_mul_word_5	.proc
 		; W*4 + W
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -365,7 +365,7 @@ mul_word_5	.proc
 		.pend
 
 
-mul_byte_6	.proc
+stack_mul_byte_6	.proc
 		; (X*2 + X)*2
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -376,7 +376,7 @@ mul_byte_6	.proc
 		rts
 		.pend
 
-mul_word_6	.proc
+stack_mul_word_6	.proc
 		; (W*2 + W)*2
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -394,7 +394,7 @@ mul_word_6	.proc
 		rts
 		.pend
 
-mul_byte_7	.proc
+stack_mul_byte_7	.proc
 		; X*8 - X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -406,7 +406,7 @@ mul_byte_7	.proc
 		rts
 		.pend
 
-mul_word_7	.proc
+stack_mul_word_7	.proc
 		; W*8 - W
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -426,7 +426,7 @@ mul_word_7	.proc
 		rts
 		.pend
 
-mul_byte_9	.proc
+stack_mul_byte_9	.proc
 		; X*8 + X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -438,7 +438,7 @@ mul_byte_9	.proc
 		rts
 		.pend
 
-mul_word_9	.proc
+stack_mul_word_9	.proc
 		; W*8 + W
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -458,7 +458,7 @@ mul_word_9	.proc
 		rts
 		.pend
 
-mul_byte_10	.proc
+stack_mul_byte_10	.proc
 		; (X*4 + X)*2
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -470,7 +470,7 @@ mul_byte_10	.proc
 		rts
 		.pend
 
-mul_word_10	.proc
+stack_mul_word_10	.proc
 		; (W*4 + W)*2
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -490,7 +490,7 @@ mul_word_10	.proc
 		rts
 		.pend
 
-mul_byte_11	.proc
+stack_mul_byte_11	.proc
 		; (X*2 + X)*4 - X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -506,7 +506,7 @@ mul_byte_11	.proc
 
 ; mul_word_11 is skipped (too much code)
 
-mul_byte_12	.proc
+stack_mul_byte_12	.proc
 		; (X*2 + X)*4
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -518,7 +518,7 @@ mul_byte_12	.proc
 		rts
 		.pend
 
-mul_word_12	.proc
+stack_mul_word_12	.proc
 		; (W*2 + W)*4
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -538,7 +538,7 @@ mul_word_12	.proc
 		rts
 		.pend
 
-mul_byte_13	.proc
+stack_mul_byte_13	.proc
 		; (X*2 + X)*4 + X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -554,7 +554,7 @@ mul_byte_13	.proc
 
 ; mul_word_13 is skipped (too much code)
 
-mul_byte_14	.proc
+stack_mul_byte_14	.proc
 		; (X*8 - X)*2
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -569,7 +569,7 @@ mul_byte_14	.proc
 
 ; mul_word_14 is skipped (too much code)
 
-mul_byte_15	.proc
+stack_mul_byte_15	.proc
 		; X*16 - X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -582,7 +582,7 @@ mul_byte_15	.proc
 		rts
 		.pend
 
-mul_word_15	.proc
+stack_mul_word_15	.proc
 		; W*16 - W
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -604,7 +604,7 @@ mul_word_15	.proc
 		rts
 		.pend
 
-mul_byte_20	.proc
+stack_mul_byte_20	.proc
 		; (X*4 + X)*4
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -617,7 +617,7 @@ mul_byte_20	.proc
 		rts
 		.pend
 
-mul_word_20	.proc
+stack_mul_word_20	.proc
 		; (W*4 + W)*4
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG
@@ -639,7 +639,7 @@ mul_word_20	.proc
 		rts
 		.pend
 
-mul_byte_25	.proc
+stack_mul_byte_25	.proc
 		; (X*2 + X)*8 + X
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -654,7 +654,7 @@ mul_byte_25	.proc
 		rts
 		.pend
 
-mul_word_25	.proc
+stack_mul_word_25	.proc
 		; W + W*8 + W*16
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_W1+1
@@ -684,7 +684,7 @@ mul_word_25	.proc
 		rts
 		.pend
 
-mul_byte_40	.proc
+stack_mul_byte_40	.proc
 		; (X*4 + X)*8
 		lda  P8ESTACK_LO+1,x
 		asl  a
@@ -698,7 +698,7 @@ mul_byte_40	.proc
 		rts
 		.pend
 
-mul_word_40	.proc
+stack_mul_word_40	.proc
 		; (W*4 + W)*8
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_REG

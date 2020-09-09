@@ -3,6 +3,8 @@
 ;%option enable_floats
 ; %zeropage kernalsafe
 
+; TODO add a directive to set the compiler target
+
 
 main {
 

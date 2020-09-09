@@ -207,9 +207,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
-    private val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40)
-    private val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40)
-
     private fun translateExpression(expr: BinaryExpression) {
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
@@ -303,40 +300,40 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         val amount = value.number.toInt()
                         when(rightDt) {
                             DataType.UBYTE -> {
-                                if(amount in optimizedByteMultiplications) {
+                                if(amount in asmgen.optimizedByteMultiplications) {
                                     translateExpression(expr.left)
-                                    asmgen.out(" jsr  math.mul_byte_$amount")
+                                    asmgen.out(" jsr  math.stack_mul_byte_$amount")
                                     return
                                 }
                             }
                             DataType.BYTE -> {
-                                if(amount in optimizedByteMultiplications) {
+                                if(amount in asmgen.optimizedByteMultiplications) {
                                     translateExpression(expr.left)
-                                    asmgen.out(" jsr  math.mul_byte_$amount")
+                                    asmgen.out(" jsr  math.stack_mul_byte_$amount")
                                     return
                                 }
-                                if(amount.absoluteValue in optimizedByteMultiplications) {
+                                if(amount.absoluteValue in asmgen.optimizedByteMultiplications) {
                                     translateExpression(expr.left)
-                                    asmgen.out(" jsr  prog8_lib.neg_b |  jsr  math.mul_byte_${amount.absoluteValue}")
+                                    asmgen.out(" jsr  prog8_lib.neg_b |  jsr  math.stack_mul_byte_${amount.absoluteValue}")
                                     return
                                 }
                             }
                             DataType.UWORD -> {
-                                if(amount in optimizedWordMultiplications) {
+                                if(amount in asmgen.optimizedWordMultiplications) {
                                     translateExpression(expr.left)
-                                    asmgen.out(" jsr  math.mul_word_$amount")
+                                    asmgen.out(" jsr  math.stack_mul_word_$amount")
                                     return
                                 }
                             }
                             DataType.WORD -> {
-                                if(amount in optimizedWordMultiplications) {
+                                if(amount in asmgen.optimizedWordMultiplications) {
                                     translateExpression(expr.left)
-                                    asmgen.out(" jsr  math.mul_word_$amount")
+                                    asmgen.out(" jsr  math.stack_mul_word_$amount")
                                     return
                                 }
-                                if(amount.absoluteValue in optimizedWordMultiplications) {
+                                if(amount.absoluteValue in asmgen.optimizedWordMultiplications) {
                                     translateExpression(expr.left)
-                                    asmgen.out(" jsr  prog8_lib.neg_w |  jsr  math.mul_word_${amount.absoluteValue}")
+                                    asmgen.out(" jsr  prog8_lib.neg_w |  jsr  math.stack_mul_word_${amount.absoluteValue}")
                                     return
                                 }
                             }

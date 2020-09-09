@@ -250,7 +250,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 else
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
-            "*" -> TODO("mul mem byte")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "*" -> {
+                TODO("mul mem byte")// asmgen.out("  jsr  prog8_lib.mul_byte")
+            }
             "/" -> TODO("div mem byte")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("mem byte remainder")
@@ -309,7 +311,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 else
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
-            "*" -> TODO("mem mul")// asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+            "*" -> {
+                TODO("mem mul")// asmgen.out("  jsr  prog8_lib.mul_byte")
+            }
             "/" -> TODO("mem div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
                 TODO("mem byte remainder")
@@ -367,8 +371,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> {
+                // make sure to check for optimized routines first:
+                //asmgen.optimizedByteMultiplications
+                //asmgen.optimizedWordMultiplications
                 TODO("mem mul byte litval")
-                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+                // asmgen.out("  jsr  prog8_lib.mul_byte")
             }
             "/" -> {
                 if(value==0)
@@ -443,7 +450,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
             "*" -> {
                 TODO("var mul byte expr")
-                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+                // asmgen.out("  jsr  prog8_lib.mul_byte")
             }
             "/" -> {
                 TODO("var div byte expr")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
@@ -572,9 +579,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
-                // TODO what about the optimized mul_5 etc routines?
+                // make sure to check for optimized routines first:
+                //asmgen.optimizedByteMultiplications
+                //asmgen.optimizedWordMultiplications
                 TODO("var byte mul litval")
-                // asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
+                // asmgen.out("  jsr  prog8_lib.mul_byte")
             }
             "/" -> {
                 if (dt == DataType.UBYTE) {
@@ -669,7 +678,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "*" -> {
-                // TODO what about the optimized mul_5 etc routines?
+                // TODO make sure to check for optimized routines first:
+                //asmgen.optimizedByteMultiplications
+                //asmgen.optimizedWordMultiplications
                 asmgen.out("""
                     lda  $name
                     sta  P8ZP_SCRATCH_W1
@@ -1250,6 +1261,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 """)
             }
             "*" -> {
+                // assume that code optimization is already done on the AST level for special cases such as 0, 1, 2...
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
