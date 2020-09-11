@@ -200,13 +200,13 @@ romsub $ff23 = GRAPH_clear()  clobbers(A,X,Y)
 romsub $ff26 = GRAPH_set_window()       ; uses x=r0, y=r1, width=r2, height=r3
 romsub $ff29 = GRAPH_set_colors(ubyte stroke @A, ubyte fill @X, ubyte background @Y) clobbers (A,X,Y)
 romsub $ff2c = GRAPH_draw_line()  clobbers(A,X,Y)       ; uses x1=r0, y1=r1, x2=r2, y2=r3
-romsub $ff2f = GRAPH_draw_rect(ubyte fill @Pc)        ; uses x=r0, y=r1, width=r2, height=r3, cornerradius=r4
+romsub $ff2f = GRAPH_draw_rect(ubyte fill @Pc) clobbers(A,X,Y)   ; uses x=r0, y=r1, width=r2, height=r3, cornerradius=r4
 romsub $ff32 = GRAPH_move_rect()        ; uses sx=r0, sy=r1, tx=r2, ty=r3, width=r4, height=r5
 romsub $ff35 = GRAPH_draw_oval(ubyte fill @Pc)        ; uses x=r0, y=r1, width=r2, height=r3
 romsub $ff38 = GRAPH_draw_image()       ; uses x=r0, y=r1, ptr=r2, width=r3, height=r4
 romsub $ff3b = GRAPH_set_font()         ; uses ptr=r0
 romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte height_or_style @Y, ubyte is_control @Pc)
-romsub $ff41 = GRAPH_put_char(ubyte char @A)   ; uses x=r0, y=r1
+romsub $ff41 = GRAPH_put_char(ubyte char @A) clobbers(A,X,Y)   ; uses x=r0, y=r1
 
 ; framebuffer
 romsub $fef6 = FB_init()
