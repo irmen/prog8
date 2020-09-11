@@ -181,9 +181,7 @@ graphics {
 ;        @(addr) |= ormask[lsb(px) & 7]
 ;    }
 
-    ; TODO fix the use of X (or XY) as parameter so we can actually use this plot() routine
-    ;   calling it with a byte results in a compiler crash, calling it with word results in clobbering X register I think
-    asmsub  plotXXX(uword plotx @XY, ubyte ploty @A) {
+    asmsub  plot(uword plotx @XY, ubyte ploty @A) clobbers (A, X, Y) {
         %asm {{
             stx  internal_plotx
             sty  internal_plotx+1
@@ -191,12 +189,14 @@ graphics {
         }}
     }
 
+    ; for efficiency of internal algorithms here is the internal plot routine
+    ; that takes the plotx coordinate in a separate variable instead of the XY register pair:
+
     uword internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
 
-    asmsub  internal_plot(ubyte ploty @A) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
+    asmsub  internal_plot(ubyte ploty @A) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{
         tay
-        stx  P8ZP_SCRATCH_REG_X
         lda  internal_plotx+1
         sta  P8ZP_SCRATCH_W2+1
         lsr  a            ; 0
@@ -220,8 +220,6 @@ graphics {
         lda  (P8ZP_SCRATCH_W2),y
         ora  _ormask,x
         sta  (P8ZP_SCRATCH_W2),y
-
-        ldx  P8ZP_SCRATCH_REG_X
         rts
 
 _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1

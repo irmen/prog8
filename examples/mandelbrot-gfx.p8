@@ -38,9 +38,7 @@ main {
                 }
 
                 if iter & 1
-                    ; TODO fix plot() so we don't have to use separate internal variable
-                    graphics.internal_plotx = pixelx
-                    graphics.internal_plot(pixely)
+                    graphics.plot(pixelx, pixely)        ; TODO get rid of typecast in pixelx arg
             }
         }
 
