@@ -248,6 +248,7 @@ waitkey:
         c64.CHROUT('K')
 
         while c64.GETIN()!=133 {
+            ; TODO FIX THIS, DOESN'T TRIGGER ANYMORE ON F1
             ; endless loop until user presses F1 to restart the game
         }
     }

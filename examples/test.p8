@@ -3,6 +3,7 @@
 ;%import c64flt
 ;%option enable_floats
 ; %zeropage kernalsafe
+; TODO system reset should also work when kernal is paged out
 
 
 main {
@@ -17,7 +18,6 @@ main {
 
 ;   sub color(...) {}
 ;   sub other(ubyte color) {}    ; TODO don't cause name conflict
-
 
     }
 

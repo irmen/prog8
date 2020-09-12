@@ -1,5 +1,6 @@
 package prog8.compiler
 
+import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -114,6 +115,18 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         // that the types of assignment values and their target are the same,
         // and that the types of both operands of a binaryexpression node are the same.
         // So, it is not easily possible to remove the typecasts that are there to make these conditions true.
+        // The only place for now where we can do this is for:
+        //    asmsub register pair parameter.
+
+        if(typecast.type in WordDatatypes) {
+            val fcall = typecast.parent as? IFunctionCall
+            if (fcall != null) {
+                val sub = fcall.target.targetStatement(program.namespace) as? Subroutine
+                if (sub != null && sub.isAsmSubroutine) {
+                    return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+                }
+            }
+        }
 
         if(sourceDt in PassByReferenceDatatypes) {
             if(typecast.type==DataType.UWORD) {

@@ -38,7 +38,7 @@ main {
                 }
 
                 if iter & 1
-                    graphics.plot(pixelx, pixely)        ; TODO get rid of typecast in pixelx arg
+                    graphics.plot(pixelx, pixely)
             }
         }
 

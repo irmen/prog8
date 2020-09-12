@@ -3,6 +3,9 @@
 
 main {
 
+    ; TODO this program gets corrupted graphics and crashes near the end
+
+
     sub start() {
         graphics.enable_bitmap_mode()
         turtle.init()
