@@ -1122,11 +1122,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         // because the value is evaluated onto the eval stack (=slow).
         println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
+        asmgen.out("  jsr  c64flt.pop_float_fac1")
         asmgen.saveRegister(CpuRegister.X)
         when (operator) {
             "**" -> {
                 asmgen.out("""
-                    jsr  c64flt.pop_float_fac1
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.CONUPK
@@ -1135,7 +1135,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "+" -> {
                 asmgen.out("""
-                    jsr  c64flt.pop_float_fac1
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FADD
@@ -1143,7 +1142,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "-" -> {
                 asmgen.out("""
-                    jsr  c64flt.pop_float_fac1
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FSUB
@@ -1151,7 +1149,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "*" -> {
                 asmgen.out("""
-                    jsr  c64flt.pop_float_fac1
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FMULT
@@ -1159,7 +1156,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "/" -> {
                 asmgen.out("""
-                    jsr  c64flt.pop_float_fac1
                     lda  #<$name
                     ldy  #>$name
                     jsr  c64flt.FDIV
@@ -1167,7 +1163,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
-        // store Fac1 back into memory
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
