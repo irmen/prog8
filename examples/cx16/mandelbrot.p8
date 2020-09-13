@@ -3,9 +3,6 @@
 %import cx16flt
 %zeropage basicsafe
 
-; TODO fix this, only black squares output...
-
-
 main {
     const uword width = 60
     const uword height = 50

@@ -558,7 +558,6 @@ internal class AsmGen(private val program: Program,
         when(register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
-                // TODO get rid of REG_X altogether!
                 if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
                 else {
                     val save = makeLabel("saveX")
