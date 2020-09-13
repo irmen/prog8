@@ -9,7 +9,7 @@ floats_store_reg	.byte  0		; temp storage
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y
 		;    clobbers A, Y
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  P8ZP_SCRATCH_B1
@@ -18,14 +18,14 @@ ub2float	.proc
 _fac_to_mem	ldx  P8ZP_SCRATCH_W2
 		ldy  P8ZP_SCRATCH_W2+1
 		jsr  MOVMF
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		rts
 		.pend
 
 b2float		.proc
 		; -- convert byte in SCRATCH_ZPB1 to float at address A/Y
 		;    clobbers A, Y
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		lda  P8ZP_SCRATCH_B1
@@ -35,7 +35,7 @@ b2float		.proc
 
 uw2float	.proc
 		; -- convert uword in SCRATCH_ZPWORD1 to float at address A/Y
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		lda  P8ZP_SCRATCH_W1
@@ -46,7 +46,7 @@ uw2float	.proc
 
 w2float		.proc
 		; -- convert word in SCRATCH_ZPWORD1 to float at address A/Y
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  P8ZP_SCRATCH_W1
@@ -59,7 +59,7 @@ stack_b2float	.proc
 		; -- b2float operating on the stack
 		inx
 		lda  P8ESTACK_LO,x
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  FREADSA
 		jmp  push_fac1_as_result
 		.pend
@@ -69,7 +69,7 @@ stack_w2float	.proc
 		inx
 		ldy  P8ESTACK_LO,x
 		lda  P8ESTACK_HI,x
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  GIVAYF
 		jmp  push_fac1_as_result
 		.pend
@@ -78,7 +78,7 @@ stack_ub2float	.proc
 		; -- ub2float operating on the stack
 		inx
 		lda  P8ESTACK_LO,x
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		tay
 		lda  #0
 		jsr  GIVAYF
@@ -90,16 +90,16 @@ stack_uw2float	.proc
 		inx
 		lda  P8ESTACK_LO,x
 		ldy  P8ESTACK_HI,x
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  GIVUAYFAY
 		jmp  push_fac1_as_result
 		.pend
 
 stack_float2w	.proc               ; also used for float2b
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  AYINT
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		lda  $64
 		sta  P8ESTACK_HI,x
 		lda  $65
@@ -110,9 +110,9 @@ stack_float2w	.proc               ; also used for float2b
 
 stack_float2uw	.proc               ; also used for float2ub
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  GETADR
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		sta  P8ESTACK_HI,x
 		tya
 		sta  P8ESTACK_LO,x
@@ -236,7 +236,7 @@ inc_var_f	.proc
 		; -- add 1 to float pointed to by A/Y
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  MOVFM
 		lda  #<FL_ONE_const
 		ldy  #>FL_ONE_const
@@ -244,7 +244,7 @@ inc_var_f	.proc
 		ldx  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
 		jsr  MOVMF
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		rts
 		.pend
 
@@ -252,7 +252,7 @@ dec_var_f	.proc
 		; -- subtract 1 from float pointed to by A/Y
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<FL_ONE_const
 		ldy  #>FL_ONE_const
 		jsr  MOVFM
@@ -262,7 +262,7 @@ dec_var_f	.proc
 		ldx  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
 		jsr  MOVMF
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		rts
 		.pend
 
@@ -291,7 +291,7 @@ push_fac1_as_result	.proc
 		jsr  MOVMF
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		jmp  push_float
 		.pend
 
@@ -303,21 +303,21 @@ pow_f		.proc
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  pop_float
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  CONUPK		; fac2 = float1
 		lda  #<fmath_float2
 		ldy  #>fmath_float2
 		jsr  FPWR
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		jmp  push_fac1_as_result
 		.pend
 
 div_f		.proc
 		; -- push f1/f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  FDIV
@@ -327,7 +327,7 @@ div_f		.proc
 add_f		.proc
 		; -- push f1+f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  FADD
@@ -337,7 +337,7 @@ add_f		.proc
 sub_f		.proc
 		; -- push f1-f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  FSUB
@@ -347,7 +347,7 @@ sub_f		.proc
 mul_f		.proc
 		; -- push f1*f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  FMULT
@@ -357,7 +357,7 @@ mul_f		.proc
 neg_f		.proc
 		; -- push -flt back on stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  NEGOP
 		jmp  push_fac1_as_result
 		.pend
@@ -365,7 +365,7 @@ neg_f		.proc
 abs_f		.proc
 		; -- push abs(float) on stack (as float)
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  ABS
 		jmp  push_fac1_as_result
 		.pend
@@ -471,7 +471,7 @@ _return_true	lda  #1
 func_sin	.proc
 		; -- push sin(f) back onto stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  SIN
 		jmp  push_fac1_as_result
 		.pend
@@ -479,7 +479,7 @@ func_sin	.proc
 func_cos	.proc
 		; -- push cos(f) back onto stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  COS
 		jmp  push_fac1_as_result
 		.pend
@@ -487,7 +487,7 @@ func_cos	.proc
 func_tan	.proc
 		; -- push tan(f) back onto stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  TAN
 		jmp  push_fac1_as_result
 		.pend
@@ -495,7 +495,7 @@ func_tan	.proc
 func_atan	.proc
 		; -- push atan(f) back onto stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  ATN
 		jmp  push_fac1_as_result
 		.pend
@@ -503,7 +503,7 @@ func_atan	.proc
 func_ln		.proc
 		; -- push ln(f) back onto stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
 		jmp  push_fac1_as_result
 		.pend
@@ -511,7 +511,7 @@ func_ln		.proc
 func_log2	.proc
 		; -- push log base 2, ln(f)/ln(2), back onto stack
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
 		jsr  MOVEF
 		lda  #<c64.FL_LOG2
@@ -523,7 +523,7 @@ func_log2	.proc
 
 func_sqrt	.proc
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  SQR
 		jmp  push_fac1_as_result
 		.pend
@@ -531,7 +531,7 @@ func_sqrt	.proc
 func_rad	.proc
 		; -- convert degrees to radians (d * pi / 180)
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<_pi_div_180
 		ldy  #>_pi_div_180
 		jsr  FMULT
@@ -542,7 +542,7 @@ _pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
 func_deg	.proc
 		; -- convert radians to degrees (d * (1/ pi * 180))
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #<_one_over_pi_div_180
 		ldy  #>_one_over_pi_div_180
 		jsr  FMULT
@@ -552,7 +552,7 @@ _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 
 func_round	.proc
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  FADDH
 		jsr  INT
 		jmp  push_fac1_as_result
@@ -560,7 +560,7 @@ func_round	.proc
 
 func_floor	.proc
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		jsr  INT
 		jmp  push_fac1_as_result
 		.pend
@@ -568,7 +568,7 @@ func_floor	.proc
 func_ceil	.proc
 		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
 		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		ldx  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  MOVMF
@@ -635,7 +635,7 @@ func_max_f	.proc
 		ldy  #>_largest_neg_float
 _minmax_entry	jsr  MOVFM
 		jsr  prog8_lib.pop_array_and_lengthmin1Y
-		stx  P8ZP_SCRATCH_REG_X
+		stx  floats_store_reg
 -		sty  P8ZP_SCRATCH_REG
 		lda  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
@@ -655,6 +655,8 @@ _minmax_cmp	cmp  #255			; modified
 		dey
 		cpy  #255
 		bne  -
+		ldx  floats_store_reg
+		stx  P8ZP_SCRATCH_REG
 		jmp  push_fac1_as_result
 _largest_neg_float	.byte 255,255,255,255,255		; largest negative float -1.7014118345e+38
 		.pend
@@ -674,7 +676,7 @@ func_sum_f	.proc
 		ldy  #>FL_ZERO_const
 		jsr  MOVFM
 		jsr  prog8_lib.pop_array_and_lengthmin1Y
-		stx  P8ZP_SCRATCH_REG_X
+		stx  floats_store_reg
 -		sty  P8ZP_SCRATCH_REG
 		lda  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
@@ -690,7 +692,9 @@ func_sum_f	.proc
 		bcc  -
 		inc  P8ZP_SCRATCH_W1+1
 		bne  -
-+		jmp  push_fac1_as_result
++		ldx  floats_store_reg
+		stx  P8ZP_SCRATCH_REG
+		jmp  push_fac1_as_result
 		.pend
 
 sign_f		.proc

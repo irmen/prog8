@@ -71,7 +71,7 @@ main {
     	%asm {{
     		phx
     		jsr  conv.ubyte2decimal
-    		stx  P8ZP_SCRATCH_REG_X
+    		phx
     		pha
     		cpy  #'0'
     		beq  +
@@ -84,7 +84,7 @@ main {
             cmp  #'0'
             beq  _ones
             jsr  cx16.GRAPH_put_char
-    _ones   lda  P8ZP_SCRATCH_REG_X
+    _ones   pla
     		jsr  cx16.GRAPH_put_char
     		plx
     		rts
