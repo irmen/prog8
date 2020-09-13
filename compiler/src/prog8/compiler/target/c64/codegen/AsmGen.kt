@@ -105,7 +105,7 @@ internal class AsmGen(private val program: Program,
         val zp = CompilationTarget.instance.machine.zeropage
         out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
         out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
-        out("P8ZP_SCRATCH_REG_X = ${zp.SCRATCH_REG_X}")
+        out("P8ZP_SCRATCH_REG_X = ${'$'}9fff")          // TODO remove this REG_X altogether!!!
         out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
         out("P8ESTACK_LO = ${CompilationTarget.instance.machine.ESTACK_LO.toHex()}")
@@ -555,23 +555,20 @@ internal class AsmGen(private val program: Program,
 
     private val saveRegisterLabels = Stack<String>();
 
-    internal fun saveRegister(register: CpuRegister, forFuncCall: Boolean = false) {
+    internal fun saveRegister(register: CpuRegister) {
         when(register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
                 // TODO get rid of REG_X altogether!
-                when {
-                    CompilationTarget.instance.machine.cpu == CpuType.CPU65c02 -> out("  phx")
-                    forFuncCall -> {
-                        val save = makeLabel("saveX")
-                        saveRegisterLabels.push(save)
-                        out("""
-                            stx  $save
-                            jmp  +
-$save      .byte 0
+                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
+                else {
+                    val save = makeLabel("saveX")
+                    saveRegisterLabels.push(save)
+                    out("""
+            stx  $save
+            jmp  +
+$save       .byte 0
 +""")
-                    }
-                    else -> out("  stx  P8ZP_SCRATCH_REG_X")
                 }
             }
             CpuRegister.Y -> {
@@ -579,26 +576,23 @@ $save      .byte 0
                 else {
                     val save = makeLabel("saveY")
                     out("""
-                            sty  $save
-                            jmp  +
-$save      .byte 0
+            sty  $save
+            jmp  +
+$save       .byte 0
 +""")
                 }
             }
         }
     }
 
-    internal fun restoreRegister(register: CpuRegister, forFuncCall: Boolean = false) {
+    internal fun restoreRegister(register: CpuRegister) {
         when(register) {
             CpuRegister.A -> out("  pla")
             CpuRegister.X -> {
-                when {
-                    CompilationTarget.instance.machine.cpu == CpuType.CPU65c02 -> out("  plx")
-                    forFuncCall -> {
-                        val save = saveRegisterLabels.pop()
-                        out("  ldx  $save")
-                    }
-                    else -> out("  ldx  P8ZP_SCRATCH_REG_X")
+                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  plx")
+                else {
+                    val save = saveRegisterLabels.pop()
+                    out("  ldx  $save")
                 }
             }
             CpuRegister.Y -> {

@@ -686,7 +686,7 @@ func_sqrt16	.proc
 		sta  P8ZP_SCRATCH_W2
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		ldy  #$00    ; r = 0
 		ldx  #$07
 		clc         ; clear bit 16 of m
@@ -721,7 +721,7 @@ _skip1
 _skip2
 		iny         ; r = r or d (d is 1 here)
 _skip3
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		tya
 		sta  P8ESTACK_LO+1,x
 		lda  #0
@@ -1216,7 +1216,7 @@ func_rndw	.proc
 func_memcopy	.proc
 	; note: clobbers A,Y
 		inx
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  P8ESTACK_LO+2,x
 		sta  P8ZP_SCRATCH_W1
 		lda  P8ESTACK_HI+2,x
@@ -1233,7 +1233,7 @@ func_memcopy	.proc
 		iny
 		dex
 		bne  -
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		inx
 		inx
 		rts
@@ -1242,7 +1242,7 @@ func_memcopy	.proc
 func_memset	.proc
 	; note: clobbers A,Y
 		inx
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  P8ESTACK_LO+2,x
 		sta  P8ZP_SCRATCH_W1
 		lda  P8ESTACK_HI+2,x
@@ -1253,7 +1253,7 @@ func_memset	.proc
 		lda  P8ESTACK_LO,x
 		ldx  P8ZP_SCRATCH_B1
 		jsr  memset
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		inx
 		inx
 		rts
@@ -1264,7 +1264,7 @@ func_memsetw	.proc
 		; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
 
 		inx
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  P8ESTACK_LO+2,x
 		sta  P8ZP_SCRATCH_W1
 		lda  P8ESTACK_HI+2,x
@@ -1276,7 +1276,7 @@ func_memsetw	.proc
 		lda  P8ESTACK_LO,x
 		ldy  P8ESTACK_HI,x
 		jsr  memsetw
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		inx
 		inx
 		rts
@@ -1328,9 +1328,9 @@ memset          .proc
 	; -- fill memory from (SCRATCH_ZPWORD1), length XY, with value in A.
 	;    clobbers X, Y
 		stx  P8ZP_SCRATCH_B1
-		sty  P8ZP_SCRATCH_REG
+		sty  _save_reg
 		ldy  #0
-		ldx  P8ZP_SCRATCH_REG
+		ldx  _save_reg
 		beq  _lastpage
 
 _fullpage	sta  (P8ZP_SCRATCH_W1),y
@@ -1347,6 +1347,7 @@ _lastpage	ldy  P8ZP_SCRATCH_B1
 		bne  -
 
 +           	rts
+_save_reg	.byte  0
 		.pend
 
 

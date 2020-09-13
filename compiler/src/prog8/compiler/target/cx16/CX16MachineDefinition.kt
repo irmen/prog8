@@ -74,7 +74,6 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
         override val SCRATCH_B1 = 0x79      // temp storage for a single byte
         override val SCRATCH_REG = 0x7a     // temp storage for a register
-        override val SCRATCH_REG_X = 0x7b   // temp storage for register X (the evaluation stack pointer)
         override val SCRATCH_W1 = 0x7c      // temp storage 1 for a word  $7c+$7d
         override val SCRATCH_W2 = 0x7e      // temp storage 2 for a word  $7e+$7f
 
@@ -95,16 +94,16 @@ internal object CX16MachineDefinition: IMachineDefinition {
             when (options.zeropage) {
                 ZeropageType.FULL -> {
                     free.addAll(0x22..0xff)
-                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
+                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.KERNALSAFE -> {
                     free.addAll(0x22..0x7f)
                     free.addAll(0xa9..0xff)
-                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
+                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.BASICSAFE -> {
                     free.addAll(0x22..0x7f)
-                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
+                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.DONTUSE -> {
                     free.clear() // don't use zeropage at all
@@ -114,7 +113,6 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
             require(SCRATCH_B1 !in free)
             require(SCRATCH_REG !in free)
-            require(SCRATCH_REG_X !in free)
             require(SCRATCH_W1 !in free)
             require(SCRATCH_W2 !in free)
 

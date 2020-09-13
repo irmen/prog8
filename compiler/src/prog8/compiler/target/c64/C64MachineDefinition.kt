@@ -108,7 +108,6 @@ internal object C64MachineDefinition: IMachineDefinition {
 
         override val SCRATCH_B1 = 0x02      // temp storage for a single byte
         override val SCRATCH_REG = 0x03     // temp storage for a register
-        override val SCRATCH_REG_X = 0xfa   // temp storage for register X (the evaluation stack pointer)
         override val SCRATCH_W1 = 0xfb      // temp storage 1 for a word  $fb+$fc
         override val SCRATCH_W2 = 0xfd      // temp storage 2 for a word  $fb+$fc
 
@@ -126,7 +125,7 @@ internal object C64MachineDefinition: IMachineDefinition {
             if (options.zeropage == ZeropageType.FULL) {
                 free.addAll(0x04..0xf9)
                 free.add(0xff)
-                free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
+                free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 free.removeAll(listOf(0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6))        // these are updated by IRQ
             } else {
                 if (options.zeropage == ZeropageType.KERNALSAFE || options.zeropage == ZeropageType.FLOATSAFE) {
@@ -169,7 +168,6 @@ internal object C64MachineDefinition: IMachineDefinition {
             }
             require(SCRATCH_B1 !in free)
             require(SCRATCH_REG !in free)
-            require(SCRATCH_REG_X !in free)
             require(SCRATCH_W1 !in free)
             require(SCRATCH_W2 !in free)
 

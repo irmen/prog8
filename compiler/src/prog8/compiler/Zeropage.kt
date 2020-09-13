@@ -10,7 +10,6 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     abstract val SCRATCH_B1 : Int      // temp storage for a single byte
     abstract val SCRATCH_REG : Int     // temp storage for a register
-    abstract val SCRATCH_REG_X : Int   // temp storage for register X (the evaluation stack pointer)
     abstract val SCRATCH_W1 : Int      // temp storage 1 for a word  $fb+$fc
     abstract val SCRATCH_W2 : Int      // temp storage 2 for a word  $fb+$fc
 
