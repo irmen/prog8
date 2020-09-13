@@ -105,7 +105,6 @@ internal class AsmGen(private val program: Program,
         val zp = CompilationTarget.instance.machine.zeropage
         out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
         out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
-        out("P8ZP_SCRATCH_REG_X = ${'$'}9fff")          // TODO remove this REG_X altogether!!!
         out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
         out("P8ESTACK_LO = ${CompilationTarget.instance.machine.ESTACK_LO.toHex()}")

@@ -299,8 +299,6 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPB1
 		lda  P8ZP_SCRATCH_REG
 		sta  IRQ_SCRATCH_ZPREG
-		lda  P8ZP_SCRATCH_REG_X         ; TODO remove REG_X
-		sta  IRQ_SCRATCH_ZPREGX         ; TODO remove this storage byte
 		lda  P8ZP_SCRATCH_W1
 		sta  IRQ_SCRATCH_ZPWORD1
 		lda  P8ZP_SCRATCH_W1+1
@@ -325,8 +323,6 @@ _irq_handler_end
 		sta  P8ZP_SCRATCH_B1
 		lda  IRQ_SCRATCH_ZPREG
 		sta  P8ZP_SCRATCH_REG
-		lda  IRQ_SCRATCH_ZPREGX     ; TODO remove this storage location
-		sta  P8ZP_SCRATCH_REG_X     ; TODO remove _REG_X
 		lda  IRQ_SCRATCH_ZPWORD1
 		sta  P8ZP_SCRATCH_W1
 		lda  IRQ_SCRATCH_ZPWORD1+1
@@ -341,7 +337,6 @@ _irq_handler_end
 IRQ_X_REG		.byte  0
 IRQ_SCRATCH_ZPB1	.byte  0
 IRQ_SCRATCH_ZPREG	.byte  0
-IRQ_SCRATCH_ZPREGX	.byte  0
 IRQ_SCRATCH_ZPWORD1	.word  0
 IRQ_SCRATCH_ZPWORD2	.word  0
 
