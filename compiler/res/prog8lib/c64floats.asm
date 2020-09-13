@@ -3,6 +3,8 @@
 FL_ONE_const	.byte  129     			; 1.0
 FL_ZERO_const	.byte  0,0,0,0,0		; 0.0
 
+floats_store_reg	.byte  0		; temp storage
+
 
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y

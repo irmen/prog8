@@ -194,7 +194,7 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 sub  print_f  (float value) {
 	; ---- prints the floating point value (without a newline).
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		stx  floats_store_reg
 		lda  #<value
 		ldy  #>value
 		jsr  MOVFM		; load float into fac1
@@ -207,7 +207,7 @@ sub  print_f  (float value) {
 		jsr  c64.CHROUT
 		iny
 		bne  -
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  floats_store_reg
 +		rts
 	}}
 }

@@ -213,7 +213,7 @@ asmsub  byte2decimal  (byte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
 asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
 	; ---- A to hex petscii string in AY (first hex char in A, second hex char in Y)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		pha
 		and  #$0f
 		tax
@@ -225,7 +225,7 @@ asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
 		lsr  a
 		tax
 		lda  _hex_digits,x
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		rts
 
 _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well

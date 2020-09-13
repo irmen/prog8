@@ -11,6 +11,10 @@
 ;	http://codebase64.org/doku.php?id=base:6502_6510_maths
 ;
 
+
+math_store_reg	.byte  0		; temporary storage
+
+
 multiply_bytes	.proc
 	; -- multiply 2 bytes A and Y, result as byte in A  (signed or unsigned)
 		sta  P8ZP_SCRATCH_B1         ; num1
@@ -31,7 +35,7 @@ multiply_bytes_16	.proc
 	; -- multiply 2 bytes A and Y, result as word in A/Y (unsigned)
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG
-		stx  P8ZP_SCRATCH_REG_X
+		stx  math_store_reg
 		lda  #0
 		ldx  #8
 		lsr  P8ZP_SCRATCH_B1
@@ -44,7 +48,7 @@ multiply_bytes_16	.proc
 		bne  -
 		tay
 		lda  P8ZP_SCRATCH_B1
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  math_store_reg
 		rts
 		.pend
 
@@ -57,7 +61,7 @@ multiply_words	.proc
 
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 
 mult16		lda  #0
 		sta  result+2	; clear upper bits of product
@@ -79,7 +83,7 @@ mult16		lda  #0
 		ror  result
 		dex
 		bne  -
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		rts
 
 result		.byte  0,0,0,0
@@ -124,7 +128,7 @@ divmod_ub_asm	.proc
 	;    division by zero will result in quotient = 255 and remainder = original number
 		sty  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_B1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  math_store_reg
 
 		lda  #0
 		ldx  #8
@@ -137,7 +141,7 @@ divmod_ub_asm	.proc
 		dex
 		bne  -
 		ldy  P8ZP_SCRATCH_B1
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  math_store_reg
 		rts
 		.pend
 
@@ -197,7 +201,7 @@ result = dividend ;save memory by reusing divident to store the result
 
 		sta  _divisor
 		sty  _divisor+1
-		stx  P8ZP_SCRATCH_REG_X
+		stx  P8ZP_SCRATCH_REG
 		lda  #0	        	;preset remainder to 0
 		sta  remainder
 		sta  remainder+1
@@ -224,7 +228,7 @@ result = dividend ;save memory by reusing divident to store the result
 
 		lda  result
 		ldy  result+1
-		ldx  P8ZP_SCRATCH_REG_X
+		ldx  P8ZP_SCRATCH_REG
 		rts
 _divisor	.word 0
 		.pend
