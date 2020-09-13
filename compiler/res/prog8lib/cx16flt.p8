@@ -135,10 +135,10 @@ sub  print_f  (float value) {
 		ldy  #>value
 		jsr  MOVFM		; load float into fac1
 		jsr  FOUT		; fac1 to string in A/Y
-		sta  P8ZP_SCRATCH_B1
-		sty  P8ZP_SCRATCH_REG
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
--		lda  (P8ZP_SCRATCH_B1),y
+-		lda  (P8ZP_SCRATCH_W1),y
 		beq  +
 		jsr  c64.CHROUT
 		iny
