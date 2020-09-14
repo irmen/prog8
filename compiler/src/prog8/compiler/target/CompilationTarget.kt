@@ -35,7 +35,7 @@ internal object C64Target: CompilationTarget {
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
     override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
             AsmGen(program, errors, zp, options, path)
-    override val asmForSystemReset = "  sei |  jmp  (c64.RESET_VEC)"        // TODO enable kernal rom bank
+    override val asmForSystemReset = "  sei |  lda  #14 |  sta  $1 |  jmp  (c64.RESET_VEC)"
     override val initProcName = "c64.init_system"
 }
 

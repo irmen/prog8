@@ -1,8 +1,7 @@
 %import c64textio
 ;%import c64flt
 ;%option enable_floats
-%zeropage basicsafe
-; TODO system reset should also work when kernal is paged out
+%zeropage kernalsafe
 
 
 main {
@@ -10,20 +9,23 @@ main {
 
     sub start() {
 
-        uword ub1
-        word  ww1
-        uword ii
+        %asm {{
+            sei
+            ldy  #0
+            sty  $1
+            lda  #0
+-           sta  $f000,y
+            iny
+            bne  -
+-           lda  $f000,y
+            sta  $0400,y
+            iny
+            bne  -
+        }}
 
-        for ii in 0 to 20 {
-            ; ub1 = ii
-            ; ub1 *= 40       ; TODO implement non-stack optimized muls
-            ; todo a = EXPRESSION * const -> is that optimized?
-            ub1 = ii * 15
-            txt.print_uw(ub1)
-            c64.CHROUT(',')
-            ub1 = 1+(ii * 15)
-            txt.print_uw(ub1)
-            c64.CHROUT('\n')
+        repeat 60000 {
+            ubyte a = sin (3)
+            a++
         }
 
 ;asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  { ...}
