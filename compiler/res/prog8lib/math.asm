@@ -312,6 +312,7 @@ _seed		.word	$2c9e
 		.pend
 
 
+; ----------- optimized multiplications (stack) : ---------
 stack_mul_byte_3	.proc
 		; X + X*2
 		lda  P8ESTACK_LO+1,x
@@ -689,15 +690,10 @@ stack_mul_word_25	.proc
 		.pend
 
 stack_mul_byte_40	.proc
-		; (X*4 + X)*8
 		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-                clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		asl  a
+		and  #7
+		tay
+		lda  mul_byte_40._forties,y
 		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
@@ -725,6 +721,309 @@ stack_mul_word_40	.proc
 		sta  P8ESTACK_HI+1,x
 		rts
 		.pend
+
+stack_mul_byte_50	.proc
+		lda  P8ESTACK_LO+1,x
+		and  #7
+		tay
+		lda  mul_byte_50._fifties, y
+		sta  P8ESTACK_LO+1,x
+		rts
+		.pend
+
+stack_mul_word_50	.proc
+		; TODO word * 50
+		.pend
+
+stack_mul_byte_80	.proc
+		lda  P8ESTACK_LO+1,x
+		and  #3
+		tay
+		lda  mul_byte_80._eighties, y
+		sta  P8ESTACK_LO+1,x
+		rts
+		.pend
+
+stack_mul_word_80	.proc
+		; TODO word * 80
+		.pend
+
+stack_mul_byte_100	.proc
+		lda  P8ESTACK_LO+1,x
+		and  #3
+		tay
+		lda  mul_byte_100._hundreds, y
+		sta  P8ESTACK_LO+1,x
+		rts
+		.pend
+
+stack_mul_word_100	.proc
+		; TODO word * 100
+		.pend
+
+
+; ----------- optimized multiplications (in-place A (byte) and ?? (word)) : ---------
+mul_byte_3	.proc
+		; A = A + A*2
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		clc
+		adc  P8P_P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_3	.proc
+		.warn "todo mul_word_3"
+		rts
+		.pend
+
+
+mul_byte_5	.proc
+		; A = A*4 + A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_5	.proc
+		.warn "todo mul_word_5"
+		rts
+		.pend
+
+
+mul_byte_6	.proc
+		; A = (A*2 + A)*2
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+                clc
+                adc  P8ZP_SCRATCH_REG
+		asl  a
+		rts
+		.pend
+
+mul_word_6	.proc
+		.warn "todo mul_word_6"
+		rts
+		.pend
+
+mul_byte_7	.proc
+		; A = A*8 - A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		asl  a
+		sec
+		sbc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_7	.proc
+		.warn "todo mul_word_7"
+		rts
+		.pend
+
+mul_byte_9	.proc
+		; A = A*8 + A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_9	.proc
+		.warn "todo mul_word_9"
+		rts
+		.pend
+
+mul_byte_10	.proc
+		; A=(A*4 + A)*2
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		asl  a
+		rts
+		.pend
+
+mul_word_10	.proc
+		.warn "todo mul_word_10"
+		rts
+		.pend
+
+mul_byte_11	.proc
+		; A=(A*2 + A)*4 - A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		sec
+		sbc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+; mul_word_11 is skipped (too much code)
+
+mul_byte_12	.proc
+		; A=(A*2 + A)*4
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		rts
+		.pend
+
+mul_word_12	.proc
+		.warn "todo mul_word_12"
+		rts
+		.pend
+
+mul_byte_13	.proc
+		; A=(A*2 + A)*4 + A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+                clc
+		adc  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+                clc
+		adc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+; mul_word_13 is skipped (too much code)
+
+mul_byte_14	.proc
+		; A=(A*8 - A)*2
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		asl  a
+                sec
+		sbc  P8ZP_SCRATCH_REG
+                asl  a
+		rts
+		.pend
+
+; mul_word_14 is skipped (too much code)
+
+mul_byte_15	.proc
+		; A=A*16 - A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		asl  a
+		asl  a
+		sec
+		sbc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_15	.proc
+		.warn "todo mul_word_15"
+		rts
+		.pend
+
+mul_byte_20	.proc
+		; A=(A*4 + A)*4
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		rts
+		.pend
+
+mul_word_20	.proc
+		.warn "todo mul_word_20"
+		rts
+		.pend
+
+mul_byte_25	.proc
+		; A=(A*2 + A)*8 + A
+		sta  P8ZP_SCRATCH_REG
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		asl  a
+		asl  a
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_25	.proc
+		.warn "todo mul_word_25"
+		rts
+		.pend
+
+mul_byte_40	.proc
+		and  #7
+		tay
+		lda  _forties,y
+		rts
+_forties	.byte  0*40, 1*40, 2*40, 3*40, 4*40, 5*40, 6*40, 7*40 & 255
+		.pend
+
+mul_word_40	.proc
+		.warn "todo mul_word_40"
+		rts
+		.pend
+
+mul_byte_50	.proc
+		and  #7
+		tay
+		lda  _fifties, y
+		rts
+_fifties	.byte  0*50, 1*50, 2*50, 3*50, 4*50, 5*50, 6*50 & 255, 7*50 & 255
+		.pend
+
+mul_word_50	.proc
+		.warn "todo mul_word_50"
+		rts
+		.pend
+
+mul_byte_80	.proc
+		and  #3
+		tay
+		lda  _eighties, y
+		rts
+_eighties	.byte  0*80, 1*80, 2*80, 3*80
+		.pend
+
+mul_word_80	.proc
+		.warn "todo mul_word_80"
+		rts
+		.pend
+
+mul_byte_100	.proc
+		and  #3
+		tay
+		lda  _hundreds, y
+		rts
+_hundreds	.byte  0*100, 1*100, 2*100, 3*100 & 255
+		.pend
+
+mul_word_100	.proc
+		.warn "todo mul_word_100"
+		rts
+		.pend
+
+; ----------- end optimized multiplications -----------
+
 
 sign_b		.proc
 		lda  P8ESTACK_LO+1,x

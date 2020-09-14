@@ -583,14 +583,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "*" -> {
                 if(dt == DataType.UBYTE) {
                     if(value in asmgen.optimizedByteMultiplications) {
-                        TODO("optimized var mul ubyte litval $value")
+                        asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
                     } else {
                         TODO("var mul ubyte litval $value")
                         // asmgen.out("  jsr  prog8_lib.mul_byte")
                     }
                 } else {
                     if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
-                        TODO("optimized var mul sbyte litval $value")
+                        asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
                     } else {
                         TODO("var mul sbyte litval $value")
                         // asmgen.out("  jsr  prog8_lib.mul_byte")

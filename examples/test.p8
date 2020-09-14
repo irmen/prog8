@@ -1,7 +1,7 @@
 %import c64textio
 ;%import c64flt
 ;%option enable_floats
-; %zeropage kernalsafe
+%zeropage basicsafe
 ; TODO system reset should also work when kernal is paged out
 
 
@@ -10,7 +10,25 @@ main {
 
     sub start() {
 
-        c64.CHROUT('*')
+        ubyte ub1
+        ubyte ii
+        for ii in 0 to 10 {
+            ; ub1 = ii
+            ; ub1 *= 40       ; TODO implement non-stack optimized muls
+            ; todo a = EXPRESSION * const -> is that optimized?
+            ub1 = 1+ii * 40
+            txt.print_ub(ub1)
+            c64.CHROUT(',')
+            ub1 = 1+ii * 50
+            txt.print_ub(ub1)
+            c64.CHROUT(',')
+            ub1 = 1+ii * 80
+            txt.print_ub(ub1)
+            c64.CHROUT(',')
+            ub1 = 1+ii * 100
+            txt.print_ub(ub1)
+            c64.CHROUT('\n')
+        }
 
 ;asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  { ...}
 ; TODO dont cause name conflict if we define sub or sub with param 'color' or even a var 'color' later.
