@@ -692,13 +692,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "*" -> {
                 if(dt == DataType.UWORD){
                     if(value in asmgen.optimizedWordMultiplications) {
-                        TODO("optimized var uword mul litval $value")
+                        asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                     } else {
                         TODO("var uword mul litval $value")
                     }
                 } else {
                     if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
-                        TODO("optimized var sword mul litval $value")
+                        asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                     } else {
                         // TODO don't use stack here
                         // TODO does this work for signed words?

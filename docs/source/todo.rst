@@ -2,6 +2,7 @@
 TODO
 ====
 
+- compiler errors and warnings in standard format so the IDE shows them as clickable links; ./test.asm:2578:3: blablabla
 - further optimize assignment codegeneration
 - auto select correct library to import based on target, instead of having c64- and  cx16-  prefix variants
 - get rid of all TODO's ;-)
