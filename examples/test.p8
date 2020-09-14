@@ -9,23 +9,23 @@ main {
 
     sub start() {
 
-        %asm {{
-            sei
-            ldy  #0
-            sty  $1
-            lda  #0
--           sta  $f000,y
-            iny
-            bne  -
--           lda  $f000,y
-            sta  $0400,y
-            iny
-            bne  -
-        }}
+        ubyte b
+        if b > 15  {
+            b = 99
+        } else {
+            ; nothing
+        }
 
-        repeat 60000 {
-            ubyte a = sin (3)
-            a++
+        if b > 15  {
+            ; nothing
+        } else {
+            b = 99
+        }
+
+        if b > 15  {
+            ; nothing
+        } else {
+            ; nothing
         }
 
 ;asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  { ...}

@@ -821,17 +821,38 @@ $save       .byte 0
             }
 
     private fun translate(stmt: IfStatement) {
-        // TODO don't generate needless jumps/labels when the if or else block is empty
-        expressionsAsmGen.translateExpression(stmt.condition)
-        translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
-        val elseLabel = makeLabel("if_else")
-        val endLabel = makeLabel("if_end")
-        out("  beq  $elseLabel")
-        translate(stmt.truepart)
-        out("  jmp  $endLabel")
-        out(elseLabel)
-        translate(stmt.elsepart)
-        out(endLabel)
+        when {
+            stmt.elsepart.containsNoCodeNorVars() -> {
+                // empty else
+                expressionsAsmGen.translateExpression(stmt.condition)
+                translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
+                val endLabel = makeLabel("if_end")
+                out("  beq  $endLabel")
+                translate(stmt.truepart)
+                out(endLabel)
+            }
+            stmt.truepart.containsNoCodeNorVars() -> {
+                // empty true part
+                expressionsAsmGen.translateExpression(stmt.condition)
+                translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
+                val endLabel = makeLabel("if_end")
+                out("  bne  $endLabel")
+                translate(stmt.elsepart)
+                out(endLabel)
+            }
+            else -> {
+                expressionsAsmGen.translateExpression(stmt.condition)
+                translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
+                val elseLabel = makeLabel("if_else")
+                val endLabel = makeLabel("if_end")
+                out("  beq  $elseLabel")
+                translate(stmt.truepart)
+                out("  jmp  $endLabel")
+                out(elseLabel)
+                translate(stmt.elsepart)
+                out(endLabel)
+            }
+        }
     }
 
     private fun translateTestStack(dataType: DataType) {
