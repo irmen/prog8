@@ -786,8 +786,20 @@ mul_byte_3	.proc
 		.pend
 
 mul_word_3	.proc
-		.error "todo mul_word_3"
 		; AY = AY*2 + AY
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ZP_SCRATCH_W2+1
+		tay
+		lda  P8ZP_SCRATCH_W1
 		rts
 		.pend
 
@@ -803,8 +815,22 @@ mul_byte_5	.proc
 		.pend
 
 mul_word_5	.proc
-		.error "todo mul_word_5"
 		; AY = AY*4 + AY
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ZP_SCRATCH_W2+1
+		tay
+		lda  P8ZP_SCRATCH_W1
 		rts
 		.pend
 
@@ -820,8 +846,24 @@ mul_byte_6	.proc
 		.pend
 
 mul_word_6	.proc
-		.error "todo mul_word_6"
 		; AY = (AY*2 + AY)*2
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		tay
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ZP_SCRATCH_W2+1
+		sta  P8ZP_SCRATCH_W1+1
+		tya
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		ldy  P8ZP_SCRATCH_W1+1
 		rts
 		.pend
 
@@ -837,8 +879,24 @@ mul_byte_7	.proc
 		.pend
 
 mul_word_7	.proc
-		.error "todo mul_word_7"
 		; AY = AY*8 - AY
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		sec
+		sbc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		sbc  P8ZP_SCRATCH_W2+1
+		tay
+		lda  P8ZP_SCRATCH_W1
 		rts
 		.pend
 
@@ -854,8 +912,25 @@ mul_byte_9	.proc
 		.pend
 
 mul_word_9	.proc
-		.error "todo mul_word_9"
 		; AY = AY*8 + AY
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ZP_SCRATCH_W2+1
+		tay
+		lda  P8ZP_SCRATCH_W1
+		rts
 		rts
 		.pend
 
@@ -871,8 +946,25 @@ mul_byte_10	.proc
 		.pend
 
 mul_word_10	.proc
-		.error "todo mul_word_10"
 		; AY=(AY*4 + AY)*2
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ZP_SCRATCH_W2+1
+		sta  P8ZP_SCRATCH_W1+1
+		lda  P8ZP_SCRATCH_W1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		ldy  P8ZP_SCRATCH_W1+1
 		rts
 		.pend
 
@@ -903,8 +995,25 @@ mul_byte_12	.proc
 		.pend
 
 mul_word_12	.proc
-		.error "todo mul_word_12"
 		; AY=(AY*2 + AY)*4
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		adc  P8ZP_SCRATCH_W2+1
+		sta  P8ZP_SCRATCH_W1+1
+		lda  P8ZP_SCRATCH_W1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		ldy  P8ZP_SCRATCH_W1+1
 		rts
 		.pend
 
@@ -950,8 +1059,26 @@ mul_byte_15	.proc
 		.pend
 
 mul_word_15	.proc
-		.error "todo mul_word_15"
 		; AY = AY * 16 - AY
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		asl  a
+		rol  P8ZP_SCRATCH_W1+1
+		sec
+		sbc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W1+1
+		sbc  P8ZP_SCRATCH_W2+1
+		tay
+		lda  P8ZP_SCRATCH_W1
 		rts
 		.pend
 

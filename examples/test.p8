@@ -18,36 +18,11 @@ main {
             ; ub1 = ii
             ; ub1 *= 40       ; TODO implement non-stack optimized muls
             ; todo a = EXPRESSION * const -> is that optimized?
-            ub1 = ii * 25
+            ub1 = ii * 15
             txt.print_uw(ub1)
-;            c64.CHROUT(',')
-;            ub1 = ii * 50
-;            txt.print_uw(ub1)
-;            c64.CHROUT(',')
-;            ub1 = ii * 80
-;            txt.print_uw(ub1)
-;            c64.CHROUT(',')
-;            ub1 = ii * 100
-;            txt.print_uw(ub1)
-            c64.CHROUT('\n')
-        }
-
-        c64.CHROUT('\n')
-        for ii in 0 to 20 {
-            ; ub1 = ii
-            ; ub1 *= 40       ; TODO implement non-stack optimized muls
-            ; todo a = EXPRESSION * const -> is that optimized?
-            ww1 = (-ii) * 25
-            txt.print_w(ww1)
-;            c64.CHROUT(',')
-;            ub1 = ii * 50
-;            txt.print_uw(ub1)
-;            c64.CHROUT(',')
-;            ub1 = ii * 80
-;            txt.print_uw(ub1)
-;            c64.CHROUT(',')
-;            ub1 = ii * 100
-;            txt.print_uw(ub1)
+            c64.CHROUT(',')
+            ub1 = 1+(ii * 15)
+            txt.print_uw(ub1)
             c64.CHROUT('\n')
         }
 
