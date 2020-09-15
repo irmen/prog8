@@ -218,7 +218,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun tryRemoveRedundantCast(value: TypecastExpression, target: AsmAssignTarget, operator: String): Boolean {
-        // TODO doesn't always remove casts for instance uword xx = xb  generates complex stack based type cast evaluation...
         if (target.datatype == value.type) {
             val childDt = value.expression.inferType(program).typeOrElse(DataType.STRUCT)
             if (value.type.equalsSize(childDt) || value.type.largerThan(childDt)) {
@@ -1315,7 +1314,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceCast(target: AsmAssignTarget, cast: TypecastExpression, position: Position) {
         val outerCastDt = cast.type
         val innerCastDt = (cast.expression as? TypecastExpression)?.type
-
         if (innerCastDt == null) {
             // simple typecast where the value is the target
             when (target.datatype) {

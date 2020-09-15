@@ -9,24 +9,13 @@ main {
 
     sub start() {
 
-        ubyte b
-        if b > 15  {
-            b = 99
-        } else {
-            ; nothing
-        }
+        ubyte ub =9
+        uword yy = 9999     ; this is okay (no 0-initialization generated) but... the next:
+        uword xx = ub           ; TODO don't generate xx = 0 assignment if it's initialized with something else...
 
-        if b > 15  {
-            ; nothing
-        } else {
-            b = 99
-        }
-
-        if b > 15  {
-            ; nothing
-        } else {
-            ; nothing
-        }
+        ub++
+        xx++
+        yy++
 
 ;asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  { ...}
 ; TODO dont cause name conflict if we define sub or sub with param 'color' or even a var 'color' later.

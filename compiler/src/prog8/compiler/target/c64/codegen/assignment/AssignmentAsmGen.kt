@@ -120,17 +120,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is IdentifierReference -> throw AssemblyError("source kind should have been variable")
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
-//                    is TypecastExpression -> {
-//                        if(assign.target.kind == TargetStorageKind.STACK) {
-//                            asmgen.translateExpression(value)
-//                            assignStackValue(assign.target)
-//                        } else {
-//                            println("!!!!TYPECAST to ${assign.target.kind} $value")
-//                            // TODO maybe we can do the typecast on the target directly instead of on the stack?
-//                            asmgen.translateExpression(value)
-//                            assignStackValue(assign.target)
-//                        }
-//                    }
+                    is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, assign)
 //                    is FunctionCall -> {
 //                        if (assign.target.kind == TargetStorageKind.STACK) {
 //                            asmgen.translateExpression(value)
@@ -159,6 +149,52 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 assignStackValue(assign.target)
             }
         }
+    }
+
+    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origAssign: AsmAssignment) {
+        val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
+        when(value) {
+            is IdentifierReference -> {
+                if (valueDt == DataType.UBYTE || valueDt == DataType.BYTE) {
+                    if(targetDt in WordDatatypes) {
+                        assignVariableByteIntoWord(target, value, valueDt)
+                        return
+                    }
+                }
+            }
+            is DirectMemoryRead -> {
+                if(targetDt in WordDatatypes) {
+                    if (value.addressExpression is NumericLiteralValue) {
+                        val address = (value.addressExpression as NumericLiteralValue).number.toInt()
+                        assignMemoryByteIntoWord(target, address, null)
+                        return
+                    }
+                    else if (value.addressExpression is IdentifierReference) {
+                        assignMemoryByteIntoWord(target, null, value.addressExpression as IdentifierReference)
+                        return
+                    }
+                }
+            }
+            is NumericLiteralValue -> throw AssemblyError("a cast of a literal value should have been const-folded away")
+            else -> {}
+        }
+
+        when(value) {
+            is PrefixExpression -> {}
+            is BinaryExpression -> {}
+            is ArrayIndexedExpression -> {}
+            is TypecastExpression -> {}
+            is RangeExpr -> {}
+            is FunctionCall -> {}
+            else -> {
+                // TODO optimize the others further?
+                println("warning: slow stack evaluation used for typecast: into $targetDt at ${value.position}")
+            }
+        }
+
+        // give up, do it via eval stack
+        asmgen.translateExpression(origAssign.source.expression!!)
+        assignStackValue(target)
     }
 
     private fun assignStackValue(target: AsmAssignTarget) {
@@ -517,6 +553,59 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  P8ESTACK_LO,x
                     dex""")
             }
+        }
+    }
+
+    private fun assignVariableByteIntoWord(wordtarget: AsmAssignTarget, bytevar: IdentifierReference, valueDt: DataType) {
+        if(valueDt == DataType.BYTE)
+            TODO("sign extend byte to word")
+
+        val sourceName = asmgen.asmVariableName(bytevar)
+        when(wordtarget.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    lda  $sourceName
+                    sta  ${wordtarget.asmVarname}
+                    lda  #0
+                    sta  ${wordtarget.asmVarname}+1
+                    """)
+            }
+            TargetStorageKind.ARRAY -> {
+                val index = wordtarget.array!!.arrayspec.index
+                when {
+                    wordtarget.constArrayIndexValue!=null -> {
+                        val scaledIdx = wordtarget.constArrayIndexValue!! * 2
+                        asmgen.out(" lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx |  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
+                    }
+                    index is IdentifierReference -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.Y)
+                        asmgen.out(" lda  $sourceName |  sta  ${wordtarget.asmVarname},y |  lda  #0 |  iny |  sta  ${wordtarget.asmVarname},y")
+                    }
+                    else -> {
+                        asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
+                        asmgen.translateExpression(index)
+                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
+                        popAndWriteArrayvalueWithUnscaledIndexA(wordtarget.datatype, wordtarget.asmVarname)
+                    }
+                }
+            }
+            TargetStorageKind.REGISTER -> {
+                when(wordtarget.register!!) {
+                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
+                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
+                    else -> throw AssemblyError("only reg pairs are words")
+                }
+            }
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  #$sourceName
+                    sta  P8ESTACK_LO,x
+                    lda  #0
+                    sta  P8ESTACK_HI,x
+                    dex""")
+            }
+            else -> throw AssemblyError("other types aren't word")
         }
     }
 
@@ -896,6 +985,63 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asmgen.loadByteFromPointerIntoA(identifier)
                     asmgen.out(" sta  P8ESTACK_LO,x |  dex")
                 }
+            }
+        }
+    }
+
+    private fun assignMemoryByteIntoWord(wordtarget: AsmAssignTarget, address: Int?, identifier: IdentifierReference?) {
+        if (address != null) {
+            when(wordtarget.kind) {
+                TargetStorageKind.VARIABLE -> {
+                    asmgen.out("""
+                        lda  ${address.toHex()}
+                        sta  ${wordtarget.asmVarname}
+                        lda  #0
+                        sta  ${wordtarget.asmVarname}+1
+                        """)
+                }
+                TargetStorageKind.ARRAY -> {
+                    throw AssemblyError("no asm gen for assign memory byte at $address to array ${wordtarget.asmVarname}")
+                }
+                TargetStorageKind.REGISTER -> when(wordtarget.register!!) {
+                    RegisterOrPair.AX -> asmgen.out("  lda  ${address.toHex()} |  ldx  #0")
+                    RegisterOrPair.AY -> asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  ${address.toHex()} |  ldy  #0")
+                    else -> throw AssemblyError("word regs can only be pair")
+                }
+                TargetStorageKind.STACK -> {
+                    asmgen.out("""
+                        lda  ${address.toHex()}
+                        sta  P8ESTACK_LO,x
+                        lda  #0
+                        sta  P8ESTACK_HI,x
+                        dex""")
+                }
+                else -> throw AssemblyError("other types aren't word")
+            }
+        } else if (identifier != null) {
+            when(wordtarget.kind) {
+                TargetStorageKind.VARIABLE -> {
+                    asmgen.loadByteFromPointerIntoA(identifier)
+                    asmgen.out(" sta  ${wordtarget.asmVarname} |  lda  #0 |  sta ${wordtarget.asmVarname}+1")
+                }
+                TargetStorageKind.ARRAY -> {
+                    throw AssemblyError("no asm gen for assign memory byte $identifier to array ${wordtarget.asmVarname} ")
+                }
+                TargetStorageKind.REGISTER -> {
+                    asmgen.loadByteFromPointerIntoA(identifier)
+                    when(wordtarget.register!!) {
+                        RegisterOrPair.AX -> asmgen.out("  ldx  #0")
+                        RegisterOrPair.AY -> asmgen.out("  ldy  #0")
+                        RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
+                        else -> throw AssemblyError("word regs can only be pair")
+                    }
+                }
+                TargetStorageKind.STACK -> {
+                    asmgen.loadByteFromPointerIntoA(identifier)
+                    asmgen.out(" sta  P8ESTACK_LO,x |  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
+                }
+                else -> throw AssemblyError("other types aren't word")
             }
         }
     }

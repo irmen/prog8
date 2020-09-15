@@ -3,7 +3,7 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- gfx examples are now a few hundred bytes larger than before. Why is that, can it be fixed?
+- line-circle-gfx examples are now a few hundred bytes larger than before. Why is that, can it be fixed?
 - compiler errors and warnings in standard format so the IDE shows them as clickable links; ./test.asm:2578:3: blablabla
 - further optimize assignment codegeneration
 - auto select correct library to import based on target, instead of having c64- and  cx16-  prefix variants
