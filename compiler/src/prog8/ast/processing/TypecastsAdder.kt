@@ -18,6 +18,21 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
 
     private val noModifications = emptyList<IAstModification>()
 
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        val declValue = decl.value
+        if(decl.type==VarDeclType.VAR && declValue!=null && decl.struct==null) {
+            val valueDt = declValue.inferType(program)
+            if(!valueDt.istype(decl.datatype)) {
+                return listOf(IAstModification.ReplaceNode(
+                        declValue,
+                        TypecastExpression(declValue, decl.datatype, true, declValue.position),
+                        decl
+                ))
+            }
+        }
+        return noModifications
+    }
+
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)

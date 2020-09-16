@@ -12,6 +12,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource == listOf("swap")) {
+            // TODO don't replace swap(), let the code generator figure this all out
             // if x and y are both just identifiers, do not rewrite (there should be asm generation for that)
             // otherwise:
             // rewrite swap(x,y) as follows:

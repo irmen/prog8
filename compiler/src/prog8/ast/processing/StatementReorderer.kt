@@ -71,23 +71,6 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         return noModifications
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        val declValue = decl.value
-        if(declValue!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
-            val declConstValue = declValue.constValue(program)
-            if(declConstValue==null) {
-                // move the vardecl (without value) to the scope and replace this with a regular assignment
-                decl.value = null
-                val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                val assign = Assignment(target, declValue, decl.position)
-                return listOf(
-                        IAstModification.ReplaceNode(decl, assign, parent),
-                        IAstModification.InsertFirst(decl, decl.definingScope() as Node)
-                )
-            }
-        }
-        return noModifications
-    }
 
     override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
         val choices = whenStatement.choiceValues(program).sortedBy {

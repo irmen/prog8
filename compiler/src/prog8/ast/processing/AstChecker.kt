@@ -559,9 +559,11 @@ internal class AstChecker(private val program: Program,
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
                     }
                     else -> {
-                        err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
-                        super.visit(decl)
-                        return
+                        if(decl.type==VarDeclType.CONST) {
+                            err("const declaration needs a compile-time constant initializer value, or range")
+                            super.visit(decl)
+                            return
+                        }
                     }
                 }
             }

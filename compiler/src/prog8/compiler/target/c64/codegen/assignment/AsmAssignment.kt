@@ -160,6 +160,6 @@ internal class AsmAssignment(val source: AsmAssignSource,
 
     init {
         if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
-            require(source.datatype==target.datatype) {"source and target datatype must be identical"}
+            require(source.datatype.memorySize() == target.datatype.memorySize()) { "source and target datatype must be same storage class" }
     }
 }

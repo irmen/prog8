@@ -1,7 +1,6 @@
 %import c64lib
 %import c64graphics
 
-
 main {
 
     ; vertices
@@ -78,11 +77,12 @@ main {
     const uword screen_width = 320
     const ubyte screen_height = 200
 
+
     sub draw_lines() {
         ubyte @zp i
         for i in len(edgesFrom) -1 downto 0 {
             ubyte @zp vFrom = edgesFrom[i]
-            ubyte @zp vTo = edgesTo[i]
+            ubyte @zp vTo = edgesTo[i]              ; TODO need compiler error for double declaration if also declared outside the for loop!
             word @zp persp1 = 256 + rotatedz[vFrom]/256
             word @zp persp2 = 256 + rotatedz[vTo]/256
             graphics.line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
