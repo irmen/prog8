@@ -5,6 +5,7 @@ TODO
 - get rid of all other TODO's in the code ;-)
 - line-circle-gfx examples are now a few hundred bytes larger than before. Why is that, can it be fixed?
 - compiler errors and warnings in standard format so the IDE shows them as clickable links; ./test.asm:2578:3: blablabla
+- make it possible for array literals to not only contain compile time constants
 - further optimize assignment codegeneration
 - auto select correct library to import based on target, instead of having c64- and  cx16-  prefix variants
 - implement @stack for asmsub parameters

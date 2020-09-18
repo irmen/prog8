@@ -742,6 +742,11 @@ internal class AstChecker(private val program: Program,
             checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), null, arrayspec, array)
         }
 
+        if(!array.value.all { it.constValue(program)!=null }) {
+            // TODO for now, array literals have to consist of all compile time constant values...
+            errors.err("array literal doesn't consist of only compile time constant values", array.position)
+        }
+
         super.visit(array)
     }
 
@@ -1098,7 +1103,7 @@ internal class AstChecker(private val program: Program,
         }
 
         if(value.type.isUnknown)
-            return err("attempt to check values of array with as yet unknown datatype")
+            return false
 
         when (targetDt) {
             DataType.STR -> return err("string value expected")
