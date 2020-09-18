@@ -2,16 +2,14 @@
 %import cx16lib
 %import conv
 
+; TODO add all other Elite's ships, show their name, advance to next ship on keypress
+
 main {
 
     ; storage for rotated coordinates
     word[shipdata.totalNumberOfPoints] rotatedx
     word[shipdata.totalNumberOfPoints] rotatedy
     word[shipdata.totalNumberOfPoints] rotatedz
-
-
-    ; TODO hidden surface removal - this needs surfaces data and surface normal calculations.
-    ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
 
     sub start()  {
         uword anglex
@@ -24,7 +22,6 @@ main {
         cx16.GRAPH_set_colors(13, 6, 6)
         cx16.GRAPH_clear()
         print_ship_name()
-
 
         repeat {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
@@ -41,8 +38,8 @@ main {
             draw_lines_hiddenremoval()
             ;draw_lines()
 
-            anglex -= 505
-            angley += 217
+            anglex += 217
+            angley -= 505
             anglez += 452
         }
     }
@@ -145,10 +142,8 @@ main {
     }
 
     sub draw_lines_hiddenremoval() {
-        ; complex routine that draws the ship model based on its faces
+        ; complex drawing routine that draws the ship model based on its faces,
         ; where it uses the surface normals to determine visibility.
-        ; TODO use a pointer to the edges and points instead of indexing
-
         memset(edgestodraw, shipdata.totalNumberOfEdges, true)
         ubyte @zp edgeIdx = 0
         ubyte @zp pointIdx = 0
@@ -195,26 +190,19 @@ main {
     }
 
     sub facing_away(ubyte edgePointsIdx) -> ubyte {
-        ; todo hidden line removal check
-;        ubyte p1x = shipdata.
-;
-;        word normal_z
-;
-;            def normal_z(self, points: Tuple) -> float:
-;                p1 = self.rotated_coords[points[0]]
-;                p2 = self.rotated_coords[points[1]]
-;                p3 = self.rotated_coords[points[2]]
-;                # So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1
-;                # then the normal N = U * V and can be calculated by:
-;                # Nx = UyVz - UzVy
-;                # Ny = UzVx - UxVz
-;                # Nz = UxVy - UyVx
-;                ux = p2[0]-p3[0]
-;                uy = p2[1]-p3[1]
-;                vx = p1[0]-p3[0]
-;                vy = p1[1]-p3[1]
-;                return ux*vy - uy*vx
-        return 0
+        ; simplistic visibility determination by checking the Z component of the surface normal
+        ubyte p1 = shipdata.facesPoints[edgePointsIdx]
+        edgePointsIdx++
+        ubyte p2 = shipdata.facesPoints[edgePointsIdx]
+        edgePointsIdx++
+        ubyte p3 = shipdata.facesPoints[edgePointsIdx]
+        word p1x = rotatedx[p1] / 128
+        word p1y = rotatedy[p1] / 128
+        word p2x = rotatedx[p2] / 128
+        word p2y = rotatedy[p2] / 128
+        word p3x = rotatedx[p3] / 128
+        word p3y = rotatedy[p3] / 128
+        return (p2x-p3x)*(p1y-p3y) - (p2y-p3y)*(p1x-p3x) > 0
     }
 
     ubyte[shipdata.totalNumberOfEdges] edgestodraw
