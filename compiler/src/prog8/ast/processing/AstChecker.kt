@@ -744,7 +744,7 @@ internal class AstChecker(private val program: Program,
             checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), null, arrayspec, array)
         }
 
-        if(!array.value.all { it.constValue(program)!=null }) {
+        if(!array.value.all { it is NumericLiteralValue || it is AddressOf || it is StringLiteralValue }) {
             // TODO for now, array literals have to consist of all compile time constant values...
             errors.err("array literal doesn't consist of only compile time constant values", array.position)
         }

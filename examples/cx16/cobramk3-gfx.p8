@@ -38,7 +38,8 @@ main {
             cx16.GRAPH_draw_rect(true)
 
             cx16.GRAPH_set_colors(1, 0, 0)
-            draw_lines()
+            draw_lines_hiddenremoval()
+            ;draw_lines()
 
             anglex -= 505
             angley += 217
@@ -128,6 +129,7 @@ main {
     const ubyte screen_height = 200
 
     sub draw_lines() {
+        ; simple routine that draw all edges, exactly once, but no hidden line removal.
         ubyte @zp i
         for i in shipdata.totalNumberOfEdges -1 downto 0 {
             ubyte @zp vFrom = shipdata.edgesFrom[i]
@@ -140,6 +142,45 @@ main {
             cx16.r3 = rotatedy[vTo] / persp2 + screen_height/2 as uword
             cx16.GRAPH_draw_line()
         }
+    }
+
+    sub draw_lines_hiddenremoval() {
+        ; complex routine that draws the ship model based on its faces
+        ; where it uses the surface normals to determine visibility.
+        ; TODO use a pointer to the edges instead of indexing
+        ubyte @zp edgeIdx = 0
+        ubyte @zp i
+        for i in shipdata.totalNumberOfFaces -1 downto 0 {
+            ubyte e1
+            ubyte e2
+            ubyte e3
+            e1 = shipdata.facesEdges[edgeIdx]
+            edgeIdx ++
+            e2 = shipdata.facesEdges[edgeIdx]
+            edgeIdx ++
+            e3 = shipdata.facesEdges[edgeIdx]
+            edgeIdx ++
+            draw_edge(e1)
+            draw_edge(e2)
+            while e3!=255 {
+                draw_edge(e3)
+                e3 = shipdata.facesEdges[edgeIdx]
+                edgeIdx ++
+            }
+        }
+    }
+
+    sub draw_edge(ubyte edgeidx) {
+        ; todo: keep track of edges that are already drawn, don't redraw
+        ubyte vFrom = shipdata.edgesFrom[edgeidx]
+        ubyte vTo = shipdata.edgesTo[edgeidx]
+        word persp1 = 200 + rotatedz[vFrom]/256
+        word persp2 = 200 + rotatedz[vTo]/256
+        cx16.r0 = rotatedx[vFrom] / persp1 + screen_width/2 as uword
+        cx16.r1 = rotatedy[vFrom] / persp1 + screen_height/2 as uword
+        cx16.r2 = rotatedx[vTo] / persp2 + screen_width/2 as uword
+        cx16.r3 = rotatedy[vTo] / persp2 + screen_height/2 as uword
+        cx16.GRAPH_draw_line()
     }
 }
 

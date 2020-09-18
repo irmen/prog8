@@ -55,17 +55,16 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                 }
             }
             if (!conflicts) {
-                // move vardecls of the scope into the upper scope. Make sure the order remains the same!
-                val numericVarsWithValue = decls.filter { it.value != null && it.datatype in NumericDatatypes }.reversed()
+                // move vardecls of the scope into the upper scope. Make sure the position remains the same!
+                val numericVarsWithValue = decls.filter { it.value != null && it.datatype in NumericDatatypes }
                 return numericVarsWithValue.map {
                     val initValue = it.value!!  // assume here that value has always been set by now
                     it.value = null     // make sure no value init assignment for this vardecl will be created later (would be superfluous)
                     val target = AssignTarget(IdentifierReference(listOf(it.name), it.position), null, null, it.position)
                     val assign = Assignment(target, initValue, it.position)
                     initValue.parent = assign
-                    IAstModification.InsertFirst(assign, scope)
-                } +  decls.map { IAstModification.ReplaceNode(it, NopStatement(it.position), scope) } +
-                     decls.map { IAstModification.InsertFirst(it, sub) }    // move it up to the subroutine
+                    IAstModification.ReplaceNode(it, assign, scope)
+                } + decls.map { IAstModification.InsertFirst(it, sub) }    // move it up to the subroutine
             }
         }
         return noModifications
