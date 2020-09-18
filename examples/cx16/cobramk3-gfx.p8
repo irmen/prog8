@@ -147,31 +147,80 @@ main {
     sub draw_lines_hiddenremoval() {
         ; complex routine that draws the ship model based on its faces
         ; where it uses the surface normals to determine visibility.
-        ; TODO use a pointer to the edges instead of indexing
+        ; TODO use a pointer to the edges and points instead of indexing
+
+        memset(edgestodraw, shipdata.totalNumberOfEdges, true)
         ubyte @zp edgeIdx = 0
-        ubyte @zp i
-        for i in shipdata.totalNumberOfFaces -1 downto 0 {
-            ubyte e1
-            ubyte e2
-            ubyte e3
-            e1 = shipdata.facesEdges[edgeIdx]
-            edgeIdx ++
-            e2 = shipdata.facesEdges[edgeIdx]
-            edgeIdx ++
-            e3 = shipdata.facesEdges[edgeIdx]
-            edgeIdx ++
-            draw_edge(e1)
-            draw_edge(e2)
-            while e3!=255 {
-                draw_edge(e3)
-                e3 = shipdata.facesEdges[edgeIdx]
+        ubyte @zp pointIdx = 0
+        ubyte faceNumber
+        for faceNumber in shipdata.totalNumberOfFaces -1 downto 0 {
+            if facing_away(pointIdx) {
+                ; don't draw this face, fast-forward over the edges and points
+                edgeIdx += 3    ; every face hast at least 3 edges
+                while shipdata.facesEdges[edgeIdx]!=255 {
+                    edgeIdx++
+                }
+                edgeIdx++
+                pointIdx += 3    ; every face has at least 3 points
+                while shipdata.facesPoints[pointIdx]!=255 {
+                    pointIdx++
+                }
+                pointIdx++
+            } else {
+                ; draw this face
+                ubyte @zp e1 = shipdata.facesEdges[edgeIdx]
                 edgeIdx ++
+                ubyte @zp e2 = shipdata.facesEdges[edgeIdx]
+                edgeIdx ++
+                ubyte @zp e3 = shipdata.facesEdges[edgeIdx]
+                edgeIdx ++
+                if edgestodraw[e1]
+                    draw_edge(e1)
+                if edgestodraw[e2]
+                    draw_edge(e2)
+                while e3!=255 {
+                    if edgestodraw[e3]
+                        draw_edge(e3)
+                    e3 = shipdata.facesEdges[edgeIdx]
+                    edgeIdx ++
+                }
+                ; skip the rest of the facesPoints, we don't need them here anymore
+                pointIdx += 3    ; every face has at least 3 points
+                while shipdata.facesPoints[pointIdx]!=255 {
+                    pointIdx++
+                }
+                pointIdx++
             }
         }
     }
 
+    sub facing_away(ubyte edgePointsIdx) -> ubyte {
+        ; todo hidden line removal check
+;        ubyte p1x = shipdata.
+;
+;        word normal_z
+;
+;            def normal_z(self, points: Tuple) -> float:
+;                p1 = self.rotated_coords[points[0]]
+;                p2 = self.rotated_coords[points[1]]
+;                p3 = self.rotated_coords[points[2]]
+;                # So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1
+;                # then the normal N = U * V and can be calculated by:
+;                # Nx = UyVz - UzVy
+;                # Ny = UzVx - UxVz
+;                # Nz = UxVy - UyVx
+;                ux = p2[0]-p3[0]
+;                uy = p2[1]-p3[1]
+;                vx = p1[0]-p3[0]
+;                vy = p1[1]-p3[1]
+;                return ux*vy - uy*vx
+        return 0
+    }
+
+    ubyte[shipdata.totalNumberOfEdges] edgestodraw
+
     sub draw_edge(ubyte edgeidx) {
-        ; todo: keep track of edges that are already drawn, don't redraw
+        edgestodraw[edgeidx] = false
         ubyte vFrom = shipdata.edgesFrom[edgeidx]
         ubyte vTo = shipdata.edgesTo[edgeidx]
         word persp1 = 200 + rotatedz[vFrom]/256
