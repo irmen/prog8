@@ -124,7 +124,6 @@ when compiled an ran on a C-64 you'll get:
 
 ![c64 screen](docs/source/_static/primes_example.png)
 
-
 One of the included examples (wizzine.p8) animates a bunch of sprite balloons and looks like this:
 
 ![wizzine screen](docs/source/_static/wizzine.png)
@@ -136,3 +135,8 @@ Another example (cube3d-sprites.p8) draws the vertices of a rotating 3d cube:
 If you want to play a video game, a fully working Tetris clone is included in the examples:
 
 ![tehtriz_screen](docs/source/_static/tehtriz.png)
+
+The CommanderX16 compiler target is quite capable already too, here's a well known space ship 
+animated in 3D with hidden line removal, in the CommanderX16 emulator:
+
+![cobra3d](docs/source/_static/cobra3d.png)
