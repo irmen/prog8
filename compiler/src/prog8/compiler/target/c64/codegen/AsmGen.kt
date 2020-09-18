@@ -355,7 +355,10 @@ internal class AsmGen(private val program: Program,
         out("\n; memdefs and kernel subroutines")
         val memvars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
         for(m in memvars) {
-            out("  ${m.name} = ${(m.value as NumericLiteralValue).number.toHex()}")
+            if(m.value is NumericLiteralValue)
+                out("  ${m.name} = ${(m.value as NumericLiteralValue).number.toHex()}")
+            else
+                out("  ${m.name} = ${asmVariableName((m.value as AddressOf).identifier)}")
         }
         val asmSubs = statements.filterIsInstance<Subroutine>().filter { it.isAsmSubroutine }
         for(sub in asmSubs) {

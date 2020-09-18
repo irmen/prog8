@@ -584,13 +584,15 @@ internal class AstChecker(private val program: Program,
                     }
                 }
 
-                if(decl.value !is NumericLiteralValue) {
-                    err("value of memory var decl is not a numeric literal (it is a ${decl.value!!.javaClass.simpleName}).", decl.value?.position)
-                } else {
+                if(decl.value is NumericLiteralValue) {
                     val value = decl.value as NumericLiteralValue
                     if (value.type !in IntegerDatatypes || value.number.toInt() < 0 || value.number.toInt() > 65535) {
                         err("memory address must be valid integer 0..\$ffff", decl.value?.position)
                     }
+                } else if(decl.value is AddressOf) {
+                    // we allow this too: the address of another variable
+                } else {
+                    err("value of memory var decl is invalid type.", decl.value?.position)
                 }
             }
         }
