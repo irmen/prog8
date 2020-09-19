@@ -298,7 +298,7 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 	}}
 }
 
-; TODO implement the "missing" txtio subroutines
+; TODO implement the "missing" txtio subroutines: input_chars, setchr, getchr, setclr, getclr, scroll_left_full, (also right, up, down)
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
