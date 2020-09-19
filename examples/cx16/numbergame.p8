@@ -5,6 +5,8 @@
 
 ; The classic number guessing game.
 
+; TODO this code is identical to the C64 one except the imports
+
 main {
 
     sub start()  {

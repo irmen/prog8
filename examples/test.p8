@@ -1,7 +1,7 @@
 ;%import c64lib
 ;%import c64graphics
 ;%import c64textio
-;%import c64flt
+%import c64flt
 ;%option enable_floats
 %target cx16
 %import cx16textio
@@ -12,38 +12,25 @@ main {
 
     sub start()  {
 
-        const uword cvalue = 155
-        const uword cvalue2 = 5555
-        uword wvalue = 155
-        uword wvalue2 = 5555
+        const ubyte cbvalue = 40
+        const uword cwvalue = cbvalue
+        uword wvalue = 40
 
-        ; TODO ALL multiplications below should yield a word result
-        uword x
-        ubyte bb = 9
-        x = bb * cvalue     ; TODO wrong result, must be word
-        txt.print_uw(x)
+        ubyte x
+        ubyte bb = 99
+        x = msb(sin8u(bb) * cwvalue)
+        txt.print_ub(x)
         txt.chrout('\n')
-        x = bb * cvalue2
-        txt.print_uw(x)
+        x = msb(sin8u(bb) * wvalue)
+        txt.print_ub(x)
         txt.chrout('\n')
-        x = bb * wvalue
-        txt.print_uw(x)
-        txt.chrout('\n')
-        x = bb * wvalue2
-        txt.print_uw(x)
         txt.chrout('\n')
 
-        x = cvalue * bb     ; TODO wrong result, must be word
-        txt.print_uw(x)
+        x = msb(cwvalue*sin8u(bb))
+        txt.print_ub(x)
         txt.chrout('\n')
-        x = cvalue2 * bb
-        txt.print_uw(x)
-        txt.chrout('\n')
-        x = wvalue * bb
-        txt.print_uw(x)
-        txt.chrout('\n')
-        x = wvalue2 * bb
-        txt.print_uw(x)
+        x = msb(wvalue*sin8u(bb))
+        txt.print_ub(x)
         txt.chrout('\n')
     }
 }

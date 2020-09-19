@@ -4,6 +4,9 @@
 
 ; The classic number guessing game.
 
+; TODO this code is identical to the commanderx16 one except the imports
+
+
 main {
 
     sub start()  {

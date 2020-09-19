@@ -5,20 +5,31 @@ import prog8.ast.base.ErrorReporter
 
 
 internal fun Program.constantFold(errors: ErrorReporter) {
-    val replacer = ConstantIdentifierReplacer(this, errors)
-    replacer.visit(this)
+    val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
+    valuetypefixer.visit(this)
     if(errors.isEmpty()) {
-        replacer.applyModifications()
+        valuetypefixer.applyModifications()
 
-        val optimizer = ConstantFoldingOptimizer(this)
-        optimizer.visit(this)
-        while (errors.isEmpty() && optimizer.applyModifications() > 0) {
-            optimizer.visit(this)
-        }
-
-        if(errors.isEmpty()) {
-            replacer.visit(this)
+        val replacer = ConstantIdentifierReplacer(this, errors)
+        replacer.visit(this)
+        if (errors.isEmpty()) {
             replacer.applyModifications()
+
+            valuetypefixer.visit(this)
+            if(errors.isEmpty()) {
+                valuetypefixer.applyModifications()
+
+                val optimizer = ConstantFoldingOptimizer(this)
+                optimizer.visit(this)
+                while (errors.isEmpty() && optimizer.applyModifications() > 0) {
+                    optimizer.visit(this)
+                }
+
+                if (errors.isEmpty()) {
+                    replacer.visit(this)
+                    replacer.applyModifications()
+                }
+            }
         }
     }
 
