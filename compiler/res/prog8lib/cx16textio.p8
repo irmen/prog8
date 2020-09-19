@@ -83,7 +83,6 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
         }}
 }
 
-
 ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
 
 sub color (ubyte txtcol) {
@@ -94,6 +93,14 @@ sub color2 (ubyte txtcol, ubyte bgcol) {
     c64.CHROUT(color_to_charcode[bgcol & 15])
     c64.CHROUT(1)       ; switch fg and bg colors
     c64.CHROUT(color_to_charcode[txtcol & 15])
+}
+
+sub lowercase() {
+    cx16.screen_set_charset(3, 0)  ; lowercase charset
+}
+
+sub uppercase() {
+    cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
 romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.

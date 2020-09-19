@@ -8,9 +8,7 @@ main {
 
     sub start() {
 
-        ; set text color and activate lowercase charset
-        txt.color(13)
-        c64.VMCSB |= 2
+        txt.lowercase()
 
         ; use optimized routine to write text
         txt.print("Hello!\n")

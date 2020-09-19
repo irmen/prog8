@@ -14,7 +14,7 @@ main {
         cx16.r2 = mkword(0, 16)
         cx16.r3 = 0
         cx16.clock_set_date_time()
-        cx16.screen_set_charset(3, 0)  ; lowercase charset
+        txt.lowercase()
 
         repeat {
             c64.CHROUT(19)      ; HOME

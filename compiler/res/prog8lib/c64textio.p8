@@ -68,6 +68,14 @@ sub color (ubyte txtcol) {
     c64.COLOR = txtcol
 }
 
+sub lowercase() {
+    c64.VMCSB |= 2
+}
+
+sub uppercase() {
+    c64.VMCSB &= ~2
+}
+
 asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself

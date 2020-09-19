@@ -7,7 +7,7 @@ main {
 
     sub start() {
 
-        c64.VMCSB |= 2  ; switch to lowercase charset
+        txt.lowercase()
 
         str s1 = "HELLO hello 1234 @[/]"      ; regular strings have default encoding (petscii on c64)
         str s2 = @"HELLO hello 1234 @[/]"     ; alternative encoding (screencodes on c64)

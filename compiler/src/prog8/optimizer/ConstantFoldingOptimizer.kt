@@ -216,9 +216,24 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                     else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
                 }
                 "~" -> when (subexpr.type) {
-                    in IntegerDatatypes -> {
+                    DataType.BYTE -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue.optimalInteger(subexpr.number.toInt().inv(), subexpr.position),
+                                NumericLiteralValue(DataType.BYTE, subexpr.number.toInt().inv(), subexpr.position),
+                                parent))
+                    }
+                    DataType.UBYTE -> {
+                        listOf(IAstModification.ReplaceNode(expr,
+                                NumericLiteralValue(DataType.UBYTE, subexpr.number.toInt().inv() and 255, subexpr.position),
+                                parent))
+                    }
+                    DataType.WORD -> {
+                        listOf(IAstModification.ReplaceNode(expr,
+                                NumericLiteralValue(DataType.WORD, subexpr.number.toInt().inv(), subexpr.position),
+                                parent))
+                    }
+                    DataType.UWORD -> {
+                        listOf(IAstModification.ReplaceNode(expr,
+                                NumericLiteralValue(DataType.UWORD, subexpr.number.toInt().inv() and 65535, subexpr.position),
                                 parent))
                     }
                     else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)

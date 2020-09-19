@@ -13,7 +13,7 @@ main {
         ubyte secretnumber = rnd() % 99 + 1     ; random number 1..100
         ubyte attempts_left
 
-        c64.VMCSB |= 2  ; switch lowercase chars
+        txt.lowercase()
         txt.print("Please introduce yourself: ")
         void txt.input_chars(name)
         txt.print("\n\nHello, ")

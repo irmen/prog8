@@ -259,9 +259,14 @@ asmsub init_system()  {
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
+        lda  #$90       ; black
+        jsr  c64.CHROUT
+        lda  #1         ; swap fg/bg
+        jsr  c64.CHROUT
         lda  #$9e       ; yellow
         jsr  c64.CHROUT
-        ; TODO select black background color
+        lda  #147       ; clear screen
+        jsr  c64.CHROUT
         lda  #0
         tax
         tay
