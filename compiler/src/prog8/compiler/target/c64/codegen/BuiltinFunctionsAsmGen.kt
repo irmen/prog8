@@ -4,8 +4,14 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
+import prog8.compiler.target.c64.codegen.assignment.SourceStorageKind
+import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import prog8.functions.FSignature
 
@@ -395,12 +401,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcSwap(fcall: IFunctionCall) {
         val first = fcall.args[0]
         val second = fcall.args[1]
+
+        // optimized simple case: swap two variables
         if(first is IdentifierReference && second is IdentifierReference) {
             val firstName = asmgen.asmVariableName(first)
             val secondName = asmgen.asmVariableName(second)
             val dt = first.inferType(program)
             if(dt.istype(DataType.BYTE) || dt.istype(DataType.UBYTE)) {
-                asmgen.out(" ldy  $firstName |  lda  $secondName |  sta  $firstName |  tya |  sta  $secondName")
+                asmgen.out(" ldy  $firstName |  lda  $secondName |  sta  $firstName |  sty  $secondName")
                 return
             }
             if(dt.istype(DataType.WORD) || dt.istype(DataType.UWORD)) {
@@ -432,8 +440,190 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         }
 
-        // other types of swap() calls should have been replaced by a different statement sequence involving a temp variable
-        throw AssemblyError("no asm generation for swap funccall $fcall")
+        // optimized simple case: swap two memory locations
+        if(first is DirectMemoryRead && second is DirectMemoryRead) {
+            val addr1 = (first.addressExpression as? NumericLiteralValue)?.number?.toHex()
+            val addr2 = (second.addressExpression as? NumericLiteralValue)?.number?.toHex()
+            val name1 = if(first.addressExpression is IdentifierReference) asmgen.asmVariableName(first.addressExpression as IdentifierReference) else null
+            val name2 = if(second.addressExpression is IdentifierReference) asmgen.asmVariableName(second.addressExpression as IdentifierReference) else null
+
+            when {
+                addr1!=null && addr2!=null -> {
+                    asmgen.out("  ldy  $addr1 |  lda  $addr2 |  sta  $addr1 |  sty  $addr2")
+                    return
+                }
+                addr1!=null && name2!=null -> {
+                    asmgen.out("  ldy  $addr1 |  lda  $name2 |  sta  $addr1 |  sty  $name2")
+                    return
+                }
+                name1!=null && addr2 != null -> {
+                    asmgen.out("  ldy  $name1 |  lda  $addr2 |  sta  $name1 |  sty  $addr2")
+                    return
+                }
+                name1!=null && name2!=null -> {
+                    asmgen.out("  ldy  $name1 |  lda  $name2 |  sta  $name1 |  sty  $name2")
+                    return
+                }
+            }
+        }
+
+        if(first is ArrayIndexedExpression && second is ArrayIndexedExpression) {
+            val indexValue1 = first.arrayspec.index as? NumericLiteralValue
+            val indexName1 = first.arrayspec.index as? IdentifierReference
+            val indexValue2 = second.arrayspec.index as? NumericLiteralValue
+            val indexName2 = second.arrayspec.index as? IdentifierReference
+            val arrayVarName1 = asmgen.asmVariableName(first.identifier)
+            val arrayVarName2 = asmgen.asmVariableName(second.identifier)
+            val elementDt = first.inferType(program).typeOrElse(DataType.STRUCT)
+
+            if(indexValue1!=null && indexValue2!=null) {
+                swapArrayValues(elementDt, arrayVarName1, indexValue1, arrayVarName2, indexValue2)
+                return
+            } else if(indexName1!=null && indexName2!=null) {
+                swapArrayValues(elementDt, arrayVarName1, indexName1, arrayVarName2, indexName2)
+                return
+            }
+        }
+
+        // all other types of swap() calls are done via the evaluation stack
+        fun targetFromExpr(expr: Expression, datatype: DataType): AsmAssignTarget {
+            return when (expr) {
+                is IdentifierReference -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, datatype, variable=expr)
+                is ArrayIndexedExpression -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, datatype, array = expr)
+                is DirectMemoryRead -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, datatype, memory = DirectMemoryWrite(expr.addressExpression, expr.position))
+                else -> throw AssemblyError("invalid expression object $expr")
+            }
+        }
+
+        asmgen.translateExpression(first)
+        asmgen.translateExpression(second)
+        val datatype = first.inferType(program).typeOrElse(DataType.STRUCT)
+        val assignFirst = AsmAssignment(
+                AsmAssignSource(SourceStorageKind.STACK, program, datatype),
+                targetFromExpr(first, datatype),
+                false, first.position
+        )
+        val assignSecond = AsmAssignment(
+                AsmAssignSource(SourceStorageKind.STACK, program, datatype),
+                targetFromExpr(second, datatype),
+                false, second.position
+        )
+        asmgen.translateNormalAssignment(assignFirst)
+        asmgen.translateNormalAssignment(assignSecond)
+    }
+
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexValue2: NumericLiteralValue) {
+        val index1 = indexValue1.number.toInt() * elementDt.memorySize()
+        val index2 = indexValue2.number.toInt() * elementDt.memorySize()
+        when(elementDt) {
+            DataType.UBYTE, DataType.BYTE -> {
+                asmgen.out("""
+                    lda  $arrayVarName1+$index1
+                    ldy  $arrayVarName2+$index2
+                    sta  $arrayVarName2+$index2
+                    sty  $arrayVarName1+$index1
+                """)
+            }
+            DataType.UWORD, DataType.WORD -> {
+                asmgen.out("""
+                    lda  $arrayVarName1+$index1
+                    ldy  $arrayVarName2+$index2
+                    sta  $arrayVarName2+$index2
+                    sty  $arrayVarName1+$index1
+                    lda  $arrayVarName1+$index1+1
+                    ldy  $arrayVarName2+$index2+1
+                    sta  $arrayVarName2+$index2+1
+                    sty  $arrayVarName1+$index1+1
+                """)
+            }
+            DataType.FLOAT -> {
+                asmgen.out("""
+                    lda  #<(${arrayVarName1}+$index1)
+                    sta  P8ZP_SCRATCH_W1
+                    lda  #>(${arrayVarName1}+$index1)
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  #<(${arrayVarName2}+$index2)
+                    sta  P8ZP_SCRATCH_W2
+                    lda  #>(${arrayVarName2}+$index2)
+                    sta  P8ZP_SCRATCH_W2+1
+                    jsr  c64flt.swap_floats
+                """)
+            }
+            else -> throw AssemblyError("invalid aray elt type")
+        }
+    }
+
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexName1: IdentifierReference, arrayVarName2: String, indexName2: IdentifierReference) {
+        val idxAsmName1 = asmgen.asmVariableName(indexName1)
+        val idxAsmName2 = asmgen.asmVariableName(indexName2)
+        when(elementDt) {
+            DataType.UBYTE, DataType.BYTE -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG
+                    ldx  $idxAsmName1
+                    ldy  $idxAsmName2
+                    lda  $arrayVarName1,x
+                    pha
+                    lda  $arrayVarName2,y
+                    sta  $arrayVarName1,x
+                    pla
+                    sta  $arrayVarName2,y
+                    ldx  P8ZP_SCRATCH_REG
+                """)
+            }
+            DataType.UWORD, DataType.WORD -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG
+                    lda  $idxAsmName1
+                    asl  a
+                    tax
+                    lda  $idxAsmName2
+                    asl  a
+                    tay
+                    lda  $arrayVarName1,x
+                    pha
+                    lda  $arrayVarName2,y
+                    sta  $arrayVarName1,x
+                    pla
+                    sta  $arrayVarName2,y
+                    lda  $arrayVarName1+1,x
+                    pha
+                    lda  $arrayVarName2+1,y
+                    sta  $arrayVarName1+1,x
+                    pla
+                    sta  $arrayVarName2+1,y                    
+                    ldx  P8ZP_SCRATCH_REG
+                """)
+            }
+            DataType.FLOAT -> {
+                asmgen.out("""
+                    lda  #>$arrayVarName1
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  $idxAsmName1
+                    asl  a
+                    asl  a
+                    clc
+                    adc  $idxAsmName1
+                    adc  #<$arrayVarName1
+                    sta  P8ZP_SCRATCH_W1
+                    bcc  +
+                    inc  P8ZP_SCRATCH_W1+1
++                   lda  #>$arrayVarName2
+                    sta  P8ZP_SCRATCH_W2+1
+                    lda  $idxAsmName2
+                    asl  a
+                    asl  a
+                    clc
+                    adc  $idxAsmName2
+                    adc  #<$arrayVarName2
+                    sta  P8ZP_SCRATCH_W2
+                    bcc  +
+                    inc  P8ZP_SCRATCH_W2+1
++                   jsr  c64flt.swap_floats                                   
+                """)
+            }
+            else -> throw AssemblyError("invalid aray elt type")
+        }
     }
 
     private fun funcAbs(fcall: IFunctionCall, func: FSignature) {
