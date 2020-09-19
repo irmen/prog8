@@ -88,14 +88,6 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 
-            // does the parameter redefine a variable declared elsewhere?
-            for(param in subroutine.parameters) {
-                val existingVar = subroutine.lookup(listOf(param.name), subroutine)
-                if (existingVar != null && existingVar.parent !== subroutine) {
-                    nameError(param.name, param.position, existingVar)
-                }
-            }
-
             // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters
             val symbolsInSub = subroutine.allDefinedSymbols()
             val namesInSub = symbolsInSub.map{ it.first }.toSet()
