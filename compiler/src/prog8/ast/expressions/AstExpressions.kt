@@ -744,7 +744,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifiers(vararg name: String): Boolean = nameInSource.last() in name
+    override fun referencesIdentifiers(vararg name: String): Boolean =
+            nameInSource.size==name.size && nameInSource.toTypedArray().contentEquals(name)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         return when (val targetStmt = targetStatement(program.namespace)) {

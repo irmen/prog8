@@ -1,4 +1,5 @@
-%import c64textio
+%target cx16
+%import cx16textio
 %import conv
 %zeropage basicsafe
 

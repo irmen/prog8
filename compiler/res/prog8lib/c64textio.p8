@@ -12,6 +12,10 @@
 
 txt {
 
+const ubyte DEFAULT_WIDTH = 40
+const ubyte DEFAULT_HEIGHT = 25
+
+
 asmsub  clear_screen() {
     %asm {{
         lda  #' '

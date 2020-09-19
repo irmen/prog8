@@ -693,26 +693,36 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     if(value in asmgen.optimizedWordMultiplications) {
                         asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                     } else {
-                        TODO("var uword mul litval $value")
+                        asmgen.out("""
+                            lda  $name
+                            sta  P8ZP_SCRATCH_W1
+                            lda  $name+1
+                            sta  P8ZP_SCRATCH_W1+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            sta  $name
+                            lda  math.multiply_words.result+1
+                            sta  $name+1""")
                     }
                 } else {
                     if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
                         asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                     } else {
-                        // TODO don't use stack here
-                        // TODO does this work for signed words?
+                        // TODO does this work for signed words? if so the uword/word distinction can be removed altogether
                         asmgen.out("""
-                        lda  $name
-                        sta  P8ZP_SCRATCH_W1
-                        lda  $name+1
-                        sta  P8ZP_SCRATCH_W1+1
-                        lda  #<$value
-                        ldy  #>$value
-                        jsr  math.multiply_words
-                        lda  math.multiply_words.result
-                        sta  $name
-                        lda  math.multiply_words.result+1
-                        sta  $name+1""")
+                            lda  $name
+                            sta  P8ZP_SCRATCH_W1
+                            lda  $name+1
+                            sta  P8ZP_SCRATCH_W1+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            sta  $name
+                            lda  math.multiply_words.result+1
+                            sta  $name+1""")
                     }
                 }
             }
@@ -827,7 +837,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
         when (valueDt) {
             in ByteDatatypes -> {
-                // the other variable is a BYTE type so optimize for that    TODO does this even occur?
+                // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     // note: ** (power) operator requires floats.
                     "+" -> asmgen.out("""
@@ -846,9 +856,23 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         bcs  +
                         dec  $name+1
 +                           """)
-                    "*" -> TODO("mul word*byte")
-                    "/" -> TODO("div word/byte")
-                    "%" -> TODO("word remainder byte")
+                    "*" -> {
+                        // TODO use a more efficient 16 *8 -> 16 multiplication routine
+                        asmgen.out("""
+                            lda  $otherName
+                            sta  P8ZP_SCRATCH_W1
+                            lda  #0
+                            sta  P8ZP_SCRATCH_W1+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            sta  $name
+                            lda  math.multiply_words.result+1
+                            sta  $name+1""")
+                    }
+                    "/" -> TODO("div wordvar/bytevar")
+                    "%" -> TODO("word remainder bytevar")
                     "<<" -> {
                         asmgen.out("""
                         ldy  $otherName
@@ -876,9 +900,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             bne  -""")
                         }
                     }
-                    "&" -> TODO("bitand word byte")
-                    "^" -> TODO("bitxor word byte")
-                    "|" -> TODO("bitor word byte")
+                    "&" -> TODO("bitand wordvar bytevar")
+                    "^" -> TODO("bitxor wordvar bytevar")
+                    "|" -> TODO("bitor wordvar bytevar")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }

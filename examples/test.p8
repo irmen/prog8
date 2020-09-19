@@ -12,53 +12,38 @@ main {
 
     sub start()  {
 
-        txt.lowercase()
-        txt.print("Hello there")
-        uword ww
-        ubyte bb=44
-        ww = bb*($0032)
-        txt.print_uw(ww)
+        const uword cvalue = 155
+        const uword cvalue2 = 5555
+        uword wvalue = 155
+        uword wvalue2 = 5555
 
-        txt.setchr(5, 5, '*')
-        txt.setchr(6, 5, '*')
-        txt.setchr(7, 5, '*')
-        txt.setchr(7, 6, '+')
-        txt.setchr(7, 7, '+')
-
-        txt.setclr(5, 5, 1)
-        txt.setclr(6, 5, 2)
-        txt.setclr(7, 5, 3)
-        txt.setclr(7, 6, 4)
-        txt.setclr(7, 7, 5)
-
-        txt.plot(15,10)
-        txt.chrout('!')
-
-        txt.print_ub(txt.getchr(4,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getchr(5,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getchr(6,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getchr(7,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getchr(8,5))
+        ; TODO ALL multiplications below should yield a word result
+        uword x
+        ubyte bb = 9
+        x = bb * cvalue     ; TODO wrong result, must be word
+        txt.print_uw(x)
         txt.chrout('\n')
-        txt.print_ub(txt.getclr(4,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getclr(5,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getclr(6,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getclr(7,5))
-        txt.chrout(',')
-        txt.print_ub(txt.getclr(8,5))
+        x = bb * cvalue2
+        txt.print_uw(x)
+        txt.chrout('\n')
+        x = bb * wvalue
+        txt.print_uw(x)
+        txt.chrout('\n')
+        x = bb * wvalue2
+        txt.print_uw(x)
         txt.chrout('\n')
 
-        txt.print("width:")
-        txt.print_ub(txt.width())
-        txt.print(" height:")
-        txt.print_ub(txt.height())
-
+        x = cvalue * bb     ; TODO wrong result, must be word
+        txt.print_uw(x)
+        txt.chrout('\n')
+        x = cvalue2 * bb
+        txt.print_uw(x)
+        txt.chrout('\n')
+        x = wvalue * bb
+        txt.print_uw(x)
+        txt.chrout('\n')
+        x = wvalue2 * bb
+        txt.print_uw(x)
+        txt.chrout('\n')
     }
 }

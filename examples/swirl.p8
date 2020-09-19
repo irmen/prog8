@@ -1,9 +1,9 @@
 %import c64textio
+%zeropage basicsafe
+
+; TODO this code is identical to the commanderx16 one except the import
 
 main {
-
-    const uword width = 40
-    const uword height = 25
 
     struct Ball {
         uword anglex
@@ -16,12 +16,12 @@ main {
         Ball ball
 
         repeat {
-            ubyte x = msb(sin8u(msb(ball.anglex)) as uword * width)
-            ubyte y = msb(cos8u(msb(ball.angley)) as uword * height)
+            ubyte x = msb(sin8u(msb(ball.anglex)) as uword * txt.DEFAULT_WIDTH)
+            ubyte y = msb(cos8u(msb(ball.angley)) as uword * txt.DEFAULT_HEIGHT)
             txt.setcc(x, y, 81, ball.color)
 
-            ball.anglex+=800
-            ball.angley+=947
+            ball.anglex+=366
+            ball.angley+=291
             ball.color++
         }
     }

@@ -1,12 +1,10 @@
 %target cx16
-%import cx16lib
 %import cx16textio
 %zeropage basicsafe
 
-main {
+; TODO this code is identical to the c64 one except the import
 
-    const uword width = 79
-    const uword height = 59
+main {
 
     struct Ball {
         uword anglex
@@ -19,12 +17,12 @@ main {
         Ball ball
 
         repeat {
-            ubyte x = msb(sin8u(msb(ball.anglex)) as uword * width)
-            ubyte y = msb(cos8u(msb(ball.angley)) as uword * height)
+            ubyte x = msb(sin8u(msb(ball.anglex)) as uword * txt.DEFAULT_WIDTH)
+            ubyte y = msb(cos8u(msb(ball.angley)) as uword * txt.DEFAULT_HEIGHT)
             txt.setcc(x, y, 81, ball.color)
 
-            ball.anglex+=266
-            ball.angley+=215
+            ball.anglex+=366
+            ball.angley+=291
             ball.color++
         }
     }

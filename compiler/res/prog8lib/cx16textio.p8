@@ -11,6 +11,10 @@
 
 txt {
 
+const ubyte DEFAULT_WIDTH = 80
+const ubyte DEFAULT_HEIGHT = 60
+
+
 sub  clear_screen() {
     c64.CHROUT(147)         ; clear screen (spaces)
 }
