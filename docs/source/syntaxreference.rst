@@ -297,7 +297,8 @@ of something with an operand starting with 1 or 0, you'll have to add a space in
 - When an integer value ranges from 256..65535 the compiler sees it as a ``uword``.  For -32768..32767 it's a ``word``.
 - When a hex number has 3 or 4 digits, for example ``$0004``, it is seen as a ``word`` otherwise as a ``byte``.
 - When a binary number has 9 to 16 digits, for example ``%1100110011``, it is seen as a ``word`` otherwise as a ``byte``.
-- You can force a byte value into a word value by adding the ``.w`` datatype suffix to the number: ``$2a.w`` is equivalent to ``$002a``.
+- If the number fits in a byte but you really require it as a word value, you'll have to explicitly cast it: ``60 as uword``
+  or you can use the full word hexadecimal notation ``$003c``.
 
 
 Data type conversion

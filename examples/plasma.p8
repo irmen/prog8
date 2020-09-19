@@ -104,7 +104,7 @@ main {
                         b |= bittab[ii]
                     }
                 }
-                @(CHARSET + i + c*8.w) = b
+                @(CHARSET + i + c*$0008) = b
             }
         }
     }

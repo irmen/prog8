@@ -14,6 +14,10 @@ main {
 
         txt.lowercase()
         txt.print("Hello there")
+        uword ww
+        ubyte bb=44
+        ww = bb*($0032)
+        txt.print_uw(ww)
 
         txt.setchr(5, 5, '*')
         txt.setchr(6, 5, '*')
@@ -50,6 +54,11 @@ main {
         txt.chrout(',')
         txt.print_ub(txt.getclr(8,5))
         txt.chrout('\n')
+
+        txt.print("width:")
+        txt.print_ub(txt.width())
+        txt.print(" height:")
+        txt.print_ub(txt.height())
 
     }
 }

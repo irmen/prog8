@@ -397,7 +397,7 @@ private fun prog8Parser.DirectiveargContext.toAst() : DirectiveArg {
 }
 
 private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
-    fun makeLiteral(text: String, radix: Int, forceWord: Boolean): NumericLiteral {
+    fun makeLiteral(text: String, radix: Int): NumericLiteral {
         val integer: Int
         var datatype = DataType.UBYTE
         when (radix) {
@@ -435,14 +435,14 @@ private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
             }
             else -> throw FatalAstException("invalid radix")
         }
-        return NumericLiteral(integer, if (forceWord) DataType.UWORD else datatype)
+        return NumericLiteral(integer, datatype)
     }
     val terminal: TerminalNode = children[0] as TerminalNode
     val integerPart = this.intpart.text
     return when (terminal.symbol.type) {
-        prog8Parser.DEC_INTEGER -> makeLiteral(integerPart, 10, wordsuffix()!=null)
-        prog8Parser.HEX_INTEGER -> makeLiteral(integerPart.substring(1), 16, wordsuffix()!=null)
-        prog8Parser.BIN_INTEGER -> makeLiteral(integerPart.substring(1), 2, wordsuffix()!=null)
+        prog8Parser.DEC_INTEGER -> makeLiteral(integerPart, 10)
+        prog8Parser.HEX_INTEGER -> makeLiteral(integerPart.substring(1), 16)
+        prog8Parser.BIN_INTEGER -> makeLiteral(integerPart.substring(1), 2)
         else -> throw FatalAstException(terminal.text)
     }
 }

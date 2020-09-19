@@ -566,4 +566,22 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	}}
 }
 
+asmsub width() clobbers(X,Y) -> ubyte @A {
+    ; -- returns the text screen width (number of columns)
+    %asm {{
+        jsr  c64.SCREEN
+        txa
+        rts
+    }}
+}
+
+asmsub height() clobbers(X, Y) -> ubyte @A {
+    ; -- returns the text screen height (number of rows)
+    %asm {{
+        jsr  c64.SCREEN
+        tya
+        rts
+    }}
+}
+
 }

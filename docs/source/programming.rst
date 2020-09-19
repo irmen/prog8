@@ -578,25 +578,24 @@ within parentheses will be evaluated first. So ``(4 + 8) * 2`` is 24 and not 20,
 and ``(true or false) and false`` is false instead of true.
 
 .. attention::
-    **calculations keep their datatype:**
+    **calculations keep their datatype even if the target variable is larger:**
     When you do calculations on a BYTE type, the result will remain a BYTE.
     When you do calculations on a WORD type, the result will remain a WORD.
     For instance::
 
         byte b = 44
         word w = b*55   ; the result will be 116! (even though the target variable is a word)
-        w *= 999        ; the result will be -15188  (the multiplication stays within a word)
+        w *= 999        ; the result will be -15188  (the multiplication stays within a word, but overflows)
 
-    The compiler will NOT give a warning about this! It's doing this for
+    *The compiler does NOT warn about this!* It's doing this for
     performance reasons - so you won't get sudden 16 bit (or even float)
     calculations where you needed only simple fast byte arithmetic.
     If you do need the extended resulting value, cast at least one of the
-    operands of an operator to the larger datatype. For example::
+    operands explicitly to the larger datatype. For example::
 
         byte b = 44
-        word w = b*55.w     ; the result will be 2420
-        w = (b as word)*55  ; same result
-
+        w = (b as word)*55
+        w = b*(55 as word)
 
 
 

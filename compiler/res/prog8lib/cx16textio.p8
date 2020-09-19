@@ -15,7 +15,6 @@ sub  clear_screen() {
     c64.CHROUT(147)         ; clear screen (spaces)
 }
 
-
 asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
 	; TODO this can be done more efficiently with the VERA auto increment mode?
@@ -105,6 +104,7 @@ sub uppercase() {
     cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
+; TODO implement clear_screencolors
 ; TODO implement the "missing" txtio scroll subroutines:  scroll_left_full, (also right, up, down)
 
 romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
@@ -427,6 +427,24 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 		plx
 		rts
 	}}
+}
+
+asmsub width() clobbers(X,Y) -> ubyte @A {
+    ; -- returns the text screen width (number of columns)
+    %asm {{
+        jsr  c64.SCREEN
+        txa
+        rts
+    }}
+}
+
+asmsub height() clobbers(X, Y) -> ubyte @A {
+    ; -- returns the text screen height (number of rows)
+    %asm {{
+        jsr  c64.SCREEN
+        tya
+        rts
+    }}
 }
 
 }

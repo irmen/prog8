@@ -217,9 +217,7 @@ identifier :  NAME ;
 
 scoped_identifier :  NAME ('.' NAME)* ;
 
-integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) wordsuffix? ;
-
-wordsuffix : '.w' ;
+integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) ;
 
 booleanliteral :  'true' | 'false' ;
 
