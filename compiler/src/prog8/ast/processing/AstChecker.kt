@@ -589,10 +589,8 @@ internal class AstChecker(private val program: Program,
                     if (value.type !in IntegerDatatypes || value.number.toInt() < 0 || value.number.toInt() > 65535) {
                         err("memory address must be valid integer 0..\$ffff", decl.value?.position)
                     }
-                } else if(decl.value is AddressOf) {
-                    // we allow this too: the address of another variable
                 } else {
-                    err("value of memory var decl is invalid type.", decl.value?.position)
+                    err("value of memory mapped variable can only be a number, perhaps you meant to use an address pointer type instead?", decl.value?.position)
                 }
             }
         }
