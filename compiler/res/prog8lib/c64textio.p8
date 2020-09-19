@@ -209,6 +209,8 @@ _scroll_screen  ; scroll the screen memory
 	}}
 }
 
+romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
+
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
@@ -432,21 +434,22 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 	}}
 }
 
-asmsub  setchr  (ubyte col @Y, ubyte row @A) clobbers(A)  {
-	; ---- set the character in SCRATCH_ZPB1 on the screen matrix at the given position
+asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y)  {
+	; ---- sets the character in the screen matrix at the given position
 	%asm {{
-		sty  P8ZP_SCRATCH_REG
+		pha
+		tya
 		asl  a
 		tay
 		lda  _screenrows+1,y
 		sta  _mod+2
-		lda  _screenrows,y
+		txa
 		clc
-		adc  P8ZP_SCRATCH_REG
+		adc  _screenrows,y
 		sta  _mod+1
 		bcc  +
 		inc  _mod+2
-+		lda  P8ZP_SCRATCH_B1
++		pla
 _mod		sta  $ffff		; modified
 		rts
 
@@ -454,17 +457,18 @@ _screenrows	.word  $0400 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  getchr  (ubyte col @Y, ubyte row @A) clobbers(Y) -> ubyte @ A {
+asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
-		sty  P8ZP_SCRATCH_B1
+		pha
+		tya
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
 		sta  _mod+2
-		lda  setchr._screenrows,y
+		pla
 		clc
-		adc  P8ZP_SCRATCH_B1
+		adc  setchr._screenrows,y
 		sta  _mod+1
 		bcc  _mod
 		inc  _mod+2
@@ -473,21 +477,22 @@ _mod		lda  $ffff		; modified
 	}}
 }
 
-asmsub  setclr  (ubyte col @Y, ubyte row @A) clobbers(A)  {
-	; ---- set the color in SCRATCH_ZPB1 on the screen matrix at the given position
+asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
+	; ---- set the color in A on the screen matrix at the given position
 	%asm {{
-		sty  P8ZP_SCRATCH_REG
+		pha
+		tya
 		asl  a
 		tay
 		lda  _colorrows+1,y
 		sta  _mod+2
-		lda  _colorrows,y
+		txa
 		clc
-		adc  P8ZP_SCRATCH_REG
+		adc  _colorrows,y
 		sta  _mod+1
 		bcc  +
 		inc  _mod+2
-+		lda  P8ZP_SCRATCH_B1
++		pla
 _mod		sta  $ffff		; modified
 		rts
 
@@ -495,17 +500,18 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  getclr  (ubyte col @Y, ubyte row @A) clobbers(Y) -> ubyte @ A {
+asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 	; ---- get the color in the screen color matrix at the given location
 	%asm  {{
-		sty  P8ZP_SCRATCH_B1
+		pha
+		tya
 		asl  a
 		tay
 		lda  setclr._colorrows+1,y
 		sta  _mod+2
-		lda  setclr._colorrows,y
+		pla
 		clc
-		adc  P8ZP_SCRATCH_B1
+		adc  setclr._colorrows,y
 		sta  _mod+1
 		bcc  _mod
 		inc  _mod+2

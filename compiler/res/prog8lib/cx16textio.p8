@@ -96,6 +96,8 @@ sub color2 (ubyte txtcol, ubyte bgcol) {
     c64.CHROUT(color_to_charcode[txtcol & 15])
 }
 
+romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
+
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
@@ -298,7 +300,28 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 	}}
 }
 
-; TODO implement the "missing" txtio subroutines: input_chars, setchr, getchr, setclr, getclr, scroll_left_full, (also right, up, down)
+asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
+	; ---- Input a string (max. 80 chars) from the keyboard. Returns length in Y. (string is terminated with a 0 byte as well)
+	;      It assumes the keyboard is selected as I/O channel!
+
+	%asm {{
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0				; char counter = 0
+-		jsr  c64.CHRIN
+		cmp  #$0d			; return (ascii 13) pressed?
+		beq  +				; yes, end.
+		sta  (P8ZP_SCRATCH_W1),y	; else store char in buffer
+		iny
+		bne  -
++		lda  #0
+		sta  (P8ZP_SCRATCH_W1),y	; finish string with 0 byte
+		rts
+
+	}}
+}
+
+; TODO implement the "missing" txtio subroutines: getchr, setclr, getclr, scroll_left_full, (also right, up, down)
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
