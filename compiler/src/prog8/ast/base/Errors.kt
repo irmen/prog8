@@ -7,11 +7,11 @@ open class FatalAstException (override var message: String) : Exception(message)
 open class AstException (override var message: String) : Exception(message)
 
 open class SyntaxError(override var message: String, val position: Position) : AstException(message) {
-    override fun toString() = "$position Syntax error: $message"
+    override fun toString() = "${position.toClickableStr()} Syntax error: $message"
 }
 
 class ExpressionError(message: String, val position: Position) : AstException(message) {
-    override fun toString() = "$position Error: $message"
+    override fun toString() = "${position.toClickableStr()} Error: $message"
 }
 
 class UndefinedSymbolError(symbol: IdentifierReference)

@@ -30,7 +30,7 @@ private fun ParserRuleContext.toPosition() : Position {
     val customTokensource = this.start.tokenSource as? CustomLexer
     val filename =
             when {
-                customTokensource!=null -> customTokensource.modulePath.fileName.toString()
+                customTokensource!=null -> customTokensource.modulePath.toString()
                 start.tokenSource.sourceName == IntStream.UNKNOWN_SOURCE_NAME -> "@internal@"
                 else -> File(start.inputStream.sourceName).name
             }

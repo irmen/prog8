@@ -19,14 +19,6 @@ import java.nio.file.Paths
 internal class ParsingFailedError(override var message: String) : Exception(message)
 
 
-private class LexerErrorListener: BaseErrorListener() {
-    var  numberOfErrors: Int = 0
-    override fun syntaxError(p0: Recognizer<*, *>?, p1: Any?, p2: Int, p3: Int, p4: String?, p5: RecognitionException?) {
-        numberOfErrors++
-    }
-}
-
-
 internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexer(input)
 
 
@@ -60,13 +52,28 @@ internal class ModuleImporter {
         return executeImportDirective(program, import, Paths.get(""))
     }
 
+    private class MyErrorListener: ConsoleErrorListener() {
+        var  numberOfErrors: Int = 0
+        override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
+            numberOfErrors++
+            when (recognizer) {
+                is CustomLexer -> System.err.println("${recognizer.modulePath}:$line:$charPositionInLine: $msg")
+                is prog8Parser -> System.err.println("${recognizer.inputStream.sourceName}:$line:$charPositionInLine: $msg")
+                else -> System.err.println("$line:$charPositionInLine $msg")
+            }
+        }
+    }
+
     private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
         val moduleName = moduleName(modulePath.fileName)
         val lexer = CustomLexer(modulePath, stream)
-        val lexerErrors = LexerErrorListener()
+        lexer.removeErrorListeners()
+        val lexerErrors = MyErrorListener()
         lexer.addErrorListener(lexerErrors)
         val tokens = CommentHandlingTokenStream(lexer)
         val parser = prog8Parser(tokens)
+        parser.removeErrorListeners()
+        parser.addErrorListener(MyErrorListener())
         val parseTree = parser.module()
         val numberOfErrors = parser.numberOfSyntaxErrors + lexerErrors.numberOfErrors
         if(numberOfErrors > 0)

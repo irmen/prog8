@@ -24,7 +24,7 @@ class ErrorReporter {
                 MessageSeverity.ERROR -> System.err.print("\u001b[91m")  // bright red
                 MessageSeverity.WARNING -> System.err.print("\u001b[93m")  // bright yellow
             }
-            val msg = "${it.position} ${it.severity} ${it.message}".trim()
+            val msg = "${it.position.toClickableStr()} ${it.severity} ${it.message}".trim()
             if(msg !in alreadyReportedMessages) {
                 System.err.println(msg)
                 alreadyReportedMessages.add(msg)
