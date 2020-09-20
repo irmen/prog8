@@ -1,10 +1,7 @@
 %target cx16
-%import cx16textio
+%import textio
 
 main {
-
-    const uword screen_width = 80
-    const uword screen_height = 60
 
     ; vertices
     word[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
@@ -80,9 +77,9 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 10 {
-                persp = 500 + rz/64
-                sx = rotatedx[i] / persp as byte + screen_width/2
-                sy = rotatedy[i] / persp as byte + screen_height/2
+                persp = 400 + rz/64
+                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
+                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
                 txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
             }
         }
@@ -90,9 +87,9 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 10 {
-                persp = 500 + rz/64
-                sx = rotatedx[i] / persp as byte + screen_width/2
-                sy = rotatedy[i] / persp as byte + screen_height/2
+                persp = 400 + rz/64
+                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
+                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
                 txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
             }
         }

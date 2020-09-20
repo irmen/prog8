@@ -1,5 +1,9 @@
-%import c64lib
-%import c64graphics
+%target c64
+%import graphics
+%import syslib
+
+; TODO make the graphics library not C64 specific
+
 
 main {
 

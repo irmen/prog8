@@ -1,4 +1,6 @@
-%import c64graphics
+%import graphics
+
+; TODO make graphics lib cross-system
 
 main {
 

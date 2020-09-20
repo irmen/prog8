@@ -65,7 +65,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         in WordDatatypes ->
                             asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+$indexValue+1 |  sta  P8ESTACK_HI,x | dex")
                         DataType.FLOAT ->
-                            asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
+                            asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  floats.push_float")
                         else ->
                             throw AssemblyError("weird array type")
                     }
@@ -87,7 +87,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 adc  #<$arrayVarName
                                 bcc  +
                                 iny
-+                               jsr  c64flt.push_float""")
++                               jsr  floats.push_float""")
                         }
                         else ->
                             throw AssemblyError("weird array elt type")
@@ -217,7 +217,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
-                            jsr  c64flt.pop_float
+                            jsr  floats.pop_float
                         """)
                     }
                     else -> throw AssemblyError("weird target variable type ${target.datatype}")
@@ -249,7 +249,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 asmgen.out("""
                                     lda  #<${target.asmVarname}+$scaledIdx
                                     ldy  #>${target.asmVarname}+$scaledIdx
-                                    jsr  c64flt.pop_float
+                                    jsr  floats.pop_float
                                 """)
                             }
                             else -> throw AssemblyError("weird target variable type ${target.datatype}")
@@ -279,7 +279,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     adc  #<${target.asmVarname}
                                     bcc  +
                                     iny
-+                                   jsr  c64flt.pop_float""")
++                                   jsr  floats.pop_float""")
                             }
                             else -> throw AssemblyError("weird dt")
                         }
@@ -406,7 +406,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     sty  P8ZP_SCRATCH_W1+1
                                     lda  #<${target.asmVarname}+$scaledIdx
                                     ldy  #>${target.asmVarname}+$scaledIdx
-                                    jsr  c64flt.copy_float
+                                    jsr  floats.copy_float
                                 """)
                             }
                             else -> throw AssemblyError("weird target variable type ${target.datatype}")
@@ -439,7 +439,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     adc  #<${target.asmVarname}
                                     bcc  +
                                     iny
-+                                   jsr  c64flt.copy_float""")
++                                   jsr  floats.copy_float""")
                             }
                             else -> throw AssemblyError("weird dt")
                         }
@@ -496,13 +496,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
                 val index = target.array!!.arrayspec.index
-                asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
+                asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
                 asmgen.translateExpression(index)
-                asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  c64flt.pop_float_to_indexed_var")
+                asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  floats.pop_float_to_indexed_var")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
-            TargetStorageKind.STACK -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  c64flt.push_float")
+            TargetStorageKind.STACK -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
         }
     }
 
@@ -850,7 +850,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  P8ZP_SCRATCH_W1
                             lda  #>${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1+1
-                            jsr  c64flt.set_0_array_float
+                            jsr  floats.set_0_array_float
                         """)
                     }
                 }
@@ -858,7 +858,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
                 TargetStorageKind.STACK -> {
                     val floatConst = asmgen.getFloatAsmConst(float)
-                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
+                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
                 }
             }
         } else {
@@ -913,7 +913,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  P8ZP_SCRATCH_W2
                             lda  #>${arrayVarName}
                             sta  P8ZP_SCRATCH_W2+1
-                            jsr  c64flt.set_array_float
+                            jsr  floats.set_array_float
                         """)
                     }
                 }
@@ -921,7 +921,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
                 TargetStorageKind.STACK -> {
                     val floatConst = asmgen.getFloatAsmConst(float)
-                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
+                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
                 }
             }
         }
@@ -1117,7 +1117,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     dex
                     lda  #<$asmArrayvarname
                     ldy  #>$asmArrayvarname
-                    jsr  c64flt.pop_float_to_indexed_var
+                    jsr  floats.pop_float_to_indexed_var
                 """)
             else ->
                 throw AssemblyError("weird array type")

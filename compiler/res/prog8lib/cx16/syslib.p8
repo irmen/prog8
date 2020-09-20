@@ -60,10 +60,10 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 cx16 {
 
-        ; 65c02 hardware vectors:
-        &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
-        &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
-        &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
+; 65c02 hardware vectors:
+    &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
+    &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
+    &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
 
 
 ; the sixteen virtual 16-bit registers

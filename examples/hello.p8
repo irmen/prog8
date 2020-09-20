@@ -1,8 +1,9 @@
-%import c64lib
-%import c64textio
-%import c64flt
+%import syslib
+%import textio
+%import floats
 %zeropage basicsafe
 
+; TODO use RDTIM() to get the time and make this system agnostic
 
 main {
 
@@ -32,11 +33,11 @@ main {
         clock_seconds = floor(clock_seconds - minutes * 60.0)
 
         txt.print("system time in ti$ is ")
-        c64flt.print_f(hours)
+        floats.print_f(hours)
         c64.CHROUT(':')
-        c64flt.print_f(minutes)
+        floats.print_f(minutes)
         c64.CHROUT(':')
-        c64flt.print_f(clock_seconds)
+        floats.print_f(clock_seconds)
         c64.CHROUT('\n')
 
         txt.print("bye!\n")

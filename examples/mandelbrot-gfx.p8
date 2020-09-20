@@ -1,10 +1,12 @@
-%import c64graphics
-%import c64flt
+%import graphics
+%import floats
 %zeropage floatsafe
 
 ; Draw a mandelbrot in graphics mode (the image will be 256 x 200 pixels).
 ; NOTE: this will take an eternity to draw on a real c64.
 ; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
+
+; TODO make graphics lib cross-system
 
 main {
     const ubyte width = 255

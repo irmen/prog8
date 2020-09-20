@@ -1,5 +1,5 @@
-%import c64flt
-%import c64textio
+%import floats
+%import textio
 %zeropage basicsafe
 
 main {

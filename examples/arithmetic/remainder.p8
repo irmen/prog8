@@ -1,4 +1,4 @@
-%import c64textio
+%import textio
 %zeropage basicsafe
 
 main {

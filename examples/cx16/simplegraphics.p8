@@ -1,5 +1,4 @@
 ; CommanderX16 simple graphics example!
-; make sure to compile with the cx16 compiler target.
 
 %target cx16
 %zeropage basicsafe

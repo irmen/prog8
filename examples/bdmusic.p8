@@ -1,4 +1,6 @@
-%import c64textio
+%target c64
+%import textio
+%import syslib
 
 main {
 

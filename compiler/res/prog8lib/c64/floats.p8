@@ -7,7 +7,7 @@
 %target c64
 %option enable_floats
 
-c64flt {
+floats {
 	; ---- this block contains C-64 floating point related functions ----
 
         const float  PI     = 3.141592653589793
@@ -50,22 +50,22 @@ romsub $bc0f = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $bbd4 = MOVMF(uword mflpt @ XY) clobbers(A,Y)        ; store fac1 to memory  X/Y as 5-byte mflpt
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
+; (tip: use floats.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
 romsub $b1aa = FTOSWORDYA() clobbers(X) -> ubyte @ Y, ubyte @ A       ; note: calls AYINT.
 
 ; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
-; (tip: use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
+; (tip: use floats.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
 romsub $b7f7 = GETADR() clobbers(X) -> ubyte @ Y, ubyte @ A
 
 romsub $bc9b = QINT() clobbers(A,X,Y)           ; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 romsub $b1bf = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
-; (tip: use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
-; there is also c64flt.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
-; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64flt.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
+; (tip: use floats.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
+; there is also floats.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
+; there is also floats.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
+; there is also floats.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
+; there is also floats.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
 romsub $b391 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
 romsub $b3a2 = FREADUY(ubyte value @ Y) clobbers(A,X,Y)     ; 8 bit unsigned Y -> float in fac1
@@ -212,6 +212,6 @@ sub  print_f  (float value) {
 	}}
 }
 
-%asminclude "library:c64floats.asm", ""
+%asminclude "library:c64/floats.asm", ""
 
 }

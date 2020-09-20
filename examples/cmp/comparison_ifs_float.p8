@@ -1,6 +1,8 @@
-%import c64textio
-%import c64flt
+%import textio
+%import floats
 %zeropage basicsafe
+
+; Note: this program is compatible with C64 and CX16.
 
 main {
 

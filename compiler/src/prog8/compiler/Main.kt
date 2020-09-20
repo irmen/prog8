@@ -91,7 +91,7 @@ fun compileProgram(filepath: Path,
 }
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
-    println("Parsing...")
+    println("Compiler target: ${CompilationTarget.instance.name}. Parsing...")
     val importer = ModuleImporter()
     val programAst = Program(moduleName(filepath.fileName), mutableListOf())
     importer.importModule(programAst, filepath)
@@ -125,7 +125,7 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
             as? Directive)?.args?.single()?.name?.toUpperCase()
     val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
     val floatsEnabled = allOptions.any { it.name == "enable_floats" }
-    val zpType: ZeropageType =
+    var zpType: ZeropageType =
             if (zpoption == null)
                 if(floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
             else
@@ -135,6 +135,12 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
                     ZeropageType.KERNALSAFE
                     // error will be printed by the astchecker
                 }
+
+    if (zpType==ZeropageType.FLOATSAFE && CompilationTarget.instance.name == Cx16Target.name) {
+        System.err.println("Warning: Cx16 target must use zp option basicsafe instead of floatsafe")
+        zpType = ZeropageType.BASICSAFE
+    }
+
     val zpReserved = mainModule.statements
             .asSequence()
             .filter { it is Directive && it.directive == "%zpreserved" }
@@ -142,20 +148,10 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
             .map { it[0].int!!..it[1].int!! }
             .toList()
 
-    var target = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%target" }
-            as? Directive)?.args?.single()?.name
-
-    when(target) {
-        C64Target.name -> CompilationTarget.instance = C64Target
-        Cx16Target.name -> CompilationTarget.instance = Cx16Target
-        null -> target = CompilationTarget.instance.name
-        else -> throw FatalAstException("invalid target")
-    }
-
     return CompilationOptions(
             if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
             if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-            zpType, zpReserved, floatsEnabled, target
+            zpType, zpReserved, floatsEnabled
     )
 }
 
@@ -213,9 +209,6 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     errors.handle()
 
     // printAst(programAst)
-
-    if(compilerOptions.compilationTarget!=null && compilerOptions.compilationTarget != CompilationTarget.instance.name)
-        throw AssemblyError("program's compilation target differs from configured target")
 
     CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.instance.asmGenerator(

@@ -1,6 +1,7 @@
-%import c64lib
-%import c64textio
+%import textio
 %zeropage basicsafe
+
+; Note: this program is compatible with C64 and CX16.
 
 main {
 
@@ -40,28 +41,28 @@ main {
             word ww
             for ub in uba {
                 txt.print_ub(ub)
-                c64.CHROUT(',')
+                txt.chrout(',')
             }
-            c64.CHROUT('\n')
+            txt.chrout('\n')
 
             for uw in uwa {
                 txt.print_uw(uw)
-                c64.CHROUT(',')
+                txt.chrout(',')
             }
-            c64.CHROUT('\n')
+            txt.chrout('\n')
 
             for bb in ba {
                 txt.print_b(bb)
-                c64.CHROUT(',')
+                txt.chrout(',')
             }
-            c64.CHROUT('\n')
+            txt.chrout('\n')
 
             for ww in wa {
                 txt.print_w(ww)
-                c64.CHROUT(',')
+                txt.chrout(',')
             }
-            c64.CHROUT('\n')
-            c64.CHROUT('\n')
+            txt.chrout('\n')
+            txt.chrout('\n')
         }
     }
 }

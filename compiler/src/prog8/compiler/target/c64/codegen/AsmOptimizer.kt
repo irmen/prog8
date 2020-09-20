@@ -152,7 +152,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
 
         if(first.startsWith("lda") && second.startsWith("ldy") && third.startsWith("sta") && fourth.startsWith("sty") &&
                 fifth.startsWith("lda") && sixth.startsWith("ldy") &&
-                (seventh.startsWith("jsr  c64flt.copy_float") || seventh.startsWith("jsr  cx16flt.copy_float"))) {
+                (seventh.startsWith("jsr  floats.copy_float") || seventh.startsWith("jsr  cx16flt.copy_float"))) {
 
             val nineth = pair[8].value.trimStart()
             val tenth = pair[9].value.trimStart()
@@ -163,7 +163,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
 
             if(eighth.startsWith("lda") && nineth.startsWith("ldy") && tenth.startsWith("sta") && eleventh.startsWith("sty") &&
                     twelveth.startsWith("lda") && thirteenth.startsWith("ldy") &&
-                    (fourteenth.startsWith("jsr  c64flt.copy_float") || fourteenth.startsWith("jsr  cx16flt.copy_float"))) {
+                    (fourteenth.startsWith("jsr  floats.copy_float") || fourteenth.startsWith("jsr  cx16flt.copy_float"))) {
 
                 if(first.substring(4) == eighth.substring(4) && second.substring(4)==nineth.substring(4)) {
                     // identical float init

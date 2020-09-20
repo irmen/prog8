@@ -1,6 +1,6 @@
 %target cx16
-%import cx16textio
-%import cx16flt
+%import textio
+%import floats
 %zeropage basicsafe
 
 main {
@@ -33,7 +33,6 @@ main {
                     ysquared = y*y
                     iter++
                 }
-                ; txt.setchr(pixelx, pixely, '*')
                 txt.color2(1, max_iter-iter)
                 c64.CHROUT(' ')
             }

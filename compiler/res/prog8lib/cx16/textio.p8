@@ -1,225 +1,115 @@
-; Prog8 definitions for the Text I/O and Screen routines for the Commodore-64
+; Prog8 definitions for the Text I/O and Screen routines for the CommanderX16
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 ;
 ; indent format: TABS, size=8
 
-
-%target c64
-%import c64lib
+%target cx16
+%import syslib
 %import conv
 
 
 txt {
 
-const ubyte DEFAULT_WIDTH = 40
-const ubyte DEFAULT_HEIGHT = 25
+const ubyte DEFAULT_WIDTH = 80
+const ubyte DEFAULT_HEIGHT = 60
 
 
-asmsub  clear_screen() {
-    %asm {{
-        lda  #' '
-        jmp  clear_screenchars
-    }}
+sub  clear_screen() {
+    c64.CHROUT(147)         ; clear screen (spaces)
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte charcolor @ Y) clobbers(A)  {
+asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
-	;      (assumes screen and color matrix are at their default addresses)
-
+	; TODO this can be done more efficiently with the VERA auto increment mode?
 	%asm {{
-		pha
-		tya
-		jsr  clear_screencolors
-		pla
-		jsr  clear_screenchars
-		rts
-        }}
+        sta  P8ZP_SCRATCH_W1        ; fillchar
+        sty  P8ZP_SCRATCH_W1+1      ; textcolor
+        phx
+        jsr  c64.SCREEN             ; get dimensions in X/Y
+        dex
+        dey
+        txa
+        asl  a
+        adc  #1
+        sta  P8ZP_SCRATCH_B1
+-       ldx  P8ZP_SCRATCH_B1
+-       stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  cx16.VERA_DATA0
+        and  #$f0
+        ora  P8ZP_SCRATCH_W1+1
+        sta  cx16.VERA_DATA0
+        dex
+        stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  P8ZP_SCRATCH_W1
+        sta  cx16.VERA_DATA0
+        dex
+        cpx  #255
+        bne  -
+        dey
+        bpl  --
+        plx
+        rts
+    }}
 
 }
 
 asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
+	; TODO this can be done more efficiently with the VERA auto increment mode?
 	%asm {{
-		ldy  #0
-_loop		sta  c64.Screen,y
-		sta  c64.Screen+$0100,y
-		sta  c64.Screen+$0200,y
-		sta  c64.Screen+$02e8,y
-		iny
-		bne  _loop
-		rts
+        pha
+        phx
+        jsr  c64.SCREEN             ; get dimensions in X/Y
+        dex
+        dey
+        txa
+        asl  a
+        sta  P8ZP_SCRATCH_B1
+        pla
+-       ldx  P8ZP_SCRATCH_B1
+-       stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        sta  cx16.VERA_DATA0
+        dex
+        dex
+        cpx  #254
+        bne  -
+        dey
+        bpl  --
+        plx
+        rts
         }}
 }
 
-asmsub  clear_screencolors (ubyte scrcolor @ A) clobbers(Y)  {
-	; ---- clear the character screen colors with the given color (leaves characters).
-	;      (assumes color matrix is at the default address)
-	%asm {{
-		ldy  #0
-_loop		sta  c64.Colors,y
-		sta  c64.Colors+$0100,y
-		sta  c64.Colors+$0200,y
-		sta  c64.Colors+$02e8,y
-		iny
-		bne  _loop
-		rts
-        }}
-}
+ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
 
 sub color (ubyte txtcol) {
-    c64.COLOR = txtcol
+    c64.CHROUT(color_to_charcode[txtcol & 15])
+}
+
+sub color2 (ubyte txtcol, ubyte bgcol) {
+    c64.CHROUT(color_to_charcode[bgcol & 15])
+    c64.CHROUT(1)       ; switch fg and bg colors
+    c64.CHROUT(color_to_charcode[txtcol & 15])
 }
 
 sub lowercase() {
-    c64.VMCSB |= 2
+    cx16.screen_set_charset(3, 0)  ; lowercase charset
 }
 
 sub uppercase() {
-    c64.VMCSB &= ~2
+    cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
-asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character to the left
-	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag determines if screen color data must be scrolled too
-
-	%asm {{
-		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
-
-+               ; scroll the color memory
-		ldx  #0
-		ldy  #38
--
-	.for row=0, row<=24, row+=1
-		lda  c64.Colors + 40*row + 1,x
-		sta  c64.Colors + 40*row,x
-	.next
-		inx
-		dey
-		bpl  -
-
-_scroll_screen  ; scroll the screen memory
-		ldx  #0
-		ldy  #38
--
-	.for row=0, row<=24, row+=1
-		lda  c64.Screen + 40*row + 1,x
-		sta  c64.Screen + 40*row,x
-	.next
-		inx
-		dey
-		bpl  -
-
-		ldx  P8ZP_SCRATCH_REG
-		rts
-	}}
-}
-
-asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
-	; ---- scroll the whole screen 1 character to the right
-	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag determines if screen color data must be scrolled too
-	%asm {{
-		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
-
-+               ; scroll the color memory
-		ldx  #38
--
-	.for row=0, row<=24, row+=1
-		lda  c64.Colors + 40*row + 0,x
-		sta  c64.Colors + 40*row + 1,x
-	.next
-		dex
-		bpl  -
-
-_scroll_screen  ; scroll the screen memory
-		ldx  #38
--
-	.for row=0, row<=24, row+=1
-		lda  c64.Screen + 40*row + 0,x
-		sta  c64.Screen + 40*row + 1,x
-	.next
-		dex
-		bpl  -
-
-		ldx  P8ZP_SCRATCH_REG
-		rts
-	}}
-}
-
-asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
-	; ---- scroll the whole screen 1 character up
-	;      contents of the bottom row are unchanged, you should refill/clear this yourself
-	;      Carry flag determines if screen color data must be scrolled too
-	%asm {{
-		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
-
-+               ; scroll the color memory
-		ldx #39
--
-	.for row=1, row<=24, row+=1
-		lda  c64.Colors + 40*row,x
-		sta  c64.Colors + 40*(row-1),x
-	.next
-		dex
-		bpl  -
-
-_scroll_screen  ; scroll the screen memory
-		ldx #39
--
-	.for row=1, row<=24, row+=1
-		lda  c64.Screen + 40*row,x
-		sta  c64.Screen + 40*(row-1),x
-	.next
-		dex
-		bpl  -
-
-		ldx  P8ZP_SCRATCH_REG
-		rts
-	}}
-}
-
-asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
-	; ---- scroll the whole screen 1 character down
-	;      contents of the top row are unchanged, you should refill/clear this yourself
-	;      Carry flag determines if screen color data must be scrolled too
-	%asm {{
-		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
-
-+               ; scroll the color memory
-		ldx #39
--
-	.for row=23, row>=0, row-=1
-		lda  c64.Colors + 40*row,x
-		sta  c64.Colors + 40*(row+1),x
-	.next
-		dex
-		bpl  -
-
-_scroll_screen  ; scroll the screen memory
-		ldx #39
--
-	.for row=23, row>=0, row-=1
-		lda  c64.Screen + 40*row,x
-		sta  c64.Screen + 40*(row+1),x
-	.next
-		dex
-		bpl  -
-
-		ldx  P8ZP_SCRATCH_REG
-		rts
-	}}
-}
+; TODO implement clear_screencolors
+; TODO implement the "missing" txtio scroll subroutines:  scroll_left_full, (also right, up, down)
 
 romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
 
@@ -244,7 +134,7 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
+		phx
 		jsr  conv.ubyte2decimal
 		pha
 		tya
@@ -253,7 +143,7 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		txa
 		jsr  c64.CHROUT
-		ldx  P8ZP_SCRATCH_REG
+		plx
 		rts
 	}}
 }
@@ -261,7 +151,7 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
+		phx
 		jsr  conv.ubyte2decimal
 _print_byte_digits
 		pha
@@ -278,7 +168,7 @@ _print_byte_digits
         jsr  c64.CHROUT
 _ones   txa
 		jsr  c64.CHROUT
-		ldx  P8ZP_SCRATCH_REG
+		plx
 		rts
 	}}
 }
@@ -286,7 +176,7 @@ _ones   txa
 asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
+		phx
 		pha
 		cmp  #0
 		bpl  +
@@ -301,7 +191,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
+		phx
 		bcc  +
 		pha
 		lda  #'$'
@@ -311,7 +201,7 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		tya
 		jsr  c64.CHROUT
-		ldx  P8ZP_SCRATCH_REG
+		plx
 		rts
 	}}
 }
@@ -319,7 +209,7 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
+		phx
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
@@ -332,7 +222,7 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 +		jsr  c64.CHROUT
 		dey
 		bne  -
-		ldx  P8ZP_SCRATCH_REG
+		plx
 		rts
 	}}
 }
@@ -365,7 +255,7 @@ asmsub  print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
+	    phx
 		jsr  conv.uword2decimal
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
@@ -373,7 +263,7 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 		iny
 		bne  -
-+		ldx  P8ZP_SCRATCH_REG
++		plx
 		rts
 	}}
 }
@@ -381,9 +271,9 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
+	    phx
 		jsr  conv.uword2decimal
-		ldx  P8ZP_SCRATCH_REG
+		plx
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
 		beq  _allzero
@@ -446,88 +336,58 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 	}}
 }
 
-asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y)  {
+asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A)  {
 	; ---- sets the character in the screen matrix at the given position
 	%asm {{
 		pha
-		tya
-		asl  a
-		tay
-		lda  _screenrows+1,y
-		sta  _mod+2
 		txa
-		clc
-		adc  _screenrows,y
-		sta  _mod+1
-		bcc  +
-		inc  _mod+2
-+		pla
-_mod		sta  $ffff		; modified
+		asl  a
+		stz  cx16.VERA_ADDR_H
+		sta  cx16.VERA_ADDR_L
+		sty  cx16.VERA_ADDR_M
+		pla
+        sta  cx16.VERA_DATA0
 		rts
-
-_screenrows	.word  $0400 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
+asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
-		pha
-		tya
 		asl  a
-		tay
-		lda  setchr._screenrows+1,y
-		sta  _mod+2
-		pla
-		clc
-		adc  setchr._screenrows,y
-		sta  _mod+1
-		bcc  _mod
-		inc  _mod+2
-_mod		lda  $ffff		; modified
+		stz  cx16.VERA_ADDR_H
+		sta  cx16.VERA_ADDR_L
+		sty  cx16.VERA_ADDR_M
+        lda  cx16.VERA_DATA0
 		rts
 	}}
 }
 
-asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
+asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
 	; ---- set the color in A on the screen matrix at the given position
 	%asm {{
 		pha
-		tya
-		asl  a
-		tay
-		lda  _colorrows+1,y
-		sta  _mod+2
 		txa
-		clc
-		adc  _colorrows,y
-		sta  _mod+1
-		bcc  +
-		inc  _mod+2
-+		pla
-_mod		sta  $ffff		; modified
+		asl  a
+		ina
+		stz  cx16.VERA_ADDR_H
+		sta  cx16.VERA_ADDR_L
+		sty  cx16.VERA_ADDR_M
+		pla
+        sta  cx16.VERA_DATA0
 		rts
-
-_colorrows	.word  $d800 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
+asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	; ---- get the color in the screen color matrix at the given location
 	%asm  {{
-		pha
-		tya
 		asl  a
-		tay
-		lda  setclr._colorrows+1,y
-		sta  _mod+2
-		pla
-		clc
-		adc  setclr._colorrows,y
-		sta  _mod+1
-		bcc  _mod
-		inc  _mod+2
-_mod		lda  $ffff		; modified
+		ina
+		stz  cx16.VERA_ADDR_H
+		sta  cx16.VERA_ADDR_L
+		sty  cx16.VERA_ADDR_M
+        lda  cx16.VERA_DATA0
 		rts
 	}}
 }
@@ -535,37 +395,40 @@ _mod		lda  $ffff		; modified
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
-		lda  row
+	    phx
+		lda  column
 		asl  a
-		tay
-		lda  setchr._screenrows+1,y
-		sta  _charmod+2
-		adc  #$d4
-		sta  _colormod+2
-		lda  setchr._screenrows,y
-		clc
-		adc  column
-		sta  _charmod+1
-		sta  _colormod+1
-		bcc  +
-		inc  _charmod+2
-		inc  _colormod+2
-+		lda  char
-_charmod	sta  $ffff		; modified
+		tax
+		ldy  row
 		lda  charcolor
-_colormod	sta  $ffff		; modified
+		and  #$0f
+	    sta  P8ZP_SCRATCH_B1
+        stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  char
+        sta  cx16.VERA_DATA0
+        inx
+        stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        lda  cx16.VERA_DATA0
+        and  #$f0
+        ora  P8ZP_SCRATCH_B1
+        sta  cx16.VERA_DATA0
+		plx
 		rts
-	}}
+    }}
 }
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	; ---- safe wrapper around PLOT kernel routine, to save the X register.
 	%asm  {{
-		stx  P8ZP_SCRATCH_REG
+		phx
 		tax
 		clc
 		jsr  c64.PLOT
-		ldx  P8ZP_SCRATCH_REG
+		plx
 		rts
 	}}
 }

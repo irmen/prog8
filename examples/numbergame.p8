@@ -1,10 +1,9 @@
-%import c64textio
+%import textio
 %import conv
 %zeropage basicsafe
 
 ; The classic number guessing game.
-
-; TODO this code is identical to the commanderx16 one except the imports
+; Note: this program is compatible with C64 and CX16.
 
 
 main {

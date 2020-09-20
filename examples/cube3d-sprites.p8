@@ -1,5 +1,6 @@
-%import c64lib
-%import c64textio
+%target c64
+%import syslib
+%import textio
 
 
 spritedata $2000 {

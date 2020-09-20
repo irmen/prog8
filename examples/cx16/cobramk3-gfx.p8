@@ -1,5 +1,5 @@
 %target cx16
-%import cx16lib
+%import syslib
 %import conv
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress

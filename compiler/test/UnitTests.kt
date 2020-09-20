@@ -129,7 +129,7 @@ class TestC64Zeropage {
 
     @Test
     fun testNames() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, "c64"))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false))
 
         zp.allocate("", DataType.UBYTE, null, errors)
         zp.allocate("", DataType.UBYTE, null, errors)
@@ -142,37 +142,37 @@ class TestC64Zeropage {
 
     @Test
     fun testZpFloatEnable() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, "c64"))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertFailsWith<CompilerException> {
             zp.allocate("", DataType.FLOAT, null, errors)
         }
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, "c64"))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true))
         assertFailsWith<CompilerException> {
             zp2.allocate("", DataType.FLOAT, null, errors)
         }
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, "c64"))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true))
         zp3.allocate("", DataType.FLOAT, null, errors)
     }
 
     @Test
     fun testZpModesWithFloats() {
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, "c64"))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, "c64"))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, "c64"))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, "c64"))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, "c64"))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, "c64"))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true))
         assertFailsWith<CompilerException> {
-            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true, "c64"))
+            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true))
         }
         assertFailsWith<CompilerException> {
-            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, "c64"))
+            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true))
         }
     }
 
     @Test
     fun testZpDontuse() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, "c64"))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false))
         println(zp.free)
         assertEquals(0, zp.available())
         assertFailsWith<CompilerException> {
@@ -182,19 +182,19 @@ class TestC64Zeropage {
 
     @Test
     fun testFreeSpaces() {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, "c64"))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
         assertEquals(16, zp1.available())
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, "c64"))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false))
         assertEquals(91, zp2.available())
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, "c64"))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false))
         assertEquals(125, zp3.available())
-        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, "c64"))
+        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertEquals(238, zp4.available())
     }
 
     @Test
     fun testReservedSpace() {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, "c64"))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertEquals(238, zp1.available())
         assertTrue(50 in zp1.free)
         assertTrue(100 in zp1.free)
@@ -203,7 +203,7 @@ class TestC64Zeropage {
         assertTrue(200 in zp1.free)
         assertTrue(255 in zp1.free)
         assertTrue(199 in zp1.free)
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, listOf(50 .. 100, 200..255), false, "c64"))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, listOf(50 .. 100, 200..255), false))
         assertEquals(139, zp2.available())
         assertFalse(50 in zp2.free)
         assertFalse(100 in zp2.free)
@@ -216,7 +216,7 @@ class TestC64Zeropage {
 
     @Test
     fun testBasicsafeAllocation() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, "c64"))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
         assertEquals(16, zp.available())
 
         assertFailsWith<ZeropageDepletedError> {
@@ -239,7 +239,7 @@ class TestC64Zeropage {
 
     @Test
     fun testFullAllocation() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, "c64"))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false))
         assertEquals(238, zp.available())
         val loc = zp.allocate("", DataType.UWORD, null, errors)
         assertTrue(loc > 3)
@@ -269,7 +269,7 @@ class TestC64Zeropage {
 
     @Test
     fun testEfficientAllocation() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, "c64"))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true))
         assertEquals(16, zp.available())
         assertEquals(0x04, zp.allocate("", DataType.WORD, null, errors))
         assertEquals(0x06, zp.allocate("", DataType.UBYTE, null, errors))

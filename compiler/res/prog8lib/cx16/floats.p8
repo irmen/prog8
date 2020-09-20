@@ -7,7 +7,7 @@
 %target cx16
 %option enable_floats
 
-c64flt {
+floats {
 	; ---- this block contains C-64 floating point related functions ----
 
         const float  PI     = 3.141592653589793
@@ -25,7 +25,7 @@ c64flt {
 romsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
-; there is also c64flt.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
+; there is also floats.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
 ; (tip: use GIVAYFAY to use A/Y input; lo/hi switched to normal order)
 romsub $fe03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
@@ -148,6 +148,6 @@ sub  print_f  (float value) {
 	}}
 }
 
-%asminclude "library:c64floats.asm", ""
+%asminclude "library:c64/floats.asm", ""
 
 }

@@ -1,5 +1,7 @@
-%import c64textio
+%import textio
 %zeropage basicsafe
+
+; Note: this program is compatible with C64 and CX16.
 
 main {
 
@@ -20,10 +22,10 @@ main {
             txt.print(", ")
             amount++
         }
-        c64.CHROUT('\n')
+        txt.chrout('\n')
         txt.print("number of primes (expected 54): ")
         txt.print_ub(amount)
-        c64.CHROUT('\n')
+        txt.chrout('\n')
     }
 
 

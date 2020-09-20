@@ -1,5 +1,6 @@
-%import c64textio
-%import c64lib
+%target c64
+%import textio
+%import syslib
 %zeropage basicsafe
 
 

@@ -1,7 +1,9 @@
-%import c64lib
-%import c64textio
-%import c64flt
+%import syslib
+%import textio
+%import floats
 %zeropage basicsafe
+
+; TODO use RDTIM() to get the time and make this system agnostic
 
 main {
     const uword width = 30
@@ -46,7 +48,7 @@ main {
                                 + 65536.0*(c64.TIME_HI as float))/60.0
         txt.plot(0, 21)
         txt.print("finished in ")
-        c64flt.print_f(duration)
+        floats.print_f(duration)
         txt.print(" seconds!\n")
     }
 }

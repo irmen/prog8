@@ -9,6 +9,7 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.base.checkImportedValid
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.compiler.target.CompilationTarget
 import prog8.pathFrom
 import java.io.InputStream
 import java.nio.file.Files
@@ -148,6 +149,10 @@ internal class ModuleImporter {
     }
 
     private fun tryGetEmbeddedResource(name: String): InputStream? {
+        val target = CompilationTarget.instance.name
+        val targetSpecific = object{}.javaClass.getResourceAsStream("/prog8lib/$target/$name")
+        if(targetSpecific!=null)
+            return targetSpecific
         return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
     }
 }

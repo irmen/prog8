@@ -1145,43 +1145,43 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         // because the value is evaluated onto the eval stack (=slow).
         println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
-        asmgen.out("  jsr  c64flt.pop_float_fac1")
+        asmgen.out("  jsr  floats.pop_float_fac1")
         asmgen.saveRegister(CpuRegister.X)
         when (operator) {
             "**" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.CONUPK
-                    jsr  c64flt.FPWRT
+                    jsr  floats.CONUPK
+                    jsr  floats.FPWRT
                 """)
             }
             "+" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FADD
+                    jsr  floats.FADD
                 """)
             }
             "-" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FSUB
+                    jsr  floats.FSUB
                 """)
             }
             "*" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FMULT
+                    jsr  floats.FMULT
                 """)
             }
             "/" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FDIV
+                    jsr  floats.FDIV
                 """)
             }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
@@ -1189,7 +1189,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
-            jsr  c64flt.MOVMF
+            jsr  floats.MOVMF
         """)
         asmgen.restoreRegister(CpuRegister.X)
     }
@@ -1206,50 +1206,50 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.CONUPK
+                    jsr  floats.CONUPK
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  c64flt.FPWR
+                    jsr  floats.FPWR
                 """)
             }
             "+" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  c64flt.FADD
+                    jsr  floats.FADD
                 """)
             }
             "-" -> {
                 asmgen.out("""
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FSUB
+                    jsr  floats.FSUB
                 """)
             }
             "*" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  c64flt.FMULT
+                    jsr  floats.FMULT
                 """)
             }
             "/" -> {
                 asmgen.out("""
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FDIV
+                    jsr  floats.FDIV
                 """)
             }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
@@ -1258,7 +1258,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
-            jsr  c64flt.MOVMF
+            jsr  floats.MOVMF
         """)
         asmgen.restoreRegister(CpuRegister.X)
     }
@@ -1271,10 +1271,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.CONUPK
+                    jsr  floats.CONUPK
                     lda  #<$constValueName
                     ldy  #>$constValueName
-                    jsr  c64flt.FPWR
+                    jsr  floats.FPWR
                 """)
             }
             "+" -> {
@@ -1283,10 +1283,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$constValueName
                     ldy  #>$constValueName
-                    jsr  c64flt.FADD
+                    jsr  floats.FADD
                 """)
             }
             "-" -> {
@@ -1295,10 +1295,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("""
                     lda  #<$constValueName
                     ldy  #>$constValueName
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FSUB
+                    jsr  floats.FSUB
                 """)
             }
             "*" -> {
@@ -1306,10 +1306,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$constValueName
                     ldy  #>$constValueName
-                    jsr  c64flt.FMULT
+                    jsr  floats.FMULT
                 """)
             }
             "/" -> {
@@ -1318,10 +1318,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("""
                     lda  #<$constValueName
                     ldy  #>$constValueName
-                    jsr  c64flt.MOVFM
+                    jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  c64flt.FDIV
+                    jsr  floats.FDIV
                 """)
             }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
@@ -1330,7 +1330,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
-            jsr  c64flt.MOVMF
+            jsr  floats.MOVMF
         """)
         asmgen.restoreRegister(CpuRegister.X)
     }
@@ -1572,11 +1572,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
-                            jsr  c64flt.MOVFM
-                            jsr  c64flt.NEGOP
+                            jsr  floats.MOVFM
+                            jsr  floats.NEGOP
                             ldx  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
-                            jsr  c64flt.MOVMF
+                            jsr  floats.MOVMF
                         """)
                         asmgen.restoreRegister(CpuRegister.X)
                     }

@@ -1,5 +1,5 @@
 %target c64
-%import c64textio
+%import textio
 
 ; bitmap pixel graphics module for the C64
 ; only black/white monchrome for now

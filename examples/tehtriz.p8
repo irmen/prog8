@@ -7,8 +7,9 @@
 ;   staged speed increase
 ;   some simple sound effects
 
-%import c64lib
-%import c64textio
+%target c64
+%import syslib
+%import textio
 
 
 main {

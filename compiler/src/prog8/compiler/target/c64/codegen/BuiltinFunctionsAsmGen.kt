@@ -348,7 +348,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, functionName: String) {
         translateFunctionArguments(fcall.args, func)
-        asmgen.out("  jsr  c64flt.func_$functionName")
+        asmgen.out("  jsr  floats.func_$functionName")
     }
 
     private fun funcSgn(fcall: IFunctionCall, func: FSignature) {
@@ -359,7 +359,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.BYTE -> asmgen.out("  jsr  math.sign_b")
             DataType.UWORD -> asmgen.out("  jsr  math.sign_uw")
             DataType.WORD -> asmgen.out("  jsr  math.sign_w")
-            DataType.FLOAT -> asmgen.out("  jsr  c64flt.sign_f")
+            DataType.FLOAT -> asmgen.out("  jsr  floats.sign_f")
             else -> throw AssemblyError("weird type $dt")
         }
     }
@@ -370,7 +370,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         when (dt.typeOrElse(DataType.STRUCT)) {
             DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
             DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
-            DataType.ARRAY_F -> asmgen.out("  jsr  c64flt.func_${functionName}_f")
+            DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f")
             else -> throw AssemblyError("weird type $dt")
         }
     }
@@ -383,7 +383,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
             DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw")
             DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
-            DataType.ARRAY_F -> asmgen.out("  jsr  c64flt.func_${functionName}_f")
+            DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f")
             else -> throw AssemblyError("weird type $dt")
         }
     }
@@ -434,7 +434,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     lda  #>$secondName
                     sta  P8ZP_SCRATCH_W2+1
-                    jsr  c64flt.swap_floats
+                    jsr  floats.swap_floats
                 """)
                 return
             }
@@ -546,7 +546,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     lda  #>(${arrayVarName2}+$index2)
                     sta  P8ZP_SCRATCH_W2+1
-                    jsr  c64flt.swap_floats
+                    jsr  floats.swap_floats
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
@@ -619,7 +619,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     bcc  +
                     inc  P8ZP_SCRATCH_W2+1
-+                   jsr  c64flt.swap_floats                                   
++                   jsr  floats.swap_floats                                   
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
@@ -632,7 +632,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         when (dt.typeOrElse(DataType.STRUCT)) {
             in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
             in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
-            DataType.FLOAT -> asmgen.out("  jsr  c64flt.abs_f")
+            DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f")
             else -> throw AssemblyError("weird type")
         }
     }

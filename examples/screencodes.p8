@@ -1,7 +1,8 @@
-%import c64lib
-%import c64textio
+%target c64
+%import textio
 %zeropage basicsafe
 
+; TODO use setcc instead of poking screen ram directly to make this cross-system
 
 main {
 

@@ -90,7 +90,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         else
                             asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")
                     }
-                    DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_ub2float")
+                    DataType.FLOAT -> asmgen.out(" jsr  floats.stack_ub2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
                 }
@@ -107,7 +107,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             lda  #0
 +                           sta  P8ESTACK_HI+1,x""")
                     }
-                    DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_b2float")
+                    DataType.FLOAT -> asmgen.out(" jsr  floats.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
                 }
@@ -116,7 +116,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(expr.type) {
                     DataType.BYTE, DataType.UBYTE -> {}
                     DataType.WORD, DataType.UWORD -> {}
-                    DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_uw2float")
+                    DataType.FLOAT -> asmgen.out(" jsr  floats.stack_uw2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
                 }
@@ -125,17 +125,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(expr.type) {
                     DataType.BYTE, DataType.UBYTE -> {}
                     DataType.WORD, DataType.UWORD -> {}
-                    DataType.FLOAT -> asmgen.out(" jsr  c64flt.stack_w2float")
+                    DataType.FLOAT -> asmgen.out(" jsr  floats.stack_w2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
                 }
             }
             DataType.FLOAT -> {
                 when(expr.type) {
-                    DataType.UBYTE -> asmgen.out(" jsr  c64flt.stack_float2uw")
-                    DataType.BYTE -> asmgen.out(" jsr  c64flt.stack_float2w")
-                    DataType.UWORD -> asmgen.out(" jsr  c64flt.stack_float2uw")
-                    DataType.WORD -> asmgen.out(" jsr  c64flt.stack_float2w")
+                    DataType.UBYTE -> asmgen.out(" jsr  floats.stack_float2uw")
+                    DataType.BYTE -> asmgen.out(" jsr  floats.stack_float2w")
+                    DataType.UWORD -> asmgen.out(" jsr  floats.stack_float2uw")
+                    DataType.WORD -> asmgen.out(" jsr  floats.stack_float2w")
                     DataType.FLOAT -> {}
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
@@ -182,7 +182,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             """)
             DataType.FLOAT -> {
                 val floatConst = asmgen.getFloatAsmConst(expr.number.toDouble())
-                asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float")
+                asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
             }
             else -> throw AssemblyError("weird type")
         }
@@ -198,7 +198,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 asmgen.out("  lda  $varname  |  sta  P8ESTACK_LO,x  |  lda  $varname+1 |  sta  P8ESTACK_HI,x |  dex")
             }
             DataType.FLOAT -> {
-                asmgen.out(" lda  #<$varname |  ldy  #>$varname|  jsr  c64flt.push_float")
+                asmgen.out(" lda  #<$varname |  ldy  #>$varname|  jsr  floats.push_float")
             }
             in IterableDatatypes -> {
                 asmgen.out("  lda  #<$varname  |  sta  P8ESTACK_LO,x  |  lda  #>$varname |  sta  P8ESTACK_HI,x |  dex")
@@ -368,7 +368,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(type) {
                     in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.neg_b")
                     in WordDatatypes -> asmgen.out("  jsr  prog8_lib.neg_w")
-                    DataType.FLOAT -> asmgen.out("  jsr  c64flt.neg_f")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.neg_f")
                     else -> throw AssemblyError("weird type")
                 }
             }
@@ -409,7 +409,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+$indexValue+1 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 DataType.FLOAT -> {
-                    asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  c64flt.push_float")
+                    asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  floats.push_float")
                 }
                 else -> throw AssemblyError("weird element type")
             }
@@ -431,7 +431,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         adc  #<$arrayVarName
                         bcc  +
                         iny
-+                       jsr  c64flt.push_float""")
++                       jsr  floats.push_float""")
                 }
                 else -> throw AssemblyError("weird dt")
             }
@@ -513,17 +513,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateBinaryOperatorFloats(operator: String) {
         when(operator) {
-            "**" -> asmgen.out(" jsr  c64flt.pow_f")
-            "*" -> asmgen.out("  jsr  c64flt.mul_f")
-            "/" -> asmgen.out("  jsr  c64flt.div_f")
-            "+" -> asmgen.out("  jsr  c64flt.add_f")
-            "-" -> asmgen.out("  jsr  c64flt.sub_f")
-            "<" -> asmgen.out("  jsr  c64flt.less_f")
-            ">" -> asmgen.out("  jsr  c64flt.greater_f")
-            "<=" -> asmgen.out("  jsr  c64flt.lesseq_f")
-            ">=" -> asmgen.out("  jsr  c64flt.greatereq_f")
-            "==" -> asmgen.out("  jsr  c64flt.equal_f")
-            "!=" -> asmgen.out("  jsr  c64flt.notequal_f")
+            "**" -> asmgen.out(" jsr  floats.pow_f")
+            "*" -> asmgen.out("  jsr  floats.mul_f")
+            "/" -> asmgen.out("  jsr  floats.div_f")
+            "+" -> asmgen.out("  jsr  floats.add_f")
+            "-" -> asmgen.out("  jsr  floats.sub_f")
+            "<" -> asmgen.out("  jsr  floats.less_f")
+            ">" -> asmgen.out("  jsr  floats.greater_f")
+            "<=" -> asmgen.out("  jsr  floats.lesseq_f")
+            ">=" -> asmgen.out("  jsr  floats.greatereq_f")
+            "==" -> asmgen.out("  jsr  floats.equal_f")
+            "!=" -> asmgen.out("  jsr  floats.notequal_f")
             "%", "<<", ">>", "&", "^", "|", "and", "or", "xor" -> throw AssemblyError("requires integer datatype")
             else -> throw AssemblyError("invalid operator $operator")
         }

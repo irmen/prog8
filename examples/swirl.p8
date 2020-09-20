@@ -1,7 +1,7 @@
-%import c64textio
+%import textio
 %zeropage basicsafe
 
-; TODO this code is identical to the commanderx16 one except the import
+; Note: this program is compatible with C64 and CX16.
 
 main {
     const uword screenwidth = txt.DEFAULT_WIDTH

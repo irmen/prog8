@@ -1,6 +1,8 @@
-%import c64flt
-%import c64textio
+%import floats
+%import textio
 %zeropage basicsafe
+
+; TODO fix crash on CX16
 
 main {
 
@@ -132,9 +134,9 @@ main {
         else
             txt.print("err! ")
         txt.print(" float ")
-        c64flt.print_f(value)
+        floats.print_f(value)
         c64.CHROUT(',')
-        c64flt.print_f(expected)
+        floats.print_f(expected)
         c64.CHROUT('\n')
     }
 }

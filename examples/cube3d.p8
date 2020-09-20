@@ -1,10 +1,8 @@
-%import c64lib
-%import c64textio
+%target c64
+%import syslib
+%import textio
 
 main {
-
-    const uword width = 40
-    const uword height = 25
 
     ; vertices
     word[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
@@ -86,8 +84,8 @@ main {
             rz = rotatedz[i]
             if rz >= 10 {
                 persp = 900 + rz/32
-                sx = rotatedx[i] / persp as byte + width/2
-                sy = rotatedy[i] / persp as byte + height/2
+                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
+                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
                 txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
             }
         }
@@ -96,8 +94,8 @@ main {
             rz = rotatedz[i]
             if rz < 10 {
                 persp = 900 + rz/32
-                sx = rotatedx[i] / persp as byte + width/2
-                sy = rotatedy[i] / persp as byte + height/2
+                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
+                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
                 txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
             }
         }

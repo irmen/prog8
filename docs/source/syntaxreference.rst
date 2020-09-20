@@ -36,9 +36,8 @@ Directives
 .. data:: %target <target>
 
     Level: module.
-    Global setting, selects a compilation target from within the source file.
-    The default compilation target is "c64" which targets the Commodore-64 machine.
-    You can also omit this and use the ``-target`` command line option.
+    Global setting, specifies that this module can only work for the given compiler target.
+    If compiled with a different target, compilation is aborted with an error message.
 
 
 .. data:: %output <type>

@@ -1,10 +1,8 @@
-;%import c64lib
-;%import c64graphics
-;%import c64textio
-%import c64flt
-;%option enable_floats
-%target cx16
-%import cx16textio
+%target c64
+%import syslib
+%import graphics
+%import textio
+%import floats
 %zeropage basicsafe
 
 

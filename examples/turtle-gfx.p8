@@ -1,5 +1,9 @@
-%import c64flt
-%import c64graphics
+%target c64
+%import floats
+%import graphics
+
+; TODO FIX OUTPUT when Optimizer is enabled (it's ok when compiling without optimization)
+
 
 main {
 
