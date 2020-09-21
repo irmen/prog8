@@ -259,6 +259,16 @@ asmsub  init_system()  {
     }}
 }
 
+asmsub  reset_system()  {
+    ; Soft-reset the system back to Basic prompt.
+    %asm {{
+        sei
+        lda  #14
+        sta  $01        ; bank the kernal in
+        jmp  (c64.RESET_VEC)
+    }}
+}
+
 asmsub  set_irqvec_excl() clobbers(A)  {
 	%asm {{
 		sei

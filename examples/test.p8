@@ -1,7 +1,7 @@
 %import syslib
 ; %import graphics
 %import textio
-%zeropage basicsafe
+; %zeropage basicsafe
 
 
 main {
@@ -16,9 +16,9 @@ main {
 ;            }
 ;        }
 
-        repeat 60 {
-            txt.setcc(rnd() % 80, 59, 81, 5)
-            txt.scroll_up(true)
+        repeat txt.DEFAULT_WIDTH {
+            txt.setcc(txt.DEFAULT_WIDTH-1, rnd() % txt.DEFAULT_HEIGHT, 81, 2)
+            txt.scroll_left(true)
 
             repeat 5000 {
                 x++

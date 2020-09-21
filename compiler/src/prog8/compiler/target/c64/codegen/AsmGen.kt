@@ -163,7 +163,7 @@ internal class AsmGen(private val program: Program,
             }
             Zeropage.ExitProgramStrategy.SYSTEM_RESET -> {
                 out("  jsr  main.start\t; call program entrypoint")
-                out(CompilationTarget.instance.asmForSystemReset)
+                out("  jmp  ${CompilationTarget.instance.resetProcName}")
             }
         }
     }

@@ -277,4 +277,15 @@ asmsub init_system()  {
     }}
 }
 
+asmsub  reset_system()  {
+    ; Soft-reset the system back to Basic prompt.
+    %asm {{
+        sei
+        lda  #14
+        sta  $01
+        stz  cx16.d1prb         ; bank the kernal in
+        jmp  (cx16.RESET_VEC)
+    }}
+}
+
 }
