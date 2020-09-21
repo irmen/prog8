@@ -161,34 +161,37 @@ asmsub  scroll_left  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	    phx
 	    jsr  c64.SCREEN
 	    dex
-        stx  _nextrow+1   ; number of columns to scroll
+	    stx  _lx+1
         dey
         sty  P8ZP_SCRATCH_B1    ; number of rows to scroll
-        stz  cx16.VERA_CTRL
-        stz  cx16.VERA_ADDR_H
 
-_nextrow
-        ldx  #0     ; modified
+_nextline
+        stz  cx16.VERA_CTRL     ; data port 0: source column
+        lda  #%00010000         ; auto increment 1
+        sta  cx16.VERA_ADDR_H
+        lda  #2
+        sta  cx16.VERA_ADDR_L   ; begin in column 1
+        ldy  P8ZP_SCRATCH_B1
+        sty  cx16.VERA_ADDR_M
+        lda  #1
+        sta  cx16.VERA_CTRL     ; data port 1: destination column
+        lda  #%00010000         ; auto increment 1
+        sta  cx16.VERA_ADDR_H
         stz  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
 
--       lda  cx16.VERA_DATA0    ; char
-        inc  cx16.VERA_ADDR_L
-        ldy  cx16.VERA_DATA0    ; color
-        dec  cx16.VERA_ADDR_L
-        dec  cx16.VERA_ADDR_L
-        dec  cx16.VERA_ADDR_L
-        sta  cx16.VERA_DATA0
-        inc  cx16.VERA_ADDR_L
-        sty  cx16.VERA_DATA0
-        inc  cx16.VERA_ADDR_L
-        inc  cx16.VERA_ADDR_L
-        inc  cx16.VERA_ADDR_L
+_lx     ldx  #0                ; modified
+-       lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1    ; copy char
+        lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1    ; copy color
         dex
-        bpl  -
+        bne  -
         dec  P8ZP_SCRATCH_B1
-        ldy  P8ZP_SCRATCH_B1
-        bpl  _nextrow
+        bpl  _nextline
+
+        lda  #0
+        sta  cx16.VERA_CTRL
 	    plx
 	    rts
 	}}

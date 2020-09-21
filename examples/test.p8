@@ -1,26 +1,31 @@
 %import syslib
 ; %import graphics
 %import textio
-; %zeropage basicsafe
+%zeropage basicsafe
 
 
 main {
 
     sub start()  {
 
+        ; cx16.screen_set_mode(128)
+
+        ubyte width = txt.width()
+        ubyte height = txt.height()
+
         ubyte x
         ubyte y
-        for y in 0 to txt.DEFAULT_HEIGHT-1 {
-            for x in 0 to txt.DEFAULT_WIDTH-1 {
+        for y in 0 to height-1 {
+            for x in 0 to width-1 {
                 txt.setchr(x,y,x+y)
             }
         }
 
-        repeat txt.DEFAULT_WIDTH {
-            txt.setcc(txt.DEFAULT_WIDTH-1, rnd() % txt.DEFAULT_HEIGHT, 81, 2)
+        repeat width {
+            txt.setcc(width-1, rnd() % height, 81, 2)
             txt.scroll_left(true)
 
-            repeat 2000 {
+            repeat 1000 {
                 x++
             }
         }
