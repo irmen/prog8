@@ -8,7 +8,7 @@ main {
 
     sub start()  {
 
-        ; cx16.screen_set_mode(128)
+        cx16.screen_set_mode(128)
 
         ubyte width = txt.width()
         ubyte height = txt.height()
@@ -22,8 +22,8 @@ main {
         }
 
         repeat width {
-            txt.setcc(width-1, rnd() % height, 81, 2)
-            txt.scroll_left(true)
+            txt.setcc(0, rnd() % height, 81, 2)
+            txt.scroll_right(true)
 
             repeat 1000 {
                 x++

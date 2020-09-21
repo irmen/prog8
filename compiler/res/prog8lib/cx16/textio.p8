@@ -151,8 +151,6 @@ sub uppercase() {
     cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
-; TODO implement the "missing" txtio scroll subroutines:  scroll_left, scroll_right, scroll_down
-
 asmsub  scroll_left  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
@@ -201,6 +199,52 @@ asmsub  scroll_right  (ubyte dummy @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag is a dummy on the cx16
+	%asm {{
+	    phx
+	    jsr  c64.SCREEN
+	    dex
+	    stx  _lx+1
+	    txa
+	    asl  a
+	    dea
+	    sta  _rcol+1
+	    ina
+	    ina
+	    sta  _rcol2+1
+        dey
+        sty  P8ZP_SCRATCH_B1    ; number of rows to scroll
+
+_nextline
+        stz  cx16.VERA_CTRL     ; data port 0: source column
+        lda  #%00011000         ; auto decrement 1
+        sta  cx16.VERA_ADDR_H
+_rcol   lda  #79*2-1             ; modified
+        sta  cx16.VERA_ADDR_L   ; begin in rightmost column minus one
+        ldy  P8ZP_SCRATCH_B1
+        sty  cx16.VERA_ADDR_M
+        lda  #1
+        sta  cx16.VERA_CTRL     ; data port 1: destination column
+        lda  #%00011000         ; auto decrement 1
+        sta  cx16.VERA_ADDR_H
+_rcol2  lda  #79*2+1            ; modified
+        sta  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+
+_lx     ldx  #0                 ; modified
+-       lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1    ; copy char
+        lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1    ; copy color
+        dex
+        bne  -
+        dec  P8ZP_SCRATCH_B1
+        bpl  _nextline
+
+        lda  #0
+        sta  cx16.VERA_CTRL
+	    plx
+	    rts
+	}}
 }
 
 asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A, Y)  {
