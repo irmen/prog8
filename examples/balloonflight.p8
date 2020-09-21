@@ -44,7 +44,7 @@ main {
             }
 
             perform_scroll = false
-            txt.scroll_left_full(true)
+            txt.scroll_left(true)
             if c64.RASTER & 1
                 c64.SPXY[1] ++
             else

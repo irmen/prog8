@@ -19,7 +19,7 @@ sub  clear_screen() {
     clear_screenchars(' ')
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
+asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
 	%asm {{
 	    sty  _ly+1
@@ -92,7 +92,7 @@ _lx     ldx  #0                     ; modified
         }}
 }
 
-asmsub  clear_screencolors (ubyte scrcolor @ A) clobbers(Y)  {
+asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
@@ -148,7 +148,116 @@ sub uppercase() {
     cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
-; TODO implement the "missing" txtio scroll subroutines:  scroll_left_full, (also right, up, down)
+; TODO implement the "missing" txtio scroll subroutines:  scroll_left, scroll_right, scroll_down
+
+asmsub  scroll_left  (ubyte dummy @ Pc) clobbers(A, Y)  {
+	; ---- scroll the whole screen 1 character to the left
+	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
+	;      Carry flag is a dummy on the cx16
+}
+
+asmsub  scroll_right  (ubyte dummy @ Pc) clobbers(A)  {
+	; ---- scroll the whole screen 1 character to the right
+	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
+	;      Carry flag is a dummy on the cx16
+}
+
+asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A)  {
+	; ---- scroll the whole screen 1 character up
+	;      contents of the bottom row are unchanged, you should refill/clear this yourself
+	;      Carry flag is a dummy on the cx16
+	%asm {{
+	    phx
+	    jsr  c64.SCREEN
+	    txa
+	    lsr  a
+	    lsr  a
+	    sta  P8ZP_SCRATCH_REG       ; number of columns / 4 due to loop unroll
+	    dey
+	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
+        lda  #%00010000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
+        lda  #1
+        sta  cx16.VERA_ADDR_M       ; start at (0, 1)
+
+_scrolline	    ldy  #0
+        stz  cx16.VERA_ADDR_L
+	    ldx  P8ZP_SCRATCH_REG
+-       lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        lda  cx16.VERA_DATA0
+        sta  _scrollbuffer,y
+        iny
+        dex
+        bpl  -
+        ; now copy the linebuffer back to the line above this one
+        stz  cx16.VERA_ADDR_L
+        dec  cx16.VERA_ADDR_M
+	    ldy  #0
+	    ldx  P8ZP_SCRATCH_REG
+-       lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        lda  _scrollbuffer,y
+        sta  cx16.VERA_DATA0
+        iny
+        dex
+        bpl  -
+        inc  cx16.VERA_ADDR_M
+        inc  cx16.VERA_ADDR_M       ; next line to copy
+
+	    dec  P8ZP_SCRATCH_B1
+	    bne  _scrolline
+
+	    plx
+	    rts
+
+_scrollbuffer  .fill  160, 0
+	}}
+}
+
+asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A)  {
+	; ---- scroll the whole screen 1 character down
+	;      contents of the top row are unchanged, you should refill/clear this yourself
+	;      Carry flag is a dummy on the cx16
+}
 
 romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
 

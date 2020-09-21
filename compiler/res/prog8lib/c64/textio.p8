@@ -4,7 +4,6 @@
 ;
 ; indent format: TABS, size=8
 
-
 %target c64
 %import syslib
 %import conv
@@ -20,7 +19,7 @@ sub  clear_screen() {
     clear_screenchars(' ')
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte charcolor @ Y) clobbers(A)  {
+asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
 	;      (assumes screen and color matrix are at their default addresses)
 
@@ -50,7 +49,7 @@ _loop		sta  c64.Screen,y
         }}
 }
 
-asmsub  clear_screencolors (ubyte scrcolor @ A) clobbers(Y)  {
+asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
@@ -77,7 +76,7 @@ sub uppercase() {
     c64.VMCSB &= ~2
 }
 
-asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
+asmsub  scroll_left  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -116,7 +115,7 @@ _scroll_screen  ; scroll the screen memory
 	}}
 }
 
-asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_right  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -150,7 +149,7 @@ _scroll_screen  ; scroll the screen memory
 	}}
 }
 
-asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_up  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -184,7 +183,7 @@ _scroll_screen  ; scroll the screen memory
 	}}
 }
 
-asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_down  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too

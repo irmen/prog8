@@ -8,21 +8,20 @@ main {
 
     sub start()  {
 
-        ; 40 x 25
-        ; 80 x 60
-        txt.fill_screen('*', 8)
+        ubyte x
+        ubyte y
+        for y in 0 to txt.DEFAULT_HEIGHT-1 {
+            for x in 0 to txt.DEFAULT_WIDTH-1 {
+                txt.setchr(x,y,x+y)
+            }
+        }
 
-        txt.clear_screen()
+        repeat 60 {
+            txt.scroll_up(true)
 
-        txt.print_ub(txt.width())
-        txt.chrout('\n')
-        txt.print_ub(txt.height())
-        txt.chrout('\n')
-
-        ubyte i
-        repeat {
-            txt.clear_screencolors(i)
-            i++
+            repeat 5000 {
+                x++
+            }
         }
     }
 }
