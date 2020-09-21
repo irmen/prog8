@@ -226,7 +226,7 @@ This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
 So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
 are banked in.
 
-Also your code needs to import the ``c64flt`` library to enable floating point support
+Also your code needs to import the ``floats`` library to enable floating point support
 in the compiler, and to gain access to the floating point routines.
 (this library contains the directive to enable floating points, you don't have
 to worry about this yourself)
@@ -802,7 +802,7 @@ memset(address, numbytes, bytevalue)
     Efficiently set a part of memory to the given (u)byte value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
     Note that for clearing the character screen, very fast specialized subroutines are
-    available in the ``screen`` block (part of the ``c64textio`` or ``cx16textio`` modules)
+    available in the ``txt`` block (part of the ``textio`` module)
 
 memsetw(address, numwords, wordvalue)
     Efficiently set a part of memory to the given (u)word value.

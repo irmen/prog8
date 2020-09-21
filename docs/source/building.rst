@@ -149,10 +149,10 @@ If your running program hits one of the breakpoints, Vice will halt execution an
 Troubleshooting
 ---------------
 
-Getting an assembler error about undefined symbols such as ``not defined 'c64flt'``?
-This happens when your program uses floating point values, and you forgot to import ``c64flt`` library.
+Getting an assembler error about undefined symbols such as ``not defined 'floats'``?
+This happens when your program uses floating point values, and you forgot to import ``floats`` library.
 If you use floating points, the compiler needs routines from that library.
-Fix it by adding an ``%import c64flt``.
+Fix it by adding an ``%import floats``.
 
 
 Examples
