@@ -16,74 +16,78 @@ const ubyte DEFAULT_HEIGHT = 60
 
 
 sub  clear_screen() {
-    c64.CHROUT(147)         ; clear screen (spaces)
+    clear_screenchars(' ')
 }
 
 asmsub  fill_screen (ubyte char @ A, ubyte txtcolor @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
-	; TODO this can be done more efficiently with the VERA auto increment mode?
 	%asm {{
-        sta  P8ZP_SCRATCH_W1        ; fillchar
-        sty  P8ZP_SCRATCH_W1+1      ; textcolor
+	    sty  _ly+1
         phx
+        pha
         jsr  c64.SCREEN             ; get dimensions in X/Y
-        dex
-        dey
         txa
-        asl  a
-        adc  #1
-        sta  P8ZP_SCRATCH_B1
--       ldx  P8ZP_SCRATCH_B1
--       stz  cx16.VERA_ADDR_H
-        stx  cx16.VERA_ADDR_L
-        sty  cx16.VERA_ADDR_M
-        lda  cx16.VERA_DATA0
-        and  #$f0
-        ora  P8ZP_SCRATCH_W1+1
+        lsr  a
+        lsr  a
+        sta  _lx+1
+        lda  #%00010000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
+        stz  cx16.VERA_ADDR_L       ; start at (0,0)
+        stz  cx16.VERA_ADDR_M
+        pla
+_lx     ldx  #0                     ; modified
+        phy
+_ly     ldy  #1                     ; modified
+-       sta  cx16.VERA_DATA0
+        sty  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
-        dex
-        stz  cx16.VERA_ADDR_H
-        stx  cx16.VERA_ADDR_L
-        sty  cx16.VERA_ADDR_M
-        lda  P8ZP_SCRATCH_W1
+        sty  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
+        sty  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
+        sty  cx16.VERA_DATA0
         dex
-        cpx  #255
         bne  -
+        ply
         dey
-        bpl  --
-        plx
+        beq  +
+        stz  cx16.VERA_ADDR_L
+        inc  cx16.VERA_ADDR_M       ; next line
+        bra  _lx
++       plx
         rts
-    }}
-
+        }}
 }
 
 asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
-	; TODO this can be done more efficiently with the VERA auto increment mode?
 	%asm {{
         phx
         pha
         jsr  c64.SCREEN             ; get dimensions in X/Y
-        dex
-        dey
         txa
-        asl  a
-        sta  _mod+1
+        lsr  a
+        lsr  a
+        sta  _lx+1
+        lda  #%00100000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 2, bank 0.
+        stz  cx16.VERA_ADDR_L       ; start at (0,0)
+        stz  cx16.VERA_ADDR_M
         pla
-_mod    ldx  #0                     ; modified
--       stz  cx16.VERA_ADDR_H
-        stx  cx16.VERA_ADDR_L
-        sty  cx16.VERA_ADDR_M
+_lx     ldx  #0                     ; modified
+-       sta  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
         dex
-        dex
-        cpx  #-2
         bne  -
         dey
-        bpl  _mod
-        plx
+        beq  +
+        stz  cx16.VERA_ADDR_L
+        inc  cx16.VERA_ADDR_M       ; next line
+        bra  _lx
++       plx
         rts
         }}
 }
@@ -91,30 +95,34 @@ _mod    ldx  #0                     ; modified
 asmsub  clear_screencolors (ubyte scrcolor @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
-	; TODO this can be done more efficiently with the VERA auto increment mode?
 	%asm {{
         phx
-        pha
+        sta  _la+1
         jsr  c64.SCREEN             ; get dimensions in X/Y
-        dex
-        dey
         txa
-        asl  a
-        ina
-        sta  _mod+1
-        pla
-_mod    ldx  #0                     ; modified
--       stz  cx16.VERA_ADDR_H
-        stx  cx16.VERA_ADDR_L
-        sty  cx16.VERA_ADDR_M
+        lsr  a
+        lsr  a
+        sta  _lx+1
+        lda  #%00100000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 2, bank 0.
+        lda  #1
+        sta  cx16.VERA_ADDR_L       ; start at (1,0)
+        stz  cx16.VERA_ADDR_M
+_lx     ldx  #0                     ; modified
+_la     lda  #0                     ; modified
+-       sta  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
         dex
-        dex
-        cpx  #-1
         bne  -
         dey
-        bpl  _mod
-        plx
+        beq  +
+        lda  #1
+        sta  cx16.VERA_ADDR_L
+        inc  cx16.VERA_ADDR_M       ; next line
+        bra  _lx
++       plx
         rts
         }}
 }

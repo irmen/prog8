@@ -16,11 +16,8 @@ const ubyte DEFAULT_WIDTH = 40
 const ubyte DEFAULT_HEIGHT = 25
 
 
-asmsub  clear_screen() {
-    %asm {{
-        lda  #' '
-        jmp  clear_screenchars
-    }}
+sub  clear_screen() {
+    clear_screenchars(' ')
 }
 
 asmsub  fill_screen (ubyte char @ A, ubyte charcolor @ Y) clobbers(A)  {
