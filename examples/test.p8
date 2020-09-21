@@ -8,24 +8,21 @@ main {
 
     sub start()  {
 
-        cx16.screen_set_mode(128)
+        ; cx16.screen_set_mode(128)
 
         ubyte width = txt.width()
         ubyte height = txt.height()
 
         ubyte x
-        ubyte y
-        for y in 0 to height-1 {
-            for x in 0 to width-1 {
-                txt.setchr(x,y,x+y)
-            }
-        }
 
-        repeat width {
-            txt.setcc(0, rnd() % height, 81, 2)
-            txt.scroll_right(true)
-
-            repeat 1000 {
+        repeat 999 {
+            ubyte xpos = rnd() % (width-1)
+            txt.setcc(xpos, 0, 81, 6)
+            ubyte ypos = rnd() % (height-1)+1
+            txt.setcc(width-1, ypos, 81, 2)
+            txt.scroll_left(true)
+            txt.scroll_down(true)
+            repeat 2000 {
                 x++
             }
         }

@@ -251,100 +251,49 @@ asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag is a dummy on the cx16
-	; TODO use the VERA dual data port
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
-	    txa
-	    lsr  a
-	    lsr  a
-	    dea
-	    sta  P8ZP_SCRATCH_REG       ; number of columns / 4 due to loop unroll
+	    stx  _nextline+1
 	    dey
-	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
-        stz  cx16.VERA_CTRL
+        sty  P8ZP_SCRATCH_B1
+        stz  cx16.VERA_CTRL         ; data port 0 is source
+        lda  #1
+        sta  cx16.VERA_ADDR_M       ; start at second line
+        stz  cx16.VERA_ADDR_L
         lda  #%00010000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
-        lda  #1
-        sta  cx16.VERA_ADDR_M       ; start at (0, 1)
 
--       jsr  _copy_line_to_buffer
-        ; now copy the linebuffer back to the line above this one
-        dec  cx16.VERA_ADDR_M
-        jsr  _copy_buffer_to_line
-        ; next line to copy
+        lda  #1
+        sta  cx16.VERA_CTRL         ; data port 1 is destination
+        stz  cx16.VERA_ADDR_M       ; start at top line
+        stz  cx16.VERA_ADDR_L
+        lda  #%00010000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
+
+_nextline
+        ldx  #80        ; modified
+-       lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1        ; copy char
+        lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1        ; copy color
+        dex
+        bne  -
+        dec  P8ZP_SCRATCH_B1
+        beq  +
+        stz  cx16.VERA_CTRL         ; data port 0
+        stz  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M
+        lda  #1
+        sta  cx16.VERA_CTRL         ; data port 1
+        stz  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M
-	    dec  P8ZP_SCRATCH_B1
-	    bne  -
+        bra  _nextline
+
++       lda  #0
+        sta  cx16.VERA_CTRL
 	    plx
 	    rts
-
-_copy_line_to_buffer:
-        ldy  #0
-        stz  cx16.VERA_ADDR_L
-	    ldx  P8ZP_SCRATCH_REG
--       lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        lda  cx16.VERA_DATA0
-        sta  _scrollbuffer,y
-        iny
-        dex
-        bpl  -
-        rts
-
-_copy_buffer_to_line
-	    ldy  #0
-        stz  cx16.VERA_ADDR_L
-	    ldx  P8ZP_SCRATCH_REG
--       lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        lda  _scrollbuffer,y
-        sta  cx16.VERA_DATA0
-        iny
-        dex
-        bpl  -
-        rts
-
-_scrollbuffer  .fill  160, 0
 	}}
 }
 
@@ -352,32 +301,48 @@ asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag is a dummy on the cx16
-	; TODO use the VERA dual data port
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
-	    txa
-	    lsr  a
-	    lsr  a
-	    dea
-	    sta  P8ZP_SCRATCH_REG       ; number of columns / 4 due to loop unroll
+	    stx  _nextline+1
 	    dey
-	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
-	    dey
-        stz  cx16.VERA_CTRL
+        sty  P8ZP_SCRATCH_B1
+        stz  cx16.VERA_CTRL         ; data port 0 is source
+        dey
         sty  cx16.VERA_ADDR_M       ; start at line before bottom line
+        stz  cx16.VERA_ADDR_L
         lda  #%00010000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
--       jsr  scroll_up._copy_line_to_buffer
-        ; now copy the linebuffer back to the line below this one
-        inc  cx16.VERA_ADDR_M
-        jsr  scroll_up._copy_buffer_to_line
-        ; next line to copy
+        lda  #1
+        sta  cx16.VERA_CTRL         ; data port 1 is destination
+        iny
+        sty  cx16.VERA_ADDR_M       ; start at bottom line
+        stz  cx16.VERA_ADDR_L
+        lda  #%00010000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
+
+_nextline
+        ldx  #80        ; modified
+-       lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1        ; copy char
+        lda  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA1        ; copy color
+        dex
+        bne  -
+        dec  P8ZP_SCRATCH_B1
+        beq  +
+        stz  cx16.VERA_CTRL         ; data port 0
+        stz  cx16.VERA_ADDR_L
         dec  cx16.VERA_ADDR_M
+        lda  #1
+        sta  cx16.VERA_CTRL         ; data port 1
+        stz  cx16.VERA_ADDR_L
         dec  cx16.VERA_ADDR_M
-	    dec  P8ZP_SCRATCH_B1
-	    bne  -
+        bra  _nextline
+
++       lda  #0
+        sta  cx16.VERA_CTRL
 	    plx
 	    rts
 	}}
