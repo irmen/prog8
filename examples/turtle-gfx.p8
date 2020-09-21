@@ -1,9 +1,7 @@
 %target c64
 %import floats
 %import graphics
-
-; TODO FIX OUTPUT when Optimizer is enabled (it's ok when compiling without optimization)
-
+%zeropage floatsafe
 
 main {
 
