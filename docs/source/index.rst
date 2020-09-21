@@ -126,6 +126,7 @@ Design principles and features
   the ability to easily write embedded assembly code directly in the program source code.
 - There are many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``substr``, ``sort`` and ``reverse`` (and others)
 - Assembling the generated code into a program wil be done by an external cross-assembler tool.
+- If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
 .. _requirements:
