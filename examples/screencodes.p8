@@ -1,8 +1,7 @@
-%target c64
 %import textio
 %zeropage basicsafe
 
-; TODO use setcc instead of poking screen ram directly to make this cross-system
+; Note: this program is compatible with C64 and CX16.
 
 main {
 
@@ -16,16 +15,14 @@ main {
         txt.print("\n\n\n\nString output via print:\n")
         txt.print("petscii-str: ")
         txt.print(s1)
-        txt.print("\nscrcode-str: ")
-        txt.print(s2)
 
         txt.print("\n\nThe top two screen lines are set via screencodes.\n")
         ubyte i
         for i in 0 to len(s1)-1
-            @($0400+i) = s1[i]
+            txt.setchr(i, 0, s1[i])
 
         for i in 0 to len(s2)-1
-            @($0400+40+i) = s2[i]
+            txt.setchr(i, 1, s2[i])
 
         ubyte c1 = 'z'
         ubyte c2 = @'z'

@@ -143,8 +143,8 @@ sub  print_f  (float value) {
 		jsr  c64.CHROUT
 		iny
 		bne  -
-		plx
-+		rts
++		plx
+		rts
 	}}
 }
 

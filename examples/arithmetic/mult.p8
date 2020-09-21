@@ -2,8 +2,6 @@
 %import textio
 %zeropage basicsafe
 
-; TODO fix crash on CX16
-
 main {
 
     sub start() {

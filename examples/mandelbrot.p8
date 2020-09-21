@@ -1,9 +1,8 @@
-%import syslib
 %import textio
 %import floats
 %zeropage basicsafe
 
-; TODO use RDTIM() to get the time and make this system agnostic
+; Note: this program is compatible with C64 and CX16.
 
 main {
     const uword width = 30
@@ -13,9 +12,15 @@ main {
     sub start()  {
         txt.print("calculating mandelbrot fractal...")
 
-        c64.TIME_HI=0
-        c64.TIME_MID=0
-        c64.TIME_LO=0
+        %asm {{
+            stx  P8ZP_SCRATCH_REG
+            ; reset the jiffy clock
+            ldx  #0
+            ldy  #0
+            lda  #0
+            jsr  c64.SETTIM
+            ldx  P8ZP_SCRATCH_REG
+        }}
 
         ubyte pixelx
         ubyte pixely
@@ -43,9 +48,20 @@ main {
             }
         }
 
-        float duration = ((c64.TIME_LO as float)
-                                + 256.0*(c64.TIME_MID as float)
-                                + 65536.0*(c64.TIME_HI as float))/60.0
+        ubyte time_lo
+        ubyte time_mid
+        ubyte time_hi
+
+        %asm {{
+            stx  P8ZP_SCRATCH_REG
+            jsr  c64.RDTIM      ; A/X/Y
+            sta  time_lo
+            stx  time_mid
+            sty  time_hi
+            ldx  P8ZP_SCRATCH_REG
+        }}
+
+        float duration = ((mkword(time_mid, time_lo) as float) + (time_hi as float)*65536.0) / 60
         txt.plot(0, 21)
         txt.print("finished in ")
         floats.print_f(duration)
