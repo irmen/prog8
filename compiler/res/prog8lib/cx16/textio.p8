@@ -30,6 +30,7 @@ asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
         lsr  a
         lsr  a
         sta  _lx+1
+        stz  cx16.VERA_CTRL
         lda  #%00010000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
         stz  cx16.VERA_ADDR_L       ; start at (0,0)
@@ -70,6 +71,7 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
         lsr  a
         lsr  a
         sta  _lx+1
+        stz  cx16.VERA_CTRL
         lda  #%00100000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 2, bank 0.
         stz  cx16.VERA_ADDR_L       ; start at (0,0)
@@ -103,6 +105,7 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
         lsr  a
         lsr  a
         sta  _lx+1
+        stz  cx16.VERA_CTRL
         lda  #%00100000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 2, bank 0.
         lda  #1
@@ -157,7 +160,35 @@ asmsub  scroll_left  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
+	    dex
+        stx  _nextrow+1   ; number of columns to scroll
+        dey
+        sty  P8ZP_SCRATCH_B1    ; number of rows to scroll
+        stz  cx16.VERA_CTRL
+        stz  cx16.VERA_ADDR_H
 
+_nextrow
+        ldx  #0     ; modified
+        stz  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+
+-       lda  cx16.VERA_DATA0    ; char
+        inc  cx16.VERA_ADDR_L
+        ldy  cx16.VERA_DATA0    ; color
+        dec  cx16.VERA_ADDR_L
+        dec  cx16.VERA_ADDR_L
+        dec  cx16.VERA_ADDR_L
+        sta  cx16.VERA_DATA0
+        inc  cx16.VERA_ADDR_L
+        sty  cx16.VERA_DATA0
+        inc  cx16.VERA_ADDR_L
+        inc  cx16.VERA_ADDR_L
+        inc  cx16.VERA_ADDR_L
+        dex
+        bpl  -
+        dec  P8ZP_SCRATCH_B1
+        ldy  P8ZP_SCRATCH_B1
+        bpl  _nextrow
 	    plx
 	    rts
 	}}
@@ -173,7 +204,7 @@ asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag is a dummy on the cx16
-	; TODO maybe a version without using intermediate buffer is faster? (avoid double store/read)
+	; TODO use the VERA dual data port
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
@@ -184,6 +215,7 @@ asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	    sta  P8ZP_SCRATCH_REG       ; number of columns / 4 due to loop unroll
 	    dey
 	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
+        stz  cx16.VERA_CTRL
         lda  #%00010000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
         lda  #1
@@ -273,7 +305,7 @@ asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag is a dummy on the cx16
-	; TODO maybe a version without using intermediate buffer is faster? (avoid double store/read)
+	; TODO use the VERA dual data port
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
@@ -285,6 +317,7 @@ asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	    dey
 	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
 	    dey
+        stz  cx16.VERA_CTRL
         sty  cx16.VERA_ADDR_M       ; start at line before bottom line
         lda  #%00010000
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
@@ -534,6 +567,7 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A)  {
 		pha
 		txa
 		asl  a
+        stz  cx16.VERA_CTRL
 		stz  cx16.VERA_ADDR_H
 		sta  cx16.VERA_ADDR_L
 		sty  cx16.VERA_ADDR_M
@@ -547,6 +581,7 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
 		asl  a
+        stz  cx16.VERA_CTRL
 		stz  cx16.VERA_ADDR_H
 		sta  cx16.VERA_ADDR_L
 		sty  cx16.VERA_ADDR_M
@@ -562,6 +597,7 @@ asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
 		txa
 		asl  a
 		ina
+        stz  cx16.VERA_CTRL
 		stz  cx16.VERA_ADDR_H
 		sta  cx16.VERA_ADDR_L
 		sty  cx16.VERA_ADDR_M
@@ -576,6 +612,7 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	%asm  {{
 		asl  a
 		ina
+        stz  cx16.VERA_CTRL
 		stz  cx16.VERA_ADDR_H
 		sta  cx16.VERA_ADDR_L
 		sty  cx16.VERA_ADDR_M
@@ -595,6 +632,7 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 		lda  charcolor
 		and  #$0f
 	    sta  P8ZP_SCRATCH_B1
+        stz  cx16.VERA_CTRL
         stz  cx16.VERA_ADDR_H
         stx  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
