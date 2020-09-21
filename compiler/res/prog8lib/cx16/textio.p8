@@ -63,30 +63,62 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	;      (assumes screen matrix is at the default address)
 	; TODO this can be done more efficiently with the VERA auto increment mode?
 	%asm {{
-        pha
         phx
+        pha
         jsr  c64.SCREEN             ; get dimensions in X/Y
         dex
         dey
         txa
         asl  a
-        sta  P8ZP_SCRATCH_B1
+        sta  _mod+1
         pla
--       ldx  P8ZP_SCRATCH_B1
+_mod    ldx  #0                     ; modified
 -       stz  cx16.VERA_ADDR_H
         stx  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
         sta  cx16.VERA_DATA0
         dex
         dex
-        cpx  #254
+        cpx  #-2
         bne  -
         dey
-        bpl  --
+        bpl  _mod
         plx
         rts
         }}
 }
+
+asmsub  clear_screencolors (ubyte scrcolor @ A) clobbers(Y)  {
+	; ---- clear the character screen colors with the given color (leaves characters).
+	;      (assumes color matrix is at the default address)
+	; TODO this can be done more efficiently with the VERA auto increment mode?
+	%asm {{
+        phx
+        pha
+        jsr  c64.SCREEN             ; get dimensions in X/Y
+        dex
+        dey
+        txa
+        asl  a
+        ina
+        sta  _mod+1
+        pla
+_mod    ldx  #0                     ; modified
+-       stz  cx16.VERA_ADDR_H
+        stx  cx16.VERA_ADDR_L
+        sty  cx16.VERA_ADDR_M
+        sta  cx16.VERA_DATA0
+        dex
+        dex
+        cpx  #-1
+        bne  -
+        dey
+        bpl  _mod
+        plx
+        rts
+        }}
+}
+
 
 ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$98,$99,$9a,$9b]
 
@@ -108,7 +140,6 @@ sub uppercase() {
     cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
-; TODO implement clear_screencolors
 ; TODO implement the "missing" txtio scroll subroutines:  scroll_left_full, (also right, up, down)
 
 romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
