@@ -162,7 +162,7 @@ asmsub  scroll_right  (ubyte dummy @ Pc) clobbers(A)  {
 	;      Carry flag is a dummy on the cx16
 }
 
-asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A)  {
+asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag is a dummy on the cx16
@@ -172,6 +172,7 @@ asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A)  {
 	    txa
 	    lsr  a
 	    lsr  a
+	    dea
 	    sta  P8ZP_SCRATCH_REG       ; number of columns / 4 due to loop unroll
 	    dey
 	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
@@ -180,7 +181,20 @@ asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A)  {
         lda  #1
         sta  cx16.VERA_ADDR_M       ; start at (0, 1)
 
-_scrolline	    ldy  #0
+-       jsr  _copy_line_to_buffer
+        ; now copy the linebuffer back to the line above this one
+        dec  cx16.VERA_ADDR_M
+        jsr  _copy_buffer_to_line
+        ; next line to copy
+        inc  cx16.VERA_ADDR_M
+        inc  cx16.VERA_ADDR_M
+	    dec  P8ZP_SCRATCH_B1
+	    bne  -
+	    plx
+	    rts
+
+_copy_line_to_buffer:
+        ldy  #0
         stz  cx16.VERA_ADDR_L
 	    ldx  P8ZP_SCRATCH_REG
 -       lda  cx16.VERA_DATA0
@@ -209,10 +223,11 @@ _scrolline	    ldy  #0
         iny
         dex
         bpl  -
-        ; now copy the linebuffer back to the line above this one
-        stz  cx16.VERA_ADDR_L
-        dec  cx16.VERA_ADDR_M
+        rts
+
+_copy_buffer_to_line
 	    ldy  #0
+        stz  cx16.VERA_ADDR_L
 	    ldx  P8ZP_SCRATCH_REG
 -       lda  _scrollbuffer,y
         sta  cx16.VERA_DATA0
@@ -240,23 +255,43 @@ _scrolline	    ldy  #0
         iny
         dex
         bpl  -
-        inc  cx16.VERA_ADDR_M
-        inc  cx16.VERA_ADDR_M       ; next line to copy
-
-	    dec  P8ZP_SCRATCH_B1
-	    bne  _scrolline
-
-	    plx
-	    rts
+        rts
 
 _scrollbuffer  .fill  160, 0
 	}}
 }
 
-asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A)  {
+asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag is a dummy on the cx16
+	%asm {{
+	    phx
+	    jsr  c64.SCREEN
+	    txa
+	    lsr  a
+	    lsr  a
+	    dea
+	    sta  P8ZP_SCRATCH_REG       ; number of columns / 4 due to loop unroll
+	    dey
+	    sty  P8ZP_SCRATCH_B1        ; number of lines to scroll up
+	    dey
+        sty  cx16.VERA_ADDR_M       ; start at line before bottom line
+        lda  #%00010000
+        sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
+
+-       jsr  scroll_up._copy_line_to_buffer
+        ; now copy the linebuffer back to the line below this one
+        inc  cx16.VERA_ADDR_M
+        jsr  scroll_up._copy_buffer_to_line
+        ; next line to copy
+        dec  cx16.VERA_ADDR_M
+        dec  cx16.VERA_ADDR_M
+	    dec  P8ZP_SCRATCH_B1
+	    bne  -
+	    plx
+	    rts
+	}}
 }
 
 romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
