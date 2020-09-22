@@ -58,7 +58,6 @@ multiply_words	.proc
 	;      input: A/Y = first 16-bit number, P8ZP_SCRATCH_W1 in ZP = second 16-bit number
 	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)
 	;      clobbers: A
-	; TODO find a faster 16*16 -> 16 bits multiplication routine
 
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1

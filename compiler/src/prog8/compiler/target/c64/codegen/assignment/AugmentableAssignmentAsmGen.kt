@@ -857,7 +857,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         dec  $name+1
 +                           """)
                     "*" -> {
-                        // TODO use a more efficient 16 *8 -> 16 multiplication routine
                         asmgen.out("""
                             lda  $otherName
                             sta  P8ZP_SCRATCH_W1
