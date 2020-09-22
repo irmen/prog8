@@ -31,17 +31,17 @@ graphics {
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
         cx16.r0 = xcenter - radius/2
         cx16.r1 = ycenter - radius/2
-        cx16.r2 = radius
-        cx16.r3 = radius
-        cx16.GRAPH_draw_oval(false)          ; TODO  currently seems to crash
+        cx16.r2 = radius*2
+        cx16.r3 = radius*2
+        cx16.GRAPH_draw_oval(false)          ; TODO  currently is not implemented on cx16, does a BRK
     }
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
         cx16.r0 = xcenter - radius/2
         cx16.r1 = ycenter - radius/2
-        cx16.r2 = radius
-        cx16.r3 = radius
-        cx16.GRAPH_draw_oval(true)          ; TODO  currently seems to crash
+        cx16.r2 = radius*2
+        cx16.r3 = radius*2
+        cx16.GRAPH_draw_oval(true)          ; TODO  currently is not implemented on cx16, does a BRK
     }
 
     sub  plot(uword plotx, ubyte ploty) {
