@@ -148,6 +148,15 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
             .map { it[0].int!!..it[1].int!! }
             .toList()
 
+    if(outputType!=null && !OutputType.values().any {it.name==outputType}) {
+        System.err.println("invalid output type $outputType")
+        exitProcess(1)
+    }
+    if(launcherType!=null && !LauncherType.values().any {it.name==launcherType}) {
+        System.err.println("invalid launcher type $launcherType")
+        exitProcess(1)
+    }
+
     return CompilationOptions(
             if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
             if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),

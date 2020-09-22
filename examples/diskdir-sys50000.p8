@@ -2,8 +2,12 @@
 %import textio
 %import syslib
 %zeropage basicsafe
+%launcher none
+%address 50000
 
 ; This example shows the directory contents of disk drive 8.
+; You load it with  LOAD "diskdir-sys50000",8,1
+; and then call it with SYS 50000.
 
 main {
     sub start() {
