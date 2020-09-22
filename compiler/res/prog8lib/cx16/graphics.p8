@@ -29,25 +29,123 @@ graphics {
     }
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
-        cx16.r0 = xcenter - radius/2
-        cx16.r1 = ycenter - radius/2
-        cx16.r2 = radius*2
-        cx16.r3 = radius*2
-        cx16.GRAPH_draw_oval(false)          ; TODO  currently is not implemented on cx16, does a BRK
+        ;cx16.r0 = xcenter - radius/2
+        ;cx16.r1 = ycenter - radius/2
+        ;cx16.r2 = radius*2
+        ;cx16.r3 = radius*2
+        ;cx16.GRAPH_draw_oval(false)          ; TODO  currently is not implemented on cx16, does a BRK
+
+        ; Midpoint algorithm
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        byte @zp decisionOver2 = 1-xx as byte
+
+        while xx>=yy {
+            cx16.r0 = xcenter + xx
+            cx16.r1 = ycenter + yy
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter - xx
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter + xx
+            cx16.r1 = ycenter - yy
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter - xx
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter + yy
+            cx16.r1 = ycenter + xx
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter - yy
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter + yy
+            cx16.r1 = ycenter - xx
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            cx16.r0 = xcenter - yy
+            cx16.FB_cursor_position()
+            cx16.FB_set_pixel(1)
+            yy++
+            if decisionOver2<=0 {
+                decisionOver2 += 2*yy+1
+            } else {
+                xx--
+                decisionOver2 += 2*(yy-xx)+1
+            }
+        }
     }
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
-        cx16.r0 = xcenter - radius/2
-        cx16.r1 = ycenter - radius/2
-        cx16.r2 = radius*2
-        cx16.r3 = radius*2
-        cx16.GRAPH_draw_oval(true)          ; TODO  currently is not implemented on cx16, does a BRK
+;        cx16.r0 = xcenter - radius/2
+;        cx16.r1 = ycenter - radius/2
+;        cx16.r2 = radius*2
+;        cx16.r3 = radius*2
+;        cx16.GRAPH_draw_oval(true)          ; TODO  currently is not implemented on cx16, does a BRK
+
+        ubyte xx = radius
+        ubyte yy = 0
+        byte decisionOver2 = 1-xx as byte
+
+        while xx>=yy {
+            ubyte ycenter_plus_yy = ycenter + yy
+            ubyte ycenter_min_yy = ycenter - yy
+            ubyte ycenter_plus_xx = ycenter + xx
+            ubyte ycenter_min_xx = ycenter - xx
+            uword @zp plotx
+
+            for plotx in xcenter to xcenter+xx {
+                cx16.r0 = plotx
+                cx16.r1 = ycenter_plus_yy
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+                cx16.r1 = ycenter_min_yy
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+            }
+            for plotx in xcenter-xx to xcenter-1 {
+                cx16.r0 = plotx
+                cx16.r1 = ycenter_plus_yy
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+                cx16.r1 = ycenter_min_yy
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+            }
+            for plotx in xcenter to xcenter+yy {
+                cx16.r0 = plotx
+                cx16.r1 = ycenter_plus_xx
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+                cx16.r1 = ycenter_min_xx
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+            }
+            for plotx in xcenter-yy to xcenter {
+                cx16.r0 = plotx
+                cx16.r1 = ycenter_plus_xx
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+                cx16.r1 = ycenter_min_xx
+                cx16.FB_cursor_position()
+                cx16.FB_set_pixel(1)
+            }
+            yy++
+            if decisionOver2<=0
+                decisionOver2 += 2*yy+1
+            else {
+                xx--
+                decisionOver2 += 2*(yy-xx)+1
+            }
+        }
     }
 
     sub  plot(uword plotx, ubyte ploty) {
         cx16.r0 = plotx
         cx16.r1 = ploty
-        cx16.FB_cursor_position()
         cx16.FB_cursor_position()
         cx16.FB_set_pixel(1)
     }

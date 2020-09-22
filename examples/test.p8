@@ -8,6 +8,8 @@ main {
 
     sub start()  {
 
+        decisionOver2 += 2*yy+1     ; TODO why is the +1 not converted to decisionOver2++ separately?
+
         ; cx16.screen_set_mode(128)
 
         ubyte width = txt.width()
