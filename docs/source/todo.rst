@@ -10,6 +10,8 @@ TODO
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
+- use VIC banking to move up the graphics bitmap memory location. Don't move it under the ROM though as that would require IRQ disabling and memory bank swapping for every bitmap manipulation
+- add some primitives/support/examples for using custom char sets, copying the default charset.
 
 
 More optimizations
