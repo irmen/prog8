@@ -8,25 +8,25 @@ main {
 
     sub start()  {
 
-        decisionOver2 += 2*yy+1     ; TODO why is the +1 not converted to decisionOver2++ separately?
+        ubyte v = 1
+        @($c000+v) = 10
 
-        ; cx16.screen_set_mode(128)
+        txt.print_ub(@($c001))
+        txt.chrout('\n')
 
-        ubyte width = txt.width()
-        ubyte height = txt.height()
+        @($c000+v) ++
+        txt.print_ub(@($c001))
+        txt.chrout('\n')
 
-        ubyte x
+        @($c000+v) += 10
+        txt.print_ub(@($c001))
+        txt.chrout('\n')
 
-        repeat 999 {
-            ubyte xpos = rnd() % (width-1)
-            txt.setcc(xpos, 0, 81, 6)
-            ubyte ypos = rnd() % (height-1)+1
-            txt.setcc(width-1, ypos, 81, 2)
-            txt.scroll_left(true)
-            txt.scroll_down(true)
-            repeat 2000 {
-                x++
-            }
-        }
+        @($c000+v) *= 10
+        txt.print_ub(@($c001))
+        txt.chrout('\n')
+
+        ; @($c000) *= 99        ; TODO implement
+
     }
 }

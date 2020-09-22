@@ -6,6 +6,8 @@
 ; only black/white monchrome 320x200 for now.
 
 graphics {
+    const uword WIDTH = 320
+    const ubyte HEIGHT = 200
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.

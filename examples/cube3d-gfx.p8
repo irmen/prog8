@@ -86,10 +86,6 @@ main {
         }
     }
 
-    const uword screen_width = 320
-    const ubyte screen_height = 200
-
-
     sub draw_lines() {
         ubyte @zp i
         for i in len(edgesFrom) -1 downto 0 {
@@ -97,10 +93,10 @@ main {
             ubyte @zp vTo = edgesTo[i]
             word @zp persp1 = 256 + rotatedz[vFrom]/256
             word @zp persp2 = 256 + rotatedz[vTo]/256
-            graphics.line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-                          rotatedy[vFrom] / persp1 + screen_height/2 as ubyte,
-                          rotatedx[vTo] / persp2 + screen_width/2 as uword,
-                          rotatedy[vTo] / persp2 + screen_height/2 as ubyte)
+            graphics.line(rotatedx[vFrom] / persp1 + graphics.WIDTH/2 as uword,
+                          rotatedy[vFrom] / persp1 + graphics.HEIGHT/2 as ubyte,
+                          rotatedx[vTo] / persp2 + graphics.WIDTH/2 as uword,
+                          rotatedy[vTo] / persp2 + graphics.HEIGHT/2 as ubyte)
         }
     }
 }

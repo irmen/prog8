@@ -191,7 +191,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> {
                         println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
                         asmgen.translateExpression(memory.addressExpression)
-                        // TODO buggy?:
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         val zp = CompilationTarget.instance.machine.zeropage
                         when {
@@ -451,6 +450,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
             "*" -> {
                 TODO("var mul byte expr")
+                // check optimizedByteMultiplications
                 // asmgen.out("  jsr  prog8_lib.mul_byte")
             }
             "/" -> {

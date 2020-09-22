@@ -31,7 +31,7 @@ _enterloop	lsr  P8ZP_SCRATCH_REG
 		.pend
 
 
-multiply_bytes_16	.proc
+multiply_bytes_into_word	.proc
 	; -- multiply 2 bytes A and Y, result as word in A/Y (unsigned)
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG

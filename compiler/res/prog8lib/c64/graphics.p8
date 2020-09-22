@@ -6,7 +6,9 @@
 ; assumes bitmap screen memory is $2000-$3fff
 
 graphics {
-    const uword bitmap_address = $2000
+    const uword BITMAP_ADDRESS = $2000
+    const uword WIDTH = 320
+    const ubyte HEIGHT = 200
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
@@ -16,7 +18,7 @@ graphics {
     }
 
     sub clear_screen(ubyte pixelcolor, ubyte bgcolor) {
-        memset(bitmap_address, 320*200/8, 0)
+        memset(BITMAP_ADDRESS, 320*200/8, 0)
         txt.fill_screen(pixelcolor << 4 | bgcolor, 0)
     }
 
@@ -177,7 +179,7 @@ graphics {
 ; here is the non-asm code for the plot routine below:
 ;    sub plot_nonasm(uword px, ubyte py) {
 ;        ubyte[] ormask = [128, 64, 32, 16, 8, 4, 2, 1]
-;        uword addr = bitmap_address + 320*(py>>3) + (py & 7) + (px & %0000000111111000)
+;        uword addr = BITMAP_ADDRESS + 320*(py>>3) + (py & 7) + (px & %0000000111111000)
 ;        @(addr) |= ormask[lsb(px) & 7]
 ;    }
 
@@ -226,7 +228,7 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 
 ; note: this can be even faster if we also have a 256 byte x-lookup table, but hey.
 ; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
-; the y lookup tables encodes this formula:  bitmap_address + 320*(py>>3) + (py & 7)    (y from 0..199)
+; the y lookup tables encodes this formula:  BITMAP_ADDRESS + 320*(py>>3) + (py & 7)    (y from 0..199)
 ; We use the 64tass syntax for range expressions to calculate this table on assembly time.
 
 _plot_y_values := $2000 + 320*(range(200)>>3) + (range(200) & 7)

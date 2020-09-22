@@ -9,7 +9,6 @@ TODO
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
-- aliases for imported symbols for example perhaps '%alias print = c64scr.print' ?
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 
 
@@ -20,14 +19,13 @@ Add more compiler optimizations to the existing ones.
 
 - more targeted optimizations for assigment asm code, such as the following:
 - subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
-- remove unreachable code after an exit(), return or goto
+- can such parameter passing to subroutines be optimized to avoid copying?
 - add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
   the program will then rely solely on the values as they are in memory at the time of program startup.
 - Also some library routines and code patterns could perhaps be optimized further
-- can the parameter passing to subroutines be optimized to avoid copying?
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
-- note: abandoned subroutine inlining because of problems referencing non-local stuff. Can't move everything around.
+- note: subroutine inlining is abandoned because of problems referencing non-local stuff. Can't move everything around.
 
 
 Eval stack redesign? (lot of work)
