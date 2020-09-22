@@ -1,9 +1,7 @@
-%target c64
-%import graphics
 %import syslib
+%import graphics
 
-; TODO make the graphics library not C64 specific
-
+; Note: this program is compatible with C64 and CX16.
 
 main {
 
@@ -38,11 +36,21 @@ main {
             angley+=217
             anglez+=452
 
-            while c64.RASTER!=255 {
-            }
-            while c64.RASTER!=254 {
-            }
+            wait_a_little_bit()
         }
+    }
+
+    sub wait_a_little_bit() {
+        %asm {{
+            stx  P8ZP_SCRATCH_REG
+            lda  #0
+            jsr  c64.SETTIM
+-           jsr  c64.RDTIM
+            cmp  #1
+            bne  -
+            ldx  P8ZP_SCRATCH_REG
+            rts
+        }}
     }
 
     sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {

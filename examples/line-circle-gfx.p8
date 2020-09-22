@@ -1,6 +1,6 @@
 %import graphics
 
-; TODO make graphics lib cross-system
+; Note: this program is compatible with C64 and CX16.
 
 main {
 

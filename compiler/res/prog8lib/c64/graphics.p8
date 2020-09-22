@@ -2,7 +2,7 @@
 %import textio
 
 ; bitmap pixel graphics module for the C64
-; only black/white monchrome for now
+; only black/white monchrome 320x200 for now
 ; assumes bitmap screen memory is $2000-$3fff
 
 graphics {
@@ -135,33 +135,33 @@ graphics {
         }
     }
 
-    sub disc(uword cx, ubyte cy, ubyte radius) {
+    sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Midpoint algorithm, filled
         ubyte xx = radius
         ubyte yy = 0
         byte decisionOver2 = 1-xx as byte
 
         while xx>=yy {
-            ubyte cy_plus_yy = cy + yy
-            ubyte cy_min_yy = cy - yy
-            ubyte cy_plus_xx = cy + xx
-            ubyte cy_min_xx = cy - xx
+            ubyte ycenter_plus_yy = ycenter + yy
+            ubyte ycenter_min_yy = ycenter - yy
+            ubyte ycenter_plus_xx = ycenter + xx
+            ubyte ycenter_min_xx = ycenter - xx
 
-            for internal_plotx in cx to cx+xx {
-                internal_plot(cy_plus_yy)
-                internal_plot(cy_min_yy)
+            for internal_plotx in xcenter to xcenter+xx {
+                internal_plot(ycenter_plus_yy)
+                internal_plot(ycenter_min_yy)
             }
-            for internal_plotx in cx-xx to cx-1 {
-                internal_plot(cy_plus_yy)
-                internal_plot(cy_min_yy)
+            for internal_plotx in xcenter-xx to xcenter-1 {
+                internal_plot(ycenter_plus_yy)
+                internal_plot(ycenter_min_yy)
             }
-            for internal_plotx in cx to cx+yy {
-                internal_plot(cy_plus_xx)
-                internal_plot(cy_min_xx)
+            for internal_plotx in xcenter to xcenter+yy {
+                internal_plot(ycenter_plus_xx)
+                internal_plot(ycenter_min_xx)
             }
-            for internal_plotx in cx-yy to cx {
-                internal_plot(cy_plus_xx)
-                internal_plot(cy_min_xx)
+            for internal_plotx in xcenter-yy to xcenter {
+                internal_plot(ycenter_plus_xx)
+                internal_plot(ycenter_min_xx)
             }
             yy++
             if decisionOver2<=0
