@@ -4,7 +4,6 @@ TODO
 
 - get rid of all other TODO's in the code ;-)
 - line-circle-gfx examples are now a few hundred bytes larger than before (~4.0/4.1 version i think?). Why is that, can it be fixed?
-- until condition should be able to refer to variables defined IN the do-until block itself.
 - add support? example? for processing arguments to a sys call : sys 999, 1, 2, "aaa"
 - make it possible for array literals to not only contain compile time constants
 - further optimize assignment codegeneration
@@ -20,6 +19,7 @@ More optimizations
 
 Add more compiler optimizations to the existing ones.
 
+- better assembly for comparison expressions most notably == and != (these use eval stack all the time)
 - more targeted optimizations for assigment asm code, such as the following:
 - subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
 - can such parameter passing to subroutines be optimized to avoid copying?

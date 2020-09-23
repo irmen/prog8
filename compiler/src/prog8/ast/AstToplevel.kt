@@ -137,7 +137,15 @@ interface INameScope {
             }
             return null
         } else {
-            // unqualified name, find the scope the localContext is in, look in that first
+            // unqualified name
+            // special case: the do....until statement can also look INSIDE the anonymous scope
+            if(localContext.parent.parent is UntilLoop) {
+                val symbolFromInnerScope = (localContext.parent.parent as UntilLoop).body.getLabelOrVariable(scopedName[0])
+                if(symbolFromInnerScope!=null)
+                    return symbolFromInnerScope
+            }
+
+            // find the scope the localContext is in, look in that first
             var statementScope = localContext
             while(statementScope !is ParentSentinel) {
                 val localScope = statementScope.definingScope()
@@ -312,6 +320,16 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
                 }
             }
         }
+
+        // special case: the do....until statement can also look INSIDE the anonymous scope
+        if(localContext.parent.parent is UntilLoop) {
+            val symbolFromInnerScope = (localContext.parent.parent as UntilLoop).body.lookup(scopedName, localContext)
+            if(symbolFromInnerScope!=null)
+                return symbolFromInnerScope
+        }
+        val p1 = localContext.parent
+        val p2 = localContext.parent.parent
+
         // lookup something from the module.
         return when (val stmt = localContext.definingModule().lookup(scopedName, localContext)) {
             is Label, is VarDecl, is Block, is Subroutine, is StructDecl -> stmt

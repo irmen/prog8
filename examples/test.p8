@@ -8,8 +8,10 @@ main $0900{
 
     sub start()  {
 
+        ubyte x= 1
         do {
-            ubyte v = 1
+            ubyte v = x
+            x++
         } until v==0
 
         ; @($c000) *= 99        ; TODO implement
