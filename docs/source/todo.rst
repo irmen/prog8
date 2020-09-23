@@ -3,9 +3,8 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- move the 	ldx  #$ff | clc | cld  from the startup logic into the start() function as first instructions
 - add an %option that omits the 'system-init' code at the start. Useful to create separate standalone routines that shouldn't re-init the whole machine every time they're called
-- line-circle-gfx examples are now a few hundred bytes larger than before. Why is that, can it be fixed?
+- line-circle-gfx examples are now a few hundred bytes larger than before (~4.0/4.1 version i think?). Why is that, can it be fixed?
 - until condition should be able to refer to variables defined IN the do-until block itself.
 - add support? example? for processing arguments to a sys call : sys 999, 1, 2, "aaa"
 - make it possible for array literals to not only contain compile time constants

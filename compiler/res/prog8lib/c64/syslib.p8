@@ -270,6 +270,17 @@ asmsub  reset_system()  {
     }}
 }
 
+asmsub  disable_runstop_and_charsetswitch() {
+    %asm {{
+        lda  #$80
+        lda  #$80
+        sta  657    ; disable charset switching
+        lda  #239
+        sta  808    ; disable run/stop key
+        rts
+    }}
+}
+
 asmsub  set_irqvec_excl() clobbers(A)  {
 	%asm {{
 		sei

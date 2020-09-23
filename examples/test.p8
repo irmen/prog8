@@ -4,10 +4,9 @@
 %zeropage basicsafe
 
 
-main {
+main $0900{
 
     sub start()  {
-
         ubyte v = 1
         @($c000+v) = 10
 

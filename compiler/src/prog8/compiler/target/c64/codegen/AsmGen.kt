@@ -29,6 +29,9 @@ import java.util.*
 import kotlin.math.absoluteValue
 
 
+internal const val programInitializationRoutineName = "prog8_initialize_program"
+
+
 internal class AsmGen(private val program: Program,
                       val errors: ErrorReporter,
                       val zeropage: Zeropage,
@@ -50,11 +53,13 @@ internal class AsmGen(private val program: Program,
     private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     internal val loopEndLabels = ArrayDeque<String>()
-    internal val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
+    private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
+    private val programInitLines = mutableListOf<String>()
 
     override fun compileToAssembly(optimize: Boolean): IAssemblyProgram {
         assemblyLines.clear()
         loopEndLabels.clear()
+        programInitLines.clear()
 
         println("Generating assembly code... ")
 
@@ -80,6 +85,7 @@ internal class AsmGen(private val program: Program,
 
         return AssemblyProgram(program.name, outputDir)
     }
+
 
     private fun header() {
         val ourName = this.javaClass.name
@@ -120,16 +126,12 @@ internal class AsmGen(private val program: Program,
                 out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
-                out("  tsx")
-                out("  stx  prog8_lib.orig_stackpointer")
                 if(!CompilationTarget.instance.initProcName.isNullOrEmpty())
                     out("  jsr  ${CompilationTarget.instance.initProcName}")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
-                out("  tsx")
-                out("  stx  prog8_lib.orig_stackpointer")
                 if(!CompilationTarget.instance.initProcName.isNullOrEmpty())
                     out("  jsr  ${CompilationTarget.instance.initProcName}")
             }
@@ -138,37 +140,49 @@ internal class AsmGen(private val program: Program,
                 out("* = ${program.actualLoadAddress.toHex()}\n")
             }
         }
+        out("  jmp  main.start   ; start program / force start proc to be included")
 
         if (zeropage.exitProgramStrategy != Zeropage.ExitProgramStrategy.CLEAN_EXIT) {
-            // disable shift-commodore charset switching and run/stop key
-            out("  lda  #$80")
-            out("  lda  #$80")
-            out("  sta  657\t; disable charset switching")
-            out("  lda  #239")
-            out("  sta  808\t; disable run/stop key")
+            if(!CompilationTarget.instance.disableRunStopProcName.isNullOrEmpty())
+                programInitLines.add("  jsr  ${CompilationTarget.instance.disableRunStopProcName}")
         }
 
-        out("  ldx  #\$ff\t; init estack pointer")
-
-        out("  ; initialize the variables in each block that has globals")
+        programInitLines.add("  ; initialize the variables in each block that has globals")
+        programInitLines.add("  cld")
+        programInitLines.add("  clv")
         program.allBlocks().forEach {
             if(it.statements.filterIsInstance<VarDecl>().any { vd->vd.value!=null && vd.type==VarDeclType.VAR && vd.datatype in NumericDatatypes})
-                out("  jsr  ${it.name}.prog8_init_vars")
+                programInitLines.add("  jsr  ${it.name}.prog8_init_vars")
         }
-
-        out("  clc")
-        when (zeropage.exitProgramStrategy) {
-            Zeropage.ExitProgramStrategy.CLEAN_EXIT -> {
-                out("  jmp  main.start\t; jump to program entrypoint")
-            }
-            Zeropage.ExitProgramStrategy.SYSTEM_RESET -> {
-                out("  jsr  main.start\t; call program entrypoint")
-                out("  jmp  ${CompilationTarget.instance.resetProcName}")
-            }
+        if (zeropage.exitProgramStrategy == Zeropage.ExitProgramStrategy.SYSTEM_RESET) {
+            // push the reset routine onto the cpu stack so that it is executed when the program does an rts
+            programInitLines.addAll(listOf(
+                    "  tsx",
+                    "  lda  $0102,x",
+                    "  pha",
+                    "  lda  $0103,x",
+                    "  pha",
+                    "  lda  #>(${CompilationTarget.instance.resetProcName}-1)",
+                    "  sta  $0102,x",
+                    "  lda  #<(${CompilationTarget.instance.resetProcName}-1)",
+                    "  sta  $0103,x",
+            ))
         }
+        programInitLines.add("  ldx  #\$ff\t; init estack pointer")
+        programInitLines.add("  rts")
     }
 
     private fun footer() {
+        // the program preamble or initialization code
+        out("")
+        out("; program initialization")
+        out(programInitializationRoutineName)
+        for(line in programInitLines) {
+            out(line)
+        }
+        out("")
+
+
         // the global list of all floating point constants for the whole program
         out("; global float constants")
         for (flt in globalFloatConsts) {
@@ -618,18 +632,25 @@ $save       .byte 0
             is InlineAssembly -> translate(stmt)
             is FunctionCallStatement -> {
                 val functionName = stmt.target.nameInSource.last()
-                val builtinFunc = BuiltinFunctions[functionName]
-                if(builtinFunc!=null) {
-                    builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
+                if(functionName == programInitializationRoutineName) {
+                    out("""
+                        tsx
+                        stx  prog8_lib.orig_stackpointer
+                        jsr  $functionName""")
                 } else {
-                    functioncallAsmGen.translateFunctionCall(stmt)
-                    // discard any results from the stack:
-                    val sub = stmt.target.targetSubroutine(program.namespace)!!
-                    val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-                    for((t, reg) in returns) {
-                        if(reg.stack) {
-                            if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
-                            else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
+                    val builtinFunc = BuiltinFunctions[functionName]
+                    if (builtinFunc != null) {
+                        builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
+                    } else {
+                        functioncallAsmGen.translateFunctionCall(stmt)
+                        // discard any results from the stack:
+                        val sub = stmt.target.targetSubroutine(program.namespace)!!
+                        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+                        for ((t, reg) in returns) {
+                            if (reg.stack) {
+                                if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
+                                else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
+                            }
                         }
                     }
                 }
