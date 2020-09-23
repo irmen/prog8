@@ -117,33 +117,38 @@ Directives
 
 	Level: module, block.
 	Sets special compiler options.
-	For a module option, only the ``enable_floats`` option is recognised, which will tell the compiler
-	to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
-	Otherwise, floating point support is not enabled.
-	When used in a block with the ``force_output`` option, it will force the block to be outputted
-	in the final program. Can be useful to make sure some
-	data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
+
+    - For a module option, there is ``enable_floats``, which will tell the compiler
+      to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
+      Otherwise, floating point support is not enabled.
+    - There's also ``no_sysinit`` which cause the resulting program to *not* include
+      the system re-initialization logic of clearing the screen, resetting I/O config etc. You'll have to
+      take care of that yourself. The program will just start running from whatever state the machine is in when the
+      program was launched.
+    - When used in a block with the ``force_output`` option, it will force the block to be outputted
+      in the final program. Can be useful to make sure some
+      data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
 
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
-	Level: block.
-        This directive can only be used inside a block.
-        The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
-        The optional offset and length can be used to select a particular piece of the file.
-        The file is located relative to the current working directory!
+    Level: block.
+    This directive can only be used inside a block.
+    The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
+    The optional offset and length can be used to select a particular piece of the file.
+    The file is located relative to the current working directory!
 
 .. data:: %asminclude "<filename>", "scopelabel"
 
-	Level: block.
-        This directive can only be used inside a block.
-        The assembler will include the file as raw assembly source text at this point,
-        prog8 will not process this at all, with one exception: the labels.
-        The scopelabel argument will be used as a prefix to access the labels from the included source code,
-        otherwise you would risk symbol redefinitions or duplications.
-        If you know what you are doing you can leave it as an empty string to not have a scope prefix.
-        The compiler first looks for the file relative to the same directory as the module containing this statement is in,
-        if the file can't be found there it is searched relative to the current directory.
+    Level: block.
+    This directive can only be used inside a block.
+    The assembler will include the file as raw assembly source text at this point,
+    prog8 will not process this at all, with one exception: the labels.
+    The scopelabel argument will be used as a prefix to access the labels from the included source code,
+    otherwise you would risk symbol redefinitions or duplications.
+    If you know what you are doing you can leave it as an empty string to not have a scope prefix.
+    The compiler first looks for the file relative to the same directory as the module containing this statement is in,
+    if the file can't be found there it is searched relative to the current directory.
 
 .. data:: %breakpoint
 

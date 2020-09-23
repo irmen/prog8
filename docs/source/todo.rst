@@ -3,7 +3,6 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- add an %option that omits the 'system-init' code at the start. Useful to create separate standalone routines that shouldn't re-init the whole machine every time they're called
 - line-circle-gfx examples are now a few hundred bytes larger than before (~4.0/4.1 version i think?). Why is that, can it be fixed?
 - until condition should be able to refer to variables defined IN the do-until block itself.
 - add support? example? for processing arguments to a sys call : sys 999, 1, 2, "aaa"

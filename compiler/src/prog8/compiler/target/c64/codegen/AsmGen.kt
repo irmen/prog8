@@ -126,13 +126,13 @@ internal class AsmGen(private val program: Program,
                 out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
-                if(!CompilationTarget.instance.initProcName.isNullOrEmpty())
+                if(!options.noSysInit && !CompilationTarget.instance.initProcName.isNullOrEmpty())
                     out("  jsr  ${CompilationTarget.instance.initProcName}")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
-                if(!CompilationTarget.instance.initProcName.isNullOrEmpty())
+                if(!options.noSysInit && !CompilationTarget.instance.initProcName.isNullOrEmpty())
                     out("  jsr  ${CompilationTarget.instance.initProcName}")
             }
             options.output == OutputType.RAW -> {

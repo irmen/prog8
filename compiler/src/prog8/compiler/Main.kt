@@ -125,6 +125,7 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
             as? Directive)?.args?.single()?.name?.toUpperCase()
     val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
     val floatsEnabled = allOptions.any { it.name == "enable_floats" }
+    val noSysInit = allOptions.any { it.name == "no_sysinit" }
     var zpType: ZeropageType =
             if (zpoption == null)
                 if(floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -160,7 +161,7 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
     return CompilationOptions(
             if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
             if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-            zpType, zpReserved, floatsEnabled
+            zpType, zpReserved, floatsEnabled, noSysInit
     )
 }
 
