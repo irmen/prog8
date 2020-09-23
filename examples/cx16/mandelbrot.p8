@@ -34,9 +34,9 @@ main {
                     iter++
                 }
                 txt.color2(1, max_iter-iter)
-                c64.CHROUT(' ')
+                txt.chrout(' ')
             }
-            c64.CHROUT('\n')
+            txt.chrout('\n')
         }
     }
 }

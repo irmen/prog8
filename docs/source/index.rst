@@ -38,8 +38,8 @@ This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/license
     :alt: Fully playable tetris clone
 
 
-Code examples
--------------
+Code example
+------------
 
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
