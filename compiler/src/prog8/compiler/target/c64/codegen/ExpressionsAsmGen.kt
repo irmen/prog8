@@ -19,7 +19,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is ArrayIndexedExpression -> translateExpression(expression)
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
-            is DirectMemoryRead -> translateExpression(expression)
+            is DirectMemoryRead -> translateDirectMemReadExpression(expression, true)
             is NumericLiteralValue -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCall -> translateExpression(expression)
@@ -29,7 +29,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     internal fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-        // first, if it is of the form:   <constvalue> <comparison> X  ,  swap the operands around.
+        // first, if it is of the form:   <constvalue> <comparison> X  ,  swap the operands around
         var left = expr.left
         var right = expr.right
         var operator = expr.operator
@@ -54,192 +54,329 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         when (operator) {
             "==" -> {
                 when (dt) {
-                    in ByteDatatypes -> {
-                        translateByteEquals(left, right, leftConstVal, rightConstVal)
-                        asmgen.out("  bne  $jumpIfFalseLabel")
-                    }
-                    in WordDatatypes -> {
-                        translateWordEquals(left, right, leftConstVal, rightConstVal)
-                        asmgen.out("  bne  $jumpIfFalseLabel")
-                    }
+                    in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
-                        TODO("float eq.")
+                        translateExpression(left)
+                        translateExpression(right)
+                        asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "!=" -> {
                 when (dt) {
-                    in ByteDatatypes -> {
-                        translateByteEquals(left, right, leftConstVal, rightConstVal)
-                        asmgen.out("  beq  $jumpIfFalseLabel")
-                    }
-                    in WordDatatypes -> {
-                        translateWordEquals(left, right, leftConstVal, rightConstVal)
-                        asmgen.out("  beq  $jumpIfFalseLabel")
-                    }
+                    in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
-                        TODO("float neq.")
+                        translateExpression(left)
+                        translateExpression(right)
+                        asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> TODO("float l.")
+                    DataType.UBYTE -> translateUbyteLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> {
+                        translateExpression(left)
+                        translateExpression(right)
+                        asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> TODO("float l.e.")
+                    DataType.UBYTE -> translateUbyteLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> {
+                        translateExpression(left)
+                        translateExpression(right)
+                        asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> TODO("float g.")
+                    DataType.UBYTE -> translateUbyteGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> {
+                        translateExpression(left)
+                        translateExpression(right)
+                        asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> TODO("float g.e.")
+                    DataType.UBYTE -> translateUbyteGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> {
+                        translateExpression(left)
+                        translateExpression(right)
+                        asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
         }
     }
 
-    private fun translateUbyteLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUbyteLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.less_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateByteLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.less_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUwordLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.less_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateWordLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.less_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUbyteLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.lesseq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateByteLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.lesseq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUwordLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.lesseq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateWordLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.lesseq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUbyteGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greater_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateByteGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greater_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUwordGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greater_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateWordGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greater_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUbyteGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greatereq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateByteGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greatereq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateUwordGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greatereq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        TODO("Not yet implemented")
+    private fun translateWordGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        // TODO compare with optimized asm
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.greatereq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?) {
+    private fun translateByteEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
-                if(rightConstVal==leftConstVal)
-                    asmgen.out("  lda  #0 |  sec")
-                else
-                    asmgen.out("  lda  #1 |  sec")
+                if(rightConstVal!=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
                 return
             } else {
-                when(left) {
-                    is IdentifierReference -> {
-                        val name = asmgen.asmVariableName(left)
-                        asmgen.out("  lda  $name |  cmp  #${rightConstVal.number}")
-                        return
-                    }
-                    // TODO optimize direct mem read here too
-                    else -> TODO()
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("  lda  $name |  cmp  #${rightConstVal.number} |  bne  $jumpIfFalseLabel")
+                    else
+                        asmgen.out("  lda  $name |  bne  $jumpIfFalseLabel")
+                    return
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpression(left, false)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("  cmp  #${rightConstVal.number} |  bne  $jumpIfFalseLabel")
+                    else
+                        asmgen.out("  bne  $jumpIfFalseLabel")
+                    return
                 }
             }
         }
-        TODO("Not yet implemented")
+
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.equal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?) {
+    private fun translateByteNotEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
-                    asmgen.out("  lda  #0 |  sec")
-                else
-                    asmgen.out("  lda  #1 |  sec")
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
             } else {
-                when(left) {
-                    is IdentifierReference -> {
-                        val name = asmgen.asmVariableName(left)
-                        asmgen.out("""
-                            lda  $name
-                            cmp  #<${rightConstVal.number}
-                            bne  +
-                            lda  $name+1
-                            cmp  #>${rightConstVal.number}
-+""")
-                        return
-                    }
-                    // TODO optimize direct mem read here too
-                    else -> TODO()
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("  lda  $name |  cmp  #${rightConstVal.number} |  beq  $jumpIfFalseLabel")
+                    else
+                        asmgen.out("  lda  $name |  beq  $jumpIfFalseLabel")
+                    return
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpression(left, false)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("  cmp  #${rightConstVal.number} |  beq  $jumpIfFalseLabel")
+                    else
+                        asmgen.out("  beq  $jumpIfFalseLabel")
+                    return
                 }
             }
         }
-        TODO("Not yet implemented")
+
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.notequal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateWordEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal!=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0) {
+                        asmgen.out("""
+                        lda  $name
+                        cmp  #<${rightConstVal.number}
+                        bne  $jumpIfFalseLabel
+                        lda  $name+1
+                        cmp  #>${rightConstVal.number}
+                        bne  $jumpIfFalseLabel""")
+                    } else {
+                        asmgen.out("""
+                        lda  $name
+                        bne  $jumpIfFalseLabel
+                        lda  $name+1
+                        bne  $jumpIfFalseLabel""")
+                    }
+                    return
+                }
+            }
+        }
+
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.equal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateWordNotEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0) {
+                        asmgen.out("""
+                        lda  $name
+                        cmp  #<${rightConstVal.number}
+                        bne  +
+                        lda  $name+1
+                        cmp  #>${rightConstVal.number}
+                        beq  $jumpIfFalseLabel
++""")
+                    } else {
+                        asmgen.out("""
+                        lda  $name
+                        bne  +
+                        lda  $name+1
+                        beq  $jumpIfFalseLabel
++""")
+                    }
+                    return
+                }
+            }
+        }
+
+        asmgen.translateExpression(left)
+        asmgen.translateExpression(right)
+        asmgen.out("  jsr  prog8_lib.notequal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateExpression(expression: FunctionCall) {
@@ -365,21 +502,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
-    private fun translateExpression(expr: DirectMemoryRead) {
+    // internal fun translateExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
+    internal fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
         when(expr.addressExpression) {
             is NumericLiteralValue -> {
                 val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
-                asmgen.out("  lda  ${address.toHex()} |  sta  P8ESTACK_LO,x |  dex")
+                asmgen.out("  lda  ${address.toHex()}")
+                if(pushResultOnEstack)
+                    asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             }
             is IdentifierReference -> {
                 // the identifier is a pointer variable, so read the value from the address in it
                 asmgen.loadByteFromPointerIntoA(expr.addressExpression as IdentifierReference)
-                asmgen.out(" sta  P8ESTACK_LO,x |  dex")
+                if(pushResultOnEstack)
+                    asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             }
             else -> {
                 translateExpression(expr.addressExpression)
                 asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack")
-                asmgen.out("  sta  P8ESTACK_LO+1,x")
+                if(pushResultOnEstack)
+                    asmgen.out("  sta  P8ESTACK_LO+1,x")
             }
         }
     }
@@ -714,8 +856,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             "<=" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.lesseq_uw" else "  jsr  prog8_lib.lesseq_w")
             ">=" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.greatereq_uw" else "  jsr  prog8_lib.greatereq_w")
             "==" -> asmgen.out("  jsr  prog8_lib.equal_w")
-            "!=" -> asmgen.out("  jsr  prog8_lib.notequal_w")
-            "&" -> asmgen.out("  jsr  prog8_lib.bitand_w")
+            "!=" -> asmgen.out("  jsr  prog8_lib.notequal_w")            "&" -> asmgen.out("  jsr  prog8_lib.bitand_w")
             "^" -> asmgen.out("  jsr  prog8_lib.bitxor_w")
             "|" -> asmgen.out("  jsr  prog8_lib.bitor_w")
             "and" -> asmgen.out("  jsr  prog8_lib.and_w")
