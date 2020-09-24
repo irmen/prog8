@@ -136,28 +136,140 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateUbyteLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO compare with optimized asm
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            lda  $name
+                            cmp  #${rightConstVal.number}
+                            bcs  $jumpIfFalseLabel""")
+                    return
+                }
+                else if (left is DirectMemoryRead) {
+                    if(rightConstVal.number.toInt()!=0) {
+                        translateDirectMemReadExpression(left, false)
+                        asmgen.out("  cmp  #${rightConstVal.number} |  bcs  $jumpIfFalseLabel")
+                    }
+                    return
+                }
+            }
+        }
+
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateByteLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO compare with optimized asm
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            lda  $name
+                            sec
+                            sbc  #${rightConstVal.number}
+                            bvc  +
+                            eor  #$80
++                           bmi  +
+                            bpl  $jumpIfFalseLabel
++""")
+                    else
+                        asmgen.out("  lda  $name |  bpl  $jumpIfFalseLabel")
+                    return
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpression(left, false)
+                    if(rightConstVal.number.toInt()!=0) {
+                        asmgen.out("""
+                            sec
+                            sbc  #${rightConstVal.number}
+                            bvc  +
+                            eor  #$80
++                           bmi  +
+                            bpl  $jumpIfFalseLabel
++""")
+                    }
+                    else
+                        asmgen.out("  bpl  $jumpIfFalseLabel")
+                    return
+                }
+            }
+        }
+
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateUwordLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO compare with optimized asm
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            lda  $name+1
+                            cmp  #>${rightConstVal.number}
+                            bcc  +
+                            bne  $jumpIfFalseLabel
+                            lda  $name
+                            cmp  #<${rightConstVal.number}
+                            bcc  +
+                            bcs  $jumpIfFalseLabel
++""")
+                    return
+                }
+            }
+        }
+
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateWordLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO compare with optimized asm
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            lda  $name
+                            cmp  #<${rightConstVal.number}
+                            lda  $name+1
+                            sbc  #>${rightConstVal.number}
+                            bvc  +
+                            eor  #$80
++                           bmi  +
+                            bpl  $jumpIfFalseLabel
++""")
+                    else
+                        asmgen.out("  lda  $name+1 |  bpl  $jumpIfFalseLabel")
+                    return
+                }
+            }
+        }
+
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -502,8 +614,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
-    // internal fun translateExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
-    internal fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
+    private fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
         when(expr.addressExpression) {
             is NumericLiteralValue -> {
                 val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
