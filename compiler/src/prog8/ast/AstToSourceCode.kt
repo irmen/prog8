@@ -338,7 +338,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         output("do ")
         untilLoop.body.accept(this)
         output(" until ")
-        untilLoop.untilCondition.accept(this)
+        untilLoop.condition.accept(this)
     }
 
     override fun visit(returnStmt: Return) {

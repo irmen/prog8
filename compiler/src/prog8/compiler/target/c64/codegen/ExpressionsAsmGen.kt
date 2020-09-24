@@ -28,6 +28,220 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
+    internal fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
+        // first, if it is of the form:   <constvalue> <comparison> X  ,  swap the operands around.
+        var left = expr.left
+        var right = expr.right
+        var operator = expr.operator
+        var leftConstVal = left.constValue(program)
+        var rightConstVal = right.constValue(program)
+        if(leftConstVal!=null) {
+            val tmp = left
+            left = right
+            right = tmp
+            val tmp2 = leftConstVal
+            leftConstVal = rightConstVal
+            rightConstVal = tmp2
+            when(expr.operator) {
+                "<" -> operator = ">"
+                "<=" -> operator = ">="
+                ">" -> operator = "<"
+                ">=" -> operator = "<="
+            }
+        }
+
+        val dt = left.inferType(program).typeOrElse(DataType.STRUCT)
+        when (operator) {
+            "==" -> {
+                when (dt) {
+                    in ByteDatatypes -> {
+                        translateByteEquals(left, right, leftConstVal, rightConstVal)
+                        asmgen.out("  bne  $jumpIfFalseLabel")
+                    }
+                    in WordDatatypes -> {
+                        translateWordEquals(left, right, leftConstVal, rightConstVal)
+                        asmgen.out("  bne  $jumpIfFalseLabel")
+                    }
+                    DataType.FLOAT -> {
+                        TODO("float eq.")
+                    }
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            "!=" -> {
+                when (dt) {
+                    in ByteDatatypes -> {
+                        translateByteEquals(left, right, leftConstVal, rightConstVal)
+                        asmgen.out("  beq  $jumpIfFalseLabel")
+                    }
+                    in WordDatatypes -> {
+                        translateWordEquals(left, right, leftConstVal, rightConstVal)
+                        asmgen.out("  beq  $jumpIfFalseLabel")
+                    }
+                    DataType.FLOAT -> {
+                        TODO("float neq.")
+                    }
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            "<" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLess(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> TODO("float l.")
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            "<=" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> TODO("float l.e.")
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            ">" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreater(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> TODO("float g.")
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            ">=" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrEqual(left, operator, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> TODO("float g.e.")
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+        }
+    }
+
+    private fun translateUbyteLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateByteLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUwordLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateWordLess(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUbyteLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateByteLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUwordLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateWordLessOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUbyteGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateByteGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUwordGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateWordGreater(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUbyteGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateByteGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateUwordGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateWordGreaterOrEqual(left: Expression, operator: String, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        TODO("Not yet implemented")
+    }
+
+    private fun translateByteEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    asmgen.out("  lda  #0 |  sec")
+                else
+                    asmgen.out("  lda  #1 |  sec")
+                return
+            } else {
+                when(left) {
+                    is IdentifierReference -> {
+                        val name = asmgen.asmVariableName(left)
+                        asmgen.out("  lda  $name |  cmp  #${rightConstVal.number}")
+                        return
+                    }
+                    // TODO optimize direct mem read here too
+                    else -> TODO()
+                }
+            }
+        }
+        TODO("Not yet implemented")
+    }
+
+    private fun translateWordEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    asmgen.out("  lda  #0 |  sec")
+                else
+                    asmgen.out("  lda  #1 |  sec")
+            } else {
+                when(left) {
+                    is IdentifierReference -> {
+                        val name = asmgen.asmVariableName(left)
+                        asmgen.out("""
+                            lda  $name
+                            cmp  #<${rightConstVal.number}
+                            bne  +
+                            lda  $name+1
+                            cmp  #>${rightConstVal.number}
++""")
+                        return
+                    }
+                    // TODO optimize direct mem read here too
+                    else -> TODO()
+                }
+            }
+        }
+        TODO("Not yet implemented")
+    }
+
     private fun translateExpression(expression: FunctionCall) {
         val functionName = expression.target.nameInSource.last()
         val builtinFunc = BuiltinFunctions[functionName]
@@ -100,7 +314,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {
                         // sign extend
-                        asmgen.out(""" 
+                        asmgen.out("""
                             lda  P8ESTACK_LO+1,x
                             ora  #$7f
                             bmi  +

@@ -164,4 +164,34 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
 
         return noModifications
     }
+
+    override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
+        val binExpr = ifStatement.condition as? BinaryExpression
+        if(binExpr==null || binExpr.operator !in comparisonOperators) {
+            // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
+            val booleanExpr = BinaryExpression(ifStatement.condition, "!=", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
+        }
+        return noModifications
+    }
+
+    override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+        val binExpr = untilLoop.condition as? BinaryExpression
+        if(binExpr==null || binExpr.operator !in comparisonOperators) {
+            // until x  ->  until x!=0,    until x+5  ->  until x+5 != 0
+            val booleanExpr = BinaryExpression(untilLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, untilLoop.condition.position), untilLoop.condition.position)
+            return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
+        }
+        return noModifications
+    }
+
+    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        val binExpr = whileLoop.condition as? BinaryExpression
+        if(binExpr==null || binExpr.operator !in comparisonOperators) {
+            // while x  ->  while x!=0,    while x+5  ->  while x+5 != 0
+            val booleanExpr = BinaryExpression(whileLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, whileLoop.condition.position), whileLoop.condition.position)
+            return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))
+        }
+        return noModifications
+    }
 }

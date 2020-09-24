@@ -4,15 +4,43 @@
 %zeropage basicsafe
 
 
-main $0900{
+main {
 
     sub start()  {
 
-        ubyte x= 1
-        do {
-            ubyte v = x
+        word x= 1
+
+        if x==10 {
+            x=99
+        } else {
+            x=100
+        }
+
+        if x==10 {
+            ;nothing
+        } else {
+            x=100
+        }
+
+        if x==10 {
+            x=99
+        } else {
+            ; nothing
+        }
+
+        while 1==x {
+            txt.print_w(x)
+            txt.chrout('\n')
             x++
-        } until v==0
+        }
+        txt.chrout('\n')
+
+        x=0
+        do {
+            x++
+            txt.print_w(x)
+            txt.chrout('\n')
+        } until x==10
 
         ; @($c000) *= 99        ; TODO implement
 

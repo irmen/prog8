@@ -348,7 +348,7 @@ abstract class AstWalker {
 
     fun visit(untilLoop: UntilLoop, parent: Node) {
         track(before(untilLoop, parent), untilLoop, parent)
-        untilLoop.untilCondition.accept(this, untilLoop)
+        untilLoop.condition.accept(this, untilLoop)
         untilLoop.body.accept(this, untilLoop)
         track(after(untilLoop, parent), untilLoop, parent)
     }

@@ -115,7 +115,7 @@ interface IAstVisitor {
     }
 
     fun visit(untilLoop: UntilLoop) {
-        untilLoop.untilCondition.accept(this)
+        untilLoop.condition.accept(this)
         untilLoop.body.accept(this)
     }
 

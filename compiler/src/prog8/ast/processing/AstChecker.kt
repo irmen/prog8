@@ -334,8 +334,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        if(untilLoop.untilCondition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
-            errors.err("condition value should be an integer type", untilLoop.untilCondition.position)
+        if(untilLoop.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
+            errors.err("condition value should be an integer type", untilLoop.condition.position)
         super.visit(untilLoop)
     }
 

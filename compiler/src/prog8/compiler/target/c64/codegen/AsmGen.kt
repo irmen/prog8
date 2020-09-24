@@ -845,47 +845,32 @@ $save       .byte 0
             }
 
     private fun translate(stmt: IfStatement) {
-        when {
-            stmt.elsepart.containsNoCodeNorVars() -> {
-                // empty else
-                expressionsAsmGen.translateExpression(stmt.condition)
-                translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
-                val endLabel = makeLabel("if_end")
-                out("  beq  $endLabel")
-                translate(stmt.truepart)
-                out(endLabel)
-            }
-            stmt.truepart.containsNoCodeNorVars() -> {
-                // empty true part
-                expressionsAsmGen.translateExpression(stmt.condition)
-                translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
-                val endLabel = makeLabel("if_end")
-                out("  bne  $endLabel")
-                translate(stmt.elsepart)
-                out(endLabel)
-            }
-            else -> {
-                expressionsAsmGen.translateExpression(stmt.condition)
-                translateTestStack(stmt.condition.inferType(program).typeOrElse(DataType.STRUCT))
-                val elseLabel = makeLabel("if_else")
-                val endLabel = makeLabel("if_end")
-                out("  beq  $elseLabel")
-                translate(stmt.truepart)
-                out("  jmp  $endLabel")
-                out(elseLabel)
-                translate(stmt.elsepart)
-                out(endLabel)
-            }
+        checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
+        val booleanCondition = stmt.condition as BinaryExpression
+
+        if (stmt.elsepart.containsNoCodeNorVars()) {
+            // empty else
+            val endLabel = makeLabel("if_end")
+            expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
+            translate(stmt.truepart)
+            out(endLabel)
+        }
+        else {
+            // both true and else parts
+            val elseLabel = makeLabel("if_else")
+            val endLabel = makeLabel("if_end")
+            expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, elseLabel)
+            translate(stmt.truepart)
+            out("  jmp  $endLabel")
+            out(elseLabel)
+            translate(stmt.elsepart)
+            out(endLabel)
         }
     }
 
-    private fun translateTestStack(dataType: DataType) {
-        when(dataType) {
-            in ByteDatatypes -> out("  inx |  lda  P8ESTACK_LO,x")
-            in WordDatatypes -> out("  inx |  lda  P8ESTACK_LO,x |  ora  P8ESTACK_HI,x")
-            DataType.FLOAT -> throw AssemblyError("conditional value should be an integer (boolean)")
-            else -> throw AssemblyError("non-numerical dt")
-        }
+    private fun checkBooleanExpression(condition: Expression) {
+        if(condition !is BinaryExpression || condition.operator !in comparisonOperators)
+            throw AssemblyError("expected boolean expression $condition")
     }
 
     private fun translate(stmt: RepeatLoop) {
@@ -1004,25 +989,13 @@ $counterVar    .byte  0""")
     }
 
     private fun translate(stmt: WhileLoop) {
+        checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
+        val booleanCondition = stmt.condition as BinaryExpression
         val whileLabel = makeLabel("while")
         val endLabel = makeLabel("whileend")
         loopEndLabels.push(endLabel)
         out(whileLabel)
-        expressionsAsmGen.translateExpression(stmt.condition)
-        val conditionDt = stmt.condition.inferType(program)
-        if(!conditionDt.isKnown)
-            throw AssemblyError("unknown condition dt")
-        if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
-            out("  inx |  lda  P8ESTACK_LO,x  |  beq  $endLabel")
-        } else {
-            out("""
-                inx
-                lda  P8ESTACK_LO,x
-                bne  +
-                lda  P8ESTACK_HI,x
-                beq  $endLabel
-+  """)
-        }
+        expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
         translate(stmt.body)
         out("  jmp  $whileLabel")
         out(endLabel)
@@ -1030,26 +1003,14 @@ $counterVar    .byte  0""")
     }
 
     private fun translate(stmt: UntilLoop) {
+        checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
+        val booleanCondition = stmt.condition as BinaryExpression
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         loopEndLabels.push(endLabel)
         out(repeatLabel)
         translate(stmt.body)
-        expressionsAsmGen.translateExpression(stmt.untilCondition)
-        val conditionDt = stmt.untilCondition.inferType(program)
-        if(!conditionDt.isKnown)
-            throw AssemblyError("unknown condition dt")
-        if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
-            out("  inx |  lda  P8ESTACK_LO,x  |  beq  $repeatLabel")
-        } else {
-            out("""
-                inx
-                lda  P8ESTACK_LO,x
-                bne  +
-                lda  P8ESTACK_HI,x
-                beq  $repeatLabel
-+ """)
-        }
+        expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, repeatLabel)
         out(endLabel)
         loopEndLabels.pop()
     }

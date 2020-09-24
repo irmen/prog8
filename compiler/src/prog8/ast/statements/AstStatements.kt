@@ -815,19 +815,19 @@ class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override
 }
 
 class UntilLoop(var body: AnonymousScope,
-                var untilCondition: Expression,
+                var condition: Expression,
                 override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        untilCondition.linkParents(this)
+        condition.linkParents(this)
         body.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
-            node===untilCondition -> untilCondition = replacement as Expression
+            node===condition -> condition = replacement as Expression
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace")
         }

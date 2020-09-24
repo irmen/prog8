@@ -249,11 +249,11 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
-        val constvalue = untilLoop.untilCondition.constValue(program)
+        val constvalue = untilLoop.condition.constValue(program)
         if(constvalue!=null) {
             if(constvalue.asBooleanValue) {
                 // always true -> keep only the statement block (if there are no break statements)
-                errors.warn("condition is always true", untilLoop.untilCondition.position)
+                errors.warn("condition is always true", untilLoop.condition.position)
                 if(!hasBreak(untilLoop.body))
                     return listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
             } else {
