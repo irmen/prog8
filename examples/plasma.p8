@@ -13,6 +13,9 @@
 ;**                                                                           **
 ;\*****************************************************************************/
 
+; TODO fix problem
+
+
 main {
     const uword SCREEN1 = $E000
     const uword SCREEN2 = $E400

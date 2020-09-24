@@ -2,6 +2,8 @@
 %import syslib
 %zeropage basicsafe
 
+; TODO fix code that has become slower  (should be fixed after all the new comparison expression code is done)
+
 
 spritedata $0a00 {
     ; this memory block contains the sprite data

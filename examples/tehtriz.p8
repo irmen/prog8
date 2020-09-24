@@ -7,6 +7,9 @@
 ;   staged speed increase
 ;   some simple sound effects
 
+; TODO fix crash
+
+
 %target c64
 %import syslib
 %import textio
