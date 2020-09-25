@@ -840,22 +840,34 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out("""
-                        lda  $name
-                        clc
-                        adc  $otherName
+                    "+" -> {
+                        asmgen.out("""
+                        ldy  #0
+                        lda  $otherName
+                        bpl  +
+                        dey     ; sign extend
++                       clc
+                        adc  $name
                         sta  $name
-                        bcc  +
-                        inc  $name+1
-+                           """)
-                    "-" -> asmgen.out("""
+                        tya
+                        adc  $name+1
+                        sta  $name+1""")
+                    }
+                    "-" -> {
+                        asmgen.out("""
+                        ldy  #0
+                        lda  $otherName
+                        bpl  +
+                        dey     ; sign extend
++                       sty  P8ZP_SCRATCH_B1
                         lda  $name
                         sec
                         sbc  $otherName
                         sta  $name
-                        bcs  +
-                        dec  $name+1
-+                           """)
+                        lda  $name+1
+                        sbc  P8ZP_SCRATCH_B1
+                        sta  $name+1""")
+                    }
                     "*" -> {
                         asmgen.out("""
                             lda  $otherName
@@ -993,25 +1005,37 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
         when(valueDt) {
             in ByteDatatypes -> {
-                // the other variable is a BYTE type so optimize for that   TODO does this even occur?
+                // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out("""
-                        lda  $name
-                        clc
-                        adc  P8ESTACK_LO+1,x
+                    "+" -> {
+                        asmgen.out("""
+                        ldy  #0
+                        lda  P8ESTACK_LO+1,x
+                        bpl  +
+                        dey         ; sign extend
++                       clc
+                        adc  $name
                         sta  $name
-                        bcc  +
-                        inc  $name+1
-+                           """)
-                    "-" -> asmgen.out("""
+                        tya
+                        adc  $name+1
+                        sta  $name+1""")
+                    }
+                    "-" -> {
+                        asmgen.out("""
+                        ldy  #0
+                        lda  P8ESTACK_LO+1,x
+                        bpl  +
+                        dey         ; sign extend
++                       sty  P8ZP_SCRATCH_B1
                         lda  $name
                         sec
                         sbc  P8ESTACK_LO+1,x
                         sta  $name
-                        bcs  +
-                        dec  $name+1
-+                           """)
+                        lda  $name+1
+                        sbc  P8ZP_SCRATCH_B1
+                        sta  $name+1""")
+                    }
                     "*" -> TODO("mul word byte")
                     "/" -> TODO("div word byte")
                     "%" -> TODO("word remainder byte")
