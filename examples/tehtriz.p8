@@ -7,8 +7,7 @@
 ;   staged speed increase
 ;   some simple sound effects
 
-; TODO fix crash
-
+; TODO fix auto dropping of blocks (first fix testarrays)
 
 %target c64
 %import syslib
@@ -34,7 +33,8 @@ main {
 
 
     sub start() {
-        @(650) = 128        ; set all keys to repeat
+        c64.disable_runstop_and_charsetswitch()
+        ;@(650) = 128        ; set all keys to repeat
         sound.init()
         newGame()
         drawBoard()

@@ -2,8 +2,6 @@
 %import textio
 %import syslib
 
-; TODO fix crash  it's caused by commit  2b9316c4fff5ef33340676da96a9c7ef57237bc0   reworked program init logic
-
 main {
 
 sub start() {

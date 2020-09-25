@@ -8,7 +8,6 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.codegen.programInitializationRoutineName
 
 
 internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter) : AstWalker() {
@@ -107,16 +106,6 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                 && outerScope !is Block) {
             mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope as Node)
         }
-
-        // if it's the program's start subroutine, insert a call to the initalization logic (if it's not there already)
-        if(subroutine.name=="start" && subroutine.definingBlock().name=="main") {
-            val first = subroutine.statements.firstOrNull() as? FunctionCallStatement
-            if(first==null || first.target.nameInSource != listOf(programInitializationRoutineName)) {
-                val call = FunctionCallStatement(IdentifierReference(listOf(programInitializationRoutineName), subroutine.position), mutableListOf(), true, subroutine.position)
-                mods += IAstModification.InsertFirst(call, subroutine)
-            }
-        }
-
         return mods
     }
 

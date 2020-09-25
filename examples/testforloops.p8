@@ -3,6 +3,8 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
+; TODO fix byte var in arrayvar fail
+
 main {
 
     sub start() {

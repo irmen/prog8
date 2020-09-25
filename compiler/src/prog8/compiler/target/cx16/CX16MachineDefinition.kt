@@ -78,13 +78,6 @@ internal object CX16MachineDefinition: IMachineDefinition {
         override val SCRATCH_W2 = 0x7e      // temp storage 2 for a word  $7e+$7f
 
 
-        override val exitProgramStrategy: ExitProgramStrategy = when (options.zeropage) {
-            ZeropageType.BASICSAFE, ZeropageType.DONTUSE -> ExitProgramStrategy.CLEAN_EXIT
-            ZeropageType.KERNALSAFE, ZeropageType.FULL -> ExitProgramStrategy.SYSTEM_RESET
-            else -> ExitProgramStrategy.SYSTEM_RESET
-        }
-
-
         init {
             if (options.floats && options.zeropage !in setOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 throw CompilerException("when floats are enabled, zero page type should be 'basicsafe' or 'dontuse'")

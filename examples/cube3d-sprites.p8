@@ -2,8 +2,6 @@
 %import syslib
 %import textio
 
-; TODO fix crash
-
 spritedata $2000 {
     ; this memory block contains the sprite data
     ; it must start on an address aligned to 64 bytes.

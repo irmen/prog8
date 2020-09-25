@@ -17,9 +17,6 @@ internal interface CompilationTarget {
     fun encodeString(str: String, altEncoding: Boolean): List<Short>
     fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
     fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path): IAssemblyGenerator
-    val initProcName: String?
-    val resetProcName: String?
-    val disableRunStopProcName: String?
 
     companion object {
         lateinit var instance: CompilationTarget
@@ -36,9 +33,6 @@ internal object C64Target: CompilationTarget {
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
     override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
             AsmGen(program, errors, zp, options, path)
-    override val initProcName = "c64.init_system"
-    override val resetProcName = "c64.reset_system"
-    override val disableRunStopProcName = "c64.disable_runstop_and_charsetswitch"
 }
 
 internal object Cx16Target: CompilationTarget {
@@ -50,7 +44,4 @@ internal object Cx16Target: CompilationTarget {
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
     override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
             AsmGen(program, errors, zp, options, path)
-    override val initProcName = "cx16.init_system"
-    override val resetProcName = "cx16.reset_system"
-    override val disableRunStopProcName = null
 }

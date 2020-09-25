@@ -251,8 +251,7 @@ asmsub  init_system()  {
         sta  c64.COLOR
         lda  #0
         sta  c64.BGCOL0
-        tax
-        tay
+        jsr  disable_runstop_and_charsetswitch
         clc
         clv
         cli
@@ -272,7 +271,6 @@ asmsub  reset_system()  {
 
 asmsub  disable_runstop_and_charsetswitch() {
     %asm {{
-        lda  #$80
         lda  #$80
         sta  657    ; disable charset switching
         lda  #239

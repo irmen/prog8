@@ -8,9 +8,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO fix problem that it freezes or doesn't draw anything anymore
-
-
 main {
     const ubyte width = 255
     const ubyte height = 200

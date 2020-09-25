@@ -3,8 +3,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO fix crash
-
 main {
 
     ; vertices

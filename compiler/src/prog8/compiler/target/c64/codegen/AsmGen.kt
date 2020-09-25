@@ -29,9 +29,6 @@ import java.util.*
 import kotlin.math.absoluteValue
 
 
-internal const val programInitializationRoutineName = "prog8_initialize_program"
-
-
 internal class AsmGen(private val program: Program,
                       val errors: ErrorReporter,
                       val zeropage: Zeropage,
@@ -54,12 +51,10 @@ internal class AsmGen(private val program: Program,
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
-    private val programInitLines = mutableListOf<String>()
 
     override fun compileToAssembly(optimize: Boolean): IAssemblyProgram {
         assemblyLines.clear()
         loopEndLabels.clear()
-        programInitLines.clear()
 
         println("Generating assembly code... ")
 
@@ -126,63 +121,25 @@ internal class AsmGen(private val program: Program,
                 out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
-                if(!options.noSysInit && !CompilationTarget.instance.initProcName.isNullOrEmpty())
-                    out("  jsr  ${CompilationTarget.instance.initProcName}")
+                if(!options.noSysInit)
+                    out("  jsr  ${CompilationTarget.instance.name}.init_system")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
-                if(!options.noSysInit && !CompilationTarget.instance.initProcName.isNullOrEmpty())
-                    out("  jsr  ${CompilationTarget.instance.initProcName}")
+                if(!options.noSysInit)
+                    out("  jsr  ${CompilationTarget.instance.name}.init_system")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
             }
         }
-        out("  jmp  main.start   ; start program / force start proc to be included")
 
-        if (zeropage.exitProgramStrategy != Zeropage.ExitProgramStrategy.CLEAN_EXIT) {
-            if(!CompilationTarget.instance.disableRunStopProcName.isNullOrEmpty())
-                programInitLines.add("  jsr  ${CompilationTarget.instance.disableRunStopProcName}")
-        }
-
-        programInitLines.add("  ; initialize the variables in each block that has globals")
-        programInitLines.add("  cld")
-        programInitLines.add("  clv")
-        program.allBlocks().forEach {
-            if(it.statements.filterIsInstance<VarDecl>().any { vd->vd.value!=null && vd.type==VarDeclType.VAR && vd.datatype in NumericDatatypes})
-                programInitLines.add("  jsr  ${it.name}.prog8_init_vars")
-        }
-        if (zeropage.exitProgramStrategy == Zeropage.ExitProgramStrategy.SYSTEM_RESET) {
-            // push the reset routine onto the cpu stack so that it is executed when the program does an rts
-            programInitLines.addAll(listOf(
-                    "  tsx",
-                    "  lda  $0102,x",
-                    "  pha",
-                    "  lda  $0103,x",
-                    "  pha",
-                    "  lda  #>(${CompilationTarget.instance.resetProcName}-1)",
-                    "  sta  $0102,x",
-                    "  lda  #<(${CompilationTarget.instance.resetProcName}-1)",
-                    "  sta  $0103,x",
-            ))
-        }
-        programInitLines.add("  ldx  #\$ff\t; init estack pointer")
-        programInitLines.add("  rts")
+        out("  jmp  main.start  ; start program / force start proc to be included")
     }
 
     private fun footer() {
-        // the program preamble or initialization code
-        out("")
-        out("; program initialization")
-        out(programInitializationRoutineName)
-        for(line in programInitLines) {
-            out(line)
-        }
-        out("")
-
-
         // the global list of all floating point constants for the whole program
         out("; global float constants")
         for (flt in globalFloatConsts) {
@@ -632,25 +589,18 @@ $save       .byte 0
             is InlineAssembly -> translate(stmt)
             is FunctionCallStatement -> {
                 val functionName = stmt.target.nameInSource.last()
-                if(functionName == programInitializationRoutineName) {
-                    out("""
-                        tsx
-                        stx  prog8_lib.orig_stackpointer
-                        jsr  $functionName""")
+                val builtinFunc = BuiltinFunctions[functionName]
+                if (builtinFunc != null) {
+                    builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
                 } else {
-                    val builtinFunc = BuiltinFunctions[functionName]
-                    if (builtinFunc != null) {
-                        builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
-                    } else {
-                        functioncallAsmGen.translateFunctionCall(stmt)
-                        // discard any results from the stack:
-                        val sub = stmt.target.targetSubroutine(program.namespace)!!
-                        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-                        for ((t, reg) in returns) {
-                            if (reg.stack) {
-                                if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
-                                else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
-                            }
+                    functioncallAsmGen.translateFunctionCall(stmt)
+                    // discard any results from the stack:
+                    val sub = stmt.target.targetSubroutine(program.namespace)!!
+                    val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+                    for ((t, reg) in returns) {
+                        if (reg.stack) {
+                            if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
+                            else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
                         }
                     }
                 }
@@ -811,6 +761,23 @@ $save       .byte 0
             out("${sub.name}\t.proc")
             zeropagevars2asm(sub.statements)
             memdefs2asm(sub.statements)
+
+            // the main.start subroutine is the program's entrypoint and should perform some initialization logic
+            if(sub.name=="start" && sub.definingBlock().name=="main") {
+                out("; program startup initialization")
+                out("  cld")
+                program.allBlocks().forEach {
+                    if(it.statements.filterIsInstance<VarDecl>().any { vd->vd.value!=null && vd.type==VarDeclType.VAR && vd.datatype in NumericDatatypes})
+                        out("  jsr  ${it.name}.prog8_init_vars")
+                }
+                out("""
+                    tsx
+                    stx  prog8_lib.orig_stackpointer    ; required for func_exit                    
+                    ldx  #255       ; init estack ptr
+                    clv
+                    clc""")
+            }
+
             out("; statements")
             sub.statements.forEach{ translate(it) }
             out("; variables")

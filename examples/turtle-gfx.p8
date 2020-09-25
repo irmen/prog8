@@ -3,8 +3,6 @@
 %import graphics
 %zeropage floatsafe
 
-; TODO fix crash
-
 main {
 
     sub start() {

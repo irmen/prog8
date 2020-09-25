@@ -5,9 +5,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO fix byte var in arrayvar fail
-
-
 main {
 
     ; this is only a parser/compiler test, there's no actual working program

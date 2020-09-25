@@ -70,12 +70,4 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     private fun loneByte(address: Int) = address in free && address-1 !in free && address+1 !in free
     private fun sequentialFree(address: Int, size: Int) = free.containsAll((address until address+size).toList())
-
-    enum class ExitProgramStrategy {
-        CLEAN_EXIT,
-        SYSTEM_RESET
-    }
-
-    abstract val exitProgramStrategy: ExitProgramStrategy
-
 }
