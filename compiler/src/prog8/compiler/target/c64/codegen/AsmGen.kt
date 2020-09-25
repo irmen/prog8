@@ -1017,6 +1017,7 @@ $counterVar    .byte  0""")
                 }
             }
         }
+        out("  jmp  $endLabel")
         for(choiceBlock in choiceBlocks) {
             out(choiceBlock.first)
             translate(choiceBlock.second)

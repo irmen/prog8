@@ -31,13 +31,6 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
-    mods = optimizeStoreLoadSame(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
     mods= optimizeJsrRts(linesByFour)
     if(mods.isNotEmpty()) {
         apply(mods, lines)

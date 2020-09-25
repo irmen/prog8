@@ -7,8 +7,6 @@
 ;   staged speed increase
 ;   some simple sound effects
 
-; TODO fix auto dropping of blocks (first fix testarrays)
-
 %target c64
 %import syslib
 %import textio
