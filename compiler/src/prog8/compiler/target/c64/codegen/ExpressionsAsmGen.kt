@@ -56,12 +56,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when (dt) {
                     in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> {
-                        // TODO optimize the easiest compares such as == 0, == 1
-                        translateExpression(left)
-                        translateExpression(right)
-                        asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
-                    }
+                    DataType.FLOAT -> translateFloatEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -69,12 +64,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when (dt) {
                     in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> {
-                        // TODO optimize the easiest compares such as != 0, != 1
-                        translateExpression(left)
-                        translateExpression(right)
-                        asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
-                    }
+                    DataType.FLOAT -> translateFloatNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -793,6 +783,97 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.notequal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateFloatEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal!=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    when(rightConstVal.number.toDouble())
+                    {
+                        0.0 -> {
+                            asmgen.out("""
+                                lda  $name
+                                clc
+                                adc  $name+1
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                bne  $jumpIfFalseLabel""")
+                            return
+                        }
+                        1.0 -> {
+                            asmgen.out("""
+                                lda  $name
+                                cmp  #129
+                                bne  $jumpIfFalseLabel
+                                lda  $name+1
+                                clc
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                bne  $jumpIfFalseLabel""")
+                            return
+                        }
+                    }
+                }
+            }
+        }
+
+        translateExpression(left)
+        translateExpression(right)
+        asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateFloatNotEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    when(rightConstVal.number.toDouble())
+                    {
+                        0.0 -> {
+                            asmgen.out("""
+                                lda  $name
+                                clc
+                                adc  $name+1
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                beq  $jumpIfFalseLabel""")
+                            return
+                        }
+                        1.0 -> {
+                            asmgen.out("""
+                                lda  $name
+                                cmp  #129
+                                bne  +
+                                lda  $name+1
+                                clc
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                beq  $jumpIfFalseLabel
++""")
+                            return
+                        }
+                    }
+                }
+            }
+        }
+
+        translateExpression(left)
+        translateExpression(right)
+        asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateExpression(expression: FunctionCall) {
