@@ -15,18 +15,18 @@ main {
         repeat(25)
             txt.chrout('\n')
 
-;        equal()
-;        txt.chrout('\n')
-;        notequal()
-;        txt.chrout('\n')
-;        less()
-;        txt.chrout('\n')
-;        greater()
-;        txt.chrout('\n')
+        equal()
+        txt.chrout('\n')
+        notequal()
+        txt.chrout('\n')
+        less()
+        txt.chrout('\n')
+        greater()
+        txt.chrout('\n')
         lessequal()
         txt.chrout('\n')
-;        greaterequal()
-;        txt.chrout('\n')
+        greaterequal()
+        txt.chrout('\n')
     }
 
     sub equal() {

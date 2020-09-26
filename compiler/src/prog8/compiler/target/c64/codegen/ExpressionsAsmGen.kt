@@ -57,6 +57,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
+                        // TODO optimize the easiest compares such as == 0, == 1
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -69,6 +70,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
+                        // TODO optimize the easiest compares such as != 0, != 1
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -310,7 +312,45 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateByteGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO compare with optimized asm
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            lda  $name
+                            clc
+                            sbc  #${rightConstVal.number}
+                            bvc  +
+                            eor  #$80
++                           bpl  +
+                            bmi  $jumpIfFalseLabel
++""")
+                    else
+                        asmgen.out(" lda  $name |  bmi  $jumpIfFalseLabel")
+                    return
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpression(left, false)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            clc
+                            sbc  #${rightConstVal.number}
+                            bvc  +
+                            eor  #$80
++                           bpl  +
+                            bmi  $jumpIfFalseLabel
++""")
+                    else
+                        asmgen.out(" bmi  $jumpIfFalseLabel")
+                    return
+                }
+            }
+        }
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -352,7 +392,36 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateWordGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO compare with optimized asm
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<=leftConstVal)
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmgen.asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        asmgen.out("""
+                            lda  #<${rightConstVal.number}
+                            cmp  $name
+                            lda  #>${rightConstVal.number}
+                            sbc  $name+1
+                            bvc  +
+                            eor  #$80
++                           bpl  $jumpIfFalseLabel""")
+                    else
+                        asmgen.out("""
+                            lda  #0
+                            cmp  $name
+                            sbc  $name+1
+                            bvc  +
+                            eor  #$80
++                           bpl  $jumpIfFalseLabel""")
+                    return
+                }
+            }
+        }
+
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -382,13 +451,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
-                    if(rightConstVal.number.toInt()!=0) {
+                    if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
                             cmp  #${rightConstVal.number} 
                             beq  +
                             bcs  $jumpIfFalseLabel
 +""")
-                    }
                     else
                         asmgen.out("  bne  $jumpIfFalseLabel")
                     return
@@ -428,14 +496,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
-                    if(rightConstVal.number.toInt()!=0) {
+                    if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
                             clc
                             sbc  #${rightConstVal.number}
                             bvc  +
                             eor  #$80
 +                           bpl  $jumpIfFalseLabel""")
-                    }
                     else
                         asmgen.out("""
                             beq  +
@@ -511,6 +578,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             bvc  +
                             eor  #$80
     +                       bmi  $jumpIfFalseLabel""")
+                    return
                 }
             }
         }
@@ -664,7 +732,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             } else {
                 if (left is IdentifierReference) {
                     val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0) {
+                    if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
                         lda  $name
                         cmp  #<${rightConstVal.number}
@@ -672,13 +740,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         lda  $name+1
                         cmp  #>${rightConstVal.number}
                         bne  $jumpIfFalseLabel""")
-                    } else {
+                    else
                         asmgen.out("""
                         lda  $name
                         bne  $jumpIfFalseLabel
                         lda  $name+1
                         bne  $jumpIfFalseLabel""")
-                    }
                     return
                 }
             }
@@ -698,7 +765,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             } else {
                 if (left is IdentifierReference) {
                     val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0) {
+                    if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
                         lda  $name
                         cmp  #<${rightConstVal.number}
@@ -707,14 +774,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         cmp  #>${rightConstVal.number}
                         beq  $jumpIfFalseLabel
 +""")
-                    } else {
+                    else
                         asmgen.out("""
                         lda  $name
                         bne  +
                         lda  $name+1
                         beq  $jumpIfFalseLabel
 +""")
-                    }
                     return
                 }
             }
