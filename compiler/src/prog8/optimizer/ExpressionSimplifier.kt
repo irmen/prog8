@@ -175,28 +175,6 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 // unsigned >= 0 --> true
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(true, expr.position), parent))
             }
-            when(leftDt) {
-                DataType.BYTE -> {
-                    // signed >=0   --> signed ^ $80
-                    return listOf(IAstModification.ReplaceNode(
-                            expr,
-                            BinaryExpression(expr.left, "^", NumericLiteralValue.optimalInteger(0x80, expr.position), expr.position),
-                            parent
-                    ))
-                }
-                DataType.WORD -> {
-                    // signedw >=0   --> msb(signedw) ^ $80
-                    return listOf(IAstModification.ReplaceNode(
-                            expr,
-                            BinaryExpression(FunctionCall(IdentifierReference(listOf("msb"), expr.position),
-                                    mutableListOf(expr.left),
-                                    expr.position
-                            ), "^", NumericLiteralValue.optimalInteger(0x80, expr.position), expr.position),
-                            parent
-                    ))
-                }
-                else -> {}
-            }
         }
 
         if(expr.operator == "<" && rightVal?.number == 0) {
