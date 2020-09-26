@@ -253,15 +253,15 @@ main {
         }
 
         if uww>0 {
-            txt.print("ok 8b\n")
+            txt.print("ok 8k\n")
         } else {
-            txt.print("fail 8b\n")
+            txt.print("fail 8k\n")
         }
 
         if uww>2222 {
-            txt.print("fail 8b\n")
+            txt.print("fail 8l\n")
         } else {
-            txt.print("ok 8b\n")
+            txt.print("ok 8l\n")
         }
 
         ; @($c000) *= 99        ; TODO implement
