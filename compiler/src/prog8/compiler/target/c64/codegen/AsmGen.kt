@@ -528,6 +528,7 @@ internal class AsmGen(private val program: Program,
     private val saveRegisterLabels = Stack<String>();
 
     internal fun saveRegister(register: CpuRegister) {
+        // TODO use only one saveX label+byte storage per subroutine
         when(register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
@@ -546,6 +547,7 @@ $save       .byte 0
                 if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phy")
                 else {
                     val save = makeLabel("saveY")
+                    saveRegisterLabels.push(save)
                     out("""
             sty  $save
             jmp  +
