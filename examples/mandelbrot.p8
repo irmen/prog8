@@ -11,16 +11,7 @@ main {
 
     sub start()  {
         txt.print("calculating mandelbrot fractal...")
-
-        %asm {{
-            stx  P8ZP_SCRATCH_REG
-            ; reset the jiffy clock
-            ldx  #0
-            ldy  #0
-            lda  #0
-            jsr  c64.SETTIM
-            ldx  P8ZP_SCRATCH_REG
-        }}
+        c64.SETTIM(0, 0, 0)
 
         ubyte pixelx
         ubyte pixely
