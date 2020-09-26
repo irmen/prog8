@@ -370,6 +370,11 @@ main {
         } else {
             txt.print("fail < eb6\n")
         }
+        if b2 < 0 {
+            txt.print("ok < eb7\n")
+        } else {
+            txt.print("fail < eb7\n")
+        }
 
         if w2 < -32768 {
             txt.print("fail < ew1\n")
@@ -400,6 +405,11 @@ main {
             txt.print("ok < ew6\n")
         } else {
             txt.print("fail < ew6\n")
+        }
+        if w2 < 0 {
+            txt.print("ok < ew7\n")
+        } else {
+            txt.print("fail < ew7\n")
         }
     }
 
@@ -557,6 +567,11 @@ main {
         } else {
             txt.print("ok > eb6\n")
         }
+        if b2 > 0 {
+            txt.print("fail > eb7\n")
+        } else {
+            txt.print("ok > eb7\n")
+        }
 
         if w2 > -32768 {
             txt.print("ok > ew1\n")
@@ -584,6 +599,11 @@ main {
             txt.print("ok > ew5\n")
         }
         if w2 > 32767 {
+            txt.print("fail > ew6\n")
+        } else {
+            txt.print("ok > ew6\n")
+        }
+        if w2 > 0 {
             txt.print("fail > ew6\n")
         } else {
             txt.print("ok > ew6\n")
@@ -745,6 +765,11 @@ main {
         } else {
             txt.print("fail <= eb6\n")
         }
+        if b2 <= 0 {
+            txt.print("ok <= eb7\n")
+        } else {
+            txt.print("fail <= eb7\n")
+        }
 
         if w2 <= -32768 {
             txt.print("fail <= ew1\n")
@@ -775,6 +800,11 @@ main {
             txt.print("ok <= ew6\n")
         } else {
             txt.print("fail <= ew6\n")
+        }
+        if w2 <= 0 {
+            txt.print("ok <= ew7\n")
+        } else {
+            txt.print("fail <= ew7\n")
         }
 
     }
@@ -933,6 +963,11 @@ main {
         } else {
             txt.print("ok >= eb6\n")
         }
+        if b2 >= 0 {
+            txt.print("fail >= eb7\n")
+        } else {
+            txt.print("ok >= eb7\n")
+        }
 
         if w2 >= -32768 {
             txt.print("ok >= ew1\n")
@@ -963,6 +998,11 @@ main {
             txt.print("fail >= ew6\n")
         } else {
             txt.print("ok >= ew6\n")
+        }
+        if w2 >= 0 {
+            txt.print("fail >= ew7\n")
+        } else {
+            txt.print("ok >= ew7\n")
         }
     }
 }

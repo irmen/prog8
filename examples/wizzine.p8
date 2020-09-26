@@ -58,7 +58,7 @@ irq {
             ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(y, lsb(x))
             c64.MSIGX <<= 1
-            if msb(x) c64.MSIGX++
+            if msb(x) c64.MSIGX++           ; TODO has this become badly translated to asm?? it makes the loop quite slow
         }
         c64.EXTCOL-=8
     }
