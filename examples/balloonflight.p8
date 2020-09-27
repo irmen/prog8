@@ -3,9 +3,6 @@
 %import textio
 %zeropage basicsafe
 
-; TODO balloon only goes down now
-
-
 main {
 
     ubyte perform_scroll = false
@@ -48,7 +45,9 @@ main {
 
             perform_scroll = false
             txt.scroll_left(true)
-            if c64.RASTER & 1
+
+            ; float the balloon
+            if rnd() & %10000
                 c64.SPXY[1] ++
             else
                 c64.SPXY[1] --

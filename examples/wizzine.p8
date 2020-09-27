@@ -2,9 +2,6 @@
 %import syslib
 %zeropage basicsafe
 
-; TODO fix code that has become slower  (should be fixed after all the new comparison expression code is done)
-
-
 spritedata $0a00 {
     ; this memory block contains the sprite data
     ; it must start on an address aligned to 64 bytes.
@@ -58,7 +55,7 @@ irq {
             ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(y, lsb(x))
             c64.MSIGX <<= 1
-            if msb(x) c64.MSIGX++           ; TODO has this become badly translated to asm?? it makes the loop quite slow
+            if msb(x) c64.MSIGX++
         }
         c64.EXTCOL-=8
     }

@@ -5,8 +5,6 @@
 
 ; This example shows the directory contents of disk drive 8.
 
-; TODO why is this larger than on the previous compiler version?
-
 main {
     sub start() {
         txt.print("directory of disk drive #8:\n\n")

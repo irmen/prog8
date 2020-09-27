@@ -5,8 +5,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO why is this larger than on the previous compiler version?
-
 main {
 
     sub start() {
