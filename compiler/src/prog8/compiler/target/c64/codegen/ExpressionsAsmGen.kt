@@ -1084,6 +1084,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack")
                 if(pushResultOnEstack)
                     asmgen.out("  sta  P8ESTACK_LO+1,x")
+                else
+                    asmgen.out("  php |  inx |  plp")
             }
         }
     }
