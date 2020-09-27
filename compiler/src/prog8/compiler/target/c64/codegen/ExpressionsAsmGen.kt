@@ -53,6 +53,39 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val dt = left.inferType(program).typeOrElse(DataType.STRUCT)
         when (operator) {
             "==" -> {
+                // if the left operand is an expression, and the right is 0, we can just evaluate that expression.
+                // (the extra comparison is not required as the result of the expression is already the required boolean value)
+                if(rightConstVal?.number?.toDouble() == 0.0) {
+                    when(left) {
+                        is PrefixExpression,
+                        is BinaryExpression,
+                        is ArrayIndexedExpression,
+                        is TypecastExpression,
+                        is AddressOf,
+                        is RangeExpr,
+                        is FunctionCall -> {
+                            translateExpression(left)
+                            if(dt in ByteDatatypes) {
+                                asmgen.out("""
+                                    inx
+                                    lda  P8ESTACK_LO,x
+                                    bne  $jumpIfFalseLabel""")
+                                return
+                            }
+                            else if(dt in WordDatatypes) {
+                                asmgen.out("""
+                                    inx
+                                    lda  P8ESTACK_LO,x
+                                    clc
+                                    adc  P8ESTACK_HI,x
+                                    bne  $jumpIfFalseLabel""")
+                                return
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
                 when (dt) {
                     in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
@@ -61,6 +94,39 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             "!=" -> {
+                // if the left operand is an expression, and the right is 0, we can just evaluate that expression.
+                // (the extra comparison is not required as the result of the expression is already the required boolean value)
+                if(rightConstVal?.number?.toDouble() == 0.0) {
+                    when(left) {
+                        is PrefixExpression,
+                        is BinaryExpression,
+                        is ArrayIndexedExpression,
+                        is TypecastExpression,
+                        is AddressOf,
+                        is RangeExpr,
+                        is FunctionCall -> {
+                            translateExpression(left)
+                            if(dt in ByteDatatypes) {
+                                asmgen.out("""
+                                    inx
+                                    lda  P8ESTACK_LO,x
+                                    beq  $jumpIfFalseLabel""")
+                                return
+                            }
+                            else if(dt in WordDatatypes) {
+                                asmgen.out("""
+                                    inx
+                                    lda  P8ESTACK_LO,x
+                                    clc
+                                    adc  P8ESTACK_HI,x
+                                    beq  $jumpIfFalseLabel""")
+                                return
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
                 when (dt) {
                     in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)

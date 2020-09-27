@@ -3,6 +3,9 @@
 %import textio
 %zeropage basicsafe
 
+; TODO balloon only goes down now
+
+
 main {
 
     ubyte perform_scroll = false
