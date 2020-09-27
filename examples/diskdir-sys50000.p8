@@ -2,6 +2,7 @@
 %import textio
 %import syslib
 %zeropage basicsafe
+%option no_sysinit
 %launcher none
 %address 50000
 

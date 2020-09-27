@@ -528,32 +528,15 @@ internal class AsmGen(private val program: Program,
     private val saveRegisterLabels = Stack<String>();
 
     internal fun saveRegister(register: CpuRegister) {
-        // TODO use only one saveX label+byte storage per subroutine
         when(register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
                 if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
-                else {
-                    val save = makeLabel("saveX")
-                    saveRegisterLabels.push(save)
-                    out("""
-            stx  $save
-            jmp  +
-$save       .byte 0
-+""")
-                }
+                else out("  stx  _prog8_regsave${register.name}")
             }
             CpuRegister.Y -> {
                 if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phy")
-                else {
-                    val save = makeLabel("saveY")
-                    saveRegisterLabels.push(save)
-                    out("""
-            sty  $save
-            jmp  +
-$save       .byte 0
-+""")
-                }
+                else out("  sty  _prog8_regsave${register.name}")
             }
         }
     }
@@ -563,17 +546,11 @@ $save       .byte 0
             CpuRegister.A -> out("  pla")
             CpuRegister.X -> {
                 if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  plx")
-                else {
-                    val save = saveRegisterLabels.pop()
-                    out("  ldx  $save")
-                }
+                else out("  ldx  _prog8_regsave${register.name}")
             }
             CpuRegister.Y -> {
                 if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  ply")
-                else {
-                    val save = saveRegisterLabels.pop()
-                    out("  ldy  $save")
-                }
+                else out("  ldy  _prog8_regsave${register.name}")
             }
         }
     }
@@ -783,6 +760,10 @@ $save       .byte 0
             out("; statements")
             sub.statements.forEach{ translate(it) }
             out("; variables")
+            out("""
+                ; register saves
+_prog8_regsaveX     .byte  0                
+_prog8_regsaveY     .byte  0""")        // TODO only generate these bytes if they're actually used by saveRegister()
             vardecls2asm(sub.statements)
             out("  .pend\n")
         }

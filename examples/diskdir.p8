@@ -1,6 +1,7 @@
 %target c64
 %import textio
 %import syslib
+%option no_sysinit
 %zeropage basicsafe
 
 ; This example shows the directory contents of disk drive 8.
