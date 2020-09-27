@@ -31,6 +31,13 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
+    mods = optimizeStoreLoadSame(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
+
     mods= optimizeJsrRts(linesByFour)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
@@ -172,6 +179,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
 }
 
 private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+    // TODO not sure if this is correct in all situations....:
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can be eliminated
     val mods = mutableListOf<Modification>()
     for (pair in linesByFour) {
