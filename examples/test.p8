@@ -1,12 +1,11 @@
-%target c64
 %import textio
 %import syslib
-%zeropage basicsafe
+; %zeropage basicsafe
 
 
 main {
     sub start() {
-
+        txt.print("hello\n")
     }
 
 }

@@ -7,11 +7,13 @@ import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
+import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
 import prog8.compiler.toHex
 import kotlin.math.absoluteValue
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
+                                           private val exprAsmGen: ExpressionsAsmGen,
                                            private val asmgen: AsmGen) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
@@ -104,6 +106,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification(target: AsmAssignTarget, operator: String, value: Expression) {
         val valueLv = (value as? NumericLiteralValue)?.number
         val ident = value as? IdentifierReference
+        val memread = value as? DirectMemoryRead
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -112,7 +115,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(target.asmVarname, target.datatype, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.
+                            memread != null -> inplaceModification_byte_memread_to_variable(target.asmVarname, target.datatype, operator, memread)
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value)
@@ -124,18 +127,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_word_litval_to_variable(target.asmVarname, target.datatype, operator, valueLv.toInt())
                             ident != null -> inplaceModification_word_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.
-//                            value is DirectMemoryRead -> {
-//                                println("warning: slow stack evaluation used (8):  $name $operator= ${value::class.simpleName} at ${value.position}")
-//                                // assignmentAsmGen.translateOtherAssignment(origAssign)
-//                                asmgen.translateExpression(value.addressExpression)
-//                                asmgen.out("""
-//                                    jsr  prog8_lib.read_byte_from_address_on_stack
-//                                    sta  ...
-//                                    inx
-//                                    """)
-//                                inplaceModification_word_value_to_variable(name, operator, )
-//                            }
+                            memread != null -> inplaceModification_word_memread_to_variable(target.asmVarname, target.datatype, operator, memread)
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value)
@@ -147,7 +139,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_float_litval_to_variable(target.asmVarname, operator, valueLv.toDouble())
                             ident != null -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_float_value_to_variable(target.asmVarname, operator, value)
@@ -196,7 +187,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.
+                            memread != null -> inplaceModification_byte_memread_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, memread)
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
@@ -633,6 +624,62 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplaceModification_byte_memread_to_variable(name: String, dt: DataType, operator: String, memread: DirectMemoryRead) {
+        when(operator) {
+            "+" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("""
+                    clc
+                    adc  $name
+                    sta  $name""")
+            }
+            "-" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_B1
+                    lda  $name
+                    sec
+                    sbc  P8ZP_SCRATCH_B1
+                    sta  $name""")
+                // TODO: more operators
+            }
+            else -> {
+                inplaceModification_byte_value_to_variable(name, dt, operator, memread);
+            }
+        }
+    }
+
+    private fun inplaceModification_word_memread_to_variable(name: String, dt: DataType, operator: String, memread: DirectMemoryRead) {
+        when(operator) {
+            "+" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("""
+                    clc
+                    adc  $name
+                    sta  $name
+                    bcc  +
+                    inc  $name+1
++""")
+            }
+            "-" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_B1
+                    lda  $name
+                    sec
+                    sbc  P8ZP_SCRATCH_B1
+                    sta  $name
+                    bcc  +
+                    dec  $name+1
++""")
+                // TODO: more operators
+            }
+            else -> {
+                inplaceModification_word_value_to_variable(name, dt, operator, memread);
+            }
         }
     }
 

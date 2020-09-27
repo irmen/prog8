@@ -47,8 +47,8 @@ internal class AsmGen(private val program: Program,
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
 

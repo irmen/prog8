@@ -1065,7 +1065,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
-    private fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
+    internal fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
         when(expr.addressExpression) {
             is NumericLiteralValue -> {
                 val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
