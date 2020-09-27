@@ -642,14 +642,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // TODO use these + and - optimizations in the expressionAsmGenerator as well.
             "+" -> {
                 when {
-                    value<0x0100 -> asmgen.out("""
+                    value==0 -> {}
+                    value in 1..0xff -> asmgen.out("""
                         lda  $name
                         clc
                         adc  #$value
                         sta  $name
                         bcc  +
                         inc  $name+1
-+                           """)
++""")
                     value==0x0100 -> asmgen.out(" inc  $name+1")
                     value==0x0200 -> asmgen.out(" inc  $name+1 |  inc  $name+1")
                     value==0x0300 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1")
@@ -666,14 +667,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "-" -> {
                 when {
-                    value<0x0100 -> asmgen.out("""
+                    value==0 -> {}
+                    value in 1..0xff -> asmgen.out("""
                         lda  $name
                         sec
                         sbc  #$value
                         sta  $name
                         bcs  +
                         dec  $name+1
-+                           """)
++""")
                     value==0x0100 -> asmgen.out(" dec  $name+1")
                     value==0x0200 -> asmgen.out(" dec  $name+1 |  dec  $name+1")
                     value==0x0300 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1")
@@ -841,32 +843,52 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when (operator) {
                     // note: ** (power) operator requires floats.
                     "+" -> {
-                        asmgen.out("""
-                        ldy  #0
-                        lda  $otherName
-                        bpl  +
-                        dey     ; sign extend
-+                       clc
-                        adc  $name
-                        sta  $name
-                        tya
-                        adc  $name+1
-                        sta  $name+1""")
+                        if(valueDt==DataType.UBYTE)
+                            asmgen.out("""
+                                lda  $name
+                                clc
+                                adc  $otherName
+                                sta  $name
+                                bcc  +
+                                inc  $name+1
++""")
+                        else
+                            asmgen.out("""
+                                ldy  #0
+                                lda  $otherName
+                                bpl  +
+                                dey     ; sign extend
++                               clc
+                                adc  $name
+                                sta  $name
+                                tya
+                                adc  $name+1
+                                sta  $name+1""")
                     }
                     "-" -> {
-                        asmgen.out("""
-                        ldy  #0
-                        lda  $otherName
-                        bpl  +
-                        dey     ; sign extend
-+                       sty  P8ZP_SCRATCH_B1
-                        lda  $name
-                        sec
-                        sbc  $otherName
-                        sta  $name
-                        lda  $name+1
-                        sbc  P8ZP_SCRATCH_B1
-                        sta  $name+1""")
+                        if(valueDt==DataType.UBYTE)
+                            asmgen.out("""
+                                lda  $name
+                                sec
+                                sbc  $otherName
+                                sta  $name
+                                bcc  +
+                                dec  $name+1
++""")
+                        else
+                            asmgen.out("""
+                                ldy  #0
+                                lda  $otherName
+                                bpl  +
+                                dey     ; sign extend
++                               sty  P8ZP_SCRATCH_B1
+                                lda  $name
+                                sec
+                                sbc  $otherName
+                                sta  $name
+                                lda  $name+1
+                                sbc  P8ZP_SCRATCH_B1
+                                sta  $name+1""")
                     }
                     "*" -> {
                         asmgen.out("""
@@ -882,8 +904,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             lda  math.multiply_words.result+1
                             sta  $name+1""")
                     }
-                    "/" -> TODO("div wordvar/bytevar")
-                    "%" -> TODO("word remainder bytevar")
+                    "/" -> TODO("div (u)wordvar/bytevar")
+                    "%" -> TODO("(u)word remainder bytevar")
                     "<<" -> {
                         asmgen.out("""
                         ldy  $otherName
@@ -911,9 +933,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             bne  -""")
                         }
                     }
-                    "&" -> TODO("bitand wordvar bytevar")
-                    "^" -> TODO("bitxor wordvar bytevar")
-                    "|" -> TODO("bitor wordvar bytevar")
+                    "&" -> TODO("bitand (u)wordvar bytevar")
+                    "^" -> TODO("bitxor (u)wordvar bytevar")
+                    "|" -> TODO("bitor (u)wordvar bytevar")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1009,36 +1031,56 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when (operator) {
                     // note: ** (power) operator requires floats.
                     "+" -> {
-                        asmgen.out("""
-                        ldy  #0
-                        lda  P8ESTACK_LO+1,x
-                        bpl  +
-                        dey         ; sign extend
-+                       clc
-                        adc  $name
-                        sta  $name
-                        tya
-                        adc  $name+1
-                        sta  $name+1""")
+                        if(valueDt==DataType.UBYTE)
+                            asmgen.out("""
+                                lda  $name
+                                clc
+                                adc  P8ESTACK_LO+1,x
+                                sta  $name
+                                bcc  +
+                                inc  $name+1
++""")
+                        else
+                            asmgen.out("""
+                                ldy  #0
+                                lda  P8ESTACK_LO+1,x
+                                bpl  +
+                                dey         ; sign extend
++                               clc
+                                adc  $name
+                                sta  $name
+                                tya
+                                adc  $name+1
+                                sta  $name+1""")
                     }
                     "-" -> {
-                        asmgen.out("""
-                        ldy  #0
-                        lda  P8ESTACK_LO+1,x
-                        bpl  +
-                        dey         ; sign extend
-+                       sty  P8ZP_SCRATCH_B1
-                        lda  $name
-                        sec
-                        sbc  P8ESTACK_LO+1,x
-                        sta  $name
-                        lda  $name+1
-                        sbc  P8ZP_SCRATCH_B1
-                        sta  $name+1""")
+                        if(valueDt==DataType.UBYTE)
+                            asmgen.out("""
+                                lda  $name
+                                sec
+                                sbc  P8ESTACK_LO+1,x
+                                sta  $name
+                                bcc  +
+                                dec  $name+1
++""")
+                        else
+                            asmgen.out("""
+                                ldy  #0
+                                lda  P8ESTACK_LO+1,x
+                                bpl  +
+                                dey         ; sign extend
++                               sty  P8ZP_SCRATCH_B1
+                                lda  $name
+                                sec
+                                sbc  P8ESTACK_LO+1,x
+                                sta  $name
+                                lda  $name+1
+                                sbc  P8ZP_SCRATCH_B1
+                                sta  $name+1""")
                     }
-                    "*" -> TODO("mul word byte")
-                    "/" -> TODO("div word byte")
-                    "%" -> TODO("word remainder byte")
+                    "*" -> TODO("mul (u)word (u)byte")
+                    "/" -> TODO("div (u)word (u)byte")
+                    "%" -> TODO("(u)word remainder (u)byte")
                     "<<" -> {
                         asmgen.translateExpression(value)
                         asmgen.out("""
@@ -1077,9 +1119,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                         }
                     }
-                    "&" -> TODO("bitand word byte")
-                    "^" -> TODO("bitxor word byte")
-                    "|" -> TODO("bitor word byte")
+                    "&" -> TODO("bitand (u)word (u)byte")
+                    "^" -> TODO("bitxor (u)word (u)byte")
+                    "|" -> TODO("bitor (u)word (u)byte")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
