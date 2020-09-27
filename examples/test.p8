@@ -1,6 +1,6 @@
 %import textio
 %import syslib
-; %zeropage basicsafe
+%zeropage basicsafe
 
 
 main {

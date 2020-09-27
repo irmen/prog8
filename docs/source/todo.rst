@@ -3,29 +3,23 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- line-circle-gfx examples are now a few hundred bytes larger than before (~4.0/4.1 version i think?). Why is that, can it be fixed?
 - make it possible for array literals to not only contain compile time constants
 - further optimize assignment codegeneration
-- further optimize expression codegeneration, most notably comparisons
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - use VIC banking to move up the graphics bitmap memory location. Don't move it under the ROM though as that would require IRQ disabling and memory bank swapping for every bitmap manipulation
-- add some primitives/support/examples for using custom char sets, copying the default charset.
+- add some primitives/subroutines/examples for using custom char sets, copying the default charset.
 
 More optimizations
 ^^^^^^^^^^^^^^^^^^
 
 Add more compiler optimizations to the existing ones.
 
-- better assembly for comparison expressions most notably == and != (these use eval stack all the time)
 - more targeted optimizations for assigment asm code, such as the following:
 - subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
 - can such parameter passing to subroutines be optimized to avoid copying?
-- add a compiler option to not include variable initialization code (useful if the program is expected to run only once, such as a game)
-  the program will then rely solely on the values as they are in memory at the time of program startup.
-- Also some library routines and code patterns could perhaps be optimized further
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
 - note: subroutine inlining is abandoned because of problems referencing non-local stuff. Can't move everything around.
