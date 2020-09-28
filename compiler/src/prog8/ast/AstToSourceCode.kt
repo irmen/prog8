@@ -85,7 +85,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             DataType.ARRAY_W -> "word["
             DataType.ARRAY_F -> "float["
             DataType.STRUCT -> ""       // the name of the struct is enough
-            else -> "?????2"
+            else -> "?????"
         }
     }
 
@@ -113,7 +113,10 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             VarDeclType.CONST -> output("const ")
             VarDeclType.MEMORY -> output("&")
         }
-        output(decl.struct?.name ?: "")
+
+        if(decl.datatype==DataType.STRUCT && decl.struct!=null)
+            output(decl.struct!!.name)
+
         output(datatypeString(decl.datatype))
         if(decl.arraysize!=null) {
             decl.arraysize!!.index.accept(this)
