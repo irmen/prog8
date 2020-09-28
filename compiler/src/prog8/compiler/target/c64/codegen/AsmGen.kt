@@ -406,10 +406,17 @@ internal class AsmGen(private val program: Program,
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_UW -> array.map {
-                if(it is NumericLiteralValue) {
-                    "$" + it.number.toInt().toString(16).padStart(4, '0')
-                } else {
-                    (it as AddressOf).identifier.nameInSource.joinToString(".")
+                when (it) {
+                    is NumericLiteralValue -> {
+                        "$" + it.number.toInt().toString(16).padStart(4, '0')
+                    }
+                    is AddressOf -> {
+                        it.identifier.nameInSource.joinToString(".")
+                    }
+                    is IdentifierReference -> {
+                        it.nameInSource.joinToString(".")
+                    }
+                    else -> throw AssemblyError("weird array elt dt")
                 }
             }
             else -> throw AssemblyError("invalid arraysize type")
@@ -711,10 +718,40 @@ internal class AsmGen(private val program: Program,
             }
             else {
                 expressionsAsmGen.translateExpression(index)
-                when(register) {
-                    CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
-                    CpuRegister.X -> out("  inx |  lda  P8ESTACK_LO,x |  tax")
-                    CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
+                when(elementDt) {
+                    in ByteDatatypes -> {
+                        when (register) {
+                            CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
+                            CpuRegister.X -> out("  inx |  lda  P8ESTACK_LO,x |  tax")
+                            CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
+                        }
+                    }
+                    in WordDatatypes -> {
+                        out("""
+                            inx
+                            lda  P8ESTACK_LO,x
+                            asl  a""")
+                        when (register) {
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> out("  tax")
+                            CpuRegister.Y -> out("  tay")
+                        }
+                    }
+                    DataType.FLOAT -> {
+                        require(DataType.FLOAT.memorySize()==5)
+                        out("""
+                            inx
+                            lda  P8ESTACK_LO,x
+                            asl  a
+                            asl  a
+                            clc
+                            adc  P8ESTACK_LO,x""")
+                        when (register) {
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> out("  tax")
+                            CpuRegister.Y -> out("  tay")
+                        }
+                    }
                 }
             }
         }

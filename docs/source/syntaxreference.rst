@@ -281,6 +281,7 @@ type identifier  type                     storage size       example var declara
 ``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``
 ``uword[]``      unsigned word array      depends on value   ``uword[] myvar = [1, 2, 3, 4]``
 ``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
+``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================

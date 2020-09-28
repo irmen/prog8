@@ -214,8 +214,9 @@ open class VarDecl(val type: VarDeclType,
                 DataType.UWORD -> DataType.ARRAY_UW
                 DataType.WORD -> DataType.ARRAY_W
                 DataType.FLOAT -> DataType.ARRAY_F
+                DataType.STR -> DataType.ARRAY_UW       // use memory address of the string instead
                 else -> {
-                    datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats", position))
+                    datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats/strings(ptrs)", position))
                     DataType.ARRAY_UB
                 }
             }

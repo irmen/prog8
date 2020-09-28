@@ -26,6 +26,19 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
     }
 
     companion object {
+
+        private fun argTypeCompatible(argDt: DataType, paramDt: DataType): Boolean {
+            if(argDt==paramDt)
+                return true
+
+            // there are some exceptions that are considered compatible, such as STR <> UWORD
+            if(argDt==DataType.STR && paramDt==DataType.UWORD ||
+                    argDt==DataType.UWORD && paramDt==DataType.STR)
+                return true
+
+            return false
+        }
+
         fun checkTypes(call: IFunctionCall, scope: INameScope, program: Program): String? {
             val argtypes = call.args.map { it.inferType(program).typeOrElse(DataType.STRUCT) }
             val target = call.target.targetStatement(scope)
@@ -34,7 +47,7 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                 if(call.args.size != target.parameters.size)
                     return "invalid number of arguments"
                 val paramtypes = target.parameters.map { it.type }
-                val mismatch = argtypes.zip(paramtypes).indexOfFirst { it.first != it.second}
+                val mismatch = argtypes.zip(paramtypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch].toString()
                     val expected = paramtypes[mismatch].toString()
@@ -47,7 +60,8 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                     return "invalid number of arguments"
                 val paramtypes = func.parameters.map { it.possibleDatatypes }
                 for (x in argtypes.zip(paramtypes).withIndex()) {
-                    if (x.value.first !in x.value.second) {
+                    val anyCompatible = x.value.second.any { argTypeCompatible(x.value.first, it) }
+                    if (!anyCompatible) {
                         val actual = x.value.first.toString()
                         val expected = x.value.second.toString()
                         return "argument ${x.index + 1} type mismatch, was: $actual expected: $expected"

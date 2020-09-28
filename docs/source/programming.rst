@@ -236,12 +236,13 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 
 Arrays
 ^^^^^^
-Array types are also supported. They can be made of bytes, words or floats::
+Array types are also supported. They can be made of bytes, words or floats, and strings::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
     byte[99] array = 255              ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
+    str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to uword)
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
@@ -292,6 +293,12 @@ large enough to contain the new value::
     string1 = string2
     string1 = "new value"
 
+
+.. info::
+    Strings and uwords (=memory address) can often be interchanged.
+    An array of strings is actually an array of uwords where every element is the memory
+    address of the string. You can pass a memory address to assembly functions
+    that require a string as an argument.
 
 .. caution::
     It's probably best to avoid changing strings after they've been created. This
@@ -718,7 +725,7 @@ sort(array)
     floating point values.
 
 reverse(array)
-    Reverse the values in the array (in-place). Supports all data types including floats.
+    Reverse the values in the array (in-place).
     Can be used after sort() to sort an array in descending order.
 
 len(x)

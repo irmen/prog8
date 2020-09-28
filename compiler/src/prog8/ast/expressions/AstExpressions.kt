@@ -569,6 +569,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         val dts = datatypesInArray.map { it.typeOrElse(DataType.STRUCT) }
         return when {
             DataType.FLOAT in dts -> InferredTypes.InferredType.known(DataType.ARRAY_F)
+            DataType.STR in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
             DataType.WORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_W)
             DataType.UWORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
             DataType.BYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_B)
