@@ -742,18 +742,16 @@ internal class AstChecker(private val program: Program,
             checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), null, arrayspec, array)
         }
 
-        fun isStringElement(e: Expression): Boolean {
+        fun isPassByReferenceElement(e: Expression): Boolean {
             if(e is IdentifierReference) {
                 val decl = e.targetVarDecl(program.namespace)!!
-                return decl.datatype==DataType.STR
+                return decl.datatype in PassByReferenceDatatypes
             }
             return e is StringLiteralValue
         }
 
-        if(!array.value.all { it is NumericLiteralValue || it is AddressOf || isStringElement(it) }) {
-            // TODO for now, array literals have to consist of all compile time constant values...
-            errors.err("array literal doesn't consist of only compile time constant values", array.position)
-        }
+        if(!array.value.all { it is NumericLiteralValue || it is AddressOf || isPassByReferenceElement(it) })
+            errors.err("array literal contains invalid types", array.position)
 
         super.visit(array)
     }

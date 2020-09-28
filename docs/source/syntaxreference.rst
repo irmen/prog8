@@ -399,7 +399,7 @@ After defining a struct you can use the name of the struct as a data type to dec
 
 Struct variables can be assigned a struct literal value (also in their declaration as initial value)::
 
-    Color rgb = {255, 100, 0}          ; curly braces instead of brackets
+    Color rgb = [255, 100, 0]          ; note that the value is an array
 
 
 Operators

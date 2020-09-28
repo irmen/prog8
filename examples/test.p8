@@ -8,6 +8,18 @@ main {
     str[] names = ["aap", "noot", "mies", "vuur"]
     uword[] names3 = ["aap", "noot", "mies", "vuur"]
     ubyte[] values = [11,22,33,44]
+    uword[] arrays = [names, names3, values]
+
+    struct Color {
+        ubyte red
+        ubyte green
+        ubyte blue
+    }
+
+    Color c1 = [11,22,33]       ; TODO fix crash
+    Color c2 = [11,22,33]       ; TODO fix crash
+    Color c3 = [11,22,33]       ; TODO fix crash
+    ; uword[] colors = [ c1, c2, c3]
 
     sub start() {
         uword s

@@ -236,13 +236,15 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 
 Arrays
 ^^^^^^
-Array types are also supported. They can be made of bytes, words or floats, and strings::
+Array types are also supported. They can be made of bytes, words or floats, strings, and other arrays
+(although the usefulness of the latter is very limited for now)::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
     byte[99] array = 255              ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to uword)
+    uword[] others = [names, array]   ; array of pointers/addresses to other arrays
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
@@ -334,7 +336,7 @@ and then create a variable with it::
         ubyte blue
     }
 
-    Color rgb = {255,122,0}     ; note the curly braces here instead of brackets
+    Color rgb = [255,122,0]     ; note that struct initializer value is same as an array
     Color another               ; the init value is optional, like arrays
 
     another = rgb           ; assign all of the values of rgb to another

@@ -574,6 +574,12 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
             DataType.UWORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
             DataType.BYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_B)
             DataType.UBYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UB)
+            DataType.ARRAY_UW in dts ||
+                DataType.ARRAY_W in dts ||
+                DataType.ARRAY_UB in dts ||
+                DataType.ARRAY_B in dts ||
+                DataType.ARRAY_F in dts ||
+                DataType.STRUCT in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
             else -> InferredTypes.InferredType.unknown()
         }
     }
