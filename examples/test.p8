@@ -25,16 +25,13 @@ main {
         float ff1 = 12345
         float ff2 = -99999
 
-        floats.print_f(ff1)
-        txt.chrout('\n')
         ;ff = 1+((-ff) *3)       ; TODO fix invalid splitting (can't split because it references ff itself)
         ;ff = 1+((-ff2) *3)       ; TODO splitting should be okay here
+
+        floats.print_f(ff1)     ; TODO if we remove this, the following calcuation is wrong
+        txt.chrout('\n')
         ff1 = -ff2 * 3
         floats.print_f(ff1)
-        txt.chrout('\n')
-        floats.print_f(-ff2)
-        txt.chrout('\n')
-        floats.print_f(-ff1)
         txt.chrout('\n')
         return
 
