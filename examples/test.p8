@@ -37,31 +37,13 @@ _saveX   .byte 0
     sub start() {
 ;        byte bb = 100
 ;        word ww = 30000
-        float ff1 = 12345
-        float ff2 = -99999
+        float ff1 = 1000
+        float ff2 = -1000
 
-        ;ff = 1+((-ff) *3)       ; TODO fix invalid splitting (can't split because it references ff itself)
-        ;ff = 1+((-ff2) *3)       ; TODO splitting should be okay here
-
-        testX()
-        floats.print_f(ff1)     ; TODO if we remove this, the following calcuation is wrong
-        testX()
-        txt.chrout('\n')
-        testX()
-        ff1 = -ff2 * 3
-        testX()
+        ff1 = 1+((-ff1) *3)       ; TODO why is splitting undone when OPTIMIZATION is ON?
         floats.print_f(ff1)
         testX()
-        txt.chrout('\n')
-        testX()
-
-        ff1 = -ff1 * 3
-        testX()
-        floats.print_f(ff1)
-        testX()
-        txt.chrout('\n')
-
-        ff1 = abs(ff2)
+        ff1 = 1+((-ff2) *3)       ; TODO why is splitting undone when OPTIMIZATION is ON?
         floats.print_f(ff1)
         txt.chrout('\n')
         testX()

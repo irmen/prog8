@@ -26,16 +26,31 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         // Try to replace A = B <operator> Something  by A= B, A = A <operator> Something
         // this triggers the more efficent augmented assignment code generation more often.
+        // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
                 && assignment.target.isNotMemory(program.namespace)) {
             val binExpr = assignment.value as? BinaryExpression
-            if(binExpr!=null && binExpr.operator !in comparisonOperators) {
-                if(binExpr.left !is BinaryExpression) {
-                    val assignLeft = Assignment(assignment.target, binExpr.left, assignment.position)
-                    return listOf(
-                            IAstModification.InsertBefore(assignment, assignLeft, parent),
-                            IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
+            if (binExpr != null && binExpr.operator !in comparisonOperators) {
+                if (binExpr.left !is BinaryExpression) {
+                    if (binExpr.right.referencesIdentifier(*assignment.target.identifier!!.nameInSource.toTypedArray())) {
+                        // the right part of the expression contains the target variable itself.
+                        // we can't 'split' it trivially because the variable will be changed halfway through.
+                        if(binExpr.operator in associativeOperators) {
+                            // A = <something-without-A>  <associativeoperator>  <otherthing-with-A>
+                            // use the other part of the expression to split.
+                            val assignRight = Assignment(assignment.target, binExpr.right, assignment.position)
+                            return listOf(
+                                    IAstModification.InsertBefore(assignment, assignRight, parent),
+                                    IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
+                                    IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
+                        }
+                    } else {
+                        val assignLeft = Assignment(assignment.target, binExpr.left, assignment.position)
+                        return listOf(
+                                IAstModification.InsertBefore(assignment, assignLeft, parent),
+                                IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
+                    }
                 }
             }
         }
