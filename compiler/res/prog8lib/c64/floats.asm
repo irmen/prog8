@@ -356,17 +356,17 @@ mul_f		.proc
 
 neg_f		.proc
 		; -- toggle the sign bit on the stack
-		lda  P8ESTACK_LO+3,x
+		lda  P8ESTACK_HI+3,x
 		eor  #$80
-		sta  P8ESTACK_LO+3,x
+		sta  P8ESTACK_HI+3,x
 		rts
 		.pend
 
 abs_f		.proc
 		; -- strip the sign bit on the stack
-		lda  P8ESTACK_LO+3,x
+		lda  P8ESTACK_HI+3,x
 		and  #$7f
-		sta  P8ESTACK_LO+3,x
+		sta  P8ESTACK_HI+3,x
 		rts
 		.pend
 

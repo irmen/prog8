@@ -207,8 +207,8 @@ sub  print_f  (float value) {
 		jsr  c64.CHROUT
 		iny
 		bne  -
-		ldx  floats_store_reg
-+		rts
++		ldx  floats_store_reg
+		rts
 	}}
 }
 
