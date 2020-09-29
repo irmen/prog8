@@ -1680,15 +1680,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             DataType.FLOAT -> {
                 when(target.kind) {
                     TargetStorageKind.VARIABLE -> {
-                        asmgen.saveRegister(CpuRegister.X)
+                        // simply flip the sign bit in the float
                         asmgen.out("""
-                            lda  #<${target.asmVarname}
-                            ldy  #>${target.asmVarname}
-                            jsr  floats.MOVFM
-                            jsr  floats.NEGOP
-                            ldx  #<${target.asmVarname}
-                            ldy  #>${target.asmVarname}
-                            jsr  floats.MOVMF
+                            lda  ${target.asmVarname}+1
+                            eor  #$80
+                            sta  ${target.asmVarname}+1
                         """)
                         asmgen.restoreRegister(CpuRegister.X)
                     }

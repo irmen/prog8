@@ -84,7 +84,7 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program, assignment)
-        if(valueType.istype(DataType.STRUCT) && targetType.istype(DataType.STRUCT)) {
+        if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {
             val assignments = if (assignment.value is ArrayLiteralValue) {
                 flattenStructAssignmentFromStructLiteral(assignment, program)    //  'structvar = [ ..... ] '
             } else {
@@ -179,26 +179,34 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         when (structAssignment.value) {
             is IdentifierReference -> {
                 val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
-                if (sourceVar.struct == null)
-                    throw FatalAstException("can only assign arrays or structs to structs")
-                // struct memberwise copy
-                val sourceStruct = sourceVar.struct!!
-                if(sourceStruct!==targetVar.struct) {
-                    // structs are not the same in assignment
-                    return listOf()     // error will be printed elsewhere
-                }
-                return struct.statements.zip(sourceStruct.statements).map { member ->
-                    val targetDecl = member.first as VarDecl
-                    val sourceDecl = member.second as VarDecl
-                    if(targetDecl.name != sourceDecl.name)
-                        throw FatalAstException("struct member mismatch")
-                    val mangled = mangledStructMemberName(identifierName, targetDecl.name)
-                    val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-                    val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
-                    val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
-                    val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position), sourceIdref, member.second.position)
-                    assign.linkParents(structAssignment)
-                    assign
+                when {
+                    sourceVar.struct!=null -> {
+                        // struct memberwise copy
+                        val sourceStruct = sourceVar.struct!!
+                        if(sourceStruct!==targetVar.struct) {
+                            // structs are not the same in assignment
+                            return listOf()     // error will be printed elsewhere
+                        }
+                        return struct.statements.zip(sourceStruct.statements).map { member ->
+                            val targetDecl = member.first as VarDecl
+                            val sourceDecl = member.second as VarDecl
+                            if(targetDecl.name != sourceDecl.name)
+                                throw FatalAstException("struct member mismatch")
+                            val mangled = mangledStructMemberName(identifierName, targetDecl.name)
+                            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+                            val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
+                            val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
+                            val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position), sourceIdref, member.second.position)
+                            assign.linkParents(structAssignment)
+                            assign
+                        }
+                    }
+                    sourceVar.isArray -> {
+                        TODO("assign struct array $structAssignment")
+                    }
+                    else -> {
+                        throw FatalAstException("can only assign arrays or structs to structs")
+                    }
                 }
             }
             is ArrayLiteralValue -> {

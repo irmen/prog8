@@ -1,15 +1,11 @@
 %import textio
 %import syslib
+%import floats
 %zeropage basicsafe
 
 
 main {
 
-    struct Color {
-        ubyte red
-        ubyte green
-        ubyte blue
-    }
 
 ;    Color c1 = [11,22,33]       ; TODO fix crash
 ;    Color c2 = [11,22,33]       ; TODO fix crash
@@ -24,15 +20,40 @@ main {
 
 
     sub start() {
-        Color c1 = [11,22,33]
-        Color c2 = [11,22,33]
-        Color c3 = [11,22,33]
-        uword[] colors = [ c1, c2, c3]      ; TODO should contain pointers to (the first element) of each struct
+        byte bb = 100
+        word ww = 30000
+        float ff1 = 12345
+        float ff2 = -99999
 
-        c1.red = 100
-        c1.green = 100
-        c1.blue = 100
-        ; c1 = [11,22,33]         ; TODO rewrite into individual struct member assignments
+        floats.print_f(ff1)
+        txt.chrout('\n')
+        ;ff = 1+((-ff) *3)       ; TODO fix invalid splitting (can't split because it references ff itself)
+        ;ff = 1+((-ff2) *3)       ; TODO splitting should be okay here
+        ff1 = -ff2 * 3
+        floats.print_f(ff1)
+        txt.chrout('\n')
+        floats.print_f(-ff2)
+        txt.chrout('\n')
+        floats.print_f(-ff1)
+        txt.chrout('\n')
+        return
+
+        struct Color {
+            ubyte red
+            ubyte green
+            ubyte blue
+        }
+
+        ;Color c1 = [11,22,33]           ; TODO fix struct initializer crash
+        Color c1
+        Color c2
+        Color c3
+        ;Color c2 = [11,22,33]
+        ;Color c3 = [11,22,33]
+        ;uword[] colors = [ c1, c2, c3]      ; TODO should contain pointers to (the first element) of each struct
+
+        c1 = c2
+        ;c1 = [11,22,33]         ; TODO rewrite into individual struct member assignments
 
 
         uword s

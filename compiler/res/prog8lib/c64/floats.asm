@@ -355,19 +355,19 @@ mul_f		.proc
 		.pend
 
 neg_f		.proc
-		; -- push -flt back on stack
-		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG
-		jsr  NEGOP
-		jmp  push_fac1_as_result
+		; -- toggle the sign bit on the stack
+		lda  P8ESTACK_LO+3,x
+		eor  #$80
+		sta  P8ESTACK_LO+3,x
+		rts
 		.pend
 
 abs_f		.proc
-		; -- push abs(float) on stack (as float)
-		jsr  pop_float_fac1
-		stx  P8ZP_SCRATCH_REG
-		jsr  ABS
-		jmp  push_fac1_as_result
+		; -- strip the sign bit on the stack
+		lda  P8ESTACK_LO+3,x
+		and  #$7f
+		sta  P8ESTACK_LO+3,x
+		rts
 		.pend
 
 equal_f		.proc
