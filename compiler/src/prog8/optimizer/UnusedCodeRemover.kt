@@ -8,6 +8,9 @@ import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
 
+
+// TODO remove unneeded assignments such as:  cc = 0 ;   cc= xbuf  ; ...    the first can be removed (unless target is not RAM)
+
 internal class UnusedCodeRemover(private val errors: ErrorReporter): AstWalker() {
 
     override fun before(program: Program, parent: Node): Iterable<IAstModification> {

@@ -40,6 +40,18 @@ _saveX   .byte 0
         float ff1 = 1000
         float ff2 = -1000
 
+
+        ubyte[10] xbuf
+        ubyte[10] ybuf
+        ubyte x
+        ubyte y
+
+        ubyte cc = xbuf[x] + ybuf[y]        ; TODO should be split!!
+        ubyte cc2
+        cc2 = xbuf[x] + ybuf[y]        ; will be split correctly?
+
+        return
+
         ff1 = 1+((-ff1) *3)
         floats.print_f(ff1)
         floats.print_f(1+((-1000) *3))

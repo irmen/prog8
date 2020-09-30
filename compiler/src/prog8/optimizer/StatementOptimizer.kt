@@ -449,12 +449,34 @@ internal class StatementOptimizer(private val program: Program,
 
             fun isSimpleTarget(target: AssignTarget): Boolean {
                 return when {
-                    target.identifier!=null -> true
+                    target.identifier!=null -> {
+                        val decl = target.identifier!!.targetVarDecl(program.namespace)!!
+                        return if(decl.type!=VarDeclType.MEMORY) {
+                            if(decl.value is NumericLiteralValue) {
+                                CompilationTarget.instance.machine.isRAMaddress((decl.value as NumericLiteralValue).number.toInt())
+                            } else {
+                                false
+                            }
+                        } else true
+                    }
                     target.memoryAddress!=null -> {
-                        target.memoryAddress.addressExpression is NumericLiteralValue || target.memoryAddress.addressExpression is IdentifierReference
+                        return when (target.memoryAddress.addressExpression) {
+                            is NumericLiteralValue -> {
+                                CompilationTarget.instance.machine.isRAMaddress((target.memoryAddress.addressExpression as NumericLiteralValue).number.toInt())
+                            }
+                            is IdentifierReference -> {
+                                val decl = (target.memoryAddress.addressExpression as IdentifierReference).targetVarDecl(program.namespace)!!
+                                if(decl.value is NumericLiteralValue) {
+                                    CompilationTarget.instance.machine.isRAMaddress((decl.value as NumericLiteralValue).number.toInt())
+                                } else {
+                                    false
+                                }
+                            }
+                            else -> false
+                        }
                     }
                     target.arrayindexed!=null -> {
-                        target.arrayindexed!!.arrayspec.index is NumericLiteralValue || target.arrayindexed!!.arrayspec.index is IdentifierReference
+                        target.arrayindexed!!.arrayspec.index is NumericLiteralValue
                     }
                     else -> false
                 }
@@ -465,16 +487,14 @@ internal class StatementOptimizer(private val program: Program,
             // X = <some-expression-not-X> <operator> <not-binary-expression>
             // or X = <not-binary-expression> <associativeoperator> <some-expression-not-X>
             //     split that into  X = <some-expression-not-X> ;  X = X <operator> <not-binary-expression>
-            if(!assignment.isAugmentable && isSimpleTarget(assignment.target)) {
+            if(bexpr.operator !in comparisonOperators && !assignment.isAugmentable && isSimpleTarget(assignment.target)) {
                 if (bexpr.right !is BinaryExpression) {
-                    println("SPLIT RIGHT ${bexpr.left}\n   ${bexpr.operator}\n   ${bexpr.right}")
                     val firstAssign = Assignment(assignment.target, bexpr.left, assignment.position)
                     val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
                     return listOf(
                             IAstModification.InsertBefore(assignment, firstAssign, parent),
                             IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
                 } else if (bexpr.left !is BinaryExpression && bexpr.operator in associativeOperators) {
-                    println("SPLIT LEFT ${bexpr.left}\n   ${bexpr.operator}\n   ${bexpr.right}")
                     val firstAssign = Assignment(assignment.target, bexpr.right, assignment.position)
                     val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
                     return listOf(

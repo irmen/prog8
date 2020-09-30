@@ -74,13 +74,18 @@ main {
         }
         c2A += 2
         c2B -= 3
+        ubyte cc
+
         for y in 24 downto 0 {
             for x in 39 downto 0 {
-                @(screen) = xbuf[x] + ybuf[y]
+                ; using a temp var here to enable expression optimization that can't be done on a 'problematic' ROM/RAM memory location
+                ubyte cc = xbuf[x] + ybuf[y]        ; TODO should be split!!
+                @(screen) = cc
+; this is the fastest way to do this inner part:
 ;                %asm {{
-;                     ldy  x
+;                     ldy  i
 ;                     lda  xbuf,y
-;                     ldy  y
+;                     ldy  ii
 ;                     clc
 ;                     adc  ybuf,y
 ;                     ldy  #0
