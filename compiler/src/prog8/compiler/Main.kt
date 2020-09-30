@@ -195,7 +195,7 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
             break
     }
 
-    val remover = UnusedCodeRemover(errors)
+    val remover = UnusedCodeRemover(programAst, errors)
     remover.visit(programAst)
     remover.applyModifications()
     errors.handle()
@@ -218,7 +218,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
-    // printAst(programAst)
+    printAst(programAst) // TODO
 
     CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.instance.asmGenerator(

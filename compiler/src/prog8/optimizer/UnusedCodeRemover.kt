@@ -4,6 +4,7 @@ import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
@@ -11,7 +12,7 @@ import prog8.ast.statements.*
 
 // TODO remove unneeded assignments such as:  cc = 0 ;   cc= xbuf  ; ...    the first can be removed (unless target is not RAM)
 
-internal class UnusedCodeRemover(private val errors: ErrorReporter): AstWalker() {
+internal class UnusedCodeRemover(private val program: Program, private val errors: ErrorReporter): AstWalker() {
 
     override fun before(program: Program, parent: Node): Iterable<IAstModification> {
         val callgraph = CallGraph(program)
@@ -68,5 +69,37 @@ internal class UnusedCodeRemover(private val errors: ErrorReporter): AstWalker()
             null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine, is StructDecl -> {}
             else -> errors.warn("unreachable code", next.position)
         }
+    }
+
+    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+        val removeDoubleAssignments = deduplicateAssignments(scope.statements)
+        return removeDoubleAssignments.map { IAstModification.Remove(it, scope) }
+    }
+
+    override fun after(block: Block, parent: Node): Iterable<IAstModification> {
+        val removeDoubleAssignments = deduplicateAssignments(block.statements)
+        return removeDoubleAssignments.map { IAstModification.Remove(it, block) }
+    }
+
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        val removeDoubleAssignments = deduplicateAssignments(subroutine.statements)
+        return removeDoubleAssignments.map { IAstModification.Remove(it, subroutine) }
+    }
+
+    // subroutine, anonscope,
+    private fun deduplicateAssignments(statements: List<Statement>): List<Assignment> {
+        // removes 'duplicate' assignments that assign the isSameAs target
+        val linesToRemove = mutableListOf<Assignment>()
+
+        for (stmtPairs in statements.windowed(2, step = 1)) {
+            val assign1 = stmtPairs[0] as? Assignment
+            val assign2 = stmtPairs[1] as? Assignment
+            if (assign1 != null && assign2 != null) {
+                if (assign1.target.isSameAs(assign2.target, program) && assign1.target.isInRegularRAM(program.namespace))
+                    linesToRemove.add(assign1)
+            }
+        }
+
+        return linesToRemove
     }
 }

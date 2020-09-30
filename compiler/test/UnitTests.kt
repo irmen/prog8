@@ -5,18 +5,21 @@ import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.base.DataType
-import prog8.ast.base.ErrorReporter
-import prog8.ast.base.Position
-import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.Module
+import prog8.ast.Program
+import prog8.ast.base.*
+import prog8.ast.expressions.*
+import prog8.ast.statements.*
 import prog8.compiler.*
+import prog8.compiler.target.C64Target
+import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
 import prog8.compiler.target.c64.Petscii
 import java.io.CharConversionException
+import java.nio.file.Path
 import kotlin.test.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -377,5 +380,171 @@ class TestPetscii {
         assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)
+    }
+}
+
+
+class TestMemory {
+    @Test
+    fun testInValidRamC64_memory_addresses() {
+        CompilationTarget.instance = C64Target
+
+        var memexpr = NumericLiteralValue.optimalInteger(0x0000, Position.DUMMY)
+        var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        var scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertTrue(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertTrue(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0x9fff, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertTrue(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0xc000, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertTrue(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0xcfff, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertTrue(target.isInRegularRAM(scope))
+    }
+
+    @Test
+    fun testNotInValidRamC64_memory_addresses() {
+        CompilationTarget.instance = C64Target
+
+        var memexpr = NumericLiteralValue.optimalInteger(0xa000, Position.DUMMY)
+        var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        var scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertFalse(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0xafff, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertFalse(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0xd000, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertFalse(target.isInRegularRAM(scope))
+
+        memexpr = NumericLiteralValue.optimalInteger(0xffff, Position.DUMMY)
+        target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertFalse(target.isInRegularRAM(scope))
+    }
+
+    @Test
+    fun testInValidRamC64_memory_identifiers() {
+        CompilationTarget.instance = C64Target
+        var target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.VAR)
+        assertTrue(target.isInRegularRAM(target.definingScope()))
+        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.VAR)
+        assertFalse(target.isInRegularRAM(target.definingScope()))
+        target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.CONST)
+        assertTrue(target.isInRegularRAM(target.definingScope()))
+        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.CONST)
+        assertFalse(target.isInRegularRAM(target.definingScope()))
+        target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.MEMORY)
+        assertFalse(target.isInRegularRAM(target.definingScope()))
+    }
+
+    @Test
+    private fun createTestProgramForMemoryRefViaVar(address: Int, vartype: VarDeclType): AssignTarget {
+        val decl = VarDecl(vartype, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
+        val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
+        val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        return target
+    }
+
+    @Test
+    fun testInValidRamC64_memory_expression() {
+        CompilationTarget.instance = C64Target
+        val memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY), Position.DUMMY)
+        val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
+        val scope = AnonymousScope(mutableListOf(), Position.DUMMY)
+        assertFalse(target.isInRegularRAM(scope))
+    }
+
+    @Test
+    fun testInValidRamC64_variable() {
+        CompilationTarget.instance = C64Target
+        val decl = VarDecl(VarDeclType.VAR, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", null, null, false, false, Position.DUMMY)
+        val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        assertTrue(target.isInRegularRAM(target.definingScope()))
+    }
+
+    @Test
+    fun testInValidRamC64_memmap_variable() {
+        CompilationTarget.instance = C64Target
+        val address = 0x1000
+        val decl = VarDecl(VarDeclType.MEMORY, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
+        val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        assertTrue(target.isInRegularRAM(target.definingScope()))
+    }
+
+    @Test
+    fun testNotInValidRamC64_memmap_variable() {
+        CompilationTarget.instance = C64Target
+        val address = 0xd020
+        val decl = VarDecl(VarDeclType.MEMORY, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
+        val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        assertFalse(target.isInRegularRAM(target.definingScope()))
+    }
+
+    @Test
+    fun testInValidRamC64_array() {
+        CompilationTarget.instance = C64Target
+        val decl = VarDecl(VarDeclType.VAR, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, null, false, false, Position.DUMMY)
+        val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        assertTrue(target.isInRegularRAM(target.definingScope()))
+    }
+
+    @Test
+    fun testInValidRamC64_array_memmapped() {
+        CompilationTarget.instance = C64Target
+        val address = 0x1000
+        val decl = VarDecl(VarDeclType.MEMORY, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
+        val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        assertTrue(target.isInRegularRAM(target.definingScope()))
+    }
+
+    @Test
+    fun testNotValidRamC64_array_memmapped() {
+        CompilationTarget.instance = C64Target
+        val address = 0xe000
+        val decl = VarDecl(VarDeclType.MEMORY, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
+        val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        subroutine.linkParents(ParentSentinel)
+        assertFalse(target.isInRegularRAM(target.definingScope()))
     }
 }

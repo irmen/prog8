@@ -35,5 +35,5 @@ internal interface IMachineDefinition {
     fun getFloatRomConst(number: Double): String?
     fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program)
     fun launchEmulator(programName: String)
-    fun isRAMaddress(address: Int): Boolean
+    fun isRegularRAMaddress(address: Int): Boolean
 }

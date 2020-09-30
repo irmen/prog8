@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstVisitor
+import prog8.compiler.target.CompilationTarget
 
 
 sealed class Statement : Node {
@@ -392,8 +393,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
-            node===identifier -> identifier = replacement as IdentifierReference
-            node===arrayindexed -> arrayindexed = replacement as ArrayIndexedExpression
+            node === identifier -> identifier = replacement as IdentifierReference
+            node === arrayindexed -> arrayindexed = replacement as ArrayIndexedExpression
             else -> throw FatalAstException("invalid replace")
         }
         replacement.parent = this
@@ -414,16 +415,16 @@ data class AssignTarget(var identifier: IdentifierReference?,
     }
 
     fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {
-        if(identifier!=null) {
+        if (identifier != null) {
             val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
         }
 
-        if(arrayindexed!=null) {
+        if (arrayindexed != null) {
             return arrayindexed!!.inferType(program)
         }
 
-        if(memoryAddress!=null)
+        if (memoryAddress != null)
             return InferredTypes.knownFor(DataType.UBYTE)
 
         return InferredTypes.unknown()
@@ -431,68 +432,91 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun toExpression(): Expression {
         return when {
-            identifier!=null -> identifier!!
-            arrayindexed!=null -> arrayindexed!!
-            memoryAddress!=null -> DirectMemoryRead(memoryAddress.addressExpression, memoryAddress.position)
+            identifier != null -> identifier!!
+            arrayindexed != null -> arrayindexed!!
+            memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression, memoryAddress.position)
             else -> throw FatalAstException("invalid assignmenttarget $this")
         }
     }
 
     infix fun isSameAs(value: Expression): Boolean {
         return when {
-            this.memoryAddress!=null -> {
+            this.memoryAddress != null -> {
                 // if the target is a memory write, and the value is a memory read, they're the same if the address matches
-                if(value is DirectMemoryRead)
+                if (value is DirectMemoryRead)
                     this.memoryAddress.addressExpression isSameAs value.addressExpression
                 else
                     false
             }
-            this.identifier!=null -> value is IdentifierReference && value.nameInSource==identifier!!.nameInSource
-            this.arrayindexed!=null -> value is ArrayIndexedExpression &&
-                    value.identifier.nameInSource==arrayindexed!!.identifier.nameInSource &&
-                    value.arrayspec.constIndex()!=null &&
-                    arrayindexed!!.arrayspec.constIndex()!=null &&
-                    value.arrayspec.constIndex()==arrayindexed!!.arrayspec.constIndex()
+            this.identifier != null -> value is IdentifierReference && value.nameInSource == identifier!!.nameInSource
+            this.arrayindexed != null -> value is ArrayIndexedExpression &&
+                    value.identifier.nameInSource == arrayindexed!!.identifier.nameInSource &&
+                    value.arrayspec.constIndex() != null &&
+                    arrayindexed!!.arrayspec.constIndex() != null &&
+                    value.arrayspec.constIndex() == arrayindexed!!.arrayspec.constIndex()
             else -> false
         }
     }
 
     fun isSameAs(other: AssignTarget, program: Program): Boolean {
-        if(this===other)
+        if (this === other)
             return true
-        if(this.identifier!=null && other.identifier!=null)
-            return this.identifier!!.nameInSource==other.identifier!!.nameInSource
-        if(this.memoryAddress!=null && other.memoryAddress!=null) {
+        if (this.identifier != null && other.identifier != null)
+            return this.identifier!!.nameInSource == other.identifier!!.nameInSource
+        if (this.memoryAddress != null && other.memoryAddress != null) {
             val addr1 = this.memoryAddress.addressExpression.constValue(program)
             val addr2 = other.memoryAddress.addressExpression.constValue(program)
-            return addr1!=null && addr2!=null && addr1==addr2
+            return addr1 != null && addr2 != null && addr1 == addr2
         }
-        if(this.arrayindexed!=null && other.arrayindexed!=null) {
-            if(this.arrayindexed!!.identifier.nameInSource == other.arrayindexed!!.identifier.nameInSource) {
+        if (this.arrayindexed != null && other.arrayindexed != null) {
+            if (this.arrayindexed!!.identifier.nameInSource == other.arrayindexed!!.identifier.nameInSource) {
                 val x1 = this.arrayindexed!!.arrayspec.index.constValue(program)
                 val x2 = other.arrayindexed!!.arrayspec.index.constValue(program)
-                return x1!=null && x2!=null && x1==x2
+                return x1 != null && x2 != null && x1 == x2
             }
         }
         return false
     }
 
-    fun isNotMemory(namespace: INameScope): Boolean {
-        if(this.memoryAddress!=null)
-            return false
-        if(this.arrayindexed!=null) {
-            val targetStmt = this.arrayindexed!!.identifier.targetVarDecl(namespace)
-            if(targetStmt!=null)
-                return targetStmt.type!= VarDeclType.MEMORY
+    fun isInRegularRAM(namespace: INameScope): Boolean {
+        when {
+            this.memoryAddress != null -> {
+                return when (this.memoryAddress.addressExpression) {
+                    is NumericLiteralValue -> {
+                        CompilationTarget.instance.machine.isRegularRAMaddress((this.memoryAddress.addressExpression as NumericLiteralValue).number.toInt())
+                    }
+                    is IdentifierReference -> {
+                        val decl = (this.memoryAddress.addressExpression as IdentifierReference).targetVarDecl(namespace)
+                        if ((decl?.type == VarDeclType.VAR || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
+                            CompilationTarget.instance.machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
+                        else
+                            false
+                    }
+                    else -> false
+                }
+            }
+            this.arrayindexed != null -> {
+                val targetStmt = this.arrayindexed!!.identifier.targetVarDecl(namespace)
+                return if (targetStmt?.type == VarDeclType.MEMORY) {
+                    val addr = targetStmt.value as? NumericLiteralValue
+                    if (addr != null)
+                        CompilationTarget.instance.machine.isRegularRAMaddress(addr.number.toInt())
+                    else
+                        false
+                } else true
+            }
+            this.identifier != null -> {
+                val decl = this.identifier!!.targetVarDecl(namespace)!!
+                return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
+                    CompilationTarget.instance.machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
+                else
+                    true
+            }
+            else -> return true
         }
-        if(this.identifier!=null) {
-            val targetStmt = this.identifier!!.targetVarDecl(namespace)
-            if(targetStmt!=null)
-                return targetStmt.type!= VarDeclType.MEMORY
-        }
-        return false
     }
 }
+
 
 class PostIncrDecr(var target: AssignTarget, val operator: String, override val position: Position) : Statement() {
     override lateinit var parent: Node

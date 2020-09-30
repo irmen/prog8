@@ -37,8 +37,8 @@ _saveX   .byte 0
     sub start() {
 ;        byte bb = 100
 ;        word ww = 30000
-        float ff1 = 1000
-        float ff2 = -1000
+;        float ff1 = 1000
+;        float ff2 = -1000
 
 
         ubyte[10] xbuf
@@ -46,22 +46,21 @@ _saveX   .byte 0
         ubyte x
         ubyte y
 
-        ubyte cc = xbuf[x] + ybuf[y]        ; TODO should be split!!
+        ubyte cc = xbuf[x] + ybuf[y]        ; TODO should be split!! also fix plasma.p8
         ubyte cc2
-        cc2 = xbuf[x] + ybuf[y]        ; will be split correctly?
-
+        cc2 = xbuf[x] + ybuf[y] +cc        ; will be split correctly.
         return
 
-        ff1 = 1+((-ff1) *3)
-        floats.print_f(ff1)
-        floats.print_f(1+((-1000) *3))
-        testX()
-        ff1 = 1+((-ff2) *3)
-        floats.print_f(ff1)
-        floats.print_f(1+((- (-1000)) *3))
-        txt.chrout('\n')
-        testX()
-        return
+;        ff1 = 1+((-ff1) *3)
+;        floats.print_f(ff1)
+;        floats.print_f(1+((-1000) *3))
+;        testX()
+;        ff1 = 1+((-ff2) *3)
+;        floats.print_f(ff1)
+;        floats.print_f(1+((- (-1000)) *3))
+;        txt.chrout('\n')
+;        testX()
+;        return
 
 ;        struct Color {
 ;            ubyte red

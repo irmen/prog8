@@ -49,22 +49,12 @@ internal class StatementOptimizer(private val program: Program,
             }
         }
 
-        val linesToRemove = deduplicateAssignments(subroutine.statements)
-        if(linesToRemove.isNotEmpty()) {
-            linesToRemove.reversed().forEach{subroutine.statements.removeAt(it)}
-        }
-
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {
             errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
             return listOf(IAstModification.Remove(subroutine, parent))
         }
 
         return noModifications
-    }
-
-    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
-        val linesToRemove = deduplicateAssignments(scope.statements)
-        return linesToRemove.reversed().map { IAstModification.Remove(scope.statements[it], scope) }
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -447,36 +437,16 @@ internal class StatementOptimizer(private val program: Program,
 
             }
 
-            fun isSimpleTarget(target: AssignTarget): Boolean {
+            fun isSimpleTarget(target: AssignTarget, namespace: INameScope): Boolean {
                 return when {
-                    target.identifier!=null -> {
-                        val decl = target.identifier!!.targetVarDecl(program.namespace)!!
-                        return if(decl.type!=VarDeclType.MEMORY) {
-                            if(decl.value is NumericLiteralValue) {
-                                CompilationTarget.instance.machine.isRAMaddress((decl.value as NumericLiteralValue).number.toInt())
-                            } else {
-                                false
-                            }
-                        } else true
-                    }
-                    target.memoryAddress!=null -> {
-                        return when (target.memoryAddress.addressExpression) {
-                            is NumericLiteralValue -> {
-                                CompilationTarget.instance.machine.isRAMaddress((target.memoryAddress.addressExpression as NumericLiteralValue).number.toInt())
-                            }
-                            is IdentifierReference -> {
-                                val decl = (target.memoryAddress.addressExpression as IdentifierReference).targetVarDecl(program.namespace)!!
-                                if(decl.value is NumericLiteralValue) {
-                                    CompilationTarget.instance.machine.isRAMaddress((decl.value as NumericLiteralValue).number.toInt())
-                                } else {
-                                    false
-                                }
-                            }
-                            else -> false
-                        }
-                    }
+                    target.identifier!=null -> target.isInRegularRAM(namespace)
+                    target.memoryAddress!=null -> target.isInRegularRAM(namespace)
                     target.arrayindexed!=null -> {
-                        target.arrayindexed!!.arrayspec.index is NumericLiteralValue
+                        val index = target.arrayindexed!!.arrayspec.index
+                        if(index is NumericLiteralValue || index is IdentifierReference)
+                            target.isInRegularRAM(namespace)
+                        else
+                            false
                     }
                     else -> false
                 }
@@ -487,49 +457,25 @@ internal class StatementOptimizer(private val program: Program,
             // X = <some-expression-not-X> <operator> <not-binary-expression>
             // or X = <not-binary-expression> <associativeoperator> <some-expression-not-X>
             //     split that into  X = <some-expression-not-X> ;  X = X <operator> <not-binary-expression>
-            if(bexpr.operator !in comparisonOperators && !assignment.isAugmentable && isSimpleTarget(assignment.target)) {
-                if (bexpr.right !is BinaryExpression) {
-                    val firstAssign = Assignment(assignment.target, bexpr.left, assignment.position)
-                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
-                    return listOf(
-                            IAstModification.InsertBefore(assignment, firstAssign, parent),
-                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
-                } else if (bexpr.left !is BinaryExpression && bexpr.operator in associativeOperators) {
-                    val firstAssign = Assignment(assignment.target, bexpr.right, assignment.position)
-                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
-                    return listOf(
-                            IAstModification.InsertBefore(assignment, firstAssign, parent),
-                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
-                }
-            }
+            // TODO FIX THIS SPLITTING (IT ENDS UP IN A LOOP SOMETIMES)
+//            if(bexpr.operator !in comparisonOperators && !assignment.isAugmentable && isSimpleTarget(assignment.target, program.namespace)) {
+//                if (bexpr.right !is BinaryExpression) {
+//                    val firstAssign = Assignment(assignment.target, bexpr.left, assignment.position)
+//                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
+//                    return listOf(
+//                            IAstModification.InsertBefore(assignment, firstAssign, parent),
+//                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
+//                } else if (bexpr.left !is BinaryExpression && bexpr.operator in associativeOperators) {
+//                    val firstAssign = Assignment(assignment.target, bexpr.right, assignment.position)
+//                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
+//                    return listOf(
+//                            IAstModification.InsertBefore(assignment, firstAssign, parent),
+//                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
+//                }
+//            }
         }
 
         return noModifications
-    }
-
-    private fun deduplicateAssignments(statements: List<Statement>): MutableList<Int> {
-        // removes 'duplicate' assignments that assign the isSameAs target
-        val linesToRemove = mutableListOf<Int>()
-        var previousAssignmentLine: Int? = null
-        for (i in statements.indices) {
-            val stmt = statements[i] as? Assignment
-            if (stmt != null && stmt.value is NumericLiteralValue) {
-                if (previousAssignmentLine == null) {
-                    previousAssignmentLine = i
-                    continue
-                } else {
-                    val prev = statements[previousAssignmentLine] as Assignment
-                    if (prev.target.isSameAs(stmt.target, program)) {
-                        // get rid of the previous assignment, if the target is not MEMORY
-                        if (prev.target.isNotMemory(program.namespace))
-                            linesToRemove.add(previousAssignmentLine)
-                    }
-                    previousAssignmentLine = i
-                }
-            } else
-                previousAssignmentLine = null
-        }
-        return linesToRemove
     }
 
     private fun hasBreak(scope: INameScope): Boolean {

@@ -52,9 +52,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
         }
     }
 
-    override fun isRAMaddress(address: Int): Boolean {
-        return address < 0x9000    // TODO put correct Cx16 mem ranges here
-    }
+    override fun isRegularRAMaddress(address: Int): Boolean = address < 0x9f00 || address in 0xa000..0xbfff
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = CX16Zeropage(compilerOptions)

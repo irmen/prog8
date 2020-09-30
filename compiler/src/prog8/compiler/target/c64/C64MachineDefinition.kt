@@ -89,7 +89,7 @@ internal object C64MachineDefinition: IMachineDefinition {
         }
     }
 
-    override fun isRAMaddress(address: Int): Boolean = (address<0xa000) || (address in 0xc000..0xd000)
+    override fun isRegularRAMaddress(address: Int): Boolean = address<0xa000 || address in 0xc000..0xcfff
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = C64Zeropage(compilerOptions)

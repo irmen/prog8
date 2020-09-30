@@ -240,7 +240,7 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
 
     override fun linkParents(parent: Node) {
         modules.forEach {
-            it.linkParents(this)
+            it.linkParents(namespace)
         }
     }
 
@@ -327,8 +327,6 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
             if(symbolFromInnerScope!=null)
                 return symbolFromInnerScope
         }
-        val p1 = localContext.parent
-        val p2 = localContext.parent.parent
 
         // lookup something from the module.
         return when (val stmt = localContext.definingModule().lookup(scopedName, localContext)) {
