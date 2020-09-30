@@ -53,12 +53,14 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(expr: BinaryExpression) {
+        output("(")
         expr.left.accept(this)
         if(expr.operator.any { it.isLetter() })
             output(" ${expr.operator} ")
         else
             output(expr.operator)
         expr.right.accept(this)
+        output(")")
     }
 
     override fun visit(directive: Directive) {
