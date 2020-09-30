@@ -395,21 +395,21 @@ internal class StatementOptimizer(private val program: Program,
         val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
-            val cv = bexpr.right.constValue(program)?.number?.toDouble()
-            if (cv != null && assignment.target isSameAs bexpr.left) {
+            val rightCv = bexpr.right.constValue(program)?.number?.toDouble()
+            if (rightCv != null && assignment.target isSameAs bexpr.left) {
                 // assignments of the form:  X = X <operator> <expr>
                 // remove assignments that have no effect (such as X=X+0)
                 // optimize/rewrite some other expressions
                 val vardeclDt = (assignment.target.identifier?.targetVarDecl(program.namespace))?.type
                 when (bexpr.operator) {
                     "+" -> {
-                        if (cv == 0.0) {
+                        if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent))
-                        } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
-                            if (vardeclDt != VarDeclType.MEMORY && cv in 1.0..4.0) {
+                        } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
+                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0) {
                                 // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
                                 val incs = AnonymousScope(mutableListOf(), assignment.position)
-                                repeat(cv.toInt()) {
+                                repeat(rightCv.toInt()) {
                                     incs.statements.add(PostIncrDecr(assignment.target, "++", assignment.position))
                                 }
                                 return listOf(IAstModification.ReplaceNode(assignment, incs, parent))
@@ -417,36 +417,73 @@ internal class StatementOptimizer(private val program: Program,
                         }
                     }
                     "-" -> {
-                        if (cv == 0.0) {
+                        if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent))
-                        } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
-                            if (vardeclDt != VarDeclType.MEMORY && cv in 1.0..4.0) {
+                        } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
+                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0) {
                                 // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
                                 val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                repeat(cv.toInt()) {
+                                repeat(rightCv.toInt()) {
                                     decs.statements.add(PostIncrDecr(assignment.target, "--", assignment.position))
                                 }
                                 return listOf(IAstModification.ReplaceNode(assignment, decs, parent))
                             }
                         }
                     }
-                    "*" -> if (cv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "/" -> if (cv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "**" -> if (cv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "|" -> if (cv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "^" -> if (cv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "/" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "**" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "|" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "^" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
                     "<<" -> {
-                        if (cv == 0.0)
+                        if (rightCv == 0.0)
                             return listOf(IAstModification.Remove(assignment, parent))
                     }
                     ">>" -> {
-                        if (cv == 0.0)
+                        if (rightCv == 0.0)
                             return listOf(IAstModification.Remove(assignment, parent))
                     }
                 }
 
             }
+
+            fun isSimpleTarget(target: AssignTarget): Boolean {
+                return when {
+                    target.identifier!=null -> true
+                    target.memoryAddress!=null -> {
+                        target.memoryAddress.addressExpression is NumericLiteralValue || target.memoryAddress.addressExpression is IdentifierReference
+                    }
+                    target.arrayindexed!=null -> {
+                        target.arrayindexed!!.arrayspec.index is NumericLiteralValue || target.arrayindexed!!.arrayspec.index is IdentifierReference
+                    }
+                    else -> false
+                }
+            }
+
+            // reduce the complexity of a (binary) expression that has to be evaluated on the eval stack,
+            // by attempting to splitting it up into individual simple steps:
+            // X = <some-expression-not-X> <operator> <not-binary-expression>
+            // or X = <not-binary-expression> <associativeoperator> <some-expression-not-X>
+            //     split that into  X = <some-expression-not-X> ;  X = X <operator> <not-binary-expression>
+            if(!assignment.isAugmentable && isSimpleTarget(assignment.target)) {
+                if (bexpr.right !is BinaryExpression) {
+                    println("SPLIT RIGHT ${bexpr.left}\n   ${bexpr.operator}\n   ${bexpr.right}")
+                    val firstAssign = Assignment(assignment.target, bexpr.left, assignment.position)
+                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
+                    return listOf(
+                            IAstModification.InsertBefore(assignment, firstAssign, parent),
+                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
+                } else if (bexpr.left !is BinaryExpression && bexpr.operator in associativeOperators) {
+                    println("SPLIT LEFT ${bexpr.left}\n   ${bexpr.operator}\n   ${bexpr.right}")
+                    val firstAssign = Assignment(assignment.target, bexpr.right, assignment.position)
+                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
+                    return listOf(
+                            IAstModification.InsertBefore(assignment, firstAssign, parent),
+                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
+                }
+            }
         }
+
         return noModifications
     }
 

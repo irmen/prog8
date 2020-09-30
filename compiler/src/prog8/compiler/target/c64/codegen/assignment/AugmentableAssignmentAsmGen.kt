@@ -1686,7 +1686,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             eor  #$80
                             sta  ${target.asmVarname}+1
                         """)
-                        asmgen.restoreRegister(CpuRegister.X)
                     }
                     TargetStorageKind.ARRAY -> TODO("in-place negate float array")
                     TargetStorageKind.STACK -> TODO("stack float negate")

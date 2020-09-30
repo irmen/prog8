@@ -40,11 +40,13 @@ _saveX   .byte 0
         float ff1 = 1000
         float ff2 = -1000
 
-        ff1 = 1+((-ff1) *3)       ; TODO why is splitting undone when OPTIMIZATION is ON?
+        ff1 = 1+((-ff1) *3)
         floats.print_f(ff1)
+        floats.print_f(1+((-1000) *3))
         testX()
-        ff1 = 1+((-ff2) *3)       ; TODO why is splitting undone when OPTIMIZATION is ON?
+        ff1 = 1+((-ff2) *3)
         floats.print_f(ff1)
+        floats.print_f(1+((- (-1000)) *3))
         txt.chrout('\n')
         testX()
         return
