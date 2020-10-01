@@ -190,10 +190,9 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.optimizeStatements(errors)
-        val optsDone3 = programAst.splitExpressions()
         programAst.constantFold(errors) // because simplified statements and expressions can result in more constants that can be folded away
         errors.handle()
-        if (optsDone1 + optsDone2 + optsDone3 == 0)
+        if (optsDone1 + optsDone2 == 0)
             break
     }
 
@@ -220,7 +219,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
-    printAst(programAst) // TODO
+    // printAst(programAst)
 
     CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.instance.asmGenerator(

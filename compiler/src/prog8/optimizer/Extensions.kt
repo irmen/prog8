@@ -53,10 +53,3 @@ internal fun Program.simplifyExpressions() : Int {
     opti.visit(this)
     return opti.applyModifications()
 }
-
-internal fun Program.splitExpressions() : Int {
-    val splitter = ExpressionSplitter(this)
-    splitter.visit(this)
-    return splitter.applyModifications()
-}
-
