@@ -303,6 +303,8 @@ class ArrayIndex(var index: Expression, override val position: Position) : Node 
     }
 
     fun constIndex() = (index as? NumericLiteralValue)?.number?.toInt()
+
+    infix fun isSameAs(other: ArrayIndex) = index.isSameAs(other.index)
 }
 
 open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
@@ -441,19 +443,20 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     infix fun isSameAs(value: Expression): Boolean {
         return when {
-            this.memoryAddress != null -> {
+            memoryAddress != null -> {
                 // if the target is a memory write, and the value is a memory read, they're the same if the address matches
                 if (value is DirectMemoryRead)
                     this.memoryAddress.addressExpression isSameAs value.addressExpression
                 else
                     false
             }
-            this.identifier != null -> value is IdentifierReference && value.nameInSource == identifier!!.nameInSource
-            this.arrayindexed != null -> value is ArrayIndexedExpression &&
-                    value.identifier.nameInSource == arrayindexed!!.identifier.nameInSource &&
-                    value.arrayspec.constIndex() != null &&
-                    arrayindexed!!.arrayspec.constIndex() != null &&
-                    value.arrayspec.constIndex() == arrayindexed!!.arrayspec.constIndex()
+            identifier != null -> value is IdentifierReference && value.nameInSource == identifier!!.nameInSource
+            arrayindexed != null -> {
+                if(value is ArrayIndexedExpression && value.identifier.nameInSource == arrayindexed!!.identifier.nameInSource)
+                    arrayindexed!!.arrayspec isSameAs value.arrayspec
+                else
+                    false
+            }
             else -> false
         }
     }
