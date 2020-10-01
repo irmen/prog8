@@ -19,20 +19,20 @@ main {
 ;    uword[] arrays = [names, names3, values]
 
 
-    asmsub testX() {
-        %asm {{
-            stx  _saveX
-            lda  #13
-            jsr  txt.chrout
-            lda  _saveX
-            jsr  txt.print_ub
-            lda  #13
-            jsr  txt.chrout
-            ldx  _saveX
-            rts
-_saveX   .byte 0
-        }}
-    }
+;    asmsub testX() {
+;        %asm {{
+;            stx  _saveX
+;            lda  #13
+;            jsr  txt.chrout
+;            lda  _saveX
+;            jsr  txt.print_ub
+;            lda  #13
+;            jsr  txt.chrout
+;            ldx  _saveX
+;            rts
+;_saveX   .byte 0
+;        }}
+;    }
 
     sub start() {
 ;        byte bb = 100
