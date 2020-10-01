@@ -21,6 +21,11 @@ main {
 
     sub start() {
 
+        ubyte a
+        ubyte b
+        ubyte c
+
+        c = a==b
 
         Color c1 = [11,22,33]
         Color c2 = [11,22,33]

@@ -2,6 +2,9 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
+; TODO FIX circle drawing errors
+
+
 main {
 
     sub start() {

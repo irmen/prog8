@@ -17,7 +17,7 @@ import kotlin.math.abs
 
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
 val comparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
-
+val augmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", "<<", ">>")
 
 sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteralValue?

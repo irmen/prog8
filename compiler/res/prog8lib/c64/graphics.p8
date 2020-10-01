@@ -33,8 +33,8 @@ graphics {
         }
         word @zp d = 0
         ubyte positive_ix = true
-        word @zp dx = x2 - x1 as word
-        word @zp dy = y2 as word - y1 as word
+        word @zp dx = x2-x1
+        word @zp dy = y2-y1
         if dx < 0 {
             dx = -dx
             positive_ix = false
