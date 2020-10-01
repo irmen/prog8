@@ -7,6 +7,7 @@ import prog8.ast.statements.Directive
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.Cx16Target
+import prog8.optimizer.*
 import prog8.optimizer.UnusedCodeRemover
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
@@ -189,9 +190,10 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.optimizeStatements(errors)
-        programAst.constantFold(errors) // because simplified statements and expressions could give rise to more constants that can be folded away
+        val optsDone3 = programAst.splitExpressions()
+        programAst.constantFold(errors) // because simplified statements and expressions can result in more constants that can be folded away
         errors.handle()
-        if (optsDone1 + optsDone2 == 0)
+        if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
 

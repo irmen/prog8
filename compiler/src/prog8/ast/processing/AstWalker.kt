@@ -82,6 +82,7 @@ interface IAstModification {
 
     class SwapOperands(val expr: BinaryExpression): IAstModification {
         override fun perform() {
+            require(expr.operator in associativeOperators)
             val tmp = expr.left
             expr.left = expr.right
             expr.right = tmp
@@ -228,6 +229,7 @@ abstract class AstWalker {
         track(before(decl, parent), decl, parent)
         decl.value?.accept(this, decl)
         decl.arraysize?.accept(this, decl)
+        decl.struct?.accept(this, decl)
         track(after(decl, parent), decl, parent)
     }
 

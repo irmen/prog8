@@ -436,43 +436,6 @@ internal class StatementOptimizer(private val program: Program,
                 }
 
             }
-
-            fun isSimpleTarget(target: AssignTarget, namespace: INameScope): Boolean {
-                return when {
-                    target.identifier!=null -> target.isInRegularRAM(namespace)
-                    target.memoryAddress!=null -> target.isInRegularRAM(namespace)
-                    target.arrayindexed!=null -> {
-                        val index = target.arrayindexed!!.arrayspec.index
-                        if(index is NumericLiteralValue || index is IdentifierReference)
-                            target.isInRegularRAM(namespace)
-                        else
-                            false
-                    }
-                    else -> false
-                }
-            }
-
-            // reduce the complexity of a (binary) expression that has to be evaluated on the eval stack,
-            // by attempting to splitting it up into individual simple steps:
-            // X = <some-expression-not-X> <operator> <not-binary-expression>
-            // or X = <not-binary-expression> <associativeoperator> <some-expression-not-X>
-            //     split that into  X = <some-expression-not-X> ;  X = X <operator> <not-binary-expression>
-            // TODO FIX THIS SPLITTING (IT ENDS UP IN A LOOP SOMETIMES)
-//            if(bexpr.operator !in comparisonOperators && !assignment.isAugmentable && isSimpleTarget(assignment.target, program.namespace)) {
-//                if (bexpr.right !is BinaryExpression) {
-//                    val firstAssign = Assignment(assignment.target, bexpr.left, assignment.position)
-//                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
-//                    return listOf(
-//                            IAstModification.InsertBefore(assignment, firstAssign, parent),
-//                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
-//                } else if (bexpr.left !is BinaryExpression && bexpr.operator in associativeOperators) {
-//                    val firstAssign = Assignment(assignment.target, bexpr.right, assignment.position)
-//                    val augExpr = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
-//                    return listOf(
-//                            IAstModification.InsertBefore(assignment, firstAssign, parent),
-//                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
-//                }
-//            }
         }
 
         return noModifications

@@ -33,6 +33,7 @@ interface IAstVisitor {
     fun visit(decl: VarDecl) {
         decl.value?.accept(this)
         decl.arraysize?.accept(this)
+        decl.struct?.accept(this)
     }
 
     fun visit(subroutine: Subroutine) {
