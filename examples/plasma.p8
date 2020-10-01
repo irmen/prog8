@@ -2,16 +2,11 @@
 %import syslib
 %import textio
 
-
-;/*****************************************************************************\
-;** plasma test program for cc65.                                             **
-;**                                                                           **
-;** (w)2001 by groepaz/hitmen                                                 **
-;**                                                                           **
-;** Cleanup and porting by Ullrich von Bassewitz.                             **
-;** Converted to prog8 by Irmen de Jong                                       **
-;**                                                                           **
-;\*****************************************************************************/
+;  converted from plasma test program for cc65.
+;  which is (w)2001 by groepaz/hitmen
+;
+;  Cleanup and porting to C by Ullrich von Bassewitz.
+;  Converted to prog8 by Irmen de Jong.
 
 
 main {
@@ -78,8 +73,7 @@ main {
         for y in 24 downto 0 {
             for x in 39 downto 0 {
                 ; using a temp var here to enable expression optimization that can't be done on a 'problematic' ROM/RAM memory location
-                ubyte cc
-                cc = xbuf[x] + ybuf[y]        ; TODO should be split!!
+                ubyte cc = xbuf[x] + ybuf[y]
                 @(screen) = cc
 ; this is the fastest way to do this inner part:
 ;                %asm {{

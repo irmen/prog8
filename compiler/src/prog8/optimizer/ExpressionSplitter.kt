@@ -16,32 +16,17 @@ class ExpressionSplitter(private val program: Program) : AstWalker() {
     // TODO once this works, integrate it back into expressionsimplifier
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 
-        val expr = decl.value as? BinaryExpression
-        if (expr != null) {
-            // reduce the complexity of a (binary) expression that has to be evaluated on the eval stack,
-            // by attempting to splitting it up into individual simple steps:
-            // X = <some-expression-not-X> <operator> <not-binary-expression>
-            // or X = <not-binary-expression> <associativeoperator> <some-expression-not-X>
-            //     split that into  X = <some-expression-not-X> ;  X = X <operator> <not-binary-expression>
-
-            // TODO DOES THIS LOOP AS WELL?
-            if (expr.operator !in comparisonOperators && decl.type==VarDeclType.VAR) {
-                if (expr.right !is BinaryExpression) {
-                    println("SPLIT VARDECL RIGHT BINEXPR $expr")    // TODO
-//                    val firstAssign = Assignment(assignment.target, expr.left, assignment.position)
-//                    val augExpr = BinaryExpression(assignment.target.toExpression(), expr.operator, expr.right, expr.position)
-//                    return listOf(
-//                            IAstModification.InsertBefore(assignment, firstAssign, parent),
-//                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment)
-//                    )
-                } else if (expr.left !is BinaryExpression && expr.operator in associativeOperators) {
-                    println("SPLIT VARDECL LEFT BINEXPR $expr") // TODO
-//                    val firstAssign = Assignment(assignment.target, expr.right, assignment.position)
-//                    val augExpr = BinaryExpression(assignment.target.toExpression(), expr.operator, expr.left, expr.position)
-//                    return listOf(
-//                            IAstModification.InsertBefore(assignment, firstAssign, parent),
-//                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
-                }
+        if(decl.type==VarDeclType.VAR) {
+            val binExpr = decl.value as? BinaryExpression
+            if (binExpr != null) {
+                // split into a vardecl with just the left expression, and an aug. assignment with the right expression.
+                val augExpr = BinaryExpression(IdentifierReference(listOf(decl.name), decl.position), binExpr.operator, binExpr.right, binExpr.position)
+                val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                val assign = Assignment(target, augExpr, binExpr.position)
+                return listOf(
+                        IAstModification.SetExpression({ decl.value = it }, binExpr.left, decl),
+                        IAstModification.InsertAfter(decl, assign, parent)
+                )
             }
         }
 
