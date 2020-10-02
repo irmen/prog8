@@ -2,7 +2,7 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO FIX circle drawing errors
+; TODO FIX circle drawing errors. was caused by commit e828c013
 
 
 main {

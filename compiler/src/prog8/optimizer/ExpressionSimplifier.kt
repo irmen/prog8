@@ -324,7 +324,6 @@ X =      BinExpr                                   X   =   LeftExpr
                     val firstAssign = Assignment(assignment.target, binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
-                    println("SPLIT $assignment")
                     return listOf(
                             IAstModification.InsertBefore(assignment, firstAssign, parent),
                             IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
