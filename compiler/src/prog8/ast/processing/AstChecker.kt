@@ -376,6 +376,9 @@ internal class AstChecker(private val program: Program,
                         if (sourceVar?.struct != null) {
                             if (sourceVar.struct !== targetVar.struct)
                                 errors.err("assignment of different struct types", assignment.position)
+                        } else if(sourceVar?.isArray==true) {
+                            if((sourceVar.value as ArrayLiteralValue).value.size != targetVar.struct?.numberOfElements)
+                                errors.err("number of elements doesn't match struct definition", sourceVar.position)
                         }
                     }
                 }

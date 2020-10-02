@@ -187,6 +187,8 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                             // structs are not the same in assignment
                             return listOf()     // error will be printed elsewhere
                         }
+                        if(struct.statements.size!=sourceStruct.statements.size)
+                            return listOf()     // error will be printed elsewhere
                         return struct.statements.zip(sourceStruct.statements).map { member ->
                             val targetDecl = member.first as VarDecl
                             val sourceDecl = member.second as VarDecl
@@ -203,6 +205,8 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                     }
                     sourceVar.isArray -> {
                         val array = (sourceVar.value as ArrayLiteralValue).value
+                        if(struct.statements.size!=array.size)
+                            return listOf()     // error will be printed elsewhere
                         return struct.statements.zip(array).map {
                             val decl = it.first as VarDecl
                             val mangled = mangledStructMemberName(identifierName, decl.name)
