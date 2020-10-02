@@ -320,18 +320,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignAddressOf(target: AsmAssignTarget, name: IdentifierReference) {
-        val struct = name.memberOfStruct(program.namespace)
-        val sourceName = if (struct != null) {
-            // take the address of the first struct member instead
-            val decl = name.targetVarDecl(program.namespace)!!
-            val firstStructMember = struct.nameOfFirstMember()
-            // find the flattened var that belongs to this first struct member
-            val firstVarName = listOf(decl.name, firstStructMember)
-            val firstVar = name.definingScope().lookup(firstVarName, name) as VarDecl
-            firstVar.name
-        } else {
-            asmgen.fixNameSymbols(name.nameInSource.joinToString("."))
-        }
+        val sourceName = name.firstStructVarName(program.namespace) ?: asmgen.fixNameSymbols(name.nameInSource.joinToString("."))
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {

@@ -411,10 +411,10 @@ internal class AsmGen(private val program: Program,
                         "$" + it.number.toInt().toString(16).padStart(4, '0')
                     }
                     is AddressOf -> {
-                        it.identifier.nameInSource.joinToString(".")
+                        it.identifier.firstStructVarName(program.namespace) ?: asmSymbolName(it.identifier)
                     }
                     is IdentifierReference -> {
-                        it.nameInSource.joinToString(".")
+                        it.firstStructVarName(program.namespace) ?: asmSymbolName(it)
                     }
                     else -> throw AssemblyError("weird array elt dt")
                 }

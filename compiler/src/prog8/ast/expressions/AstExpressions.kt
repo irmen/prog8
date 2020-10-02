@@ -774,6 +774,18 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             else -> throw FatalAstException("requires a reference value")
         }
     }
+
+    fun firstStructVarName(namespace: INameScope): String? {
+        // take the name of the first struct member of the structvariable instead
+        // if it's just a regular variable, return null.
+        val struct = memberOfStruct(namespace) ?: return null
+        val decl = targetVarDecl(namespace)!!
+        val firstStructMember = struct.nameOfFirstMember()
+        // find the flattened var that belongs to this first struct member
+        val firstVarName = listOf(decl.name, firstStructMember)
+        val firstVar = definingScope().lookup(firstVarName, this) as VarDecl
+        return firstVar.name
+    }
 }
 
 class FunctionCall(override var target: IdentifierReference,
