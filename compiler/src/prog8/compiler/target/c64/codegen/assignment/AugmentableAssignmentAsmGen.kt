@@ -919,7 +919,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 sec
                                 sbc  $otherName
                                 sta  $name
-                                bcc  +
+                                bcs  +
                                 dec  $name+1
 +""")
                         else
