@@ -202,7 +202,16 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
                         }
                     }
                     sourceVar.isArray -> {
-                        TODO("assign struct array $structAssignment")
+                        val array = (sourceVar.value as ArrayLiteralValue).value
+                        return struct.statements.zip(array).map {
+                            val decl = it.first as VarDecl
+                            val mangled = mangledStructMemberName(identifierName, decl.name)
+                            val targetName = IdentifierReference(listOf(mangled), structAssignment.position)
+                            val target = AssignTarget(targetName, null, null, structAssignment.position)
+                            val assign = Assignment(target, it.second, structAssignment.position)
+                            assign.linkParents(structAssignment)
+                            assign
+                        }
                     }
                     else -> {
                         throw FatalAstException("can only assign arrays or structs to structs")

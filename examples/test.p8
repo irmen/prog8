@@ -20,21 +20,22 @@ main {
 
     sub start() {
 
-        txt.print_uwhex(&c1, true)
+        txt.print_ub(c1.red)
         txt.chrout('\n')
-        txt.print_uwhex(&c2, true)
+        txt.print_ub(c1.green)
         txt.chrout('\n')
-        txt.print_uwhex(&c3, true)
+        txt.print_ub(c1.blue)
         txt.chrout('\n')
-        txt.print_uwhex(colors[0], true)
-        txt.chrout('\n')
-        txt.print_uwhex(colors[1], true)
-        txt.chrout('\n')
-        txt.print_uwhex(colors[2], true)
         txt.chrout('\n')
 
-        c1 = c2
-        c1 = [11,22,33]         ; TODO implement rewrite into individual struct member assignments
+        c1 = [99,88,77]
+
+        txt.print_ub(c1.red)
+        txt.chrout('\n')
+        txt.print_ub(c1.green)
+        txt.chrout('\n')
+        txt.print_ub(c1.blue)
+        txt.chrout('\n')
         testX()
     }
 
