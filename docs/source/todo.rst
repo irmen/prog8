@@ -10,6 +10,7 @@ TODO
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - use VIC banking to move up the graphics bitmap memory location. Don't move it under the ROM though as that would require IRQ disabling and memory bank swapping for every bitmap manipulation
 - add some primitives/subroutines/examples for using custom char sets, copying the default charset.
+- recursive subroutines? via %option recursive, allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
 
 More optimizations
 ^^^^^^^^^^^^^^^^^^

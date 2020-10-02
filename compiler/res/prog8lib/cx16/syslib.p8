@@ -169,20 +169,18 @@ cx16 {
 ; ---- Commander X-16 additions on top of C64 kernal routines ----
 ; spelling of the names is taken from the Commander X-16 rom sources
 
-; TODO specify the correct clobbers for alle these functions, for simplicity all 3 regs are marked clobbered atm
-
 ; supported C128 additions
-romsub $ff4a = close_all()  clobbers(A,X,Y)
-romsub $ff59 = lkupla()  clobbers(A,X,Y)
-romsub $ff5c = lkupsa()  clobbers(A,X,Y)
+romsub $ff4a = close_all(ubyte device @A)  clobbers(A,X,Y)
+romsub $ff59 = lkupla(ubyte la @A)  clobbers(A,X,Y)
+romsub $ff5c = lkupsa(ubyte sa @Y)  clobbers(A,X,Y)
 romsub $ff5f = screen_set_mode(ubyte mode @A)  clobbers(A, X, Y) -> ubyte @Pc
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
-romsub $ff65 = pfkey()  clobbers(A,X,Y)
-romsub $ff6e = jsrfar()  clobbers(A,X,Y)
-romsub $ff74 = fetch()  clobbers(A,X,Y)
-romsub $ff77 = stash()  clobbers(A,X,Y)
-romsub $ff7a = cmpare()  clobbers(A,X,Y)
-romsub $ff7d = primm()  clobbers(A,X,Y)
+; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
+romsub $ff6e = jsrfar()
+romsub $ff74 = fetch(ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
+romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
+romsub $ff7a = cmpare(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
+romsub $ff7d = primm()
 
 ; X16 additions
 romsub $ff44 = macptr()  clobbers(A,X,Y)
@@ -193,7 +191,9 @@ romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff4d = clock_set_date_time()  clobbers(A, X, Y)      ; args: r0, r1, r2, r3L
-romsub $ff50 = clock_get_date_time()  clobbers(A)            ; outout args: r0, r1, r2, r3L
+romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)      ; outout args: r0, r1, r2, r3L
+
+; TODO specify the correct clobbers for alle these functions below, we now assume all 3 regs are clobbered
 
 ; high level graphics & fonts
 romsub $ff20 = GRAPH_init()  clobbers(A,X,Y)           ; uses vectors=r0
