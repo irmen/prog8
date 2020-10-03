@@ -287,13 +287,19 @@ This @-prefix can also be used for character byte values.
 You can concatenate two string literals using '+' (not very useful though) or repeat
 a string literal a given number of times using '*'. You can also assign a new string
 value to another string. No bounds check is done so be sure the destination string is
-large enough to contain the new value::
+large enough to contain the new value (it is overwritten in memory)::
 
     str string1 = "first part" + "second part"
     str string2 = "hello!" * 10
 
     string1 = string2
     string1 = "new value"
+
+
+There are several 'escape sequences' to help you put special characters into strings, such
+as newlines, quote characters themselves, and so on. The ones used most often are
+``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
+read the syntax reference on strings.
 
 
 .. info::

@@ -664,6 +664,11 @@ internal fun unescape(str: String, position: Position): String {
                 'u' -> {
                     "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
                 }
+                '$' -> {
+                    // special hack 0x8000..0x80ff  will be outputted verbatim without encoding
+                    val hex = ("" + iter.nextChar() + iter.nextChar()).toInt(16)
+                    (0x8000 + hex).toChar()
+                }
                 else -> throw SyntaxError("invalid escape char in string: \\$ec", position)
             })
         } else {

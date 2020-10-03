@@ -20,23 +20,24 @@ main {
 
     sub start() {
 
-        txt.print_ub(c1.red)
+        str s1 = "a\nb\nc\nd\n"
+        str s2 = "a\rb\rc\rd\n"
+
+        txt.print(s2)
+        txt.print(s2)
+
+        ubyte cc
+        for cc in s1 {
+            txt.print_ubhex(cc, false)
+            txt.chrout(' ')
+        }
         txt.chrout('\n')
-        txt.print_ub(c1.green)
-        txt.chrout('\n')
-        txt.print_ub(c1.blue)
-        txt.chrout('\n')
+        for cc in s2 {
+            txt.print_ubhex(cc, false)
+            txt.chrout(' ')
+        }
         txt.chrout('\n')
 
-        c1 = [99,88,77]
-
-        txt.print_ub(c1.red)
-        txt.chrout('\n')
-        txt.print_ub(c1.green)
-        txt.chrout('\n')
-        txt.print_ub(c1.blue)
-        txt.chrout('\n')
-        testX()
     }
 
     asmsub testX() {
@@ -55,3 +56,6 @@ _saveX   .byte 0
     }
 
 }
+
+
+

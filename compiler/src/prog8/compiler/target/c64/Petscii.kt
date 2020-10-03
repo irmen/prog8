@@ -1056,6 +1056,10 @@ object Petscii {
             val petscii = lookup[it]
             petscii?.toShort() ?: if(it=='\u0000')
                 0.toShort()
+            else if(it in '\u8000'..'\u80ff') {
+                // special case: take the lower 8 bit hex value directly
+                (it.toInt() - 0x8000).toShort()
+            }
             else {
                 val case = if (lowercase) "lower" else "upper"
                 throw CharConversionException("no ${case}case Petscii character for '$it' (${it.toShort()})")
@@ -1074,6 +1078,10 @@ object Petscii {
             val screencode = lookup[it]
             screencode?.toShort() ?: if(it=='\u0000')
                 0.toShort()
+            else if(it in '\u8000'..'\u80ff') {
+                // special case: take the lower 8 bit hex value directly
+                (it.toInt() - 0x8000).toShort()
+            }
             else {
                 val case = if (lowercase) "lower" else "upper"
                 throw CharConversionException("no ${case}Screencode character for '$it' (${it.toShort()})")

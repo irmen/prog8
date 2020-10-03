@@ -78,7 +78,7 @@ Directives
     - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
       except the few addresses mentioned above that are used by the system's IRQ routine.
       Even though the default IRQ routine is still active, it is impossible to use most BASIC and KERNAL ROM routines.
-      This includes many floating point operations and several utility routines that do I/O, such as ``print_string``.
+      This includes many floating point operations and several utility routines that do I/O, such as ``print``.
       This option makes programs smaller and faster because even more variables can
       be stored in the ZP (which allows for more efficient assembly code).
       It's not possible to return cleanly to BASIC when the program exits. The only choice is
@@ -400,6 +400,23 @@ After defining a struct you can use the name of the struct as a data type to dec
 Struct variables can be assigned a struct literal value (also in their declaration as initial value)::
 
     Color rgb = [255, 100, 0]          ; note that the value is an array
+
+
+String
+^^^^^^
+
+``"hello"``   is a string translated into the default character encoding (PETSCII)
+
+``@"hello"``  is a string translated into the alternate character encoding (Screencodes/pokes)
+
+There are several escape sequences available to put special characters into your string value:
+
+- ``\\`` - the backslash itself, has to be escaped because it is the escape symbol by itself
+- ``\n`` - newline character (move cursor down and to beginning of next line)
+- ``\r`` - carriage return character (more or less the same as newline if printing to the screen)
+- ``\"`` - quote character (otherwise it would terminate the string)
+- ``\uHHHH`` - a unicode codepoint \u0000 - \uffff (16-bit hexadecimal)
+- ``\$HH`` - 8-bit hex value that will be copied verbatim *without encoding*
 
 
 Operators
