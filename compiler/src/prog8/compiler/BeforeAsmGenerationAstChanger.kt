@@ -161,11 +161,13 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
 
         if(sourceDt in PassByReferenceDatatypes) {
             if(typecast.type==DataType.UWORD) {
-                return listOf(IAstModification.ReplaceNode(
-                        typecast,
-                        AddressOf(typecast.expression as IdentifierReference, typecast.position),
-                        parent
-                ))
+                if(typecast.expression is IdentifierReference) {
+                    return listOf(IAstModification.ReplaceNode(
+                            typecast,
+                            AddressOf(typecast.expression as IdentifierReference, typecast.position),
+                            parent
+                    ))
+                }
             } else {
                 errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)
             }

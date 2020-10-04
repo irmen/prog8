@@ -992,11 +992,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
-    private fun translateExpression(expr: TypecastExpression) {
-        translateExpression(expr.expression)
-        when(expr.expression.inferType(program).typeOrElse(DataType.STRUCT)) {
+    private fun translateExpression(typecast: TypecastExpression) {
+        translateExpression(typecast.expression)
+        when(typecast.expression.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
-                when(expr.type) {
+                when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {
                         if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
@@ -1010,7 +1010,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.BYTE -> {
-                when(expr.type) {
+                when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {
                         // sign extend
@@ -1027,7 +1027,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.UWORD -> {
-                when(expr.type) {
+                when(typecast.type) {
                     DataType.BYTE, DataType.UBYTE -> {}
                     DataType.WORD, DataType.UWORD -> {}
                     DataType.FLOAT -> asmgen.out(" jsr  floats.stack_uw2float")
@@ -1036,7 +1036,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.WORD -> {
-                when(expr.type) {
+                when(typecast.type) {
                     DataType.BYTE, DataType.UBYTE -> {}
                     DataType.WORD, DataType.UWORD -> {}
                     DataType.FLOAT -> asmgen.out(" jsr  floats.stack_w2float")
@@ -1045,7 +1045,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.FLOAT -> {
-                when(expr.type) {
+                when(typecast.type) {
                     DataType.UBYTE -> asmgen.out(" jsr  floats.stack_float2uw")
                     DataType.BYTE -> asmgen.out(" jsr  floats.stack_float2w")
                     DataType.UWORD -> asmgen.out(" jsr  floats.stack_float2uw")
@@ -1054,6 +1054,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")
                 }
+            }
+            DataType.STR -> {
+                if (typecast.type != DataType.UWORD && typecast.type == DataType.STR)
+                    throw AssemblyError("cannot typecast a string into another incompatitble type")
             }
             in PassByReferenceDatatypes -> throw AssemblyError("cannot cast pass-by-reference value into another type")
             else -> throw AssemblyError("weird type")

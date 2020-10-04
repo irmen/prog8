@@ -11,13 +11,12 @@ main {
 
         goatsoup.set_seed($2211, $f19e)
 
-        goatsoup.planet_name = "saturn"             ; TODO make strcpy() actually work it now sets the address in the first two bytes...
+        goatsoup.planet_name = "saturn"
         goatsoup.print_soup()
         txt.chrout('\n')
 
         repeat 20 {
-            uword name = goatsoup.random_name()     ; TODO : make str name=... work
-            txt.print(name)         ; TODO: make print(random_name()) work
+            txt.print(goatsoup.random_name())
             txt.chrout(' ')
         }
     }
@@ -142,9 +141,7 @@ goatsoup {
     }
 
     sub print_soup() {
-        ; str source = "\x8F is \x97."
-        str source = "derp \xb0 \xb1 \xb2 \xb2 xxxx \x8F is \x97."
-
+        str source = "\x8F is \x97."
         reset_rnd()
         ubyte c
         for c in source {
@@ -159,25 +156,24 @@ goatsoup {
                     ; soup(self.desc_list[ord(c) - 0x81][(rnr >= 0x33) + (rnr >= 0x66) + (rnr >= 0x99) + (rnr >= 0xCC)])
                 } else {
                     if c == $b0 {
-                        txt.print("!!PLANETNAME!!:")
-                        txt.print(planet_name)     ; TODO uppercase first char?
+                        txt.chrout(planet_name[0] | 32)
+                        txt.print(&planet_name + 1)
                     }
                     else if c == $b1 {
-                        ; planet name + ian     TODO capitalize first name letter?
-                        txt.print(planet_name)
+                        ; planet name + ian
+                        txt.chrout(planet_name[0] | 32)
+                        ubyte ni
+                        for ni in 1 to len(planet_name) {
+                            ubyte cc = planet_name[ni]
+                            if cc=='e' or cc=='o' or cc==0
+                                break
+                            else
+                                txt.chrout(cc)
+                        }
                         txt.print("ian")
-;                        name = self.name.title()
-;                        result += name[0]
-;                        for nn in name[1:]:
-;                            if nn in ('e', 'i', '\0'):
-;                                break
-;                            result += nn
-;                        result += "ian"
                     }
                     else if c == $b2 {
-                        ;   txt.print(random_name())    TODO make this work
-                        uword name = goatsoup.random_name()
-                        txt.print(name)
+                        txt.print(random_name())
                     }
                     ; else BAD CHAR DATA
                 }

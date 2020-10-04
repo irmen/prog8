@@ -218,8 +218,12 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 // via register or register pair
                 val target = AsmAssignTarget.fromRegisters(register!!, program, asmgen)
                 val src = if(valueDt in PassByReferenceDatatypes) {
-                    val addr = AddressOf(value as IdentifierReference, Position.DUMMY)
-                    AsmAssignSource.fromAstSource(addr, program).adjustDataTypeToTarget(target)
+                    if(value is IdentifierReference) {
+                        val addr = AddressOf(value, Position.DUMMY)
+                        AsmAssignSource.fromAstSource(addr, program).adjustDataTypeToTarget(target)
+                    } else {
+                        AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(target)
+                    }
                 } else {
                     AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(target)
                 }
