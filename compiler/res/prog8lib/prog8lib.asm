@@ -1976,7 +1976,7 @@ ror2_array_uw	.proc
 
 
 strcpy		.proc
-		; copy a string (0-terminated) from A/Y to (ZPWORD1)
+		; copy a string (must be 0-terminated) from A/Y to (P8ZP_SCRATCH_W1)
 		; it is assumed the target string is large enough.
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
