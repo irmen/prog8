@@ -143,8 +143,8 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(string: StringLiteralValue) {
-        if (string.value.length !in 1..255)
-            errors.err("string literal length must be between 1 and 255", string.position)
+        if (string.value.length > 255)
+            errors.err("string literal length max is 255", string.position)
 
         super.visit(string)
     }
