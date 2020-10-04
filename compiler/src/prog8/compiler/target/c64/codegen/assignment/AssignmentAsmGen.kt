@@ -48,6 +48,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
                     DataType.UWORD, DataType.WORD -> assignVariableWord(assign.target, variable)
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
+                    DataType.STR -> assignVariableString(assign.target, variable)
                     in PassByReferenceDatatypes -> assignAddressOf(assign.target, variable)
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
                 }
@@ -354,6 +355,45 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  P8ESTACK_HI,x
                     dex""")
             }
+        }
+    }
+
+    private fun assignVariableString(target: AsmAssignTarget, variable: IdentifierReference) {
+        val sourceName = asmgen.asmVariableName(variable)
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                when(target.datatype) {
+                    DataType.UWORD -> {
+                        asmgen.out("""
+                            lda #<$sourceName
+                            sta ${target.asmVarname}
+                            lda #>$sourceName
+                            sta ${target.asmVarname}+1
+                        """)
+                    }
+                    DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                        asmgen.out("""
+                            ; copy a string (must be 0-terminated) from A/Y to (P8ZP_SCRATCH_W1)
+                            lda  #<${target.asmVarname}
+                            sta  P8ZP_SCRATCH_W1
+                            lda  #>${target.asmVarname}
+                            sta  P8ZP_SCRATCH_W1+1
+                            lda  #<$sourceName
+                            ldy  #>$sourceName
+                            jsr  prog8_lib.strcpy""")
+                    }
+                    else -> throw AssemblyError("assign string to incompatible variable type")
+                }
+            }
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  #<$sourceName
+                    sta  P8ESTACK_LO,x
+                    lda  #>$sourceName+1
+                    sta  P8ESTACK_HI,x
+                    dex""")
+            }
+            else -> throw AssemblyError("string-assign to weird target")
         }
     }
 

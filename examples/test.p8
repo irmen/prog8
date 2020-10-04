@@ -8,8 +8,8 @@ main {
     str planet_name = "12345678"
     sub start() {
 
-        txt.print(planet_name)
-        txt.chrout('\n')
+;        txt.print(planet_name)
+;        txt.chrout('\n')
 
         planet_name = "saturn"   ; TODO make strcpy() actually work it now sets the address in the first two bytes...
 

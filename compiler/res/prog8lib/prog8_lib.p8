@@ -5,5 +5,5 @@
 ; indent format: TABS, size=8
 
 prog8_lib {
-	%asminclude "library:prog8lib.asm", ""
+	%asminclude "library:prog8_lib.asm", ""
 }

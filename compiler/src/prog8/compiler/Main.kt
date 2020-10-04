@@ -107,9 +107,9 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
     // depending on the machine and compiler options we may have to include some libraries
     CompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst)
 
-    // always import prog8lib and math
+    // always import prog8_lib and math
     importer.importLibraryModule(programAst, "math")
-    importer.importLibraryModule(programAst, "prog8lib")
+    importer.importLibraryModule(programAst, "prog8_lib")
     errors.handle()
     return Triple(programAst, compilerOptions, importedFiles)
 }
