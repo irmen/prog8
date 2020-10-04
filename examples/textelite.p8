@@ -153,9 +153,9 @@ goatsoup {
                 if c <= $a4 {
                     ubyte rnr = gen_rnd_number()
                     ubyte wordNr = (rnr >= $33) + (rnr >= $66) + (rnr >= $99) + (rnr >= $CC)
-                    str source2
-                    source2 = getword(c, wordNr)        ; TODO good error message
+                    ; new source = getword(c, wordNr)
                     ; TODO recursive call...:
+                    print_soup()
                     ; print_soup(source2)
                 } else {
                     if c == $b0 {
