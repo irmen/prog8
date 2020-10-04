@@ -124,10 +124,12 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
                                         call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
                                 // we allow STR/ARRAY values in place of UWORD parameters. Take their address instead.
-                                modifications += IAstModification.ReplaceNode(
-                                        call.args[arg.second.index],
-                                        AddressOf(arg.second.value as IdentifierReference, arg.second.value.position),
-                                        call as Node)
+                                if(arg.second.value is IdentifierReference) {
+                                    modifications += IAstModification.ReplaceNode(
+                                            call.args[arg.second.index],
+                                            AddressOf(arg.second.value as IdentifierReference, arg.second.value.position),
+                                            call as Node)
+                                }
                             } else if(arg.second.value is NumericLiteralValue) {
                                 val cast = (arg.second.value as NumericLiteralValue).cast(requiredType)
                                 if(cast.isValid)
