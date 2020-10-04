@@ -6,25 +6,17 @@ main {
     sub start() {
         txt.lowercase()
 
-        ubyte i
-        for i in 1 to 4 {
-            txt.print("TextElite Goatsoup ")
-            txt.print_ub(i)
-            txt.print(":\n")
-            goatsoup.set_seed(rndw(), rndw())
-            goatsoup.planet_name = goatsoup.random_name()
-            txt.print("System: ")
-            txt.print(goatsoup.planet_name)
-            txt.chrout('\n')
-            txt.print(goatsoup.soup())
-            txt.chrout('\n')
-            txt.chrout('\n')
-        }
+        txt.print("\n--> TextElite conversion to Prog8 <--\n\n")
 
-        txt.print("Some planet names:\n")
-        repeat 20 {
-            txt.print(goatsoup.random_name())
-            txt.chrout(' ')
+        repeat 5 {
+            planet.set_seed(rndw(), rndw())
+            planet.name = planet.random_name()
+            txt.print("System: ")
+            txt.print(planet.name)
+            txt.chrout('\n')
+            txt.print(planet.soup())
+            txt.chrout('\n')
+            txt.chrout('\n')
         }
     }
 
@@ -45,7 +37,7 @@ _saveX   .byte 0
 
 }
 
-goatsoup {
+planet {
     %option force_output
 
     str[] words81 = ["fabled", "notable", "well known", "famous", "noted"]
@@ -96,7 +88,7 @@ goatsoup {
     ubyte[4] goatsoup_rnd = [0, 0, 0, 0]
     ubyte[4] goatsoup_seed = [0, 0, 0, 0]
 
-    str planet_name = "        "        ; 8 max
+    str name = "        "        ; 8 max
 
     sub set_seed(uword s1, uword s2) {
         goatsoup_seed[0] = lsb(s1)
@@ -148,16 +140,16 @@ goatsoup {
     }
 
     sub soup() -> str {
-        str goatsoup_result = " " * 160
+        str planet_result = " " * 160
         uword[6] source_stack
         ubyte stack_ptr = 0
         str start_source = "\x8F is \x97."
         uword source_ptr = &start_source
-        uword result_ptr = &goatsoup_result
+        uword result_ptr = &planet_result
 
         reset_rnd()
         recursive_soup()
-        return goatsoup_result
+        return planet_result
 
         sub recursive_soup() {
             repeat {
@@ -184,18 +176,16 @@ goatsoup {
                         source_ptr = source_stack[stack_ptr]
                     } else {
                         if c == $b0 {
-                            @(result_ptr) = planet_name[0] | 32
+                            @(result_ptr) = name[0] | 32
                             result_ptr++
-                            ; TODO copy rest of planet name
-                            ; txt.print(&planet_name + 1)
+                            concat_string(&name + 1)
                         }
                         else if c == $b1 {
-                            ; planet name + ian
-                            @(result_ptr) = planet_name[0] | 32
+                            @(result_ptr) = name[0] | 32
                             result_ptr++
                             ubyte ni
-                            for ni in 1 to len(planet_name) {
-                                ubyte cc = planet_name[ni]
+                            for ni in 1 to len(name) {
+                                ubyte cc = name[ni]
                                 if cc=='e' or cc=='o' or cc==0
                                     break
                                 else {
@@ -211,18 +201,26 @@ goatsoup {
                             result_ptr++
                         }
                         else if c == $b2 {
-                            ; TODO copy randon name
-                            ; txt.print(random_name())
-                            @(result_ptr) = '?'
-                            result_ptr++
-                            @(result_ptr) = '?'
-                            result_ptr++
+                            concat_string(random_name())
                         }
                         else {
                             @(result_ptr) = c
                             result_ptr++
                         }
                     }
+                }
+            }
+        }
+
+        sub concat_string(uword str_ptr) {
+            repeat {
+                ubyte c = @(str_ptr)
+                if c==0
+                    break
+                else {
+                    @(result_ptr) = c
+                    str_ptr++
+                    result_ptr++
                 }
             }
         }
