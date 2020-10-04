@@ -1,20 +1,27 @@
 %import textio
 %zeropage basicsafe
-
+%option no_sysinit
 
 main {
     sub start() {
-
         txt.lowercase()
 
-        ; uword ww = goatsoup.getword($a3, 2)
+        ubyte i
+        for i in 1 to 4 {
+            txt.print("TextElite Goatsoup ")
+            txt.print_ub(i)
+            txt.print(":\n")
+            goatsoup.set_seed(rndw(), rndw())
+            goatsoup.planet_name = goatsoup.random_name()
+            txt.print("System: ")
+            txt.print(goatsoup.planet_name)
+            txt.chrout('\n')
+            txt.print(goatsoup.soup())
+            txt.chrout('\n')
+            txt.chrout('\n')
+        }
 
-        goatsoup.set_seed($2211, $f19e)
-
-        goatsoup.planet_name = "saturn"
-        goatsoup.print_soup()
-        txt.chrout('\n')
-
+        txt.print("Some planet names:\n")
         repeat 20 {
             txt.print(goatsoup.random_name())
             txt.chrout(' ')
@@ -140,51 +147,89 @@ goatsoup {
         return ac
     }
 
-    sub print_soup() {
-        str source = "\x8F is \x97."
+    sub soup() -> str {
+        str goatsoup_result = " " * 160
+        uword[6] source_stack
+        ubyte stack_ptr = 0
+        str start_source = "\x8F is \x97."
+        uword source_ptr = &start_source
+        uword result_ptr = &goatsoup_result
+
         reset_rnd()
-        ubyte c
-        for c in source {
-            if c == $00
-                break
-            else if c <= $80
-                txt.chrout(c)
-            else {
-                if c <= $a4 {
-                    ubyte rnr = gen_rnd_number()
-                    ubyte wordNr = (rnr >= $33) + (rnr >= $66) + (rnr >= $99) + (rnr >= $CC)
-                    ; new source = getword(c, wordNr)
-                    ; TODO recursive call...:
-                    print_soup()
-                    ; print_soup(source2)
-                } else {
-                    if c == $b0 {
-                        txt.chrout(planet_name[0] | 32)
-                        txt.print(&planet_name + 1)
-                    }
-                    else if c == $b1 {
-                        ; planet name + ian
-                        txt.chrout(planet_name[0] | 32)
-                        ubyte ni
-                        for ni in 1 to len(planet_name) {
-                            ubyte cc = planet_name[ni]
-                            if cc=='e' or cc=='o' or cc==0
-                                break
-                            else
-                                txt.chrout(cc)
+        recursive_soup()
+        return goatsoup_result
+
+        sub recursive_soup() {
+            repeat {
+                ubyte c = @(source_ptr)
+                source_ptr++
+                if c == $00 {
+                    @(result_ptr) = 0
+                    return
+                }
+                else if c <= $80 {
+                    @(result_ptr) = c
+                    result_ptr++
+                }
+                else {
+                    if c <= $a4 {
+                        ubyte rnr = gen_rnd_number()
+                        ubyte wordNr = (rnr >= $33) + (rnr >= $66) + (rnr >= $99) + (rnr >= $CC)
+                        source_stack[stack_ptr] = source_ptr
+                        stack_ptr++
+                        source_ptr = getword(c, wordNr)
+                        ; TODO recursive call... should give error message... but hey since it's not doing that here now, lets exploit it
+                        recursive_soup()         ; RECURSIVE CALL
+                        stack_ptr--
+                        source_ptr = source_stack[stack_ptr]
+                    } else {
+                        if c == $b0 {
+                            @(result_ptr) = planet_name[0] | 32
+                            result_ptr++
+                            ; TODO copy rest of planet name
+                            ; txt.print(&planet_name + 1)
                         }
-                        txt.print("ian")
+                        else if c == $b1 {
+                            ; planet name + ian
+                            @(result_ptr) = planet_name[0] | 32
+                            result_ptr++
+                            ubyte ni
+                            for ni in 1 to len(planet_name) {
+                                ubyte cc = planet_name[ni]
+                                if cc=='e' or cc=='o' or cc==0
+                                    break
+                                else {
+                                    @(result_ptr) = cc
+                                    result_ptr++
+                                }
+                            }
+                            @(result_ptr) = 'i'
+                            result_ptr++
+                            @(result_ptr) = 'a'
+                            result_ptr++
+                            @(result_ptr) = 'n'
+                            result_ptr++
+                        }
+                        else if c == $b2 {
+                            ; TODO copy randon name
+                            ; txt.print(random_name())
+                            @(result_ptr) = '?'
+                            result_ptr++
+                            @(result_ptr) = '?'
+                            result_ptr++
+                        }
+                        else {
+                            @(result_ptr) = c
+                            result_ptr++
+                        }
                     }
-                    else if c == $b2 {
-                        txt.print(random_name())
-                    }
-                    ; else BAD CHAR DATA
                 }
             }
         }
     }
 
-    asmsub getword(ubyte list @A, ubyte wordidx @Y) -> str @AY {
+
+    asmsub getword(ubyte list @A, ubyte wordidx @Y) -> uword @AY {
         %asm {{
             sty  P8ZP_SCRATCH_REG
             sec
