@@ -152,8 +152,11 @@ goatsoup {
             else {
                 if c <= $a4 {
                     ubyte rnr = gen_rnd_number()
-                    ; TODO recursive call...
-                    ; soup(self.desc_list[ord(c) - 0x81][(rnr >= 0x33) + (rnr >= 0x66) + (rnr >= 0x99) + (rnr >= 0xCC)])
+                    ubyte wordNr = (rnr >= $33) + (rnr >= $66) + (rnr >= $99) + (rnr >= $CC)
+                    str source2
+                    source2 = getword(c, wordNr)        ; TODO good error message
+                    ; TODO recursive call...:
+                    ; print_soup(source2)
                 } else {
                     if c == $b0 {
                         txt.chrout(planet_name[0] | 32)

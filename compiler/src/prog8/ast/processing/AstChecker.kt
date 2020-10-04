@@ -632,6 +632,14 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        // string assignment is not supported in a vard
+        if(decl.datatype==DataType.STR) {
+            if(decl.value==null)
+                err("string var must be initialized with a string literal")
+            if(decl.value !=null && decl.value !is StringLiteralValue)
+                err("string var can only be initialized with a string literal")
+        }
+
         super.visit(decl)
     }
 
