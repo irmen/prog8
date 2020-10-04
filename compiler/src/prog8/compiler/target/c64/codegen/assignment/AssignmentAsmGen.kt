@@ -222,6 +222,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             jsr  floats.pop_float
                         """)
                     }
+                    DataType.STR -> {
+                        asmgen.out("""
+                            lda  #<${target.asmVarname}
+                            sta  P8ZP_SCRATCH_W1
+                            lda  #>${target.asmVarname}
+                            sta  P8ZP_SCRATCH_W1+1
+                            inx
+                            lda  P8ESTACK_HI,x
+                            tay
+                            lda  P8ESTACK_LO,x
+                            jsr  prog8_lib.strcpy""")
+                    }
                     else -> throw AssemblyError("weird target variable type ${target.datatype}")
                 }
             }
@@ -373,7 +385,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
                         asmgen.out("""
-                            ; copy a string (must be 0-terminated) from A/Y to (P8ZP_SCRATCH_W1)
                             lda  #<${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
                             lda  #>${target.asmVarname}
