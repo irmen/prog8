@@ -896,7 +896,7 @@ internal class AstChecker(private val program: Program,
 
         val error = VerifyFunctionArgTypes.checkTypes(functionCall, functionCall.definingScope(), program)
         if(error!=null)
-            errors.err(error, functionCall.args.first().position)
+            errors.err(error, functionCall.position)
 
         super.visit(functionCall)
     }
