@@ -10,6 +10,9 @@
 ; You load it with  LOAD "diskdir-sys50000",8,1
 ; and then call it with SYS 50000.
 
+; TODO once diskdir.p8 is done, change this program as well.
+
+
 main {
     sub start() {
         txt.print("directory of disk drive #8:\n\n")
