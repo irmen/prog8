@@ -302,7 +302,7 @@ as newlines, quote characters themselves, and so on. The ones used most often ar
 read the syntax reference on strings.
 
 
-.. info::
+.. note::
     Strings and uwords (=memory address) can often be interchanged.
     An array of strings is actually an array of uwords where every element is the memory
     address of the string. You can pass a memory address to assembly functions

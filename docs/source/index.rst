@@ -96,6 +96,12 @@ when compiled an ran on a C-64 you get this:
     :align: center
     :alt: result when run on C-64
 
+when the exact same program is compiled for the Commander X16 target, and run on the emulator, you get this:
+
+.. image:: _static/primes_cx16.png
+    :align: center
+    :alt: result when run on CX16 emulator
+
 
 
 Design principles and features
