@@ -8,12 +8,18 @@ main {
     str planet_name = "12345678"
     sub start() {
 
-        ; TODO : make str name=... work (although it's doing something else namely a strcpy)
+        ; TODO make this work, with a warning about Pc:
+        ubyte status
+        status = c64.OPEN()          ; open 1,8,0,"$"
+        ; TODO make this work as well, with the same warning:
+        ubyte status2 = c64.OPEN()          ; open 1,8,0,"$"
+
+
 
         txt.print(planet_name)
         txt.chrout('\n')
 
-        planet_name = "saturn"   ; TODO make strcpy() actually work it now sets the address in the first two bytes...
+        planet_name = "saturn"
 
         txt.print(planet_name)
         txt.chrout('\n')
