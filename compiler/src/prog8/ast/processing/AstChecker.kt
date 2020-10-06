@@ -631,7 +631,7 @@ internal class AstChecker(private val program: Program,
         if(decl.datatype==DataType.STR) {
             if(decl.value==null)
                 err("string var must be initialized with a string literal")
-            if(decl.value !=null && decl.value !is StringLiteralValue)
+            else if (decl.type==VarDeclType.VAR && decl.value !is StringLiteralValue)
                 err("string var can only be initialized with a string literal")
         }
 

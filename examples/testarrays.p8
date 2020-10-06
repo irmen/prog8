@@ -16,8 +16,7 @@ main {
         str  s1 = "hello"
         str  s2 = @"screencodes"
 
-        &str  ms1 = $c000           ; TODO fix invalid error message
-
+        &str  ms1 = $c000
 
         byte[4] barray
         ubyte[4] ubarray

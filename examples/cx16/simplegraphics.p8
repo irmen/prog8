@@ -3,12 +3,16 @@
 %target cx16
 %zeropage basicsafe
 
+; TODO fix crash
+
+
 main {
 
     sub start() {
 
         void cx16.screen_set_mode($80)
         cx16.r0=0
+        void cx16.screen_set_mode(0)
 
         cx16.FB_init()
         cx16.GRAPH_init()

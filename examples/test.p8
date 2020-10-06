@@ -8,27 +8,6 @@ main {
     str planet_name = "12345678"
     sub start() {
 
-        &str  ms1 = $c000           ; TODO fix invalid error message . what about memory mapped array? memory mapped struct?
-
-
-        c64.OPEN()          ; works: function call droppign the value but preserving the statusregister
-        if_cs
-            return
-
-        ubyte status
-        status = c64.OPEN()          ; open 1,8,0,"$"
-        if_cs
-            return
-
-
-        ; TODO make this work as well, with the same warning:
-        ubyte status2 = c64.OPEN()          ; open 1,8,0,"$"
-        if_cs
-            return
-
-        txt.print_ub(status)
-        txt.print_ub(status2)
-
         txt.print(planet_name)
         txt.chrout('\n')
 

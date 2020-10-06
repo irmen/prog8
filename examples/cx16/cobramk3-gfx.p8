@@ -4,6 +4,8 @@
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
 
+; TODO fix crash
+
 main {
 
     ; storage for rotated coordinates
