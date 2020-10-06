@@ -57,7 +57,7 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                         // they MIGHT work in a regular assignment or just a function call statement.
                         val parent = if(call is Statement) call.parent else if(call is Expression) call.parent else null
                         if(call !is FunctionCallStatement && parent !is Assignment && parent !is VarDecl) {
-                            return "can't use multiple return values here"
+                            return "can't use subroutine call that returns multiple return values here (try moving it into a separate assignment)"
                         }
                     }
                 }

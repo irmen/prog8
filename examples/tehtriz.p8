@@ -249,8 +249,10 @@ waitkey:
         txt.print("────────────────────────")
         c64.CHROUT('K')
 
-        while c64.GETIN()!=133 {
+        ubyte key = 0
+        while key!=133 {
             ; endless loop until user presses F1 to restart the game
+            key = c64.GETIN()
         }
     }
 
