@@ -588,9 +588,10 @@ internal class AsmGen(private val program: Program,
                 if (builtinFunc != null) {
                     builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
                 } else {
-                    functioncallAsmGen.translateFunctionCall(stmt)
-                    // discard any results from the stack:
                     val sub = stmt.target.targetSubroutine(program.namespace)!!
+                    val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
+                    functioncallAsmGen.translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
+                    // discard any results from the stack:
                     val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
                     for ((t, reg) in returns) {
                         if (reg.stack) {
@@ -598,6 +599,8 @@ internal class AsmGen(private val program: Program,
                             else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
                         }
                     }
+                    if(preserveStatusRegisterAfterCall)
+                        out("  plp\t; restore status flags from call")
                 }
             }
             is Assignment -> assignmentAsmGen.translate(stmt)
@@ -763,8 +766,8 @@ internal class AsmGen(private val program: Program,
     internal fun translateFunctioncallExpression(functionCall: FunctionCall, signature: FSignature) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature)
 
-    internal fun translateFunctionCall(functionCall: FunctionCall) =
-            functioncallAsmGen.translateFunctionCall(functionCall)
+    internal fun translateFunctionCall(functionCall: FunctionCall, preserveStatusRegisterAfterCall: Boolean) =
+            functioncallAsmGen.translateFunctionCall(functionCall, preserveStatusRegisterAfterCall)
 
     internal fun translateNormalAssignment(assign: AsmAssignment) =
             assignmentAsmGen.translateNormalAssignment(assign)

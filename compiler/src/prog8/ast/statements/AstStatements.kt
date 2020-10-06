@@ -416,7 +416,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         }
     }
 
-    fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {
+    fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {  // TODO why does this have the extra 'stmt' scope parameter???
         if (identifier != null) {
             val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)

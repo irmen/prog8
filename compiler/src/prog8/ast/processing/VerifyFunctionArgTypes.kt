@@ -4,10 +4,9 @@ import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.DataType
+import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
-import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
-import prog8.ast.statements.FunctionCallStatement
-import prog8.ast.statements.Subroutine
+import prog8.ast.statements.*
 import prog8.compiler.CompilerException
 import prog8.functions.BuiltinFunctions
 
@@ -43,7 +42,6 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             val argtypes = call.args.map { it.inferType(program).typeOrElse(DataType.STRUCT) }
             val target = call.target.targetStatement(scope)
             if (target is Subroutine) {
-                // asmsub types are not checked specifically at this time
                 if(call.args.size != target.parameters.size)
                     return "invalid number of arguments"
                 val paramtypes = target.parameters.map { it.type }
@@ -52,6 +50,16 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                     val actual = argtypes[mismatch].toString()
                     val expected = paramtypes[mismatch].toString()
                     return "argument ${mismatch + 1} type mismatch, was: $actual expected: $expected"
+                }
+                if(target.isAsmSubroutine) {
+                    if(target.asmReturnvaluesRegisters.size>1) {
+                        // multiple return values will NOT work inside an expression.
+                        // they MIGHT work in a regular assignment or just a function call statement.
+                        val parent = if(call is Statement) call.parent else if(call is Expression) call.parent else null
+                        if(call !is FunctionCallStatement && parent !is Assignment && parent !is VarDecl) {
+                            return "can't use multiple return values here"
+                        }
+                    }
                 }
             }
             else if (target is BuiltinFunctionStatementPlaceholder) {

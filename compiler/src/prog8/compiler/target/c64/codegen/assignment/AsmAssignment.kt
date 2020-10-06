@@ -6,6 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.DirectMemoryWrite
+import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.codegen.AsmGen
 
@@ -118,8 +119,23 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.ARRAY, program, dt, array = value)
                 }
                 else -> {
+                    if(value is FunctionCall) {
+                        // functioncall.
+                        val asmSub = value.target.targetStatement(program.namespace)
+                        if(asmSub is Subroutine && asmSub.isAsmSubroutine) {
+                            when (asmSub.asmReturnvaluesRegisters.count { rr -> rr.registerOrPair!=null }) {
+                                0 -> throw AssemblyError("can't translate zero return values in assignment")
+                                1 -> {
+                                    // assignment generation itself must make sure the status register is correct after the subroutine call, if status register is involved!
+                                    return AsmAssignSource(SourceStorageKind.EXPRESSION, program, DataType.UBYTE, expression = value)
+                                }
+                                else -> throw AssemblyError("can't translate multiple return values in assignment")
+                            }
+                        }
+                    }
+
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, dt, expression = value)
+                    return AsmAssignSource(SourceStorageKind.EXPRESSION, program, dt, expression = value)
                 }
             }
         }
@@ -160,6 +176,7 @@ internal class AsmAssignment(val source: AsmAssignSource,
 
     init {
         if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
+            require(source.datatype != DataType.STRUCT) { "must not be placeholder datatype" }
             require(source.datatype.memorySize() == target.datatype.memorySize()) { "source and target datatype must be same storage class" }
     }
 }

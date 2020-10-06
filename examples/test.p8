@@ -8,11 +8,20 @@ main {
     str planet_name = "12345678"
     sub start() {
 
-        ; TODO make this work, with a warning about Pc:
+        c64.OPEN()          ; works: function call droppign the value but preserving the statusregister
+        if_cs
+            return
+
         ubyte status
         status = c64.OPEN()          ; open 1,8,0,"$"
-        ; TODO make this work as well, with the same warning:
-        ubyte status2 = c64.OPEN()          ; open 1,8,0,"$"
+        if_cs
+            return
+
+
+;        ; TODO make this work as well, with the same warning:
+;        ubyte status2 = c64.OPEN()          ; open 1,8,0,"$"
+        if_cs
+            return
 
 
 

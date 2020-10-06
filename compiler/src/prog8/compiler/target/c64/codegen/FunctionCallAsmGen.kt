@@ -13,7 +13,7 @@ import prog8.compiler.target.c64.codegen.assignment.*
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
-    internal fun translateFunctionCall(stmt: IFunctionCall) {
+    internal fun translateFunctionCall(stmt: IFunctionCall, preserveStatusRegisterAfterCall: Boolean) {
         // output the code to setup the parameters and perform the actual call
         // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
@@ -56,6 +56,12 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             }
         }
         asmgen.out("  jsr  $subName")
+
+        if(preserveStatusRegisterAfterCall) {
+            asmgen.out("  php\t; save status flags from call")
+            // note: the containing statement (such as the FunctionCallStatement or the Assignment or the Expression)
+            //       must take care of popping this value again at the end!
+        }
 
         if(saveX)
             asmgen.restoreRegister(CpuRegister.X)

@@ -872,6 +872,12 @@ class FunctionCall(override var target: IdentifierReference,
                     return InferredTypes.void()     // no return value
                 if(stmt.returntypes.size==1)
                     return InferredTypes.knownFor(stmt.returntypes[0])
+
+                // multiple return values. Can occur for asmsub routines. If there is exactly one register return value, take that.
+                val numRegisterReturns = stmt.asmReturnvaluesRegisters.count { it.registerOrPair!=null }
+                if(numRegisterReturns==1)
+                    return InferredTypes.InferredType.known(DataType.UBYTE)
+
                 return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
             }
             else -> return InferredTypes.unknown()

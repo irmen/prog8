@@ -346,17 +346,15 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignment: Assignment) {
-        // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
-            if (stmt is Subroutine && stmt.isAsmSubroutine) {
-                if(stmt.returntypes.size>1)
-                    errors.err("It's not possible to store the multiple results of this asmsub call; you should use a small block of custom inline assembly for this.", assignment.value.position)
-                else {
-                    val idt = assignment.target.inferType(program, assignment)
-                    if(!idt.isKnown || stmt.returntypes.single()!=idt.typeOrElse(DataType.BYTE)) {
-                         errors.err("return type mismatch", assignment.value.position)
-                    }
+            if (stmt is Subroutine) {
+                val idt = assignment.target.inferType(program, assignment)
+                if(!idt.isKnown) {
+                     errors.err("return type mismatch", assignment.value.position)
+                }
+                if(stmt.returntypes.size <= 1 && stmt.returntypes.single()!=idt.typeOrElse(DataType.BYTE)) {
+                    errors.err("return type mismatch", assignment.value.position)
                 }
             }
         }
@@ -386,7 +384,8 @@ internal class AstChecker(private val program: Program,
         }
 
         val targetDt = assignment.target.inferType(program, assignment)
-        if(assignment.value.inferType(program) != targetDt) {
+        val valueDt = assignment.value.inferType(program)
+        if(valueDt.isKnown && valueDt != targetDt) {
             if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
                 errors.err("cannot assign value to string or array", assignment.value.position)
             else
@@ -446,12 +445,8 @@ internal class AstChecker(private val program: Program,
                     checkValueTypeAndRange(targetDatatype.typeOrElse(DataType.BYTE), constVal)
                 } else {
                     val sourceDatatype = assignment.value.inferType(program)
-                    if (!sourceDatatype.isKnown) {
-                        if (assignment.value is FunctionCall) {
-                            val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
-                            if (targetStmt != null)
-                                errors.err("function call doesn't return a suitable value to use in assignment", assignment.value.position)
-                        } else
+                    if (sourceDatatype.isUnknown) {
+                        if (assignment.value !is FunctionCall)
                             errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.typeOrElse(DataType.BYTE), assignTarget,
@@ -791,6 +786,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: BinaryExpression) {
+        super.visit(expr)
+
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
         if(!leftIDt.isKnown || !rightIDt.isKnown)
@@ -836,7 +833,6 @@ internal class AstChecker(private val program: Program,
             errors.err("right operand is not numeric", expr.right.position)
         if(leftDt!=rightDt)
             errors.err("left and right operands aren't the same type", expr.left.position)
-        super.visit(expr)
     }
 
     override fun visit(typecast: TypecastExpression) {
@@ -897,6 +893,28 @@ internal class AstChecker(private val program: Program,
         val error = VerifyFunctionArgTypes.checkTypes(functionCall, functionCall.definingScope(), program)
         if(error!=null)
             errors.err(error, functionCall.position)
+
+        // check the functions that return multiple returnvalues.
+        val stmt = functionCall.target.targetStatement(program.namespace)
+        if (stmt is Subroutine) {
+            if (stmt.returntypes.size > 1) {
+                // Currently, it's only possible to handle ONE (or zero) return values from a subroutine.
+                // asmsub routines can have multiple return values, for instance in 2 different registers.
+                // It's not (yet) possible to handle these multiple return values because assignments
+                // are only to a single unique target at the same time.
+                //   EXCEPTION:
+                // if the asmsub returns multiple values and one of them is via a status register bit,
+                // it *is* possible to handle them by just actually assigning the register value and
+                // dealing with the status bit as just being that, the status bit after the call.
+                val (returnRegisters, returnStatusflags) = stmt.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
+                if (returnRegisters.isEmpty() || returnRegisters.size == 1) {
+                    if (returnStatusflags.any())
+                        errors.warn("this asmsub also has one or more return 'values' in one of the status flags", functionCall.position)
+                } else {
+                    errors.err("It's not possible to store the multiple result values of this asmsub call; you should use a small block of custom inline assembly for this.", functionCall.position)
+                }
+            }
+        }
 
         super.visit(functionCall)
     }

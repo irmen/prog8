@@ -123,20 +123,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, assign)
-//                    is FunctionCall -> {
-//                        if (assign.target.kind == TargetStorageKind.STACK) {
-//                            asmgen.translateExpression(value)
-//                            assignStackValue(assign.target)
-//                        } else {
-//                            val functionName = value.target.nameInSource.last()
-//                            val builtinFunc = BuiltinFunctions[functionName]
-//                            if (builtinFunc != null) {
-//                                println("!!!!BUILTIN-FUNCCALL target=${assign.target.kind} $value") // TODO optimize certain functions?
-//                            }
-//                            asmgen.translateExpression(value)
-//                            assignStackValue(assign.target)
-//                        }
-//                    }
+                    is FunctionCall -> {
+                        if(value.target.targetSubroutine(program.namespace)?.isAsmSubroutine==true) {
+                            // TODO handle asmsub functioncalls specifically, without shoving stuff on the estack
+                            asmgen.translateExpression(value)
+                            assignStackValue(assign.target)
+                            val sub = value.target.targetSubroutine(program.namespace)
+                            if(sub!=null && sub.asmReturnvaluesRegisters.any { it.statusflag != null }) {
+                                // the expression translation will have generated a 'php' instruction earlier.
+                                asmgen.out("  plp\t; restore status flags from call")
+                            }
+                        } else {
+                            // regular subroutine, return values are (for now) always done via the stack...  TODO optimize this
+                            asmgen.translateExpression(value)
+                            assignStackValue(assign.target)
+                        }
+                    }
                     else -> {
                         // everything else just evaluate via the stack.
                         asmgen.translateExpression(value)

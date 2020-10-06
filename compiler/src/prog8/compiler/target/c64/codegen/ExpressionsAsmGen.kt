@@ -949,7 +949,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             asmgen.translateFunctioncallExpression(expression, builtinFunc)
         } else {
             val sub = expression.target.targetSubroutine(program.namespace)!!
-            asmgen.translateFunctionCall(expression)
+            val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
+            asmgen.translateFunctionCall(expression, preserveStatusRegisterAfterCall)
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
             for ((_, reg) in returns) {
                 if (!reg.stack) {

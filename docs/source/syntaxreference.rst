@@ -503,6 +503,8 @@ takes no parameters.  If the subroutine returns a value, usually you assign it t
 If you're not interested in the return value, prefix the function call with the ``void`` keyword.
 Otherwise the compiler will warn you about discarding the result of the call.
 
+Multiple return values
+^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
 (referencing a routine in kernel ROM) can return more than one return value.
@@ -510,9 +512,16 @@ For example a status in the carry bit and a number in A, or a 16-bit value in A/
 It is not possible to process the results of a call to these kind of routines
 directly from the language, because only single value assignments are possible.
 You can still call the subroutine and not store the results.
-But if you want to do something with the values it returns, you'll have to write
-a small block of custom inline assembly that does the call and stores the values
-appropriately. Don't forget to save/restore the registers if required.
+
+**There is an exception:** if there's just one return value in a register, and one or more others that are returned
+as bits in the status register (such as the Carry bit), the compiler allows you to call the subroutine.
+It will then store the result value in a variable if required, and *keep the status register untouched
+after the call* so you can use a conditional branch statement for that.
+Note that this makes no sense inside an expression, so the compiler will still give an error for that.
+
+If there really are multiple return values (other than a combined 16 bit return value in 2 registers),
+you'll have to write a small block of custom inline assembly that does the call and stores the values
+appropriately. Don't forget to save/restore any registers that are modified.
 
 
 Subroutine definitions
