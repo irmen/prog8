@@ -22,7 +22,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is DirectMemoryRead -> translateDirectMemReadExpression(expression, true)
             is NumericLiteralValue -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
-            is FunctionCall -> translateExpression(expression)
+            is FunctionCall -> translateFunctionCallResultOntoStack(expression)
             is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
         }
@@ -942,7 +942,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateExpression(expression: FunctionCall) {
+    private fun translateFunctionCallResultOntoStack(expression: FunctionCall) {
         val functionName = expression.target.nameInSource.last()
         val builtinFunc = BuiltinFunctions[functionName]
         if (builtinFunc != null) {

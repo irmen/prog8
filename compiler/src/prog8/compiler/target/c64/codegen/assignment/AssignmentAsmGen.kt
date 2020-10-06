@@ -125,14 +125,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, assign)
                     is FunctionCall -> {
                         if(value.target.targetSubroutine(program.namespace)?.isAsmSubroutine==true) {
-                            // TODO handle asmsub functioncalls specifically, without shoving stuff on the estack
-                            asmgen.translateExpression(value)
-                            assignStackValue(assign.target)
-                            val sub = value.target.targetSubroutine(program.namespace)
-                            if(sub!=null && sub.asmReturnvaluesRegisters.any { it.statusflag != null }) {
-                                // the expression translation will have generated a 'php' instruction earlier.
-                                asmgen.out("  plp\t; restore status flags from call")
+                            // handle asmsub functioncalls specifically, without shoving stuff on the estack
+                            val sub = value.target.targetSubroutine(program.namespace)!!
+                            val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
+                            asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
+                            when((sub.asmReturnvaluesRegisters.single { it.registerOrPair!=null }).registerOrPair) {
+                                RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
+                                RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
+                                RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                                else -> throw AssemblyError("should be just one register byte result value")
                             }
+                            if(preserveStatusRegisterAfterCall)
+                                asmgen.out("  plp\t; restore status flags from call")
                         } else {
                             // regular subroutine, return values are (for now) always done via the stack...  TODO optimize this
                             asmgen.translateExpression(value)

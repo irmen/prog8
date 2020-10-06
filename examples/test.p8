@@ -18,12 +18,13 @@ main {
             return
 
 
-;        ; TODO make this work as well, with the same warning:
-;        ubyte status2 = c64.OPEN()          ; open 1,8,0,"$"
+        ; TODO make this work as well, with the same warning:
+        ubyte status2 = c64.OPEN()          ; open 1,8,0,"$"
         if_cs
             return
 
-
+        txt.print_ub(status)
+        txt.print_ub(status2)
 
         txt.print(planet_name)
         txt.chrout('\n')
