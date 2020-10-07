@@ -1054,15 +1054,16 @@ object Petscii {
         val lookup = if(lowercase) encodingPetsciiLowercase else encodingPetsciiUppercase
         return text.map {
             val petscii = lookup[it]
-            petscii?.toShort() ?: if(it=='\u0000')
-                0.toShort()
-            else if(it in '\u8000'..'\u80ff') {
-                // special case: take the lower 8 bit hex value directly
-                (it.toInt() - 0x8000).toShort()
-            }
-            else {
-                val case = if (lowercase) "lower" else "upper"
-                throw CharConversionException("no ${case}case Petscii character for '$it' (${it.toShort()})")
+            petscii?.toShort() ?: when (it) {
+                '\u0000' -> 0.toShort()
+                in '\u8000'..'\u80ff' -> {
+                    // special case: take the lower 8 bit hex value directly
+                    (it.toInt() - 0x8000).toShort()
+                }
+                else -> {
+                    val case = if (lowercase) "lower" else "upper"
+                    throw CharConversionException("no ${case}case Petscii character for '$it' (${it.toShort()})")
+                }
             }
         }
     }
@@ -1076,15 +1077,16 @@ object Petscii {
         val lookup = if(lowercase) encodingScreencodeLowercase else encodingScreencodeUppercase
         return text.map{
             val screencode = lookup[it]
-            screencode?.toShort() ?: if(it=='\u0000')
-                0.toShort()
-            else if(it in '\u8000'..'\u80ff') {
-                // special case: take the lower 8 bit hex value directly
-                (it.toInt() - 0x8000).toShort()
-            }
-            else {
-                val case = if (lowercase) "lower" else "upper"
-                throw CharConversionException("no ${case}Screencode character for '$it' (${it.toShort()})")
+            screencode?.toShort() ?: when (it) {
+                '\u0000' -> 0.toShort()
+                in '\u8000'..'\u80ff' -> {
+                    // special case: take the lower 8 bit hex value directly
+                    (it.toInt() - 0x8000).toShort()
+                }
+                else -> {
+                    val case = if (lowercase) "lower" else "upper"
+                    throw CharConversionException("no ${case}Screencode character for '$it' (${it.toShort()})")
+                }
             }
         }
     }
