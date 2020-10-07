@@ -14,11 +14,30 @@ main {
         ubyte ii
         uword ww
         uword wptr = &warray
-        &uword wmap = $c000
+        ubyte wmap
 
-        wmap += ii
-        wmap <<= ii
-        wmap >>= ii
+        ii = 2
+
+        wmap = %11110000
+        wmap >>= 3
+        txt.print_ubbin(wmap, 1)
+        txt.chrout('\n')
+        wmap <<= 3
+        txt.print_ubbin(wmap, 1)
+        txt.chrout('\n')
+
+        wmap = 9
+        wmap *= 17
+        txt.print_ub(wmap)
+        txt.chrout('\n')
+        wmap /= 17
+        txt.print_ub(wmap)
+        txt.chrout('\n')
+        wmap = 211
+        wmap %= 40
+        txt.print_ub(wmap)
+        txt.chrout('\n')
+        txt.chrout('\n')
 
         txt.print(planet_name)
         txt.chrout('\n')

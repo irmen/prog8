@@ -222,123 +222,92 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
         println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
+        val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
             // note: ** (power) operator requires floats.
-            "+" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            "+" -> asmgen.out(" clc |  adc  P8ESTACK_LO+1,x")
+            "-" -> asmgen.out(" sec |  sbc  P8ESTACK_LO+1,x")
+            "*" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.multiply_bytes |  ldy  #0")
+            "/" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
+            "%" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.divmod_ub_asm |  ldy  #0")
+            "<<" -> {
+                asmgen.out("""
+                    pha
+                    lda  P8ESTACK_LO+1,x
+                    bne  +
+                    pla
+                    rts
++                   tay
+                    pla 
+-                   asl  a
+                    dey
+                    bne  -
++""")
             }
-            "-" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            ">>" -> {
+                asmgen.out("""
+                    pha
+                    lda  P8ESTACK_LO+1,x
+                    bne  +
+                    pla
+                    rts
++                   tay
+                    pla 
+-                   lsr  a
+                    dey
+                    bne  -
++""")
             }
-            "*" -> {
-                TODO("mul mem byte")// asmgen.out("  jsr  prog8_lib.mul_byte")
-            }
-            "/" -> TODO("div mem byte")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            "%" -> {
-                TODO("mem byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> TODO("mem ubyte asl")
-            ">>" -> TODO("mem ubyte lsr")
-            "&" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "^" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" eor  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "|" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  P8ESTACK_LO+1,x")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
+            "&" -> asmgen.out(" and  P8ESTACK_LO+1,x")
+            "^" -> asmgen.out(" eor  P8ESTACK_LO+1,x")
+            "|" -> asmgen.out(" ora  P8ESTACK_LO+1,x")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
+        if(ptrOnZp)
+            asmgen.out("  sta  ($sourceName),y")
+        else
+            asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
         asmgen.out(" inx")
     }
 
     private fun inplaceModification_byte_variable_to_memory(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
         val otherName = asmgen.asmVariableName(value)
+        val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+
         when (operator) {
             // note: ** (power) operator requires floats.
-            "+" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            "+" -> asmgen.out(" clc |  adc  $otherName")
+            "-" -> asmgen.out(" sec |  sbc  $otherName")
+            "*" -> asmgen.out("  ldy  $otherName |  jsr  math.multiply_bytes |  ldy  #0")
+            "/" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
+            "%" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  ldy  #0")
+            "<<" -> {
+                asmgen.out("""
+                        ldy  $otherName
+                        beq  + 
+-                       asl  a
+                        dey
+                        bne  -
++""")
             }
-            "-" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+            ">>" -> {
+                asmgen.out("""
+                        ldy  $otherName
+                        beq  + 
+-                       lsr  a
+                        dey
+                        bne  -
++""")
             }
-            "*" -> {
-                TODO("mem mul")// asmgen.out("  jsr  prog8_lib.mul_byte")
-            }
-            "/" -> TODO("mem div")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
-            "%" -> {
-                TODO("mem byte remainder")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
-            }
-            "<<" -> TODO("mem ubyte asl")
-            ">>" -> TODO("mem ubyte lsr")
-            "&" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "^" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" eor  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
-            "|" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  $otherName")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-            }
+            "&" -> asmgen.out(" and  $otherName")
+            "^" -> asmgen.out(" eor  $otherName")
+            "|" -> asmgen.out(" ora  $otherName")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
+        if(ptrOnZp)
+            asmgen.out("  sta  ($sourceName),y")
+        else
+            asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
     }
 
     private fun inplaceModification_byte_litval_to_memory(pointervar: IdentifierReference, operator: String, value: Int) {
@@ -361,26 +330,35 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "*" -> {
-                if(value in asmgen.optimizedByteMultiplications) {
-                    TODO("optimized mem mul ubyte litval $value")
-                } else {
-                    TODO("mem mul ubyte litval $value")
-                    // asmgen.out("  jsr  prog8_lib.mul_byte")
-                }
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                if(value in asmgen.optimizedByteMultiplications)
+                    asmgen.out("  jsr  math.mul_byte_${value}")
+                else
+                    asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes |  ldy  #0")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "/" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                TODO("mem div byte litval")
-                // asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "%" -> {
+                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                TODO("mem byte remainder litval")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
+                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  ldy  #0")
+                if(ptrOnZp)
+                    asmgen.out("  sta  ($sourceName),y")
+                else
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
             "<<" -> {
                 if (value > 0) {
@@ -439,19 +417,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name")
-            "*" -> {
-                TODO("var mul byte expr")
-                // check optimizedByteMultiplications
-                // asmgen.out("  jsr  prog8_lib.mul_byte")
-            }
+            "*" -> asmgen.out("  lda  P8ESTACK_LO+1,x |  ldy  $name |  jsr  math.multiply_bytes |  sta  $name")
             "/" -> {
-                TODO("var div byte expr")// asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
+                if(dt==DataType.UBYTE)
+                    asmgen.out("  lda  P8ESTACK_LO+1,x |  tay |  lda  $name |  jsr  math.divmod_ub_asm |  sty  $name")
+                else
+                    asmgen.out("  lda  P8ESTACK_LO+1,x |  tay |  lda  $name |  jsr  math.divmod_b_asm |  sty  $name")
             }
             "%" -> {
-                TODO("var byte remainder expr")
-//                if(types==DataType.BYTE)
-//                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-//                asmgen.out("  jsr prog8_lib.remainder_ub")
+                if(dt==DataType.BYTE)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                asmgen.out("  lda  P8ESTACK_LO+1,x |  tay |  lda  $name |  jsr  math.divmod_ub_asm |  sta  $name")
             }
             "<<" -> {
                 asmgen.translateExpression(value)
@@ -571,33 +547,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
-                if(dt == DataType.UBYTE) {
-                    if(value in asmgen.optimizedByteMultiplications) {
-                        asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
-                    } else {
-                        TODO("var mul ubyte litval $value")
-                        // asmgen.out("  jsr  prog8_lib.mul_byte")
-                    }
-                } else {
-                    if(value.absoluteValue in asmgen.optimizedByteMultiplications) {
-                        asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
-                    } else {
-                        TODO("var mul sbyte litval $value")
-                        // asmgen.out("  jsr  prog8_lib.mul_byte")
-                    }
-                }
+                if(value in asmgen.optimizedByteMultiplications)
+                    asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
+                else
+                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.multiply_bytes |  sta  $name")
             }
             "/" -> {
-                if (dt == DataType.UBYTE) {
-                    asmgen.out("""
-                        lda  $name
-                        ldy  #$value
-                        jsr  math.divmod_ub_asm
-                        sty  $name                                              
-                    """)
-                } else {
-                    TODO("var BYTE div  litval")
-                }
+                if (dt == DataType.UBYTE)
+                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.divmod_ub_asm |  sty  $name")
+                else
+                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.divmod_b_asm |  sty  $name")
             }
             "%" -> {
                 if(dt==DataType.BYTE)

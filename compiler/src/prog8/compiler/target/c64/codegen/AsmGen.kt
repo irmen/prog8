@@ -497,7 +497,7 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
-        // returns if the pointer is already on the ZP itself or not (in which case SCRATCH_W1 is used as intermediary)
+        // returns if the pointer is already on the ZP itself or not (in the latter case SCRATCH_W1 is used as intermediary)
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
@@ -773,6 +773,7 @@ internal class AsmGen(private val program: Program,
                             CpuRegister.Y -> out("  tay")
                         }
                     }
+                    else -> throw AssemblyError("weird dt")
                 }
             }
         }

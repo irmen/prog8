@@ -781,7 +781,7 @@ mul_byte_3	.proc
 		sta  P8ZP_SCRATCH_REG
 		asl  a
 		clc
-		adc  P8P_P8ZP_SCRATCH_REG
+		adc  P8ZP_SCRATCH_REG
 		rts
 		.pend
 
