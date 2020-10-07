@@ -19,7 +19,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val saveX = CpuRegister.X in sub.asmClobbers || sub.regXasResult() || sub.regXasParam()
         if(saveX)
-            asmgen.saveRegister(CpuRegister.X)
+            asmgen.saveRegister(CpuRegister.X, preserveStatusRegisterAfterCall)
 
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
@@ -64,7 +64,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
 
         if(saveX)
-            asmgen.restoreRegister(CpuRegister.X)
+            asmgen.restoreRegister(CpuRegister.X, preserveStatusRegisterAfterCall)
     }
 
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {

@@ -4,7 +4,7 @@
 %zeropage basicsafe
 
 ; This example shows the directory contents of disk drive 8.
-; Note: this program is compatible with C64 and CX16.    TODO not yet on cx16, fix the crash
+; Note: this program is compatible with C64 and CX16.
 
 main {
     sub start() {
@@ -37,11 +37,9 @@ main {
                 txt.chrout(char)
             } until char==0
             txt.chrout('\n')
-            repeat 2 {
-                void c64.CHRIN()     ; skip 2 bytes
-            }
+            void c64.CHRIN()     ; skip 2 bytes
+            void c64.CHRIN()
             status = c64.READST()
-
             c64.STOP()
             if_nz
                 break

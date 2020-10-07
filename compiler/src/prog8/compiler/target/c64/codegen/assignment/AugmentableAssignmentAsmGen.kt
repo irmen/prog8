@@ -1258,7 +1258,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         asmgen.out("  jsr  floats.pop_float_fac1")
-        asmgen.saveRegister(CpuRegister.X)
+        asmgen.saveRegister(CpuRegister.X, false)
         when (operator) {
             "**" -> {
                 asmgen.out("""
@@ -1303,7 +1303,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegister(CpuRegister.X)
+        asmgen.restoreRegister(CpuRegister.X, false)
     }
 
     private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference) {
@@ -1312,7 +1312,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             throw AssemblyError("float variable expected")
 
         val otherName = asmgen.asmVariableName(ident)
-        asmgen.saveRegister(CpuRegister.X)
+        asmgen.saveRegister(CpuRegister.X, false)
         when (operator) {
             "**" -> {
                 asmgen.out("""
@@ -1372,12 +1372,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegister(CpuRegister.X)
+        asmgen.restoreRegister(CpuRegister.X, false)
     }
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
         val constValueName = asmgen.getFloatAsmConst(value)
-        asmgen.saveRegister(CpuRegister.X)
+        asmgen.saveRegister(CpuRegister.X, false)
         when (operator) {
             "**" -> {
                 asmgen.out("""
@@ -1444,7 +1444,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegister(CpuRegister.X)
+        asmgen.restoreRegister(CpuRegister.X, false)
     }
 
     private fun inplaceCast(target: AsmAssignTarget, cast: TypecastExpression, position: Position) {

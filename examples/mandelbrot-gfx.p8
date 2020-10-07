@@ -8,9 +8,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO fix compiler crash
-
-
 main {
     const ubyte width = 255
     const ubyte height = 200

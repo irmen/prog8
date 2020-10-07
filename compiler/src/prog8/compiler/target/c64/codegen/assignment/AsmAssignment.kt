@@ -127,7 +127,16 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                                 0 -> throw AssemblyError("can't translate zero return values in assignment")
                                 1 -> {
                                     // assignment generation itself must make sure the status register is correct after the subroutine call, if status register is involved!
-                                    return AsmAssignSource(SourceStorageKind.EXPRESSION, program, DataType.UBYTE, expression = value)
+                                    val reg = asmSub.asmReturnvaluesRegisters.single { rr->rr.registerOrPair!=null }.registerOrPair!!
+                                    val dt = when(reg) {
+                                        RegisterOrPair.A,
+                                        RegisterOrPair.X,
+                                        RegisterOrPair.Y -> DataType.UBYTE
+                                        RegisterOrPair.AX,
+                                        RegisterOrPair.AY,
+                                        RegisterOrPair.XY -> DataType.UWORD
+                                    }
+                                    return AsmAssignSource(SourceStorageKind.EXPRESSION, program, dt, expression = value)
                                 }
                                 else -> throw AssemblyError("can't translate multiple return values in assignment")
                             }
@@ -177,6 +186,8 @@ internal class AsmAssignment(val source: AsmAssignSource,
     init {
         if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
             require(source.datatype != DataType.STRUCT) { "must not be placeholder datatype" }
-            require(source.datatype.memorySize() == target.datatype.memorySize()) { "source and target datatype must be same storage class" }
+            require(source.datatype.memorySize() <= target.datatype.memorySize()) {
+                "source storage size must be less or equal to target datatype storage size"
+            }
     }
 }

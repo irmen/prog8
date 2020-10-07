@@ -97,7 +97,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                     }
                     else -> {
                         asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
-                        asmgen.saveRegister(CpuRegister.X)
+                        asmgen.saveRegister(CpuRegister.X, false)
                         asmgen.out("  tax")
                         when(elementDt) {
                             in ByteDatatypes -> {
@@ -125,7 +125,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                             }
                             else -> throw AssemblyError("weird array elt dt")
                         }
-                        asmgen.restoreRegister(CpuRegister.X)
+                        asmgen.restoreRegister(CpuRegister.X, false)
                     }
                 }
             }

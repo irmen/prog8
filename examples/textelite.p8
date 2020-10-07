@@ -2,8 +2,6 @@
 %zeropage basicsafe
 %option no_sysinit
 
-; TODO fix compiler crash
-
 main {
     sub start() {
         txt.lowercase()

@@ -3,8 +3,6 @@
 %import floats
 %zeropage basicsafe
 
-; TODO fix crash
-
 main {
     const uword width = 256
     const uword height = 200

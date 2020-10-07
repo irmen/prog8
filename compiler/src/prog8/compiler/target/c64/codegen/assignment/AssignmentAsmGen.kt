@@ -133,6 +133,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
                                 RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
                                 RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                                RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                                RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
                                 else -> throw AssemblyError("should be just one register byte result value")
                             }
                             if(preserveStatusRegisterAfterCall)
@@ -685,9 +688,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.out(" ldy  ${asmgen.asmVariableName(index)} |  sta  ${target.asmVarname},y")
                     }
                     else -> {
-                        asmgen.saveRegister(register)
+                        asmgen.saveRegister(register, false)
                         asmgen.translateExpression(index)
-                        asmgen.restoreRegister(register)
+                        asmgen.restoreRegister(register, false)
                         when (register) {
                             CpuRegister.A -> asmgen.out("  sta  P8ZP_SCRATCH_B1")
                             CpuRegister.X -> asmgen.out("  stx  P8ZP_SCRATCH_B1")
@@ -738,6 +741,54 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     CpuRegister.Y -> asmgen.out(" tya |  sta  P8ESTACK_LO,x |  dex")
                 }
             }
+        }
+    }
+
+    private fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
+        require(target.datatype in WordDatatypes)
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                when(regs) {
+                    RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname} |  stx  ${target.asmVarname}+1")
+                    RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname} |  sty  ${target.asmVarname}+1")
+                    RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname} |  sty  ${target.asmVarname}+1")
+                    else -> throw AssemblyError("expected reg pair")
+                }
+            }
+            TargetStorageKind.ARRAY -> {
+                TODO("store register pair $regs into word-array ${target.array}")
+            }
+            TargetStorageKind.REGISTER -> {
+                when(regs) {
+                    RegisterOrPair.AX -> when(target.register!!) {
+                        RegisterOrPair.AY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG") }
+                        RegisterOrPair.AX -> { }
+                        RegisterOrPair.XY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG |  tax") }
+                        else -> throw AssemblyError("expected reg pair")
+                    }
+                    RegisterOrPair.AY -> when(target.register!!) {
+                        RegisterOrPair.AY -> { }
+                        RegisterOrPair.AX -> { asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
+                        RegisterOrPair.XY -> { asmgen.out("  tax") }
+                        else -> throw AssemblyError("expected reg pair")
+                    }
+                    RegisterOrPair.XY -> when(target.register!!) {
+                        RegisterOrPair.AY -> { asmgen.out("  txa") }
+                        RegisterOrPair.AX -> { asmgen.out("  txa |  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
+                        RegisterOrPair.XY -> { }
+                        else -> throw AssemblyError("expected reg pair")
+                    }
+                    else -> throw AssemblyError("expected reg pair")
+                }
+            }
+            TargetStorageKind.STACK -> {
+                when(regs) {
+                    RegisterOrPair.AY -> asmgen.out(" sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
+                    RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't use X here")
+                    else -> throw AssemblyError("expected reg pair")
+                }
+            }
+            TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
         }
     }
 
@@ -1136,9 +1187,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, null)
             }
             else -> {
-                asmgen.saveRegister(register)
+                asmgen.saveRegister(register, false)
                 asmgen.translateExpression(addressExpr)
-                asmgen.restoreRegister(CpuRegister.A)
+                asmgen.restoreRegister(CpuRegister.A, false)
                 asmgen.out("""
                     inx
                     ldy  P8ESTACK_LO,x

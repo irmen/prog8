@@ -3,8 +3,6 @@
 %target cx16
 %zeropage basicsafe
 
-; TODO fix crash
-
 
 main {
 

@@ -543,30 +543,48 @@ internal class AsmGen(private val program: Program,
 
     private val saveRegisterLabels = Stack<String>();
 
-    internal fun saveRegister(register: CpuRegister) {
-        when(register) {
-            CpuRegister.A -> out("  pha")
-            CpuRegister.X -> {
-                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
-                else out("  stx  _prog8_regsave${register.name}")
+    internal fun saveRegister(register: CpuRegister, dontUseStack: Boolean) {
+        if(dontUseStack) {
+            when (register) {
+                CpuRegister.A -> out("  sta  _prog8_regsaveA")
+                CpuRegister.X -> out("  stx  _prog8_regsaveX")
+                CpuRegister.Y -> out("  sty  _prog8_regsaveY")
             }
-            CpuRegister.Y -> {
-                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phy")
-                else out("  sty  _prog8_regsave${register.name}")
+
+        } else {
+            when (register) {
+                CpuRegister.A -> out("  pha")
+                CpuRegister.X -> {
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
+                    else out("  stx  _prog8_regsaveX")
+                }
+                CpuRegister.Y -> {
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phy")
+                    else out("  sty  _prog8_regsaveY")
+                }
             }
         }
     }
 
-    internal fun restoreRegister(register: CpuRegister) {
-        when(register) {
-            CpuRegister.A -> out("  pla")
-            CpuRegister.X -> {
-                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  plx")
-                else out("  ldx  _prog8_regsave${register.name}")
+    internal fun restoreRegister(register: CpuRegister, dontUseStack: Boolean) {
+        if(dontUseStack) {
+            when (register) {
+                CpuRegister.A -> out("  sta  _prog8_regsaveA")
+                CpuRegister.X -> out("  ldx  _prog8_regsaveX")
+                CpuRegister.Y -> out("  ldy  _prog8_regsaveY")
             }
-            CpuRegister.Y -> {
-                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  ply")
-                else out("  ldy  _prog8_regsave${register.name}")
+
+        } else {
+            when (register) {
+                CpuRegister.A -> out("  pla")
+                CpuRegister.X -> {
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  plx")
+                    else out("  ldx  _prog8_regsaveX")
+                }
+                CpuRegister.Y -> {
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  ply")
+                    else out("  ldy  _prog8_regsaveY")
+                }
             }
         }
     }
@@ -811,6 +829,7 @@ internal class AsmGen(private val program: Program,
             out("; variables")
             out("""
                 ; register saves
+_prog8_regsaveA     .byte  0                
 _prog8_regsaveX     .byte  0                
 _prog8_regsaveY     .byte  0""")        // TODO only generate these bytes if they're actually used by saveRegister()
             vardecls2asm(sub.statements)
