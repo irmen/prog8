@@ -40,15 +40,15 @@ main {
             void c64.CHRIN()     ; skip 2 bytes
             void c64.CHRIN()
             status = c64.READST()
-            c64.STOP()
+            void c64.STOP()
             if_nz
                 break
         }
 
 io_error:
         status = c64.READST()
-        c64.CLOSE(1)
         c64.CLRCHN()        ; restore default i/o devices
+        c64.CLOSE(1)
 
         if status and status != 64 {            ; 64=end of file
             txt.print("\ni/o error, status: ")

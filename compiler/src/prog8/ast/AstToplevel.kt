@@ -263,7 +263,10 @@ class Module(override val name: String,
     val importedBy = mutableListOf<Module>()
     val imports = mutableSetOf<Module>()
 
-    var loadAddress: Int = 0        // can be set with the %address directive
+    val loadAddress: Int by lazy {
+        val address = (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int ?: 0
+        address
+    }
 
     override fun linkParents(parent: Node) {
         this.parent = parent

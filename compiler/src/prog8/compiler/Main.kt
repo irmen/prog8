@@ -120,8 +120,6 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
             as? Directive)?.args?.single()?.name?.toUpperCase()
     val launcherType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
-    mainModule.loadAddress = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%address" }
-            as? Directive)?.args?.single()?.int ?: 0
     val zpoption: String? = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
     val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
@@ -211,6 +209,7 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
     programAst.checkRecursion(errors)         // check if there are recursive subroutine calls
     errors.handle()
     programAst.verifyFunctionArgTypes()
+    programAst.moveMainAndStartToFirst()
 }
 
 private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir: Path,

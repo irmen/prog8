@@ -8,6 +8,18 @@ main {
     str planet_name = "12345678"
     sub start() {
 
+        uword[] warray = [1,2,3,4,5]
+
+        uword sums
+        ubyte ii
+        uword ww
+        uword wptr = &warray
+        &uword wmap = $c000
+
+        wmap += ii
+        wmap <<= ii
+        wmap >>= ii
+
         txt.print(planet_name)
         txt.chrout('\n')
 
