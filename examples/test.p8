@@ -5,39 +5,14 @@
 
 main {
 
-    str planet_name = "12345678"
+    struct Planet {
+        ubyte x
+        ubyte y
+        str name
+    }
     sub start() {
 
-        uword[] warray = [1,2,3,4,5]
-
-        uword sums
-        ubyte ii
-        uword ww
-        uword wptr = &warray
-        ubyte wmap
-
-        ii = 2
-
-        wmap = %11110000
-        wmap >>= 3
-        txt.print_ubbin(wmap, 1)
-        txt.chrout('\n')
-        wmap <<= 3
-        txt.print_ubbin(wmap, 1)
-        txt.chrout('\n')
-
-        wmap = 9
-        wmap *= 17
-        txt.print_ub(wmap)
-        txt.chrout('\n')
-        wmap /= 17
-        txt.print_ub(wmap)
-        txt.chrout('\n')
-        wmap = 211
-        wmap %= 40
-        txt.print_ub(wmap)
-        txt.chrout('\n')
-        txt.chrout('\n')
+        Planet p1
 
         txt.print(planet_name)
         txt.chrout('\n')
