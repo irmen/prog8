@@ -1,6 +1,4 @@
 %import textio
-%zeropage basicsafe
-%option no_sysinit
 
 main {
     sub start() {
@@ -9,18 +7,11 @@ main {
         txt.print("\n--> TextElite conversion to Prog8 <--\n\n")
 
         galaxy.init(1)
-        txt.print("\nstart!!!!")
-        galaxy.debug_seed()
-
         galaxy.generate_planet(galaxy.numforLave)
         planet.display(false)
 
-;        repeat 5 {
-;            planet.set_seed(rndw(), rndw())
-;            planet.name = planet.random_name()
-;            planet.display(false)
-;            txt.chrout('\n')
-;        }
+        txt.print("\nEnter to exit: ")
+        void c64.CHRIN()
     }
 
     asmsub testX() {
@@ -42,11 +33,10 @@ _saveX   .byte 0
 
 galaxy {
     const uword GALSIZE = 256
-    ; seed for first galaxy:
-    const uword base0 = $5A4A
+    const uword base0 = $5A4A       ; seeds for the first galaxy
     const uword base1 = $0248
     const uword base2 = $B753
-    const ubyte numforLave = 7  ;  Lave is 7th generated planet in galaxy one
+    const ubyte numforLave = 7      ;  Lave is 7th generated planet in galaxy one
     const ubyte numforZaonce = 129
     const ubyte numforDiso = 147
     const ubyte numforRied = 46
@@ -98,12 +88,39 @@ galaxy {
         txt.chrout('\n')
     }
 
+    sub generate_planet_properties() {
+        ; create the planet's characteristics
+        planet.x = msb(seed[1])
+        planet.y = msb(seed[0])
+        planet.govtype = lsb(seed[1]) >> 3 & 7  ; bits 3,4 &5 of w1
+        planet.economy = msb(seed[0]) & 7  ; bits 8,9 &A of w0
+        if planet.govtype <= 1
+            planet.economy = (planet.economy | 2)
+        planet.techlevel = (msb(seed[1]) & 3) + (planet.economy ^ 7)
+        planet.techlevel += planet.govtype >> 1
+        if planet.govtype & 1
+            planet.techlevel++
+        planet.population = 4 * planet.techlevel + planet.economy
+        planet.population += planet.govtype + 1
+        planet.productivity = ((planet.economy ^ 7) + 3) * (planet.govtype + 4)
+        planet.productivity *= planet.population * 8
+        planet.radius = mkword((msb(seed[2]) & 15) + 11, planet.x)
+        ;planet.radius = 256 * (((seed[2] >> 8) & 15) + 11) + planet.x   ; TODO why not the same answer??
+        ; TODO make this work: planet.goatsoup_seed = [seed[1] & $FF, seed[1] >> 8, seed[2] & $FF, seed[2] >> 8]
+        planet.goatsoup_seed[0] = lsb(seed[1])
+        planet.goatsoup_seed[1] = msb(seed[1])
+        planet.goatsoup_seed[2] = lsb(seed[2])
+        planet.goatsoup_seed[3] = msb(seed[2])
+    }
+
     sub generate_planet(ubyte planetnum) {
         ubyte pair1
         ubyte pair2
         ubyte pair3
         ubyte pair4
         repeat planetnum+1 {
+            generate_planet_properties()
+
             ; Always four iterations of random number
             pair1 = (msb(seed[2]) & 31) * 2
             tweakseed()
@@ -115,20 +132,9 @@ galaxy {
             tweakseed()
         }
 
-        debug_seed()
+        ; debug_seed()
 
-        txt.print("generating planet #")
-        txt.print_ub(planetnum)
-        txt.print("\npairs:")
-        txt.print_ub(pair1)
-        txt.chrout(',')
-        txt.print_ub(pair2)
-        txt.chrout(',')
-        txt.print_ub(pair3)
-        txt.chrout(',')
-        txt.print_ub(pair4)
-        txt.chrout('\n')
-
+        ; create the planet's name
         ubyte ni = 0
         if pairs[pair1] != '.' {
             planet.name[ni] = pairs[pair1]
@@ -241,8 +247,8 @@ planet {
     ubyte govtype
     ubyte techlevel
     ubyte population
-    ubyte productivity
-    ubyte radius
+    uword productivity
+    uword radius
     ; todo: species
 
     sub set_seed(uword s1, uword s2) {
@@ -404,9 +410,9 @@ planet {
             txt.print("\nTech Level: ")
             txt.print_ub(techlevel+1)
             txt.print("\nTurnover: ")
-            txt.print_ub(productivity)
-            txt.print("\nRadius:")
-            txt.print_ub(radius)
+            txt.print_uw(productivity)
+            txt.print("\nRadius: ")
+            txt.print_uw(radius)
             txt.print("\nPopulation: ")
             txt.print_ub(population >> 3)
             txt.print(" Billion\n")

@@ -1197,4 +1197,22 @@ $counterVar    .byte  0""")
         val assembly = asm.assembly.trimEnd().trimStart('\n')
         assemblyLines.add(assembly)
     }
+
+    internal fun signExtendStackByte(valueDt: DataType) {
+        // sign extend signed byte on stack to signed word
+        when(valueDt) {
+            DataType.UBYTE -> {
+                out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
+            }
+            DataType.BYTE -> {
+                out("""
+                    lda  P8ESTACK_LO+1,x
+                    ora  #$7f
+                    bmi  +
+                    lda  #0
++                   sta  P8ESTACK_HI+1,x""")
+            }
+            else -> throw AssemblyError("need byte type")
+        }
+    }
 }

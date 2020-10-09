@@ -1031,6 +1031,68 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.translateExpression(value)
         val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
 
+        fun multiplyWord() {
+            asmgen.out("""
+                lda  P8ESTACK_LO+1,x
+                ldy  P8ESTACK_HI+1,x
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  $name
+                ldy  $name+1
+                jsr  math.multiply_words
+                lda  math.multiply_words.result
+                sta  $name
+                lda  math.multiply_words.result+1
+                sta  $name+1
+            """)
+        }
+
+        fun divideWord() {
+            if (dt == DataType.WORD) {
+                asmgen.out("""
+                    lda  $name
+                    ldy  $name+1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  P8ESTACK_LO+1,x
+                    ldy  P8ESTACK_HI+1,x
+                    jsr  math.divmod_w_asm
+                    sta  $name
+                    sty  $name+1
+                """)
+            } else {
+                asmgen.out("""
+                    lda  $name
+                    ldy  $name+1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  P8ESTACK_LO+1,x
+                    ldy  P8ESTACK_HI+1,x
+                    jsr  math.divmod_uw_asm
+                    sta  $name
+                    sty  $name+1
+                """)
+            }
+        }
+
+        fun remainderWord() {
+            if(dt==DataType.WORD)
+                throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+            asmgen.out("""
+                lda  $name
+                ldy  $name+1
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  P8ESTACK_LO+1,x
+                ldy  P8ESTACK_HI+1,x
+                jsr  math.divmod_uw_asm
+                lda  P8ZP_SCRATCH_W2
+                sta  $name
+                lda  P8ZP_SCRATCH_W2+1
+                sta  $name+1
+            """)
+        }
+
         when(valueDt) {
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
@@ -1084,9 +1146,21 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 sbc  P8ZP_SCRATCH_B1
                                 sta  $name+1""")
                     }
-                    "*" -> TODO("mul (u)word (u)byte")
-                    "/" -> TODO("div (u)word (u)byte")
-                    "%" -> TODO("(u)word remainder (u)byte")
+                    "*" -> {
+                        // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
+                        asmgen.signExtendStackByte(valueDt)
+                        multiplyWord()
+                    }
+                    "/" -> {
+                        // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
+                        asmgen.signExtendStackByte(valueDt)
+                        divideWord()
+                    }
+                    "%" -> {
+                        // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
+                        asmgen.signExtendStackByte(valueDt)
+                        remainderWord()
+                    }
                     "<<" -> {
                         asmgen.translateExpression(value)
                         asmgen.out("""
@@ -1137,65 +1211,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     // note: ** (power) operator requires floats.
                     "+" -> asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  adc  P8ESTACK_HI+1,x |  sta  $name+1")
                     "-" -> asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  sbc  P8ESTACK_HI+1,x |  sta  $name+1")
-                    "*" -> {
-                        asmgen.out("""
-                            lda  P8ESTACK_LO+1,x
-                            ldy  P8ESTACK_HI+1,x
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  $name
-                            ldy  $name+1
-                            jsr  math.multiply_words
-                            lda  math.multiply_words.result
-                            sta  $name
-                            lda  math.multiply_words.result+1
-                            sta  $name+1
-                        """)
-                    }
-                    "/" -> {
-                        if (dt == DataType.WORD) {
-                            asmgen.out("""
-                                lda  $name
-                                ldy  $name+1
-                                sta  P8ZP_SCRATCH_W1
-                                sty  P8ZP_SCRATCH_W1+1
-                                lda  P8ESTACK_LO+1,x
-                                ldy  P8ESTACK_HI+1,x
-                                jsr  math.divmod_w_asm
-                                sta  $name
-                                sty  $name+1
-                            """)
-                        } else {
-                            asmgen.out("""
-                                lda  $name
-                                ldy  $name+1
-                                sta  P8ZP_SCRATCH_W1
-                                sty  P8ZP_SCRATCH_W1+1
-                                lda  P8ESTACK_LO+1,x
-                                ldy  P8ESTACK_HI+1,x
-                                jsr  math.divmod_uw_asm
-                                sta  $name
-                                sty  $name+1
-                            """)
-                        }
-                    }
-                    "%" -> {
-                        if(dt==DataType.WORD)
-                            throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                        asmgen.out("""
-                            lda  $name
-                            ldy  $name+1
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  P8ESTACK_LO+1,x
-                            ldy  P8ESTACK_HI+1,x
-                            jsr  math.divmod_uw_asm
-                            lda  P8ZP_SCRATCH_W2
-                            sta  $name
-                            lda  P8ZP_SCRATCH_W2+1
-                            sta  $name+1
-                        """)
-                    }
+                    "*" -> multiplyWord()
+                    "/" -> divideWord()
+                    "%" -> remainderWord()
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
                     "&" -> asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  and  P8ESTACK_HI+1,x  |  sta  $name+1")
                     "^" -> asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  eor  P8ESTACK_HI+1,x  |  sta  $name+1")
