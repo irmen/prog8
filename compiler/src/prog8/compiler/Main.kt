@@ -187,10 +187,11 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
-        val optsDone2 = programAst.optimizeStatements(errors)
+        val optsDone2 = programAst.splitBinaryExpressions()
+        val optsDone3 = programAst.optimizeStatements(errors)
         programAst.constantFold(errors) // because simplified statements and expressions can result in more constants that can be folded away
         errors.handle()
-        if (optsDone1 + optsDone2 == 0)
+        if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
 

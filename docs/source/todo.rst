@@ -4,6 +4,7 @@ TODO
 
 - get rid of all other TODO's in the code ;-)
 - make it possible for array literals to not only contain compile time constants?
+- allow assignment of all elements of an array at once via new array literal assignment (flatten, like with struct)
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)

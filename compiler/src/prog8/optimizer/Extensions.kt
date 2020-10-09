@@ -53,3 +53,9 @@ internal fun Program.simplifyExpressions() : Int {
     opti.visit(this)
     return opti.applyModifications()
 }
+
+internal fun Program.splitBinaryExpressions() : Int {
+    val opti = BinExprSplitter(this)
+    opti.visit(this)
+    return opti.applyModifications()
+}
