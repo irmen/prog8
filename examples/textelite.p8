@@ -7,7 +7,27 @@ main {
         txt.print("\n--> TextElite conversion to Prog8 <--\n\n")
 
         galaxy.init(1)
-        galaxy.generate_planet(galaxy.numforLave)
+        repeat galaxy.numforLave+1 {
+            galaxy.generate_next_planet()
+        }
+        planet.display(false)
+
+        galaxy.init(1)
+        repeat galaxy.numforZaonce+1 {
+            galaxy.generate_next_planet()
+        }
+        planet.display(false)
+
+        galaxy.init(1)
+        repeat galaxy.numforDiso+1 {
+            galaxy.generate_next_planet()
+        }
+        planet.display(false)
+
+        galaxy.init(1)
+        repeat galaxy.numforRied+1 {
+            galaxy.generate_next_planet()
+        }
         planet.display(false)
 
         txt.print("\nEnter to exit: ")
@@ -68,69 +88,19 @@ galaxy {
         seed[2] = twist(seed[2])
     }
 
-    sub twist(uword x) -> uword {
-        ubyte xh = msb(x)
-        ubyte xl = lsb(x)
-        rol(xh)
-        rol(xl)
-        return mkword(xh, xl)
-    }
+    sub generate_next_planet() {
+        determine_planet_properties()
+        ubyte longname = lsb(seed[0]) & 64
 
-    sub debug_seed() {
-        txt.print("\ngalaxy #")
-        txt.print_ub(number)
-        txt.print("\ngalaxy seed0=")
-        txt.print_uwhex(galaxy.seed[0], true)
-        txt.print("\ngalaxy seed1=")
-        txt.print_uwhex(galaxy.seed[1], true)
-        txt.print("\ngalaxy seed2=")
-        txt.print_uwhex(galaxy.seed[2], true)
-        txt.chrout('\n')
-    }
-
-    sub generate_planet_properties() {
-        ; create the planet's characteristics
-        planet.x = msb(seed[1])
-        planet.y = msb(seed[0])
-        planet.govtype = lsb(seed[1]) >> 3 & 7  ; bits 3,4 &5 of w1
-        planet.economy = msb(seed[0]) & 7  ; bits 8,9 &A of w0
-        if planet.govtype <= 1
-            planet.economy = (planet.economy | 2)
-        planet.techlevel = (msb(seed[1]) & 3) + (planet.economy ^ 7)
-        planet.techlevel += planet.govtype >> 1
-        if planet.govtype & 1
-            planet.techlevel++
-        planet.population = 4 * planet.techlevel + planet.economy
-        planet.population += planet.govtype + 1
-        planet.productivity = ((planet.economy ^ 7) + 3) * (planet.govtype + 4)
-        planet.productivity *= planet.population * 8
-        planet.radius = mkword((msb(seed[2]) & 15) + 11, planet.x)
-        ;planet.radius = 256 * (((seed[2] >> 8) & 15) + 11) + planet.x   ; TODO why not the same answer??
-        ; TODO make this work: planet.goatsoup_seed = [seed[1] & $FF, seed[1] >> 8, seed[2] & $FF, seed[2] >> 8]
-        planet.goatsoup_seed[0] = lsb(seed[1])
-        planet.goatsoup_seed[1] = msb(seed[1])
-        planet.goatsoup_seed[2] = lsb(seed[2])
-        planet.goatsoup_seed[3] = msb(seed[2])
-    }
-
-    sub generate_planet(ubyte planetnum) {
-        ubyte pair1
-        ubyte pair2
-        ubyte pair3
-        ubyte pair4
-        repeat planetnum+1 {
-            generate_planet_properties()
-
-            ; Always four iterations of random number
-            pair1 = (msb(seed[2]) & 31) * 2
-            tweakseed()
-            pair2 = (msb(seed[2]) & 31) * 2
-            tweakseed()
-            pair3 = (msb(seed[2]) & 31) * 2
-            tweakseed()
-            pair4 = (msb(seed[2]) & 31) * 2
-            tweakseed()
-        }
+        ; Always four iterations of random number
+        ubyte pair1 = (msb(seed[2]) & 31) * 2
+        tweakseed()
+        ubyte pair2 = (msb(seed[2]) & 31) * 2
+        tweakseed()
+        ubyte pair3 = (msb(seed[2]) & 31) * 2
+        tweakseed()
+        ubyte pair4 = (msb(seed[2]) & 31) * 2
+        tweakseed()
 
         ; debug_seed()
 
@@ -157,12 +127,11 @@ galaxy {
             ni++
         }
         if pairs[pair3+1] != '.' {
-            planet.name[ni] = pairs[pair1+3]
+            planet.name[ni] = pairs[pair3+1]
             ni++
         }
 
-        if lsb(seed[0]) & 64 {
-            ; long name
+        if longname {
             if pairs[pair4] != '.' {
                 planet.name[ni] = pairs[pair4]
                 ni++
@@ -176,17 +145,76 @@ galaxy {
         planet.name[ni] = 0
     }
 
+    sub determine_planet_properties() {
+        ; create the planet's characteristics
+        planet.x = msb(seed[1])
+        planet.y = msb(seed[0])
+        planet.govtype = lsb(seed[1]) >> 3 & 7  ; bits 3,4 &5 of w1
+        planet.economy = msb(seed[0]) & 7  ; bits 8,9 &A of w0
+        if planet.govtype <= 1
+            planet.economy = (planet.economy | 2)
+        planet.techlevel = (msb(seed[1]) & 3) + (planet.economy ^ 7)
+        planet.techlevel += planet.govtype >> 1
+        if planet.govtype & 1
+            planet.techlevel++
+        planet.population = 4 * planet.techlevel + planet.economy
+        planet.population += planet.govtype + 1
+        planet.productivity = ((planet.economy ^ 7) + 3) * (planet.govtype + 4)
+        planet.productivity *= planet.population * 8
+        ubyte seed2_msb = msb(seed[2])
+        planet.radius = mkword((seed2_msb & 15) + 11, planet.x)
+        ;planet.radius = 256 * (((seed[2] >> 8) & 15) + 11) + planet.x   ; TODO why not the same answer??
+
+        planet.species_is_alien = lsb(seed[2]) & 128       ; bit 7 of w2_lo
+        if planet.species_is_alien {
+            planet.species_size = (seed2_msb >> 2) & 7      ; bits 2-4 of w2_hi
+            planet.species_color = seed2_msb >> 5           ; bits 5-7 of w2_hi
+            planet.species_look = (seed2_msb ^ msb(seed[1])) & 7   ;bits 0-2 of (w0_hi EOR w1_hi)
+            planet.species_kind = (planet.species_look + (seed2_msb & 3)) & 7      ;Add bits 0-1 of w2_hi to A from previous step, and take bits 0-2 of the result
+        }
+
+        ; TODO make this work: planet.goatsoup_seed = [seed[1] & $FF, seed[1] >> 8, seed[2] & $FF, seed[2] >> 8]
+        planet.goatsoup_seed[0] = lsb(seed[1])
+        planet.goatsoup_seed[1] = msb(seed[1])
+        planet.goatsoup_seed[2] = lsb(seed[2])
+        planet.goatsoup_seed[3] = seed2_msb
+    }
+
     sub tweakseed() {
         uword temp = seed[0] + seed[1] + seed[2]
         seed[0] = seed[1]
         seed[1] = seed[2]
         seed[2] = temp
     }
+
+    sub twist(uword x) -> uword {
+        ubyte xh = msb(x)
+        ubyte xl = lsb(x)
+        rol(xh)
+        rol(xl)
+        return mkword(xh, xl)
+    }
+
+    sub debug_seed() {
+        txt.print("\ngalaxy #")
+        txt.print_ub(number)
+        txt.print("\ngalaxy seed0=")
+        txt.print_uwhex(galaxy.seed[0], true)
+        txt.print("\ngalaxy seed1=")
+        txt.print_uwhex(galaxy.seed[1], true)
+        txt.print("\ngalaxy seed2=")
+        txt.print_uwhex(galaxy.seed[2], true)
+        txt.chrout('\n')
+    }
 }
 
 planet {
     %option force_output
 
+    str[] species_sizes = ["Large", "Fierce", "Small"]
+    str[] species_colors = ["Green", "Red", "Yellow", "Blue", "Black", "Harmless"]
+    str[] species_looks = ["Slimy", "Bug-Eyed", "Horned", "Bony", "Fat", "Furry"]
+    str[] species_kinds = ["Rodents", "Frogs", "Lizards", "Lobsters", "Birds", "Humanoids", "Felines", "Insects"]
     str[] govnames = ["Anarchy", "Feudal", "Multi-gov", "Dictatorship", "Communist", "Confederacy", "Democracy", "Corporate State"]
     str[] econnames = ["Rich Industrial", "Average Industrial", "Poor Industrial", "Mainly Industrial",
                        "Mainly Agricultural", "Rich Agricultural", "Average Agricultural", "Poor Agricultural"]
@@ -249,7 +277,11 @@ planet {
     ubyte population
     uword productivity
     uword radius
-    ; todo: species
+    ubyte species_is_alien      ; otherwise "Human Colonials"
+    ubyte species_size
+    ubyte species_color
+    ubyte species_look
+    ubyte species_kind
 
     sub set_seed(uword s1, uword s2) {
         goatsoup_seed[0] = lsb(s1)
@@ -415,7 +447,27 @@ planet {
             txt.print_uw(radius)
             txt.print("\nPopulation: ")
             txt.print_ub(population >> 3)
-            txt.print(" Billion\n")
+            txt.print(" Billion\nSpecies: ")
+            if species_is_alien {
+                if species_size < len(species_sizes) {
+                    txt.print(species_sizes[species_size])
+                    txt.chrout(' ')
+                }
+                if species_color < len(species_colors) {
+                    txt.print(species_colors[species_color])
+                    txt.chrout(' ')
+                }
+                if species_look < len(species_looks) {
+                    txt.print(species_looks[species_look])
+                    txt.chrout(' ')
+                }
+                if species_kind < len(species_kinds) {
+                    txt.print(species_kinds[species_kind])
+                }
+            } else {
+                txt.print("Human Colonials")
+            }
+            txt.chrout('\n')
             txt.print(soup())
             txt.chrout('\n')
         }
