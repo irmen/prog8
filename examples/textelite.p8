@@ -1,10 +1,14 @@
 %import textio
+%import conv
+
+; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
+; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
+
 
 main {
     sub start() {
         txt.lowercase()
-
-        txt.print("\n--> TextElite conversion to Prog8 <--\n\n")
+        txt.print("\n--> TextElite conversion to Prog8 <--\n")
 
         galaxy.init(1)
         repeat galaxy.numforLave+1 {
@@ -24,11 +28,17 @@ main {
         }
         planet.display(false)
 
-        galaxy.init(1)
-        repeat galaxy.numforRied+1 {
-            galaxy.generate_next_planet()
+        repeat {
+            str input = "????????"
+            txt.print("\nEnter system number 0-255: ")
+            void txt.input_chars(input)
+            ubyte system = lsb(conv.str2uword(input))
+            galaxy.init(1)
+            repeat system+1 {
+                galaxy.generate_next_planet()
+            }
+            planet.display(false)
         }
-        planet.display(false)
 
         txt.print("\nEnter to exit: ")
         void c64.CHRIN()
@@ -68,6 +78,7 @@ galaxy {
 
     sub init(ubyte galaxynum) {
         number = galaxynum
+        planet.number = 255
         ; TODO make this work:  seed = [base0, base1, base2]
         seed[0] = base0
         seed[1] = base1
@@ -86,6 +97,7 @@ galaxy {
         seed[0] = twist(seed[0])
         seed[1] = twist(seed[1])
         seed[2] = twist(seed[2])
+        planet.number = 255
     }
 
     sub generate_next_planet() {
@@ -147,6 +159,7 @@ galaxy {
 
     sub determine_planet_properties() {
         ; create the planet's characteristics
+        planet.number++
         planet.x = msb(seed[1])
         planet.y = msb(seed[0])
         planet.govtype = lsb(seed[1]) >> 3 & 7  ; bits 3,4 &5 of w1
@@ -268,7 +281,8 @@ planet {
     ubyte[4] goatsoup_rnd = [0, 0, 0, 0]
     ubyte[4] goatsoup_seed = [0, 0, 0, 0]
 
-    str name = "        "        ; 8 max
+    str name = "        "       ; 8 max
+    ubyte number                ; starts at 0 in new galaxy, then increases by 1 for each generated planet
     ubyte x
     ubyte y
     ubyte economy
@@ -433,8 +447,11 @@ planet {
             print_name_uppercase()
             txt.print("\nPosition: ")
             txt.print_ub(x)
-            txt.chrout(',')
+            txt.chrout('\'')
             txt.print_ub(y)
+            txt.chrout(' ')
+            txt.chrout('#')
+            txt.print_ub(number)
             txt.print("\nEconomy: ")
             txt.print(econnames[economy])
             txt.print("\nGovernment: ")
