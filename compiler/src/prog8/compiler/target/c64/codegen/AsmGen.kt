@@ -960,7 +960,11 @@ _prog8_regsaveY     .byte  0""")        // TODO only generate these bytes if the
         // note: A/Y must have been loaded with the number of iterations already!
         val counterVar = makeLabel("repeatcounter")
         out("""
-                sta  $counterVar
+                bne  +
+                cpy  #0
+                bne  +
+                beq  $endLabel
++               sta  $counterVar
                 sty  $counterVar+1
 $repeatLabel    lda  $counterVar
                 bne  +
@@ -989,6 +993,7 @@ $counterVar    .word  0""")
         // note: A must have been loaded with the number of iterations already!
         val counterVar = makeLabel("repeatcounter")
         out("""
+            beq  $endLabel
             sta  $counterVar
 $repeatLabel""")
         translate(body)
