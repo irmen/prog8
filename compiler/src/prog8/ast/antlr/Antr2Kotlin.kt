@@ -675,6 +675,7 @@ internal fun unescape(str: String, position: Position): String {
                 'n' -> '\n'
                 'r' -> '\r'
                 '"' -> '"'
+                '\'' -> '\''
                 'u' -> {
                     "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
                 }

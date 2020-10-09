@@ -415,6 +415,7 @@ There are several escape sequences available to put special characters into your
 - ``\n`` - newline character (move cursor down and to beginning of next line)
 - ``\r`` - carriage return character (more or less the same as newline if printing to the screen)
 - ``\"`` - quote character (otherwise it would terminate the string)
+- ``\'`` - apostrophe character (has to be escaped in character literals, is okay inside a string)
 - ``\uHHHH`` - a unicode codepoint \u0000 - \uffff (16-bit hexadecimal)
 - ``\xHH`` - 8-bit hex value that will be copied verbatim *without encoding*
 
