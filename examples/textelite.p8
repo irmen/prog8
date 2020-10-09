@@ -8,12 +8,20 @@ main {
 
         txt.print("\n--> TextElite conversion to Prog8 <--\n\n")
 
-        repeat 5 {
-            planet.set_seed(rndw(), rndw())
-            planet.name = planet.random_name()
-            planet.display(false)
-            txt.chrout('\n')
-        }
+        galaxy.init(1)
+        txt.print("\nstart!!!!")
+        galaxy.debug_seed()
+
+        ;lgalaxy.generate_planet(galaxy.numforLave)
+        galaxy.generate_planet(0)
+        planet.display(true)
+
+;        repeat 5 {
+;            planet.set_seed(rndw(), rndw())
+;            planet.name = planet.random_name()
+;            planet.display(false)
+;            txt.chrout('\n')
+;        }
     }
 
     asmsub testX() {
@@ -31,6 +39,116 @@ _saveX   .byte 0
         }}
     }
 
+}
+
+galaxy {
+    const uword GALSIZE = 256
+    ; seed for first galaxy:
+    const uword base0 = $5A4A
+    const uword base1 = $0248
+    const uword base2 = $B753
+    const ubyte numforLave = 7  ;  Lave is 7th generated planet in galaxy one
+    const ubyte numforZaonce = 129
+    const ubyte numforDiso = 147
+    const ubyte numforRied = 46
+
+    str pairs = "..lexegezacebisousesarmaindirea.eratenberalavetiedorquanteisrion"
+
+    ubyte number
+    uword[3] seed
+
+    sub init(ubyte galaxynum) {
+        number = galaxynum
+        ; TODO make this work:  seed = [base0, base1, base2]
+        seed[0] = base0
+        seed[1] = base1
+        seed[2] = base2
+
+        repeat galaxynum-1 {            ; TODO fix repeat(0)
+            nextgalaxy()
+        }
+        ; planets are now created procedurally on the fly.
+    }
+
+    sub nextgalaxy() {
+        ; Apply to base seed; once for galaxy 2
+        ; twice for galaxy 3, etc.
+        ; Eighth application gives galaxy 1 again
+        seed[0] = twist(seed[0])
+        seed[1] = twist(seed[1])
+        seed[2] = twist(seed[2])
+    }
+
+    sub twist(uword x) -> uword {
+        ubyte xh = msb(x)
+        ubyte xl = lsb(x)
+        rol(xh)
+        rol(xl)
+        return mkword(xh, xl)
+    }
+
+    sub debug_seed() {
+        txt.print("\ngalaxy #")
+        txt.print_ub(number)
+        txt.print("\ngalaxy seed0=")
+        txt.print_uwhex(galaxy.seed[0], true)
+        txt.print("\ngalaxy seed1=")
+        txt.print_uwhex(galaxy.seed[1], true)
+        txt.print("\ngalaxy seed2=")
+        txt.print_uwhex(galaxy.seed[2], true)
+        txt.chrout('\n')
+    }
+
+    sub generate_planet(ubyte planetnum) {
+        ubyte pair1
+        ubyte pair2
+        ubyte pair3
+        ubyte pair4
+        repeat planetnum+1 {
+            ; Always four iterations of random number
+            pair1 = (msb(seed[2]) & 31) * 2
+            tweakseed()
+            pair2 = (msb(seed[2]) & 31) * 2
+            tweakseed()
+            pair3 = (msb(seed[2]) & 31) * 2
+            tweakseed()
+            pair4 = (msb(seed[2]) & 31) * 2
+            tweakseed()
+        }
+
+        debug_seed()
+
+        txt.print("generating planet #")
+        txt.print_ub(planetnum)
+        txt.print("\npairs:")
+        txt.print_ub(pair1)
+        txt.chrout(',')
+        txt.print_ub(pair2)
+        txt.chrout(',')
+        txt.print_ub(pair3)
+        txt.chrout(',')
+        txt.print_ub(pair4)
+        txt.chrout('\n')
+
+        ubyte longnameflag = lsb(seed[0]) & 64
+;            namechars = [self.pairs[pair1],
+;                         self.pairs[pair1 + 1],
+;                         self.pairs[pair2],
+;                         self.pairs[pair2 + 1],
+;                         self.pairs[pair3],
+;                         self.pairs[pair3 + 1]]
+;            if longnameflag:  # bit 6 of ORIGINAL w0 flags a four-pair name
+;                namechars.append(self.pairs[pair4])
+;                namechars.append(self.pairs[pair4 + 1])
+;            thissys.name = "".join(namechars).replace(".", "")
+    }
+
+    sub tweakseed() {
+        uword temp = seed[0] + seed[1] + seed[2]
+        seed[0] = seed[1]
+        seed[1] = seed[2]
+        seed[2] = temp
+    }
 }
 
 planet {
@@ -85,6 +203,7 @@ planet {
         wordsA1, wordsA2, wordsA3, wordsA4]
 
     str pairs0 = "abouseitiletstonlonuthnoallexegezacebisousesarmaindirea.eratenbe"
+
     ubyte[4] goatsoup_rnd = [0, 0, 0, 0]
     ubyte[4] goatsoup_seed = [0, 0, 0, 0]
 
