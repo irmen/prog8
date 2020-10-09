@@ -1,5 +1,7 @@
 %import textio
 %import conv
+%option no_sysinit
+%zeropage basicsafe
 
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
@@ -30,18 +32,19 @@ main {
 
         repeat {
             str input = "????????"
-            txt.print("\nEnter system number 0-255: ")
+            txt.print("\nEnter system number 0-255 q=quit: ")
             void txt.input_chars(input)
-            ubyte system = lsb(conv.str2uword(input))
+            if input[0]=='q'
+                break
+
+            ubyte systemNr = lsb(conv.str2uword(input))
             galaxy.init(1)
-            repeat system+1 {
+            galaxy.generate_next_planet()   ; always at least planet 0  (separate to avoid repeat ubyte overflow)
+            repeat systemNr {
                 galaxy.generate_next_planet()
             }
             planet.display(false)
         }
-
-        txt.print("\nEnter to exit: ")
-        void c64.CHRIN()
     }
 
     asmsub testX() {
