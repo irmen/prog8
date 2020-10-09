@@ -12,9 +12,8 @@ main {
         txt.print("\nstart!!!!")
         galaxy.debug_seed()
 
-        ;lgalaxy.generate_planet(galaxy.numforLave)
-        galaxy.generate_planet(0)
-        planet.display(true)
+        galaxy.generate_planet(galaxy.numforLave)
+        planet.display(false)
 
 ;        repeat 5 {
 ;            planet.set_seed(rndw(), rndw())
@@ -64,7 +63,7 @@ galaxy {
         seed[1] = base1
         seed[2] = base2
 
-        repeat galaxynum-1 {            ; TODO fix repeat(0)
+        repeat galaxynum-1 {
             nextgalaxy()
         }
         ; planets are now created procedurally on the fly.
@@ -130,17 +129,45 @@ galaxy {
         txt.print_ub(pair4)
         txt.chrout('\n')
 
-        ubyte longnameflag = lsb(seed[0]) & 64
-;            namechars = [self.pairs[pair1],
-;                         self.pairs[pair1 + 1],
-;                         self.pairs[pair2],
-;                         self.pairs[pair2 + 1],
-;                         self.pairs[pair3],
-;                         self.pairs[pair3 + 1]]
-;            if longnameflag:  # bit 6 of ORIGINAL w0 flags a four-pair name
-;                namechars.append(self.pairs[pair4])
-;                namechars.append(self.pairs[pair4 + 1])
-;            thissys.name = "".join(namechars).replace(".", "")
+        ubyte ni = 0
+        if pairs[pair1] != '.' {
+            planet.name[ni] = pairs[pair1]
+            ni++
+        }
+        if pairs[pair1+1] != '.' {
+            planet.name[ni] = pairs[pair1+1]
+            ni++
+        }
+        if pairs[pair2] != '.' {
+            planet.name[ni] = pairs[pair2]
+            ni++
+        }
+        if pairs[pair2+1] != '.' {
+            planet.name[ni] = pairs[pair2+1]
+            ni++
+        }
+        if pairs[pair3] != '.' {
+            planet.name[ni] = pairs[pair3]
+            ni++
+        }
+        if pairs[pair3+1] != '.' {
+            planet.name[ni] = pairs[pair1+3]
+            ni++
+        }
+
+        if lsb(seed[0]) & 64 {
+            ; long name
+            if pairs[pair4] != '.' {
+                planet.name[ni] = pairs[pair4]
+                ni++
+            }
+            if pairs[pair4+1] != '.' {
+                planet.name[ni] = pairs[pair4+1]
+                ni++
+            }
+        }
+
+        planet.name[ni] = 0
     }
 
     sub tweakseed() {
@@ -356,7 +383,7 @@ planet {
 
     sub display(ubyte compressed) {
         if compressed {
-            txt.print(name)
+            print_name_uppercase()
             txt.print(" TL:")
             txt.print_ub(techlevel+1)
             txt.chrout(' ')
@@ -365,7 +392,7 @@ planet {
             txt.print(govnames[govtype])
         } else {
             txt.print("\n\nSystem: ")
-            txt.print(name)
+            print_name_uppercase()
             txt.print("\nPosition: ")
             txt.print_ub(x)
             txt.chrout(',')
@@ -386,6 +413,12 @@ planet {
             txt.print(soup())
             txt.chrout('\n')
         }
+    }
+
+    sub print_name_uppercase() {
+        ubyte c
+        for c in name
+            txt.chrout(c | 32)
     }
 
     asmsub getword(ubyte list @A, ubyte wordidx @Y) -> uword @AY {

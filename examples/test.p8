@@ -5,16 +5,31 @@
 
 main {
 
-    str name
-
-
-    struct Planet {
-        ubyte x
-        ubyte y
-        str name = "????????"
-    }
-
     sub start() {
+
+        repeat 0 {
+            txt.print("repeat0\n")
+        }
+
+        repeat 2 {
+            txt.print("repeat2\n")
+        }
+
+        ubyte u=3
+
+        repeat u-1 {
+            txt.print("repeat u=2\n")
+        }
+
+        u=2
+        repeat u-1 {
+            txt.print("repeat u=1\n")
+        }
+
+        u=1
+        repeat u-1 {
+            txt.print("repeat u=0\n")
+        }
 
         txt.chrout('\n')
     }
