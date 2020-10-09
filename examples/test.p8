@@ -5,25 +5,17 @@
 
 main {
 
+    str name
+
+
     struct Planet {
         ubyte x
         ubyte y
-        str name
+        str name = "????????"
     }
+
     sub start() {
 
-        Planet p1
-
-        txt.print(planet_name)
-        txt.chrout('\n')
-
-        planet_name = "saturn"
-
-        txt.print(planet_name)
-        txt.chrout('\n')
-        txt.print_ub(len(planet_name))
-        txt.chrout('\n')
-        txt.print_ub(strlen(planet_name))
         txt.chrout('\n')
     }
 

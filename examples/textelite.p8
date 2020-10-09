@@ -11,11 +11,7 @@ main {
         repeat 5 {
             planet.set_seed(rndw(), rndw())
             planet.name = planet.random_name()
-            txt.print("System: ")
-            txt.print(planet.name)
-            txt.chrout('\n')
-            txt.print(planet.soup())
-            txt.chrout('\n')
+            planet.display(false)
             txt.chrout('\n')
         }
     }
@@ -39,6 +35,10 @@ _saveX   .byte 0
 
 planet {
     %option force_output
+
+    str[] govnames = ["Anarchy", "Feudal", "Multi-gov", "Dictatorship", "Communist", "Confederacy", "Democracy", "Corporate State"]
+    str[] econnames = ["Rich Industrial", "Average Industrial", "Poor Industrial", "Mainly Industrial",
+                       "Mainly Agricultural", "Rich Agricultural", "Average Agricultural", "Poor Agricultural"]
 
     str[] words81 = ["fabled", "notable", "well known", "famous", "noted"]
     str[] words82 = ["very", "mildly", "most", "reasonably", ""]
@@ -89,6 +89,15 @@ planet {
     ubyte[4] goatsoup_seed = [0, 0, 0, 0]
 
     str name = "        "        ; 8 max
+    ubyte x
+    ubyte y
+    ubyte economy
+    ubyte govtype
+    ubyte techlevel
+    ubyte population
+    ubyte productivity
+    ubyte radius
+    ; todo: species
 
     sub set_seed(uword s1, uword s2) {
         goatsoup_seed[0] = lsb(s1)
@@ -226,6 +235,39 @@ planet {
         }
     }
 
+    sub display(ubyte compressed) {
+        if compressed {
+            txt.print(name)
+            txt.print(" TL:")
+            txt.print_ub(techlevel+1)
+            txt.chrout(' ')
+            txt.print(econnames[economy])
+            txt.chrout(' ')
+            txt.print(govnames[govtype])
+        } else {
+            txt.print("\n\nSystem: ")
+            txt.print(name)
+            txt.print("\nPosition: ")
+            txt.print_ub(x)
+            txt.chrout(',')
+            txt.print_ub(y)
+            txt.print("\nEconomy: ")
+            txt.print(econnames[economy])
+            txt.print("\nGovernment: ")
+            txt.print(govnames[govtype])
+            txt.print("\nTech Level: ")
+            txt.print_ub(techlevel+1)
+            txt.print("\nTurnover: ")
+            txt.print_ub(productivity)
+            txt.print("\nRadius:")
+            txt.print_ub(radius)
+            txt.print("\nPopulation: ")
+            txt.print_ub(population >> 3)
+            txt.print(" Billion\n")
+            txt.print(soup())
+            txt.chrout('\n')
+        }
+    }
 
     asmsub getword(ubyte list @A, ubyte wordidx @Y) -> uword @AY {
         %asm {{
