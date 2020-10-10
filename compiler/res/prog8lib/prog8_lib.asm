@@ -682,6 +682,7 @@ func_read_flags	.proc
 
 
 func_sqrt16	.proc
+		; TODO is this one faster?  http://6502org.wikidot.com/software-math-sqrt
 		lda  P8ESTACK_LO+1,x
 		sta  P8ZP_SCRATCH_W2
 		lda  P8ESTACK_HI+1,x

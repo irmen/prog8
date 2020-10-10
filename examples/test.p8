@@ -7,10 +7,11 @@ main {
 
     sub start() {
 
-        word wv
-        byte bv
-
-        wv = bv
+        ; TODO fix multi- string concatenation:
+        txt.print("\nCommands are:\n"+
+            "buy   jump      inf     cash\n" +
+            "sell  teleport  market  hold\n" +
+            "fuel  galhyp    local   quit\n")
 
 
     }

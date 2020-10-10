@@ -8,51 +8,115 @@
 
 
 main {
+
+    const ubyte numforLave = 7      ;  Lave is 7th generated planet in galaxy one
+    const ubyte numforZaonce = 129
+    const ubyte numforDiso = 147
+    const ubyte numforRiedquat = 46
+
     sub start() {
         txt.lowercase()
         txt.print("\n--> TextElite conversion to Prog8 <--\n")
 
-        ubyte systemNr
-        for systemNr in [galaxy.numforLave, galaxy.numforZaonce, galaxy.numforDiso] {
-            galaxy.init(1)
-            repeat systemNr+1 {
-                galaxy.generate_next_planet()
-            }
-            planet.display(false)
-        }
+        galaxy.init(1)
+        galaxy.travel_to(numforLave)
+        planet.display(false)
 
         repeat {
             str input = "????????"
-            txt.print("\nEnter system number 0-255 q=quit: ")
-            void txt.input_chars(input)
-            if input[0]=='q'
-                break
-
-            systemNr = lsb(conv.str2uword(input))
-            galaxy.init(1)
-            galaxy.generate_next_planet()   ; always at least planet 0  (separate to avoid repeat ubyte overflow)
-            repeat systemNr {
-                galaxy.generate_next_planet()
+            txt.print("\nCommand (?=help): ")
+            ubyte num_chars = txt.input_chars(input)
+            txt.chrout('\n')
+            if num_chars {
+                when input[0] {
+                    '?' -> {
+                        txt.print("\nCommands are:\nbuy   jump      info    cash\nsell  teleport  market  hold\nfuel  galhyp    local   quit\n")
+                    }
+                    'q' -> break
+                    'b' -> trader.do_buy()
+                    's' -> trader.do_sell()
+                    'f' -> trader.do_fuel()
+                    'j' -> trader.do_jump()
+                    't' -> trader.do_teleport()
+                    'g' -> trader.do_next_galaxy()
+                    'i' -> trader.do_info()
+                    'm' -> trader.do_show_market()
+                    'l' -> trader.do_local()
+                    'c' -> trader.do_cash()
+                    'h' -> trader.do_hold()
+                }
             }
+        }
+    }
+}
+
+trader {
+    str input = "????????"
+    ubyte num_chars
+
+    sub do_jump() {
+        txt.print("\nTODO JUMP\n")
+    }
+
+    sub do_teleport() {
+        txt.print("\nTODO TELEPORT\n")
+    }
+
+    sub do_buy() {
+        txt.print("\nTODO BUY\n")
+    }
+
+    sub do_sell() {
+        txt.print("\nTODO SELL\n")
+    }
+
+    sub do_fuel() {
+        txt.print("\nBuy fuel. Amount? ")
+        void txt.input_chars(input)
+        ubyte buy_fuel = lsb(conv.str2uword(input))
+        txt.print("TODO\n") ; TODO PURCHASE FUEL
+    }
+
+    sub do_cash() {
+        txt.print("\nCheat! Set cash amount: ")
+        void txt.input_chars(input)
+        ship.cash = lsb(conv.str2uword(input))
+    }
+
+    sub do_hold() {
+        txt.print("\nCheat! TODO adjust cargo hold size\n")
+    }
+
+    sub do_next_galaxy() {
+        galaxy.nextgalaxy()
+        galaxy.travel_to(planet.number)
+        planet.display(false)
+    }
+
+    sub do_info() {
+        txt.print("\nSystem name (empty=current): ")
+        num_chars = txt.input_chars(input)
+        if num_chars {
+            txt.print("\nTODO INFO\n")
+        } else {
             planet.display(false)
         }
     }
 
-    asmsub testX() {
-        %asm {{
-            stx  _saveX
-            lda  #13
-            jsr  txt.chrout
-            lda  _saveX
-            jsr  txt.print_ub
-            lda  #13
-            jsr  txt.chrout
-            ldx  _saveX
-            rts
-_saveX   .byte 0
-        }}
+    sub do_local() {
+        galaxy.local_area()
     }
 
+    sub do_show_market() {
+        txt.print("\nTODO SHOW MARKET\n")
+    }
+}
+
+ship {
+    const uword Max_fuel = 70
+
+    ubyte fuel = Max_fuel
+    uword cash = 1000
 }
 
 galaxy {
@@ -60,89 +124,131 @@ galaxy {
     const uword base0 = $5A4A       ; seeds for the first galaxy
     const uword base1 = $0248
     const uword base2 = $B753
-    const ubyte numforLave = 7      ;  Lave is 7th generated planet in galaxy one
-    const ubyte numforZaonce = 129
-    const ubyte numforDiso = 147
-    const ubyte numforRied = 46
 
-    str pairs = "..lexegezacebisousesarmaindirea.eratenberalavetiedorquanteisrion"
+    str pn_pairs = "..lexegezacebisousesarmaindirea.eratenberalavetiedorquanteisrion"
 
     ubyte number
+
     uword[3] seed
 
     sub init(ubyte galaxynum) {
-        number = galaxynum
+        number = 1
         planet.number = 255
         seed = [base0, base1, base2]
         repeat galaxynum-1 {
             nextgalaxy()
         }
-        ; planets are now created procedurally on the fly.
     }
 
     sub nextgalaxy() {
-        ; Apply to base seed; once for galaxy 2
-        ; twice for galaxy 3, etc.
-        ; Eighth application gives galaxy 1 again
         seed = [twist(seed[0]), twist(seed[1]), twist(seed[2])]
-        planet.number = 255
+        number++
+        if number==9
+            number = 1
     }
+
+    sub travel_to(ubyte system) {
+        init(number)
+        generate_next_planet()   ; always at least planet 0  (separate to avoid repeat ubyte overflow)
+        repeat system {
+            generate_next_planet()
+        }
+        planet.name = make_current_planet_name()
+    }
+
+    sub local_area() {
+        ubyte current_planet = planet.number
+        ubyte px = planet.x
+        ubyte py = planet.y
+        ubyte pn = 0
+
+        init(number)
+        txt.print("\nGalaxy #")
+        txt.print_ub(number)
+        txt.print(" - systems in vicinity:\n")
+        do {
+            generate_next_planet()
+            ubyte distance = planet.distance(px, py)
+            if distance <= ship.Max_fuel {
+                if distance <= ship.fuel
+                    txt.chrout('*')
+                else
+                    txt.chrout('-')
+                txt.chrout(' ')
+                planet.name = make_current_planet_name()
+                planet.display(true)
+                txt.print(" (")
+                util.print_10s(distance)
+                txt.print(" LY)\n")
+            }
+            pn++
+        } until pn==0
+
+        travel_to(current_planet)
+    }
+
+    ubyte pn_pair1
+    ubyte pn_pair2
+    ubyte pn_pair3
+    ubyte pn_pair4
+    ubyte longname
 
     sub generate_next_planet() {
         determine_planet_properties()
-        ubyte longname = lsb(seed[0]) & 64
+        longname = lsb(seed[0]) & 64
 
         ; Always four iterations of random number
-        ubyte pair1 = (msb(seed[2]) & 31) * 2
+        pn_pair1 = (msb(seed[2]) & 31) * 2
         tweakseed()
-        ubyte pair2 = (msb(seed[2]) & 31) * 2
+        pn_pair2 = (msb(seed[2]) & 31) * 2
         tweakseed()
-        ubyte pair3 = (msb(seed[2]) & 31) * 2
+        pn_pair3 = (msb(seed[2]) & 31) * 2
         tweakseed()
-        ubyte pair4 = (msb(seed[2]) & 31) * 2
+        pn_pair4 = (msb(seed[2]) & 31) * 2
         tweakseed()
+    }
 
-        ; debug_seed()
-
-        ; create the planet's name
+    sub make_current_planet_name() -> str {
         ubyte ni = 0
-        if pairs[pair1] != '.' {
-            planet.name[ni] = pairs[pair1]
+        str name = "         "    ; max 8
+        if pn_pairs[pn_pair1] != '.' {
+            name[ni] = pn_pairs[pn_pair1]
             ni++
         }
-        if pairs[pair1+1] != '.' {
-            planet.name[ni] = pairs[pair1+1]
+        if pn_pairs[pn_pair1+1] != '.' {
+            name[ni] = pn_pairs[pn_pair1+1]
             ni++
         }
-        if pairs[pair2] != '.' {
-            planet.name[ni] = pairs[pair2]
+        if pn_pairs[pn_pair2] != '.' {
+            name[ni] = pn_pairs[pn_pair2]
             ni++
         }
-        if pairs[pair2+1] != '.' {
-            planet.name[ni] = pairs[pair2+1]
+        if pn_pairs[pn_pair2+1] != '.' {
+            name[ni] = pn_pairs[pn_pair2+1]
             ni++
         }
-        if pairs[pair3] != '.' {
-            planet.name[ni] = pairs[pair3]
+        if pn_pairs[pn_pair3] != '.' {
+            name[ni] = pn_pairs[pn_pair3]
             ni++
         }
-        if pairs[pair3+1] != '.' {
-            planet.name[ni] = pairs[pair3+1]
+        if pn_pairs[pn_pair3+1] != '.' {
+            name[ni] = pn_pairs[pn_pair3+1]
             ni++
         }
 
         if longname {
-            if pairs[pair4] != '.' {
-                planet.name[ni] = pairs[pair4]
+            if pn_pairs[pn_pair4] != '.' {
+                name[ni] = pn_pairs[pn_pair4]
                 ni++
             }
-            if pairs[pair4+1] != '.' {
-                planet.name[ni] = pairs[pair4+1]
+            if pn_pairs[pn_pair4+1] != '.' {
+                name[ni] = pn_pairs[pn_pair4+1]
                 ni++
             }
         }
 
-        planet.name[ni] = 0
+        name[ni] = 0
+        return name
     }
 
     sub determine_planet_properties() {
@@ -328,6 +434,24 @@ planet {
         return ac
     }
 
+    sub distance(ubyte px, ubyte py) -> ubyte {
+        uword ax
+        uword ay
+        if px>x
+            ax=px-x
+        else
+            ax=x-px
+        if py>y
+            ay=py-y
+        else
+            ay=y-py
+        ay /= 2
+        ubyte d = sqrt16(ax*ax + ay*ay)
+        if d>63
+            return 255
+        return d*4
+    }
+
     sub soup() -> str {
         str planet_result = " " * 160
         uword[6] source_stack
@@ -501,4 +625,40 @@ planet {
             rts
         }}
     }
+}
+
+util {
+    asmsub print_10s(ubyte value @A) clobbers(A, X, Y) {
+        %asm {{
+		    jsr  conv.ubyte2decimal         ;(100s in Y, 10s in A, 1s in X)
+		    pha
+		    cpy  #'0'
+		    beq  +
+		    tya
+		    jsr  c64.CHROUT
++           pla
+            jsr  c64.CHROUT
+            lda  #'.'
+            jsr  c64.CHROUT
+            txa
+            jsr  c64.CHROUT
+		    rts
+        }}
+    }
+
+    asmsub testX() {
+        %asm {{
+            stx  _saveX
+            lda  #13
+            jsr  txt.chrout
+            lda  _saveX
+            jsr  txt.print_ub
+            lda  #13
+            jsr  txt.chrout
+            ldx  _saveX
+            rts
+_saveX      .byte 0
+        }}
+    }
+
 }
