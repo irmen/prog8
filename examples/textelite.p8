@@ -108,7 +108,12 @@ trader {
     }
 
     sub do_show_market() {
-        txt.print("\nTODO SHOW MARKET\n")
+        market.display()
+        txt.print("\nFuel: ")
+        util.print_10s(ship.fuel)
+        txt.print("   Holdspace: ")
+        txt.print_uw(ship.holdspace())
+        txt.print("t\n")
     }
 }
 
@@ -117,6 +122,42 @@ ship {
 
     ubyte fuel = Max_fuel
     uword cash = 1000
+    ubyte[17] cargohold = 0
+
+    sub holdspace() -> ubyte {
+        ; TODO calculate total tonnes in cargohold
+        return 99
+    }
+}
+
+market {
+    ubyte[17] baseprices = [$13, $14, $41, $28, $53, $C4, $EB, $9A, $75, $4E, $7C, $B0, $20, $61, $AB, $2D, $35]
+    byte[17] gradients = [-$02, -$01, -$03, -$05, -$05, +$08, +$1D, +$0E, +$06, +$01, +$0d, -$09, -$01, -$01, -$02, -$01, +$0F]
+    ubyte[17] basequants = [$06, $0A, $02, $E2, $FB, $36, $08, $38, $28, $11, $1D, $DC, $35, $42, $37, $FA, $C0]
+    ubyte[17] maskbytes = [$01, $03, $07, $1F, $0F, $03, $78, $03, $07, $1F, $07, $3F, $03, $07, $1F, $0F, $07]
+    ubyte[17] units = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0]
+    str[17] names = ["Food", "Textiles", "Radioactives", "Slaves", "Liquor/Wines", "Luxuries", "Narcotics", "Computers",
+                     "Machinery", "Alloys", "Firearms", "Furs", "Minerals", "Gold", "Platinum", "Gem-Stones", "Alien Items"]
+    str[3] unitnames = ["t", "kg", "g"]
+
+    ubyte[17] current_quantity = 0
+    ubyte[17] current_price = 0
+
+    sub display() {
+        ubyte ci
+        txt.print("  COMMODITY / PRICE / AVAIL / IN HOLD\n")
+        for ci in 0 to len(names)-1 {
+            util.print_right(12, names[ci])
+            txt.print("  ")
+            util.print_10s(current_price[ci])
+            txt.print("  ")
+            txt.print_ub(current_quantity[ci])
+            txt.print(unitnames[units[ci]])
+            txt.print("   ")
+            txt.print_ub(ship.cargohold[ci])
+            txt.chrout('\n')
+        }
+    }
 }
 
 galaxy {
@@ -628,6 +669,12 @@ planet {
 }
 
 util {
+    sub print_right(ubyte width, uword string) {
+        repeat width - strlen(string) {
+            txt.chrout(' ')
+        }
+        txt.print(string)
+    }
     asmsub print_10s(ubyte value @A) clobbers(A, X, Y) {
         %asm {{
 		    jsr  conv.ubyte2decimal         ;(100s in Y, 10s in A, 1s in X)
