@@ -1013,7 +1013,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             DataType.BYTE -> {
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
-                    DataType.UWORD, DataType.WORD -> asmgen.signExtendStackByte(DataType.BYTE)
+                    DataType.UWORD, DataType.WORD -> asmgen.signExtendStackLsb(DataType.BYTE)
                     DataType.FLOAT -> asmgen.out(" jsr  floats.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")

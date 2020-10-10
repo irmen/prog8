@@ -1220,7 +1220,7 @@ $counterVar    .byte  0""")
         assemblyLines.add(assembly)
     }
 
-    internal fun signExtendStackByte(valueDt: DataType) {
+    internal fun signExtendStackLsb(valueDt: DataType) {
         // sign extend signed byte on stack to signed word
         when(valueDt) {
             DataType.UBYTE -> {
@@ -1233,6 +1233,24 @@ $counterVar    .byte  0""")
                     bmi  +
                     lda  #0
 +                   sta  P8ESTACK_HI+1,x""")
+            }
+            else -> throw AssemblyError("need byte type")
+        }
+    }
+
+    internal fun signExtendVariableLsb(asmvar: String, valueDt: DataType) {
+        // sign extend signed byte in a word variable
+        when(valueDt) {
+            DataType.UBYTE -> {
+                out("  lda  #0 |  sta  $asmvar+1")
+            }
+            DataType.BYTE -> {
+                out("""
+                    lda  $asmvar+1
+                    ora  #$7f
+                    bmi  +
+                    lda  #0
++                   sta  $asmvar+1""")
             }
             else -> throw AssemblyError("need byte type")
         }

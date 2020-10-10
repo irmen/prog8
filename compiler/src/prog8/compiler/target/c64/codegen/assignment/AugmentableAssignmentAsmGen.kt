@@ -605,7 +605,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sec
                     sbc  P8ZP_SCRATCH_B1
                     sta  $name""")
-                // TODO: more operators
+                // TODO: tuned code for more operators
             }
             else -> {
                 inplaceModification_byte_value_to_variable(name, dt, operator, memread);
@@ -636,7 +636,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     bcc  +
                     dec  $name+1
 +""")
-                // TODO: more operators
+                // TODO: tuned code for more operators
             }
             else -> {
                 inplaceModification_word_value_to_variable(name, dt, operator, memread);
@@ -1150,17 +1150,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "*" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
-                        asmgen.signExtendStackByte(valueDt)
+                        asmgen.signExtendStackLsb(valueDt)
                         multiplyWord()
                     }
                     "/" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
-                        asmgen.signExtendStackByte(valueDt)
+                        asmgen.signExtendStackLsb(valueDt)
                         divideWord()
                     }
                     "%" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
-                        asmgen.signExtendStackByte(valueDt)
+                        asmgen.signExtendStackLsb(valueDt)
                         remainderWord()
                     }
                     "<<" -> {
@@ -1201,9 +1201,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                         }
                     }
-                    "&" -> TODO("bitand (u)word (u)byte")
-                    "^" -> TODO("bitxor (u)word (u)byte")
-                    "|" -> TODO("bitor (u)word (u)byte")
+                    "&" -> TODO("bitand (u)word (u)byte on stack")
+                    "^" -> TODO("bitxor (u)word (u)byte on stack")
+                    "|" -> TODO("bitor (u)word (u)byte on stack")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }

@@ -7,6 +7,12 @@ main {
 
     sub start() {
 
+        word wv
+        byte bv
+
+        wv = bv
+
+
     }
 
     asmsub testX() {

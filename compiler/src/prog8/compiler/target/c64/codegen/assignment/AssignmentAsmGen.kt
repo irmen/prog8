@@ -166,9 +166,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
         when(value) {
             is IdentifierReference -> {
-                if (valueDt == DataType.UBYTE || valueDt == DataType.BYTE) {
-                    if(targetDt in WordDatatypes) {
-                        assignVariableByteIntoWord(target, value, valueDt)
+                if(targetDt in WordDatatypes) {
+                    if(valueDt==DataType.UBYTE) {
+                        assignVariableUByteIntoWord(target, value)
+                        return
+                    }
+                    if(valueDt==DataType.BYTE) {
+                        assignVariableByteIntoWord(target, value)
                         return
                     }
                 }
@@ -606,10 +610,68 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignVariableByteIntoWord(wordtarget: AsmAssignTarget, bytevar: IdentifierReference, valueDt: DataType) {
-        if(valueDt == DataType.BYTE)
-            TODO("sign extend byte to word")
+    private fun assignVariableByteIntoWord(wordtarget: AsmAssignTarget, bytevar: IdentifierReference) {
+        val sourceName = asmgen.asmVariableName(bytevar)
+        when (wordtarget.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    lda  $sourceName
+                    sta  ${wordtarget.asmVarname}
+                    ora  #$7f
+                    bmi  +
+                    lda  #0
++                   sta  ${wordtarget.asmVarname}+1
+                    """)
+            }
+            TargetStorageKind.ARRAY -> {
+                // TODO optimize slow stack evaluation for this case, see assignVariableUByteIntoWord
+                println("warning: slow stack evaluation used for sign-extend byte typecast at ${bytevar.position}")
+                asmgen.translateExpression(wordtarget.origAssign.source.expression!!)
+                assignStackValue(wordtarget)
+            }
+            TargetStorageKind.REGISTER -> {
+                when(wordtarget.register!!) {
+                    RegisterOrPair.AX -> asmgen.out("""
+                        lda  $sourceName
+                        pha
+                        ora  #$7f
+                        bmi  +
+                        ldx  #0
++                       tax
+                        pla""")
+                    RegisterOrPair.AY -> asmgen.out("""
+                        lda  $sourceName
+                        pha
+                        ora  #$7f
+                        bmi  +
+                        ldy  #0
++                       tay
+                        pla""")
+                    RegisterOrPair.XY -> asmgen.out("""
+                        lda  $sourceName
+                        tax 
+                        ora  #$7f
+                        bmi  +
+                        ldy  #0
++                       tay""")
+                    else -> throw AssemblyError("only reg pairs are words")
+                }
+            }
+            TargetStorageKind.STACK -> {
+                asmgen.out("""
+                    lda  $sourceName
+                    sta  P8ESTACK_LO,x
+                    ora  #$7f
+                    bmi  +                    
+                    lda  #0
++                   sta  P8ESTACK_HI,x
+                    dex""")
+            }
+            else -> throw AssemblyError("target type isn't word")
+        }
+    }
 
+    private fun assignVariableUByteIntoWord(wordtarget: AsmAssignTarget, bytevar: IdentifierReference) {
         val sourceName = asmgen.asmVariableName(bytevar)
         when(wordtarget.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -649,13 +711,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.STACK -> {
                 asmgen.out("""
-                    lda  #$sourceName
+                    lda  $sourceName
                     sta  P8ESTACK_LO,x
                     lda  #0
                     sta  P8ESTACK_HI,x
                     dex""")
             }
-            else -> throw AssemblyError("other types aren't word")
+            else -> throw AssemblyError("target type isn't word")
         }
     }
 
