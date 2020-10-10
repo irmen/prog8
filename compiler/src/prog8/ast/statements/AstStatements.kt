@@ -57,6 +57,7 @@ class Block(override val name: String,
             val isInLibrary: Boolean,
             override val position: Position) : Statement(), INameScope {
     override lateinit var parent: Node
+    override val asmGenInfo = AsmGenInfo()
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -609,6 +610,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
                      override val position: Position) : INameScope, Statement() {
     override val name: String
     override lateinit var parent: Node
+    override val asmGenInfo = AsmGenInfo()
 
     companion object {
         private var sequenceNumber = 1
@@ -662,6 +664,7 @@ class Subroutine(override val name: String,
                  override val position: Position) : Statement(), INameScope {
 
     override lateinit var parent: Node
+    override val asmGenInfo = AsmGenInfo()
     val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
@@ -939,6 +942,7 @@ class StructDecl(override val name: String,
                  override val position: Position): Statement(), INameScope {
 
     override lateinit var parent: Node
+    override val asmGenInfo = AsmGenInfo()
 
     override fun linkParents(parent: Node) {
         this.parent = parent

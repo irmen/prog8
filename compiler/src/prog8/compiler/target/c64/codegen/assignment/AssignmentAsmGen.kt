@@ -688,7 +688,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         asmgen.out(" ldy  ${asmgen.asmVariableName(index)} |  sta  ${target.asmVarname},y")
                     }
                     else -> {
-                        asmgen.saveRegister(register, false)
+                        asmgen.saveRegister(register, false, target.scope)
                         asmgen.translateExpression(index)
                         asmgen.restoreRegister(register, false)
                         when (register) {
@@ -1187,7 +1187,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, null)
             }
             else -> {
-                asmgen.saveRegister(register, false)
+                asmgen.saveRegister(register, false, memoryAddress.definingSubroutine())
                 asmgen.translateExpression(addressExpr)
                 asmgen.restoreRegister(CpuRegister.A, false)
                 asmgen.out("""

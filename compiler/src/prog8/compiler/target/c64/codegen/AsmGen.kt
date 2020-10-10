@@ -198,7 +198,7 @@ internal class AsmGen(private val program: Program,
         variable.linkParents(decl.parent)
         val asgn = AsmAssignment(
                 AsmAssignSource.fromAstSource(decl.value!!, program),
-                AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, decl.datatype, variable = variable),
+                AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, decl.datatype, decl.definingSubroutine(), variable = variable),
                 false, decl.position)
         assignmentAsmGen.translateNormalAssignment(asgn)
     }
@@ -543,12 +543,24 @@ internal class AsmGen(private val program: Program,
 
     private val saveRegisterLabels = Stack<String>()
 
-    internal fun saveRegister(register: CpuRegister, dontUseStack: Boolean) {
+    internal fun saveRegister(register: CpuRegister, dontUseStack: Boolean, scope: Subroutine?) {
         if(dontUseStack) {
             when (register) {
-                CpuRegister.A -> out("  sta  _prog8_regsaveA")
-                CpuRegister.X -> out("  stx  _prog8_regsaveX")
-                CpuRegister.Y -> out("  sty  _prog8_regsaveY")
+                CpuRegister.A -> {
+                    out("  sta  _prog8_regsaveA")
+                    if (scope != null)
+                        scope.asmGenInfo.usedRegsaveA = true
+                }
+                CpuRegister.X -> {
+                    out("  stx  _prog8_regsaveX")
+                    if (scope != null)
+                        scope.asmGenInfo.usedRegsaveX = true
+                }
+                CpuRegister.Y -> {
+                    out("  sty  _prog8_regsaveY")
+                    if (scope != null)
+                        scope.asmGenInfo.usedRegsaveY = true
+                }
             }
 
         } else {
@@ -556,11 +568,19 @@ internal class AsmGen(private val program: Program,
                 CpuRegister.A -> out("  pha")
                 CpuRegister.X -> {
                     if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
-                    else out("  stx  _prog8_regsaveX")
+                    else {
+                        out("  stx  _prog8_regsaveX")
+                        if (scope != null)
+                            scope.asmGenInfo.usedRegsaveX = true
+                    }
                 }
                 CpuRegister.Y -> {
                     if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phy")
-                    else out("  sty  _prog8_regsaveY")
+                    else {
+                        out("  sty  _prog8_regsaveY")
+                        if (scope != null)
+                            scope.asmGenInfo.usedRegsaveY = true
+                    }
                 }
             }
         }
@@ -828,11 +848,13 @@ internal class AsmGen(private val program: Program,
             out("; statements")
             sub.statements.forEach{ translate(it) }
             out("; variables")
-            out("""
-                ; register saves
-_prog8_regsaveA     .byte  0                
-_prog8_regsaveX     .byte  0                
-_prog8_regsaveY     .byte  0""")        // TODO only generate these bytes if they're actually used by saveRegister()
+            out("; register saves")
+            if(sub.asmGenInfo.usedRegsaveA)
+                out("_prog8_regsaveA     .byte  0")
+            if(sub.asmGenInfo.usedRegsaveX)
+                out("_prog8_regsaveX     .byte  0")
+            if(sub.asmGenInfo.usedRegsaveY)
+                out("_prog8_regsaveY     .byte  0")
             vardecls2asm(sub.statements)
             out("  .pend\n")
         }

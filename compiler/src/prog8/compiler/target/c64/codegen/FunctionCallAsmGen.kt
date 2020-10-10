@@ -1,6 +1,7 @@
 package prog8.compiler.target.c64.codegen
 
 import prog8.ast.IFunctionCall
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -19,7 +20,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val saveX = CpuRegister.X in sub.asmClobbers || sub.regXasResult() || sub.regXasParam()
         if(saveX)
-            asmgen.saveRegister(CpuRegister.X, preserveStatusRegisterAfterCall)
+            asmgen.saveRegister(CpuRegister.X, preserveStatusRegisterAfterCall, (stmt as Node).definingSubroutine())
 
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
@@ -157,7 +158,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val scopedParamVar = (sub.scopedname+"."+parameter.value.name).split(".")
         val identifier = IdentifierReference(scopedParamVar, sub.position)
         identifier.linkParents(value.parent)
-        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, parameter.value.type, variable = identifier)
+        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, parameter.value.type, sub, variable = identifier)
         val source = AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(tgt)
         val asgn = AsmAssignment(source, tgt, false, Position.DUMMY)
         asmgen.translateNormalAssignment(asgn)
@@ -222,7 +223,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             }
             else -> {
                 // via register or register pair
-                val target = AsmAssignTarget.fromRegisters(register!!, program, asmgen)
+                val target = AsmAssignTarget.fromRegisters(register!!, sub, program, asmgen)
                 val src = if(valueDt in PassByReferenceDatatypes) {
                     if(value is IdentifierReference) {
                         val addr = AddressOf(value, Position.DUMMY)

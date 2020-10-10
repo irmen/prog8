@@ -6,6 +6,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
+import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
 
@@ -44,11 +45,19 @@ interface IFunctionCall {
     var args: MutableList<Expression>
 }
 
+
+class AsmGenInfo {
+    var usedRegsaveA = false
+    var usedRegsaveX = false
+    var usedRegsaveY = false
+}
+
 interface INameScope {
     val name: String
     val position: Position
     val statements: MutableList<Statement>
     val parent: Node
+    val asmGenInfo: AsmGenInfo
 
     fun linkParents(parent: Node)
 
@@ -260,6 +269,7 @@ class Module(override val name: String,
 
     override lateinit var parent: Node
     lateinit var program: Program
+    override val asmGenInfo = AsmGenInfo()
     val importedBy = mutableListOf<Module>()
     val imports = mutableSetOf<Module>()
 
@@ -293,6 +303,7 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()
     override var parent: Node = ParentSentinel
+    override val asmGenInfo = AsmGenInfo()
 
     override fun linkParents(parent: Node) {
         modules.forEach { it.linkParents(this) }
@@ -345,6 +356,7 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<Statement>()
     override var parent: Node = ParentSentinel
+    override val asmGenInfo = AsmGenInfo()
     override fun linkParents(parent: Node) {}
 }
 

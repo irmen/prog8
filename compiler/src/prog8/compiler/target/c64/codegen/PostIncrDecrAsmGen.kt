@@ -15,6 +15,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
         val targetIdent = stmt.target.identifier
         val targetMemory = stmt.target.memoryAddress
         val targetArrayIdx = stmt.target.arrayindexed
+        val scope = stmt.definingSubroutine()
         when {
             targetIdent!=null -> {
                 val what = asmgen.asmVariableName(targetIdent)
@@ -97,7 +98,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                     }
                     else -> {
                         asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
-                        asmgen.saveRegister(CpuRegister.X, false)
+                        asmgen.saveRegister(CpuRegister.X, false, scope)
                         asmgen.out("  tax")
                         when(elementDt) {
                             in ByteDatatypes -> {

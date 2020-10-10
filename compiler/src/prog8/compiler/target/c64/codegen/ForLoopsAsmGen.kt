@@ -610,7 +610,7 @@ $endLabel""")
     }
 
     private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) {
-        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), variable=stmt.loopVar)
+        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), stmt.definingSubroutine(), variable=stmt.loopVar)
         val src = AsmAssignSource.fromAstSource(range.from, program).adjustDataTypeToTarget(target)
         val assign = AsmAssignment(src, target, false, range.position)
         asmgen.translateNormalAssignment(assign)

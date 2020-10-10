@@ -1,5 +1,6 @@
 package prog8.compiler.target.c64.codegen.assignment
 
+import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -33,6 +34,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                program: Program,
                                asmgen: AsmGen,
                                val datatype: DataType,
+                               val scope: Subroutine?,
                                val variable: IdentifierReference? = null,
                                val array: ArrayIndexedExpression? = null,
                                val memory: DirectMemoryWrite? = null,
@@ -63,21 +65,21 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
         fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget = with(assign.target) {
             val dt = inferType(program, assign).typeOrElse(DataType.STRUCT)
             when {
-                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, variable=identifier, origAstTarget =  this)
-                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, array = arrayindexed, origAstTarget =  this)
-                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, memory =  memoryAddress, origAstTarget =  this)
+                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine(), variable=identifier, origAstTarget =  this)
+                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine(), array = arrayindexed, origAstTarget =  this)
+                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine(), memory =  memoryAddress, origAstTarget =  this)
                 else -> throw AssemblyError("weird target")
             }
         }
 
-        fun fromRegisters(registers: RegisterOrPair, program: Program, asmgen: AsmGen): AsmAssignTarget =
+        fun fromRegisters(registers: RegisterOrPair, scope: Subroutine?, program: Program, asmgen: AsmGen): AsmAssignTarget =
                 when(registers) {
                     RegisterOrPair.A,
                     RegisterOrPair.X,
-                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UBYTE, register = registers)
+                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UBYTE, scope, register = registers)
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
-                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, register = registers)
+                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, scope, register = registers)
                 }
     }
 }
