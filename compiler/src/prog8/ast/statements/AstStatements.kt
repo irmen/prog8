@@ -235,7 +235,8 @@ open class VarDecl(val type: VarDeclType,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Expression && node===value)
+        // TODO the check that node===value is too strict sometimes, but leaving it out allows for bugs to creep through ... :( Perhaps check when adding the replace if there is already a replace on the same node?
+        require(replacement is Expression)
         value = replacement
         replacement.parent = this
     }
