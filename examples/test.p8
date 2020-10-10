@@ -28,6 +28,16 @@ main {
         txt.print_ub(strlen(strptr))
         txt.chrout('\n')
 
+        ubyte q
+        for q in 0 to 255 {
+            txt.print_ub(q)
+            txt.chrout(' ')
+            ;txt.print_uw(q*4)       ; TODO fix
+;            txt.chrout(' ')
+            txt.print_uw(q*$0004)       ; TODO fix
+            txt.chrout('\n')
+        }
+
 
     }
 

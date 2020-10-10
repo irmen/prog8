@@ -20,6 +20,7 @@ main {
 
         galaxy.init(1)
         galaxy.travel_to(numforLave)
+        market.init(0)  ;  Lave's market is seeded with 0
         planet.display(false)
 
         repeat {
@@ -80,7 +81,7 @@ trader {
     sub do_cash() {
         txt.print("\nCheat! Set cash amount: ")
         void txt.input_chars(input)
-        ship.cash = lsb(conv.str2uword(input))
+        ship.cash = conv.str2uword(input)
     }
 
     sub do_hold() {
@@ -121,7 +122,7 @@ ship {
     const uword Max_fuel = 70
 
     ubyte fuel = Max_fuel
-    uword cash = 1000
+    uword cash = 1000               ; actually has to be 4 bytes for the ultra rich.
     ubyte[17] cargohold = 0
 
     sub holdspace() -> ubyte {
@@ -132,7 +133,7 @@ ship {
 
 market {
     ubyte[17] baseprices = [$13, $14, $41, $28, $53, $C4, $EB, $9A, $75, $4E, $7C, $B0, $20, $61, $AB, $2D, $35]
-    byte[17] gradients = [-$02, -$01, -$03, -$05, -$05, +$08, +$1D, +$0E, +$06, +$01, +$0d, -$09, -$01, -$01, -$02, -$01, +$0F]
+    byte[17] gradients = [-$02, -$01, -$03, -$05, -$05, $08, $1D, $0E, $06, $01, $0d, -$09, -$01, -$01, -$02, -$01, $0F]
     ubyte[17] basequants = [$06, $0A, $02, $E2, $FB, $36, $08, $38, $28, $11, $1D, $DC, $35, $42, $37, $FA, $C0]
     ubyte[17] maskbytes = [$01, $03, $07, $1F, $0F, $03, $78, $03, $07, $1F, $07, $3F, $03, $07, $1F, $0F, $07]
     ubyte[17] units = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0]
@@ -141,7 +142,37 @@ market {
     str[3] unitnames = ["t", "kg", "g"]
 
     ubyte[17] current_quantity = 0
-    ubyte[17] current_price = 0
+    uword[17] current_price = 0
+
+    sub init(ubyte fluct) {
+        ; Prices and availabilities are influenced by the planet's economy type
+        ; (0-7) and a random "fluctuation" byte that was kept within the saved
+        ; commander position to keep the market prices constant over gamesaves.
+        ; Availabilities must be saved with the game since the player alters them
+        ; by buying (and selling(?))
+        ;
+        ; Almost all operations are one byte only and overflow "errors" are
+        ; extremely frequent and exploited.
+        ;
+        ; Trade Item prices are held internally in a single byte=true value/4.
+        ; The decimal point in prices is introduced only when printing them.
+        ; Internally, all prices are integers.
+        ; The player's cash is held in four bytes.
+        ubyte ci
+        for ci in 0 to len(names)-1 {
+            word product
+            byte changing
+            product = planet.economy as word * gradients[ci]
+            changing = fluct & maskbytes[ci]  as byte
+            ubyte q = (basequants[ci] as word + changing - product) as ubyte
+            if q & $80
+                q = 0  ; clip to positive 8-bit
+            current_quantity[ci] = q & $3f
+            q = (baseprices[ci] + changing + product) as ubyte
+            current_price[ci] = q * $0004
+        }
+        current_quantity[16] = 0        ; force nonavailability of Alien Items
+    }
 
     sub display() {
         ubyte ci
@@ -195,6 +226,7 @@ galaxy {
             generate_next_planet()
         }
         planet.name = make_current_planet_name()
+        market.init(lsb(seed[0])+msb(seed[2]))
     }
 
     sub local_area() {
@@ -445,8 +477,8 @@ planet {
         ubyte ii
         str name = "        "       ; 8 chars max
         ubyte nx = 0
-        for ii in 0 to gen_rnd_number() & 3 {
-            ubyte x = gen_rnd_number() & $3e
+        for ii in 0 to goatsoup_rnd_number() & 3 {
+            ubyte x = goatsoup_rnd_number() & $3e
             if pairs0[x] != '.' {
                 name[nx] = pairs0[x]
                 nx++
@@ -461,7 +493,7 @@ planet {
         return name
     }
 
-    sub gen_rnd_number() -> ubyte {
+    sub goatsoup_rnd_number() -> ubyte {
         ubyte x = goatsoup_rnd[0] * 2
         uword a = x as uword + goatsoup_rnd[2]
         if goatsoup_rnd[0] > 127
@@ -519,7 +551,7 @@ planet {
                 }
                 else {
                     if c <= $a4 {
-                        ubyte rnr = gen_rnd_number()
+                        ubyte rnr = goatsoup_rnd_number()
                         ubyte wordNr = (rnr >= $33) + (rnr >= $66) + (rnr >= $99) + (rnr >= $CC)
                         source_stack[stack_ptr] = source_ptr
                         stack_ptr++
@@ -675,21 +707,28 @@ util {
         }
         txt.print(string)
     }
-    asmsub print_10s(ubyte value @A) clobbers(A, X, Y) {
+    asmsub print_10s(uword value @AY) clobbers(A, X, Y) {
         %asm {{
-		    jsr  conv.ubyte2decimal         ;(100s in Y, 10s in A, 1s in X)
-		    pha
-		    cpy  #'0'
+		    jsr  conv.uword2decimal
+		    lda  conv.uword2decimal.decTenThousands
+		    cmp  #'0'
 		    beq  +
-		    tya
 		    jsr  c64.CHROUT
-+           pla
++           lda  conv.uword2decimal.decThousands
+		    cmp  #'0'
+            beq  +
+            jsr  c64.CHROUT
++           lda  conv.uword2decimal.decHundreds
+		    cmp  #'0'
+            beq  +
+            jsr  c64.CHROUT
++           lda  conv.uword2decimal.decTens
             jsr  c64.CHROUT
             lda  #'.'
             jsr  c64.CHROUT
-            txa
+            lda  conv.uword2decimal.decOnes
             jsr  c64.CHROUT
-		    rts
+            rts
         }}
     }
 
