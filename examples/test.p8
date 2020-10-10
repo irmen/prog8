@@ -8,10 +8,25 @@ main {
     sub start() {
 
         ; TODO fix multi- string concatenation:
-        txt.print("\nCommands are:\n"+
-            "buy   jump      inf     cash\n" +
-            "sell  teleport  market  hold\n" +
-            "fuel  galhyp    local   quit\n")
+;        txt.print("\nCommands are:\n"+
+;            "buy   jump      inf     cash\n" +
+;            "sell  teleport  market  hold\n" +
+;            "fuel  galhyp    local   quit\n")
+
+        str name = "irmen de jong"
+        uword strptr = &name
+
+
+        txt.print_ub(strlen("1234"))
+        txt.chrout('\n')
+        txt.print_ub(strlen(name))
+        txt.chrout('\n')
+        txt.print_uwhex(strptr, 1)
+        txt.chrout('\n')
+        txt.print(strptr)
+        txt.chrout('\n')
+        txt.print_ub(strlen(strptr))
+        txt.chrout('\n')
 
 
     }

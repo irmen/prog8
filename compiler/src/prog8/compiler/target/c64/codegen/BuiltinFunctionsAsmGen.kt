@@ -390,12 +390,22 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcStrlen(fcall: IFunctionCall) {
         val name = asmgen.asmVariableName(fcall.args[0] as IdentifierReference)
-        asmgen.out("""
-            lda  #<$name
-            ldy  #>$name
-            jsr  prog8_lib.strlen
-            sta  P8ESTACK_LO,x
-            dex""")
+        val type = fcall.args[0].inferType(program)
+        when {
+            type.istype(DataType.STR) -> asmgen.out("""
+                lda  #<$name
+                ldy  #>$name
+                jsr  prog8_lib.strlen
+                sta  P8ESTACK_LO,x
+                dex""")
+            type.istype(DataType.UWORD) -> asmgen.out("""
+                lda  $name
+                ldy  $name+1
+                jsr  prog8_lib.strlen
+                sta  P8ESTACK_LO,x
+                dex""")
+            else -> throw AssemblyError("strlen requires str or uword arg")
+        }
     }
 
     private fun funcSwap(fcall: IFunctionCall) {
