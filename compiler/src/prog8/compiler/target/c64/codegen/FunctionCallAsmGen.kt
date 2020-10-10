@@ -177,13 +177,22 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val statusflag = paramRegister.statusflag
         val register = paramRegister.registerOrPair
         val stack = paramRegister.stack
+        val requiredDt = parameter.value.type
+        if(requiredDt!=valueDt) {
+            if(valueDt.largerThan(requiredDt))
+                throw AssemblyError("can only convert byte values to word param types")
+        }
         when {
             stack -> {
                 // push arg onto the stack
                 // note: argument order is reversed (first argument will be deepest on the stack)
                 asmgen.translateExpression(value)
+                if(requiredDt!=valueDt)
+                    asmgen.signExtendStackLsb(valueDt)
             }
             statusflag!=null -> {
+                if(requiredDt!=valueDt)
+                    throw AssemblyError("for statusflag, byte value is required")
                 if (statusflag == Statusflag.Pc) {
                     // this param needs to be set last, right before the jsr
                     // for now, this is already enforced on the subroutine definition by the Ast Checker
@@ -235,6 +244,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(target)
                 }
 
+                // the following routine knows about converting byte to word if required:
                 asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
             }
         }

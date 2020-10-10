@@ -34,7 +34,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
                 val num = assign.source.number!!.number
-                when (assign.source.datatype) {
+                when (assign.target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toShort())
                     DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num.toInt())
                     DataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
@@ -44,7 +44,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.VARIABLE -> {
                 // simple case: assign from another variable
                 val variable = assign.source.variable!!
-                when (assign.source.datatype) {
+                when (assign.target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
                     DataType.UWORD, DataType.WORD -> assignVariableWord(assign.target, variable)
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
@@ -143,12 +143,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         } else {
                             // regular subroutine, return values are (for now) always done via the stack...  TODO optimize this
                             asmgen.translateExpression(value)
+                            if(assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
+                                asmgen.signExtendStackLsb(assign.source.datatype)
                             assignStackValue(assign.target)
                         }
                     }
                     else -> {
                         // everything else just evaluate via the stack.
                         asmgen.translateExpression(value)
+                        if(assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
+                            asmgen.signExtendStackLsb(assign.source.datatype)
                         assignStackValue(assign.target)
                     }
                 }
