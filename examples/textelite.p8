@@ -12,6 +12,10 @@ main {
         txt.lowercase()
         txt.print("\n--> TextElite conversion to Prog8 <--\n")
 
+        ubyte systemNr
+        ; for systemNr in [galaxy.numforLave, galaxy.numforZaonce, galaxy.numforDiso] {       ; TODO fix compiler crash, should be able to iterate over array literal
+
+
         galaxy.init(1)
         repeat galaxy.numforLave+1 {
             galaxy.generate_next_planet()
@@ -24,12 +28,6 @@ main {
         }
         planet.display(false)
 
-        galaxy.init(1)
-        repeat galaxy.numforDiso+1 {
-            galaxy.generate_next_planet()
-        }
-        planet.display(false)
-
         repeat {
             str input = "????????"
             txt.print("\nEnter system number 0-255 q=quit: ")
@@ -37,7 +35,7 @@ main {
             if input[0]=='q'
                 break
 
-            ubyte systemNr = lsb(conv.str2uword(input))
+            systemNr = lsb(conv.str2uword(input))
             galaxy.init(1)
             galaxy.generate_next_planet()   ; always at least planet 0  (separate to avoid repeat ubyte overflow)
             repeat systemNr {
