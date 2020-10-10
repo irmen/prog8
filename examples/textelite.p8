@@ -13,20 +13,13 @@ main {
         txt.print("\n--> TextElite conversion to Prog8 <--\n")
 
         ubyte systemNr
-        ; for systemNr in [galaxy.numforLave, galaxy.numforZaonce, galaxy.numforDiso] {       ; TODO fix compiler crash, should be able to iterate over array literal
-
-
-        galaxy.init(1)
-        repeat galaxy.numforLave+1 {
-            galaxy.generate_next_planet()
+        for systemNr in [galaxy.numforLave, galaxy.numforZaonce, galaxy.numforDiso] {
+            galaxy.init(1)
+            repeat systemNr+1 {
+                galaxy.generate_next_planet()
+            }
+            planet.display(false)
         }
-        planet.display(false)
-
-        galaxy.init(1)
-        repeat galaxy.numforZaonce+1 {
-            galaxy.generate_next_planet()
-        }
-        planet.display(false)
 
         repeat {
             str input = "????????"
@@ -80,11 +73,7 @@ galaxy {
     sub init(ubyte galaxynum) {
         number = galaxynum
         planet.number = 255
-        ; TODO make this work:  seed = [base0, base1, base2]
-        seed[0] = base0
-        seed[1] = base1
-        seed[2] = base2
-
+        seed = [base0, base1, base2]
         repeat galaxynum-1 {
             nextgalaxy()
         }
@@ -95,9 +84,7 @@ galaxy {
         ; Apply to base seed; once for galaxy 2
         ; twice for galaxy 3, etc.
         ; Eighth application gives galaxy 1 again
-        seed[0] = twist(seed[0])
-        seed[1] = twist(seed[1])
-        seed[2] = twist(seed[2])
+        seed = [twist(seed[0]), twist(seed[1]), twist(seed[2])]
         planet.number = 255
     }
 
@@ -177,8 +164,6 @@ galaxy {
         planet.productivity *= planet.population * 8
         ubyte seed2_msb = msb(seed[2])
         planet.radius = mkword((seed2_msb & 15) + 11, planet.x)
-        ;planet.radius = 256 * (((seed[2] >> 8) & 15) + 11) + planet.x   ; TODO why not the same answer??
-
         planet.species_is_alien = lsb(seed[2]) & 128       ; bit 7 of w2_lo
         if planet.species_is_alien {
             planet.species_size = (seed2_msb >> 2) & 7      ; bits 2-4 of w2_hi
@@ -187,11 +172,7 @@ galaxy {
             planet.species_kind = (planet.species_look + (seed2_msb & 3)) & 7      ;Add bits 0-1 of w2_hi to A from previous step, and take bits 0-2 of the result
         }
 
-        ; TODO make this work: planet.goatsoup_seed = [seed[1] & $FF, seed[1] >> 8, seed[2] & $FF, seed[2] >> 8]
-        planet.goatsoup_seed[0] = lsb(seed[1])
-        planet.goatsoup_seed[1] = msb(seed[1])
-        planet.goatsoup_seed[2] = lsb(seed[2])
-        planet.goatsoup_seed[3] = seed2_msb
+        planet.goatsoup_seed = [lsb(seed[1]), msb(seed[1]), lsb(seed[2]), seed2_msb]
     }
 
     sub tweakseed() {

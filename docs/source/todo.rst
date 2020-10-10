@@ -3,8 +3,6 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- make it possible for array literals to not only contain compile time constants?
-- allow assignment of all elements of an array at once via new array literal assignment (flatten, like with struct)
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
@@ -20,7 +18,7 @@ Add more compiler optimizations to the existing ones.
 
 - further optimize assignment codegeneration, such as the following:
 - binexpr splitting (beware self-referencing expressions and asm code ballooning though)
-- subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.
+- subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.  Especially for built-in functions!
 - can such parameter passing to subroutines be optimized to avoid copying?
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
