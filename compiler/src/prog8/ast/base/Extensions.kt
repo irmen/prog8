@@ -19,8 +19,8 @@ internal fun Program.processAstBeforeAsmGeneration(errors: ErrorReporter) {
     fixer.applyModifications()
 }
 
-internal fun Program.reorderStatements() {
-    val reorder = StatementReorderer(this)
+internal fun Program.reorderStatements(errors: ErrorReporter) {
+    val reorder = StatementReorderer(this, errors)
     reorder.visit(this)
     reorder.applyModifications()
 }

@@ -6,7 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
 
-internal class StatementReorderer(val program: Program) : AstWalker() {
+internal class StatementReorderer(val program: Program, val errors: ErrorReporter) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - library blocks are put last.
@@ -84,18 +84,29 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program, assignment)
+        var assignments = emptyList<Assignment>()
+
         if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {
-            val assignments = if (assignment.value is ArrayLiteralValue) {
-                flattenStructAssignmentFromStructLiteral(assignment, program)    //  'structvar = [ ..... ] '
+            assignments = if (assignment.value is ArrayLiteralValue) {
+                flattenStructAssignmentFromStructLiteral(assignment)    //  'structvar = [ ..... ] '
             } else {
-                flattenStructAssignmentFromIdentifier(assignment, program)    //   'structvar1 = structvar2'
+                flattenStructAssignmentFromIdentifier(assignment)    //   'structvar1 = structvar2'
             }
-            if(assignments.isNotEmpty()) {
-                val modifications = mutableListOf<IAstModification>()
-                assignments.reversed().mapTo(modifications) { IAstModification.InsertAfter(assignment, it, parent) }
-                modifications.add(IAstModification.Remove(assignment, parent))
-                return modifications
+        }
+
+        if(targetType.typeOrElse(DataType.STRUCT) in ArrayDatatypes && valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes ) {
+            assignments = if (assignment.value is ArrayLiteralValue) {
+                flattenArrayAssignmentFromArrayLiteral(assignment)    //  'arrayvar = [ ..... ] '
+            } else {
+                flattenArrayAssignmentFromIdentifier(assignment)    //   'arrayvar1 = arrayvar2'
             }
+        }
+
+        if(assignments.isNotEmpty()) {
+            val modifications = mutableListOf<IAstModification>()
+            assignments.reversed().mapTo(modifications) { IAstModification.InsertAfter(assignment, it, parent) }
+            modifications.add(IAstModification.Remove(assignment, parent))
+            return modifications
         }
 
         return noModifications
@@ -150,15 +161,69 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         return noModifications
     }
 
-    private fun flattenStructAssignmentFromStructLiteral(structAssignment: Assignment, program: Program): List<Assignment> {
+    private fun flattenArrayAssignmentFromArrayLiteral(assign: Assignment): List<Assignment> {
+        // TODO use a pointer loop instead of individual assignments
+
+        val identifier = assign.target.identifier!!
+        val targetVar = identifier.targetVarDecl(program.namespace)!!
+
+        val alv = assign.value as? ArrayLiteralValue
+        if(targetVar.arraysize==null) {
+            errors.err("array has no defined size", identifier.position)
+            return emptyList()
+        }
+
+        if(alv==null || alv.value.size != targetVar.arraysize!!.constIndex()) {
+            errors.err("element count mismatch", assign.position)
+            return emptyList()
+        }
+
+        return alv.value.withIndex().map { (index, value)->
+            val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, assign.position), assign.position), assign.position)
+            Assignment(AssignTarget(null, idx, null, assign.position), value, value.position)
+        }
+    }
+
+    private fun flattenArrayAssignmentFromIdentifier(assign: Assignment): List<Assignment> {
+        // TODO use a pointer loop instead of individual assignments
+
+        val identifier = assign.target.identifier!!
+        val targetVar = identifier.targetVarDecl(program.namespace)!!
+
+        val sourceIdent = assign.value as IdentifierReference
+        val sourceVar = sourceIdent.targetVarDecl(program.namespace)!!
+        if(!sourceVar.isArray) {
+            errors.err("value must be an array",  sourceIdent.position)
+            return emptyList()
+        }
+        if(targetVar.arraysize==null) {
+            errors.err("array has no defined size", identifier.position)
+            return emptyList()
+        }
+
+        val alv = sourceVar.value as? ArrayLiteralValue
+        if(alv==null || alv.value.size != targetVar.arraysize!!.constIndex()) {
+            errors.err("element count mismatch", assign.position)
+            return emptyList()
+        }
+
+        return alv.value.withIndex().map { (index, value)->
+            val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, assign.position), assign.position), assign.position)
+            Assignment(AssignTarget(null, idx, null, assign.position), value, value.position)
+        }
+    }
+
+    private fun flattenStructAssignmentFromStructLiteral(structAssignment: Assignment): List<Assignment> {
         val identifier = structAssignment.target.identifier!!
         val identifierName = identifier.nameInSource.single()
         val targetVar = identifier.targetVarDecl(program.namespace)!!
         val struct = targetVar.struct!!
 
         val slv = structAssignment.value as? ArrayLiteralValue
-        if(slv==null || slv.value.size != struct.numberOfElements)
-            throw FatalAstException("element count mismatch")
+        if(slv==null || slv.value.size != struct.numberOfElements) {
+            errors.err("element count mismatch", structAssignment.position)
+            return emptyList()
+        }
 
         return struct.statements.zip(slv.value).map { (targetDecl, sourceValue) ->
             targetDecl as VarDecl
@@ -171,7 +236,8 @@ internal class StatementReorderer(val program: Program) : AstWalker() {
         }
     }
 
-    private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, program: Program): List<Assignment> {
+    private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment): List<Assignment> {
+        // TODO use memcopy beyond a certain number of elements
         val identifier = structAssignment.target.identifier!!
         val identifierName = identifier.nameInSource.single()
         val targetVar = identifier.targetVarDecl(program.namespace)!!

@@ -7,31 +7,40 @@ main {
 
     sub start() {
 
-        repeat 0 {
-            txt.print("repeat0\n")
+        const ubyte c1 = 111
+        const ubyte c2 = 122
+        const ubyte c3 = 133
+        ubyte ii
+
+
+        for ii in [c1, c2, c3] {
+            txt.print_ub(ii)
         }
 
-        repeat 2 {
-            txt.print("repeat2\n")
-        }
+;        ubyte[3] numbers
+;
+;        for ii in [55,44,33] {
+;            txt.print_ub(ii)
+;        }
 
-        ubyte u=3
-
-        repeat u-1 {
-            txt.print("repeat u=2\n")
-        }
-
-        u=2
-        repeat u-1 {
-            txt.print("repeat u=1\n")
-        }
-
-        u=1
-        repeat u-1 {
-            txt.print("repeat u=0\n")
-        }
-
-        txt.chrout('\n')
+;        ubyte a = 99
+;        ubyte b = 88
+;        ubyte c = 77
+;
+;        ;numbers = numbers       ; TODO optimize away
+;
+;        numbers = [c1,c2,c3]
+;        numbers = [1,2,3]
+;        numbers = [a,b,c]
+;
+;        ubyte[] a1 = [c1,c2,c3]
+;        ubyte[3] a2
+;
+;        a2 = [a,b,c]
+;
+;        txt.print_ub(a)
+;        txt.print_ub(b)
+;        txt.print_ub(c)
     }
 
     asmsub testX() {

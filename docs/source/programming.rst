@@ -260,6 +260,11 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
+It's possible to assign a new array to another array, this will overwrite all elements in the original
+array with those in the value array. The number and types of elements have to match.
+For large arrays this is a slow operation because every element is copied over. It should probably be avoided.
+
+
 **Arrays at a specific memory location:**
 Using the memory-mapped syntax it is possible to define an array to be located at a specific memory location.
 For instance to reference the first 5 rows of the Commodore 64's screen matrix as an array, you can define::
