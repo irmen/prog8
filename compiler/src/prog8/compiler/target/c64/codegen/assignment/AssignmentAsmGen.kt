@@ -18,7 +18,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     fun translate(assignment: Assignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
-        val source = AsmAssignSource.fromAstSource(assignment.value, program).adjustDataTypeToTarget(target)
+        val source = AsmAssignSource.fromAstSource(assignment.value, program).adjustSignedUnsigned(target)
 
         val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
         target.origAssign = assign

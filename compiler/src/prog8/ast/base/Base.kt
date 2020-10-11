@@ -39,16 +39,20 @@ enum class DataType {
     infix fun isAssignableTo(targetTypes: Set<DataType>) = targetTypes.any { this isAssignableTo it }
 
     infix fun largerThan(other: DataType) =
-            when(this) {
-                in ByteDatatypes -> false
-                in WordDatatypes -> other in ByteDatatypes
+            when {
+                this == other -> false
+                this in ByteDatatypes -> false
+                this in WordDatatypes -> other in ByteDatatypes
+                this==STR && other==UWORD || this==UWORD && other==STR -> false
                 else -> true
             }
 
     infix fun equalsSize(other: DataType) =
-            when(this) {
-                in ByteDatatypes -> other in ByteDatatypes
-                in WordDatatypes -> other in WordDatatypes
+            when {
+                this == other -> true
+                this in ByteDatatypes -> other in ByteDatatypes
+                this in WordDatatypes -> other in WordDatatypes
+                this==STR && other==UWORD || this==UWORD && other==STR -> true
                 else -> false
             }
 

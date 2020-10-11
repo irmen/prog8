@@ -159,7 +159,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val identifier = IdentifierReference(scopedParamVar, sub.position)
         identifier.linkParents(value.parent)
         val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, parameter.value.type, sub, variable = identifier)
-        val source = AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(tgt)
+        val source = AsmAssignSource.fromAstSource(value, program).adjustSignedUnsigned(tgt)
         val asgn = AsmAssignment(source, tgt, false, Position.DUMMY)
         asmgen.translateNormalAssignment(asgn)
     }
@@ -179,7 +179,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val stack = paramRegister.stack
         val requiredDt = parameter.value.type
         if(requiredDt!=valueDt) {
-            if(valueDt.largerThan(requiredDt))
+            if(valueDt largerThan requiredDt)
                 throw AssemblyError("can only convert byte values to word param types")
         }
         when {
@@ -233,19 +233,27 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             else -> {
                 // via register or register pair
                 val target = AsmAssignTarget.fromRegisters(register!!, sub, program, asmgen)
-                val src = if(valueDt in PassByReferenceDatatypes) {
-                    if(value is IdentifierReference) {
-                        val addr = AddressOf(value, Position.DUMMY)
-                        AsmAssignSource.fromAstSource(addr, program).adjustDataTypeToTarget(target)
-                    } else {
-                        AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(target)
-                    }
-                } else {
-                    AsmAssignSource.fromAstSource(value, program).adjustDataTypeToTarget(target)
+                if(requiredDt largerThan valueDt) {
+                    // TODO we need to sign extend the source, do this via stack (slow)
+                    println("warning: slow stack evaluation used for sign-extend: into $requiredDt at ${value.position}")
+                    asmgen.translateExpression(value)
+                    asmgen.signExtendStackLsb(valueDt)
+                    val src = AsmAssignSource(SourceStorageKind.STACK, program, valueDt)
+                    asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
                 }
-
-                // the following routine knows about converting byte to word if required:
-                asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
+                else {
+                    val src = if(valueDt in PassByReferenceDatatypes) {
+                        if(value is IdentifierReference) {
+                            val addr = AddressOf(value, Position.DUMMY)
+                            AsmAssignSource.fromAstSource(addr, program).adjustSignedUnsigned(target)
+                        } else {
+                            AsmAssignSource.fromAstSource(value, program).adjustSignedUnsigned(target)
+                        }
+                    } else {
+                        AsmAssignSource.fromAstSource(value, program).adjustSignedUnsigned(target)
+                    }
+                    asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
+                }
             }
         }
     }

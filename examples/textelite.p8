@@ -179,10 +179,10 @@ market {
 
     sub display() {
         ubyte ci
-        txt.print("  COMMODITY / PRICE / AVAIL / IN HOLD\n")
+        txt.print("    COMMODITY / PRICE / AVAIL / IN HOLD\n")
         for ci in 0 to len(names)-1 {
-            util.print_right(12, names[ci])
-            txt.print("  ")
+            util.print_right(13, names[ci])
+            txt.print("   ")
             util.print_10s(current_price[ci])
             txt.print("  ")
             txt.print_ub(current_quantity[ci])
