@@ -17,7 +17,7 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\u000c\n --- TextElite v1.0 by DesertFish ---\n")
+        txt.print("\u000c\n --- TextElite v1.0 ---\n")
 
         galaxy.init(1)
         galaxy.travel_to(numforLave)
