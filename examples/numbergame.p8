@@ -30,7 +30,7 @@ main {
                 txt.print("es")
             txt.print(" left.\nWhat is your next guess? ")
             void txt.input_chars(input)
-            ubyte guess = lsb(conv.str2uword(input))
+            ubyte guess = conv.str2ubyte(input)
 
             if guess==secretnumber {
                 ending(true)

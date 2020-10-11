@@ -11,18 +11,15 @@ main {
         str name = "irmen de jong"
         uword strptr = &name
 
+        txt.print("ubyte? ")
+        void txt.input_chars(name)
+        ubyte ub = conv.str2ubyte(name)
+        txt.print_ub(ub)
 
-        txt.print_ub(strlen("1234"))
-        txt.chrout('\n')
-        txt.print_ub(strlen(name))
-        txt.chrout('\n')
-        txt.print_uwhex(strptr, 1)
-        txt.chrout('\n')
-        txt.print(strptr)
-        txt.chrout('\n')
-        txt.print_ub(strlen(strptr))
-        txt.chrout('\n')
-
+        txt.print("\nbyte? ")
+        void txt.input_chars(name)
+        byte bb = conv.str2byte(name)
+        txt.print_b(bb)
 
     }
 

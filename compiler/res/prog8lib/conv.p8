@@ -249,6 +249,28 @@ output	.text  "0000", $00      ; 0-terminated output buffer (to make printing ea
 	}}
 }
 
+
+asmsub str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
+	; -- returns the unsigned byte value of the string number argument in AY
+	;    the number may NOT be preceded by a + sign and may NOT contain spaces
+	;    (any non-digit character will terminate the number string that is parsed)
+	; TODO implement optimized custom version of this instead of simply reusing str2uword
+	%asm {{
+    	jmp  str2uword
+	}}
+}
+
+
+asmsub str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
+	; -- returns the signed byte value of the string number argument in AY
+	;    the number may be preceded by a + or - sign but may NOT contain spaces
+	;    (any non-digit character will terminate the number string that is parsed)
+	; TODO implement optimized custom version of this instead of simply reusing str2word
+	%asm {{
+    	jmp  str2word
+	}}
+}
+
 asmsub str2uword(str string @ AY) -> uword @ AY {
 	; -- returns the unsigned word value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces

@@ -78,6 +78,13 @@ trader {
     }
 
     sub do_buy() {
+        txt.print("\nBuy what commodity? ")
+        str commodity = "???????????????"
+        void txt.input_chars(commodity)
+        txt.print("\nHow much?")
+        void txt.input_chars(input)
+        ubyte buy_fuel = 10*conv.str2ubyte(input)
+        ubyte amount = lsb()
         txt.print("\nTODO BUY\n")   ; TODO
     }
 
@@ -88,7 +95,7 @@ trader {
     sub do_fuel() {
         txt.print("\nBuy fuel. Amount? ")
         void txt.input_chars(input)
-        ubyte buy_fuel = 10*lsb(conv.str2uword(input))
+        ubyte buy_fuel = 10*conv.str2ubyte(input)
         ubyte max_fuel = ship.Max_fuel - ship.fuel
         if buy_fuel > max_fuel
             buy_fuel = max_fuel
@@ -110,7 +117,7 @@ trader {
     sub do_hold() {
         txt.print("\nCheat! Set cargohold size: ")
         void txt.input_chars(input)
-        ship.Max_cargo = lsb(conv.str2uword(input))
+        ship.Max_cargo = conv.str2ubyte(input)
     }
 
     sub do_next_galaxy() {
