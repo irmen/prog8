@@ -17,7 +17,7 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\n--> TextElite conversion to Prog8 <--\n")
+        txt.print("\u000c\n --- TextElite v1.0 by DesertFish ---\n")
 
         galaxy.init(1)
         galaxy.travel_to(numforLave)
@@ -36,9 +36,9 @@ main {
                 when input[0] {
                     '?' -> {
                         txt.print("\nCommands are:\n"+
-                            "buy   jump      info    cash\n"+
-                            "sell  teleport  market  hold\n"+
-                            "fuel  galhyp    local   quit\n")
+                            "buy   jump      info    cash   >=save\n"+
+                            "sell  teleport  market  hold   <=load\n"+
+                            "fuel  galhyp    local          quit\n")
                     }
                     'q' -> break
                     'b' -> trader.do_buy()
@@ -52,6 +52,8 @@ main {
                     'l' -> trader.do_local()
                     'c' -> trader.do_cash()
                     'h' -> trader.do_hold()
+                    '<' -> trader.do_load()
+                    '>' -> trader.do_save()
                 }
             }
         }
@@ -62,21 +64,46 @@ trader {
     str input = "??????????"
     ubyte num_chars
 
+    sub do_load() {
+        txt.print("\nTODO LOAD\n")
+    }
+
+    sub do_save() {
+        txt.print("\nTODO SAVE\n")
+    }
+
     sub do_jump() {
         txt.print("\nJump to what system? ")
         jump_to_system()
     }
 
     sub do_teleport() {
-        ubyte fuel = ship.fuel
         txt.print("\nCheat! Teleport to what system? ")
+        ubyte fuel = ship.fuel
+        ship.fuel = 255
         jump_to_system()
         ship.fuel = fuel
     }
 
     sub jump_to_system() {
         void txt.input_chars(input)
-        txt.print("TODO JUMP\n")    ; TODO
+        ubyte current_planet = planet.number
+        ubyte x = planet.x
+        ubyte y = planet.y
+        if galaxy.search_closest_planet(input) {
+            ubyte distance = planet.distance(x, y)
+            if distance <= ship.fuel {
+                galaxy.init_market_for_planet()
+                ship.fuel -= distance
+                txt.print("\n\nHyperspace jump! Arrived at:\n")
+                planet.display(true)
+                return
+            }
+            txt.print("Insufficient fuel\n")
+        } else {
+            txt.print(" Not found!\n")
+        }
+        galaxy.travel_to(current_planet)
     }
 
     sub do_buy() {
@@ -169,7 +196,13 @@ trader {
         txt.print("\nSystem name (empty=current): ")
         num_chars = txt.input_chars(input)
         if num_chars {
-            txt.print("\nTODO INFO\n")  ; TODO
+            ubyte current_planet = planet.number
+            if galaxy.search_closest_planet(input) {
+                planet.display(false)
+            } else {
+                txt.print(" Not found!")
+            }
+            galaxy.travel_to(current_planet)
         } else {
             planet.display(false)
         }
@@ -319,7 +352,42 @@ galaxy {
             generate_next_planet()
         }
         planet.name = make_current_planet_name()
+        init_market_for_planet()
+    }
+
+    sub init_market_for_planet() {
         market.init(lsb(seed[0])+msb(seed[2]))
+    }
+
+    sub search_closest_planet(uword nameptr) -> ubyte {
+        ubyte x = planet.x
+        ubyte y = planet.y
+        ubyte current_planet_num = planet.number
+
+        init(number)
+        ubyte found = false
+        ubyte current_closest_pi
+        ubyte current_distance = 127
+        ubyte pi
+        for pi in 0 to 255 {
+            generate_next_planet()
+            planet.name = make_current_planet_name()
+            if util.prefix_matches(nameptr, planet.name) {
+                ubyte distance = planet.distance(x, y)
+                if distance < current_distance {
+                    current_distance = distance
+                    current_closest_pi = pi
+                    found = true
+                }
+            }
+        }
+
+        if found
+            travel_to(current_closest_pi)
+        else
+            travel_to(current_planet_num)
+
+        return found
     }
 
     sub local_area() {
