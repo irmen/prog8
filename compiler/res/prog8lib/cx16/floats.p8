@@ -78,10 +78,10 @@ asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
         phx
-        sta  P8ZP_SCRATCH_REG
+        sta  P8ZP_SCRATCH_W2
         sty  P8ZP_SCRATCH_B1
         tya
-        ldy  P8ZP_SCRATCH_REG
+        ldy  P8ZP_SCRATCH_W2
         jsr  GIVAYF                 ; load it as signed... correct afterwards
         lda  P8ZP_SCRATCH_B1
 	    bpl  +
@@ -98,9 +98,9 @@ _flt65536    .byte 145,0,0,0,0       ; 65536.0
 asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
-		sta  P8ZP_SCRATCH_REG
+		sta  P8ZP_SCRATCH_W2
 		tya
-		ldy  P8ZP_SCRATCH_REG
+		ldy  P8ZP_SCRATCH_W2
 		jmp  GIVAYF		; this uses the inverse order, Y/A
 	}}
 }

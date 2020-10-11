@@ -39,7 +39,6 @@ main {
                     iter++
                 }
 
-                ; TODO something above is causing a strange black column on the right on Cx16.
                 if iter & 1
                     graphics.plot(pixelx, pixely)
             }
