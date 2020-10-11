@@ -832,10 +832,10 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(leftDt !in NumericDatatypes)
-            errors.err("left operand is not numeric", expr.left.position)
-        if(rightDt!in NumericDatatypes)
-            errors.err("right operand is not numeric", expr.right.position)
+        if(leftDt !in NumericDatatypes && leftDt != DataType.STR)
+            errors.err("left operand is not numeric or str", expr.left.position)
+        if(rightDt!in NumericDatatypes && rightDt != DataType.STR)
+            errors.err("right operand is not numeric or str", expr.right.position)
         if(leftDt!=rightDt)
             errors.err("left and right operands aren't the same type", expr.left.position)
     }

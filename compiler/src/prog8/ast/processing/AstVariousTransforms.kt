@@ -47,78 +47,59 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         return noModifications
     }
 
-    override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        when {
-            expr.left is StringLiteralValue ->
-                return listOf(IAstModification.ReplaceNode(
-                        expr,
-                        processBinaryExprWithString(expr.left as StringLiteralValue, expr.right, expr),
-                        parent
-                ))
-            expr.right is StringLiteralValue ->
-                return listOf(IAstModification.ReplaceNode(
-                        expr,
-                        processBinaryExprWithString(expr.right as StringLiteralValue, expr.left, expr),
-                        parent
-                ))
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        val leftStr = expr.left as? StringLiteralValue
+        val rightStr = expr.right as? StringLiteralValue
+        if(expr.operator == "+") {
+            val concatenatedString = concatString(expr)
+            if(concatenatedString!=null)
+                return listOf(IAstModification.ReplaceNode(expr, concatenatedString, parent))
         }
-
-        return noModifications
-    }
-
-    override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
-        if(string.parent !is VarDecl) {
-            // replace the literal string by a identifier reference to a new local vardecl
-            val vardecl = VarDecl.createAuto(string)
-            val identifier = IdentifierReference(listOf(vardecl.name), vardecl.position)
-            return listOf(
-                    IAstModification.ReplaceNode(string, identifier, parent),
-                    IAstModification.InsertFirst(vardecl, string.definingScope() as Node)
-            )
-        }
-        return noModifications
-    }
-
-    override fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> {
-        val vardecl = array.parent as? VarDecl
-        if(vardecl!=null) {
-            // adjust the datatype of the array (to an educated guess)
-            val arrayDt = array.type
-            if(!arrayDt.istype(vardecl.datatype)) {
-                val cast = array.cast(vardecl.datatype)
-                if (cast != null && cast !== array)
-                    return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
+        else if(expr.operator == "*") {
+            if (leftStr!=null) {
+                val amount = expr.right.constValue(program)
+                if(amount!=null) {
+                    val string = leftStr.value.repeat(amount.number.toInt())
+                    val strval = StringLiteralValue(string, leftStr.altEncoding, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, strval, parent))
+                }
             }
-        } else {
-            val arrayDt = array.guessDatatype(program)
-            if(arrayDt.isKnown) {
-                // this array literal is part of an expression, turn it into an identifier reference
-                val litval2 = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
-                if(litval2!=null) {
-                    val vardecl2 = VarDecl.createAuto(litval2)
-                    val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
-                    return listOf(
-                            IAstModification.ReplaceNode(array, identifier, parent),
-                            IAstModification.InsertFirst(vardecl2, array.definingScope() as Node)
-                    )
+            else if (rightStr!=null) {
+                val amount = expr.right.constValue(program)
+                if(amount!=null) {
+                    val string = rightStr.value.repeat(amount.number.toInt())
+                    val strval = StringLiteralValue(string, rightStr.altEncoding, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, strval, parent))
                 }
             }
         }
+
         return noModifications
     }
 
-    private fun processBinaryExprWithString(string: StringLiteralValue, operand: Expression, expr: BinaryExpression): Expression {
-        val constvalue = operand.constValue(program)
-        if(constvalue!=null) {
-            if (expr.operator == "*") {
-                // repeat a string a number of times
-                return StringLiteralValue(string.value.repeat(constvalue.number.toInt()), string.altEncoding, expr.position)
+    private fun concatString(expr: BinaryExpression): StringLiteralValue? {
+        val rightStrval = expr.right as? StringLiteralValue
+        val leftStrval = expr.left as? StringLiteralValue
+        return when {
+            expr.operator!="+" -> null
+            expr.left is BinaryExpression && rightStrval!=null -> {
+                val subStrVal = concatString(expr.left as BinaryExpression)
+                if(subStrVal==null)
+                    null
+                else
+                    StringLiteralValue("${subStrVal.value}${rightStrval.value}", subStrVal.altEncoding, rightStrval.position)
             }
+            expr.right is BinaryExpression && leftStrval!=null -> {
+                val subStrVal = concatString(expr.right as BinaryExpression)
+                if(subStrVal==null)
+                    null
+                else
+                    StringLiteralValue("${leftStrval.value}${subStrVal.value}", subStrVal.altEncoding, leftStrval.position)
+            }
+            leftStrval!=null && rightStrval!=null -> {
+                StringLiteralValue("${leftStrval.value}${rightStrval.value}", leftStrval.altEncoding, leftStrval.position)
+            }
+            else -> null
         }
-        if(expr.operator == "+" && operand is StringLiteralValue) {
-            // concatenate two strings
-            return StringLiteralValue("${string.value}${operand.value}", string.altEncoding, expr.position)
-        }
-        return expr
     }
 }

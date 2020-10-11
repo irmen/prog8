@@ -57,6 +57,9 @@ internal fun Program.checkIdentifiers(errors: ErrorReporter) {
         val transforms = AstVariousTransforms(this)
         transforms.visit(this)
         transforms.applyModifications()
+        val lit2decl = LiteralsToAutoVars(this)
+        lit2decl.visit(this)
+        lit2decl.applyModifications()
     }
 
     if (modules.map { it.name }.toSet().size != modules.size) {

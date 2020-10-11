@@ -7,11 +7,10 @@ main {
 
     sub start() {
 
-        ; TODO fix multi- string concatenation:
-;        txt.print("\nCommands are:\n"+
-;            "buy   jump      inf     cash\n" +
-;            "sell  teleport  market  hold\n" +
-;            "fuel  galhyp    local   quit\n")
+        txt.print("\nCommands are:\n"+
+            "buy   jump      inf     cash\n" +
+            "sell  teleport  market  hold\n" +
+            "fuel  galhyp    local   quit\n")
 
 ;        str name = "irmen de jong"
 ;        uword strptr = &name
@@ -27,14 +26,6 @@ main {
 ;        txt.chrout('\n')
 ;        txt.print_ub(strlen(strptr))
 ;        txt.chrout('\n')
-
-        ubyte q
-        for q in 0 to 255 {
-            txt.print_ub(q)
-            txt.chrout(' ')
-            txt.print_uw(q*5)       ; TODO fix
-            txt.chrout('\n')
-        }
 
 
     }

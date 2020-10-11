@@ -31,7 +31,10 @@ main {
             if num_chars {
                 when input[0] {
                     '?' -> {
-                        txt.print("\nCommands are:\nbuy   jump      info    cash\nsell  teleport  market  hold\nfuel  galhyp    local   quit\n")
+                        txt.print("\nCommands are:\n"+
+                            "buy   jump      info    cash\n"+
+                            "sell  teleport  market  hold\n"+
+                            "fuel  galhyp    local   quit\n")
                     }
                     'q' -> break
                     'b' -> trader.do_buy()
