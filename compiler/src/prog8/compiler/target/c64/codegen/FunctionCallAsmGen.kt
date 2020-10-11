@@ -155,11 +155,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
-        val scopedParamVar = (sub.scopedname+"."+parameter.value.name).split(".")
-        val identifier = IdentifierReference(scopedParamVar, sub.position)
-        identifier.linkParents(value.parent)
-        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, parameter.value.type, sub, variable = identifier)
-        val source = AsmAssignSource.fromAstSource(value, program).adjustSignedUnsigned(tgt)
+        val varName = asmgen.asmVariableName(sub.scopedname+"."+parameter.value.name)
+        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, parameter.value.type, sub, variableAsmName = varName)
+        val source = AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(tgt)
         val asgn = AsmAssignment(source, tgt, false, Position.DUMMY)
         asmgen.translateNormalAssignment(asgn)
     }
@@ -234,23 +232,25 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 // via register or register pair
                 val target = AsmAssignTarget.fromRegisters(register!!, sub, program, asmgen)
                 if(requiredDt largerThan valueDt) {
-                    // TODO we need to sign extend the source, do this via stack (slow)
-                    println("warning: slow stack evaluation used for sign-extend: into $requiredDt at ${value.position}")
-                    asmgen.translateExpression(value)
-                    asmgen.signExtendStackLsb(valueDt)
-                    val src = AsmAssignSource(SourceStorageKind.STACK, program, valueDt)
+                    // we need to sign extend the source, do this via temporary word variable
+                    val scratchVar = asmgen.asmVariableName("P8ZP_SCRATCH_W1")
+                    val scratchTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UBYTE, sub, scratchVar)
+                    val source = AsmAssignSource.fromAstSource(value, program, asmgen)
+                    asmgen.translateNormalAssignment(AsmAssignment(source, scratchTarget, false, value.position))
+                    asmgen.signExtendVariableLsb(scratchVar, valueDt)
+                    val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, DataType.UWORD, scratchVar)
                     asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
                 }
                 else {
                     val src = if(valueDt in PassByReferenceDatatypes) {
                         if(value is IdentifierReference) {
                             val addr = AddressOf(value, Position.DUMMY)
-                            AsmAssignSource.fromAstSource(addr, program).adjustSignedUnsigned(target)
+                            AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)
                         } else {
-                            AsmAssignSource.fromAstSource(value, program).adjustSignedUnsigned(target)
+                            AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                         }
                     } else {
-                        AsmAssignSource.fromAstSource(value, program).adjustSignedUnsigned(target)
+                        AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                     }
                     asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
                 }

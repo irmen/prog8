@@ -25,6 +25,8 @@ main {
 
         repeat {
             str input = "????????"
+            txt.print("\nCash: ")
+            util.print_10s(ship.cash)
             txt.print("\nCommand (?=help): ")
             ubyte num_chars = txt.input_chars(input)
             txt.chrout('\n')
@@ -59,19 +61,19 @@ trader {
     ubyte num_chars
 
     sub do_jump() {
-        txt.print("\nTODO JUMP\n")
+        txt.print("\nTODO JUMP\n")  ; TODO
     }
 
     sub do_teleport() {
-        txt.print("\nTODO TELEPORT\n")
+        txt.print("\nTODO TELEPORT\n")  ; TODO
     }
 
     sub do_buy() {
-        txt.print("\nTODO BUY\n")
+        txt.print("\nTODO BUY\n")   ; TODO
     }
 
     sub do_sell() {
-        txt.print("\nTODO SELL\n")
+        txt.print("\nTODO SELL\n")  ; TODO
     }
 
     sub do_fuel() {
@@ -88,7 +90,7 @@ trader {
     }
 
     sub do_hold() {
-        txt.print("\nCheat! TODO adjust cargo hold size\n")
+        txt.print("\nCheat! TODO adjust cargo hold size\n") ; TODO
     }
 
     sub do_next_galaxy() {
@@ -101,7 +103,7 @@ trader {
         txt.print("\nSystem name (empty=current): ")
         num_chars = txt.input_chars(input)
         if num_chars {
-            txt.print("\nTODO INFO\n")
+            txt.print("\nTODO INFO\n")  ; TODO
         } else {
             planet.display(false)
         }

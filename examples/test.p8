@@ -7,29 +7,9 @@ main {
 
     sub start() {
 
-        print_10s(1)
-        txt.chrout('\n')
-        print_10s(123)
-        txt.chrout('\n')
-        print_10s(54321)
-        txt.chrout('\n')
-        txt.chrout('\n')
-
-        ubyte ww
-        ww=1
-        print_10s(ww)
-        txt.chrout('\n')
-        ww=123
-        print_10s(ww)
-        txt.chrout('\n')
-        ww=255
-        print_10s(ww)
-        txt.chrout('\n')
-
-        txt.print("\nCommands are:\n"+
-            "buy   jump      inf     cash\n" +
-            "sell  teleport  market  hold\n" +
-            "fuel  galhyp    local   quit\n")
+        ubyte xx
+        ubyte yy
+        regx(xx)
 
 ;        str name = "irmen de jong"
 ;        uword strptr = &name
@@ -47,6 +27,14 @@ main {
 ;        txt.chrout('\n')
 
 
+    }
+
+    asmsub regx(uword value @AX) {
+        %asm {{
+
+            nop
+            rts
+        }}
     }
 
     asmsub print_10s(uword value @AY) clobbers(A, X, Y) {

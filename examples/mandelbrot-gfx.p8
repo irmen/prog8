@@ -7,16 +7,17 @@
 ; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
 
 ; Note: this program is compatible with C64 and CX16.
+; TODO why is there a weird black column on the right part on CX16?
 
 main {
-    const ubyte width = 255
+    const uword width = 320
     const ubyte height = 200
     const ubyte max_iter = 16
 
     sub start()  {
         graphics.enable_bitmap_mode()
 
-        ubyte pixelx
+        uword pixelx
         ubyte pixely
 
         for pixely in 0 to height-1 {

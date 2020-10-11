@@ -18,7 +18,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     fun translate(assignment: Assignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
-        val source = AsmAssignSource.fromAstSource(assignment.value, program).adjustSignedUnsigned(target)
+        val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
 
         val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
         target.origAssign = assign
@@ -43,13 +43,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             SourceStorageKind.VARIABLE -> {
                 // simple case: assign from another variable
-                val variable = assign.source.variable!!
+                val variable = assign.source.asmVarname!!
                 when (assign.target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
                     DataType.UWORD, DataType.WORD -> assignVariableWord(assign.target, variable)
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
                     DataType.STR -> assignVariableString(assign.target, variable)
-                    in PassByReferenceDatatypes -> assignAddressOf(assign.target, variable)
+                    in PassByReferenceDatatypes -> {
+                        // TODO what about when the name is a struct? name.firstStructVarName(program.namespace)
+                        assignAddressOf(assign.target, variable)
+                    }
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
                 }
             }
@@ -117,7 +120,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.EXPRESSION -> {
                 val value = assign.source.expression!!
                 when(value) {
-                    is AddressOf -> assignAddressOf(assign.target, value.identifier)
+                    is AddressOf -> {
+                        val sourceName = value.identifier.firstStructVarName(program.namespace) ?: asmgen.asmVariableName(value.identifier)
+                        assignAddressOf(assign.target, sourceName)
+                    }
                     is NumericLiteralValue -> throw AssemblyError("source kind should have been literalnumber")
                     is IdentifierReference -> throw AssemblyError("source kind should have been variable")
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
@@ -349,9 +355,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignAddressOf(target: AsmAssignTarget, name: IdentifierReference) {
-        val sourceName = name.firstStructVarName(program.namespace) ?: asmgen.fixNameSymbols(name.nameInSource.joinToString("."))
-
+    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -376,19 +380,17 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             TargetStorageKind.STACK -> {
-                val srcname = asmgen.asmVariableName(name)
                 asmgen.out("""
-                    lda  #<$srcname
+                    lda  #<$sourceName
                     sta  P8ESTACK_LO,x
-                    lda  #>$srcname
+                    lda  #>$sourceName
                     sta  P8ESTACK_HI,x
                     dex""")
             }
         }
     }
 
-    private fun assignVariableString(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmVariableName(variable)
+    private fun assignVariableString(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when(target.datatype) {
@@ -425,8 +427,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignVariableWord(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmVariableName(variable)
+    private fun assignVariableWord(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -529,8 +530,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignVariableFloat(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmVariableName(variable)
+    private fun assignVariableFloat(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -564,8 +564,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignVariableByte(target: AsmAssignTarget, variable: IdentifierReference) {
-        val sourceName = asmgen.asmVariableName(variable)
+    private fun assignVariableByte(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""

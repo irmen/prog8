@@ -498,7 +498,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         // all other types of swap() calls are done via the evaluation stack
         fun targetFromExpr(expr: Expression, datatype: DataType): AsmAssignTarget {
             return when (expr) {
-                is IdentifierReference -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, datatype, expr.definingSubroutine(), variable=expr)
+                is IdentifierReference -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, datatype, expr.definingSubroutine(), variableAsmName = asmgen.asmVariableName(expr))
                 is ArrayIndexedExpression -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, datatype, expr.definingSubroutine(), array = expr)
                 is DirectMemoryRead -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, datatype, expr.definingSubroutine(), memory = DirectMemoryWrite(expr.addressExpression, expr.position))
                 else -> throw AssemblyError("invalid expression object $expr")
@@ -509,12 +509,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         asmgen.translateExpression(second)
         val datatype = first.inferType(program).typeOrElse(DataType.STRUCT)
         val assignFirst = AsmAssignment(
-                AsmAssignSource(SourceStorageKind.STACK, program, datatype),
+                AsmAssignSource(SourceStorageKind.STACK, program, asmgen, datatype),
                 targetFromExpr(first, datatype),
                 false, first.position
         )
         val assignSecond = AsmAssignment(
-                AsmAssignSource(SourceStorageKind.STACK, program, datatype),
+                AsmAssignSource(SourceStorageKind.STACK, program, asmgen, datatype),
                 targetFromExpr(second, datatype),
                 false, second.position
         )
