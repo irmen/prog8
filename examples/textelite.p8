@@ -6,6 +6,7 @@
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
 
+; TODO save/load game function
 
 main {
 
@@ -21,6 +22,7 @@ main {
         galaxy.init(1)
         galaxy.travel_to(numforLave)
         market.init(0)  ;  Lave's market is seeded with 0
+        ship.init()
         planet.display(false)
 
         repeat {
@@ -81,15 +83,52 @@ trader {
         txt.print("\nBuy what commodity? ")
         str commodity = "???????????????"
         void txt.input_chars(commodity)
-        txt.print("\nHow much?")
-        void txt.input_chars(input)
-        ubyte buy_fuel = 10*conv.str2ubyte(input)
-        ubyte amount = lsb()
-        txt.print("\nTODO BUY\n")   ; TODO
+        ubyte ci = market.match(commodity)
+        if ci & 128 {
+            txt.print("Unknown\n")
+        } else {
+            txt.print("\nHow much? ")
+            void txt.input_chars(input)
+            ubyte amount = conv.str2ubyte(input)
+            if market.current_quantity[ci] < amount {
+                txt.print(" Insufficient supply!\n")
+            } else {
+                uword price = market.current_price[ci] * amount
+                txt.print(" Total price: ")
+                util.print_10s(price)
+                if price > ship.cash {
+                    txt.print(" Not enough cash!\n")
+                } else {
+                    ship.cash -= price
+                    ship.cargohold[ci] += amount
+                    market.current_quantity[ci] -= amount
+                }
+            }
+        }
     }
 
     sub do_sell() {
-        txt.print("\nTODO SELL\n")  ; TODO
+        txt.print("\nSell what commodity? ")
+        str commodity = "???????????????"
+        void txt.input_chars(commodity)
+        ubyte ci = market.match(commodity)
+        if ci & 128 {
+            txt.print("Unknown\n")
+        } else {
+            txt.print("\nHow much? ")
+            void txt.input_chars(input)
+            ubyte amount = conv.str2ubyte(input)
+            if ship.cargohold[ci] < amount {
+                txt.print(" Insufficient supply!\n")
+            } else {
+                uword price = market.current_price[ci] * amount
+                txt.print(" Total price: ")
+                util.print_10s(price)
+                ship.cash += price
+                ship.cargohold[ci] -= amount
+                market.current_quantity[ci] += amount
+            }
+        }
     }
 
     sub do_fuel() {
@@ -158,6 +197,10 @@ ship {
     ubyte fuel = Max_fuel
     uword cash = 1000               ; actually has to be 4 bytes for the ultra rich....
     ubyte[17] cargohold = 0
+
+    sub init() {
+        memset(cargohold, len(cargohold), 0)
+    }
 
     sub cargo_free() -> ubyte {
         ubyte ci
@@ -229,6 +272,15 @@ market {
             txt.print_ub(ship.cargohold[ci])
             txt.chrout('\n')
         }
+    }
+
+    sub match(uword nameptr) -> ubyte {
+        ubyte ci
+        for ci in 0 to len(names)-1 {
+            if util.prefix_matches(nameptr, names[ci])
+                return ci
+        }
+        return 255
     }
 }
 
@@ -742,27 +794,54 @@ planet {
 }
 
 util {
+    sub prefix_matches(uword prefixptr, uword stringptr) -> ubyte {
+        ubyte ix=0
+        repeat {
+            ubyte pc = @(prefixptr)
+            ubyte sc = @(stringptr)
+            if pc == 0
+                return true
+            ; to lowercase for case insensitive compare:
+            pc &= 127
+            sc &= 127
+            if pc != sc
+                return false
+            prefixptr++
+            stringptr++
+        }
+        return false
+    }
+
     sub print_right(ubyte width, uword string) {
         repeat width - strlen(string) {
             txt.chrout(' ')
         }
         txt.print(string)
     }
+
     asmsub print_10s(uword value @AY) clobbers(A, X, Y) {
         %asm {{
 		    jsr  conv.uword2decimal
 		    lda  conv.uword2decimal.decTenThousands
+		    ldy  #0     ; have we started printing?
 		    cmp  #'0'
 		    beq  +
 		    jsr  c64.CHROUT
+		    iny
 +           lda  conv.uword2decimal.decThousands
 		    cmp  #'0'
-            beq  +
-            jsr  c64.CHROUT
+            bne  +
+            cpy  #0
+            beq  ++
++           jsr  c64.CHROUT
+            iny
 +           lda  conv.uword2decimal.decHundreds
 		    cmp  #'0'
-            beq  +
-            jsr  c64.CHROUT
+		    bne  +
+		    cpy  #0
+            beq  ++
++           jsr  c64.CHROUT
+            iny
 +           lda  conv.uword2decimal.decTens
             jsr  c64.CHROUT
             lda  #'.'
