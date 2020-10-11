@@ -7,7 +7,6 @@
 ; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
 
 ; Note: this program is compatible with C64 and CX16.
-; TODO why is there a weird black column on the right part on CX16?
 
 main {
     const uword width = 320
@@ -40,6 +39,7 @@ main {
                     iter++
                 }
 
+                ; TODO something above is causing a strange black column on the right on Cx16.
                 if iter & 1
                     graphics.plot(pixelx, pixely)
             }
