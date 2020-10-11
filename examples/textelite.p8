@@ -57,15 +57,24 @@ main {
 }
 
 trader {
-    str input = "????????"
+    str input = "??????????"
     ubyte num_chars
 
     sub do_jump() {
-        txt.print("\nTODO JUMP\n")  ; TODO
+        txt.print("\nJump to what system? ")
+        jump_to_system()
     }
 
     sub do_teleport() {
-        txt.print("\nTODO TELEPORT\n")  ; TODO
+        ubyte fuel = ship.fuel
+        txt.print("\nCheat! Teleport to what system? ")
+        jump_to_system()
+        ship.fuel = fuel
+    }
+
+    sub jump_to_system() {
+        void txt.input_chars(input)
+        txt.print("TODO JUMP\n")    ; TODO
     }
 
     sub do_buy() {
@@ -79,8 +88,17 @@ trader {
     sub do_fuel() {
         txt.print("\nBuy fuel. Amount? ")
         void txt.input_chars(input)
-        ubyte buy_fuel = lsb(conv.str2uword(input))
-        txt.print("TODO\n") ; TODO PURCHASE FUEL
+        ubyte buy_fuel = 10*lsb(conv.str2uword(input))
+        ubyte max_fuel = ship.Max_fuel - ship.fuel
+        if buy_fuel > max_fuel
+            buy_fuel = max_fuel
+        uword price = buy_fuel as uword * ship.Fuel_cost
+        if price > ship.cash {
+            txt.print("Not enough cash!\n")
+        } else {
+            ship.cash -= price
+            ship.fuel += buy_fuel
+        }
     }
 
     sub do_cash() {
@@ -90,7 +108,9 @@ trader {
     }
 
     sub do_hold() {
-        txt.print("\nCheat! TODO adjust cargo hold size\n") ; TODO
+        txt.print("\nCheat! Set cargohold size: ")
+        void txt.input_chars(input)
+        ship.Max_cargo = lsb(conv.str2uword(input))
     }
 
     sub do_next_galaxy() {
@@ -117,22 +137,29 @@ trader {
         market.display()
         txt.print("\nFuel: ")
         util.print_10s(ship.fuel)
-        txt.print("   Holdspace: ")
-        txt.print_uw(ship.holdspace())
+        txt.print("   Cargohold space: ")
+        txt.print_ub(ship.cargo_free())
         txt.print("t\n")
     }
 }
 
 ship {
-    const uword Max_fuel = 70
+    const ubyte Max_fuel = 70
+    const ubyte Fuel_cost = 2
+    ubyte Max_cargo = 20
 
     ubyte fuel = Max_fuel
-    uword cash = 1000               ; actually has to be 4 bytes for the ultra rich.
+    uword cash = 1000               ; actually has to be 4 bytes for the ultra rich....
     ubyte[17] cargohold = 0
 
-    sub holdspace() -> ubyte {
-        ; TODO calculate total tonnes in cargohold
-        return 99
+    sub cargo_free() -> ubyte {
+        ubyte ci
+        ubyte total = 0
+        for ci in 0 to len(cargohold)-1 {
+            if market.units[ci]==0      ; tonnes only
+                total += cargohold[ci]
+        }
+        return Max_cargo - total
     }
 }
 
@@ -181,7 +208,9 @@ market {
 
     sub display() {
         ubyte ci
-        txt.print("    COMMODITY / PRICE / AVAIL / IN HOLD\n")
+        txt.chrout('\n')
+        planet.print_name_uppercase()
+        txt.print(" trade market:\n    COMMODITY / PRICE / AVAIL / IN HOLD\n")
         for ci in 0 to len(names)-1 {
             util.print_right(13, names[ci])
             txt.print("   ")
