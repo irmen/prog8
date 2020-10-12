@@ -208,7 +208,8 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
     programAst.variousCleanups()
     programAst.checkValid(compilerOptions, errors)          // check if final tree is still valid
     errors.handle()
-    programAst.checkRecursion(errors)         // check if there are recursive subroutine calls
+    val callGraph = CallGraph(programAst)
+    callGraph.checkRecursiveCalls(errors)
     errors.handle()
     programAst.verifyFunctionArgTypes()
     programAst.moveMainAndStartToFirst()

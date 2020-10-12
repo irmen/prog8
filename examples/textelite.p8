@@ -720,8 +720,7 @@ planet {
                         source_stack[stack_ptr] = source_ptr
                         stack_ptr++
                         source_ptr = getword(c, wordNr)
-                        ; TODO recursive call... should give error message... but hey since it's not doing that here now, lets exploit it
-                        recursive_soup()         ; RECURSIVE CALL
+                        recursive_soup()    ; RECURSIVE CALL - ignore the warning message from the compiler; we don't use local variables or parameters so we're safe in this case
                         stack_ptr--
                         source_ptr = source_stack[stack_ptr]
                     } else {

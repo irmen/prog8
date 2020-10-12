@@ -42,12 +42,6 @@ internal fun Module.checkImportedValid() {
     imr.applyModifications()
 }
 
-internal fun Program.checkRecursion(errors: ErrorReporter) {
-    val checker = AstRecursionChecker(namespace, errors)
-    checker.visit(this)
-    checker.processMessages(name)
-}
-
 internal fun Program.checkIdentifiers(errors: ErrorReporter) {
 
     val checker2 = AstIdentifiersChecker(this, errors)

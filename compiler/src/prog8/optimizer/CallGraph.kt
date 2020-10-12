@@ -1,11 +1,10 @@
 package prog8.optimizer
 
-import prog8.ast.INameScope
-import prog8.ast.Module
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.DataType
+import prog8.ast.base.ErrorReporter
 import prog8.ast.base.ParentSentinel
+import prog8.ast.base.Position
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.IAstVisitor
@@ -25,7 +24,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     val imports = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
     val importedBy = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
-    val calls = mutableMapOf<INameScope, List<Subroutine>>().withDefault { mutableListOf() }
+    val calls = mutableMapOf<Subroutine, List<Subroutine>>().withDefault { mutableListOf() }
     val calledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
 
     // TODO  add dataflow graph: what statements use what variables - can be used to eliminate unused vars
@@ -79,8 +78,10 @@ class CallGraph(private val program: Program) : IAstVisitor {
             importedBy[importedModule] = importedBy.getValue(importedModule).plus(thisModule)
         } else if (directive.directive == "%asminclude") {
             val asm = loadAsmIncludeFile(directive.args[0].str!!, thisModule.source)
-            val scope = directive.definingScope()
-            scanAssemblyCode(asm, directive, scope)
+            val scope = directive.definingSubroutine()
+            if(scope!=null) {
+                scanAssemblyCode(asm, directive, scope)
+            }
         }
 
         super.visit(directive)
@@ -167,12 +168,12 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     override fun visit(inlineAssembly: InlineAssembly) {
         // parse inline asm for subroutine calls (jmp, jsr)
-        val scope = inlineAssembly.definingScope()
+        val scope = inlineAssembly.definingSubroutine()!!
         scanAssemblyCode(inlineAssembly.assembly, inlineAssembly, scope)
         super.visit(inlineAssembly)
     }
 
-    private fun scanAssemblyCode(asm: String, context: Statement, scope: INameScope) {
+    private fun scanAssemblyCode(asm: String, context: Statement, scope: Subroutine) {
         asm.lines().forEach { line ->
             val matches = asmJumpRx.matchEntire(line)
             if (matches != null) {
@@ -207,5 +208,56 @@ class CallGraph(private val program: Program) : IAstVisitor {
                 }
             }
         }
+    }
+
+    fun checkRecursiveCalls(errors: ErrorReporter) {
+        val cycles = recursionCycles()
+        if(cycles.any()) {
+            errors.warn("Program contains recursive subroutine calls. These only works in very specific limited scenarios!", Position.DUMMY)
+            val printed = mutableSetOf<Subroutine>()
+            for(chain in cycles) {
+                if(chain[0] !in printed) {
+                    val chainStr = chain.joinToString(" <-- ") { "${it.name} at ${it.position}" }
+                    errors.warn("Cycle in (a subroutine call in) $chainStr", Position.DUMMY)
+                    printed.add(chain[0])
+                }
+            }
+        }
+    }
+
+    private fun recursionCycles(): List<List<Subroutine>> {
+        val chains = mutableListOf<MutableList<Subroutine>>()
+        for(caller in calls.keys) {
+            val visited = calls.keys.associateWith { false }.toMutableMap()
+            val recStack = calls.keys.associateWith { false }.toMutableMap()
+            val chain = mutableListOf<Subroutine>()
+            if(hasCycle(caller, visited, recStack, chain))
+                chains.add(chain)
+        }
+        return chains
+    }
+
+    private fun hasCycle(sub: Subroutine, visited: MutableMap<Subroutine, Boolean>, recStack: MutableMap<Subroutine, Boolean>, chain: MutableList<Subroutine>): Boolean {
+        // mark current node as visited and add to recursion stack
+        if(recStack[sub]==true)
+            return true
+        if(visited[sub]==true)
+            return false
+
+        // mark visited and add to recursion stack
+        visited[sub] = true
+        recStack[sub] = true
+
+        // recurse for all neighbours
+        for(called in calls.getValue(sub)) {
+            if(hasCycle(called, visited, recStack, chain)) {
+                chain.add(called)
+                return true
+            }
+        }
+
+        // pop from recursion stack
+        recStack[sub] = false
+        return false
     }
 }
