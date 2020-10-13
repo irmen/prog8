@@ -938,6 +938,7 @@ internal class AsmGen(private val program: Program,
                 when {
                     iterations == 0 -> {}
                     iterations <= 256 -> {
+                        // TODO faulty loop code when 256 because of the beq that's also generated (should be ok if that is removed?)
                         out("  lda  #${iterations and 255}")
                         repeatByteCountInA(iterations, repeatLabel, endLabel, stmt.body)
                     }
@@ -985,6 +986,7 @@ internal class AsmGen(private val program: Program,
     private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
         // note: A/Y must have been loaded with the number of iterations already!
         val counterVar = makeLabel("repeatcounter")
+        // TODO the 0.w check at the start is invalid(wrong register check order), and must not be done at all if the loop count is numeric literal >0
         out("""
                 bne  +
                 cpy  #0
@@ -1018,6 +1020,7 @@ $counterVar    .word  0""")
     private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
         // note: A must have been loaded with the number of iterations already!
         val counterVar = makeLabel("repeatcounter")
+        // TODO the beq endlabel check can be omitted if the number of iterations is a numeric literal >0
         out("""
             beq  $endLabel
             sta  $counterVar
