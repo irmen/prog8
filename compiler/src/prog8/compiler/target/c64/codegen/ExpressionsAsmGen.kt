@@ -90,6 +90,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> throw AssemblyError("can't perform string comparison here")
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -131,6 +132,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> throw AssemblyError("can't perform string comparison here")
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -145,6 +147,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
+                    DataType.STR -> throw AssemblyError("can't perform string lt")
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -159,6 +162,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
+                    DataType.STR -> throw AssemblyError("can't perform string le")
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -173,6 +177,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
+                    DataType.STR -> throw AssemblyError("can't perform string gt")
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -187,6 +192,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
+                    DataType.STR -> throw AssemblyError("can't perform string ge")
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }

@@ -3,6 +3,8 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
+- introduce strcmp()
+- modify string comparsion expressions to use strcmp() automatically
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
