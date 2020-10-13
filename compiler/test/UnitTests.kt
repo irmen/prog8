@@ -186,11 +186,11 @@ class TestC64Zeropage {
     @Test
     fun testFreeSpaces() {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false))
-        assertEquals(16, zp1.available())
+        assertEquals(18, zp1.available())
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false))
-        assertEquals(89, zp2.available())
+        assertEquals(91, zp2.available())
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false))
-        assertEquals(125, zp3.available())
+        assertEquals(127, zp3.available())
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false))
         assertEquals(238, zp4.available())
     }
@@ -220,7 +220,7 @@ class TestC64Zeropage {
     @Test
     fun testBasicsafeAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false))
-        assertEquals(16, zp.available())
+        assertEquals(18, zp.available())
 
         assertFailsWith<ZeropageDepletedError> {
             // in regular zp there aren't 5 sequential bytes free
@@ -273,16 +273,18 @@ class TestC64Zeropage {
     @Test
     fun testEfficientAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false))
-        assertEquals(16, zp.available())
+        assertEquals(18, zp.available())
         assertEquals(0x04, zp.allocate("", DataType.WORD, null, errors))
         assertEquals(0x06, zp.allocate("", DataType.UBYTE, null, errors))
         assertEquals(0x0a, zp.allocate("", DataType.UBYTE, null, errors))
-        assertEquals(0x94, zp.allocate("", DataType.UWORD, null, errors))
-        assertEquals(0xa7, zp.allocate("", DataType.UWORD, null, errors))
-        assertEquals(0xa9, zp.allocate("", DataType.UWORD, null, errors))
-        assertEquals(0xb5, zp.allocate("", DataType.UWORD, null, errors))
-        assertEquals(0xf7, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0x9b, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0x9e, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xa5, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xb0, zp.allocate("", DataType.UWORD, null, errors))
+        assertEquals(0xbe, zp.allocate("", DataType.UWORD, null, errors))
         assertEquals(0x0e, zp.allocate("", DataType.UBYTE, null, errors))
+        assertEquals(0x92, zp.allocate("", DataType.UBYTE, null, errors))
+        assertEquals(0x96, zp.allocate("", DataType.UBYTE, null, errors))
         assertEquals(0xf9, zp.allocate("", DataType.UBYTE, null, errors))
         assertEquals(0, zp.available())
     }
