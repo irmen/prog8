@@ -77,62 +77,59 @@ io_error:
     }
 
 
-    str filename = "0:??????????????????????????????????????"
-
     sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> byte {
-        ubyte flen = strlen(filenameptr)
-        filename[0] = '0'
-        filename[1] = ':'
-        memcopy(filenameptr, &filename+2, flen)
-        memcopy(",s,w", &filename+2+flen, 5)
-        c64.SETNAM(flen+6, filename)
-        c64.SETLFS(1, drivenumber, 1)
-        void c64.OPEN()
-        if_cs
-            goto io_error
+        c64.SETNAM(strlen(filenameptr), filenameptr)
+        c64.SETLFS(1, drivenumber, 0)
+        uword end_address = address + size
 
-        c64.CHKOUT(1)
-        if_cs
-            goto io_error
+        %asm {{
+            lda  address
+            sta  P8ZP_SCRATCH_W1
+            lda  address+1
+            sta  P8ZP_SCRATCH_W1+1
+            stx  P8ZP_SCRATCH_REG
+            lda  #<P8ZP_SCRATCH_W1
+            ldx  end_address
+            ldy  end_address+1
+            jsr  c64.SAVE
+            php
+            ldx  P8ZP_SCRATCH_REG
+            plp
+        }}
 
-        repeat size {
-            c64.CHROUT(@(address))
-            address++
-        }
+        if_cc
+            return c64.READST()==0
 
-io_error:
-        c64.CLRCHN()
-        c64.CLOSE(1)
-        return c64.READST()==0
+        return false
     }
 
-    sub load(ubyte drivenumber, uword filenameptr, uword address) -> byte {
-        ubyte flen = strlen(filenameptr)
-        filename[0] = '0'
-        filename[1] = ':'
-        memcopy(filenameptr, &filename+2, flen)
-        memcopy(",s,r", &filename+2+flen, 5)
-        c64.SETNAM(flen+6, filename)
-        c64.SETLFS(1, drivenumber, 2)
-        void c64.OPEN()
-        if_cs
-            goto io_error
-        void c64.CHKIN(1)
-        if_cs
-            goto io_error
+    sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
+        c64.SETNAM(strlen(filenameptr), filenameptr)
+        ubyte secondary = 1
+        uword end_of_load = 0
+        if address_override
+            secondary = 0
+        c64.SETLFS(1, drivenumber, secondary)
+        %asm {{
+            stx  P8ZP_SCRATCH_REG
+            lda  #0
+            ldx  address_override
+            ldy  address_override+1
+            jsr  c64.LOAD
+            bcs  +
+            stx  end_of_load
+            sty  end_of_load+1
++           ldx  P8ZP_SCRATCH_REG
+        }}
 
-        do {
-            @(address) = c64.CHRIN()
-            address++
-        } until c64.READST()
+        if end_of_load
+            return end_of_load - address_override
 
-io_error:
-        c64.CLRCHN()
-        c64.CLOSE(1)
-
-        ubyte status = c64.READST()
-        return status==0 or status==64
+        return 0
     }
+
+
+    str filename = "0:??????????????????????????????????????"
 
     sub delete(ubyte drivenumber, uword filenameptr) {
         ; -- delete a file on the drive

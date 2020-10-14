@@ -65,7 +65,7 @@ main {
 }
 
 trader {
-    str Savegame = "txtel.savegame"
+    str Savegame = "↑commander.save"
     str input = "??????????"
     ubyte num_chars
 
