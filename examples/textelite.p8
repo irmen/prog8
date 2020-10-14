@@ -10,7 +10,7 @@
 ; Note: this program is compatible with C64 and CX16.
 
 
-; TODO save/load game function
+; TODO finalize and test save/load game function
 
 main {
 
@@ -23,8 +23,7 @@ main {
         txt.lowercase()
         txt.print("\u000c\n --- TextElite v1.1 ---\n")
 
-        galaxy.init(1)
-        galaxy.travel_to(numforLave)
+        galaxy.travel_to(1, numforLave)
         market.init(0)  ;  Lave's market is seeded with 0
         ship.init()
         planet.display(false)
@@ -70,8 +69,28 @@ trader {
     ubyte num_chars
 
     struct SaveData {
-        uword xx
-        ubyte yy
+        ubyte galaxy
+        ubyte planet
+        ubyte cargo0
+        ubyte cargo1
+        ubyte cargo2
+        ubyte cargo3
+        ubyte cargo4
+        ubyte cargo5
+        ubyte cargo6
+        ubyte cargo7
+        ubyte cargo8
+        ubyte cargo9
+        ubyte cargo10
+        ubyte cargo11
+        ubyte cargo12
+        ubyte cargo13
+        ubyte cargo14
+        ubyte cargo15
+        ubyte cargo16
+        uword cash
+        ubyte max_cargo
+        ubyte fuel
     }
     SaveData savedata
 
@@ -85,14 +104,23 @@ trader {
             txt.chrout('\n')
         }
 
-        ; TODO ACTUALLY LOAD SOMETHING RELEVANT
+        ship.cash = savedata.cash
+        ship.Max_cargo = savedata.max_cargo
+        ship.fuel = savedata.fuel
+        ;memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))      ; TODO fix compiler error about pointer
+        galaxy.travel_to(savedata.galaxy, savedata.planet)
+        ; TODO CHECK IF GALAXY AND MARKET ARE OKAY AFTER LOAD
 
         planet.display(false)
     }
 
     sub do_save() {
-        savedata.xx=1111
-        savedata.yy=123
+        savedata.galaxy = galaxy.number
+        savedata.planet = planet.number
+        savedata.cash = ship.cash
+        savedata.max_cargo = ship.Max_cargo
+        savedata.fuel = ship.fuel
+        ;memcopy(ship.cargohold, &savedata.cargo0, len(ship.cargohold)) ; TODO fix compiler error about pointer
 
         txt.print("\nSaving universe...")
         diskio.delete(8, Savegame)
@@ -103,8 +131,6 @@ trader {
             diskio.status(8)
             txt.chrout('\n')
         }
-
-        ; TODO ACTUALLY SAVE SOMETHING RELEVANT
     }
 
     sub do_jump() {
@@ -138,7 +164,7 @@ trader {
         } else {
             txt.print(" Not found!\n")
         }
-        galaxy.travel_to(current_planet)
+        galaxy.travel_to(galaxy.number, current_planet)
     }
 
     sub do_buy() {
@@ -222,8 +248,7 @@ trader {
     }
 
     sub do_next_galaxy() {
-        galaxy.nextgalaxy()
-        galaxy.travel_to(planet.number)
+        galaxy.travel_to(galaxy.number+1, planet.number)
         planet.display(false)
     }
 
@@ -237,7 +262,7 @@ trader {
             } else {
                 txt.print(" Not found!")
             }
-            galaxy.travel_to(current_planet)
+            galaxy.travel_to(galaxy.number, current_planet)
         } else {
             planet.display(false)
         }
@@ -380,8 +405,8 @@ galaxy {
             number = 1
     }
 
-    sub travel_to(ubyte system) {
-        init(number)
+    sub travel_to(ubyte galaxynum, ubyte system) {
+        init(galaxynum)         ; TODO fix scoping error when using 'galaxy' as name
         generate_next_planet()   ; always at least planet 0  (separate to avoid repeat ubyte overflow)
         repeat system {
             generate_next_planet()
@@ -418,9 +443,9 @@ galaxy {
         }
 
         if found
-            travel_to(current_closest_pi)
+            travel_to(number, current_closest_pi)
         else
-            travel_to(current_planet_num)
+            travel_to(number, current_planet_num)
 
         return found
     }
@@ -453,7 +478,7 @@ galaxy {
             pn++
         } until pn==0
 
-        travel_to(current_planet)
+        travel_to(number, current_planet)
     }
 
     ubyte pn_pair1
@@ -923,13 +948,13 @@ util {
 
     asmsub print_10s(uword value @AY) clobbers(A, X, Y) {
         %asm {{
-		    jsr  conv.uword2decimal
-		    lda  conv.uword2decimal.decTenThousands
-		    ldy  #0     ; have we started printing?
-		    cmp  #'0'
-		    beq  +
-		    jsr  c64.CHROUT
-		    iny
+            jsr  conv.uword2decimal
+            lda  conv.uword2decimal.decTenThousands
+            ldy  #0     ; have we started printing?
+            cmp  #'0'
+            beq  +
+            jsr  c64.CHROUT
+            iny
 +           lda  conv.uword2decimal.decThousands
 		    cmp  #'0'
             bne  +

@@ -162,54 +162,40 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
     }
 
     private fun flattenArrayAssignmentFromArrayLiteral(assign: Assignment): List<Assignment> {
-        // TODO use a pointer loop instead of individual assignments
-
         val identifier = assign.target.identifier!!
         val targetVar = identifier.targetVarDecl(program.namespace)!!
-
         val alv = assign.value as? ArrayLiteralValue
-        if(targetVar.arraysize==null) {
-            errors.err("array has no defined size", identifier.position)
-            return emptyList()
-        }
-
-        if(alv==null || alv.value.size != targetVar.arraysize!!.constIndex()) {
-            errors.err("element count mismatch", assign.position)
-            return emptyList()
-        }
-
-        return alv.value.withIndex().map { (index, value)->
-            val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, assign.position), assign.position), assign.position)
-            Assignment(AssignTarget(null, idx, null, assign.position), value, value.position)
-        }
+        return flattenArrayAssign(targetVar, alv, identifier, assign.position)
     }
 
     private fun flattenArrayAssignmentFromIdentifier(assign: Assignment): List<Assignment> {
-        // TODO use a pointer loop instead of individual assignments
-
         val identifier = assign.target.identifier!!
         val targetVar = identifier.targetVarDecl(program.namespace)!!
-
         val sourceIdent = assign.value as IdentifierReference
         val sourceVar = sourceIdent.targetVarDecl(program.namespace)!!
         if(!sourceVar.isArray) {
             errors.err("value must be an array",  sourceIdent.position)
             return emptyList()
         }
+        val alv = sourceVar.value as? ArrayLiteralValue
+        return flattenArrayAssign(targetVar, alv, identifier, assign.position)
+    }
+
+    private fun flattenArrayAssign(targetVar: VarDecl, alv: ArrayLiteralValue?, identifier: IdentifierReference, position: Position): List<Assignment> {
         if(targetVar.arraysize==null) {
             errors.err("array has no defined size", identifier.position)
             return emptyList()
         }
 
-        val alv = sourceVar.value as? ArrayLiteralValue
         if(alv==null || alv.value.size != targetVar.arraysize!!.constIndex()) {
-            errors.err("element count mismatch", assign.position)
+            errors.err("element count mismatch", position)
             return emptyList()
         }
 
+        // TODO use a pointer loop instead of individual assignments
         return alv.value.withIndex().map { (index, value)->
-            val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, assign.position), assign.position), assign.position)
-            Assignment(AssignTarget(null, idx, null, assign.position), value, value.position)
+            val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, position), position), position)
+            Assignment(AssignTarget(null, idx, null, position), value, value.position)
         }
     }
 
