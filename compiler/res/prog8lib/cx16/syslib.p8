@@ -12,9 +12,9 @@ c64 {
 
 ; ---- kernal routines, these are the same as on the Commodore-64 (hence the same block name) ----
 
-; STROUT --> use screen.print
-; CLEARSCR -> use screen.clear_screen
-; HOMECRSR -> use screen.plot
+; STROUT --> use txt.print
+; CLEARSCR -> use txt.clear_screen
+; HOMECRSR -> use txt.plot
 
 romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip
 romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)
@@ -53,7 +53,7 @@ romsub $FFE4 = GETIN() clobbers(X,Y) -> ubyte @Pc, ubyte @ A    ; (via 810 ($32A
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
-romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use c64scr.plot for a 'safe' wrapper that preserves X.
+romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
 }
