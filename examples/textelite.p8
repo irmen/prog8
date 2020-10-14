@@ -1,5 +1,6 @@
 %import textio
 %import conv
+%import diskio
 %option no_sysinit
 %zeropage basicsafe
 
@@ -20,7 +21,7 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\u000c\n --- TextElite v1.0 ---\n")
+        txt.print("\u000c\n --- TextElite v1.1 ---\n")
 
         galaxy.init(1)
         galaxy.travel_to(numforLave)
@@ -64,15 +65,46 @@ main {
 }
 
 trader {
+    str Savegame = "txtel.savegame"
     str input = "??????????"
     ubyte num_chars
 
+    struct SaveData {
+        uword xx
+        ubyte yy
+    }
+    SaveData savedata
+
     sub do_load() {
-        txt.print("\nTODO LOAD\n")
+        txt.print("\nLoading universe...")
+        if diskio.load(8, Savegame, &savedata) {
+            txt.print("ok\n")
+        } else {
+            txt.print("\ni/o error: ")
+            diskio.status(8)
+            txt.chrout('\n')
+        }
+
+        ; TODO ACTUALLY LOAD SOMETHING RELEVANT
+
+        planet.display(false)
     }
 
     sub do_save() {
-        txt.print("\nTODO SAVE\n")
+        savedata.xx=1111
+        savedata.yy=123
+
+        txt.print("\nSaving universe...")
+        diskio.delete(8, Savegame)
+        if diskio.save(8, Savegame, &savedata, sizeof(savedata)) {
+            txt.print("ok\n")
+        } else {
+            txt.print("\ni/o error: ")
+            diskio.status(8)
+            txt.chrout('\n')
+        }
+
+        ; TODO ACTUALLY SAVE SOMETHING RELEVANT
     }
 
     sub do_jump() {
