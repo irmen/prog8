@@ -4,7 +4,7 @@ TODO
 
 - get rid of all other TODO's in the code ;-)
 - introduce strcmp()
-- modify string comparsion expressions to use strcmp() automatically
+- modify string comparison expressions to use strcmp() automatically
 - only allow array indexing via a number, a variable, or a typecast of one of those (eliminate complex expression calcs for array indexing, force explicit use of an index variable)
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'

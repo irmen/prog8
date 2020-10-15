@@ -250,7 +250,7 @@ output	.text  "0000", $00      ; 0-terminated output buffer (to make printing ea
 }
 
 
-asmsub str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
+asmsub  str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
 	; -- returns the unsigned byte value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
@@ -260,8 +260,7 @@ asmsub str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
 	}}
 }
 
-
-asmsub str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
+asmsub  str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
 	; -- returns the signed byte value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
@@ -271,7 +270,7 @@ asmsub str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
 	}}
 }
 
-asmsub str2uword(str string @ AY) -> uword @ AY {
+asmsub  str2uword(str string @ AY) -> uword @ AY {
 	; -- returns the unsigned word value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
@@ -325,7 +324,7 @@ _result_times_10     ; (W*4 + W)*2
 	}}
 }
 
-asmsub str2word(str string @ AY) -> word @ AY {
+asmsub  str2word(str string @ AY) -> word @ AY {
 	; -- returns the signed word value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
@@ -378,6 +377,79 @@ _digit		cmp  #10
 		; never reached
 _negative	.byte  0
 	}}
+}
+
+asmsub  hex2uword(str string @ AY) -> uword @AY {
+    ; -- hexadecimal string with or without '$' to uword.
+    ;    string may be in petscii or c64-screencode encoding.
+    %asm {{
+        sta  P8ZP_SCRATCH_W2
+        sty  P8ZP_SCRATCH_W2+1
+        ldy  #0
+        sty  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
+_loop       ldy  #0
+        sty  P8ZP_SCRATCH_B1
+        lda  (P8ZP_SCRATCH_W2),y
+        beq  _stop
+        cmp  #'$'
+        beq  _skip
+        cmp  #7
+        bcc  _add_nine
+        cmp  #'9'
+        beq  _calc
+        bcs  _add_nine
+_calc       asl  P8ZP_SCRATCH_W1
+        rol  P8ZP_SCRATCH_W1+1
+        asl  P8ZP_SCRATCH_W1
+        rol  P8ZP_SCRATCH_W1+1
+        asl  P8ZP_SCRATCH_W1
+        rol  P8ZP_SCRATCH_W1+1
+        asl  P8ZP_SCRATCH_W1
+        rol  P8ZP_SCRATCH_W1+1
+        and  #$0f
+        clc
+        adc  P8ZP_SCRATCH_B1
+        ora  P8ZP_SCRATCH_W1
+        sta  P8ZP_SCRATCH_W1
+_skip       inc  P8ZP_SCRATCH_W2
+        bne  _loop
+        inc  P8ZP_SCRATCH_W2+1
+        bne  _loop
+_stop       lda  P8ZP_SCRATCH_W1
+        ldy  P8ZP_SCRATCH_W1+1
+        rts
+_add_nine   ldy  #9
+        sty  P8ZP_SCRATCH_B1
+        bne  _calc
+    }}
+}
+
+asmsub  bin2uword(str string @ AY) -> uword @AY {
+    ; -- binary string with or without '%' to uword.
+    %asm {{
+        sta  P8ZP_SCRATCH_W2
+        sty  P8ZP_SCRATCH_W2+1
+        ldy  #0
+        sty  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
+_loop       lda  (P8ZP_SCRATCH_W2),y
+        beq  _stop
+        cmp  #'%'
+        beq  +
+        asl  P8ZP_SCRATCH_W1
+        rol  P8ZP_SCRATCH_W1+1
+        and  #1
+        ora  P8ZP_SCRATCH_W1
+        sta  P8ZP_SCRATCH_W1
++           inc  P8ZP_SCRATCH_W2
+        bne  _loop
+        inc  P8ZP_SCRATCH_W2+1
+        bne  _loop
+_stop       lda  P8ZP_SCRATCH_W1
+        ldy  P8ZP_SCRATCH_W1+1
+        rts
+    }}
 }
 
 }

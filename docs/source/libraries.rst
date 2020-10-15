@@ -35,8 +35,8 @@ conv
 Routines to convert strings to numbers or vice versa.
 
 - numbers to strings, in various formats (binary, hex, decimal)
-- strings in decimal format into numbers
-- (TODO: strings in hex and binary format into numbers)
+- strings in decimal, hex and binary format into numbers
+
 
 textio (txt.*)
 --------------

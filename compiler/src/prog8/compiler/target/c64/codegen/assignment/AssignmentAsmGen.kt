@@ -43,7 +43,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             SourceStorageKind.VARIABLE -> {
                 // simple case: assign from another variable
-                val variable = assign.source.asmVarname!!
+                val variable = assign.source.asmVarname
                 when (assign.target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
                     DataType.UWORD, DataType.WORD -> assignVariableWord(assign.target, variable)
