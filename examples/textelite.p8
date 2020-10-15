@@ -107,7 +107,7 @@ trader {
         ship.cash = savedata.cash
         ship.Max_cargo = savedata.max_cargo
         ship.fuel = savedata.fuel
-        ;memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))      ; TODO fix compiler error about pointer
+        memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))
         galaxy.travel_to(savedata.galaxy, savedata.planet)
         ; TODO CHECK IF GALAXY AND MARKET ARE OKAY AFTER LOAD
 
@@ -120,7 +120,7 @@ trader {
         savedata.cash = ship.cash
         savedata.max_cargo = ship.Max_cargo
         savedata.fuel = ship.fuel
-        ;memcopy(ship.cargohold, &savedata.cargo0, len(ship.cargohold)) ; TODO fix compiler error about pointer
+        memcopy(ship.cargohold, &savedata.cargo0, len(ship.cargohold))
 
         txt.print("\nSaving universe...")
         diskio.delete(8, Savegame)

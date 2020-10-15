@@ -464,6 +464,7 @@ internal class AstChecker(private val program: Program,
         else {
             if(variable.datatype !in ArrayDatatypes
                     && variable.type!=VarDeclType.MEMORY
+                    && variable.struct == null
                     && variable.datatype != DataType.STR && variable.datatype!=DataType.STRUCT)
                 errors.err("invalid pointer-of operand type", addressOf.position)
         }

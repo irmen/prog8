@@ -1,21 +1,40 @@
 %import textio
 %import diskio
 %zeropage basicsafe
-%option no_sysinit
 
 main {
 
     sub start() {
 
-        txt.print("saving...")
-        diskio.delete(8, "data.bin")
-        if diskio.save(8, "data.bin", $0400, 40*25) {
-            txt.clear_screenchars('*')
-            txt.print("loading...")
-            uword size = diskio.load(8, "data.bin", $0400)
-            txt.print_uwhex(size, true)
-            txt.chrout('\n')
-        } else txt.print("io error\n")
+        ubyte[100] cargohold
+
+        struct SaveData {
+            ubyte galaxy
+            ubyte planet
+            ubyte cargo0
+            ubyte cargo1
+            ubyte cargo2
+            ubyte cargo3
+            ubyte cargo4
+            ubyte cargo5
+            ubyte cargo6
+            ubyte cargo7
+            ubyte cargo8
+            ubyte cargo9
+            ubyte cargo10
+            ubyte cargo11
+            ubyte cargo12
+            ubyte cargo13
+            ubyte cargo14
+            ubyte cargo15
+            ubyte cargo16
+            uword cash
+            ubyte max_cargo
+            ubyte fuel
+        }
+        SaveData savedata
+
+        memcopy(&savedata.cargo0, cargohold, len(cargohold))      ; TODO fix compiler error about pointer
 
         testX()
     }
