@@ -171,6 +171,7 @@ If you're targeting the CommanderX16, there's the `x16emu <https://github.com/co
     building.rst
     programming.rst
     syntaxreference.rst
+    libraries.rst
     todo.rst
 
 
