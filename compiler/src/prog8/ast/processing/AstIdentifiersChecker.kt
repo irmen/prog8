@@ -80,6 +80,11 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
+        if(decl.definingBlock().name==decl.name)
+            nameError(decl.name, decl.position, decl.definingBlock())
+        if(decl.definingSubroutine()?.name==decl.name)
+            nameError(decl.name, decl.position, decl.definingSubroutine()!!)
+
         super.visit(decl)
     }
 

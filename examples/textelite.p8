@@ -406,7 +406,7 @@ galaxy {
     }
 
     sub travel_to(ubyte galaxynum, ubyte system) {
-        init(galaxynum)         ; TODO fix scoping error when using 'galaxy' as name
+        init(galaxynum)
         generate_next_planet()   ; always at least planet 0  (separate to avoid repeat ubyte overflow)
         repeat system {
             generate_next_planet()
