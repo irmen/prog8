@@ -1,12 +1,42 @@
 %import textio
-%import diskio
+%import conv
 %zeropage basicsafe
 
 main {
 
     sub start() {
 
-        dinges.travel_to(5)
+        str num1 = "01234"
+        str num2 = @"01234"
+        str hex1 = "a04E"
+        str hex2 = "$a04E"
+        str hex3 = @"a04E"
+        str hex4 = @"$a04E"
+
+;        txt.print(num1)
+;        txt.chrout('\n')
+;        txt.print(num2)
+;        txt.chrout('\n')
+;        txt.print(hex1)
+;        txt.chrout('\n')
+;        txt.print(hex2)
+;        txt.chrout('\n')
+;        txt.print(hex3)
+;        txt.chrout('\n')
+;        txt.print(hex4)
+;        txt.chrout('\n')
+
+        ubyte cc
+        for cc in 0 to len(hex3)-1 {
+            @($0410+cc) = hex3[cc]
+            txt.setchr(16+cc,2,hex3[cc])
+        }
+
+        for cc in 0 to len(hex4)-1 {
+            @($0420+cc) = hex4[cc]
+            txt.setchr(32+cc,2,hex4[cc])
+        }
+
         testX()
     }
 
@@ -25,15 +55,3 @@ _saveX   .byte 0
         }}
     }
 }
-
-
-dinges {
-
-        sub foo(ubyte x) {
-        }
-
-        sub travel_to(ubyte d2) {
-            ubyte travel_to=d2
-            foo(travel_to)
-        }
-    }

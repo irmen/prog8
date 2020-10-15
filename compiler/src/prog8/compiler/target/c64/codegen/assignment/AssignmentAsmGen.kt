@@ -1220,6 +1220,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, ldaInstructionArg)
             }
             else -> {
+                asmgen.out(" lda  $ldaInstructionArg |  pha")
                 asmgen.translateExpression(addressExpr)
                 asmgen.out("""
                     inx
@@ -1227,8 +1228,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     sta  P8ZP_SCRATCH_W2
                     lda  P8ESTACK_HI,x
                     sta  P8ZP_SCRATCH_W2+1
-                    lda  $ldaInstructionArg
                     ldy  #0
+                    pla
                     sta  (P8ZP_SCRATCH_W2),y""")
             }
         }
