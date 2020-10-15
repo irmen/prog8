@@ -196,8 +196,8 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>)
                 (first.startsWith("sty ") && second.startsWith("ldy ")) ||
                 (first.startsWith("stx ") && second.startsWith("ldx "))
         ) {
-            val firstLoc = first.substring(4)
-            val secondLoc = second.substring(4)
+            val firstLoc = first.substring(4).trimStart()
+            val secondLoc = second.substring(4).trimStart()
             if (firstLoc == secondLoc) {
                 mods.add(Modification(pair[1].index, true, null))
             }

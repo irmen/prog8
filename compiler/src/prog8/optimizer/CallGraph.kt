@@ -168,12 +168,12 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     override fun visit(inlineAssembly: InlineAssembly) {
         // parse inline asm for subroutine calls (jmp, jsr)
-        val scope = inlineAssembly.definingSubroutine()!!
+        val scope = inlineAssembly.definingSubroutine()
         scanAssemblyCode(inlineAssembly.assembly, inlineAssembly, scope)
         super.visit(inlineAssembly)
     }
 
-    private fun scanAssemblyCode(asm: String, context: Statement, scope: Subroutine) {
+    private fun scanAssemblyCode(asm: String, context: Statement, scope: Subroutine?) {
         asm.lines().forEach { line ->
             val matches = asmJumpRx.matchEntire(line)
             if (matches != null) {
@@ -181,13 +181,15 @@ class CallGraph(private val program: Program) : IAstVisitor {
                 if (jumptarget != null && (jumptarget[0].isLetter() || jumptarget[0] == '_')) {
                     val node = program.namespace.lookup(jumptarget.split('.'), context)
                     if (node is Subroutine) {
-                        calls[scope] = calls.getValue(scope).plus(node)
+                        if(scope!=null)
+                            calls[scope] = calls.getValue(scope).plus(node)
                         calledBy[node] = calledBy.getValue(node).plus(context)
                     } else if (jumptarget.contains('.')) {
                         // maybe only the first part already refers to a subroutine
                         val node2 = program.namespace.lookup(listOf(jumptarget.substringBefore('.')), context)
                         if (node2 is Subroutine) {
-                            calls[scope] = calls.getValue(scope).plus(node2)
+                            if(scope!=null)
+                                calls[scope] = calls.getValue(scope).plus(node2)
                             calledBy[node2] = calledBy.getValue(node2).plus(context)
                         }
                     }
@@ -200,7 +202,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
                         if (target.contains('.')) {
                             val node = program.namespace.lookup(listOf(target.substringBefore('.')), context)
                             if (node is Subroutine) {
-                                calls[scope] = calls.getValue(scope).plus(node)
+                                if(scope!=null)
+                                    calls[scope] = calls.getValue(scope).plus(node)
                                 calledBy[node] = calledBy.getValue(node).plus(context)
                             }
                         }

@@ -6,4 +6,20 @@
 
 prog8_lib {
 	%asminclude "library:prog8_lib.asm", ""
+
+    sub strcmp(uword s1, uword s2) -> byte {
+        ; -- convenience wrapper for plain Prog8 to compare strings TODO turn this into a builtin function
+        byte result
+        %asm {{
+            lda  s2
+            sta  P8ZP_SCRATCH_W2
+            lda  s2+1
+            sta  P8ZP_SCRATCH_W2+1
+            lda  s1
+            ldy  s1+1
+            jsr  prog8_lib.strcmp_mem
+            sta  result
+        }}
+        return result
+    }
 }

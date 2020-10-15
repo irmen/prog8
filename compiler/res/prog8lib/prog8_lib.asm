@@ -1990,6 +1990,38 @@ strcpy		.proc
 		.pend
 
 
+strcmp_mem	.proc
+		; --   compares strings in s1 (AY) and s2 (PZP_SCRATCH_W2).
+		;      Returns -1,0,1 in A, depeding on the ordering. Clobbers Y.
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+_loop       ldy  #0
+            lda  (P8ZP_SCRATCH_W1),y
+            bne  +
+            lda  (P8ZP_SCRATCH_W2),y
+            bne  _return_minusone
+            beq  _return
++           lda  (P8ZP_SCRATCH_W2),y
+            sec
+            sbc  (P8ZP_SCRATCH_W1),y
+            bmi  _return_one
+            bne  _return_minusone
+            inc  P8ZP_SCRATCH_W1
+            bne  +
+            inc  P8ZP_SCRATCH_W1+1
++           inc  P8ZP_SCRATCH_W2
+            bne  _loop
+            inc  P8ZP_SCRATCH_W2+1
+            bne  _loop
+_return_one
+            lda  #1
+_return     rts
+_return_minusone
+            lda  #-1
+            rts
+            .pend
+
+
 func_leftstr	.proc
 		; leftstr(source, target, length) with params on stack
 		inx

@@ -66,16 +66,21 @@ internal class AsmGen(private val program: Program,
             block2asm(b)
         footer()
 
+        val outputFile = outputDir.resolve("${program.name}.asm").toFile()
+        outputFile.printWriter().use {
+            for (line in assemblyLines) { it.println(line) }
+        }
+
         if(optimize) {
+            assemblyLines.clear()
+            assemblyLines.addAll(outputFile.readLines())
             var optimizationsDone = 1
             while (optimizationsDone > 0) {
                 optimizationsDone = optimizeAssembly(assemblyLines)
             }
-        }
-
-        val outputFile = outputDir.resolve("${program.name}.asm").toFile()
-        outputFile.printWriter().use {
-            for (line in assemblyLines) { it.println(line) }
+            outputFile.printWriter().use {
+                for (line in assemblyLines) { it.println(line) }
+            }
         }
 
         return AssemblyProgram(program.name, outputDir)
