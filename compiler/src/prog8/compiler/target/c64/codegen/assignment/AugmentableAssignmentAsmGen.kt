@@ -941,9 +941,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             bne  -""")
                         }
                     }
-                    "&" -> TODO("bitand (u)wordvar bytevar")
-                    "^" -> TODO("bitxor (u)wordvar bytevar")
-                    "|" -> TODO("bitor (u)wordvar bytevar")
+                    "&" -> {
+                        asmgen.out(" lda  $otherName |  and  $name |  sta  $name")
+                        if(dt in WordDatatypes)
+                            asmgen.out(" lda  #0 |  sta  $name+1")
+                    }
+                    "^" -> asmgen.out(" lda  $otherName |  eor  $name |  sta  $name")
+                    "|" -> asmgen.out(" lda  $otherName |  ora  $name |  sta  $name")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1164,7 +1168,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         remainderWord()
                     }
                     "<<" -> {
-                        asmgen.translateExpression(value)
+                        asmgen.translateExpression(value)       // TODO huh is this okay? wasn't this done above already?
                         asmgen.out("""
                         inx
                         ldy  P8ESTACK_LO,x
@@ -1176,7 +1180,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                     }
                     ">>" -> {
-                        asmgen.translateExpression(value)
+                        asmgen.translateExpression(value)   // TODO huh is this okay? wasn't this done above already?
                         if(dt==DataType.UWORD) {
                             asmgen.out("""
                             inx
@@ -1201,9 +1205,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                         }
                     }
-                    "&" -> TODO("bitand (u)word (u)byte on stack")
-                    "^" -> TODO("bitxor (u)word (u)byte on stack")
-                    "|" -> TODO("bitor (u)word (u)byte on stack")
+                    "&" -> {
+                        asmgen.out("  lda  P8ESTACK_LO+1,x |  and  $name |  sta  $name")
+                        if(dt in WordDatatypes)
+                            asmgen.out(" lda  #0 |  sta  $name+1")
+                    }
+                    "^" -> asmgen.out("  lda  P8ESTACK_LO+1,x |  eor  $name |  sta  $name")
+                    "|" -> asmgen.out("  lda  P8ESTACK_LO+1,x |  ora  $name |  sta  $name")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
