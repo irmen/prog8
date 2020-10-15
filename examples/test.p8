@@ -3,43 +3,66 @@
 %zeropage basicsafe
 
 main {
+    %option force_output
 
     sub start() {
 
-        str hex1 = "a4E"
-        str hex2 = "$a4E"
-        str hex3 = @"a4E"
-        str hex4 = @"$a4E"
-        str bin1 = "111111010010"
-        str bin2 = "%111111010010"
+        str hex1 = "aap2"
+        str hex2 = "aap1je"
+        str hex3 = "aap1JE"
+        str hex4 = "aap3333"
 
-        txt.print(hex1)
-        txt.chrout('=')
-        txt.print_uwhex(conv.hex2uword(hex1), true)
+        byte result
+        result = strcmp(hex1, hex1)
+        txt.print_b(result)
         txt.chrout('\n')
-        txt.print(hex2)
-        txt.chrout('=')
-        txt.print_uwhex(conv.hex2uword(hex2), true)
+        result = strcmp(hex1, hex2)
+        txt.print_b(result)
         txt.chrout('\n')
-        txt.print(hex3)
-        txt.chrout('=')
-        txt.print_uwhex(conv.hex2uword(hex3), true)
+        result = strcmp(hex1, hex3)
+        txt.print_b(result)
         txt.chrout('\n')
-        txt.print(hex4)
-        txt.chrout('=')
-        txt.print_uwhex(conv.hex2uword(hex4), true)
+        result = strcmp(hex1, hex4)
+        txt.print_b(result)
         txt.chrout('\n')
-        txt.print(bin1)
-        txt.chrout('=')
-        txt.print_uwbin(conv.bin2uword(bin1), true)
-        txt.chrout('\n')
-        txt.print(bin2)
-        txt.chrout('=')
-        txt.print_uwbin(conv.bin2uword(bin2), true)
-        txt.chrout('\n')
-
 
         testX()
+    }
+
+    sub strcmp(uword s1, uword s2) -> byte {
+        byte result = 0
+
+        %asm {{
+_loop       ldy  #0
+            lda  (s1),y
+            bne  +
+            lda  (s2),y
+            bne  _return_minusone
+            beq  _return
++           lda  (s2),y
+            sec
+            sbc  (s1),y
+            bmi  _return_one
+            bne  _return_minusone
+            inc  s1
+            bne  +
+            inc  s1+1
++           inc  s2
+            bne  _loop
+            inc  s2+1
+            bne  _loop
+
+_return_one
+            ldy  #1
+            sty  result
+            bne  _return
+_return_minusone
+            ldy  #-1
+            sty  result
+_return
+        }}
+
+        return result
     }
 
     asmsub testX() {
