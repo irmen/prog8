@@ -90,7 +90,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> throw AssemblyError("can't perform string comparison here")
+                    DataType.STR -> {
+                        TODO("strcmp ==")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -132,7 +134,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> throw AssemblyError("can't perform string comparison here")
+                    DataType.STR -> {
+                        TODO("strcmp !=")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -147,7 +151,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> throw AssemblyError("can't perform string lt")
+                    DataType.STR -> {
+                        TODO("strcmp <")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -162,7 +168,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> throw AssemblyError("can't perform string le")
+                    DataType.STR -> {
+                        TODO("strcmp <=")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -177,7 +185,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> throw AssemblyError("can't perform string gt")
+                    DataType.STR -> {
+                        TODO("strcmp >")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -192,7 +202,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> throw AssemblyError("can't perform string ge")
+                    DataType.STR -> {
+                        TODO("strcmp >=")
+                    }
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -1274,11 +1286,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
             throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
 
-        when (leftDt) {
-            in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
-            in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
-            DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
-            else -> throw AssemblyError("non-numerical datatype")
+        if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in comparisonOperators) {
+            translateCompareStrings(expr.operator)
+        }
+        else {
+            when (leftDt) {
+                in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
+                in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
+                DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
+                else -> throw AssemblyError("non-numerical datatype")
+            }
         }
     }
 
@@ -1448,6 +1465,38 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             "!=" -> asmgen.out("  jsr  floats.notequal_f")
             "%", "<<", ">>", "&", "^", "|", "and", "or", "xor" -> throw AssemblyError("requires integer datatype")
             else -> throw AssemblyError("invalid operator $operator")
+        }
+    }
+
+    private fun translateCompareStrings(operator: String) {
+        asmgen.out(" jsr  prog8_lib.func_strcmp |  lda  P8ESTACK_LO+1,x")    // result  of compare in A
+        when(operator) {
+            "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO+1,x")
+            "!=" -> asmgen.out(" and  #1 |  sta  P8ESTACK_LO+1,x")
+            "<=" -> asmgen.out("""
+                bpl  +
+                lda  #1
+                bne  ++
++               lda  #0
++               sta  P8ESTACK_LO+1,x""")
+            ">=" -> asmgen.out("""
+                bmi  +
+                lda  #1
+                bne  ++
++               lda  #0
++               sta  P8ESTACK_LO+1,x""")
+            "<" -> asmgen.out("""
+                bmi  +
+                lda  #0
+                beq  ++
++               lda  #1
++               sta  P8ESTACK_LO+1,x""")
+            ">" -> asmgen.out("""
+                bpl  +
+                lda  #0
+                beq  ++
++               lda  #1
++               sta  P8ESTACK_LO+1,x""")
         }
     }
 }
