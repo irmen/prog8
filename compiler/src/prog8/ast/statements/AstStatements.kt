@@ -898,7 +898,10 @@ class WhenStatement(var condition: Expression,
             if(choice.values==null)
                 result.add(null to choice)
             else {
-                val values = choice.values!!.map { it.constValue(program)?.number?.toInt() }
+                val values = choice.values!!.map {
+                    val cv = it.constValue(program)
+                    cv?.number?.toInt() ?: it.hashCode()       // the hashcode is a nonsensical number but it avoids weird AST validation errors later
+                }
                 if(values.contains(null))
                     result.add(null to choice)
                 else
@@ -924,9 +927,15 @@ class WhenChoice(var values: List<Expression>?,           // if null,  this is t
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is AnonymousScope && node===statements)
-        statements = replacement
-        replacement.parent = this
+        val choiceValues = values
+        if(replacement is AnonymousScope && node===statements) {
+            statements = replacement
+            replacement.parent = this
+        } else if(choiceValues!=null && node in choiceValues) {
+            throw FatalAstException("cannot replace choice values")
+        } else {
+            throw FatalAstException("invalid replacement")
+        }
     }
 
     override fun toString(): String {

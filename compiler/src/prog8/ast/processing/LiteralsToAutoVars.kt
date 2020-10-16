@@ -11,7 +11,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
-        if(string.parent !is VarDecl) {
+        if(string.parent !is VarDecl && string.parent !is WhenChoice) {
             // replace the literal string by a identifier reference to a new local vardecl
             val vardecl = VarDecl.createAuto(string)
             val identifier = IdentifierReference(listOf(vardecl.name), vardecl.position)

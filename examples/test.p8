@@ -31,49 +31,50 @@ main {
 ;        txt.chrout('\n')
 
         if hex1==hex2
-            goto  endlab1
+            txt.print("1 fail ==\n")
         else
-            txt.print("not ==")
+            txt.print("1 ok not ==\n")
 endlab1:
         if hex1!=hex2
-            goto  endlab2
+            txt.print("2 ok !==\n")
         else
-            txt.print("not !=")
+            txt.print("2 fail not !=\n")
 endlab2:
         if hex1>=hex2
-            goto  endlab3
+            txt.print("3 ok >=\n")
         else
-            txt.print("not >=")
+            txt.print("3 fail not >=\n")
 endlab3:
         if hex1<=hex2
-            goto  endlab4
+            txt.print("4 fail <=\n")
         else
-            txt.print("not <=")
+            txt.print("4 ok not <=\n")
 endlab4:
         if hex1>hex2
-            goto  endlab5
+            txt.print("5 ok >\n")
         else
-            txt.print("not >")
+            txt.print("5 fail not >\n")
 endlab5:
         if hex1<hex2
-            goto  endlab6
+            txt.print("5 fail <\n")
         else
-            txt.print("not <")
+            txt.print("6 ok not <\n")
 
 endlab6:
+        txt.chrout('\n')
 
         txt.print_ub(hex1==hex2)
-        txt.chrout('\n')
+        txt.print("  0?\n")
         txt.print_ub(hex1!=hex2)
-        txt.chrout('\n')
+        txt.print("  1?\n")
         txt.print_ub(hex1>hex2)
-        txt.chrout('\n')
+        txt.print("  1?\n")
         txt.print_ub(hex1<hex2)
-        txt.chrout('\n')
+        txt.print("  0?\n")
         txt.print_ub(hex1>=hex2)
-        txt.chrout('\n')
+        txt.print("  1?\n")
         txt.print_ub(hex1<=hex2)
-        txt.chrout('\n')
+        txt.print("  0?\n")
 
         testX()
     }

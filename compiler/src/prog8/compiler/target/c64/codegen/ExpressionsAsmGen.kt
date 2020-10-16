@@ -90,9 +90,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> {
-                        TODO("strcmp ==")
-                    }
+                    DataType.STR -> translateStringEquals(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -134,9 +132,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> {
-                        TODO("strcmp !=")
-                    }
+                    DataType.STR -> translateStringNotEquals(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -151,9 +147,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> {
-                        TODO("strcmp <")
-                    }
+                    DataType.STR -> translateStringLess(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -168,9 +162,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> {
-                        TODO("strcmp <=")
-                    }
+                    DataType.STR -> translateStringLessOrEqual(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -185,9 +177,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> {
-                        TODO("strcmp >")
-                    }
+                    DataType.STR -> translateStringGreater(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -202,9 +192,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> {
-                        TODO("strcmp >=")
-                    }
+                    DataType.STR -> translateStringGreaterOrEqual(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -958,6 +946,97 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         translateExpression(left)
         translateExpression(right)
         asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateStringEquals(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmgen.asmVariableName(left)
+        val rightNam = asmgen.asmVariableName(right)
+        asmgen.out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            cmp  #0
+            bne  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringNotEquals(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmgen.asmVariableName(left)
+        val rightNam = asmgen.asmVariableName(right)
+        asmgen.out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            cmp  #0
+            beq  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringLess(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmgen.asmVariableName(left)
+        val rightNam = asmgen.asmVariableName(right)
+        asmgen.out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            bpl  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringGreater(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmgen.asmVariableName(left)
+        val rightNam = asmgen.asmVariableName(right)
+        asmgen.out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            beq  $jumpIfFalseLabel
+            bmi  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringLessOrEqual(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmgen.asmVariableName(left)
+        val rightNam = asmgen.asmVariableName(right)
+        asmgen.out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            beq  +
+            bpl  $jumpIfFalseLabel
++""")
+    }
+
+    private fun translateStringGreaterOrEqual(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmgen.asmVariableName(left)
+        val rightNam = asmgen.asmVariableName(right)
+        asmgen.out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            beq  +
+            bmi  $jumpIfFalseLabel
++""")
     }
 
     private fun translateFunctionCallResultOntoStack(expression: FunctionCall) {

@@ -1991,7 +1991,7 @@ strcpy		.proc
 
 
 strcmp_mem	.proc
-		; --   compares strings in s1 (AY) and s2 (PZP_SCRATCH_W2).
+		; --   compares strings in s1 (AY) and s2 (P8ZP_SCRATCH_W2).
 		;      Returns -1,0,1 in A, depeding on the ordering. Clobbers Y.
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
