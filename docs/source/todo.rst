@@ -3,7 +3,6 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- introduce strcmp()
 - modify string comparison expressions to use strcmp() automatically
 - only allow array indexing via a number, a variable, or a typecast of one of those (eliminate complex expression calcs for array indexing, force explicit use of an index variable)
 - implement @stack for asmsub parameters

@@ -13,16 +13,16 @@ main {
         str hex4 = "aap3333"
 
         byte result
-        result = prog8_lib.strcmp(hex1, hex1)
+        result = strcmp(hex1, hex1)
         txt.print_b(result)
         txt.chrout('\n')
-        result = prog8_lib.strcmp(hex1, hex2)
+        result = strcmp(hex1, hex2)
         txt.print_b(result)
         txt.chrout('\n')
-        result = prog8_lib.strcmp(hex1, hex3)
+        result = strcmp(hex1, hex3)
         txt.print_b(result)
         txt.chrout('\n')
-        result = prog8_lib.strcmp(hex1, hex4)
+        result = strcmp(hex1, hex4)
         txt.print_b(result)
         txt.chrout('\n')
 

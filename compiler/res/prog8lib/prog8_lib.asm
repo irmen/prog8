@@ -2130,3 +2130,20 @@ _startloop	dey
 		rts
 
 		.pend
+
+
+func_strcmp	.proc
+		; --   compares strings in s1 (AY) and s2 (P8ZP_SCRATCH_W2).
+		;      Returns -1,0,1 in A, depeding on the ordering. Clobbers Y.
+		inx
+		lda  P8ESTACK_LO,x
+		sta  P8ZP_SCRATCH_W2
+		lda  P8ESTACK_HI,x
+		sta  P8ZP_SCRATCH_W2+1
+		lda  P8ESTACK_HI+1,x
+		tay
+		lda  P8ESTACK_LO+1,x
+		jsr  strcmp_mem
+		sta  P8ESTACK_LO+1,x
+		rts
+		.pend

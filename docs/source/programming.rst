@@ -733,9 +733,12 @@ sum(x)
 
 sort(array)
     Sort the array in ascending order (in-place)
-    Note: sorting a floating-point array is not supported right now, as a general sorting routine for this will
-    be extremely slow. Either build one yourself or find another solution that doesn't require sorting
-    floating point values.
+    Supported are arrays of bytes or word values.
+    Sorting a floating-point array is not supported right now, as a general sorting routine for this will
+    be extremely slow. Either build one yourself or find another solution that doesn't require sorting.
+    Finally, note that sorting an array with strings in it will not do what you might think;
+    it considers the array as just an array of integer words and sorts the string *pointers* accordingly.
+    Sorting strings alphabetically has to be programmed yourself if you need it.
 
 reverse(array)
     Reverse the values in the array (in-place).
@@ -843,6 +846,9 @@ substr(source, target, start, length)
     and of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+strcmp(string1, string2)
+    Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
 
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.

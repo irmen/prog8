@@ -101,7 +101,8 @@ val BuiltinFunctions = mapOf(
     "rightstr"      to FSignature(false, listOf(
             FParam("source", IterableDatatypes + DataType.UWORD),
             FParam("target", IterableDatatypes + DataType.UWORD),
-            FParam("length", setOf(DataType.UBYTE))), null)
+            FParam("length", setOf(DataType.UBYTE))), null),
+    "strcmp"      to FSignature(false, listOf(FParam("s1", IterableDatatypes + DataType.UWORD), FParam("s2", IterableDatatypes + DataType.UWORD)), DataType.BYTE, null)
 )
 
 fun builtinMax(array: List<Number>): Number = array.maxByOrNull { it.toDouble() }!!
