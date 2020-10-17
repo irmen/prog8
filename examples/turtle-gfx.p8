@@ -3,8 +3,6 @@
 %import graphics
 %zeropage floatsafe
 
-; TODO Fix broken line output
-
 
 main {
 
