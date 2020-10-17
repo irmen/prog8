@@ -360,8 +360,8 @@ market {
             util.print_10s(current_price[ci])
             txt.print("  ")
             txt.print_ub(current_quantity[ci])
-            ubyte ui = units[ci]        ; TODO is index for array
-            txt.print(unitnames[ui])
+            ubyte unit = units[ci]
+            txt.print(unitnames[unit])
             txt.print("   ")
             txt.print_ub(ship.cargohold[ci])
             txt.chrout('\n')
