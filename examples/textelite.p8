@@ -506,33 +506,29 @@ galaxy {
     sub make_current_planet_name() -> str {
         ubyte ni = 0
         str name = "         "    ; max 8
-        ubyte pn_pair1_p1 = pn_pair1+1      ; TODO is index for array
-        ubyte pn_pair2_p1 = pn_pair2+1      ; TODO is index for array
-        ubyte pn_pair3_p1 = pn_pair3+1      ; TODO is index for array
-        ubyte pn_pair4_p1 = pn_pair4+1      ; TODO is index for array
 
         if pn_pairs[pn_pair1] != '.' {
             name[ni] = pn_pairs[pn_pair1]
             ni++
         }
-        if pn_pairs[pn_pair1_p1] != '.' {
-            name[ni] = pn_pairs[pn_pair1_p1]
+        if pn_pairs[pn_pair1+1] != '.' {
+            name[ni] = pn_pairs[pn_pair1+1]
             ni++
         }
         if pn_pairs[pn_pair2] != '.' {
             name[ni] = pn_pairs[pn_pair2]
             ni++
         }
-        if pn_pairs[pn_pair2_p1] != '.' {
-            name[ni] = pn_pairs[pn_pair2_p1]
+        if pn_pairs[pn_pair2+1] != '.' {
+            name[ni] = pn_pairs[pn_pair2+1]
             ni++
         }
         if pn_pairs[pn_pair3] != '.' {
             name[ni] = pn_pairs[pn_pair3]
             ni++
         }
-        if pn_pairs[pn_pair3_p1] != '.' {
-            name[ni] = pn_pairs[pn_pair3_p1]
+        if pn_pairs[pn_pair3+1] != '.' {
+            name[ni] = pn_pairs[pn_pair3+1]
             ni++
         }
 
@@ -541,8 +537,8 @@ galaxy {
                 name[ni] = pn_pairs[pn_pair4]
                 ni++
             }
-            if pn_pairs[pn_pair4_p1] != '.' {
-                name[ni] = pn_pairs[pn_pair4_p1]
+            if pn_pairs[pn_pair4+1] != '.' {
+                name[ni] = pn_pairs[pn_pair4+1]
                 ni++
             }
         }
@@ -710,7 +706,7 @@ planet {
                 name[nx] = pairs0[x]
                 nx++
             }
-            x++     ; TODO is index for array
+            x++
             if pairs0[x] != '.' {
                 name[nx] = pairs0[x]
                 nx++

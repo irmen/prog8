@@ -29,12 +29,6 @@ sealed class Statement : Node {
             scope.add(name)
         return scope.joinToString(".")
     }
-
-    fun definingBlock(): Block {
-        if(this is Block)
-            return this
-        return findParentNode<Block>(this)!!
-    }
 }
 
 

@@ -1054,10 +1054,8 @@ internal class AstChecker(private val program: Program,
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
 
         // check type of array indexer
-        if(arrayIndexedExpression.indexer.indexVar==null && arrayIndexedExpression.indexer.indexNum==null) {
-            errors.err("array indexing can only be done with a number or a variable, not an arbitrary expression. Use a temp var?", arrayIndexedExpression.indexer.position)
-            // TODO we can probably deal with simple binary expressions such as  array[i+1] or lsb(w)/msb(w)  or array[i*2]  to do this automatically...
-        }
+        if(arrayIndexedExpression.indexer.indexVar==null && arrayIndexedExpression.indexer.indexNum==null)
+            errors.err("array indexing can only be done with a number or a variable, or a simple binary expression, but not an arbitrary expression. Use a temp var?", arrayIndexedExpression.indexer.position)
 
         super.visit(arrayIndexedExpression)
     }

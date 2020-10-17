@@ -41,9 +41,9 @@ main {
         ubyte @zp i
         for i in 0 to 7 {
             c64.SPRPTR[i] = $0a00 / 64
-            ubyte twoi = i*2        ; TODO is index for array
+            ubyte twoi = i*2
             c64.SPXY[twoi] = 50+25*i
-            twoi++                  ; TODO is index for array
+            twoi++
             c64.SPXY[twoi] = rnd()
         }
 
@@ -61,8 +61,7 @@ irq {
         ; float up & wobble horizontally
         ubyte @zp i
         for i in 0 to 14 step 2 {
-            ubyte ipp=i+1           ; TODO is index for array
-            c64.SPXY[ipp]--
+            c64.SPXY[i+1]--
             ubyte @zp r = rnd()
             if r>200
                 c64.SPXY[i]++

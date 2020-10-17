@@ -37,6 +37,18 @@ interface Node {
         throw FatalAstException("scope missing from $this")
     }
 
+    fun definingBlock(): Block {
+        if(this is Block)
+            return this
+        return findParentNode<Block>(this)!!
+    }
+
+    fun containingStatement(): Statement {
+        if(this is Statement)
+            return this
+        return findParentNode<Statement>(this)!!
+    }
+
     fun replaceChildNode(node: Node, replacement: Node)
 }
 
@@ -47,6 +59,7 @@ interface IFunctionCall {
 
 
 class AsmGenInfo {
+    var usedAutoArrayIndexer = false
     var usedRegsaveA = false
     var usedRegsaveX = false
     var usedRegsaveY = false

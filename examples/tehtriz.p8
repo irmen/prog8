@@ -218,9 +218,8 @@ waitkey:
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
             lines += num_lines
-            uword[] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines
-            ubyte scorei = num_lines-1      ; TODO is index for array
-            score += scores[scorei]
+            uword[] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines at once
+            score += scores[num_lines-1]
             speedlevel = 1+lsb(lines/10)
             drawScore()
         }

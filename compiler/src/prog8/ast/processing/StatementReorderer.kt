@@ -81,6 +81,34 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
             arrayIndexedExpression.indexer.indexVar = expr
             arrayIndexedExpression.indexer.origExpression = null
         }
+        else if(expr is BinaryExpression) {
+            if((expr.left is NumericLiteralValue || expr.left is IdentifierReference) &&
+                    (expr.right is NumericLiteralValue || expr.right is IdentifierReference)) {
+                val modifications = mutableListOf<IAstModification>()
+                val indexerVarName = "prog8_autovar_index"
+                val block = expr.definingBlock()
+                if(!block.asmGenInfo.usedAutoArrayIndexer) {
+                    // create the indexer var at block level scope
+                    val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, ZeropageWish.PREFER_ZEROPAGE, null, indexerVarName, null, null, false, true, expr.position)
+                    modifications.add(IAstModification.InsertFirst(vardecl, block))
+                    block.asmGenInfo.usedAutoArrayIndexer = true
+                }
+
+                // assign the indexing expression to the helper variable, and replace the indexer with just the variable
+                val target = AssignTarget(IdentifierReference(listOf(indexerVarName), expr.position), null, null, expr.position)
+                val assign = Assignment(target, expr, expr.position)
+                val beforeWhat = arrayIndexedExpression.containingStatement()
+                modifications.add(IAstModification.InsertBefore(beforeWhat, assign, beforeWhat.parent))
+                modifications.add(IAstModification.SetExpression( {
+                    arrayIndexedExpression.indexer.indexVar = it as IdentifierReference
+                    arrayIndexedExpression.indexer.indexNum = null
+                    arrayIndexedExpression.indexer.origExpression = null
+                }, target.identifier!!.copy(), arrayIndexedExpression.indexer))
+
+                return modifications
+            }
+        }
+
         return noModifications
     }
 
