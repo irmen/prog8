@@ -656,23 +656,20 @@ There's a set of predefined functions in the language. These are fixed and can't
 You can use them in expressions and the compiler will evaluate them at compile-time if possible.
 
 
-sin(x)
-	Sine.  (floating point version)
+Math
+^^^^
+
+abs(x)
+    Absolute value.
+
+atan(x)
+    Arctangent.
+
+ceil(x)
+    Rounds the floating point up to an integer towards positive infinity.
 
 cos(x)
-	Cosine.  (floating point version)
-
-sin8u(x)
-    Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
-
-sin8(x)
-    Fast 8-bit byte sine of angle 0..255, result is in range -127..127
-
-sin16u(x)
-    Fast 16-bit uword sine of angle 0..255, result is in range 0..65535
-
-sin16(x)
-    Fast 16-bit word sine of angle 0..255, result is in range -32767..32767
+    Cosine.  (floating point version)
 
 cos8u(x)
     Fast 8-bit ubyte cosine of angle 0..255, result is in range 0..255
@@ -686,14 +683,11 @@ cos16u(x)
 cos16(x)
    Fast 16-bit word cosine of angle 0..255, result is in range -32767..32767
 
-abs(x)
-    Absolute value.
+deg(x)
+    Radians to degrees.
 
-tan(x)
-    Tangent.
-
-atan(x)
-    Arctangent.
+floor (x)
+    Rounds the floating point down to an integer towards minus infinity.
 
 ln(x)
     Natural logarithm (base e).
@@ -701,32 +695,65 @@ ln(x)
 log2(x)
     Base 2 logarithm.
 
+rad(x)
+    Degrees to radians.
+
+round(x)
+    Rounds the floating point to the closest integer.
+
+sin(x)
+    Sine.  (floating point version)
+
+sgn(x)
+    Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
+
+sin8u(x)
+    Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
+
+sin8(x)
+    Fast 8-bit byte sine of angle 0..255, result is in range -127..127
+
+sin16u(x)
+    Fast 16-bit uword sine of angle 0..255, result is in range 0..65535
+
+sin16(x)
+    Fast 16-bit word sine of angle 0..255, result is in range -32767..32767
+
 sqrt16(w)
     16 bit unsigned integer Square root. Result is unsigned byte.
 
 sqrt(x)
     Floating point Square root.
 
-round(x)
-    Rounds the floating point to the closest integer.
+tan(x)
+    Tangent.
 
-floor (x)
-    Rounds the floating point down to an integer towards minus infinity.
 
-ceil(x)
-    Rounds the floating point up to an integer towards positive infinity.
+Array operations
+^^^^^^^^^^^^^^^^
 
-rad(x)
-    Degrees to radians.
+any(x)
+    1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')
 
-deg(x)
-    Radians to degrees.
+all(x)
+    1 ('true') if all of the values in the array value x are 'true' (not zero), else 0 ('false')
+
+len(x)
+    Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).
+    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
+    Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
+    length of the string during execution, the value of len(string) may no longer be correct!
+    (use strlen function if you want to dynamically determine the length)
 
 max(x)
     Maximum of the values in the array value x
 
 min(x)
     Minimum of the values in the array value x
+
+reverse(array)
+    Reverse the values in the array (in-place).
+    Can be used after sort() to sort an array in descending order.
 
 sum(x)
     Sum of the values in the array value x
@@ -740,26 +767,58 @@ sort(array)
     it considers the array as just an array of integer words and sorts the string *pointers* accordingly.
     Sorting strings alphabetically has to be programmed yourself if you need it.
 
-reverse(array)
-    Reverse the values in the array (in-place).
-    Can be used after sort() to sort an array in descending order.
 
-len(x)
-    Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).
-    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
-    Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
-    length of the string during execution, the value of len(string) may no longer be correct!
-    (use strlen function if you want to dynamically determine the length)
+Strings and memory blocks
+^^^^^^^^^^^^^^^^^^^^^^^^^
+memcopy(from, to, numbytes)
+    Efficiently copy a number of bytes (1 - 256) from a memory location to another.
+    NOTE: 'to' must NOT overlap with 'from', unless it is *before* 'from'.
+    Because this function imposes some overhead to handle the parameters,
+    it is only faster if the number of bytes is larger than a certain threshold.
+    Compare the generated code to see if it was beneficial or not.
+    The most efficient will always be to write a specialized copy routine in assembly yourself!
 
-sizeof(name)
-    Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
-    the object. For instance, for a variable of type uword, the sizeof is 2.
-    For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
-    Note: usually you will be interested in the number of elements in an array, use len() for that.
+memset(address, numbytes, bytevalue)
+    Efficiently set a part of memory to the given (u)byte value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note that for clearing the character screen, very fast specialized subroutines are
+    available in the ``txt`` block (part of the ``textio`` module)
+
+memsetw(address, numwords, wordvalue)
+    Efficiently set a part of memory to the given (u)word value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+
+leftstr(source, target, length)
+    Copies the left side of the source string of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+rightstr(source, target, length)
+    Copies the right side of the source string of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 strlen(str)
     Number of bytes in the string. This value is determined during runtime and counts upto
     the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
+    Don't confuse this with ``len`` and ``sizeof``
+
+strcmp(string1, string2)
+    Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
+    Note that you can also directly compare strings and string values with eachother
+    using ``==``, ``<`` etcetera (it will use strcmp for you under water automatically).
+
+substr(source, target, start, length)
+    Copies a segment from the source string, starting at the given index,
+    and of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+Miscellaneous
+^^^^^^^^^^^^^
+exit(returncode)
+    Immediately stops the program and exits it, with the returncode in the A register.
+    Note: custom interrupt handlers remain active unless manually cleared first!
 
 lsb(x)
     Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".
@@ -767,18 +826,9 @@ lsb(x)
 msb(x)
     Get the most significant byte of the word x.
 
-sgn(x)
-    Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
-
 mkword(msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.
     So mkword($80, $22) results in $8022.
-
-any(x)
-    1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')
-
-all(x)
-	1 ('true') if all of the values in the array value x are 'true' (not zero), else 0 ('false')
 
 rnd()
     returns a pseudo-random byte from 0..255
@@ -813,54 +863,6 @@ ror2(x)
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-memcopy(from, to, numbytes)
-    Efficiently copy a number of bytes (1 - 256) from a memory location to another.
-    NOTE: 'to' must NOT overlap with 'from', unless it is *before* 'from'.
-    Because this function imposes some overhead to handle the parameters,
-    it is only faster if the number of bytes is larger than a certain threshold.
-    Compare the generated code to see if it was beneficial or not.
-    The most efficient will always be to write a specialized copy routine in assembly yourself!
-
-memset(address, numbytes, bytevalue)
-    Efficiently set a part of memory to the given (u)byte value.
-    But the most efficient will always be to write a specialized fill routine in assembly yourself!
-    Note that for clearing the character screen, very fast specialized subroutines are
-    available in the ``txt`` block (part of the ``textio`` module)
-
-memsetw(address, numwords, wordvalue)
-    Efficiently set a part of memory to the given (u)word value.
-    But the most efficient will always be to write a specialized fill routine in assembly yourself!
-
-leftstr(source, target, length)
-    Copies the left side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-rightstr(source, target, length)
-    Copies the right side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-substr(source, target, start, length)
-    Copies a segment from the source string, starting at the given index,
-    and of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-strcmp(string1, string2)
-    Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
-
-swap(x, y)
-    Swap the values of numerical variables (or memory locations) x and y in a fast way.
-
-set_carry()  /  clear_carry()
-    Set (or clear) the CPU status register Carry flag. No result value.
-    (translated into ``SEC`` or ``CLC`` cpu instruction)
-
-set_irqd()  /  clear_irqd()
-    Set (or clear) the CPU status register Interrupt Disable flag. No result value.
-    (translated into ``SEI`` or ``CLI`` cpu instruction)
-
 rsave()
     Saves the CPU registers and the status flags.
     You can now more or less 'safely' use the registers directly, until you
@@ -875,10 +877,22 @@ rrestore()
 read_flags()
     Returns the current value of the CPU status register.
 
-exit(returncode)
-    Immediately stops the program and exits it, with the returncode in the A register.
-    Note: custom interrupt handlers remain active unless manually cleared first!
+sizeof(name)
+    Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
+    the object. For instance, for a variable of type uword, the sizeof is 2.
+    For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
+    Note: usually you will be interested in the number of elements in an array, use len() for that.
 
+set_carry()  /  clear_carry()
+    Set (or clear) the CPU status register Carry flag. No result value.
+    (translated into ``SEC`` or ``CLC`` cpu instruction)
+
+set_irqd()  /  clear_irqd()
+    Set (or clear) the CPU status register Interrupt Disable flag. No result value.
+    (translated into ``SEI`` or ``CLI`` cpu instruction)
+
+swap(x, y)
+    Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
 
 Library routines
