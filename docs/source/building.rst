@@ -41,7 +41,7 @@ of that build task, you can start the compiler with:
 
 (You should probably make an alias...)
 
-.. note::
+.. hint::
     Development and testing is done on Linux, but the compiler should run on most
     operating systems. If you do have trouble building or running
     the compiler on another operating system, please let me know!

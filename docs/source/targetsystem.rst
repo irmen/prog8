@@ -16,8 +16,9 @@ Currently there are two machines that are supported as compiler target (selectab
 
 This chapter explains the relevant system details of these machines.
 
-.. note::
-    If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
+.. hint::
+    If you only use standard kernel and prog8 library routines,
+    it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
 Memory Model

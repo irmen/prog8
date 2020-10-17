@@ -254,11 +254,18 @@ Array types are also supported. They can be made of bytes, words or floats, stri
     This means byte arrays should be <= 256 elements, word arrays <= 128 elements, and float
     arrays <= 51 elements.
 
+.. note::
+    To avoid slow and complex assembly code generation, Prog8 currently enforces some limits on
+    what you can index the array with.  *It is not possible to use an arbitrary expression/calculation as an index value*.
+    You can use a numerical constant value or a single variable as an index value.
+
+
 You can split an array initializer list over several lines if you want.
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
+
 
 It's possible to assign a new array to another array, this will overwrite all elements in the original
 array with those in the value array. The number and types of elements have to match.
@@ -307,7 +314,7 @@ as newlines, quote characters themselves, and so on. The ones used most often ar
 read the syntax reference on strings.
 
 
-.. note::
+.. hint::
     Strings and uwords (=memory address) can often be interchanged.
     An array of strings is actually an array of uwords where every element is the memory
     address of the string. You can pass a memory address to assembly functions
@@ -370,13 +377,6 @@ address you specified, and setting the varible will directly modify that memory 
 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
 	&word  SCREENCOLORS = $d020             ; a 16-bit word at the addres $d020-$d021
-
-
-.. note::
-    Directly accessing random memory locations is not yet supported without the
-    intermediate step of declaring a memory-mapped variable for the memory location.
-    The advantages of this however, is that it's clearer what the memory location
-    stands for, and the compiler also knows the data type.
 
 
 Converting types into other types
