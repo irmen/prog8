@@ -159,8 +159,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.ror2_array_ub")
                     }
                     is DirectMemoryRead -> {
@@ -182,8 +182,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UWORD -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.ror2_array_uw")
                     }
                     is IdentifierReference -> {
@@ -204,8 +204,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.ror_array_ub")
                     }
                     is DirectMemoryRead -> {
@@ -234,8 +234,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UWORD -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.ror_array_uw")
                     }
                     is IdentifierReference -> {
@@ -256,8 +256,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.rol2_array_ub")
                     }
                     is DirectMemoryRead -> {
@@ -279,8 +279,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UWORD -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.rol2_array_uw")
                     }
                     is IdentifierReference -> {
@@ -301,8 +301,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.rol_array_ub")
                     }
                     is DirectMemoryRead -> {
@@ -331,8 +331,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             DataType.UWORD -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
-                        asmgen.translateExpression(what.identifier)
-                        asmgen.translateExpression(what.arrayspec.index)
+                        asmgen.translateExpression(what.arrayvar)
+                        asmgen.translateExpression(what.indexer)
                         asmgen.out("  jsr  prog8_lib.rol_array_uw")
                     }
                     is IdentifierReference -> {
@@ -478,20 +478,25 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
 
         if(first is ArrayIndexedExpression && second is ArrayIndexedExpression) {
-            val indexValue1 = first.arrayspec.index as? NumericLiteralValue
-            val indexName1 = first.arrayspec.index as? IdentifierReference
-            val indexValue2 = second.arrayspec.index as? NumericLiteralValue
-            val indexName2 = second.arrayspec.index as? IdentifierReference
-            val arrayVarName1 = asmgen.asmVariableName(first.identifier)
-            val arrayVarName2 = asmgen.asmVariableName(second.identifier)
+            val arrayVarName1 = asmgen.asmVariableName(first.arrayvar)
+            val arrayVarName2 = asmgen.asmVariableName(second.arrayvar)
             val elementDt = first.inferType(program).typeOrElse(DataType.STRUCT)
 
-            if(indexValue1!=null && indexValue2!=null) {
-                swapArrayValues(elementDt, arrayVarName1, indexValue1, arrayVarName2, indexValue2)
+            val firstNum = first.indexer.indexNum
+            val firstVar = first.indexer.indexVar
+            val secondNum = second.indexer.indexNum
+            val secondVar = second.indexer.indexVar
+
+            if(firstNum!=null && secondNum!=null) {
+                swapArrayValues(elementDt, arrayVarName1, firstNum, arrayVarName2, secondNum)
                 return
-            } else if(indexName1!=null && indexName2!=null) {
-                swapArrayValues(elementDt, arrayVarName1, indexName1, arrayVarName2, indexName2)
+            } else if(firstVar!=null && secondVar!=null) {
+                swapArrayValues(elementDt, arrayVarName1, firstVar, arrayVarName2, secondVar)
                 return
+            } else if(firstNum!=null && secondVar!=null) {
+                TODO("swap array num/var")
+            } else if(firstVar!=null && secondNum!=null) {
+                TODO("swap array var/num")
             }
         }
 

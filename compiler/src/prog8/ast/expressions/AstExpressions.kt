@@ -41,8 +41,8 @@ sealed class Expression: Node {
                         && other.left isSameAs left
                         && other.right isSameAs right)
             is ArrayIndexedExpression -> {
-                (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
-                        && other.arrayspec.index isSameAs arrayspec.index)
+                (other is ArrayIndexedExpression && other.arrayvar.nameInSource == arrayvar.nameInSource
+                        && other.indexer isSameAs indexer)
             }
             is DirectMemoryRead -> {
                 (other is DirectMemoryRead && other.addressExpression isSameAs addressExpression)
@@ -232,20 +232,19 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     }
 }
 
-class ArrayIndexedExpression(var identifier: IdentifierReference,
-                             val arrayspec: ArrayIndex,
+class ArrayIndexedExpression(var arrayvar: IdentifierReference,
+                             val indexer: ArrayIndex,
                              override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier.linkParents(this)
-        arrayspec.linkParents(this)
+        arrayvar.linkParents(this)
+        indexer.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
-            node===identifier -> identifier = replacement as IdentifierReference
-            node===arrayspec.index -> arrayspec.index = replacement as Expression
+            node===arrayvar -> arrayvar = replacement as IdentifierReference
             else -> throw FatalAstException("invalid replace")
         }
         replacement.parent = this
@@ -255,10 +254,10 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String) = identifier.referencesIdentifier(*scopedName)
+    override fun referencesIdentifier(vararg scopedName: String) = arrayvar.referencesIdentifier(*scopedName)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        val target = identifier.targetStatement(program.namespace)
+        val target = arrayvar.targetStatement(program.namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
                 DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
@@ -270,7 +269,7 @@ class ArrayIndexedExpression(var identifier: IdentifierReference,
     }
 
     override fun toString(): String {
-        return "ArrayIndexed(ident=$identifier, arraysize=$arrayspec; pos=$position)"
+        return "ArrayIndexed(ident=$arrayvar, arraysize=$indexer; pos=$position)"
     }
 }
 

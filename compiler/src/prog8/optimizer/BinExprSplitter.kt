@@ -71,19 +71,10 @@ X =      BinExpr                                   X   =   LeftExpr
         return noModifications
     }
 
-    private fun isSimpleTarget(target: AssignTarget, namespace: INameScope): Boolean {
-        return when {
-            target.identifier!=null -> target.isInRegularRAM(namespace)
-            target.memoryAddress!=null -> target.isInRegularRAM(namespace)
-            target.arrayindexed!=null -> {
-                val index = target.arrayindexed!!.arrayspec.index
-                if(index is NumericLiteralValue)
-                    target.isInRegularRAM(namespace)
-                else
-                    false
-            }
-            else -> false
-        }
-    }
+    private fun isSimpleTarget(target: AssignTarget, namespace: INameScope) =
+            if (target.identifier!=null || target.memoryAddress!=null || target.arrayindexed!=null)
+                target.isInRegularRAM(namespace)
+            else
+                false
 
 }

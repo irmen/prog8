@@ -59,11 +59,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.ARRAY -> {
                 val value = assign.source.array!!
                 val elementDt = assign.source.datatype
-                val index = value.arrayspec.index
-                val arrayVarName = asmgen.asmVariableName(value.identifier)
-                if (index is NumericLiteralValue) {
+                val arrayVarName = asmgen.asmVariableName(value.arrayvar)
+                if (value.indexer.indexNum!=null) {
                     // constant array index value
-                    val indexValue = index.number.toInt() * elementDt.memorySize()
+                    val indexValue = value.indexer.constIndex()!! * elementDt.memorySize()
                     when (elementDt) {
                         in ByteDatatypes ->
                             asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")
@@ -265,66 +264,60 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress("P8ESTACK_LO,x", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val index = target.array!!.arrayspec.index
-                when {
-                    target.constArrayIndexValue!=null -> {
-                        val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
-                        when(target.datatype) {
-                            in ByteDatatypes -> {
-                                asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
-                            }
-                            in WordDatatypes -> {
-                                asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    sta  ${target.asmVarname}+$scaledIdx
-                                    lda  P8ESTACK_HI,x
-                                    sta  ${target.asmVarname}+$scaledIdx+1
-                                """)
-                            }
-                            DataType.FLOAT -> {
-                                asmgen.out("""
-                                    lda  #<${target.asmVarname}+$scaledIdx
-                                    ldy  #>${target.asmVarname}+$scaledIdx
-                                    jsr  floats.pop_float
-                                """)
-                            }
-                            else -> throw AssemblyError("weird target variable type ${target.datatype}")
+                if(target.constArrayIndexValue!=null) {
+                    val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                    when(target.datatype) {
+                        in ByteDatatypes -> {
+                            asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
                         }
+                        in WordDatatypes -> {
+                            asmgen.out("""
+                                inx
+                                lda  P8ESTACK_LO,x
+                                sta  ${target.asmVarname}+$scaledIdx
+                                lda  P8ESTACK_HI,x
+                                sta  ${target.asmVarname}+$scaledIdx+1
+                            """)
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.out("""
+                                lda  #<${target.asmVarname}+$scaledIdx
+                                ldy  #>${target.asmVarname}+$scaledIdx
+                                jsr  floats.pop_float
+                            """)
+                        }
+                        else -> throw AssemblyError("weird target variable type ${target.datatype}")
                     }
-                    index is IdentifierReference -> {
-                        when(target.datatype) {
-                            DataType.UBYTE, DataType.BYTE -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                                asmgen.out(" inx |  lda  P8ESTACK_LO,x |  sta  ${target.asmVarname},y")
-                            }
-                            DataType.UWORD, DataType.WORD -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                                asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    sta  ${target.asmVarname},y
-                                    lda  P8ESTACK_HI,x
-                                    sta  ${target.asmVarname}+1,y
-                                """)
-                            }
-                            DataType.FLOAT -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
-                                asmgen.out("""
-                                    ldy  #>${target.asmVarname}
-                                    clc
-                                    adc  #<${target.asmVarname}
-                                    bcc  +
-                                    iny
+                }
+                else
+                {
+                    target.array!!
+                    when(target.datatype) {
+                        DataType.UBYTE, DataType.BYTE -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                            asmgen.out(" inx |  lda  P8ESTACK_LO,x |  sta  ${target.asmVarname},y")
+                        }
+                        DataType.UWORD, DataType.WORD -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                            asmgen.out("""
+                                inx
+                                lda  P8ESTACK_LO,x
+                                sta  ${target.asmVarname},y
+                                lda  P8ESTACK_HI,x
+                                sta  ${target.asmVarname}+1,y
+                            """)
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
+                            asmgen.out("""
+                                ldy  #>${target.asmVarname}
+                                clc
+                                adc  #<${target.asmVarname}
+                                bcc  +
+                                iny
 +                                   jsr  floats.pop_float""")
-                            }
-                            else -> throw AssemblyError("weird dt")
                         }
-                    }
-                    else -> {
-                        asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
-                        popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                        else -> throw AssemblyError("weird dt")
                     }
                 }
             }
@@ -441,73 +434,66 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign wordvar $sourceName to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
-                val index = target.array!!.arrayspec.index
-                when {
-                    target.constArrayIndexValue!=null -> {
-                        val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
-                        when(target.datatype) {
-                            in ByteDatatypes -> {
-                                asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
-                            }
-                            in WordDatatypes -> {
-                                asmgen.out("""
-                                    lda  $sourceName
-                                    sta  ${target.asmVarname}+$scaledIdx
-                                    lda  $sourceName+1
-                                    sta  ${target.asmVarname}+$scaledIdx+1
-                                """)
-                            }
-                            DataType.FLOAT -> {
-                                asmgen.out("""
-                                    lda  #<$sourceName
-                                    ldy  #>$sourceName
-                                    sta  P8ZP_SCRATCH_W1
-                                    sty  P8ZP_SCRATCH_W1+1
-                                    lda  #<${target.asmVarname}+$scaledIdx
-                                    ldy  #>${target.asmVarname}+$scaledIdx
-                                    jsr  floats.copy_float
-                                """)
-                            }
-                            else -> throw AssemblyError("weird target variable type ${target.datatype}")
+                target.array!!
+                if(target.constArrayIndexValue!=null) {
+                    val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                    when(target.datatype) {
+                        in ByteDatatypes -> {
+                            asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                         }
+                        in WordDatatypes -> {
+                            asmgen.out("""
+                                lda  $sourceName
+                                sta  ${target.asmVarname}+$scaledIdx
+                                lda  $sourceName+1
+                                sta  ${target.asmVarname}+$scaledIdx+1
+                            """)
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.out("""
+                                lda  #<$sourceName
+                                ldy  #>$sourceName
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  #<${target.asmVarname}+$scaledIdx
+                                ldy  #>${target.asmVarname}+$scaledIdx
+                                jsr  floats.copy_float
+                            """)
+                        }
+                        else -> throw AssemblyError("weird target variable type ${target.datatype}")
                     }
-                    index is IdentifierReference -> {
-                        when(target.datatype) {
-                            DataType.UBYTE, DataType.BYTE -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                                asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
-                            }
-                            DataType.UWORD, DataType.WORD -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                                asmgen.out("""
-                                    lda  $sourceName
-                                    sta  ${target.asmVarname},y
-                                    lda  $sourceName+1
-                                    sta  ${target.asmVarname}+1,y
-                                """)
-                            }
-                            DataType.FLOAT -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
-                                asmgen.out("""
-                                    ldy  #<$sourceName
-                                    sty  P8ZP_SCRATCH_W1
-                                    ldy  #>$sourceName
-                                    sty  P8ZP_SCRATCH_W1+1
-                                    ldy  #>${target.asmVarname}
-                                    clc
-                                    adc  #<${target.asmVarname}
-                                    bcc  +
-                                    iny
+                }
+                else
+                {
+                    when(target.datatype) {
+                        DataType.UBYTE, DataType.BYTE -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                            asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
+                        }
+                        DataType.UWORD, DataType.WORD -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                            asmgen.out("""
+                                lda  $sourceName
+                                sta  ${target.asmVarname},y
+                                lda  $sourceName+1
+                                sta  ${target.asmVarname}+1,y
+                            """)
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
+                            asmgen.out("""
+                                ldy  #<$sourceName
+                                sty  P8ZP_SCRATCH_W1
+                                ldy  #>$sourceName
+                                sty  P8ZP_SCRATCH_W1+1
+                                ldy  #>${target.asmVarname}
+                                clc
+                                adc  #<${target.asmVarname}
+                                bcc  +
+                                iny
 +                                   jsr  floats.copy_float""")
-                            }
-                            else -> throw AssemblyError("weird dt")
                         }
-                    }
-                    else -> {
-                        asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  lda  $sourceName+1 |  sta  P8ESTACK_HI,x |  dex")
-                        asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
-                        popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
+                        else -> throw AssemblyError("weird dt")
                     }
                 }
             }
@@ -553,9 +539,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
-                val index = target.array!!.arrayspec.index
                 asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
-                asmgen.translateExpression(index)
+                target.array!!
+                target.array.indexer.indexNum?.let { asmgen.translateExpression(it) }
+                target.array.indexer.indexVar?.let { asmgen.translateExpression(it) }
                 asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  floats.pop_float_to_indexed_var")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
@@ -576,22 +563,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val index = target.array!!.arrayspec.index
-                when {
-                    target.constArrayIndexValue!=null -> {
-                        val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
-                        asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
-                    }
-                    index is IdentifierReference -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                        asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
-                    }
-                    else -> {
-                        asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  dex")
-                        asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
-                        popAndWriteArrayvalueWithUnscaledIndexA(target.datatype, target.asmVarname)
-                    }
+                if (target.constArrayIndexValue!=null) {
+                    val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                    asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
+                }
+                else {
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y)
+                    asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -686,22 +664,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     """)
             }
             TargetStorageKind.ARRAY -> {
-                val index = wordtarget.array!!.arrayspec.index
-                when {
-                    wordtarget.constArrayIndexValue!=null -> {
-                        val scaledIdx = wordtarget.constArrayIndexValue!! * 2
-                        asmgen.out(" lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx |  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
-                    }
-                    index is IdentifierReference -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.Y)
-                        asmgen.out(" lda  $sourceName |  sta  ${wordtarget.asmVarname},y |  lda  #0 |  iny |  sta  ${wordtarget.asmVarname},y")
-                    }
-                    else -> {
-                        asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
-                        asmgen.translateExpression(index)
-                        asmgen.out("  inx |  lda  P8ESTACK_LO,x")
-                        popAndWriteArrayvalueWithUnscaledIndexA(wordtarget.datatype, wordtarget.asmVarname)
-                    }
+                if (wordtarget.constArrayIndexValue!=null) {
+                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2
+                    asmgen.out(" lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx |  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
+                }
+                else {
+                    asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array!!, wordtarget.datatype, CpuRegister.Y)
+                    asmgen.out(" lda  $sourceName |  sta  ${wordtarget.asmVarname},y |  lda  #0 |  iny |  sta  ${wordtarget.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -734,40 +703,21 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeRegisterInMemoryAddress(register, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val index = target.array!!.arrayspec.index
-                when (index) {
-                    is NumericLiteralValue -> {
-                        val memindex = index.number.toInt()
+                when {
+                    target.constArrayIndexValue!=null -> {
                         when (register) {
-                            CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+$memindex")
-                            CpuRegister.X -> asmgen.out("  stx  ${target.asmVarname}+$memindex")
-                            CpuRegister.Y -> asmgen.out("  sty  ${target.asmVarname}+$memindex")
+                            CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
+                            CpuRegister.X -> asmgen.out("  stx  ${target.asmVarname}+${target.constArrayIndexValue}")
+                            CpuRegister.Y -> asmgen.out("  sty  ${target.asmVarname}+${target.constArrayIndexValue}")
                         }
                     }
-                    is IdentifierReference -> {
+                    else -> {
                         when (register) {
                             CpuRegister.A -> {}
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        asmgen.out(" ldy  ${asmgen.asmVariableName(index)} |  sta  ${target.asmVarname},y")
-                    }
-                    else -> {
-                        asmgen.saveRegister(register, false, target.scope)
-                        asmgen.translateExpression(index)
-                        asmgen.restoreRegister(register, false)
-                        when (register) {
-                            CpuRegister.A -> asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                            CpuRegister.X -> asmgen.out("  stx  P8ZP_SCRATCH_B1")
-                            CpuRegister.Y -> asmgen.out("  sty  P8ZP_SCRATCH_B1")
-                        }
-                        asmgen.out("""
-                            inx
-                            lda  P8ESTACK_LO,x
-                            tay
-                            lda  P8ZP_SCRATCH_B1
-                            sta  ${target.asmVarname},y  
-                        """)
+                        asmgen.out(" ldy  ${asmgen.asmVariableName(target.array!!.indexer.indexVar!!)} |  sta  ${target.asmVarname},y")
                     }
                 }
             }
@@ -886,8 +836,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
-                val index = target.array!!.arrayspec.index
-                asmgen.translateExpression(index)
+                target.array!!
+                target.array.indexer.indexNum?.let { asmgen.translateExpression(it) }
+                target.array.indexer.indexVar?.let { asmgen.translateExpression(it) }
                 asmgen.out("""
                     inx
                     lda  P8ESTACK_LO,x
@@ -927,25 +878,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                val index = target.array!!.arrayspec.index
-                when {
-                    target.constArrayIndexValue!=null -> {
-                        val indexValue = target.constArrayIndexValue!!
-                        asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")
-                    }
-                    index is IdentifierReference -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
-                        asmgen.out("  lda  #<${byte.toHex()} |  sta  ${target.asmVarname},y")
-                    }
-                    else -> {
-                        asmgen.translateExpression(index)
-                        asmgen.out("""
-                            inx
-                            ldy  P8ESTACK_LO,x
-                            lda  #${byte.toHex()}
-                            sta  ${target.asmVarname},y
-                        """)
-                    }
+                if (target.constArrayIndexValue!=null) {
+                    val indexValue = target.constArrayIndexValue!!
+                    asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")
+                }
+                else {
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                    asmgen.out("  lda  #<${byte.toHex()} |  sta  ${target.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> when(target.register!!) {
@@ -995,9 +934,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                    } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                        TODO("array[var] ${target.constArrayIndexValue}")
 //                    }
-                    val index = target.array!!.arrayspec.index
-                    if (index is NumericLiteralValue) {
-                        val indexValue = index.number.toInt() * DataType.FLOAT.memorySize()
+                    if (target.array!!.indexer.indexNum!=null) {
+                        val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
                         asmgen.out("""
                             lda  #0
                             sta  ${target.asmVarname}+$indexValue
@@ -1007,7 +945,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  ${target.asmVarname}+$indexValue+4
                         """)
                     } else {
-                        asmgen.translateExpression(index)
+                        asmgen.translateExpression(target.array.indexer.indexVar!!)
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
@@ -1049,10 +987,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                    } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                        TODO("array[var] ${target.constArrayIndexValue}")
 //                    }
-                    val index = target.array!!.arrayspec.index
                     val arrayVarName = target.asmVarname
-                    if (index is NumericLiteralValue) {
-                        val indexValue = index.number.toInt() * DataType.FLOAT.memorySize()
+                    if (target.array!!.indexer.indexNum!=null) {
+                        val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
                         asmgen.out("""
                             lda  $constFloat
                             sta  $arrayVarName+$indexValue
@@ -1066,7 +1003,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  $arrayVarName+$indexValue+4
                         """)
                     } else {
-                        asmgen.translateExpression(index)
+                        asmgen.translateExpression(target.array.indexer.indexVar!!)
                         asmgen.out("""
                             lda  #<${constFloat}
                             sta  P8ZP_SCRATCH_W1
@@ -1265,26 +1202,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     ldy  #0
                     sta  (P8ZP_SCRATCH_W2),y""")
             }
-        }
-    }
-
-    private fun popAndWriteArrayvalueWithUnscaledIndexA(elementDt: DataType, asmArrayvarname: String) {
-        when (elementDt) {
-            in ByteDatatypes ->
-                asmgen.out("  tay |  inx |  lda  P8ESTACK_LO,x  | sta  $asmArrayvarname,y")
-            in WordDatatypes ->
-                asmgen.out("  asl  a |  tay |  inx |  lda  P8ESTACK_LO,x |  sta  $asmArrayvarname,y |  lda  P8ESTACK_HI,x |  sta $asmArrayvarname+1,y")
-            DataType.FLOAT ->
-                // scaling * 5 is done in the subroutine that's called
-                asmgen.out("""
-                    sta  P8ESTACK_LO,x
-                    dex
-                    lda  #<$asmArrayvarname
-                    ldy  #>$asmArrayvarname
-                    jsr  floats.pop_float_to_indexed_var
-                """)
-            else ->
-                throw AssemblyError("weird array type")
         }
     }
 }

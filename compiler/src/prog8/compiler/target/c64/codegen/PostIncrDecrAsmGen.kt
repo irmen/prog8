@@ -70,67 +70,64 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 }
             }
             targetArrayIdx!=null -> {
-                val index = targetArrayIdx.arrayspec.index
-                val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.identifier)
+                val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.arrayvar)
                 val elementDt = targetArrayIdx.inferType(program).typeOrElse(DataType.STRUCT)
-                when(index) {
-                    is NumericLiteralValue -> {
-                        val indexValue = index.number.toInt() * elementDt.memorySize()
-                        when(elementDt) {
-                            in ByteDatatypes -> asmgen.out(if (incr) "  inc  $asmArrayvarname+$indexValue" else "  dec  $asmArrayvarname+$indexValue")
-                            in WordDatatypes -> {
-                                if(incr)
-                                    asmgen.out(" inc  $asmArrayvarname+$indexValue |  bne  + |  inc  $asmArrayvarname+$indexValue+1 |+")
-                                else
-                                    asmgen.out("""
-        lda  $asmArrayvarname+$indexValue
-        bne  +
-        dec  $asmArrayvarname+$indexValue+1
+                if(targetArrayIdx.indexer.indexNum!=null) {
+                    val indexValue = targetArrayIdx.indexer.constIndex()!! * elementDt.memorySize()
+                    when(elementDt) {
+                        in ByteDatatypes -> asmgen.out(if (incr) "  inc  $asmArrayvarname+$indexValue" else "  dec  $asmArrayvarname+$indexValue")
+                        in WordDatatypes -> {
+                            if(incr)
+                                asmgen.out(" inc  $asmArrayvarname+$indexValue |  bne  + |  inc  $asmArrayvarname+$indexValue+1 |+")
+                            else
+                                asmgen.out("""
+    lda  $asmArrayvarname+$indexValue
+    bne  +
+    dec  $asmArrayvarname+$indexValue+1
 +       dec  $asmArrayvarname+$indexValue 
 """)
-                            }
-                            DataType.FLOAT -> {
-                                asmgen.out("  lda  #<$asmArrayvarname+$indexValue |  ldy  #>$asmArrayvarname+$indexValue")
-                                asmgen.out(if(incr) "  jsr  floats.inc_var_f" else "  jsr  floats.dec_var_f")
-                            }
-                            else -> throw AssemblyError("need numeric type")
                         }
-                    }
-                    else -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
-                        asmgen.saveRegister(CpuRegister.X, false, scope)
-                        asmgen.out("  tax")
-                        when(elementDt) {
-                            in ByteDatatypes -> {
-                                asmgen.out(if(incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
-                            }
-                            in WordDatatypes -> {
-                                if(incr)
-                                    asmgen.out(" inc  $asmArrayvarname,x |  bne  + |  inc  $asmArrayvarname+1,x |+")
-                                else
-                                    asmgen.out("""
-        lda  $asmArrayvarname,x
-        bne  +
-        dec  $asmArrayvarname+1,x
-+       dec  $asmArrayvarname 
-""")
-                            }
-                            DataType.FLOAT -> {
-                                asmgen.out("""
-                        ldy  #>$asmArrayvarname
-                        clc
-                        adc  #<$asmArrayvarname
-                        bcc  +
-                        iny
-+                       jsr  floats.inc_var_f""")
-                            }
-                            else -> throw AssemblyError("weird array elt dt")
+                        DataType.FLOAT -> {
+                            asmgen.out("  lda  #<$asmArrayvarname+$indexValue |  ldy  #>$asmArrayvarname+$indexValue")
+                            asmgen.out(if(incr) "  jsr  floats.inc_var_f" else "  jsr  floats.dec_var_f")
                         }
-                        asmgen.restoreRegister(CpuRegister.X, false)
+                        else -> throw AssemblyError("need numeric type")
                     }
                 }
+                else
+                {
+                    asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
+                    asmgen.saveRegister(CpuRegister.X, false, scope)
+                    asmgen.out("  tax")
+                    when(elementDt) {
+                        in ByteDatatypes -> {
+                            asmgen.out(if(incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
+                        }
+                        in WordDatatypes -> {
+                            if(incr)
+                                asmgen.out(" inc  $asmArrayvarname,x |  bne  + |  inc  $asmArrayvarname+1,x |+")
+                            else
+                                asmgen.out("""
+    lda  $asmArrayvarname,x
+    bne  +
+    dec  $asmArrayvarname+1,x
++       dec  $asmArrayvarname 
+""")
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.out("""
+                    ldy  #>$asmArrayvarname
+                    clc
+                    adc  #<$asmArrayvarname
+                    bcc  +
+                    iny
++                       jsr  floats.inc_var_f""")
+                        }
+                        else -> throw AssemblyError("weird array elt dt")
+                    }
+                    asmgen.restoreRegister(CpuRegister.X, false)
+                }
             }
-            else -> throw AssemblyError("weird target type ${stmt.target}")
         }
     }
 }

@@ -71,6 +71,18 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
         return noModifications
     }
 
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        val expr = arrayIndexedExpression.indexer.origExpression
+        if (expr is NumericLiteralValue) {
+            arrayIndexedExpression.indexer.indexNum = expr
+            arrayIndexedExpression.indexer.origExpression = null
+        }
+        else if (expr is IdentifierReference) {
+            arrayIndexedExpression.indexer.indexVar = expr
+            arrayIndexedExpression.indexer.origExpression = null
+        }
+        return noModifications
+    }
 
     override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
         val choices = whenStatement.choiceValues(program).sortedBy {

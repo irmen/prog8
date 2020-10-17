@@ -120,11 +120,6 @@ internal class AstChecker(private val program: Program,
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
-
-                fun checkLoopRangeValues() {
-
-                }
-
                 when (loopvar.datatype) {
                     DataType.UBYTE -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
@@ -475,7 +470,7 @@ internal class AstChecker(private val program: Program,
         fun err(msg: String, position: Position?=null) = errors.err(msg, position ?: decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true)
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexVar?.referencesIdentifier(decl.name) == true)
             err("recursive var declaration")
 
         // CONST can only occur on simple types (byte, word, float)
@@ -1013,7 +1008,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
         } else if(postIncrDecr.target.arrayindexed != null) {
-            val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(program.namespace)
+            val target = postIncrDecr.target.arrayindexed?.arrayvar?.targetStatement(program.namespace)
             if(target==null) {
                 errors.err("undefined symbol", postIncrDecr.position)
             }
@@ -1028,32 +1023,41 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        val target = arrayIndexedExpression.identifier.targetStatement(program.namespace)
+        val target = arrayIndexedExpression.arrayvar.targetStatement(program.namespace)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
                 errors.err("indexing requires an iterable variable", arrayIndexedExpression.position)
             val arraysize = target.arraysize?.constIndex()
             if(arraysize!=null) {
                 // check out of bounds
-                val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
+                val index = arrayIndexedExpression.indexer.constIndex()
                 if(index!=null && (index<0 || index>=arraysize))
-                    errors.err("array index out of bounds", arrayIndexedExpression.arrayspec.position)
+                    errors.err("array index out of bounds", arrayIndexedExpression.indexer.position)
             } else if(target.datatype == DataType.STR) {
                 if(target.value is StringLiteralValue) {
                     // check string lengths for non-memory mapped strings
                     val stringLen = (target.value as StringLiteralValue).value.length
-                    val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
+                    val index = arrayIndexedExpression.indexer.constIndex()
                     if (index != null && (index < 0 || index >= stringLen))
-                        errors.err("index out of bounds", arrayIndexedExpression.arrayspec.position)
+                        errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
                 }
             }
         } else
             errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
 
         // check index value 0..255
-        val dtx = arrayIndexedExpression.arrayspec.index.inferType(program).typeOrElse(DataType.STRUCT)
-        if(dtx!= DataType.UBYTE && dtx!= DataType.BYTE)
+        val dtxNum = arrayIndexedExpression.indexer.indexNum?.inferType(program)?.typeOrElse(DataType.STRUCT)
+        if(dtxNum!=null && dtxNum != DataType.UBYTE && dtxNum != DataType.BYTE)
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+        val dtxVar = arrayIndexedExpression.indexer.indexVar?.inferType(program)?.typeOrElse(DataType.STRUCT)
+        if(dtxVar!=null && dtxVar != DataType.UBYTE && dtxVar != DataType.BYTE)
+            errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+
+        // check type of array indexer
+        if(arrayIndexedExpression.indexer.indexVar==null && arrayIndexedExpression.indexer.indexNum==null) {
+            errors.err("array indexing can only be done with a number or a variable, not an arbitrary expression. Use a temp var?", arrayIndexedExpression.indexer.position)
+            // TODO we can probably deal with simple binary expressions such as  array[i+1] or lsb(w)/msb(w)  or array[i*2]  to do this automatically...
+        }
 
         super.visit(arrayIndexedExpression)
     }
@@ -1158,10 +1162,7 @@ internal class AstChecker(private val program: Program,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
                             return err("byte array length must be 1-256")
-                        val constX = arrayspec.index.constValue(program)
-                        if(constX?.type !in IntegerDatatypes)
-                            return err("array size specifier must be constant integer value")
-                        val expectedSize = constX!!.number.toInt()
+                        val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
@@ -1180,10 +1181,7 @@ internal class AstChecker(private val program: Program,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
                             return err("word array length must be 1-128")
-                        val constX = arrayspec.index.constValue(program)
-                        if(constX?.type !in IntegerDatatypes)
-                            return err("array size specifier must be constant integer value")
-                        val expectedSize = constX!!.number.toInt()
+                        val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
@@ -1202,10 +1200,7 @@ internal class AstChecker(private val program: Program,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
                             return err("float array length must be 1-51")
-                        val constX = arrayspec.index.constValue(program)
-                        if(constX?.type !in IntegerDatatypes)
-                            return err("array size specifier must be constant integer value")
-                        val expectedSize = constX!!.number.toInt()
+                        val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     } else

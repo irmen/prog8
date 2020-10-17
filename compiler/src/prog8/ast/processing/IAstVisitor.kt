@@ -125,8 +125,8 @@ interface IAstVisitor {
     }
 
     fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        arrayIndexedExpression.identifier.accept(this)
-        arrayIndexedExpression.arrayspec.accept(this)
+        arrayIndexedExpression.arrayvar.accept(this)
+        arrayIndexedExpression.indexer.accept(this)
     }
 
     fun visit(assignTarget: AssignTarget) {

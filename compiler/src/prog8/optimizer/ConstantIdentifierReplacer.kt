@@ -58,15 +58,16 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
     override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         // the initializer value can't refer to the variable itself (recursive definition)
         // TODO: use call graph for this?
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexVar?.referencesIdentifier(decl.name) == true) {
             errors.err("recursive var declaration", decl.position)
             return noModifications
         }
 
         if(decl.type== VarDeclType.CONST || decl.type== VarDeclType.VAR) {
             if(decl.isArray){
-                if(decl.arraysize==null) {
-                    // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
+                val arraysize = decl.arraysize
+                if(arraysize==null) {
+                    // for arrays that have no size specifier attempt to deduce the size
                     val arrayval = decl.value as? ArrayLiteralValue
                     if(arrayval!=null) {
                         return listOf(IAstModification.SetExpression(
@@ -75,14 +76,13 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                                 decl
                         ))
                     }
-                }
-                else if(decl.arraysize?.constIndex()==null) {
-                    val size = decl.arraysize!!.index.constValue(program)
-                    if(size!=null) {
-                        return listOf(IAstModification.SetExpression(
-                                { decl.arraysize = ArrayIndex(it, decl.position) },
-                                size, decl
-                        ))
+                } else if(arraysize.constIndex()==null) {
+                    // see if we can calculate the size from other fields
+                    val cval = arraysize.indexVar?.constValue(program) ?: arraysize.origExpression?.constValue(program)
+                    if(cval!=null) {
+                        arraysize.indexVar = null
+                        arraysize.origExpression = null
+                        arraysize.indexNum = cval
                     }
                 }
             }

@@ -23,6 +23,11 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
         if(decl.type==VarDeclType.VAR && declValue!=null && decl.struct==null) {
             val valueDt = declValue.inferType(program)
             if(!valueDt.istype(decl.datatype)) {
+
+                // don't add a typecast on an array initializer value
+                if(valueDt.typeOrElse(DataType.STRUCT) in IntegerDatatypes && decl.datatype in ArrayDatatypes)
+                    return noModifications
+
                 return listOf(IAstModification.ReplaceNode(
                         declValue,
                         TypecastExpression(declValue, decl.datatype, true, declValue.position),

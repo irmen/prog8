@@ -1,6 +1,5 @@
 package prog8.compiler.target.c64.codegen.assignment
 
-import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -43,12 +42,12 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { array?.arrayspec?.constIndex() }
+    val constArrayIndexValue by lazy { array?.indexer?.constIndex() }
     val asmVarname: String
         get() = if(array==null)
             variableAsmName!!
         else
-            asmgen.asmVariableName(array.identifier)
+            asmgen.asmVariableName(array.arrayvar)
 
     lateinit var origAssign: AsmAssignment
 
@@ -93,13 +92,13 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
 )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { array?.arrayspec?.constIndex() }
+    val constArrayIndexValue by lazy { array?.indexer?.constIndex() }
 
     val asmVarname: String
         get() = if(array==null)
             variableAsmName!!
         else
-            asmgen.asmVariableName(array.identifier)
+            asmgen.asmVariableName(array.arrayvar)
 
     companion object {
         fun fromAstSource(value: Expression, program: Program, asmgen: AsmGen): AsmAssignSource {

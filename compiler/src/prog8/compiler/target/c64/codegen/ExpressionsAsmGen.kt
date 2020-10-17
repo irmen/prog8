@@ -3,6 +3,7 @@ package prog8.compiler.target.c64.codegen
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.statements.ArrayIndex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
@@ -1415,11 +1416,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(arrayExpr: ArrayIndexedExpression) {
-        val index = arrayExpr.arrayspec.index
         val elementDt = arrayExpr.inferType(program).typeOrElse(DataType.STRUCT)
-        val arrayVarName = asmgen.asmVariableName(arrayExpr.identifier)
-        if(index is NumericLiteralValue) {
-            val indexValue = index.number.toInt() * elementDt.memorySize()
+        val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
+        if(arrayExpr.indexer.indexNum!=null) {
+            val indexValue = arrayExpr.indexer.constIndex()!! * elementDt.memorySize()
             when(elementDt) {
                 in ByteDatatypes -> {
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")
@@ -1456,6 +1456,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
 
         }
+    }
+
+    fun translateExpression(indexer: ArrayIndex) {
+        // it is either a number, or a variable
+        val indexNum = indexer.indexNum
+        val indexVar = indexer.indexVar
+        indexNum?.let { asmgen.translateExpression(indexNum) }
+        indexVar?.let { asmgen.translateExpression(indexVar) }
     }
 
     private fun translateBinaryOperatorBytes(operator: String, types: DataType) {

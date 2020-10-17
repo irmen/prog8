@@ -151,7 +151,8 @@ io_error:
         filename[0] = 'r'
         filename[1] = ':'
         memcopy(newfileptr, &filename+2, flen_new)
-        filename[flen_new+2] = '='
+        ubyte fis_ix = flen_new+2       ; TODO is temp var for array indexing
+        filename[fis_ix] = '='
         memcopy(oldfileptr, &filename+3+flen_new, flen_old+1)
         c64.SETNAM(3+flen_new+flen_old, filename)
         c64.SETLFS(1, drivenumber, 15)

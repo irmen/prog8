@@ -363,8 +363,8 @@ abstract class AstWalker {
 
     fun visit(arrayIndexedExpression: ArrayIndexedExpression, parent: Node) {
         track(before(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
-        arrayIndexedExpression.identifier.accept(this, arrayIndexedExpression)
-        arrayIndexedExpression.arrayspec.accept(this, arrayIndexedExpression)
+        arrayIndexedExpression.arrayvar.accept(this, arrayIndexedExpression)
+        arrayIndexedExpression.indexer.accept(this, arrayIndexedExpression)
         track(after(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
     }
 

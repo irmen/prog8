@@ -277,36 +277,72 @@ class ParameterVarDecl(name: String, declaredDatatype: DataType, position: Posit
     : VarDecl(VarDeclType.VAR, declaredDatatype, ZeropageWish.DONTCARE, null, name, null, null, false, true, position)
 
 
-class ArrayIndex(var index: Expression, override val position: Position) : Node {
+class ArrayIndex(var origExpression: Expression?,            // will be replaced later by either the number or the identifier
+                 override val position: Position) : Node {
+    // for code simplicity, either indexed via a constant number or via a variable (no arbitrary expressions)
     override lateinit var parent: Node
+    var indexNum: NumericLiteralValue? = origExpression as? NumericLiteralValue
+    var indexVar: IdentifierReference? = origExpression as? IdentifierReference
+
+    init {
+        if(indexNum!=null || indexVar!=null)
+            origExpression = null
+    }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        index.linkParents(this)
+        origExpression?.linkParents(this)
+        indexNum?.linkParents(this)
+        indexVar?.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Expression && node===index)
-        index = replacement
-        replacement.parent = this
+        require(replacement is Expression)
+        when {
+            node===origExpression -> origExpression = replacement
+            node===indexVar -> {
+                when (replacement) {
+                    is NumericLiteralValue -> {
+                        indexVar = null
+                        indexNum = replacement
+                    }
+                    is IdentifierReference -> {
+                        indexVar = replacement
+                    }
+                    else -> {
+                        throw FatalAstException("invalid replace")
+                    }
+                }
+            }
+            else -> throw FatalAstException("invalid replace")
+        }
     }
 
     companion object {
         fun forArray(v: ArrayLiteralValue): ArrayIndex {
-            return ArrayIndex(NumericLiteralValue.optimalNumeric(v.value.size, v.position), v.position)
+            val indexnum = NumericLiteralValue.optimalNumeric(v.value.size, v.position)
+            return ArrayIndex(indexnum, v.position)
         }
     }
 
-    fun accept(visitor: IAstVisitor) = index.accept(visitor)
-    fun accept(visitor: AstWalker, parent: Node) = index.accept(visitor, this)
-
-    override fun toString(): String {
-        return("ArrayIndex($index, pos=$position)")
+    fun accept(visitor: IAstVisitor) {
+        origExpression?.accept(visitor)
+        indexNum?.accept(visitor)
+        indexVar?.accept(visitor)
+    }
+    fun accept(visitor: AstWalker, parent: Node) {
+        origExpression?.accept(visitor, this)
+        indexNum?.accept(visitor, this)
+        indexVar?.accept(visitor, this)
     }
 
-    fun constIndex() = (index as? NumericLiteralValue)?.number?.toInt()
+    override fun toString(): String {
+        return("ArrayIndex($indexNum, $indexVar, pos=$position)")
+    }
 
-    infix fun isSameAs(other: ArrayIndex) = index.isSameAs(other.index)
+    fun constIndex() = indexNum?.number?.toInt()
+
+    infix fun isSameAs(other: ArrayIndex) = indexNum==other.indexNum && indexVar == other.indexVar
 }
 
 open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
@@ -454,8 +490,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
             }
             identifier != null -> value is IdentifierReference && value.nameInSource == identifier!!.nameInSource
             arrayindexed != null -> {
-                if(value is ArrayIndexedExpression && value.identifier.nameInSource == arrayindexed!!.identifier.nameInSource)
-                    arrayindexed!!.arrayspec isSameAs value.arrayspec
+                if(value is ArrayIndexedExpression && value.arrayvar.nameInSource == arrayindexed!!.arrayvar.nameInSource)
+                    arrayindexed!!.indexer isSameAs value.indexer
                 else
                     false
             }
@@ -474,9 +510,9 @@ data class AssignTarget(var identifier: IdentifierReference?,
             return addr1 != null && addr2 != null && addr1 == addr2
         }
         if (this.arrayindexed != null && other.arrayindexed != null) {
-            if (this.arrayindexed!!.identifier.nameInSource == other.arrayindexed!!.identifier.nameInSource) {
-                val x1 = this.arrayindexed!!.arrayspec.index.constValue(program)
-                val x2 = other.arrayindexed!!.arrayspec.index.constValue(program)
+            if (this.arrayindexed!!.arrayvar.nameInSource == other.arrayindexed!!.arrayvar.nameInSource) {
+                val x1 = this.arrayindexed!!.indexer.constIndex()
+                val x2 = other.arrayindexed!!.indexer.constIndex()
                 return x1 != null && x2 != null && x1 == x2
             }
         }
@@ -501,7 +537,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                 }
             }
             this.arrayindexed != null -> {
-                val targetStmt = this.arrayindexed!!.identifier.targetVarDecl(namespace)
+                val targetStmt = this.arrayindexed!!.arrayvar.targetVarDecl(namespace)
                 return if (targetStmt?.type == VarDeclType.MEMORY) {
                     val addr = targetStmt.value as? NumericLiteralValue
                     if (addr != null)
@@ -902,10 +938,7 @@ class WhenStatement(var condition: Expression,
                     val cv = it.constValue(program)
                     cv?.number?.toInt() ?: it.hashCode()       // the hashcode is a nonsensical number but it avoids weird AST validation errors later
                 }
-                if(values.contains(null))
-                    result.add(null to choice)
-                else
-                    result.add(values.filterNotNull() to choice)
+                result.add(values to choice)
             }
         }
         return result

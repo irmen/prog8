@@ -678,138 +678,84 @@ internal class AsmGen(private val program: Program,
                                                   register: CpuRegister,
                                                   addOneExtra: Boolean=false) {
         val reg = register.toString().toLowerCase()
-        val index = expr.arrayspec.index
-        if(index is NumericLiteralValue) {
-            val indexValue = index.number.toInt() * elementDt.memorySize() + if(addOneExtra) 1 else 0
+        val indexnum = expr.indexer.constIndex()
+        if(indexnum!=null) {
+            val indexValue = indexnum * elementDt.memorySize() + if(addOneExtra) 1 else 0
             out("  ld$reg  #$indexValue")
             return
         }
 
+        val indexName = asmVariableName(expr.indexer.indexVar!!)
         if(addOneExtra) {
             // add 1 to the result
-            if (index is IdentifierReference) {
-                val indexName = asmVariableName(index)
-                when(elementDt) {
-                    in ByteDatatypes -> {
-                        out("  ldy  $indexName |  iny")
-                        when(register) {
-                            CpuRegister.A -> out(" tya")
-                            CpuRegister.X -> out(" tyx")
-                            CpuRegister.Y -> {}
-                        }
+            when(elementDt) {
+                in ByteDatatypes -> {
+                    out("  ldy  $indexName |  iny")
+                    when(register) {
+                        CpuRegister.A -> out(" tya")
+                        CpuRegister.X -> out(" tyx")
+                        CpuRegister.Y -> {}
                     }
-                    in WordDatatypes -> {
-                        out("  lda  $indexName |  sec |  rol a")
-                        when(register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> out(" tax")
-                            CpuRegister.Y -> out(" tay")
-                        }
-                    }
-                    DataType.FLOAT -> {
-                        require(DataType.FLOAT.memorySize()==5)
-                        out("""
-                                    lda  $indexName
-                                    asl  a
-                                    asl  a
-                                    sec
-                                    adc  $indexName""")
-                        when(register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> out(" tax")
-                            CpuRegister.Y -> out(" tay")
-                        }
-                    }
-                    else -> throw AssemblyError("weird dt")
                 }
-            }
-            else {
-                expressionsAsmGen.translateExpression(index)
-                out("""
-                    inc  P8ESTACK_LO,x
-                    bne  +
-                    inc  P8ESTACK_HI,x
-+""")
-                when(register) {
-                    CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
-                    CpuRegister.X -> out("  inx |  lda  P8ESTACK_LO,x |  tax")
-                    CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
+                in WordDatatypes -> {
+                    out("  lda  $indexName |  sec |  rol a")
+                    when(register) {
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> out(" tax")
+                        CpuRegister.Y -> out(" tay")
+                    }
                 }
+                DataType.FLOAT -> {
+                    require(DataType.FLOAT.memorySize()==5)
+                    out("""
+                                lda  $indexName
+                                asl  a
+                                asl  a
+                                sec
+                                adc  $indexName""")
+                    when(register) {
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> out(" tax")
+                        CpuRegister.Y -> out(" tay")
+                    }
+                }
+                else -> throw AssemblyError("weird dt")
             }
         } else {
-            if (index is IdentifierReference) {
-                val indexName = asmVariableName(index)
-                when(elementDt) {
-                    in ByteDatatypes -> out("  ld$reg  $indexName")
-                    in WordDatatypes -> {
-                        out("  lda  $indexName |  asl a")
-                        when(register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> out(" tax")
-                            CpuRegister.Y -> out(" tay")
-                        }
+            when(elementDt) {
+                in ByteDatatypes -> out("  ld$reg  $indexName")
+                in WordDatatypes -> {
+                    out("  lda  $indexName |  asl a")
+                    when(register) {
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> out(" tax")
+                        CpuRegister.Y -> out(" tay")
                     }
-                    DataType.FLOAT -> {
-                        require(DataType.FLOAT.memorySize()==5)
-                        out("""
-                                    lda  $indexName
-                                    asl  a
-                                    asl  a
-                                    clc
-                                    adc  $indexName""")
-                        when(register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> out(" tax")
-                            CpuRegister.Y -> out(" tay")
-                        }
-                    }
-                    else -> throw AssemblyError("weird dt")
                 }
-            }
-            else {
-                expressionsAsmGen.translateExpression(index)
-                when(elementDt) {
-                    in ByteDatatypes -> {
-                        when (register) {
-                            CpuRegister.A -> out("  inx |  lda  P8ESTACK_LO,x")
-                            CpuRegister.X -> out("  inx |  lda  P8ESTACK_LO,x |  tax")
-                            CpuRegister.Y -> out("  inx |  ldy  P8ESTACK_LO,x")
-                        }
+                DataType.FLOAT -> {
+                    require(DataType.FLOAT.memorySize()==5)
+                    out("""
+                                lda  $indexName
+                                asl  a
+                                asl  a
+                                clc
+                                adc  $indexName""")
+                    when(register) {
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> out(" tax")
+                        CpuRegister.Y -> out(" tay")
                     }
-                    in WordDatatypes -> {
-                        out("""
-                            inx
-                            lda  P8ESTACK_LO,x
-                            asl  a""")
-                        when (register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> out("  tax")
-                            CpuRegister.Y -> out("  tay")
-                        }
-                    }
-                    DataType.FLOAT -> {
-                        require(DataType.FLOAT.memorySize()==5)
-                        out("""
-                            inx
-                            lda  P8ESTACK_LO,x
-                            asl  a
-                            asl  a
-                            clc
-                            adc  P8ESTACK_LO,x""")
-                        when (register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> out("  tax")
-                            CpuRegister.Y -> out("  tay")
-                        }
-                    }
-                    else -> throw AssemblyError("weird dt")
                 }
+                else -> throw AssemblyError("weird dt")
             }
         }
     }
 
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
+
+    internal fun translateExpression(indexer: ArrayIndex) =
+            expressionsAsmGen.translateExpression(indexer)
 
     internal fun translateFunctioncallExpression(functionCall: FunctionCall, signature: FSignature) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature)

@@ -3,7 +3,6 @@ TODO
 ====
 
 - get rid of all other TODO's in the code ;-)
-- only allow array indexing via a number, a variable, or a typecast of one of those (eliminate complex expression calcs for array indexing, force explicit use of an index variable)
 - implement @stack for asmsub parameters
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
