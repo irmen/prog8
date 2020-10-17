@@ -24,8 +24,6 @@ main {
         ib = array[3*ib]
         ib = array[ib*4]
         ib = array[4*ib]
-;        ib = array[lsb(ib)]
-;        ib = array[msb(ib)]
         testX()
     }
 

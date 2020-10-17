@@ -50,7 +50,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
                     DataType.STR -> assignVariableString(assign.target, variable)
                     in PassByReferenceDatatypes -> {
-                        // TODO what about when the name is a struct? name.firstStructVarName(program.namespace)
+                        // TODO what about when the name is a struct? name.firstStructVarName(program.namespace)  ****************************************
                         assignAddressOf(assign.target, variable)
                     }
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
@@ -533,16 +533,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             }
             TargetStorageKind.ARRAY -> {
-                // TODO optimize this, but the situation doesn't occur very often
+                // TODO optimize this (array indexer is just a simple number or variable), but the situation doesn't occur very often ****************************************
 //                if(target.constArrayIndexValue!=null) {
 //                    TODO("const index ${target.constArrayIndexValue}")
 //                } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
                 asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
-                target.array!!
-                target.array.indexer.indexNum?.let { asmgen.translateExpression(it) }
-                target.array.indexer.indexVar?.let { asmgen.translateExpression(it) }
+                asmgen.translateExpression(target.array!!)
                 asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  floats.pop_float_to_indexed_var")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
@@ -830,15 +828,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
-                // TODO optimize this, but the situation doesn't occur very often
+                // TODO optimize this (array indexer is just a simple number or variable), but the situation doesn't occur very often ****************************************
 //                if(target.constArrayIndexValue!=null) {
 //                    TODO("const index ${target.constArrayIndexValue}")
 //                } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
-                target.array!!
-                target.array.indexer.indexNum?.let { asmgen.translateExpression(it) }
-                target.array.indexer.indexVar?.let { asmgen.translateExpression(it) }
+                asmgen.translateExpression(target.array!!)
                 asmgen.out("""
                     inx
                     lda  P8ESTACK_LO,x
@@ -928,12 +924,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
-                    // TODO optimize this, but the situation doesn't occur very often
-//                    if(target.constArrayIndexValue!=null) {
-//                        TODO("const index ${target.constArrayIndexValue}")
-//                    } else if(target.array!!.arrayspec.index is IdentifierReference) {
-//                        TODO("array[var] ${target.constArrayIndexValue}")
-//                    }
                     if (target.array!!.indexer.indexNum!=null) {
                         val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
                         asmgen.out("""
@@ -945,6 +935,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  ${target.asmVarname}+$indexValue+4
                         """)
                     } else {
+                        // TODO optimize this (don't use stack eval) as the indexer is only a simple variable ****************************************
                         asmgen.translateExpression(target.array.indexer.indexVar!!)
                         asmgen.out("""
                             lda  #<${target.asmVarname}
@@ -981,12 +972,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
-                    // TODO optimize this, but the situation doesn't occur very often
-//                    if(target.constArrayIndexValue!=null) {
-//                        TODO("const index ${target.constArrayIndexValue}")
-//                    } else if(target.array!!.arrayspec.index is IdentifierReference) {
-//                        TODO("array[var] ${target.constArrayIndexValue}")
-//                    }
                     val arrayVarName = target.asmVarname
                     if (target.array!!.indexer.indexNum!=null) {
                         val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
@@ -1003,6 +988,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  $arrayVarName+$indexValue+4
                         """)
                     } else {
+                        // TODO optimize this (don't use stack eval) as the indexer is only a simple variable ****************************************
                         asmgen.translateExpression(target.array.indexer.indexVar!!)
                         asmgen.out("""
                             lda  #<${constFloat}

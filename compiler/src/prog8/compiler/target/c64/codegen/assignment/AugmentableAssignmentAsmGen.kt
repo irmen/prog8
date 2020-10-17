@@ -647,7 +647,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
-            // TODO use these + and - optimizations in the expressionAsmGenerator as well.
+            // TODO use these + and - optimizations in the expressionAsmGenerator as well.  ****************************************
             "+" -> {
                 when {
                     value==0 -> {}
@@ -720,7 +720,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
                         asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                     } else {
-                        // TODO does this work for signed words? if so the uword/word distinction can be removed altogether
+                        // TODO does this work for signed words? if so the uword/word distinction can be removed altogether  ****************************************
                         asmgen.out("""
                             lda  $name
                             sta  P8ZP_SCRATCH_W1
@@ -1168,7 +1168,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         remainderWord()
                     }
                     "<<" -> {
-                        asmgen.translateExpression(value)       // TODO huh is this okay? wasn't this done above already?
+                        asmgen.translateExpression(value)       // TODO huh is this okay? wasn't this done above already? ****************************************
                         asmgen.out("""
                         inx
                         ldy  P8ESTACK_LO,x
@@ -1180,7 +1180,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                     }
                     ">>" -> {
-                        asmgen.translateExpression(value)   // TODO huh is this okay? wasn't this done above already?
+                        asmgen.translateExpression(value)   // TODO huh is this okay? wasn't this done above already? *******************************************
                         if(dt==DataType.UWORD) {
                             asmgen.out("""
                             inx
