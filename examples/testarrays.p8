@@ -83,20 +83,20 @@ main {
         uw=muwarray[bb]
         fl=mflarray[bb]
 
-        A=s1[bb*3]
-        ub=s1[bb*3]
-        bb=barray[bb*3]
-        ub=ubarray[bb*3]
-        ww=warray[bb*3]
-        uw=uwarray[bb*3]
-        fl=flarray[bb*3]
-        A=ms1[bb*3]
-        ub=ms1[bb*3]
-        bb=mbarray[bb*3]
-        ub=mubarray[bb*3]
-        ww=mwarray[bb*3]
-        uw=muwarray[bb*3]
-        fl=mflarray[bb*3]
+;        A=s1[bb*3]
+;        ub=s1[bb*3]
+;        bb=barray[bb*3]
+;        ub=ubarray[bb*3]
+;        ww=warray[bb*3]
+;        uw=uwarray[bb*3]
+;        fl=flarray[bb*3]
+;        A=ms1[bb*3]
+;        ub=ms1[bb*3]
+;        bb=mbarray[bb*3]
+;        ub=mubarray[bb*3]
+;        ww=mwarray[bb*3]
+;        uw=muwarray[bb*3]
+;        fl=mflarray[bb*3]
 
         ; write array
         barray[2]++
@@ -132,11 +132,11 @@ main {
         uwarray[bb] = uw
         flarray[bb] = fl
 
-        s1[bb*3] = ub
-        barray[bb*3] = bb
-        ubarray[bb*3] = ub
-        warray[bb*3] = ww
-        uwarray[bb*3] = uw
-        flarray[bb*3] = fl
+;        s1[bb*3] = ub
+;        barray[bb*3] = bb
+;        ubarray[bb*3] = ub
+;        warray[bb*3] = ww
+;        uwarray[bb*3] = uw
+;        flarray[bb*3] = fl
     }
 }

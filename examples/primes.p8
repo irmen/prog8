@@ -43,7 +43,8 @@ main {
 
 
         while multiple < len(sieve) {
-            sieve[lsb(multiple)] = true
+            ubyte si = lsb(multiple)    ; TODO is index for array
+            sieve[si] = true
             multiple += candidate_prime
         }
         return candidate_prime

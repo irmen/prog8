@@ -9,7 +9,7 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-
+; TODO error check on load, now wipes cash and fuel etc when load fails
 ; TODO finalize and test save/load game function
 
 main {
@@ -360,7 +360,8 @@ market {
             util.print_10s(current_price[ci])
             txt.print("  ")
             txt.print_ub(current_quantity[ci])
-            txt.print(unitnames[units[ci]])
+            ubyte ui = units[ci]        ; TODO is index for array
+            txt.print(unitnames[ui])
             txt.print("   ")
             txt.print_ub(ship.cargohold[ci])
             txt.chrout('\n')
@@ -505,28 +506,33 @@ galaxy {
     sub make_current_planet_name() -> str {
         ubyte ni = 0
         str name = "         "    ; max 8
+        ubyte pn_pair1_p1 = pn_pair1+1      ; TODO is index for array
+        ubyte pn_pair2_p1 = pn_pair2+1      ; TODO is index for array
+        ubyte pn_pair3_p1 = pn_pair3+1      ; TODO is index for array
+        ubyte pn_pair4_p1 = pn_pair4+1      ; TODO is index for array
+
         if pn_pairs[pn_pair1] != '.' {
             name[ni] = pn_pairs[pn_pair1]
             ni++
         }
-        if pn_pairs[pn_pair1+1] != '.' {
-            name[ni] = pn_pairs[pn_pair1+1]
+        if pn_pairs[pn_pair1_p1] != '.' {
+            name[ni] = pn_pairs[pn_pair1_p1]
             ni++
         }
         if pn_pairs[pn_pair2] != '.' {
             name[ni] = pn_pairs[pn_pair2]
             ni++
         }
-        if pn_pairs[pn_pair2+1] != '.' {
-            name[ni] = pn_pairs[pn_pair2+1]
+        if pn_pairs[pn_pair2_p1] != '.' {
+            name[ni] = pn_pairs[pn_pair2_p1]
             ni++
         }
         if pn_pairs[pn_pair3] != '.' {
             name[ni] = pn_pairs[pn_pair3]
             ni++
         }
-        if pn_pairs[pn_pair3+1] != '.' {
-            name[ni] = pn_pairs[pn_pair3+1]
+        if pn_pairs[pn_pair3_p1] != '.' {
+            name[ni] = pn_pairs[pn_pair3_p1]
             ni++
         }
 
@@ -535,8 +541,8 @@ galaxy {
                 name[ni] = pn_pairs[pn_pair4]
                 ni++
             }
-            if pn_pairs[pn_pair4+1] != '.' {
-                name[ni] = pn_pairs[pn_pair4+1]
+            if pn_pairs[pn_pair4_p1] != '.' {
+                name[ni] = pn_pairs[pn_pair4_p1]
                 ni++
             }
         }
@@ -704,8 +710,9 @@ planet {
                 name[nx] = pairs0[x]
                 nx++
             }
-            if pairs0[x+1] != '.' {
-                name[nx] = pairs0[x+1]
+            x++     ; TODO is index for array
+            if pairs0[x] != '.' {
+                name[nx] = pairs0[x]
                 nx++
             }
         }

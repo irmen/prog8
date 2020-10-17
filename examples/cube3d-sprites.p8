@@ -166,7 +166,8 @@ main {
             else
                 c64.SPRPTR[i] = $2000/64        ; small ball
 
-            c64.SPCOL[i] = spritecolors[(zc>>13) as byte + 4]      ; further away=darker color
+            ubyte sci = (zc>>13) as ubyte + 4   ; TODO is index for array
+            c64.SPCOL[i] = spritecolors[sci]      ; further away=darker color
         }
     }
 }
