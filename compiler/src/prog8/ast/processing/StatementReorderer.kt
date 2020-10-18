@@ -11,7 +11,7 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - library blocks are put last.
     // - blocks are ordered by address, where blocks without address are placed last.
-    // - in every scope, most directives and vardecls are moved to the top.
+    // - in every block and module, most directives and vardecls are moved to the top. (not in subroutines!)
     // - the 'start' subroutine is moved to the top.
     // - (syntax desugaring) a vardecl with a non-const initializer value is split into a regular vardecl and an assignment statement.
     // - (syntax desugaring) struct value assignment is expanded into several struct member assignments.
@@ -118,6 +118,28 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
         }
         whenStatement.choices.clear()
         choices.mapTo(whenStatement.choices) { it.second }
+        return noModifications
+    }
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        val declValue = decl.value
+        if(declValue!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
+            val declConstValue = declValue.constValue(program)
+            if(declConstValue==null) {
+                // move the vardecl (without value) to the scope and replace this with a regular assignment
+                // Unless we're dealing with a floating point variable because that will actually make things less efficient at the moment (because floats are mostly calcualated via the stack)
+                if(decl.datatype!=DataType.FLOAT) {
+                    decl.value = null
+                    decl.allowInitializeWithZero = false
+                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                    val assign = Assignment(target, declValue, decl.position)
+                    return listOf(
+                            IAstModification.ReplaceNode(decl, assign, parent),
+                            IAstModification.InsertFirst(decl, decl.definingScope() as Node)
+                    )
+                }
+            }
+        }
         return noModifications
     }
 

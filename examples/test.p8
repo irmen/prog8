@@ -7,23 +7,20 @@ main {
 
     sub start() {
 
-        ubyte[] array = [1,2,3,4]
+        uword zc
 
-        const ubyte ic = 2
-        ubyte ib = 2
+        zc = 99
+        scolor2=scolor
 
-        ib = array[ic+1]
-        ib = array[ib]
-        ib = array[ib+1]
-        ib = array[ib+2]
-        ib = array[ib-1]
-        ib = array[ib-2]
-        ib = array[ib*2]
-        ib = array[2*ib]
-        ib = array[ib*3]
-        ib = array[3*ib]
-        ib = array[ib*4]
-        ib = array[4*ib]
+        ; TODO WHy does this compile with stack eval:
+        ubyte scolor = (zc>>13) as ubyte + 4
+
+        ; TODO this is more optimized:
+        ubyte scolor2
+        scolor2 = (zc>>13) as ubyte + 4
+
+        scolor2=scolor
+
         testX()
     }
 

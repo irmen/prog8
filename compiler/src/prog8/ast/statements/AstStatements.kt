@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstVisitor
+import prog8.compiler.CompilerException
 import prog8.compiler.target.CompilationTarget
 
 
@@ -171,6 +172,7 @@ open class VarDecl(val type: VarDeclType,
         private set
     var structHasBeenFlattened = false      // set later
         private set
+    var allowInitializeWithZero = true
 
     // prefix for literal values that are turned into a variable on the heap
 
@@ -242,7 +244,12 @@ open class VarDecl(val type: VarDeclType,
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, struct=$structName, value=$value, pos=$position)"
     }
 
-    fun zeroElementValue() = defaultZero(declaredDatatype, position)
+    fun zeroElementValue(): NumericLiteralValue {
+        if(allowInitializeWithZero)
+            return defaultZero(declaredDatatype, position)
+        else
+            throw CompilerException("attempt to get zero value for vardecl that shouldn't get it")
+    }
 
     fun flattenStructMembers(): MutableList<Statement> {
         val result = struct!!.statements.withIndex().map {
