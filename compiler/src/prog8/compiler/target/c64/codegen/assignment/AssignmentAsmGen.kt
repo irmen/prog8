@@ -540,7 +540,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
                 asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
-                asmgen.translateExpression(target.array!!)
+                asmgen.translateExpression(target.array!!.indexer)
                 asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  floats.pop_float_to_indexed_var")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
@@ -834,7 +834,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 //                } else if(target.array!!.arrayspec.index is IdentifierReference) {
 //                    TODO("array[var] ${target.constArrayIndexValue}")
 //                }
-                asmgen.translateExpression(target.array!!)
+                asmgen.translateExpression(target.array!!.indexer)
                 asmgen.out("""
                     inx
                     lda  P8ESTACK_LO,x
