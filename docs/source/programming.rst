@@ -254,14 +254,6 @@ Array types are also supported. They can be made of bytes, words or floats, stri
     This means byte arrays should be <= 256 elements, word arrays <= 128 elements, and float
     arrays <= 51 elements.
 
-.. note::
-    To avoid slow and complex assembly code generation, Prog8 currently enforces some limits on
-    what you can index the array with.  *It is not possible to use an arbitrary expression/calculation as an index value*.
-    You can use a numerical constant value or a single variable as an index value, and simple expressions such as
-    "i+1"  or "i*2".   If you need more complex indexing expressions, the compiler refuses the statement and
-    will suggest to use a temporary indexer variable instead.
-
-
 You can split an array initializer list over several lines if you want.
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)

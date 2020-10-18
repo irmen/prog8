@@ -314,7 +314,6 @@ market {
     ubyte[17] units = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0]
     str[17] names = ["Food", "Textiles", "Radioactives", "Slaves", "Liquor/Wines", "Luxuries", "Narcotics", "Computers",
                      "Machinery", "Alloys", "Firearms", "Furs", "Minerals", "Gold", "Platinum", "Gem-Stones", "Alien Items"]
-    str[3] unitnames = ["t", "kg", "g"]
 
     ubyte[17] current_quantity = 0
     uword[17] current_price = 0
@@ -360,8 +359,11 @@ market {
             util.print_10s(current_price[ci])
             txt.print("  ")
             txt.print_ub(current_quantity[ci])
-            ubyte unit = units[ci]
-            txt.print(unitnames[unit])
+            when units[ci] {
+                0 -> txt.chrout('t')
+                1 -> txt.print("kg")
+                2 -> txt.chrout('g')
+            }
             txt.print("   ")
             txt.print_ub(ship.cargohold[ci])
             txt.chrout('\n')

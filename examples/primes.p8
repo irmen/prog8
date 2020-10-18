@@ -43,8 +43,7 @@ main {
 
 
         while multiple < len(sieve) {
-            ubyte number = lsb(multiple)
-            sieve[number] = true
+            sieve[lsb(multiple)] = true
             multiple += candidate_prime
         }
         return candidate_prime
