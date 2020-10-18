@@ -7,21 +7,81 @@ main {
 
     sub start() {
 
-        uword zc
+        word zz
+        uword uu
+        ubyte ub
+        byte bb
 
-        zc = 99
-        scolor2=scolor
+        bb = -111
+        bb >>= 0
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 1
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 2
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 3
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 4
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 5
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 6
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 7
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 8
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
+        bb = -111
+        bb >>= 9
+        txt.print_ubbin(bb as ubyte, true)
+        txt.chrout('\n')
 
-        ; TODO WHy does this compile with stack eval:
-        ubyte scolor = (zc>>13) as ubyte + 4
+;        for ub in 0 to 8 {
+;            bb = 111
+;            bb >>= ub
+;            txt.print_ubbin(bb as ubyte, true)
+;            txt.chrout('\n')
+;        }
+;        txt.chrout('\n')
+;
+;        for ub in 0 to 8 {
+;            bb = -111
+;            bb >>= ub
+;            txt.print_ubbin(bb as ubyte, true)
+;            txt.chrout('\n')
+;        }
+;        txt.chrout('\n')
 
-        ; TODO this is more optimized:
-        ubyte scolor2
-        scolor2 = (zc>>13) as ubyte + 4
+;        ub >>= 7
+;        ub <<= 7
+;
+;        uu >>=7
+;        uu <<= 7
+;
+;        zz >>=7
+;        zz <<=7
+;
+;        bb >>=7
+;        bb <<=7
 
-        scolor2=scolor
-
-        testX()
+        ; testX()
     }
 
     asmsub testX() {

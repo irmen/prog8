@@ -1,6 +1,5 @@
 package prog8.compiler.target.c64.codegen.assignment
 
-import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -497,25 +496,31 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "<<" -> {
                 asmgen.out("""
                     ldy  $otherName
+                    beq  +
 -                   asl  $name
                     dey
-                    bne  -""")
+                    bne  -
++""")
             }
             ">>" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
                         ldy  $otherName
+                        beq  +
 -                       lsr  $name
                         dey
-                        bne  -""")
+                        bne  -
++""")
                 } else {
                     asmgen.out("""
                         ldy  $otherName
+                        beq  +
 -                       lda  $name
                         asl  a
                         ror  $name
                         dey
-                        bne  -""")
+                        bne  -
++""")
                 }
             }
             "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
@@ -577,7 +582,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     if (dt == DataType.UBYTE) {
                         repeat(value) { asmgen.out(" lsr  $name") }
                     } else {
-                        repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
+                        if(value>3)
+                            asmgen.out("""
+                                lda  $name
+                                ldy  #$value
+                                jsr  prog8_lib.lsr_byte_A
+                                sta  $name""")  // TODO make  prog8_lib.lsr_byte_A
+                        else
+                            repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
                     }
                 }
             }
@@ -786,14 +798,38 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 """)
             }
             "<<" -> {
-                repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
+                if(value>4)
+                    asmgen.out("""
+                        lda  #$value
+                        sta  P8ZP_SCRATCH_B1
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  prog8_lib.asl_word_AY""")  // TODO make  prog8_lib.asl_word_AY
+                else
+                    repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
             }
             ">>" -> {
                 if (value > 0) {
                     if(dt==DataType.UWORD) {
-                        repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
+                        if(value>4)
+                            asmgen.out("""
+                                lda  #$value
+                                sta  P8ZP_SCRATCH_B1
+                                lda  #<$name
+                                ldy  #>$name
+                                jsr  prog8_lib.lsr_uword_AY""")  // TODO make  prog8_lib.lsr_uword_AY
+                        else
+                            repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
                     } else {
-                        repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
+                        if(value>2)
+                            asmgen.out("""
+                                lda  #$value
+                                sta  P8ZP_SCRATCH_B1
+                                lda  #<$name
+                                ldy  #>$name
+                                jsr  prog8_lib.lsr_word_AY""")  // TODO make  prog8_lib.lsr_word_AY
+                        else
+                            repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
                     }
                 }
             }
@@ -917,28 +953,34 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "<<" -> {
                         asmgen.out("""
                         ldy  $otherName
+                        beq  +
 -                       asl  $name
                         rol  $name+1
                         dey
-                        bne  -""")
+                        bne  -
++""")
                     }
                     ">>" -> {
                         if(dt==DataType.UWORD) {
                             asmgen.out("""
                             ldy  $otherName
+                            beq  +
 -                           lsr  $name+1
                             ror  $name
                             dey
-                            bne  -""")
+                            bne  -
++""")
                         } else {
                             asmgen.out("""
                             ldy  $otherName
+                            beq  +
 -                           lda  $name+1
                             asl  a
                             ror  $name+1
                             ror  $name
                             dey
-                            bne  -""")
+                            bne  -
++""")
                         }
                     }
                     "&" -> {

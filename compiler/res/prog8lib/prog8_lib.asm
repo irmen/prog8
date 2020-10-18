@@ -2145,3 +2145,34 @@ func_strcmp	.proc
 		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
+
+
+
+; support for bit shifting that is too large to be unrolled:
+
+lsr_byte_A	.proc
+		; -- lsr signed byte in A times the value in Y (assume >0)
+		cmp  #0
+		bmi  _negative
+-		lsr  a
+		dey
+		bne  -
+		rts
+_negative	lsr  a
+		ora  #$80
+		dey
+		bne  _negative
+		rts
+		.pend
+
+lsr_word_AY	.proc
+		.error	"make"
+		.pend
+
+lsr_uword_AY	.proc
+		.error	"make"
+		.pend
+
+asl_word_AY	.proc
+		.error	"make"
+		.pend
