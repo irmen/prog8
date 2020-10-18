@@ -72,18 +72,19 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        val expr = arrayIndexedExpression.indexer.origExpression
-        if (expr is NumericLiteralValue) {
-            arrayIndexedExpression.indexer.indexNum = expr
-            arrayIndexedExpression.indexer.origExpression = null
-        }
-        else if (expr is IdentifierReference) {
-            arrayIndexedExpression.indexer.indexVar = expr
-            arrayIndexedExpression.indexer.origExpression = null
-        }
-        else if(expr is BinaryExpression) {
-            if((expr.left is NumericLiteralValue || expr.left is IdentifierReference) &&
-                    (expr.right is NumericLiteralValue || expr.right is IdentifierReference)) {
+        when (val expr = arrayIndexedExpression.indexer.origExpression) {
+            is NumericLiteralValue -> {
+                arrayIndexedExpression.indexer.indexNum = expr
+                arrayIndexedExpression.indexer.origExpression = null
+                return noModifications
+            }
+            is IdentifierReference -> {
+                arrayIndexedExpression.indexer.indexVar = expr
+                arrayIndexedExpression.indexer.origExpression = null
+                return noModifications
+            }
+            is Expression -> {
+                // replace complex indexing with a temp variable
                 val modifications = mutableListOf<IAstModification>()
                 val indexerVarName = "prog8_autovar_index"
                 val block = expr.definingBlock()
@@ -107,9 +108,8 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
 
                 return modifications
             }
+            else -> return noModifications
         }
-
-        return noModifications
     }
 
     override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {

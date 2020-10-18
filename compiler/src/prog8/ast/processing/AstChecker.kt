@@ -1053,9 +1053,8 @@ internal class AstChecker(private val program: Program,
         if(dtxVar!=null && dtxVar != DataType.UBYTE && dtxVar != DataType.BYTE)
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
 
-        // check type of array indexer
-        if(arrayIndexedExpression.indexer.indexVar==null && arrayIndexedExpression.indexer.indexNum==null)
-            errors.err("array indexing can only be done with a number or a variable, or a simple binary expression, but not an arbitrary expression. Use a temp var?", arrayIndexedExpression.indexer.position)
+        if(arrayIndexedExpression.indexer.origExpression!=null)
+            throw FatalAstException("array indexer should have been replaced with a temp var @ ${arrayIndexedExpression.indexer.position}")
 
         super.visit(arrayIndexedExpression)
     }

@@ -41,10 +41,8 @@ main {
         ubyte @zp i
         for i in 0 to 7 {
             c64.SPRPTR[i] = $0a00 / 64
-            ubyte twoi = i*2
-            c64.SPXY[twoi] = 50+25*i
-            twoi++
-            c64.SPXY[twoi] = rnd()
+            c64.SPXY[i*2] = 50+25*i
+            c64.SPXY[i*2+1] = rnd()
         }
 
         c64.SPENA = 255                ; enable all sprites
