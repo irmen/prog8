@@ -415,6 +415,10 @@ open class Assignment(var target: AssignTarget, var value: Expression, override 
                 return if(subCast!=null) subCast.expression isSameAs target else castExpr.expression isSameAs target
             }
 
+            if(target.identifier!=null) {
+                return value.referencesIdentifier(*(target.identifier!!.nameInSource.toTypedArray()))
+            }
+
             return false
         }
 }

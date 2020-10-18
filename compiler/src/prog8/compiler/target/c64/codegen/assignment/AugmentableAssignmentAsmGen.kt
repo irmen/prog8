@@ -575,21 +575,30 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sta  $name""")
             }
             "<<" -> {
-                repeat(value) { asmgen.out(" asl  $name") }
+                if(value>=8) asmgen.out(" lda  #0 |  sta  $name")
+                else repeat(value) { asmgen.out(" asl  $name") }
             }
             ">>" -> {
                 if(value>0) {
                     if (dt == DataType.UBYTE) {
-                        repeat(value) { asmgen.out(" lsr  $name") }
+                        if(value>=8) asmgen.out(" lda  #0 |  sta  $name")
+                        else repeat(value) { asmgen.out(" lsr  $name") }
                     } else {
-                        if(value>3)
-                            asmgen.out("""
+                        when {
+                            value>=8 -> asmgen.out("""
+                                lda  $name
+                                bmi  +
+                                lda  #0
+                                beq  ++
++                               lda  #-1
++                               sta  $name""")
+                            value>3 -> asmgen.out("""
                                 lda  $name
                                 ldy  #$value
-                                jsr  prog8_lib.lsr_byte_A
-                                sta  $name""")  // TODO make  prog8_lib.lsr_byte_A
-                        else
-                            repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
+                                jsr  math.lsr_byte_A
+                                sta  $name""")
+                            else -> repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
+                        }
                     }
                 }
             }
@@ -798,38 +807,63 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 """)
             }
             "<<" -> {
-                if(value>4)
-                    asmgen.out("""
-                        lda  #$value
-                        sta  P8ZP_SCRATCH_B1
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  prog8_lib.asl_word_AY""")  // TODO make  prog8_lib.asl_word_AY
-                else
-                    repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
+                when {
+                    value>=16 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
+                    value==8 -> asmgen.out(" lda  $name |  sta  $name+1 |  lda  #0 |  sta  $name")
+                    value>2 -> asmgen.out("""
+                        ldy  #$value
+-                       asl  $name
+                        rol  $name+1
+                        dey
+                        bne  -
+                    """)
+                    else -> repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
+                }
             }
             ">>" -> {
                 if (value > 0) {
                     if(dt==DataType.UWORD) {
-                        if(value>4)
-                            asmgen.out("""
-                                lda  #$value
-                                sta  P8ZP_SCRATCH_B1
-                                lda  #<$name
-                                ldy  #>$name
-                                jsr  prog8_lib.lsr_uword_AY""")  // TODO make  prog8_lib.lsr_uword_AY
-                        else
-                            repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
+                        when {
+                            value>=16 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
+                            value==8 -> asmgen.out(" lda  $name+1 |  sta  $name |  lda  #0 |  sta  $name+1")
+                            value>2 -> asmgen.out("""
+                                ldy  #$value
+-                               lsr  $name+1
+                                ror  $name
+                                dey
+                                bne  -""")
+                            else -> repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
+                        }
                     } else {
-                        if(value>2)
-                            asmgen.out("""
-                                lda  #$value
-                                sta  P8ZP_SCRATCH_B1
-                                lda  #<$name
-                                ldy  #>$name
-                                jsr  prog8_lib.lsr_word_AY""")  // TODO make  prog8_lib.lsr_word_AY
-                        else
-                            repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
+                        when {
+                            value>=16 -> asmgen.out("""
+                                lda  $name+1
+                                bmi  +
+                                lda  #0
+                                beq  ++
++                               lda  #-1
++                               sta  $name
+                                sta  $name+1""")
+                            value==8 -> asmgen.out("""
+                                 lda  $name+1
+                                 sta  $name
+                                 bmi  +
+                                 lda  #0
+-                                sta  $name+1
+                                 beq  ++
++                                lda  #-1
+                                 sta  $name+1
++""")
+                            value>2 -> asmgen.out("""
+                                ldy  #$value
+-                               lda  $name+1
+                                asl  a
+                                ror  $name+1
+                                ror  $name
+                                dey
+                                bne  -""")
+                            else -> repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
+                        }
                     }
                 }
             }

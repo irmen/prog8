@@ -605,6 +605,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 if (amount >= 16) {
                     return NumericLiteralValue(targetDt, 0, expr.position)
                 } else if (amount >= 8) {
+                    // TODO is this correct???
                     val lsb = TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
                     if (amount == 8) {
                         return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
@@ -644,8 +645,9 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     return NumericLiteralValue.optimalInteger(0, expr.position)
                 } else if (amount >= 8) {
                     val msb = FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    if (amount == 8)
-                        return msb
+                    if (amount == 8) {
+                        return TypecastExpression(msb, DataType.UWORD, true, expr.position)
+                    }
                     return BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
                 }
             }
@@ -653,14 +655,6 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 if (amount > 16) {
                     expr.right = NumericLiteralValue.optimalInteger(16, expr.right.position)
                     return null
-                } else if (amount >= 8) {
-                    val msbAsByte = TypecastExpression(
-                            FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position),
-                            DataType.BYTE,
-                            true, expr.position)
-                    if (amount == 8)
-                        return msbAsByte
-                    return BinaryExpression(msbAsByte, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
                 }
             }
             else -> {

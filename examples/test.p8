@@ -7,68 +7,47 @@ main {
 
     sub start() {
 
-        word zz
-        uword uu
+        word ww
+        uword uw
         ubyte ub
         byte bb
 
-        bb = -111
-        bb >>= 0
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 9        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 1
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 10        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 2
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 11        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 3
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 12       ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 4
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 13        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 5
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 14        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 6
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 15        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 7
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 16        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 8
-        txt.print_ubbin(bb as ubyte, true)
+        uw = 21111
+        uw >>= 17        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-        bb = -111
-        bb >>= 9
-        txt.print_ubbin(bb as ubyte, true)
-        txt.chrout('\n')
-
-;        for ub in 0 to 8 {
-;            bb = 111
-;            bb >>= ub
-;            txt.print_ubbin(bb as ubyte, true)
-;            txt.chrout('\n')
-;        }
-;        txt.chrout('\n')
-;
-;        for ub in 0 to 8 {
-;            bb = -111
-;            bb >>= ub
-;            txt.print_ubbin(bb as ubyte, true)
-;            txt.chrout('\n')
-;        }
-;        txt.chrout('\n')
-
 ;        ub >>= 7
 ;        ub <<= 7
 ;
@@ -81,7 +60,7 @@ main {
 ;        bb >>=7
 ;        bb <<=7
 
-        ; testX()
+        testX()
     }
 
     asmsub testX() {

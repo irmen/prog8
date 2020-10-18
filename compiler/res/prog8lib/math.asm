@@ -1469,3 +1469,22 @@ shift_right_w_3	.proc
 		jmp  shift_right_w_7._shift3
 		.pend
 
+
+
+; support for bit shifting that is too large to be unrolled:
+
+lsr_byte_A	.proc
+		; -- lsr signed byte in A times the value in Y (assume >0)
+		cmp  #0
+		bmi  _negative
+-		lsr  a
+		dey
+		bne  -
+		rts
+_negative	lsr  a
+		ora  #$80
+		dey
+		bne  _negative
+		rts
+		.pend
+
