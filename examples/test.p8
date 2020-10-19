@@ -7,25 +7,27 @@ main {
 
     sub start() {
 
-        uword vv  = $1111
-        uword vv2
-        vv2 = vv2+(vv/2)
-        vv2 = vv2+(vv - 1)
-        vv2 = vv2+(vv + $0200)
-        vv2 = vv2+(vv - $0400)
-        txt.print_uw(vv2)
-        txt.chrout('\n')
+        uword[]  array = [1, 2, 3]
+        uword fzero = 0.0
+        uword fnine = 9999
+        array[0] = 0
+        ubyte ii = 1
+        array[ii] = 0
 
-        word ww  = -$1111
-        word ww2 = 0
-        ww2 = ww2 + ww + $0200
-        ww2 = ww2 +ww - $0400
-        txt.print_w(ww2)
-        txt.chrout('\n')
-        ww2=  ww2 + ww + -$0200
-        ww2= ww2 + ww - -$0400
-        txt.print_w(ww2)
-        txt.chrout('\n')
+        uword ff
+        for ii in 0 to len(array)-1 {
+            txt.print_uw(array[ii])
+            txt.chrout('\n')
+        }
+
+        array[0] = 9
+        ii = 1
+        array[ii] = 9
+
+        for ii in 0 to len(array)-1 {
+            txt.print_uw(array[ii])
+            txt.chrout('\n')
+        }
 
         testX()
     }

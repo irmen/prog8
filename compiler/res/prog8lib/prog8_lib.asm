@@ -40,16 +40,6 @@ add_a_to_zpword	.proc
 +		rts
 		.pend
 
-pop_index_times_5	.proc
-		inx
-		lda  P8ESTACK_LO,x
-		asl  a
-		asl  a
-		clc
-		adc  P8ESTACK_LO,x
-		rts
-		.pend
-
 neg_b		.proc
 		lda  #0
 		sec

@@ -311,7 +311,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 adc  #<${target.asmVarname}
                                 bcc  +
                                 iny
-+                                   jsr  floats.pop_float""")
++                               jsr  floats.pop_float""")
                         }
                         else -> throw AssemblyError("weird dt")
                     }
@@ -529,15 +529,23 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 """)
             }
             TargetStorageKind.ARRAY -> {
-                // TODO optimize this (array indexer is just a simple number or variable), but the situation doesn't occur very often ****************************************
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                } else if(target.array!!.arrayspec.index is IdentifierReference) {
-//                    TODO("array[var] ${target.constArrayIndexValue}")
-//                }
-                asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
-                asmgen.translateExpression(target.array!!.indexer)
-                asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname} |  jsr  floats.pop_float_to_indexed_var")
+                asmgen.out("""
+                    lda  #<$sourceName
+                    ldy  #>$sourceName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<${target.asmVarname} 
+                    ldy  #>${target.asmVarname}
+                    sta  P8ZP_SCRATCH_W2
+                    sty  P8ZP_SCRATCH_W2+1""")
+                if(target.array!!.indexer.indexNum!=null) {
+                    val index = target.array.indexer.constIndex()!!
+                    asmgen.out(" lda  #$index")
+                } else {
+                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                    asmgen.out(" lda  $asmvarname")
+                }
+                asmgen.out(" jsr  floats.set_array_float")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
@@ -824,18 +832,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
             }
             TargetStorageKind.ARRAY -> {
-                // TODO optimize this (array indexer is just a simple number or variable), but the situation doesn't occur very often ****************************************
-//                if(target.constArrayIndexValue!=null) {
-//                    TODO("const index ${target.constArrayIndexValue}")
-//                } else if(target.array!!.arrayspec.index is IdentifierReference) {
-//                    TODO("array[var] ${target.constArrayIndexValue}")
-//                }
-                asmgen.translateExpression(target.array!!.indexer)
+                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
                 asmgen.out("""
-                    inx
-                    lda  P8ESTACK_LO,x
-                    asl  a
-                    tay
                     lda  #<${word.toHex()}
                     sta  ${target.asmVarname},y
                     lda  #>${word.toHex()}
@@ -931,13 +929,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  ${target.asmVarname}+$indexValue+4
                         """)
                     } else {
-                        // TODO optimize this (don't use stack eval) as the indexer is only a simple variable ****************************************
-                        asmgen.translateExpression(target.array.indexer.indexVar!!)
+                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
                             lda  #>${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1+1
+                            lda  $asmvarname  
                             jsr  floats.set_0_array_float
                         """)
                     }
@@ -984,8 +982,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  $arrayVarName+$indexValue+4
                         """)
                     } else {
-                        // TODO optimize this (don't use stack eval) as the indexer is only a simple variable ****************************************
-                        asmgen.translateExpression(target.array.indexer.indexVar!!)
+                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
                         asmgen.out("""
                             lda  #<${constFloat}
                             sta  P8ZP_SCRATCH_W1
@@ -995,6 +992,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  P8ZP_SCRATCH_W2
                             lda  #>${arrayVarName}
                             sta  P8ZP_SCRATCH_W2+1
+                            lda  $asmvarname
                             jsr  floats.set_array_float
                         """)
                     }

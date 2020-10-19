@@ -208,17 +208,6 @@ pop_float_fac2	.proc
 		jmp  CONUPK
 		.pend
 
-pop_float_to_indexed_var	.proc
-		; -- pop the float on the stack, to the memory in the array at A/Y indexed by the byte on stack
-		sta  P8ZP_SCRATCH_W1
-		sty  P8ZP_SCRATCH_W1+1
-		jsr  prog8_lib.pop_index_times_5
-		jsr  prog8_lib.add_a_to_zpword
-		lda  P8ZP_SCRATCH_W1
-		ldy  P8ZP_SCRATCH_W1+1
-		jmp  pop_float
-		.pend
-
 copy_float	.proc
 		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
 		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
@@ -707,13 +696,12 @@ sign_f		.proc
 
 
 set_0_array_float	.proc
-		; -- set a float in an array to zero (index on stack, array in SCRATCH_ZPWORD1)
-		inx
-		lda  P8ESTACK_LO,x
+		; -- set a float in an array to zero (index in A, array in P8ZP_SCRATCH_W1)
+		sta  P8ZP_SCRATCH_B1
 		asl  a
 		asl  a
 		clc
-		adc  P8ESTACK_LO,x
+		adc  P8ZP_SCRATCH_B1
 		tay
 		lda  #0
 		sta  (P8ZP_SCRATCH_W1),y
@@ -730,13 +718,12 @@ set_0_array_float	.proc
 
 
 set_array_float		.proc
-		; -- set a float in an array to a value (index on stack, float in SCRATCH_ZPWORD1, array in SCRATCH_ZPWORD2)
-		inx
-		lda  P8ESTACK_LO,x
+		; -- set a float in an array to a value (index in A, float in P8ZP_SCRATCH_W1, array in P8ZP_SCRATCH_W2)
+		sta  P8ZP_SCRATCH_B1
 		asl  a
 		asl  a
 		clc
-		adc  P8ESTACK_LO,x
+		adc  P8ZP_SCRATCH_B1
 		adc  P8ZP_SCRATCH_W2
 		ldy  P8ZP_SCRATCH_W2+1
 		bcc  +
