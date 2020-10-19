@@ -221,7 +221,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
-    printAst(programAst)   // TODO
+    // printAst(programAst)
 
     CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.instance.asmGenerator(

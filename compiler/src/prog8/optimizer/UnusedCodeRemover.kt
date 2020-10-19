@@ -91,8 +91,10 @@ internal class UnusedCodeRemover(private val program: Program, private val error
             val assign1 = stmtPairs[0] as? Assignment
             val assign2 = stmtPairs[1] as? Assignment
             if (assign1 != null && assign2 != null && !assign2.isAugmentable) {
-                if (assign1.target.isSameAs(assign2.target, program) && assign1.target.isInRegularRAM(program.namespace))
-                    linesToRemove.add(assign1)
+                if (assign1.target.isSameAs(assign2.target, program) && assign1.target.isInRegularRAM(program.namespace))  {
+                    if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(*(assign2.target.identifier!!.nameInSource.toTypedArray())))
+                        linesToRemove.add(assign1)
+                }
             }
         }
 

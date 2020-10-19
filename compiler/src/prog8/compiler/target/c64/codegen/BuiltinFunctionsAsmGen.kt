@@ -494,9 +494,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 swapArrayValues(elementDt, arrayVarName1, firstVar, arrayVarName2, secondVar)
                 return
             } else if(firstNum!=null && secondVar!=null) {
-                TODO("swap array num/var")
+                TODO("swap array num/var")          // TODO *****************************
             } else if(firstVar!=null && secondNum!=null) {
-                TODO("swap array var/num")
+                TODO("swap array var/num")           // TODO *****************************
             }
         }
 

@@ -13,6 +13,18 @@ main {
         byte bb
 
         uw = 21111
+        uw >>= 6
+        txt.print_uwbin(uw as uword, true)
+        txt.chrout('\n')
+        uw = 21111
+        uw >>= 7
+        txt.print_uwbin(uw as uword, true)
+        txt.chrout('\n')
+        uw = 21111
+        uw >>= 8        ; TODO fix this shift!
+        txt.print_uwbin(uw as uword, true)
+        txt.chrout('\n')
+        uw = 21111
         uw >>= 9        ; TODO fix this shift!
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
