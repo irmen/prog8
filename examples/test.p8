@@ -7,59 +7,20 @@ main {
 
     sub start() {
 
-        word ww
-        uword uw
-        ubyte ub
-        byte bb
-        ub = 5
+        float[]  array = [1111.1,2222.2,3333.3,4444.4,5555.5]
 
-        uw = 21111
-        uw <<= ub+1
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+2
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+3
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+4
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+5
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+6
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+7
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+8
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+9
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+10
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+11
-        txt.print_uwbin(uw as uword, true)
-        txt.chrout('\n')
-        uw = 21111
-        uw <<= ub+12
-        txt.print_uwbin(uw as uword, true)
+        float fw
+        ubyte i1 = 1
+        ubyte i2 = 3
+        ubyte zero = 0
+        ubyte four = 4
+        swap(array[i1], array[0])
+        swap(array[4], array[i2])
+
+        for i1 in 0 to len(array)-1 {
+            floats.print_f(array[i1])
+            txt.chrout(',')
+        }
         txt.chrout('\n')
 
         testX()

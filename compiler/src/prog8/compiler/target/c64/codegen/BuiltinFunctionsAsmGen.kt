@@ -494,9 +494,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 swapArrayValues(elementDt, arrayVarName1, firstVar, arrayVarName2, secondVar)
                 return
             } else if(firstNum!=null && secondVar!=null) {
-                TODO("swap array num/var")          // TODO *****************************
+                swapArrayValues(elementDt, arrayVarName1, firstNum, arrayVarName2, secondVar)
+                return
             } else if(firstVar!=null && secondNum!=null) {
-                TODO("swap array var/num")           // TODO *****************************
+                swapArrayValues(elementDt, arrayVarName1, firstVar, arrayVarName2, secondNum)
+                return
             }
         }
 
@@ -606,7 +608,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     lda  $arrayVarName2+1,y
                     sta  $arrayVarName1+1,x
                     pla
-                    sta  $arrayVarName2+1,y                    
+                    sta  $arrayVarName2+1,y
                     ldx  P8ZP_SCRATCH_REG
                 """)
             }
@@ -635,6 +637,122 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     bcc  +
                     inc  P8ZP_SCRATCH_W2+1
 +                   jsr  floats.swap_floats                                   
+                """)
+            }
+            else -> throw AssemblyError("invalid aray elt type")
+        }
+    }
+
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexName2: IdentifierReference) {
+        val index1 = indexValue1.number.toInt() * elementDt.memorySize()
+        val idxAsmName2 = asmgen.asmVariableName(indexName2)
+        when(elementDt) {
+            DataType.UBYTE, DataType.BYTE -> {
+                asmgen.out("""
+                    lda  $arrayVarName1 + $index1
+                    pha
+                    ldy  $idxAsmName2
+                    lda  $arrayVarName2,y
+                    sta  $arrayVarName1 + $index1
+                    pla
+                    sta  $arrayVarName2,y
+                """)
+            }
+            DataType.UWORD, DataType.WORD -> {
+                asmgen.out("""
+                    lda  $arrayVarName1 + $index1
+                    pha
+                    lda  $idxAsmName2
+                    asl  a
+                    tay
+                    lda  $arrayVarName2,y
+                    sta  $arrayVarName1 + $index1
+                    pla
+                    sta  $arrayVarName2,y
+                    lda  $arrayVarName1 + $index1+1
+                    pha
+                    lda  $arrayVarName2+1,y
+                    sta  $arrayVarName1 + $index1+1
+                    pla
+                    sta  $arrayVarName2+1,y
+                """)
+            }
+            DataType.FLOAT -> {
+                asmgen.out("""
+                    lda  #<(${arrayVarName1}+$index1)
+                    sta  P8ZP_SCRATCH_W1
+                    lda  #>(${arrayVarName1}+$index1)
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  #>$arrayVarName1
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  $idxAsmName2
+                    asl  a
+                    asl  a
+                    clc
+                    adc  $idxAsmName2
+                    adc  #<$arrayVarName1
+                    sta  P8ZP_SCRATCH_W1
+                    bcc  +
+                    inc  P8ZP_SCRATCH_W1+1
++                   jsr  floats.swap_floats
+                """)
+            }
+            else -> throw AssemblyError("invalid aray elt type")
+        }
+    }
+
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexName1: IdentifierReference, arrayVarName2: String, indexValue2: NumericLiteralValue) {
+        val idxAsmName1 = asmgen.asmVariableName(indexName1)
+        val index2 = indexValue2.number.toInt() * elementDt.memorySize()
+        when(elementDt) {
+            DataType.UBYTE, DataType.BYTE -> {
+                asmgen.out("""
+                    lda  $arrayVarName2 + $index2
+                    pha
+                    ldy  $idxAsmName1
+                    lda  $arrayVarName1,y
+                    sta  $arrayVarName2 + $index2
+                    pla
+                    sta  $arrayVarName1,y
+                """)
+            }
+            DataType.UWORD, DataType.WORD -> {
+                asmgen.out("""
+                    lda  $arrayVarName2 + $index2
+                    pha
+                    lda  $idxAsmName1
+                    asl  a
+                    tay
+                    lda  $arrayVarName1,y
+                    sta  $arrayVarName2 + $index2
+                    pla
+                    sta  $arrayVarName1,y
+                    lda  $arrayVarName2 + $index2+1
+                    pha
+                    lda  $arrayVarName1+1,y
+                    sta  $arrayVarName2 + $index2+1
+                    pla
+                    sta  $arrayVarName1+1,y
+                """)
+            }
+            DataType.FLOAT -> {
+                asmgen.out("""
+                    lda  #>$arrayVarName1
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  $idxAsmName1
+                    asl  a
+                    asl  a
+                    clc
+                    adc  $idxAsmName1
+                    adc  #<$arrayVarName1
+                    sta  P8ZP_SCRATCH_W1
+                    bcc  +
+                    inc  P8ZP_SCRATCH_W1+1
++                   lda  #<(${arrayVarName2}+$index2)
+                    sta  P8ZP_SCRATCH_W2
+                    lda  #>(${arrayVarName2}+$index2)
+                    sta  P8ZP_SCRATCH_W2+1
+                    jsr  floats.swap_floats
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
