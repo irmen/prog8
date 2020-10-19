@@ -668,7 +668,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
-            // TODO use these + and - optimizations in the expressionAsmGenerator as well.  ****************************************
             "+" -> {
                 when {
                     value==0 -> {}
@@ -683,6 +682,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     value==0x0100 -> asmgen.out(" inc  $name+1")
                     value==0x0200 -> asmgen.out(" inc  $name+1 |  inc  $name+1")
                     value==0x0300 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1")
+                    value==0x0400 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1 |  inc  $name+1")
                     value and 255==0 -> asmgen.out(" lda  $name+1 |  clc |  adc  #>$value |  sta  $name+1")
                     else -> asmgen.out("""
                         lda  $name
@@ -708,6 +708,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     value==0x0100 -> asmgen.out(" dec  $name+1")
                     value==0x0200 -> asmgen.out(" dec  $name+1 |  dec  $name+1")
                     value==0x0300 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1")
+                    value==0x0400 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1 |  dec  $name+1")
                     value and 255==0 -> asmgen.out(" lda  $name+1 |  sec |  sbc  #>$value |  sta  $name+1")
                     else -> asmgen.out("""
                         lda  $name

@@ -7,18 +7,24 @@ main {
 
     sub start() {
 
-        uword vv  = 1111
-        vv *= 23
-        txt.print_uw(vv)
+        uword vv  = $1111
+        uword vv2
+        vv2 = vv2+(vv/2)
+        vv2 = vv2+(vv - 1)
+        vv2 = vv2+(vv + $0200)
+        vv2 = vv2+(vv - $0400)
+        txt.print_uw(vv2)
         txt.chrout('\n')
 
-        word ww  = -1111
-        ww *= 23
-        txt.print_w(ww)
+        word ww  = -$1111
+        word ww2 = 0
+        ww2 = ww2 + ww + $0200
+        ww2 = ww2 +ww - $0400
+        txt.print_w(ww2)
         txt.chrout('\n')
-        ww  = -1111
-        ww *= -23
-        txt.print_w(ww)
+        ww2=  ww2 + ww + -$0200
+        ww2= ww2 + ww - -$0400
+        txt.print_w(ww2)
         txt.chrout('\n')
 
         testX()

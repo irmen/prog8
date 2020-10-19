@@ -1223,6 +1223,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: BinaryExpression) {
+        // TODO needs to use optimized assembly generation like the assignment instructions. But avoid code duplication.... rewrite all expressions into assignment form?
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
         if(!leftIDt.isKnown || !rightIDt.isKnown)
@@ -1232,6 +1233,106 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
         // see if we can apply some optimized routines
         when(expr.operator) {
+            "+" -> {
+                if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
+                    val leftVal = expr.left.constValue(program)?.number?.toInt()
+                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    if (leftVal!=null && leftVal in -4..4) {
+                        translateExpression(expr.right)
+                        if(rightDt in ByteDatatypes) {
+                            val incdec = if(leftVal<0) "dec" else "inc"
+                            repeat(leftVal.absoluteValue) {
+                                asmgen.out("  $incdec  P8ESTACK_LO,x")
+                            }
+                        } else {
+                            // word
+                            if(leftVal<0) {
+                                repeat(leftVal.absoluteValue) {
+                                    asmgen.out("""
+                                        lda  P8ESTACK_LO+1,x
+                                        bne  +
+                                        dec  P8ESTACK_HI+1,x
++                                       dec  P8ESTACK_LO+1,x""")
+                                }
+                            } else {
+                                repeat(leftVal) {
+                                    asmgen.out("""
+                                        inc  P8ESTACK_LO+1,x
+                                        bne  +
+                                        inc  P8ESTACK_HI+1,x
++""")
+                                }
+                            }
+                        }
+                        return
+                    }
+                    else if (rightVal!=null && rightVal in -4..4)
+                    {
+                        translateExpression(expr.left)
+                        if(leftDt in ByteDatatypes) {
+                            val incdec = if(rightVal<0) "dec" else "inc"
+                            repeat(rightVal.absoluteValue) {
+                                asmgen.out("  $incdec  P8ESTACK_LO,x")
+                            }
+                        } else {
+                            // word
+                            if(rightVal<0) {
+                                repeat(rightVal.absoluteValue) {
+                                    asmgen.out("""
+                                        lda  P8ESTACK_LO+1,x
+                                        bne  +
+                                        dec  P8ESTACK_HI+1,x
++                                       dec  P8ESTACK_LO+1,x""")
+                                }
+                            } else {
+                                repeat(rightVal) {
+                                    asmgen.out("""
+                                        inc  P8ESTACK_LO+1,x
+                                        bne  +
+                                        inc  P8ESTACK_HI+1,x
++""")
+                                }
+                            }
+                        }
+                        return
+                    }
+                }
+            }
+            "-" -> {
+                if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
+                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    if (rightVal!=null && rightVal in -4..4)
+                    {
+                        translateExpression(expr.left)
+                        if(leftDt in ByteDatatypes) {
+                            val incdec = if(rightVal<0) "inc" else "dec"
+                            repeat(rightVal.absoluteValue) {
+                                asmgen.out("  $incdec  P8ESTACK_LO,x")
+                            }
+                        } else {
+                            // word
+                            if(rightVal>0) {
+                                repeat(rightVal.absoluteValue) {
+                                    asmgen.out("""
+                                        lda  P8ESTACK_LO+1,x
+                                        bne  +
+                                        dec  P8ESTACK_HI+1,x
++                                       dec  P8ESTACK_LO+1,x""")
+                                }
+                            } else {
+                                repeat(rightVal) {
+                                    asmgen.out("""
+                                        inc  P8ESTACK_LO+1,x
+                                        bne  +
+                                        inc  P8ESTACK_HI+1,x
++""")
+                                }
+                            }
+                        }
+                        return
+                    }
+                }
+            }
             ">>" -> {
                 translateExpression(expr.left)
                 val amount = expr.right.constValue(program)?.number?.toInt()
@@ -1313,6 +1414,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(value!=null) {
                     if(rightDt in IntegerDatatypes) {
                         val amount = value.number.toInt()
+                        if(amount==2) {
+                            // optimize x*2 common case
+                            translateExpression(expr.left)
+                            if(leftDt in ByteDatatypes) {
+                                asmgen.out("  asl  P8ESTACK_LO,x")
+                            } else {
+                                asmgen.out("  asl  P8ESTACK_LO,x |  rol  P8ESTACK_HI,x")
+                            }
+                            return
+                        }
                         when(rightDt) {
                             DataType.UBYTE -> {
                                 if(amount in asmgen.optimizedByteMultiplications) {
@@ -1357,15 +1468,31 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     }
                 }
             }
+            "/" -> {
+                if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
+                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    if(rightVal!=null && rightVal==2) {
+                        translateExpression(expr.left)
+                        when(leftDt) {
+                            DataType.UBYTE -> asmgen.out("  lsr  P8ESTACK_LO+1,x")
+                            DataType.BYTE -> asmgen.out("  asl  P8ESTACK_LO+1,x |  ror  P8ESTACK_LO+1,x")
+                            DataType.UWORD -> asmgen.out("  lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
+                            DataType.WORD -> asmgen.out("  asl  P8ESTACK_HI+1,x |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
+                            else -> throw AssemblyError("wrong dt")
+                        }
+                        return
+                    }
+                }
+            }
         }
 
-        // the general, non-optimized cases
-        translateExpression(expr.left)
-        translateExpression(expr.right)
         if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
                 || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
             throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
 
+        // the general, non-optimized cases  TODO optimize more cases....
+        translateExpression(expr.left)
+        translateExpression(expr.right)
         if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in comparisonOperators) {
             translateCompareStrings(expr.operator)
         }
