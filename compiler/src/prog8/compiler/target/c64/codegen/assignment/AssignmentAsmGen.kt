@@ -49,10 +49,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.UWORD, DataType.WORD -> assignVariableWord(assign.target, variable)
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
                     DataType.STR -> assignVariableString(assign.target, variable)
-                    in PassByReferenceDatatypes -> {
-                        // TODO what about when the name is a struct? name.firstStructVarName(program.namespace)  ****************************************
-                        assignAddressOf(assign.target, variable)
-                    }
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
                 }
             }

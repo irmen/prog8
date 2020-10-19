@@ -720,41 +720,22 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "*" -> {
-                if(dt == DataType.UWORD){
-                    if(value in asmgen.optimizedWordMultiplications) {
-                        asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
-                    } else {
-                        asmgen.out("""
-                            lda  $name
-                            sta  P8ZP_SCRATCH_W1
-                            lda  $name+1
-                            sta  P8ZP_SCRATCH_W1+1
-                            lda  #<$value
-                            ldy  #>$value
-                            jsr  math.multiply_words
-                            lda  math.multiply_words.result
-                            sta  $name
-                            lda  math.multiply_words.result+1
-                            sta  $name+1""")
-                    }
+                // the mul code works for both signed and unsigned
+                if(value in asmgen.optimizedWordMultiplications) {
+                    asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                 } else {
-                    if(value.absoluteValue in asmgen.optimizedWordMultiplications) {
-                        asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
-                    } else {
-                        // TODO does this work for signed words? if so the uword/word distinction can be removed altogether  ****************************************
-                        asmgen.out("""
-                            lda  $name
-                            sta  P8ZP_SCRATCH_W1
-                            lda  $name+1
-                            sta  P8ZP_SCRATCH_W1+1
-                            lda  #<$value
-                            ldy  #>$value
-                            jsr  math.multiply_words
-                            lda  math.multiply_words.result
-                            sta  $name
-                            lda  math.multiply_words.result+1
-                            sta  $name+1""")
-                    }
+                    asmgen.out("""
+                        lda  $name
+                        sta  P8ZP_SCRATCH_W1
+                        lda  $name+1
+                        sta  P8ZP_SCRATCH_W1+1
+                        lda  #<$value
+                        ldy  #>$value
+                        jsr  math.multiply_words
+                        lda  math.multiply_words.result
+                        sta  $name
+                        lda  math.multiply_words.result+1
+                        sta  $name+1""")
                 }
             }
             "/" -> {

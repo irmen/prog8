@@ -7,20 +7,18 @@ main {
 
     sub start() {
 
-        float[]  array = [1111.1,2222.2,3333.3,4444.4,5555.5]
+        uword vv  = 1111
+        vv *= 23
+        txt.print_uw(vv)
+        txt.chrout('\n')
 
-        float fw
-        ubyte i1 = 1
-        ubyte i2 = 3
-        ubyte zero = 0
-        ubyte four = 4
-        swap(array[i1], array[0])
-        swap(array[4], array[i2])
-
-        for i1 in 0 to len(array)-1 {
-            floats.print_f(array[i1])
-            txt.chrout(',')
-        }
+        word ww  = -1111
+        ww *= 23
+        txt.print_w(ww)
+        txt.chrout('\n')
+        ww  = -1111
+        ww *= -23
+        txt.print_w(ww)
         txt.chrout('\n')
 
         testX()
