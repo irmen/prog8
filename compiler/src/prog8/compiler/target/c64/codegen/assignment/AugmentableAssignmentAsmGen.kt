@@ -1244,23 +1244,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         remainderWord()
                     }
                     "<<" -> {
-                        asmgen.translateExpression(value)       // TODO huh is this okay? wasn't this done above already? ****************************************
                         asmgen.out("""
-                        inx
-                        ldy  P8ESTACK_LO,x
-                        beq  +
--                   	asl  $name
-                        rol  $name+1
-                        dey
-                        bne  -
+                            ldy  P8ESTACK_LO+1,x
+                            beq  +
+-                   	    asl  $name
+                            rol  $name+1
+                            dey
+                            bne  -
 +""")
                     }
                     ">>" -> {
-                        asmgen.translateExpression(value)   // TODO huh is this okay? wasn't this done above already? *******************************************
                         if(dt==DataType.UWORD) {
                             asmgen.out("""
-                            inx
-                            ldy  P8ESTACK_LO,x
+                            ldy  P8ESTACK_LO+1,x
                             beq  +
 -                           lsr  $name+1
                             ror  $name
@@ -1269,8 +1265,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""") }
                         else {
                             asmgen.out("""
-                            inx
-                            ldy  P8ESTACK_LO,x
+                            ldy  P8ESTACK_LO+1,x
                             beq  +
 -                           lda  $name+1
                             asl  a

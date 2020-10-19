@@ -11,66 +11,56 @@ main {
         uword uw
         ubyte ub
         byte bb
+        ub = 5
 
         uw = 21111
-        uw >>= 6
+        uw <<= ub+1
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 7
+        uw <<= ub+2
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 8        ; TODO fix this shift!
+        uw <<= ub+3
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 9        ; TODO fix this shift!
+        uw <<= ub+4
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 10        ; TODO fix this shift!
+        uw <<= ub+5
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 11        ; TODO fix this shift!
+        uw <<= ub+6
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 12       ; TODO fix this shift!
+        uw <<= ub+7
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 13        ; TODO fix this shift!
+        uw <<= ub+8
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 14        ; TODO fix this shift!
+        uw <<= ub+9
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 15        ; TODO fix this shift!
+        uw <<= ub+10
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 16        ; TODO fix this shift!
+        uw <<= ub+11
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
         uw = 21111
-        uw >>= 17        ; TODO fix this shift!
+        uw <<= ub+12
         txt.print_uwbin(uw as uword, true)
         txt.chrout('\n')
-;        ub >>= 7
-;        ub <<= 7
-;
-;        uu >>=7
-;        uu <<= 7
-;
-;        zz >>=7
-;        zz <<=7
-;
-;        bb >>=7
-;        bb <<=7
 
         testX()
     }
