@@ -351,6 +351,13 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         }
         // no need to check for left val constant (because of associativity)
 
+        val rnum = rightVal?.number?.toDouble()
+        if(rnum!=null && rnum<0.0) {
+            expr.operator = "-"
+            expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
+            return expr
+        }
+
         return null
     }
 
@@ -381,6 +388,13 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     return PrefixExpression("-", expr.right, expr.position)
                 }
             }
+        }
+
+        val rnum = rightVal?.number?.toDouble()
+        if(rnum!=null && rnum<0.0) {
+            expr.operator = "+"
+            expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
+            return expr
         }
 
         return null

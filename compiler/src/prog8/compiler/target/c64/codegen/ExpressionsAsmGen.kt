@@ -1242,7 +1242,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         if(rightDt in ByteDatatypes) {
                             val incdec = if(leftVal<0) "dec" else "inc"
                             repeat(leftVal.absoluteValue) {
-                                asmgen.out("  $incdec  P8ESTACK_LO,x")
+                                asmgen.out("  $incdec  P8ESTACK_LO+1,x")
                             }
                         } else {
                             // word
@@ -1272,7 +1272,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         if(leftDt in ByteDatatypes) {
                             val incdec = if(rightVal<0) "dec" else "inc"
                             repeat(rightVal.absoluteValue) {
-                                asmgen.out("  $incdec  P8ESTACK_LO,x")
+                                asmgen.out("  $incdec  P8ESTACK_LO+1,x")
                             }
                         } else {
                             // word
@@ -1307,7 +1307,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         if(leftDt in ByteDatatypes) {
                             val incdec = if(rightVal<0) "inc" else "dec"
                             repeat(rightVal.absoluteValue) {
-                                asmgen.out("  $incdec  P8ESTACK_LO,x")
+                                asmgen.out("  $incdec  P8ESTACK_LO+1,x")
                             }
                         } else {
                             // word
@@ -1418,9 +1418,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             // optimize x*2 common case
                             translateExpression(expr.left)
                             if(leftDt in ByteDatatypes) {
-                                asmgen.out("  asl  P8ESTACK_LO,x")
+                                asmgen.out("  asl  P8ESTACK_LO+1,x")
                             } else {
-                                asmgen.out("  asl  P8ESTACK_LO,x |  rol  P8ESTACK_HI,x")
+                                asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x")
                             }
                             return
                         }
