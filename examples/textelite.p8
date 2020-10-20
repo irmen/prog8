@@ -9,9 +9,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO error check on load, now wipes cash and fuel etc when load fails
-; TODO finalize and test save/load game function
-
 main {
 
     const ubyte numforLave = 7      ;  Lave is 7th generated planet in galaxy one
@@ -102,6 +99,7 @@ trader {
             txt.print("\ni/o error: ")
             diskio.status(8)
             txt.chrout('\n')
+            return
         }
 
         ship.cash = savedata.cash
@@ -109,7 +107,6 @@ trader {
         ship.fuel = savedata.fuel
         memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))
         galaxy.travel_to(savedata.galaxy, savedata.planet)
-        ; TODO CHECK IF GALAXY AND MARKET ARE OKAY AFTER LOAD
 
         planet.display(false)
     }
