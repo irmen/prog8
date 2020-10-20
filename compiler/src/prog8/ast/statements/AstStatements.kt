@@ -444,17 +444,6 @@ data class AssignTarget(var identifier: IdentifierReference?,
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    companion object {
-        fun fromExpr(expr: Expression): AssignTarget {
-            return when (expr) {
-                is IdentifierReference -> AssignTarget(expr, null, null, expr.position)
-                is ArrayIndexedExpression -> AssignTarget(null, expr, null, expr.position)
-                is DirectMemoryRead -> AssignTarget(null, null, DirectMemoryWrite(expr.addressExpression, expr.position), expr.position)
-                else -> throw FatalAstException("invalid expression object $expr")
-            }
-        }
-    }
-
     fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {  // TODO why does this have the extra 'stmt' scope parameter???
         if (identifier != null) {
             val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return InferredTypes.unknown()

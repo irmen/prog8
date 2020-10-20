@@ -153,11 +153,12 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
         }
     }
 
-    fun withAdjustedDt(newType: DataType) =
-            AsmAssignSource(kind, program, asmgen, newType, variableAsmName, array, memory, register, number, expression)
-
     fun adjustSignedUnsigned(target: AsmAssignTarget): AsmAssignSource {
         // allow some signed/unsigned relaxations
+
+        fun withAdjustedDt(newType: DataType) =
+                AsmAssignSource(kind, program, asmgen, newType, variableAsmName, array, memory, register, number, expression)
+
         if(target.datatype!=datatype) {
             if(target.datatype in ByteDatatypes && datatype in ByteDatatypes) {
                 return withAdjustedDt(target.datatype)

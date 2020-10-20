@@ -20,14 +20,14 @@ interface IAstModification {
         }
     }
 
-    class SetExpression(val setter: (newExpr: Expression) -> Unit, val newExpr: Expression, val parent: Node) : IAstModification {
+    class SetExpression(private val setter: (newExpr: Expression) -> Unit, private val newExpr: Expression, private val parent: Node) : IAstModification {
         override fun perform() {
             setter(newExpr)
             newExpr.linkParents(parent)
         }
     }
 
-    class InsertFirst(val stmt: Statement, val parent: Node) : IAstModification {
+    class InsertFirst(private val stmt: Statement, private val parent: Node) : IAstModification {
         override fun perform() {
             if(parent is INameScope) {
                 parent.statements.add(0, stmt)
@@ -38,7 +38,7 @@ interface IAstModification {
         }
     }
 
-    class InsertLast(val stmt: Statement, val parent: Node) : IAstModification {
+    class InsertLast(private val stmt: Statement, private val parent: Node) : IAstModification {
         override fun perform() {
             if(parent is INameScope) {
                 parent.statements.add(stmt)
@@ -49,7 +49,7 @@ interface IAstModification {
         }
     }
 
-    class InsertAfter(val after: Statement, val stmt: Statement, val parent: Node) : IAstModification {
+    class InsertAfter(private val after: Statement, private val stmt: Statement, private val parent: Node) : IAstModification {
         override fun perform() {
             if(parent is INameScope) {
                 val idx = parent.statements.indexOfFirst { it===after } + 1
@@ -61,7 +61,7 @@ interface IAstModification {
         }
     }
 
-    class InsertBefore(val before: Statement, val stmt: Statement, val parent: Node) : IAstModification {
+    class InsertBefore(private val before: Statement, private val stmt: Statement, private val parent: Node) : IAstModification {
         override fun perform() {
             if(parent is INameScope) {
                 val idx = parent.statements.indexOfFirst { it===before }
@@ -73,14 +73,14 @@ interface IAstModification {
         }
     }
 
-    class ReplaceNode(val node: Node, val replacement: Node, val parent: Node) : IAstModification {
+    class ReplaceNode(private val node: Node, private val replacement: Node, private val parent: Node) : IAstModification {
         override fun perform() {
             parent.replaceChildNode(node, replacement)
             replacement.linkParents(parent)
         }
     }
 
-    class SwapOperands(val expr: BinaryExpression): IAstModification {
+    class SwapOperands(private val expr: BinaryExpression): IAstModification {
         override fun perform() {
             require(expr.operator in associativeOperators)
             val tmp = expr.left

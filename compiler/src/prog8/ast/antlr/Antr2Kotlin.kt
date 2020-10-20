@@ -470,7 +470,6 @@ private fun prog8Parser.ExpressionContext.toAst() : Expression {
                 litval.stringliteral()!=null -> litval.stringliteral().toAst()
                 litval.charliteral()!=null -> {
                     try {
-                        val cc=litval.charliteral()
                         NumericLiteralValue(DataType.UBYTE, CompilationTarget.instance.encodeString(
                                 unescape(litval.charliteral().SINGLECHAR().text, litval.toPosition()),
                                 litval.charliteral().ALT_STRING_ENCODING()!=null)[0], litval.toPosition())
@@ -648,7 +647,6 @@ private fun prog8Parser.VardeclContext.toAst(): VarDecl {
 }
 
 internal fun escape(str: String): String {
-    val es2 = str.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
     val es = str.map {
         when(it) {
             '\t' -> "\\t"

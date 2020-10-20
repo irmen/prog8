@@ -13,7 +13,7 @@ import prog8.ast.statements.VarDecl
 import prog8.compiler.target.CompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl
-internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
+internal class VarConstantValueTypeAdjuster(private val program: Program) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {

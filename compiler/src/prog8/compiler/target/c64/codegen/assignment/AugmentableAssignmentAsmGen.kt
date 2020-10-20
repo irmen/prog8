@@ -10,7 +10,6 @@ import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
 import prog8.compiler.toHex
-import kotlin.math.absoluteValue
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
@@ -20,8 +19,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         require(assign.isAugmentable)
         require(assign.source.kind== SourceStorageKind.EXPRESSION)
 
-        val value = assign.source.expression!!
-        when (value) {
+        when (val value = assign.source.expression!!) {
             is PrefixExpression -> {
                 // A = -A , A = +A, A = ~A, A = not A
                 val type = value.inferType(program).typeOrElse(DataType.STRUCT)
@@ -629,7 +627,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // TODO: tuned code for more operators
             }
             else -> {
-                inplaceModification_byte_value_to_variable(name, dt, operator, memread);
+                inplaceModification_byte_value_to_variable(name, dt, operator, memread)
             }
         }
     }
@@ -660,7 +658,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // TODO: tuned code for more operators
             }
             else -> {
-                inplaceModification_word_value_to_variable(name, dt, operator, memread);
+                inplaceModification_word_value_to_variable(name, dt, operator, memread)
             }
         }
     }

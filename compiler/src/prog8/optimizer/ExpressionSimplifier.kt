@@ -372,12 +372,16 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
 
         if (rightVal != null) {
             // right value is a constant, see if we can optimize
-            val rightConst: NumericLiteralValue = rightVal
-            when (rightConst.number.toDouble()) {
-                0.0 -> {
-                    // left
-                    return expr.left
-                }
+            val rnum = rightVal.number.toDouble()
+            if (rnum == 0.0) {
+                // left
+                return expr.left
+            }
+
+            if(rnum<0.0) {
+                expr.operator = "+"
+                expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
+                return expr
             }
         }
         if (leftVal != null) {
@@ -390,12 +394,6 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             }
         }
 
-        val rnum = rightVal?.number?.toDouble()
-        if(rnum!=null && rnum<0.0) {
-            expr.operator = "+"
-            expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
-            return expr
-        }
 
         return null
     }

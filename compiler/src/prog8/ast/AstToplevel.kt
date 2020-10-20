@@ -6,7 +6,6 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
 
@@ -185,7 +184,6 @@ interface INameScope {
     }
 
     fun containsCodeOrVars() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm"}
-    fun containsNoVars() = statements.all { it !is VarDecl }
     fun containsNoCodeNorVars() = !containsCodeOrVars()
 
     fun remove(stmt: Statement) {
@@ -258,7 +256,7 @@ class Program(val name: String, val modules: MutableList<Module>): Node {
     override val position: Position = Position.DUMMY
     override var parent: Node
         get() = throw FatalAstException("program has no parent")
-        set(value) = throw FatalAstException("can't set parent of program")
+        set(_) = throw FatalAstException("can't set parent of program")
 
     override fun linkParents(parent: Node) {
         modules.forEach {
