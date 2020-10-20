@@ -49,14 +49,14 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                             // use the other part of the expression to split.
                             val assignRight = Assignment(assignment.target, binExpr.right, assignment.position)
                             return listOf(
-                                    IAstModification.InsertBefore(assignment, assignRight, parent),
+                                    IAstModification.InsertBefore(assignment, assignRight, assignment.definingScope()),
                                     IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
                                     IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
                         }
                     } else {
                         val assignLeft = Assignment(assignment.target, binExpr.left, assignment.position)
                         return listOf(
-                                IAstModification.InsertBefore(assignment, assignLeft, parent),
+                                IAstModification.InsertBefore(assignment, assignLeft, assignment.definingScope()),
                                 IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
                     }
                 }
@@ -127,7 +127,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                 && outerStatements[subroutineStmtIdx - 1] !is Subroutine
                 && outerStatements[subroutineStmtIdx - 1] !is Return
                 && outerScope !is Block) {
-            mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope as Node)
+            mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
         }
         return mods
     }

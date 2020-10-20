@@ -9,14 +9,10 @@ import prog8.ast.statements.*
 interface IAstModification {
     fun perform()
 
-    class Remove(val node: Node, val parent: Node) : IAstModification {
+    class Remove(val node: Node, val parent: INameScope) : IAstModification {
         override fun perform() {
-            if(parent is INameScope) {
-                if (!parent.statements.remove(node) && parent !is GlobalNamespace)
-                    throw FatalAstException("attempt to remove non-existing node $node")
-            } else {
-                throw FatalAstException("parent of a remove modification is not an INameScope")
-            }
+            if (!parent.statements.remove(node) && parent !is GlobalNamespace)
+                throw FatalAstException("attempt to remove non-existing node $node")
         }
     }
 
@@ -27,49 +23,33 @@ interface IAstModification {
         }
     }
 
-    class InsertFirst(private val stmt: Statement, private val parent: Node) : IAstModification {
+    class InsertFirst(private val stmt: Statement, private val parent: INameScope) : IAstModification {
         override fun perform() {
-            if(parent is INameScope) {
-                parent.statements.add(0, stmt)
-                stmt.linkParents(parent)
-            } else {
-                throw FatalAstException("parent of an insert modification is not an INameScope")
-            }
+            parent.statements.add(0, stmt)
+            stmt.linkParents(parent as Node)
         }
     }
 
-    class InsertLast(private val stmt: Statement, private val parent: Node) : IAstModification {
+    class InsertLast(private val stmt: Statement, private val parent: INameScope) : IAstModification {
         override fun perform() {
-            if(parent is INameScope) {
-                parent.statements.add(stmt)
-                stmt.linkParents(parent)
-            } else {
-                throw FatalAstException("parent of an insert modification is not an INameScope")
-            }
+            parent.statements.add(stmt)
+            stmt.linkParents(parent as Node)
         }
     }
 
-    class InsertAfter(private val after: Statement, private val stmt: Statement, private val parent: Node) : IAstModification {
+    class InsertAfter(private val after: Statement, private val stmt: Statement, private val parent: INameScope) : IAstModification {
         override fun perform() {
-            if(parent is INameScope) {
-                val idx = parent.statements.indexOfFirst { it===after } + 1
-                parent.statements.add(idx, stmt)
-                stmt.linkParents(parent)
-            } else {
-                throw FatalAstException("parent of an insert modification is not an INameScope")
-            }
+            val idx = parent.statements.indexOfFirst { it===after } + 1
+            parent.statements.add(idx, stmt)
+            stmt.linkParents(parent as Node)
         }
     }
 
-    class InsertBefore(private val before: Statement, private val stmt: Statement, private val parent: Node) : IAstModification {
+    class InsertBefore(private val before: Statement, private val stmt: Statement, private val parent: INameScope) : IAstModification {
         override fun perform() {
-            if(parent is INameScope) {
-                val idx = parent.statements.indexOfFirst { it===before }
-                parent.statements.add(idx, stmt)
-                stmt.linkParents(parent)
-            } else {
-                throw FatalAstException("parent of an insert modification is not an INameScope")
-            }
+            val idx = parent.statements.indexOfFirst { it===before }
+            parent.statements.add(idx, stmt)
+            stmt.linkParents(parent as Node)
         }
     }
 

@@ -8,24 +8,13 @@ main {
     sub start() {
 
         uword[]  array = [1, 2, 3]
-        uword fzero = 0.0
-        uword fnine = 9999
-        array[0] = 0
-        ubyte ii = 1
-        array[ii] = 0
+        ubyte ii = 0
+        ubyte ii2 = ii+2
+        array[ii+1] = array[ii2]           ; TODO fix overwriting the single array index autovar
 
-        uword ff
-        for ii in 0 to len(array)-1 {
-            txt.print_uw(array[ii])
-            txt.chrout('\n')
-        }
-
-        array[0] = 9
-        ii = 1
-        array[ii] = 9
-
-        for ii in 0 to len(array)-1 {
-            txt.print_uw(array[ii])
+        uword xx
+        for xx in array {
+            txt.print_uw(xx)
             txt.chrout('\n')
         }
 

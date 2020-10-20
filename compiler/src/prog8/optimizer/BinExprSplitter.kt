@@ -58,7 +58,7 @@ X =      BinExpr                                   X   =   LeftExpr
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
                     return listOf(
-                            IAstModification.InsertBefore(assignment, firstAssign, parent),
+                            IAstModification.InsertBefore(assignment, firstAssign, assignment.definingScope()),
                             IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
                 }
             }

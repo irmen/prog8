@@ -58,7 +58,7 @@ interface IFunctionCall {
 
 
 class AsmGenInfo {
-    var usedAutoArrayIndexer = false
+    var usedAutoArrayIndexerForStatements = mutableMapOf<String, MutableSet<Statement>>()
     var usedRegsaveA = false
     var usedRegsaveX = false
     var usedRegsaveY = false
@@ -223,6 +223,14 @@ interface INameScope {
         else
             null
     }
+
+    fun indexOfChild(stmt: Statement): Int {
+        val idx = statements.indexOfFirst { it===stmt }
+        if(idx>=0)
+            return idx
+        else
+            throw FatalAstException("attempt to find a non-child")
+    }
 }
 
 interface IAssignable {
@@ -312,7 +320,7 @@ class Module(override val name: String,
 class GlobalNamespace(val modules: List<Module>): Node, INameScope {
     override val name = "<<<global>>>"
     override val position = Position("<<<global>>>", 0, 0, 0)
-    override val statements = mutableListOf<Statement>()
+    override val statements = mutableListOf<Statement>()        // not used
     override var parent: Node = ParentSentinel
     override val asmGenInfo = AsmGenInfo()
 

@@ -12,7 +12,7 @@ internal class VariousCleanups: AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun before(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> {
-        return listOf(IAstModification.Remove(nopStatement, parent))
+        return listOf(IAstModification.Remove(nopStatement, parent as INameScope))
     }
 
     override fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {

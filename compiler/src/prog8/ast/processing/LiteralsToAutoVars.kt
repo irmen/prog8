@@ -17,7 +17,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
             val identifier = IdentifierReference(listOf(vardecl.name), vardecl.position)
             return listOf(
                     IAstModification.ReplaceNode(string, identifier, parent),
-                    IAstModification.InsertFirst(vardecl, string.definingScope() as Node)
+                    IAstModification.InsertFirst(vardecl, string.definingScope())
             )
         }
         return noModifications
@@ -43,7 +43,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
                     val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                     return listOf(
                             IAstModification.ReplaceNode(array, identifier, parent),
-                            IAstModification.InsertFirst(vardecl2, array.definingScope() as Node)
+                            IAstModification.InsertFirst(vardecl2, array.definingScope())
                     )
                 }
             }

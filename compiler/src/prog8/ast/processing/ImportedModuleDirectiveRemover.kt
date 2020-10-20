@@ -1,5 +1,6 @@
 package prog8.ast.processing
 
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.statements.Directive
 
@@ -14,7 +15,7 @@ internal class ImportedModuleDirectiveRemover: AstWalker() {
 
     override fun before(directive: Directive, parent: Node): Iterable<IAstModification> {
         if(directive.directive in moduleLevelDirectives) {
-            return listOf(IAstModification.Remove(directive, parent))
+            return listOf(IAstModification.Remove(directive, parent as INameScope))
         }
         return noModifications
     }

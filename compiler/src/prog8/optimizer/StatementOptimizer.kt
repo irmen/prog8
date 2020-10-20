@@ -25,12 +25,12 @@ internal class StatementOptimizer(private val program: Program,
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars()) {
                 errors.warn("removing empty block '${block.name}'", block.position)
-                return listOf(IAstModification.Remove(block, parent))
+                return listOf(IAstModification.Remove(block, parent as INameScope))
             }
 
             if (block !in callgraph.usedSymbols) {
                 errors.warn("removing unused block '${block.name}'", block.position)
-                return listOf(IAstModification.Remove(block, parent))
+                return listOf(IAstModification.Remove(block, parent as INameScope))
             }
         }
         return noModifications
@@ -42,16 +42,16 @@ internal class StatementOptimizer(private val program: Program,
             if(subroutine.containsNoCodeNorVars()) {
                 errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
                 val removals = callgraph.calledBy.getValue(subroutine).map {
-                    IAstModification.Remove(it, it.parent)
+                    IAstModification.Remove(it, it.definingScope())
                 }.toMutableList()
-                removals += IAstModification.Remove(subroutine, parent)
+                removals += IAstModification.Remove(subroutine, subroutine.definingScope())
                 return removals
             }
         }
 
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {
             errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
-            return listOf(IAstModification.Remove(subroutine, parent))
+            return listOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
         }
 
         return noModifications
@@ -63,7 +63,7 @@ internal class StatementOptimizer(private val program: Program,
             if(decl.type == VarDeclType.VAR)
                 errors.warn("removing unused variable '${decl.name}'", decl.position)
 
-            return listOf(IAstModification.Remove(decl, parent))
+            return listOf(IAstModification.Remove(decl, decl.definingScope()))
         }
 
         return noModifications
@@ -74,7 +74,7 @@ internal class StatementOptimizer(private val program: Program,
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in pureBuiltinFunctions) {
                 errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
-                return listOf(IAstModification.Remove(functionCallStatement, parent))
+                return listOf(IAstModification.Remove(functionCallStatement, functionCallStatement.definingScope()))
             }
         }
 
@@ -127,7 +127,7 @@ internal class StatementOptimizer(private val program: Program,
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return)
-                return listOf(IAstModification.Remove(functionCallStatement, parent))
+                return listOf(IAstModification.Remove(functionCallStatement, functionCallStatement.definingScope()))
         }
 
         return noModifications
@@ -150,7 +150,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
         // remove empty if statements
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars())
-            return listOf(IAstModification.Remove(ifStatement, parent))
+            return listOf(IAstModification.Remove(ifStatement, ifStatement.definingScope()))
 
         // empty true part? switch with the else part
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsCodeOrVars()) {
@@ -183,12 +183,12 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         if(forLoop.body.containsNoCodeNorVars()) {
             errors.warn("removing empty for loop", forLoop.position)
-            return listOf(IAstModification.Remove(forLoop, parent))
+            return listOf(IAstModification.Remove(forLoop, forLoop.definingScope()))
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl
             if(loopvar!=null && loopvar.name==forLoop.loopVar.nameInSource.singleOrNull()) {
                 // remove empty for loop (only loopvar decl in it)
-                return listOf(IAstModification.Remove(forLoop, parent))
+                return listOf(IAstModification.Remove(forLoop, forLoop.definingScope()))
             }
         }
 
@@ -265,7 +265,7 @@ internal class StatementOptimizer(private val program: Program,
             } else {
                 // always false -> remove the while statement altogether
                 errors.warn("condition is always false", whileLoop.condition.position)
-                listOf(IAstModification.Remove(whileLoop, parent))
+                listOf(IAstModification.Remove(whileLoop, whileLoop.definingScope()))
             }
         }
         return noModifications
@@ -276,12 +276,12 @@ internal class StatementOptimizer(private val program: Program,
         if(iter!=null) {
             if(repeatLoop.body.containsNoCodeNorVars()) {
                 errors.warn("empty loop removed", repeatLoop.position)
-                return listOf(IAstModification.Remove(repeatLoop, parent))
+                return listOf(IAstModification.Remove(repeatLoop, repeatLoop.definingScope()))
             }
             val iterations = iter.constValue(program)?.number?.toInt()
             if (iterations == 0) {
                 errors.warn("iterations is always 0, removed loop", iter.position)
-                return listOf(IAstModification.Remove(repeatLoop, parent))
+                return listOf(IAstModification.Remove(repeatLoop, repeatLoop.definingScope()))
             }
             if (iterations == 1) {
                 errors.warn("iterations is always 1", iter.position)
@@ -308,7 +308,7 @@ internal class StatementOptimizer(private val program: Program,
         val scope = jump.definingScope()
         val label = jump.identifier?.targetStatement(scope)
         if(label!=null && scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1)
-            return listOf(IAstModification.Remove(jump, parent))
+            return listOf(IAstModification.Remove(jump, jump.definingScope()))
 
         return noModifications
     }
@@ -341,7 +341,7 @@ internal class StatementOptimizer(private val program: Program,
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
-                                        IAstModification.InsertAfter(assignment, addConstant, parent))
+                                        IAstModification.InsertAfter(assignment, addConstant, assignment.definingScope()))
                             } else if (op2 == "-") {
                                 // A = A +/- B - N
                                 val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
@@ -352,7 +352,7 @@ internal class StatementOptimizer(private val program: Program,
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
-                                        IAstModification.InsertAfter(assignment, subConstant, parent))
+                                        IAstModification.InsertAfter(assignment, subConstant, assignment.definingScope()))
                             }
                         }
                     }
@@ -374,7 +374,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if(assignment.target isSameAs assignment.value) {
             // remove assignment to self
-            return listOf(IAstModification.Remove(assignment, parent))
+            return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
         }
 
         val targetIDt = assignment.target.inferType(program, assignment)
@@ -394,7 +394,7 @@ internal class StatementOptimizer(private val program: Program,
                 when (bexpr.operator) {
                     "+" -> {
                         if (rightCv == 0.0) {
-                            return listOf(IAstModification.Remove(assignment, parent))
+                            return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
                             if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0) {
                                 // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
@@ -408,7 +408,7 @@ internal class StatementOptimizer(private val program: Program,
                     }
                     "-" -> {
                         if (rightCv == 0.0) {
-                            return listOf(IAstModification.Remove(assignment, parent))
+                            return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
                             if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0) {
                                 // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
@@ -420,18 +420,18 @@ internal class StatementOptimizer(private val program: Program,
                             }
                         }
                     }
-                    "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "/" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "**" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "|" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
-                    "^" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent))
+                    "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
+                    "/" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
+                    "**" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
+                    "|" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
+                    "^" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
                     "<<" -> {
                         if (rightCv == 0.0)
-                            return listOf(IAstModification.Remove(assignment, parent))
+                            return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
                     }
                     ">>" -> {
                         if (rightCv == 0.0)
-                            return listOf(IAstModification.Remove(assignment, parent))
+                            return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
                     }
                 }
 

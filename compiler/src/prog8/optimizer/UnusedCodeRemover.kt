@@ -20,20 +20,20 @@ internal class UnusedCodeRemover(private val program: Program, private val error
         program.modules.forEach {
             callgraph.forAllSubroutines(it) { sub ->
                 if (sub !== entrypoint && !sub.isAsmSubroutine && (callgraph.calledBy[sub].isNullOrEmpty() || sub.containsNoCodeNorVars())) {
-                    removals.add(IAstModification.Remove(sub, sub.definingScope() as Node))
+                    removals.add(IAstModification.Remove(sub, sub.definingScope()))
                 }
             }
         }
 
         program.modules.flatMap { it.statements }.filterIsInstance<Block>().forEach { block ->
             if (block.containsNoCodeNorVars() && "force_output" !in block.options())
-                removals.add(IAstModification.Remove(block, block.definingScope() as Node))
+                removals.add(IAstModification.Remove(block, block.definingScope()))
         }
 
         // remove modules that are not imported, or are empty (unless it's a library modules)
         program.modules.forEach {
             if (!it.isLibraryModule && (it.importedBy.isEmpty() || it.containsNoCodeNorVars()))
-                removals.add(IAstModification.Remove(it, it.parent))
+                removals.add(IAstModification.Remove(it, it.definingScope()))
         }
 
         return removals
