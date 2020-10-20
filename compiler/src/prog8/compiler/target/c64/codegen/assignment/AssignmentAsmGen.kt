@@ -207,7 +207,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             is FunctionCall -> {}
             else -> {
                 // TODO optimize the others further?
-                println("warning: slow stack evaluation used for typecast: into $targetDt at ${value.position}")
+                if(this.asmgen.options.slowCodegenWarnings)
+                    println("warning: slow stack evaluation used for typecast: into $targetDt at ${value.position}")
             }
         }
 
@@ -607,7 +608,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 // TODO optimize slow stack evaluation for this case, see assignVariableUByteIntoWord
-                println("warning: slow stack evaluation used for sign-extend byte typecast at ${bytevar.position}")
+                if(this.asmgen.options.slowCodegenWarnings)
+                    println("warning: slow stack evaluation used for sign-extend byte typecast at ${bytevar.position}")
                 asmgen.translateExpression(wordtarget.origAssign.source.expression!!)
                 assignStackValue(wordtarget)
             }

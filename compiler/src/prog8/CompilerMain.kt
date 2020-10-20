@@ -38,6 +38,7 @@ private fun compileMain(args: Array<String>) {
     val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
     val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
     val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes), greatly increases compilation speed")
+    val slowCodegenWarnings by cli.flagArgument("-slowwarn", "show debug warnings about slow/problematic assembly code generation")
     val compilationTarget by cli.flagValueArgument("-target", "compilertarget",
             "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available", C64Target.name)
     val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
@@ -62,7 +63,7 @@ private fun compileMain(args: Array<String>) {
             println("Continuous watch mode active. Main module: $filepath")
 
             try {
-                val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, compilationTarget, outputPath)
+                val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, slowCodegenWarnings, compilationTarget, outputPath)
                 println("Imported files (now watching:)")
                 for (importedFile in compilationResult.importedFiles) {
                     print("  ")
@@ -87,7 +88,7 @@ private fun compileMain(args: Array<String>) {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, compilationTarget, outputPath)
+                compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, slowCodegenWarnings, compilationTarget, outputPath)
                 if(!compilationResult.success)
                     exitProcess(1)
             } catch (x: ParsingFailedError) {

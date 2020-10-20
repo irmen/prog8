@@ -179,7 +179,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
-                        println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
+                        if(asmgen.options.slowCodegenWarnings)
+                            println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
                         asmgen.translateExpression(memory.addressExpression)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         val zp = CompilationTarget.instance.machine.zeropage
@@ -198,7 +199,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             TargetStorageKind.ARRAY -> {
-                println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
+                if(asmgen.options.slowCodegenWarnings)
+                    println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
                 assignmentAsmGen.translateNormalAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
             }
             TargetStorageKind.REGISTER -> TODO("reg in-place modification")
@@ -219,7 +221,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
-        println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
@@ -410,7 +413,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_byte_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-        println("warning: slow stack evaluation used (5):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (5):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         when (operator) {
             // note: ** (power) operator requires floats.
@@ -1089,7 +1093,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: Expression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-        println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
 
@@ -1293,7 +1298,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression, scope: Subroutine?) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-        println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         asmgen.out("  jsr  floats.pop_float_fac1")
         asmgen.saveRegister(CpuRegister.X, false, scope)
@@ -1575,7 +1581,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                             }
                             else -> {
-                                println("warning: slow stack evaluation used (6): ${mem.addressExpression::class.simpleName} at ${mem.addressExpression.position}") // TODO
+                                if(asmgen.options.slowCodegenWarnings)
+                                    println("warning: slow stack evaluation used (6): ${mem.addressExpression::class.simpleName} at ${mem.addressExpression.position}") // TODO
                                 asmgen.translateExpression(mem.addressExpression)
                                 asmgen.out("""
                                     jsr  prog8_lib.read_byte_from_address_on_stack
@@ -1644,7 +1651,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                             }
                             else -> {
-                                println("warning: slow stack evaluation used (7): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
+                                if(asmgen.options.slowCodegenWarnings)
+                                    println("warning: slow stack evaluation used (7): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
                                 asmgen.translateExpression(memory.addressExpression)
                                 asmgen.out("""
                                     jsr  prog8_lib.read_byte_from_address_on_stack

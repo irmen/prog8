@@ -29,6 +29,7 @@ class CompilationResult(val success: Boolean,
 fun compileProgram(filepath: Path,
                    optimize: Boolean,
                    writeAssembly: Boolean,
+                   slowCodegenWarnings: Boolean,
                    compilationTarget: String,
                    outputDir: Path): CompilationResult {
     var programName = ""
@@ -49,6 +50,7 @@ fun compileProgram(filepath: Path,
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
             val (ast, compilationOptions, imported) = parseImports(filepath, errors)
+            compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             programAst = ast
             importedFiles = imported
             processAst(programAst, errors, compilationOptions)

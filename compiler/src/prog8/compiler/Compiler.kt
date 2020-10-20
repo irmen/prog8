@@ -28,7 +28,9 @@ data class CompilationOptions(val output: OutputType,
                               val zeropage: ZeropageType,
                               val zpReserved: List<IntRange>,
                               val floats: Boolean,
-                              val noSysInit: Boolean)
+                              val noSysInit: Boolean) {
+    var slowCodegenWarnings = false
+}
 
 
 class CompilerException(message: String?) : Exception(message)
