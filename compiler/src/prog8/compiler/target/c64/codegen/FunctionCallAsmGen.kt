@@ -33,7 +33,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 // via registers
                 if(sub.parameters.size==1) {
                     // just a single parameter, no risk of clobbering registers
-                    argumentViaRegister(sub, sub.parameters.withIndex().single(), stmt.args[0])
+                    argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), stmt.args[0])
                 } else {
                     // multiple register arguments, risk of register clobbering.
                     // evaluate arguments onto the stack, and load the registers from the evaluated values on the stack.

@@ -250,19 +250,19 @@ internal class AstChecker(private val program: Program,
                         err("parameter '${param.first.name}' should be ubyte")
                 }
             }
-            for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
-                if(ret.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
-                    if (ret.first.value != DataType.UBYTE && ret.first.value != DataType.BYTE)
-                        err("return value #${ret.first.index + 1} should be (u)byte")
+            subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
+                if(pair.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                    if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE)
+                        err("return value #${index + 1} should be (u)byte")
                 }
-                else if(ret.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (ret.first.value != DataType.UWORD && ret.first.value != DataType.WORD
-                            && ret.first.value != DataType.STR && ret.first.value !in ArrayDatatypes && ret.first.value != DataType.FLOAT)
-                        err("return value #${ret.first.index + 1} should be (u)word/address")
+                else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                    if (pair.first != DataType.UWORD && pair.first != DataType.WORD
+                            && pair.first != DataType.STR && pair.first !in ArrayDatatypes && pair.first != DataType.FLOAT)
+                        err("return value #${index + 1} should be (u)word/address")
                 }
-                else if(ret.second.statusflag!=null) {
-                    if (ret.first.value != DataType.UBYTE)
-                        err("return value #${ret.first.index + 1} should be ubyte")
+                else if(pair.second.statusflag!=null) {
+                    if (pair.first != DataType.UBYTE)
+                        err("return value #${index + 1} should be ubyte")
                 }
             }
 
@@ -984,8 +984,8 @@ internal class AstChecker(private val program: Program,
             if(target.regXasResult())
                 errors.warn("subroutine call return value in X register is discarded and replaced by 0", position)
             if(target.isAsmSubroutine) {
-                for (arg in args.withIndex().zip(target.parameters)) {
-                    val argIDt = arg.first.value.inferType(program)
+                for (arg in args.zip(target.parameters)) {
+                    val argIDt = arg.first.inferType(program)
                     if (!argIDt.isKnown)
                         return
                 }

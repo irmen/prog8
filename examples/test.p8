@@ -1,24 +1,19 @@
 %import textio
-%import conv
-%import floats
+%import diskio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-
-        uword[]  array = [1, 2, 3]
-        ubyte ii = 0
-        ubyte ii2 = ii+2
-        array[ii+1] = array[ii2]           ; TODO fix overwriting the single array index autovar
-
-        uword xx
-        for xx in array {
-            txt.print_uw(xx)
-            txt.chrout('\n')
-        }
-
+        memcopy($aaaa, $bbbb, 200)
+        mcp($aaaa, $bbbb, 200)
         testX()
+    }
+
+    sub mcp(uword from, uword dest, ubyte length) {
+        txt.print_uw(from)
+        txt.print_uw(dest)
+        txt.print_ub(length)
     }
 
     asmsub testX() {

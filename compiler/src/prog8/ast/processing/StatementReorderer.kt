@@ -279,7 +279,7 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
         }
 
         // TODO use a pointer loop instead of individual assignments
-        return alv.value.withIndex().map { (index, value)->
+        return alv.value.mapIndexed { index, value ->
             val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, position), position), position)
             Assignment(AssignTarget(null, idx, null, position), value, value.position)
         }

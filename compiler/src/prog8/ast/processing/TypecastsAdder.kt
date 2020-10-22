@@ -116,30 +116,30 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
 
         when(val sub = call.target.targetStatement(scope)) {
             is Subroutine -> {
-                for(arg in sub.parameters.zip(call.args.withIndex())) {
-                    val argItype = arg.second.value.inferType(program)
+                sub.parameters.zip(call.args).forEachIndexed { index, pair ->
+                    val argItype = pair.second.inferType(program)
                     if(argItype.isKnown) {
                         val argtype = argItype.typeOrElse(DataType.STRUCT)
-                        val requiredType = arg.first.type
+                        val requiredType = pair.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
                                 modifications += IAstModification.ReplaceNode(
-                                        call.args[arg.second.index],
-                                        TypecastExpression(arg.second.value, requiredType, true, arg.second.value.position),
+                                        call.args[index],
+                                        TypecastExpression(pair.second, requiredType, true, pair.second.position),
                                         call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
                                 // we allow STR/ARRAY values in place of UWORD parameters. Take their address instead.
-                                if(arg.second.value is IdentifierReference) {
+                                if(pair.second is IdentifierReference) {
                                     modifications += IAstModification.ReplaceNode(
-                                            call.args[arg.second.index],
-                                            AddressOf(arg.second.value as IdentifierReference, arg.second.value.position),
+                                            call.args[index],
+                                            AddressOf(pair.second as IdentifierReference, pair.second.position),
                                             call as Node)
                                 }
-                            } else if(arg.second.value is NumericLiteralValue) {
-                                val cast = (arg.second.value as NumericLiteralValue).cast(requiredType)
+                            } else if(pair.second is NumericLiteralValue) {
+                                val cast = (pair.second as NumericLiteralValue).cast(requiredType)
                                 if(cast.isValid)
                                     modifications += IAstModification.ReplaceNode(
-                                            call.args[arg.second.index],
+                                            call.args[index],
                                             cast.valueOrZero(),
                                             call as Node)
                             }
@@ -149,19 +149,19 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             }
             is BuiltinFunctionStatementPlaceholder -> {
                 val func = BuiltinFunctions.getValue(sub.name)
-                for (arg in func.parameters.zip(call.args.withIndex())) {
-                    val argItype = arg.second.value.inferType(program)
+                func.parameters.zip(call.args).forEachIndexed { index, pair ->
+                    val argItype = pair.second.inferType(program)
                     if (argItype.isKnown) {
                         val argtype = argItype.typeOrElse(DataType.STRUCT)
-                        if (arg.first.possibleDatatypes.any { argtype == it })
-                            continue
-                        for (possibleType in arg.first.possibleDatatypes) {
-                            if (argtype isAssignableTo possibleType) {
-                                modifications += IAstModification.ReplaceNode(
-                                        call.args[arg.second.index],
-                                        TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position),
-                                        call as Node)
-                                break
+                        if (pair.first.possibleDatatypes.all { argtype != it }) {
+                            for (possibleType in pair.first.possibleDatatypes) {
+                                if (argtype isAssignableTo possibleType) {
+                                    modifications += IAstModification.ReplaceNode(
+                                            call.args[index],
+                                            TypecastExpression(pair.second, possibleType, true, pair.second.position),
+                                            call as Node)
+                                    break
+                                }
                             }
                         }
                     }

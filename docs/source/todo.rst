@@ -2,14 +2,17 @@
 TODO
 ====
 
-- get rid of all other TODO's in the code ;-)
-- implement @stack for asmsub parameters
+- make memset(w) and memcopy able to work with >256 bytes
+- make memset and memcopy use the ROM routines on the CX16
+- calling convention for builtin functions no longer via stack but via statically allocated vars inside the subroutine proc (just as normal subroutines)
+- get rid of @stack in asmsub altogether (because all subroutines are no longer using this calling convention anymore)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - use VIC banking to move up the graphics bitmap memory location. Don't move it under the ROM though as that would require IRQ disabling and memory bank swapping for every bitmap manipulation
 - add some primitives/subroutines/examples for using custom char sets, copying the default charset.
-- recursive subroutines? via %option recursive, allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
+- some better handling of recursive subroutines? via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
+- get rid of all other TODO's in the code ;-)
 
 More optimizations
 ^^^^^^^^^^^^^^^^^^

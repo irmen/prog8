@@ -775,8 +775,8 @@ memcopy(from, to, numbytes)
 memset(address, numbytes, bytevalue)
     Efficiently set a part of memory to the given (u)byte value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
-    Note that for clearing the character screen, very fast specialized subroutines are
-    available in the ``txt`` block (part of the ``textio`` module)
+    Note that for clearing the screen, very fast specialized subroutines are
+    available in the ``textio`` and ``graphics`` library modules.
 
 memsetw(address, numwords, wordvalue)
     Efficiently set a part of memory to the given (u)word value.

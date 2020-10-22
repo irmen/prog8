@@ -67,12 +67,12 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                 if(call.args.size != func.parameters.size)
                     return "invalid number of arguments"
                 val paramtypes = func.parameters.map { it.possibleDatatypes }
-                for (x in argtypes.zip(paramtypes).withIndex()) {
-                    val anyCompatible = x.value.second.any { argTypeCompatible(x.value.first, it) }
+                argtypes.zip(paramtypes).forEachIndexed { index, pair ->
+                    val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }
                     if (!anyCompatible) {
-                        val actual = x.value.first.toString()
-                        val expected = x.value.second.toString()
-                        return "argument ${x.index + 1} type mismatch, was: $actual expected: $expected"
+                        val actual = pair.first.toString()
+                        val expected = pair.second.toString()
+                        return "argument ${index + 1} type mismatch, was: $actual expected: $expected"
                     }
                 }
             }
