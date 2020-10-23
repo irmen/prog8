@@ -503,9 +503,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.STACK -> {
                 asmgen.out("""
-                    lda  #$sourceName
+                    lda  $sourceName
                     sta  P8ESTACK_LO,x
-                    lda  #$sourceName+1
+                    lda  $sourceName+1
                     sta  P8ESTACK_HI,x
                     dex""")
             }
@@ -586,7 +586,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.STACK -> {
                 asmgen.out("""
-                    lda  #$sourceName
+                    lda  $sourceName
                     sta  P8ESTACK_LO,x
                     dex""")
             }
