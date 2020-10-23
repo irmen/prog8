@@ -633,19 +633,7 @@ internal class AsmGen(private val program: Program,
                 if (builtinFunc != null) {
                     builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
                 } else {
-                    val sub = stmt.target.targetSubroutine(program.namespace)!!
-                    val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
-                    functioncallAsmGen.translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
-                    // discard any results from the stack:
-                    val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-                    for ((t, reg) in returns) {
-                        if (reg.stack) {
-                            if (t in IntegerDatatypes || t in PassByReferenceDatatypes) out("  inx")
-                            else if (t == DataType.FLOAT) out("  inx |  inx |  inx")
-                        }
-                    }
-                    if(preserveStatusRegisterAfterCall)
-                        out("  plp\t; restore status flags from call")
+                    functioncallAsmGen.translateFunctionCallStatement(stmt)
                 }
             }
             is Assignment -> assignmentAsmGen.translate(stmt)
@@ -1165,7 +1153,28 @@ $counterVar    .byte  0""")
     }
 
     private fun translate(ret: Return) {
-        ret.value?.let { expressionsAsmGen.translateExpression(it) }
+        ret.value?.let { returnvalue ->
+            val sub = ret.definingSubroutine()!!
+            val returnType = sub.returntypes.single()
+            val returnReg = sub.asmReturnvaluesRegisters.single()
+            val returnValueTarget =
+                    when {
+                        returnReg.registerOrPair!=null -> AsmAssignTarget.fromRegisters(returnReg.registerOrPair, sub, program, this)
+                        returnReg.stack -> AsmAssignTarget(TargetStorageKind.STACK, program, this, returnType, sub)
+                        else -> throw AssemblyError("normal subroutines can't return value in status register directly")
+                    }
+
+            if (returnType in NumericDatatypes) {
+                val src = AsmAssignSource.fromAstSource(returnvalue, program, this)
+                assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+            }
+            else {
+                // all else take its address and assign that also to AY register pair
+                val addrofValue = AddressOf(returnvalue as IdentifierReference, returnvalue.position)
+                val src = AsmAssignSource.fromAstSource(addrofValue, program, this)
+                assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+            }
+        }
         out("  rts")
     }
 

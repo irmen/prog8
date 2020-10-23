@@ -348,7 +348,7 @@ internal class AstChecker(private val program: Program,
                 if(!idt.isKnown) {
                      errors.err("return type mismatch", assignment.value.position)
                 }
-                if(stmt.returntypes.size <= 1 && stmt.returntypes.single()!=idt.typeOrElse(DataType.BYTE)) {
+                if(stmt.returntypes.size <= 1 && !(stmt.returntypes.single() isAssignableTo idt.typeOrElse(DataType.BYTE))) {
                     errors.err("return type mismatch", assignment.value.position)
                 }
             }

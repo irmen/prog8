@@ -690,6 +690,23 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 
+    constructor(name: String, parameters: List<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, position: Position)
+            : this(name, parameters, returntypes, emptyList(), determineReturnRegisters(returntypes), emptySet(), null, false, statements, position)
+
+    companion object {
+        private fun determineReturnRegisters(returntypes: List<DataType>): List<RegisterOrStatusflag> {
+            // for non-asm subroutines, determine the return registers based on the type of the return value
+            return when(returntypes.singleOrNull()) {
+                in NumericDatatypes -> listOf(RegisterOrStatusflag(null, null, true))  // TODO for now, all return values via the stack
+//                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, false))
+//                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
+//                DataType.FLOAT -> listOf(RegisterOrStatusflag(null, null, true))        // TODO floats eventually via pointer in AY as well
+                null -> emptyList()
+                else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
+            }
+        }
+    }
+
     override lateinit var parent: Node
     override val asmGenInfo = AsmGenInfo()
     val scopedname: String by lazy { makeScopedName(name) }

@@ -14,6 +14,23 @@ import prog8.compiler.target.c64.codegen.assignment.*
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
+    internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
+        val sub = stmt.target.targetSubroutine(program.namespace)!!
+        val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
+        translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
+        // discard resultvalues that might be on the stack:
+        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+        for ((t, reg) in returns) {
+            if (reg.stack) {
+                if (t in IntegerDatatypes || t in PassByReferenceDatatypes) asmgen.out("  inx")
+                else if (t == DataType.FLOAT) asmgen.out("  inx |  inx |  inx")
+            }
+        }
+        if(preserveStatusRegisterAfterCall)
+            asmgen.out("  plp\t; restore status flags from call")
+    }
+
+
     internal fun translateFunctionCall(stmt: IFunctionCall, preserveStatusRegisterAfterCall: Boolean) {
         // output the code to setup the parameters and perform the actual call
         // does NOT output the code to deal with the result values!

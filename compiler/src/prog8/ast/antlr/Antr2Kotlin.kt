@@ -342,14 +342,11 @@ private fun prog8Parser.LabeldefContext.toAst(): Statement =
         Label(children[0].text, toPosition())
 
 private fun prog8Parser.SubroutineContext.toAst() : Subroutine {
+    // non-asm subroutine
+    val returntypes = sub_return_part()?.toAst() ?: emptyList()
     return Subroutine(identifier().text,
             sub_params()?.toAst() ?: emptyList(),
-            sub_return_part()?.toAst() ?: emptyList(),
-            emptyList(),
-            emptyList(),
-            emptySet(),
-            null,
-            false,
+            returntypes,
             statement_block()?.toAst() ?: mutableListOf(),
             toPosition())
 }
