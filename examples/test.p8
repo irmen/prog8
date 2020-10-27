@@ -6,13 +6,38 @@
 main {
 
     sub start() {
-        ubyte char = c64.CHRIN()
-        ubyte char2 = chrin()
-        uword ssss = getstr()
-        float fl = getfloat()
+        ubyte char
+        uword ssss
+        float fl
 
+        ;char = 1+(lsb(ssss) * 2)
+        ;fl = 2.0*(abs(fl) + 1.0)
+
+        char = lsb(ssss)
         char++
-        char2++
+        char = msb(ssss)
+        char++
+        char = c64.CHRIN()
+
+        txt.print_ub(char)
+        txt.chrout('\n')
+
+        char = chrin()
+
+        txt.print_ub(char)
+        txt.chrout('\n')
+
+        void getstr()
+        ssss = getstr()
+
+        txt.print_uwhex(ssss, true)
+        txt.chrout('\n')
+
+;        fl = getfloat()
+;
+;        floats.print_f(fl)
+;        txt.chrout('\n')
+
         testX()
         ;char=strlen(ssss)
     }
@@ -22,12 +47,13 @@ main {
     }
 
     sub getstr() -> str {
+        @($d020)++
         return "foo"
     }
 
-    sub getfloat() -> float {
-        return 4.56789
-    }
+;    sub getfloat() -> float {
+;        return 4.56789
+;    }
 
     sub mcp(uword from, uword dest, ubyte length) {
         txt.print_uw(from)

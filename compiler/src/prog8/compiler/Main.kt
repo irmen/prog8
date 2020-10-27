@@ -58,7 +58,7 @@ fun compileProgram(filepath: Path,
                 optimizeAst(programAst, errors)
             postprocessAst(programAst, errors, compilationOptions)
 
-            // printAst(programAst)
+            printAst(programAst) // TODO
 
             if(writeAssembly)
                 programName = writeAssembly(programAst, errors, outputDir, optimize, compilationOptions)
@@ -223,7 +223,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
 
-    // printAst(programAst)
+    printAst(programAst) // TODO
 
     CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
     val assembly = CompilationTarget.instance.asmGenerator(

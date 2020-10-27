@@ -4,6 +4,8 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
+; TODO the LINES are all wrong...
+
 main {
 
     sub start() {

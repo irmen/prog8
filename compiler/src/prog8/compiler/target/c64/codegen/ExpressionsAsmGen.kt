@@ -4,6 +4,8 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.ArrayIndex
+import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
+import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
@@ -1041,12 +1043,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateFunctionCallResultOntoStack(expression: FunctionCall) {
-        val functionName = expression.target.nameInSource.last()
-        val builtinFunc = BuiltinFunctions[functionName]
-        if (builtinFunc != null) {
-            asmgen.translateFunctioncallExpression(expression, builtinFunc)
+        // only for use in nested expression evaluation
+
+        val sub = expression.target.targetStatement(program.namespace)
+        if(sub is BuiltinFunctionStatementPlaceholder) {
+            val builtinFunc = BuiltinFunctions.getValue(sub.name)
+            asmgen.translateBuiltinFunctionCallExpression(expression, builtinFunc, true)
         } else {
-            val sub = expression.target.targetSubroutine(program.namespace)!!
+            sub as Subroutine
             val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
             asmgen.translateFunctionCall(expression, preserveStatusRegisterAfterCall)
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)

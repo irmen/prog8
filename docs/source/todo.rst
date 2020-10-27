@@ -2,6 +2,7 @@
 TODO
 ====
 
+- get rid of all the .typeOrElse(STRUCT) 'shortcuts' and replace them with proper error handling
 - make memset(w) and memcopy able to work with >256 bytes
 - make memset and memcopy use the ROM routines on the CX16
 - calling convention for builtin functions no longer via stack but via statically allocated vars inside the subroutine proc (just as normal subroutines)

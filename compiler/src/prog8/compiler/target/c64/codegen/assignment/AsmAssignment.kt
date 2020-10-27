@@ -3,10 +3,7 @@ package prog8.compiler.target.c64.codegen.assignment
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.DirectMemoryWrite
-import prog8.ast.statements.Subroutine
+import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.codegen.AsmGen
 
@@ -121,33 +118,26 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, dt, array = value)
                 }
-                else -> {
-                    if(value is FunctionCall) {
-                        // functioncall.
-                        val asmSub = value.target.targetStatement(program.namespace)
-                        if(asmSub is Subroutine && asmSub.isAsmSubroutine) {
-                            when (asmSub.asmReturnvaluesRegisters.count { rr -> rr.registerOrPair!=null }) {
-                                0 -> throw AssemblyError("can't translate zero return values in assignment")
-                                1 -> {
-                                    // assignment generation itself must make sure the status register is correct after the subroutine call, if status register is involved!
-                                    val reg = asmSub.asmReturnvaluesRegisters.single { rr->rr.registerOrPair!=null }.registerOrPair!!
-                                    val dt = when(reg) {
-                                        RegisterOrPair.A,
-                                        RegisterOrPair.X,
-                                        RegisterOrPair.Y -> DataType.UBYTE
-                                        RegisterOrPair.AX,
-                                        RegisterOrPair.AY,
-                                        RegisterOrPair.XY -> DataType.UWORD
-                                    }
-                                    return AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt, expression = value)
-                                }
-                                else -> throw AssemblyError("can't translate multiple return values in assignment")
-                            }
+                is FunctionCall -> {
+                    when (val sub = value.target.targetStatement(program.namespace)) {
+                        is Subroutine -> {
+                            val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null }?.first
+                                    ?: throw AssemblyError("can't translate zero return values in assignment")
+
+                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
+                        }
+                        is BuiltinFunctionStatementPlaceholder -> {
+                            val returnType = value.inferType(program).typeOrElse(DataType.STRUCT)
+                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
+                        }
+                        else -> {
+                            throw AssemblyError("weird call")
                         }
                     }
-
+                }
+                else -> {
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    return AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt, expression = value)
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt, expression = value)
                 }
             }
         }

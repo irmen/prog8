@@ -17,37 +17,36 @@ import prog8.functions.FSignature
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
-    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FSignature) {
-        translateFunctioncall(fcall, func, false)
+    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FSignature, resultToStack: Boolean) {
+        translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack)
     }
 
     internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FSignature) {
-        translateFunctioncall(fcall, func, true)
+        translateFunctioncall(fcall, func, discardResult = true, resultToStack = false)
     }
 
-    private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean) {
+    private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean, resultToStack: Boolean) {
         val functionName = fcall.target.nameInSource.last()
-        if (discardResult) {
-            if (func.pure)
-                return  // can just ignore the whole function call altogether
-            else if (func.returntype != null)
-                throw AssemblyError("discarding result of non-pure function $fcall")
-        }
+        if (discardResult && func.pure)
+            return  // can just ignore the whole function call altogether
+
+        if(discardResult && resultToStack)
+            throw AssemblyError("cannot both discard the result AND put it onto stack")
 
         when (functionName) {
-            "msb" -> funcMsb(fcall)
-            "lsb" -> funcLsb(fcall)
-            "mkword" -> funcMkword(fcall, func)
-            "abs" -> funcAbs(fcall, func)
+            "msb" -> funcMsb(fcall, resultToStack)
+            "lsb" -> funcLsb(fcall, resultToStack)
+            "mkword" -> funcMkword(fcall, func)      // TODO resultToStack
+            "abs" -> funcAbs(fcall, func)            // TODO resultToStack
             "swap" -> funcSwap(fcall)
-            "strlen" -> funcStrlen(fcall)
-            "min", "max", "sum" -> funcMinMaxSum(fcall, functionName)
-            "any", "all" -> funcAnyAll(fcall, functionName)
-            "sgn" -> funcSgn(fcall, func)
+            "strlen" -> funcStrlen(fcall)            // TODO resultToStack
+            "min", "max", "sum" -> funcMinMaxSum(fcall, functionName)       // TODO resultToStack
+            "any", "all" -> funcAnyAll(fcall, functionName)     // TODO resultToStack
+            "sgn" -> funcSgn(fcall, func)       // TODO resultToStack
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
-            "rdnf" -> funcVariousFloatFuncs(fcall, func, functionName)
+            "rdnf" -> funcVariousFloatFuncs(fcall, func, functionName)      // TODO resultToStack
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
@@ -69,7 +68,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "set_irqd" -> asmgen.out("  sei")
             else -> {
                 translateFunctionArguments(fcall.args, func)
-                asmgen.out("  jsr  prog8_lib.func_$functionName")
+                asmgen.out("  jsr  prog8_lib.func_$functionName")     // TODO resultToStack
             }
         }
     }
@@ -777,7 +776,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         asmgen.out("  inx | lda  P8ESTACK_LO,x  | sta  P8ESTACK_HI+1,x")
     }
 
-    private fun funcMsb(fcall: IFunctionCall) {
+    private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean) {
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("msb required word argument")
@@ -785,14 +784,17 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
-            asmgen.out("  lda  $sourceName+1 |  sta  P8ESTACK_LO,x |  dex")
+            asmgen.out("  lda  $sourceName+1")
+            if(resultToStack)
+                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            asmgen.translateExpression(arg)
-            asmgen.out("  lda  P8ESTACK_HI+1,x |  sta  P8ESTACK_LO+1,x")
+            TODO("msb from non-identifier expression $arg")
+//            asmgen.translateExpression(arg)
+//            asmgen.out("  lda  P8ESTACK_HI+1,x |  sta  P8ESTACK_LO+1,x")
         }
     }
 
-    private fun funcLsb(fcall: IFunctionCall) {
+    private fun funcLsb(fcall: IFunctionCall, resultToStack: Boolean) {
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("lsb required word argument")
@@ -800,9 +802,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("lsb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
-            asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  dex")
+            asmgen.out("  lda  $sourceName")
+            if(resultToStack)
+                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            asmgen.translateExpression(arg)
+            TODO("lsb from non-identifier expression $arg")
+//            asmgen.translateExpression(arg)
             // just ignore any high-byte
         }
     }

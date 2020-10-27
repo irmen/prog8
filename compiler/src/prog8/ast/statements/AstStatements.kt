@@ -697,10 +697,9 @@ class Subroutine(override val name: String,
         private fun determineReturnRegisters(returntypes: List<DataType>): List<RegisterOrStatusflag> {
             // for non-asm subroutines, determine the return registers based on the type of the return value
             return when(returntypes.singleOrNull()) {
-                in NumericDatatypes -> listOf(RegisterOrStatusflag(null, null, true))  // TODO for now, all return values via the stack
-//                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, false))
-//                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
-//                DataType.FLOAT -> listOf(RegisterOrStatusflag(null, null, true))        // TODO floats eventually via pointer in AY as well
+                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, false))
+                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
+                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
                 null -> emptyList()
                 else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
             }

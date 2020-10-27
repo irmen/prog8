@@ -10,6 +10,7 @@ import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
 import prog8.compiler.toHex
+import prog8.functions.BuiltinFunctions
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen, private val exprAsmgen: ExpressionsAsmGen) {
@@ -124,28 +125,36 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, assign)
                     is FunctionCall -> {
-                        if(value.target.targetSubroutine(program.namespace)?.isAsmSubroutine==true) {
-                            // handle asmsub functioncalls specifically, without shoving stuff on the estack
-                            val sub = value.target.targetSubroutine(program.namespace)!!
-                            val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
-                            asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
-                            when((sub.asmReturnvaluesRegisters.single { it.registerOrPair!=null }).registerOrPair) {
-                                RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
-                                RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
-                                RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
-                                RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
-                                RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
-                                else -> throw AssemblyError("should be just one register byte result value")
+                        when (val sub = value.target.targetStatement(program.namespace)) {
+                            is Subroutine -> {
+                                val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
+                                asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
+                                when ((sub.asmReturnvaluesRegisters.single { it.registerOrPair != null }).registerOrPair) {
+                                    RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
+                                    RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
+                                    RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                                    RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                                    RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                    RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
+                                    else -> throw AssemblyError("should be just one register byte result value")
+                                }
+                                if (preserveStatusRegisterAfterCall)
+                                    asmgen.out("  plp\t; restore status flags from call")
                             }
-                            if(preserveStatusRegisterAfterCall)
-                                asmgen.out("  plp\t; restore status flags from call")
-                        } else {
-                            // regular subroutine, return values are (for now) always done via the stack...  TODO optimize this
-                            asmgen.translateExpression(value)
-                            if(assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
-                                asmgen.signExtendStackLsb(assign.source.datatype)
-                            assignStackValue(assign.target)
+                            is BuiltinFunctionStatementPlaceholder -> {
+                                val signature = BuiltinFunctions.getValue(sub.name)
+                                asmgen.translateBuiltinFunctionCallExpression(value, signature, false)
+                                when(signature.returntype) {
+                                    in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)
+                                    in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                    DataType.FLOAT -> TODO("assign float result from ${sub.name}")
+                                    null -> {}
+                                    else -> throw AssemblyError("weird result type ${signature.returntype}")
+                                }
+                            }
+                            else -> {
+                                throw AssemblyError("weird func call")
+                            }
                         }
                     }
                     else -> {
@@ -763,7 +772,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype in WordDatatypes)
+        require(target.datatype in NumericDatatypes)
+        if(target.datatype==DataType.FLOAT) {
+            if (regs == RegisterOrPair.AY) {
+                asmgen.out("  brk   ; TODO FLOAT RETURN VALUE")     // TODO
+                return
+            }
+            else throw AssemblyError("float reaturn value should be via AY return pointer")
+        }
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when(regs) {

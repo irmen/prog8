@@ -66,6 +66,9 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
             val valuetype = valueItype.typeOrElse(DataType.STRUCT)
             if (valuetype != targettype) {
                 if (valuetype isAssignableTo targettype) {
+                    if(valuetype in IterableDatatypes && targettype==DataType.UWORD)
+                        // special case, don't typecast STR/arrays to UWORD, we support those assignments "directly"
+                        return noModifications
                     return listOf(IAstModification.ReplaceNode(
                             assignment.value,
                             TypecastExpression(assignment.value, targettype, true, assignment.value.position),

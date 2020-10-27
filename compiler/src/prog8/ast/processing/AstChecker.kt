@@ -380,7 +380,7 @@ internal class AstChecker(private val program: Program,
 
         val targetDt = assignment.target.inferType(program, assignment)
         val valueDt = assignment.value.inferType(program)
-        if(valueDt.isKnown && valueDt != targetDt) {
+        if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
             if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
                 errors.err("cannot assign value to string or array", assignment.value.position)
             else
@@ -1350,9 +1350,7 @@ internal class AstChecker(private val program: Program,
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             errors.err("cannot assign float to ${targetDatatype.name.toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else {
-            if(targetDatatype==DataType.UWORD && sourceDatatype in PassByReferenceDatatypes)
-                errors.err("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}, perhaps forgot '&' ?", position)
-            else
+            if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes)
                 errors.err("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}", position)
         }
 

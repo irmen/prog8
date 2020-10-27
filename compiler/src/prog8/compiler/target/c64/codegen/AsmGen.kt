@@ -743,8 +743,8 @@ internal class AsmGen(private val program: Program,
     internal fun translateExpression(indexer: ArrayIndex) =
             expressionsAsmGen.translateExpression(indexer)
 
-    internal fun translateFunctioncallExpression(functionCall: FunctionCall, signature: FSignature) =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature)
+    internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean) =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack)
 
     internal fun translateFunctionCall(functionCall: FunctionCall, preserveStatusRegisterAfterCall: Boolean) =
             functioncallAsmGen.translateFunctionCall(functionCall, preserveStatusRegisterAfterCall)
@@ -1164,15 +1164,20 @@ $counterVar    .byte  0""")
                         else -> throw AssemblyError("normal subroutines can't return value in status register directly")
                     }
 
-            if (returnType in NumericDatatypes) {
-                val src = AsmAssignSource.fromAstSource(returnvalue, program, this)
-                assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
-            }
-            else {
-                // all else take its address and assign that also to AY register pair
-                val addrofValue = AddressOf(returnvalue as IdentifierReference, returnvalue.position)
-                val src = AsmAssignSource.fromAstSource(addrofValue, program, this)
-                assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+            when (returnType) {
+                in IntegerDatatypes -> {
+                    val src = AsmAssignSource.fromAstSource(returnvalue, program, this)
+                    assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+                }
+                DataType.FLOAT -> {
+                    TODO("must return the float's address in AY")
+                }
+                else -> {
+                    // all else take its address and assign that also to AY register pair
+                    val addrofValue = AddressOf(returnvalue as IdentifierReference, returnvalue.position)
+                    val src = AsmAssignSource.fromAstSource(addrofValue, program, this)
+                    assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+                }
             }
         }
         out("  rts")

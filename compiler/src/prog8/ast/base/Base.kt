@@ -31,7 +31,7 @@ enum class DataType {
                 WORD -> targetType in setOf(WORD, FLOAT)
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR || targetType == UWORD
-                in ArrayDatatypes -> targetType == this
+                in ArrayDatatypes -> targetType == this || targetType == UWORD
                 else -> false
             }
 

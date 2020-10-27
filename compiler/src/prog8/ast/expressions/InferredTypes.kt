@@ -35,6 +35,10 @@ object InferredTypes {
         }
 
         override fun hashCode(): Int = Objects.hash(isVoid, datatype)
+
+        infix fun isAssignableTo(targetDt: InferredType): Boolean {
+            return isKnown && targetDt.isKnown && (datatype!! isAssignableTo targetDt.datatype!!)
+        }
     }
 
     private val unknownInstance = InferredType.unknown()
