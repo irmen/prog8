@@ -36,18 +36,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         when (functionName) {
             "msb" -> funcMsb(fcall, resultToStack)
             "lsb" -> funcLsb(fcall, resultToStack)
-            // TODO THE OTHERS
-//            "mkword" -> funcMkword(fcall, func)      // TODO resultToStack
+            "mkword" -> funcMkword(fcall, resultToStack)
             "abs" -> funcAbs(fcall, func, resultToStack)
             "swap" -> funcSwap(fcall)
-//            "strlen" -> funcStrlen(fcall)            // TODO resultToStack
-//            "min", "max", "sum" -> funcMinMaxSum(fcall, functionName)       // TODO resultToStack
-//            "any", "all" -> funcAnyAll(fcall, functionName)     // TODO resultToStack
+            "min", "max" -> funcMinMax(fcall, functionName, resultToStack)
+            "sum" -> funcSum(fcall, resultToStack)
+            "any", "all" -> funcAnyAll(fcall, functionName, resultToStack)
+            "sin8", "sin8u", "sin16", "sin16u",
+            "cos8", "cos8u", "cos16", "cos16u" -> funcSinCosInt(fcall, func, functionName, resultToStack)
             "sgn" -> funcSgn(fcall, func, resultToStack)
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
-//            "rdnf" -> funcVariousFloatFuncs(fcall, func, functionName)      // TODO resultToStack
+            "rdnf" -> funcVariousFloatFuncs(fcall, func, functionName, resultToStack)
+            "rnd", "rndw" -> funcRnd(functionName, resultToStack)
+            "sqrt16" -> funcSqrt16(fcall, func, resultToStack)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
@@ -63,20 +66,53 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 // restore all registers and cpu status flag
                 asmgen.out(" pla |  tay |  pla |  tax |  pla |  plp")
             }
+            "read_flags" -> {
+                if(resultToStack)
+                    asmgen.out("  jsr  prog8_lib.func_read_flags")
+                else
+                    asmgen.out("  php |  pla")
+            }
             "clear_carry" -> asmgen.out("  clc")
             "set_carry" -> asmgen.out("  sec")
             "clear_irqd" -> asmgen.out("  cli")
             "set_irqd" -> asmgen.out("  sei")
-            else -> {
+            "strlen" -> funcStrlen(fcall, resultToStack)
+            "strcmp" -> funcStrcmp(fcall, func, resultToStack)
+            "substr", "leftstr", "rightstr",
+            "memcopy", "memset", "memsetw" -> {
                 translateArguments(fcall.args, func)
-                if(resultToStack) {
-                    asmgen.out("  jsr  prog8_lib.func_$functionName")
-                } else {
-                    TODO("builtin function $fcall")
-                    // TODO call function that puts result in registers, not on stack
-                }
+                asmgen.out("  jsr  prog8_lib.func_$functionName")
             }
+            "exit" -> asmgen.out("  jmp  prog8_lib.func_exit")
+            else -> TODO("missing asmgen for builtin func $functionName")
         }
+    }
+
+    private fun funcStrcmp(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
+        translateArguments(fcall.args, func)
+        if(resultToStack)
+            asmgen.out("  jsr  prog8_lib.func_strcmp")
+        else
+            asmgen.out("  jsr  prog8_lib.func_strcmp |  inx")       // result is also in register A
+    }
+
+    private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
+        translateArguments(fcall.args, func)
+        if(resultToStack)
+            asmgen.out("  jsr  prog8_lib.func_sqrt16")
+        else
+            asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
+    }
+
+    private fun funcSinCosInt(fcall: IFunctionCall, func: FSignature, functionName: String, resultToStack: Boolean) {
+        translateArguments(fcall.args, func)
+        if(resultToStack)
+            asmgen.out("  jsr  prog8_lib.func_$functionName")
+        else
+            when(functionName) {
+                "sin8", "sin8u", "cos8", "cos8u" -> asmgen.out("  jsr  prog8_lib.func_${functionName}_into_A")
+                "sin16", "sin16u", "cos16", "cos16u" -> asmgen.out("  jsr  prog8_lib.func_${functionName}_into_AY")
+            }
     }
 
     private fun funcReverse(fcall: IFunctionCall) {
@@ -351,9 +387,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, functionName: String) {
+    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, functionName: String, resultToStack: Boolean) {
         translateArguments(fcall.args, func)
-        asmgen.out("  jsr  floats.func_$functionName")
+        if(resultToStack) {
+            asmgen.out("  jsr  floats.func_$functionName")
+        } else {
+            TODO("float func result via registers  $functionName")
+        }
     }
 
     private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
@@ -380,46 +420,88 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcAnyAll(fcall: IFunctionCall, functionName: String) {
+    private fun funcAnyAll(fcall: IFunctionCall, functionName: String, resultToStack: Boolean) {
         outputPushAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
-        when (dt.typeOrElse(DataType.STRUCT)) {
-            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
-            DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
-            DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f")
-            else -> throw AssemblyError("weird type $dt")
+        if(resultToStack) {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
+                DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f")
+                else -> throw AssemblyError("weird type $dt")
+            }
+        } else {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b_into_A")
+                DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w_into_A")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f_into_A")
+                else -> throw AssemblyError("weird type $dt")
+            }
         }
     }
 
-    private fun funcMinMaxSum(fcall: IFunctionCall, functionName: String) {
+    private fun funcMinMax(fcall: IFunctionCall, functionName: String, resultToStack: Boolean) {
         outputPushAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
-        when (dt.typeOrElse(DataType.STRUCT)) {
-            DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
-            DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
-            DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw")
-            DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
-            DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f")
-            else -> throw AssemblyError("weird type $dt")
+        if(resultToStack) {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub")
+                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b")
+                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw")
+                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${functionName}_f")
+                else -> throw AssemblyError("weird type $dt")
+            }
+        } else {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${functionName}_ub_into_A")
+                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${functionName}_b_into_A")
+                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${functionName}_uw_into_AY")
+                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${functionName}_w_into_AY")
+                DataType.ARRAY_F -> TODO("min/max of floats result in float via registers")
+                else -> throw AssemblyError("weird type $dt")
+            }
         }
     }
 
-    private fun funcStrlen(fcall: IFunctionCall) {
+    private fun funcSum(fcall: IFunctionCall, resultToStack: Boolean) {
+        outputPushAddressAndLenghtOfArray(fcall.args[0])
+        val dt = fcall.args.single().inferType(program)
+        if(resultToStack) {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub")
+                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b")
+                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw")
+                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f")
+                else -> throw AssemblyError("weird type $dt")
+            }
+        } else {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub_into_AY")
+                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b_into_AY")
+                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw_into_AY")
+                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w_into_AY")
+                DataType.ARRAY_F -> TODO("sum of floats result in float via registers")
+                else -> throw AssemblyError("weird type $dt")
+            }
+        }
+    }
+
+    private fun funcStrlen(fcall: IFunctionCall, resultToStack: Boolean) {
         val name = asmgen.asmVariableName(fcall.args[0] as IdentifierReference)
         val type = fcall.args[0].inferType(program)
         when {
-            type.istype(DataType.STR) -> asmgen.out("""
-                lda  #<$name
-                ldy  #>$name
-                jsr  prog8_lib.strlen
-                sta  P8ESTACK_LO,x
-                dex""")
-            type.istype(DataType.UWORD) -> asmgen.out("""
-                lda  $name
-                ldy  $name+1
-                jsr  prog8_lib.strlen
-                sta  P8ESTACK_LO,x
-                dex""")
+            type.istype(DataType.STR) -> {
+                asmgen.out("  lda  #<$name |  ldy  #>$name |  jsr  prog8_lib.strlen")
+                if(resultToStack)
+                    asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            }
+            type.istype(DataType.UWORD) -> {
+                asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  prog8_lib.strlen")
+                if(resultToStack)
+                    asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            }
             else -> throw AssemblyError("strlen requires str or uword arg")
         }
     }
@@ -795,11 +877,37 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcMkword(fcall: IFunctionCall, func: FSignature) {
-        // trick: push the args in reverse order (msb first, lsb second) this saves some instructions
-        asmgen.translateExpression(fcall.args[1])
-        asmgen.translateExpression(fcall.args[0])
-        asmgen.out("  inx | lda  P8ESTACK_LO,x  | sta  P8ESTACK_HI+1,x")
+    private fun funcRnd(functionName: String, resultToStack: Boolean) {
+        when(functionName) {
+            "rnd" -> {
+                if(resultToStack)
+                    asmgen.out("  jsr  prog8_lib.func_rnd")
+                else
+                    asmgen.out("  jsr  math.randbyte")
+            }
+            "rndw" -> {
+                if(resultToStack)
+                    asmgen.out("  jsr  prog8_lib.func_rndw")
+                else
+                    asmgen.out("  jsr  math.randword")
+            }
+            else -> throw AssemblyError("wrong func")
+        }
+    }
+
+    private fun funcMkword(fcall: IFunctionCall, resultToStack: Boolean) {
+        if(resultToStack) {
+            // trick: push the args in reverse order (lsb first, msb second) this saves some instructions
+            asmgen.translateExpression(fcall.args[1])
+            asmgen.translateExpression(fcall.args[0])
+            asmgen.out("  inx | lda  P8ESTACK_LO,x  | sta  P8ESTACK_HI+1,x")
+        } else {
+            // TODO some args without stack usage...
+            // trick: push the args in reverse order (lsb first, msb second) this saves some instructions
+            asmgen.translateExpression(fcall.args[1])
+            asmgen.translateExpression(fcall.args[0])
+            asmgen.out("  inx |  ldy  P8ESTACK_LO,x  |  inx |  lda  P8ESTACK_LO,x")
+        }
     }
 
     private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean) {
@@ -814,9 +922,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             if(resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            TODO("msb from non-identifier expression $arg")
-//            asmgen.translateExpression(arg)
-//            asmgen.out("  lda  P8ESTACK_HI+1,x |  sta  P8ESTACK_LO+1,x")
+            asmgen.translateExpression(arg)  // TODO this evalutes onto stack, use registers instead
+            if(resultToStack)
+                asmgen.out("  lda  P8ESTACK_HI+1,x |  sta  P8ESTACK_LO+1,x")
+            else
+                asmgen.out("  inx |  lda  P8ESTACK_HI,x")
         }
     }
 
@@ -832,9 +942,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             if(resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            TODO("lsb from non-identifier expression $arg")
-//            asmgen.translateExpression(arg)
-            // just ignore any high-byte
+            // TODO this evalutes onto stack, use registers instead
+            asmgen.translateExpression(arg)
+            if(resultToStack) {
+                // simply ignore the high-byte of what's on the stack now
+            } else {
+                asmgen.out("  inx |  lda  P8ESTACK_LO,x")
+            }
         }
     }
 

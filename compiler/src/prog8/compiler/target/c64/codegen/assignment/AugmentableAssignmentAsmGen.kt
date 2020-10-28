@@ -136,13 +136,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     DataType.FLOAT -> {
                         when {
-                            valueLv != null -> inplaceModification_float_litval_to_variable(target.asmVarname, operator, valueLv.toDouble(), target.scope)
-                            ident != null -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, ident, target.scope)
+                            valueLv != null -> inplaceModification_float_litval_to_variable(target.asmVarname, operator, valueLv.toDouble(), target.scope!!)
+                            ident != null -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, ident, target.scope!!)
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_float_value_to_variable(target.asmVarname, operator, value, target.scope)
+                                inplaceModification_float_value_to_variable(target.asmVarname, operator, value, target.scope!!)
                             }
-                            else -> inplaceModification_float_value_to_variable(target.asmVarname, operator, value, target.scope)
+                            else -> inplaceModification_float_value_to_variable(target.asmVarname, operator, value, target.scope!!)
                         }
                     }
                     else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
@@ -1295,7 +1295,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.out(" inx")
     }
 
-    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression, scope: Subroutine?) {
+    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression, scope: Subroutine) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
         if(asmgen.options.slowCodegenWarnings)
@@ -1350,7 +1350,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.restoreRegister(CpuRegister.X, false)
     }
 
-    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference, scope: Subroutine?) {
+    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference, scope: Subroutine) {
         val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
         if(valueDt != DataType.FLOAT)
             throw AssemblyError("float variable expected")
@@ -1419,7 +1419,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.restoreRegister(CpuRegister.X, false)
     }
 
-    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: Subroutine?) {
+    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: Subroutine) {
         val constValueName = asmgen.getFloatAsmConst(value)
         asmgen.saveRegister(CpuRegister.X, false, scope)
         when (operator) {

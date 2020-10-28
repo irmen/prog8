@@ -97,7 +97,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 else
                 {
                     asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
-                    asmgen.saveRegister(CpuRegister.X, false, scope)
+                    asmgen.saveRegister(CpuRegister.X, false, scope!!)
                     asmgen.out("  tax")
                     when(elementDt) {
                         in ByteDatatypes -> {

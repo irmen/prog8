@@ -573,6 +573,18 @@ func_ceil	.proc
 +		jmp  push_fac1_as_result
 		.pend
 
+func_any_f_into_A	.proc
+		jsr  func_any_f
+_popA		inx
+		lda  P8ESTACK_LO,x
+		rts
+		.pend
+
+func_all_f_into_A	.proc
+		jsr  func_all_f
+		jmp  func_any_f_into_A._popA
+		.pend
+
 func_any_f	.proc
 		inx
 		lda  P8ESTACK_LO,x	; array size

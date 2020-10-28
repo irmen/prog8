@@ -702,6 +702,10 @@ func_read_flags	.proc
 		rts
 		.pend
 
+func_sqrt16_into_A	.proc
+		jsr  func_sqrt16
+		jmp  func_any_b_into_A._popA
+		.pend
 
 func_sqrt16	.proc
 		; TODO is this one faster?  http://6502org.wikidot.com/software-math-sqrt
@@ -753,6 +757,78 @@ _skip3
 _stab   .byte $01,$02,$04,$08,$10,$20,$40,$80
 		.pend
 
+
+func_sin8_into_A	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin8._sinecos8,y
+		rts
+		.pend
+
+func_sin8u_into_A	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin8u._sinecos8u,y
+		rts
+		.pend
+
+func_sin16_into_AY	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin16._sinecos8lo,y
+		pha
+		lda  func_sin16._sinecos8hi,y
+		tay
+		pla
+		rts
+		.pend
+
+func_sin16u_into_AY	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin16u._sinecos8ulo,y
+		pha
+		lda  func_sin16u._sinecos8uhi,y
+		tay
+		pla
+		rts
+		.pend
+
+func_cos8_into_A	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin8._sinecos8+64,y
+		rts
+		.pend
+
+func_cos8u_into_A	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin8u._sinecos8u+64,y
+		rts
+		.pend
+
+func_cos16_into_AY	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin16._sinecos8lo+64,y
+		pha
+		lda  func_sin16._sinecos8hi+64,y
+		tay
+		pla
+		rts
+		.pend
+
+func_cos16u_into_AY	.proc
+		inx
+		ldy  P8ESTACK_LO,x
+		lda  func_sin16u._sinecos8ulo+64,y
+		pha
+		lda  func_sin16u._sinecos8uhi+64,y
+		tay
+		pla
+		rts
+		.pend
 
 func_sin8	.proc
 		ldy  P8ESTACK_LO+1,x
@@ -837,6 +913,29 @@ peek_address	.proc
 		sta  P8ZP_SCRATCH_W1+1
 		rts
 		.pend
+
+func_any_b_into_A	.proc
+		jsr  func_any_b
+_popA		inx
+		lda  P8ESTACK_LO,x
+		rts
+		.pend
+
+func_all_b_into_A	.proc
+		jsr  func_all_b
+		jmp  func_any_b_into_A._popA
+		.pend
+
+func_any_w_into_A	.proc
+		jsr  func_any_w
+		jmp  func_any_b_into_A._popA
+		.pend
+
+func_all_w_into_A	.proc
+		jsr  func_all_w
+		jmp  func_any_b_into_A._popA
+		.pend
+
 
 func_any_b	.proc
 		inx
@@ -1102,6 +1201,72 @@ pop_array_and_lengthmin1Y	.proc
 		inx
 		rts
 		.pend
+
+func_min_ub_into_A	.proc
+		jsr  func_min_ub
+_popA		inx
+		lda  P8ESTACK_LO,x
+		rts
+		.pend
+
+func_min_b_into_A	.proc
+		jsr  func_min_b
+		jmp  func_min_ub_into_A._popA
+		.pend
+
+func_max_ub_into_A	.proc
+		jsr  func_max_ub
+		jmp  func_min_ub_into_A._popA
+		.pend
+
+func_max_b_into_A	.proc
+		jsr  func_max_b
+		jmp  func_min_ub_into_A._popA
+		.pend
+
+func_sum_ub_into_AY	.proc
+		jsr  func_sum_ub
+_popAY		inx
+		lda  P8ESTACK_LO,x
+		ldy  P8ESTACK_HI,x
+		rts
+		.pend
+
+func_sum_b_into_AY	.proc
+		jsr  func_sum_b
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
+func_min_uw_into_AY	.proc
+		jsr  func_min_uw
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
+func_min_w_into_AY	.proc
+		jsr  func_min_w
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
+func_max_uw_into_AY	.proc
+		jsr  func_max_uw
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
+func_max_w_into_AY	.proc
+		jsr  func_max_w
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
+func_sum_uw_into_AY	.proc
+		jsr  func_sum_uw
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
+func_sum_w_into_AY	.proc
+		jsr  func_sum_w
+		jmp  func_sum_ub_into_AY._popAY
+		.pend
+
 
 func_min_ub	.proc
 		jsr  pop_array_and_lengthmin1Y
@@ -2165,5 +2330,6 @@ func_strcmp	.proc
 		lda  P8ESTACK_LO+1,x
 		jsr  strcmp_mem
 		sta  P8ESTACK_LO+1,x
+		; make sure A contains the result value as well
 		rts
 		.pend

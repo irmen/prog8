@@ -130,14 +130,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             is Subroutine -> {
                                 val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
                                 asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
-                                when ((sub.asmReturnvaluesRegisters.single { it.registerOrPair != null }).registerOrPair) {
-                                    RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
-                                    RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
-                                    RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
-                                    RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
-                                    RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                    RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
-                                    else -> throw AssemblyError("should be just one register byte result value")
+                                if(sub.returntypes.single()==DataType.STR) {
+                                    TODO("assignment of string => copy string  ${assign.position}")
+                                } else {
+                                    when ((sub.asmReturnvaluesRegisters.single { it.registerOrPair != null }).registerOrPair) {
+                                        RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
+                                        RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
+                                        RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                                        RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                                        RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                        RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
+                                        else -> throw AssemblyError("should be just one register byte result value")
+                                    }
                                 }
                                 if (preserveStatusRegisterAfterCall)
                                     asmgen.out("  plp\t; restore status flags from call")
@@ -151,6 +155,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 when(returntype.typeOrElse(DataType.STRUCT)) {
                                     in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                     in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
+                                    DataType.STR -> TODO("assign string => copy string")
                                     DataType.FLOAT -> TODO("assign float result from ${sub.name}")
                                     else -> throw AssemblyError("weird result type")
                                 }
@@ -775,10 +780,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype in NumericDatatypes)
+        require(target.datatype in NumericDatatypes) {
+            "zzz"
+        }
         if(target.datatype==DataType.FLOAT) {
             if (regs == RegisterOrPair.AY) {
-                asmgen.out("  brk   ; TODO FLOAT RETURN VALUE")     // TODO
+                asmgen.out("  brk   ; TODO FLOAT RETURN VALUE")     // TODO float value via registers
                 return
             }
             else throw AssemblyError("float reaturn value should be via AY return pointer")
@@ -793,7 +800,20 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             TargetStorageKind.ARRAY -> {
-                TODO("store register pair $regs into word-array ${target.array}")
+                // TODO can be a bit more optimized if the array indexer is a number
+                when(regs) {
+                    RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                    RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                    RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                    else -> throw AssemblyError("expected reg pair")
+                }
+                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
+                asmgen.out("""
+                    pla
+                    sta  ${target.asmVarname},y
+                    dey
+                    pla
+                    sta  ${target.asmVarname},y""")
             }
             TargetStorageKind.REGISTER -> {
                 when(regs) {
@@ -1190,7 +1210,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, null)
             }
             else -> {
-                asmgen.saveRegister(register, false, memoryAddress.definingSubroutine())
+                asmgen.saveRegister(register, false, memoryAddress.definingSubroutine()!!)
                 asmgen.translateExpression(addressExpr)
                 asmgen.restoreRegister(CpuRegister.A, false)
                 asmgen.out("""

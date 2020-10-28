@@ -1687,7 +1687,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateCompareStrings(operator: String) {
-        asmgen.out(" jsr  prog8_lib.func_strcmp |  lda  P8ESTACK_LO+1,x")    // result  of compare in A
+        asmgen.out(" jsr  prog8_lib.func_strcmp")    // result  of compare is on stack but also in A
         when(operator) {
             "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO+1,x")
             "!=" -> asmgen.out(" and  #1 |  sta  P8ESTACK_LO+1,x")

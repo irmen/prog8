@@ -263,7 +263,6 @@ private class AsmSubroutineParameter(name: String,
                                      type: DataType,
                                      val registerOrPair: RegisterOrPair?,
                                      val statusflag: Statusflag?,
-                                     // TODO implement: val stack: Boolean,
                                      position: Position) : SubroutineParameter(name, type, position)
 
 private class AsmSubroutineReturn(val type: DataType,

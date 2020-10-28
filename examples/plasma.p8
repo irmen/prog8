@@ -9,6 +9,8 @@
 ;  Converted to prog8 by Irmen de Jong.
 
 
+; TODO why is the output of this larger with the register-eval stuff than before with the stack eval stuff?
+
 main {
     const uword SCREEN1 = $E000
     const uword SCREEN2 = $E400

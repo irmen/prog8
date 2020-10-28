@@ -617,8 +617,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 if (amount >= 16) {
                     return NumericLiteralValue(targetDt, 0, expr.position)
                 } else if (amount >= 8) {
-                    // TODO is this correct???
-                    val lsb = TypecastExpression(expr.left, DataType.UBYTE, true, expr.position)
+                    val lsb = FunctionCall(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
                         return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                     }

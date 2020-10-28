@@ -11,50 +11,37 @@
 
 main {
     sub start() {
-        byte bb
-        word ww
 
-        bb = 0
-        bb = sgn(bb)
-        txt.print_b(bb)
-        txt.chrout('\n')
-        bb = 127
-        bb = sgn(bb)
-        txt.print_b(bb)
-        txt.chrout('\n')
-        bb = -1
-        bb = sgn(bb)
-        txt.print_b(bb)
-        txt.chrout('\n')
-        bb = -127
-        bb = sgn(bb)
-        txt.print_b(bb)
-        txt.chrout('\n')
-        bb = -128
-        bb = sgn(bb)
-        txt.print_b(bb)
-        txt.chrout('\n')
+        uword ss
+
+        ss = %1000000110101010
+        ss <<= 8
+        txt.print_uwbin(ss, 1)
         txt.chrout('\n')
 
-        ww = 0
-        ww = sgn(ww)
-        txt.print_w(ww)
+        ss = %1000000110101111
+        ss <<= 9
+        txt.print_uwbin(ss, 1)
         txt.chrout('\n')
-        ww = 32767
-        ww = sgn(ww)
-        txt.print_w(ww)
+
+        ss = %1000000110101111
+        ss <<= 14
+        txt.print_uwbin(ss, 1)
         txt.chrout('\n')
-        ww = -1
-        ww = sgn(ww)
-        txt.print_w(ww)
+
+        ss = %1000000110101111
+        ss <<= 15
+        txt.print_uwbin(ss, 1)
         txt.chrout('\n')
-        ww = -32767
-        ww = sgn(ww)
-        txt.print_w(ww)
+
+        ss = %1000000110101111
+        ss <<= 16
+        txt.print_uwbin(ss, 1)
         txt.chrout('\n')
-        ww = -32768
-        ww = sgn(ww)
-        txt.print_w(ww)
+
+        ss = %1000000110101010
+        ss <<= 17
+        txt.print_uwbin(ss, 1)
         txt.chrout('\n')
 
         main22.testX()
@@ -87,7 +74,7 @@ main22 {
         txt.chrout('\n')
 
         void getstr()
-        ssss = getstr()
+        ; TODO string assign ssss = getstr()
 
         txt.print_uwhex(ssss, true)
         txt.chrout('\n')
