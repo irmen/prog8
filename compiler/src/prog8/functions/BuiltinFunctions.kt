@@ -17,7 +17,7 @@ typealias ConstExpressionCaller = (args: List<Expression>, position: Position, p
 
 class FSignature(val pure: Boolean,      // does it have side effects?
                  val parameters: List<FParam>,
-                 val returntype: DataType?,
+                 val known_returntype: DataType?,     // specify return type if fixed, otherwise null if it depends on the arguments
                  val constExpressionFunc: ConstExpressionCaller? = null)
 
 
@@ -144,10 +144,10 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
     }
 
     val func = BuiltinFunctions.getValue(function)
-    if(func.returntype!=null)
-        return InferredTypes.knownFor(func.returntype)
-    // function has return values, but the return type depends on the arguments
+    if(func.known_returntype!=null)
+        return InferredTypes.knownFor(func.known_returntype)
 
+    // function has return values, but the return type depends on the arguments
     return when (function) {
         "abs" -> {
             val dt = args.single().inferType(program)

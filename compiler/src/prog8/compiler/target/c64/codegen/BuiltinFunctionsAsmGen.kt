@@ -36,17 +36,18 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         when (functionName) {
             "msb" -> funcMsb(fcall, resultToStack)
             "lsb" -> funcLsb(fcall, resultToStack)
-            "mkword" -> funcMkword(fcall, func)      // TODO resultToStack
-            "abs" -> funcAbs(fcall, func)            // TODO resultToStack
+            // TODO THE OTHERS
+//            "mkword" -> funcMkword(fcall, func)      // TODO resultToStack
+            "abs" -> funcAbs(fcall, func, resultToStack)
             "swap" -> funcSwap(fcall)
-            "strlen" -> funcStrlen(fcall)            // TODO resultToStack
-            "min", "max", "sum" -> funcMinMaxSum(fcall, functionName)       // TODO resultToStack
-            "any", "all" -> funcAnyAll(fcall, functionName)     // TODO resultToStack
-            "sgn" -> funcSgn(fcall, func)       // TODO resultToStack
+//            "strlen" -> funcStrlen(fcall)            // TODO resultToStack
+//            "min", "max", "sum" -> funcMinMaxSum(fcall, functionName)       // TODO resultToStack
+//            "any", "all" -> funcAnyAll(fcall, functionName)     // TODO resultToStack
+            "sgn" -> funcSgn(fcall, func, resultToStack)
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
-            "rdnf" -> funcVariousFloatFuncs(fcall, func, functionName)      // TODO resultToStack
+//            "rdnf" -> funcVariousFloatFuncs(fcall, func, functionName)      // TODO resultToStack
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
@@ -67,8 +68,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "clear_irqd" -> asmgen.out("  cli")
             "set_irqd" -> asmgen.out("  sei")
             else -> {
-                translateFunctionArguments(fcall.args, func)
-                asmgen.out("  jsr  prog8_lib.func_$functionName")     // TODO resultToStack
+                translateArguments(fcall.args, func)
+                if(resultToStack) {
+                    asmgen.out("  jsr  prog8_lib.func_$functionName")
+                } else {
+                    TODO("builtin function $fcall")
+                    // TODO call function that puts result in registers, not on stack
+                }
             }
         }
     }
@@ -346,20 +352,31 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, functionName: String) {
-        translateFunctionArguments(fcall.args, func)
+        translateArguments(fcall.args, func)
         asmgen.out("  jsr  floats.func_$functionName")
     }
 
-    private fun funcSgn(fcall: IFunctionCall, func: FSignature) {
-        translateFunctionArguments(fcall.args, func)
+    private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
+        translateArguments(fcall.args, func)
         val dt = fcall.args.single().inferType(program)
-        when (dt.typeOrElse(DataType.STRUCT)) {
-            DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub")
-            DataType.BYTE -> asmgen.out("  jsr  math.sign_b")
-            DataType.UWORD -> asmgen.out("  jsr  math.sign_uw")
-            DataType.WORD -> asmgen.out("  jsr  math.sign_w")
-            DataType.FLOAT -> asmgen.out("  jsr  floats.sign_f")
-            else -> throw AssemblyError("weird type $dt")
+        if(resultToStack) {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub")
+                DataType.BYTE -> asmgen.out("  jsr  math.sign_b")
+                DataType.UWORD -> asmgen.out("  jsr  math.sign_uw")
+                DataType.WORD -> asmgen.out("  jsr  math.sign_w")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.sign_f")
+                else -> throw AssemblyError("weird type $dt")
+            }
+        } else {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub_into_A")
+                DataType.BYTE -> asmgen.out("  jsr  math.sign_b_into_A")
+                DataType.UWORD -> asmgen.out("  jsr  math.sign_uw_into_A")
+                DataType.WORD -> asmgen.out("  jsr  math.sign_w_into_A")
+                DataType.FLOAT -> TODO("sign float using registers")
+                else -> throw AssemblyError("weird type $dt")
+            }
         }
     }
 
@@ -758,14 +775,23 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcAbs(fcall: IFunctionCall, func: FSignature) {
-        translateFunctionArguments(fcall.args, func)
+    private fun funcAbs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
+        translateArguments(fcall.args, func)
         val dt = fcall.args.single().inferType(program)
-        when (dt.typeOrElse(DataType.STRUCT)) {
-            in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
-            in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
-            DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f")
-            else -> throw AssemblyError("weird type")
+        if(resultToStack) {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
+                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f")
+                else -> throw AssemblyError("weird type")
+            }
+        } else {
+            when (dt.typeOrElse(DataType.STRUCT)) {
+                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_into_A")
+                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
+                DataType.FLOAT -> TODO("abs(float) via registers")
+                else -> throw AssemblyError("weird type")
+            }
         }
     }
 
@@ -828,9 +854,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     """)
     }
 
-    private fun translateFunctionArguments(args: MutableList<Expression>, signature: FSignature) {
+    private fun translateArguments(args: MutableList<Expression>, signature: FSignature) {
         args.forEach {
-            asmgen.translateExpression(it)
+            asmgen.translateExpression(it)      // TODO if possible, function args via registers
         }
     }
 

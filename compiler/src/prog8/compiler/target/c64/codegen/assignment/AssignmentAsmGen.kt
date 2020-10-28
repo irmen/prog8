@@ -11,6 +11,7 @@ import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
+import prog8.functions.builtinFunctionReturnType
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen, private val exprAsmgen: ExpressionsAsmGen) {
@@ -144,12 +145,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             is BuiltinFunctionStatementPlaceholder -> {
                                 val signature = BuiltinFunctions.getValue(sub.name)
                                 asmgen.translateBuiltinFunctionCallExpression(value, signature, false)
-                                when(signature.returntype) {
-                                    in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)
-                                    in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                val returntype = builtinFunctionReturnType(sub.name, value.args, program)
+                                if(returntype.isUnknown)
+                                    throw AssemblyError("weird result type")
+                                when(returntype.typeOrElse(DataType.STRUCT)) {
+                                    in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
+                                    in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
                                     DataType.FLOAT -> TODO("assign float result from ${sub.name}")
-                                    null -> {}
-                                    else -> throw AssemblyError("weird result type ${signature.returntype}")
+                                    else -> throw AssemblyError("weird result type")
                                 }
                             }
                             else -> {

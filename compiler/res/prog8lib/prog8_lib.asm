@@ -259,6 +259,38 @@ abs_w		.proc
 		rts
 		.pend
 
+abs_b_into_A	.proc
+	; -- A = abs(pop stack byte)
+		inx
+		lda  P8ESTACK_LO,x
+		bmi  +
+		rts
++		eor  #$ff
+		clc
+		adc  #1
+		rts
+		.pend
+
+abs_w_into_AY	.proc
+	; -- AY = abs(pop stack word)
+		inx
+		lda  P8ESTACK_LO,x
+		ldy  P8ESTACK_HI,x
+		bmi  +
+		rts
++		eor  #$ff
+		pha
+		tya
+		eor  #$ff
+		tay
+		pla
+		clc
+		adc  #1
+		bcc  +
+		iny
++		rts
+		.pend
+
 add_w		.proc
 	; -- push word+word / uword+uword
 		inx

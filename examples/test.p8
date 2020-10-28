@@ -1,9 +1,67 @@
 %import textio
 %import floats
+%import syslib
 %option enable_floats       ; TODO remove this option, only import floats is requires
 %zeropage basicsafe
 
+
+; Note: this program is compatible with C64 and CX16.
+
+; TODO fix abs() and the other builtin funcs
+
 main {
+    sub start() {
+        byte bb
+        word ww
+
+        bb = 0
+        bb = sgn(bb)
+        txt.print_b(bb)
+        txt.chrout('\n')
+        bb = 127
+        bb = sgn(bb)
+        txt.print_b(bb)
+        txt.chrout('\n')
+        bb = -1
+        bb = sgn(bb)
+        txt.print_b(bb)
+        txt.chrout('\n')
+        bb = -127
+        bb = sgn(bb)
+        txt.print_b(bb)
+        txt.chrout('\n')
+        bb = -128
+        bb = sgn(bb)
+        txt.print_b(bb)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        ww = 0
+        ww = sgn(ww)
+        txt.print_w(ww)
+        txt.chrout('\n')
+        ww = 32767
+        ww = sgn(ww)
+        txt.print_w(ww)
+        txt.chrout('\n')
+        ww = -1
+        ww = sgn(ww)
+        txt.print_w(ww)
+        txt.chrout('\n')
+        ww = -32767
+        ww = sgn(ww)
+        txt.print_w(ww)
+        txt.chrout('\n')
+        ww = -32768
+        ww = sgn(ww)
+        txt.print_w(ww)
+        txt.chrout('\n')
+
+        main22.testX()
+    }
+}
+
+main22 {
 
     sub start() {
         ubyte char
@@ -13,6 +71,7 @@ main {
         ;char = 1+(lsb(ssss) * 2)
         ;fl = 2.0*(abs(fl) + 1.0)
 
+        char = abs(char)
         char = lsb(ssss)
         char++
         char = msb(ssss)

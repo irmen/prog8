@@ -821,7 +821,7 @@ class FunctionCall(override var target: IdentifierReference,
                 val exprfunc = func.constExpressionFunc
                 if(exprfunc!=null)
                     resultValue = exprfunc(args, position, program)
-                else if(func.returntype==null)
+                else if(func.known_returntype==null)
                     throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used here because it doesn't return a value", position)
             }
 
