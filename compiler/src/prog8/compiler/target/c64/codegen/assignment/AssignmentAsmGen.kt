@@ -174,7 +174,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                     in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
                                     DataType.STR -> TODO("assign string => copy string or assign string address")
-                                    DataType.FLOAT -> TODO("assign float result from ${sub.name}")
+                                    DataType.FLOAT -> {
+                                        // float result from function sits in FAC1
+                                        assignFAC1float(assign.target)
+                                    }
                                     else -> throw AssemblyError("weird result type")
                                 }
                             }
@@ -550,6 +553,38 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
+    private fun assignFAC1float(target: AsmAssignTarget) {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    stx  P8ZP_SCRATCH_REG
+                    ldx  #<${target.asmVarname}
+                    ldy  #>${target.asmVarname}
+                    jsr  floats.MOVMF
+                    ldx  P8ZP_SCRATCH_REG
+                """)
+            }
+            TargetStorageKind.ARRAY -> {
+                asmgen.out("""
+                    lda  #<${target.asmVarname} 
+                    ldy  #>${target.asmVarname}
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1""")
+                if(target.array!!.indexer.indexNum!=null) {
+                    val index = target.array.indexer.constIndex()!!
+                    asmgen.out(" lda  #$index")
+                } else {
+                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                    asmgen.out(" lda  $asmvarname")
+                }
+                asmgen.out("  jsr  floats.set_array_float_from_fac1")
+            }
+            TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
+            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+            TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_fac1")
+        }
+    }
+
     private fun assignVariableFloat(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -801,16 +836,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype in NumericDatatypes) {
-            "zzz"
-        }
-        if(target.datatype==DataType.FLOAT) {
-            if (regs == RegisterOrPair.AY) {
-                asmgen.out("  brk   ; TODO FLOAT RETURN VALUE")     // TODO float value via registers
-                return
-            }
-            else throw AssemblyError("float reaturn value should be via AY return pointer")
-        }
+        require(target.datatype in NumericDatatypes)
+        if(target.datatype==DataType.FLOAT)
+            throw AssemblyError("float value should be from FAC1 not from registerpair memory pointer")
+
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when(regs) {

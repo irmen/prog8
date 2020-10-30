@@ -9,25 +9,24 @@
 main {
 
     sub start() {
-        str string1 = "abcdef"
-        str string2 = "%=&"
-        uword sa
+        float[]  fls = [1.1, 2.2, 0.0, 4.4, 3.3]
+        float fl
+        ubyte ii
 
-        txt.print(string1)
-        txt.chrout('\n')
-        string1=string2
-        txt.print(string1)
-        txt.chrout('\n')
 
-        void getstr()
-
-        sa = getstr()
-        txt.print_uwhex(sa, true)
+        fls[2] = sin(fls[0])
+        for ii in 0 to len(fls)-1 {
+            floats.print_f(fls[ii])
+            txt.chrout('\n')
+        }
         txt.chrout('\n')
 
-        string1 = getstr()
-        txt.print(string1)
-        txt.chrout('\n')
+        fls[3] = cos(fls[0])
+        for ii in 0 to len(fls)-1 {
+            floats.print_f(fls[ii])
+            txt.chrout('\n')
+        }
+
 
 ;        fl = getfloat()
 ;

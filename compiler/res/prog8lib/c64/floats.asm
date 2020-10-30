@@ -146,22 +146,6 @@ push_float	.proc
 		rts
 		.pend
 
-func_rndf	.proc
-		; -- put a random floating point value on the stack
-		stx  P8ZP_SCRATCH_REG
-		lda  #1
-		jsr  FREADSA
-		jsr  RND		; rng into fac1
-		ldx  #<_rndf_rnum5
-		ldy  #>_rndf_rnum5
-		jsr  MOVMF	; fac1 to mem X/Y
-		ldx  P8ZP_SCRATCH_REG
-		lda  #<_rndf_rnum5
-		ldy  #>_rndf_rnum5
-		jmp  push_float
-_rndf_rnum5	.byte  0,0,0,0,0
-		.pend
-
 pop_float	.proc
 		; ---- pops mflpt5 from stack to memory A/Y
 		; (frees 3 stack positions = 6 bytes of which 1 is padding)
@@ -273,6 +257,14 @@ pop_2_floats_f2_in_fac1	.proc
 fmath_float1	.byte 0,0,0,0,0	; storage for a mflpt5 value
 fmath_float2	.byte 0,0,0,0,0	; storage for a mflpt5 value
 
+
+push_fac1	.proc
+		; -- push the float in FAC1 onto the stack, usable as standalone
+		stx  P8ZP_SCRATCH_REG
+		jmp  push_fac1_as_result
+		.pend
+
+
 push_fac1_as_result	.proc
 		; -- push the float in FAC1 onto the stack, and return from calculation
 		ldx  #<fmath_float1
@@ -357,6 +349,14 @@ abs_f		.proc
 		and  #$7f
 		sta  P8ESTACK_HI+3,x
 		rts
+		.pend
+
+abs_f_into_fac1	.proc
+		; -- strip the sign bit on the stack, push stack into FAC1
+		lda  P8ESTACK_HI+3,x
+		and  #$7f
+		sta  P8ESTACK_HI+3,x
+		jmp  pop_float_fac1
 		.pend
 
 equal_f		.proc
@@ -457,48 +457,56 @@ _return_true	lda  #1
 		bne  _return_result
 		.pend
 
-func_sin	.proc
-		; -- push sin(f) back onto stack
+func_rndf_into_fac1	.proc
+		stx  P8ZP_SCRATCH_REG
+		lda  #1
+		jsr  FREADSA
+		jsr  RND		; rng into fac1
+		ldx  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+func_sin_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  SIN
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_cos	.proc
-		; -- push cos(f) back onto stack
+func_cos_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  COS
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_tan	.proc
-		; -- push tan(f) back onto stack
+func_tan_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  TAN
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_atan	.proc
-		; -- push atan(f) back onto stack
+func_atan_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  ATN
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_ln		.proc
-		; -- push ln(f) back onto stack
+func_ln_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_log2	.proc
-		; -- push log base 2, ln(f)/ln(2), back onto stack
+func_log2_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
@@ -507,54 +515,60 @@ func_log2	.proc
 		ldy  #>c64.FL_LOG2
 		jsr  MOVFM
 		jsr  FDIVT
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_sqrt	.proc
+func_sqrt_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  SQR
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_rad	.proc
+func_rad_into_fac1	.proc
 		; -- convert degrees to radians (d * pi / 180)
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		lda  #<_pi_div_180
 		ldy  #>_pi_div_180
 		jsr  FMULT
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 _pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
 		.pend
 
-func_deg	.proc
+func_deg_into_fac1	.proc
 		; -- convert radians to degrees (d * (1/ pi * 180))
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		lda  #<_one_over_pi_div_180
 		ldy  #>_one_over_pi_div_180
 		jsr  FMULT
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
 
-func_round	.proc
+func_round_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  FADDH
 		jsr  INT
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_floor	.proc
+func_floor_into_fac1	.proc
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
 		jsr  INT
-		jmp  push_fac1_as_result
+		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
-func_ceil	.proc
+func_ceil_into_fac1	.proc
 		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
 		jsr  pop_float_fac1
 		stx  P8ZP_SCRATCH_REG
@@ -570,7 +584,8 @@ func_ceil	.proc
 		lda  #<FL_ONE_const
 		ldy  #>FL_ONE_const
 		jsr  FADD
-+		jmp  push_fac1_as_result
++		ldx  P8ZP_SCRATCH_REG
+		rts
 		.pend
 
 func_any_f_into_A	.proc
@@ -629,7 +644,7 @@ func_all_f	.proc
 		rts
 		.pend
 
-func_max_f	.proc
+func_max_f_into_fac1	.proc
 		lda  #255
 		sta  _minmax_cmp+1
 		lda  #<_largest_neg_float
@@ -657,22 +672,21 @@ _minmax_cmp	cmp  #255			; modified
 		cpy  #255
 		bne  -
 		ldx  floats_store_reg
-		stx  P8ZP_SCRATCH_REG
-		jmp  push_fac1_as_result
+		rts
 _largest_neg_float	.byte 255,255,255,255,255		; largest negative float -1.7014118345e+38
 		.pend
 
-func_min_f	.proc
+func_min_f_into_fac1	.proc
 		lda  #1
-		sta  func_max_f._minmax_cmp+1
+		sta  func_max_f_into_fac1._minmax_cmp+1
 		lda  #<_largest_pos_float
 		ldy  #>_largest_pos_float
-		jmp  func_max_f._minmax_entry
+		jmp  func_max_f_into_fac1._minmax_entry
 _largest_pos_float	.byte  255,127,255,255,255		; largest positive float
 		rts
 		.pend
 
-func_sum_f	.proc
+func_sum_f_into_fac1	.proc
 		lda  #<FL_ZERO_const
 		ldy  #>FL_ZERO_const
 		jsr  MOVFM
@@ -694,8 +708,7 @@ func_sum_f	.proc
 		inc  P8ZP_SCRATCH_W1+1
 		bne  -
 +		ldx  floats_store_reg
-		stx  P8ZP_SCRATCH_REG
-		jmp  push_fac1_as_result
+		rts
 		.pend
 
 sign_f		.proc
@@ -703,6 +716,25 @@ sign_f		.proc
 		jsr  SIGN
 		sta  P8ESTACK_LO,x
 		dex
+		rts
+		.pend
+
+set_array_float_from_fac1	.proc
+		; -- set the float in FAC1 in the array (index in A, array in P8ZP_SCRATCH_W1)
+		sta  P8ZP_SCRATCH_B1
+		asl  a
+		asl  a
+		clc
+		adc  P8ZP_SCRATCH_B1
+		ldy  P8ZP_SCRATCH_W1+1
+		clc
+		adc  P8ZP_SCRATCH_W1
+		bcc  +
+		iny
++		stx  floats_store_reg
+		tax
+		jsr  MOVMF
+		ldx  floats_store_reg
 		rts
 		.pend
 

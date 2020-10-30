@@ -9,7 +9,7 @@
 ;  Converted to prog8 by Irmen de Jong.
 
 
-; TODO why is the output of this larger with the register-eval stuff than before with the stack eval stuff?
+; TODO why has the prg become bigger since register args?
 
 main {
     const uword SCREEN1 = $E000
