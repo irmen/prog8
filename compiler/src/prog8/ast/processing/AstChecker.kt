@@ -344,7 +344,7 @@ internal class AstChecker(private val program: Program,
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
             if (stmt is Subroutine) {
-                val idt = assignment.target.inferType(program, assignment)
+                val idt = assignment.target.inferType(program)
                 if(!idt.isKnown) {
                      errors.err("return type mismatch", assignment.value.position)
                 }
@@ -378,7 +378,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val targetDt = assignment.target.inferType(program, assignment)
+        val targetDt = assignment.target.inferType(program)
         val valueDt = assignment.value.inferType(program)
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
             if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
@@ -433,7 +433,7 @@ internal class AstChecker(private val program: Program,
 
         if (assignment is Assignment) {
 
-            val targetDatatype = assignTarget.inferType(program, assignment)
+            val targetDatatype = assignTarget.inferType(program)
             if (targetDatatype.isKnown) {
                 val constVal = assignment.value.constValue(program)
                 if (constVal != null) {

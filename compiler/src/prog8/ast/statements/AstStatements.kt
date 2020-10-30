@@ -449,9 +449,9 @@ data class AssignTarget(var identifier: IdentifierReference?,
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    fun inferType(program: Program, stmt: Statement): InferredTypes.InferredType {  // TODO why does this have the extra 'stmt' scope parameter???
+    fun inferType(program: Program): InferredTypes.InferredType {
         if (identifier != null) {
-            val symbol = program.namespace.lookup(identifier!!.nameInSource, stmt) ?: return InferredTypes.unknown()
+            val symbol = program.namespace.lookup(identifier!!.nameInSource, this) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
         }
 

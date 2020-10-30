@@ -60,7 +60,7 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         // see if a typecast is needed to convert the value's type into the proper target type
         val valueItype = assignment.value.inferType(program)
-        val targetItype = assignment.target.inferType(program, assignment)
+        val targetItype = assignment.target.inferType(program)
         if(targetItype.isKnown && valueItype.isKnown) {
             val targettype = targetItype.typeOrElse(DataType.STRUCT)
             val valuetype = valueItype.typeOrElse(DataType.STRUCT)

@@ -168,7 +168,7 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
 
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         val valueType = assignment.value.inferType(program)
-        val targetType = assignment.target.inferType(program, assignment)
+        val targetType = assignment.target.inferType(program)
         var assignments = emptyList<Assignment>()
 
         if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {

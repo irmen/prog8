@@ -130,10 +130,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             is Subroutine -> {
                                 val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
                                 asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
-                                if(sub.returntypes.single()==DataType.STR) {
+                                val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.registerOrPair!=null }
+                                if(returnValue.first==DataType.STR) {
                                     TODO("assignment of string => copy string  ${assign.position}")
                                 } else {
-                                    when ((sub.asmReturnvaluesRegisters.single { it.registerOrPair != null }).registerOrPair) {
+                                    when (returnValue.second.registerOrPair) {
                                         RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
                                         RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
                                         RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)

@@ -377,7 +377,7 @@ internal class StatementOptimizer(private val program: Program,
             return listOf(IAstModification.Remove(assignment, assignment.definingScope()))
         }
 
-        val targetIDt = assignment.target.inferType(program, assignment)
+        val targetIDt = assignment.target.inferType(program)
         if(!targetIDt.isKnown)
             throw FatalAstException("can't infer type of assignment target")
 

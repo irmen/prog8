@@ -19,7 +19,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
         when {
             targetIdent!=null -> {
                 val what = asmgen.asmVariableName(targetIdent)
-                when (stmt.target.inferType(program, stmt).typeOrElse(DataType.STRUCT)) {
+                when (stmt.target.inferType(program).typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> asmgen.out(if (incr) "  inc  $what" else "  dec  $what")
                     in WordDatatypes -> {
                         if(incr)

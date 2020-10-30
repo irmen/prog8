@@ -55,7 +55,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
 
     companion object {
         fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget = with(assign.target) {
-            val idt = inferType(program, assign)
+            val idt = inferType(program)
             if(!idt.isKnown)
                 throw AssemblyError("unknown dt")
             val dt = idt.typeOrElse(DataType.STRUCT)
