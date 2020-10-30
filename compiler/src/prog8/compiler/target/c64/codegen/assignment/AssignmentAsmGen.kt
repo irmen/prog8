@@ -132,7 +132,24 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.registerOrPair!=null }
                                 if(returnValue.first==DataType.STR) {
-                                    TODO("assignment of string => copy string  ${assign.position}")
+                                    when(assign.target.datatype) {
+                                        DataType.UWORD -> {
+                                            // assign the address of the string result value
+                                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                        }
+                                        DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                                            // copy the actual string result into the target string variable
+                                            asmgen.out("""
+                                                pha
+                                                lda  #<${assign.target.asmVarname}
+                                                sta  P8ZP_SCRATCH_W1
+                                                lda  #>${assign.target.asmVarname}
+                                                sta  P8ZP_SCRATCH_W1+1
+                                                pla
+                                                jsr  prog8_lib.strcpy""")
+                                        }
+                                        else -> throw AssemblyError("weird target dt")
+                                    }
                                 } else {
                                     when (returnValue.second.registerOrPair) {
                                         RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
@@ -156,7 +173,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 when(returntype.typeOrElse(DataType.STRUCT)) {
                                     in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                     in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
-                                    DataType.STR -> TODO("assign string => copy string")
+                                    DataType.STR -> TODO("assign string => copy string or assign string address")
                                     DataType.FLOAT -> TODO("assign float result from ${sub.name}")
                                     else -> throw AssemblyError("weird result type")
                                 }

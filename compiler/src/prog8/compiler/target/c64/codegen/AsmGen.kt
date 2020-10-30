@@ -22,6 +22,7 @@ import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FSignature
+import java.io.CharConversionException
 import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -231,8 +232,12 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun encode(str: String, altEncoding: Boolean): List<Short> {
-         val bytes = if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
-         return bytes.plus(0)
+        try {
+            val bytes = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+            return bytes.plus(0)
+        } catch(x: CharConversionException) {
+            throw AssemblyError("There was a problem converting a string to the target machine's char encoding: ${x.message}")
+        }
     }
 
     private fun zeropagevars2asm(statements: List<Statement>) {
