@@ -1,7 +1,6 @@
 %import textio
 %import floats
 %zeropage basicsafe
-%option enable_floats
 
 ; Note: this program is compatible with C64 and CX16.
 

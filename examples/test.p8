@@ -1,13 +1,10 @@
 %import textio
 %import floats
 %import syslib
-%option enable_floats       ; TODO remove this option, only import floats is requires
 %zeropage basicsafe
 
 
 ; Note: this program is compatible with C64 and CX16.
-
-; TODO fix abs() and the other builtin funcs
 
 main {
     sub start() {

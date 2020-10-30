@@ -122,7 +122,8 @@ Directives
 
     - For a module option, there is ``enable_floats``, which will tell the compiler
       to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
-      Otherwise, floating point support is not enabled.
+      Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
+      importing the ``floats`` library is required anyway and that will enable it for you automatically.
     - There's also ``no_sysinit`` which cause the resulting program to *not* include
       the system re-initialization logic of clearing the screen, resetting I/O config etc. You'll have to
       take care of that yourself. The program will just start running from whatever state the machine is in when the
