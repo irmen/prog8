@@ -2,16 +2,15 @@
 TODO
 ====
 
-- get rid of all the .typeOrElse(STRUCT) 'shortcuts' and replace them with proper error handling
 - make memset(w) and memcopy able to work with >256 bytes
-- make memset and memcopy use the ROM routines on the CX16
+- after that: make memset and memcopy use the ROM routines on the CX16
 - calling convention for builtin functions no longer via stack but via statically allocated vars inside the subroutine proc (just as normal subroutines)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - use VIC banking to move up the graphics bitmap memory location. Don't move it under the ROM though as that would require IRQ disabling and memory bank swapping for every bitmap manipulation
-- add some primitives/subroutines/examples for using custom char sets, copying the default charset.
-- some better handling of recursive subroutines? via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
+- add a c-64 example for using custom char sets, copying (part of) the default charset.
+- some support for recursive subroutines? via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
 - get rid of all other TODO's in the code ;-)
 
 More optimizations
@@ -21,8 +20,7 @@ Add more compiler optimizations to the existing ones.
 
 - further optimize assignment codegeneration, such as the following:
 - binexpr splitting (beware self-referencing expressions and asm code ballooning though)
-- subroutine calling convention? like: 1 byte arg -> pass in A, 2 bytes -> pass in A+Y, return value likewise.  Especially for built-in functions!
-- can such parameter passing to subroutines be optimized to avoid copying?
+- detect var->var argument passing to subroutines and avoid the second variable and copying of the value
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
 - note: subroutine inlining is abandoned because of problems referencing non-local stuff. Can't move everything around.

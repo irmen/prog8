@@ -348,7 +348,7 @@ internal class AstChecker(private val program: Program,
                 if(!idt.isKnown) {
                      errors.err("return type mismatch", assignment.value.position)
                 }
-                if(stmt.returntypes.size <= 1 && !(stmt.returntypes.single() isAssignableTo idt.typeOrElse(DataType.BYTE))) {
+                if(stmt.returntypes.size <= 1 && stmt.returntypes.single() isNotAssignableTo idt.typeOrElse(DataType.BYTE)) {
                     errors.err("return type mismatch", assignment.value.position)
                 }
             }
@@ -593,8 +593,8 @@ internal class AstChecker(private val program: Program,
         if(declValue!=null && decl.type==VarDeclType.VAR) {
             if(decl.datatype==DataType.STRUCT) {
                 val valueIdt = declValue.inferType(program)
-                if(valueIdt.isUnknown)
-                    throw AstException("invalid value type")
+                if(!valueIdt.isKnown)
+                    throw AstException("unknown dt")
                 val valueDt = valueIdt.typeOrElse(DataType.STRUCT)
                 if(valueDt !in ArrayDatatypes)
                     err("initialisation of struct should be with array value", declValue.position)
@@ -769,7 +769,11 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: PrefixExpression) {
-        val dt = expr.inferType(program).typeOrElse(DataType.STRUCT)
+        val idt = expr.inferType(program)
+        if(!idt.isKnown)
+            return  // any error should be reported elsewhere
+
+        val dt = idt.typeOrElse(DataType.STRUCT)
         if(expr.operator=="-") {
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 errors.err("can only take negative of a signed number type", expr.position)
@@ -1218,7 +1222,7 @@ internal class AstChecker(private val program: Program,
                     for(elt in value.value.zip(struct.statements)) {
                         val vardecl = elt.second as VarDecl
                         val valuetype = elt.first.inferType(program)
-                        if (!valuetype.isKnown || !(valuetype.typeOrElse(DataType.STRUCT) isAssignableTo vardecl.datatype)) {
+                        if (!valuetype.isKnown || valuetype isNotAssignableTo vardecl.datatype) {
                             errors.err("invalid struct member init value type $valuetype, expected ${vardecl.datatype}", elt.first.position)
                             return false
                         }

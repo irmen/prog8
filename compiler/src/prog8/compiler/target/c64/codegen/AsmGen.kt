@@ -896,8 +896,10 @@ internal class AsmGen(private val program: Program,
             }
             else -> {
                 translateExpression(stmt.iterations!!)
-                val dt = stmt.iterations!!.inferType(program).typeOrElse(DataType.STRUCT)
-                when (dt) {
+                val dt = stmt.iterations!!.inferType(program)
+                if(!dt.isKnown)
+                    throw AssemblyError("unknown dt")
+                when (dt.typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> {
                         out("  inx |  lda  P8ESTACK_LO,x")
                         repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)

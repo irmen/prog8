@@ -4,6 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.statements.*
@@ -39,7 +40,10 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
         }
 
         fun checkTypes(call: IFunctionCall, scope: INameScope, program: Program): String? {
-            val argtypes = call.args.map { it.inferType(program).typeOrElse(DataType.STRUCT) }
+            val argITypes = call.args.map { it.inferType(program) }
+            if(argITypes.any { !it.isKnown })
+                throw FatalAstException("unknown dt")
+            val argtypes = argITypes.map { it.typeOrElse(DataType.STRUCT) }
             val target = call.target.targetStatement(scope)
             if (target is Subroutine) {
                 if(call.args.size != target.parameters.size)

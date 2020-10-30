@@ -191,6 +191,7 @@ main {
 
     sub facing_away(ubyte edgePointsIdx) -> ubyte {
         ; simplistic visibility determination by checking the Z component of the surface normal
+        ; TODO: actually take the line of sight vector into account
         ubyte p1 = shipdata.facesPoints[edgePointsIdx]
         edgePointsIdx++
         ubyte p2 = shipdata.facesPoints[edgePointsIdx]

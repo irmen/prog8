@@ -53,7 +53,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        val dt = left.inferType(program).typeOrElse(DataType.STRUCT)
+        val idt = left.inferType(program)
+        if(!idt.isKnown)
+            throw AssemblyError("unknown dt")
+        val dt = idt.typeOrElse(DataType.STRUCT)
         when (operator) {
             "==" -> {
                 // if the left operand is an expression, and the right is 0, we can just evaluate that expression.
@@ -1512,7 +1515,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateExpression(expr: PrefixExpression) {
         translateExpression(expr.expression)
-        val type = expr.inferType(program).typeOrElse(DataType.STRUCT)
+        val itype = expr.inferType(program)
+        if(!itype.isKnown)
+            throw AssemblyError("unknown dt")
+        val type = itype.typeOrElse(DataType.STRUCT)
         when(expr.operator) {
             "+" -> {}
             "-" -> {
@@ -1547,7 +1553,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(arrayExpr: ArrayIndexedExpression) {
-        val elementDt = arrayExpr.inferType(program).typeOrElse(DataType.STRUCT)
+        val elementIDt = arrayExpr.inferType(program)
+        if(!elementIDt.isKnown)
+            throw AssemblyError("unknown dt")
+        val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
         if(arrayExpr.indexer.indexNum!=null) {
             val indexValue = arrayExpr.indexer.constIndex()!! * elementDt.memorySize()

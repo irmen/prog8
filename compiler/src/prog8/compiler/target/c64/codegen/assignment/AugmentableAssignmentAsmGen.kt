@@ -22,7 +22,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         when (val value = assign.source.expression!!) {
             is PrefixExpression -> {
                 // A = -A , A = +A, A = ~A, A = not A
-                val type = value.inferType(program).typeOrElse(DataType.STRUCT)
+                val itype = value.inferType(program)
+                if(!itype.isKnown)
+                    throw AssemblyError("unknown dt")
+                val type = itype.typeOrElse(DataType.STRUCT)
                 when (value.operator) {
                     "+" -> {}
                     "-" -> inplaceNegate(assign.target, type)
@@ -210,7 +213,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun tryRemoveRedundantCast(value: TypecastExpression, target: AsmAssignTarget, operator: String): Boolean {
         if (target.datatype == value.type) {
-            val childDt = value.expression.inferType(program).typeOrElse(DataType.STRUCT)
+            val childIDt = value.expression.inferType(program)
+            if(!childIDt.isKnown)
+                throw AssemblyError("unknown dt")
+            val childDt = childIDt.typeOrElse(DataType.STRUCT)
             if (value.type.equalsSize(childDt) || value.type.largerThan(childDt)) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
                 inplaceModification(target, operator, value.expression)
@@ -1096,7 +1102,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         if(asmgen.options.slowCodegenWarnings)
             println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
-        val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
+
+        val valueiDt = value.inferType(program)
+        if(!valueiDt.isKnown)
+            throw AssemblyError("unknown dt")
+        val valueDt = valueiDt.typeOrElse(DataType.STRUCT)
 
         fun multiplyWord() {
             asmgen.out("""

@@ -18,7 +18,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
     internal fun translate(stmt: ForLoop) {
         val iterableDt = stmt.iterable.inferType(program)
         if(!iterableDt.isKnown)
-            throw AssemblyError("can't determine iterable dt")
+            throw AssemblyError("unknown dt")
         when(stmt.iterable) {
             is RangeExpr -> {
                 val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()

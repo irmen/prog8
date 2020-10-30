@@ -578,7 +578,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if(first is ArrayIndexedExpression && second is ArrayIndexedExpression) {
             val arrayVarName1 = asmgen.asmVariableName(first.arrayvar)
             val arrayVarName2 = asmgen.asmVariableName(second.arrayvar)
-            val elementDt = first.inferType(program).typeOrElse(DataType.STRUCT)
+            val elementIDt = first.inferType(program)
+            if(!elementIDt.isKnown)
+                throw AssemblyError("unknown dt")
+            val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
 
             val firstNum = first.indexer.indexNum
             val firstVar = first.indexer.indexVar
@@ -612,7 +615,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         asmgen.translateExpression(first)
         asmgen.translateExpression(second)
-        val datatype = first.inferType(program).typeOrElse(DataType.STRUCT)
+        val idatatype = first.inferType(program)
+        if(!idatatype.isKnown)
+            throw AssemblyError("unknown dt")
+        val datatype = idatatype.typeOrElse(DataType.STRUCT)
         val assignFirst = AsmAssignment(
                 AsmAssignSource(SourceStorageKind.STACK, program, asmgen, datatype),
                 targetFromExpr(first, datatype),

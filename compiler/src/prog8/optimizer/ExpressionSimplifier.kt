@@ -477,7 +477,10 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         when (expr.operator) {
             "%" -> {
                 if (cv == 1.0) {
-                    return NumericLiteralValue(expr.inferType(program).typeOrElse(DataType.STRUCT), 0, expr.position)
+                    val idt = expr.inferType(program)
+                    if(!idt.isKnown)
+                        throw FatalAstException("unknown dt")
+                    return NumericLiteralValue(idt.typeOrElse(DataType.STRUCT), 0, expr.position)
                 } else if (cv == 2.0) {
                     expr.operator = "&"
                     expr.right = NumericLiteralValue.optimalInteger(1, expr.position)
@@ -606,8 +609,10 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         if (amount == 0) {
             return expr.left
         }
-        val targetDt = expr.left.inferType(program).typeOrElse(DataType.STRUCT)
-        when (targetDt) {
+        val targetIDt = expr.left.inferType(program)
+        if(!targetIDt.isKnown)
+            throw FatalAstException("unknown dt")
+        when (val targetDt = targetIDt.typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue(targetDt, 0, expr.position)
@@ -639,7 +644,10 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         if (amount == 0) {
             return expr.left
         }
-        when (expr.left.inferType(program).typeOrElse(DataType.STRUCT)) {
+        val idt = expr.left.inferType(program)
+        if(!idt.isKnown)
+            throw FatalAstException("unknown dt")
+        when (idt.typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)

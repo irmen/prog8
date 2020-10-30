@@ -36,9 +36,12 @@ object InferredTypes {
 
         override fun hashCode(): Int = Objects.hash(isVoid, datatype)
 
-        infix fun isAssignableTo(targetDt: InferredType): Boolean {
-            return isKnown && targetDt.isKnown && (datatype!! isAssignableTo targetDt.datatype!!)
-        }
+        infix fun isAssignableTo(targetDt: InferredType): Boolean =
+                isKnown && targetDt.isKnown && (datatype!! isAssignableTo targetDt.datatype!!)
+        infix fun isAssignableTo(targetDt: DataType): Boolean =
+                isKnown && (datatype!! isAssignableTo targetDt)
+        infix fun isNotAssignableTo(targetDt: InferredType): Boolean = !this.isAssignableTo(targetDt)
+        infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
     }
 
     private val unknownInstance = InferredType.unknown()

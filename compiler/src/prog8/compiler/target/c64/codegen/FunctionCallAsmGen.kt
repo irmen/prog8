@@ -159,7 +159,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // pass parameter via a regular variable (not via registers)
         val valueIDt = value.inferType(program)
         if(!valueIDt.isKnown)
-            throw AssemblyError("arg type unknown")
+            throw AssemblyError("unknown dt")
         val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
@@ -175,7 +175,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // pass argument via a register parameter
         val valueIDt = value.inferType(program)
         if(!valueIDt.isKnown)
-            throw AssemblyError("arg type unknown")
+            throw AssemblyError("unknown dt")
         val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")

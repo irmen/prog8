@@ -55,7 +55,10 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
 
     companion object {
         fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget = with(assign.target) {
-            val dt = inferType(program, assign).typeOrElse(DataType.STRUCT)
+            val idt = inferType(program, assign)
+            if(!idt.isKnown)
+                throw AssemblyError("unknown dt")
+            val dt = idt.typeOrElse(DataType.STRUCT)
             when {
                 identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine(), variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                 arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine(), array = arrayindexed, origAstTarget =  this)
@@ -127,8 +130,10 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                             AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
                         }
                         is BuiltinFunctionStatementPlaceholder -> {
-                            val returnType = value.inferType(program).typeOrElse(DataType.STRUCT)
-                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
+                            val returnType = value.inferType(program)
+                            if(!returnType.isKnown)
+                                throw AssemblyError("unknown dt")
+                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.typeOrElse(DataType.STRUCT), expression = value)
                         }
                         else -> {
                             throw AssemblyError("weird call")
@@ -136,8 +141,10 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     }
                 }
                 else -> {
-                    val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt, expression = value)
+                    val dt = value.inferType(program)
+                    if(!dt.isKnown)
+                        throw AssemblyError("unknown dt")
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt.typeOrElse(DataType.STRUCT), expression = value)
                 }
             }
         }

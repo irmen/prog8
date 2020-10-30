@@ -150,8 +150,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 val signature = BuiltinFunctions.getValue(sub.name)
                                 asmgen.translateBuiltinFunctionCallExpression(value, signature, false)
                                 val returntype = builtinFunctionReturnType(sub.name, value.args, program)
-                                if(returntype.isUnknown)
-                                    throw AssemblyError("weird result type")
+                                if(!returntype.isKnown)
+                                    throw AssemblyError("unknown dt")
                                 when(returntype.typeOrElse(DataType.STRUCT)) {
                                     in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                     in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
@@ -184,7 +184,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origAssign: AsmAssignment) {
-        val valueDt = value.inferType(program).typeOrElse(DataType.STRUCT)
+        val valueIDt = value.inferType(program)
+        if(!valueIDt.isKnown)
+            throw AssemblyError("unknown dt")
+        val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
         when(value) {
             is IdentifierReference -> {
                 if(targetDt in WordDatatypes) {
