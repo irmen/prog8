@@ -44,7 +44,7 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     }
 }
 
-data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?, val stack: Boolean)       // TODO get rid of stack?
+data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?)
 
 class Block(override val name: String,
             val address: Int?,
@@ -697,11 +697,11 @@ class Subroutine(override val name: String,
         private fun determineReturnRegisters(returntypes: List<DataType>): List<RegisterOrStatusflag> {
             // for non-asm subroutines, determine the return registers based on the type of the return value
             return when(returntypes.singleOrNull()) {
-                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, false))
-                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
-                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
+                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null))
+                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
+                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
                 null -> emptyList()
-                else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, false))
+                else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
             }
         }
     }

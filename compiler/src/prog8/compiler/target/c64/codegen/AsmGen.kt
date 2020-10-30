@@ -1155,7 +1155,6 @@ $counterVar    .byte  0""")
             val returnValueTarget =
                     when {
                         returnReg.registerOrPair!=null -> AsmAssignTarget.fromRegisters(returnReg.registerOrPair, sub, program, this)
-                        returnReg.stack -> AsmAssignTarget(TargetStorageKind.STACK, program, this, returnType, sub)
                         else -> throw AssemblyError("normal subroutines can't return value in status register directly")
                     }
 

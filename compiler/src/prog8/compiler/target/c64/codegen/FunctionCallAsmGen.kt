@@ -18,14 +18,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = stmt.target.targetSubroutine(program.namespace)!!
         val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
         translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
-        // discard resultvalues that might be on the stack:
-        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-        for ((t, reg) in returns) {
-            if (reg.stack) {
-                if (t in IntegerDatatypes || t in PassByReferenceDatatypes) asmgen.out("  inx")
-                else if (t == DataType.FLOAT) asmgen.out("  inx |  inx |  inx")
-            }
-        }
+        // functioncalls no longer return results on the stack, so simply ignore the results in the registers
         if(preserveStatusRegisterAfterCall)
             asmgen.out("  plp\t; restore status flags from call")
     }
@@ -104,7 +97,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         for(argi in stmt.args.zip(sub.asmParameterRegisters).withIndex()) {
             when {
-                argi.value.second.stack -> TODO("asmsub @stack parameter")
                 argi.value.second.statusflag == Statusflag.Pc -> {
                     require(argForCarry == null)
                     argForCarry = argi
@@ -191,20 +183,12 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val paramRegister = sub.asmParameterRegisters[parameter.index]
         val statusflag = paramRegister.statusflag
         val register = paramRegister.registerOrPair
-        val stack = paramRegister.stack
         val requiredDt = parameter.value.type
         if(requiredDt!=valueDt) {
             if(valueDt largerThan requiredDt)
                 throw AssemblyError("can only convert byte values to word param types")
         }
         when {
-            stack -> {
-                // push arg onto the stack
-                // note: argument order is reversed (first argument will be deepest on the stack)
-                asmgen.translateExpression(value)
-                if(requiredDt!=valueDt)
-                    asmgen.signExtendStackLsb(valueDt)
-            }
             statusflag!=null -> {
                 if(requiredDt!=valueDt)
                     throw AssemblyError("for statusflag, byte value is required")

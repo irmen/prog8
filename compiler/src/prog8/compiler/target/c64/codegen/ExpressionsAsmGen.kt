@@ -1055,41 +1055,41 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             asmgen.translateFunctionCall(expression, preserveStatusRegisterAfterCall)
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
             for ((_, reg) in returns) {
-                if (!reg.stack) {
-                    // result value in cpu or status registers, put it on the stack
-                    if (reg.registerOrPair != null) {
-                        when (reg.registerOrPair) {
-                            RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
-                            RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
-                            RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
-                            RegisterOrPair.X -> {
-                                // return value in X register has been discarded, just push a zero
-                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
-                                    asmgen.out("  stz  P8ESTACK_LO,x")
-                                else
-                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
-                                asmgen.out("  dex")
-                            }
-                            RegisterOrPair.AX -> {
-                                // return value in X register has been discarded, just push a zero in this place
-                                asmgen.out("  sta  P8ESTACK_LO,x")
-                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
-                                    asmgen.out("  stz  P8ESTACK_HI,x")
-                                else
-                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x")
-                                asmgen.out("  dex")
-                            }
-                            RegisterOrPair.XY -> {
-                                // return value in X register has been discarded, just push a zero in this place
-                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
-                                    asmgen.out("  stz  P8ESTACK_LO,x")
-                                else
-                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
-                                asmgen.out("  tya |  sta  P8ESTACK_HI,x |  dex")
-                            }
+                // result value in cpu or status registers, put it on the stack
+                if (reg.registerOrPair != null) {
+                    when (reg.registerOrPair) {
+                        RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+                        RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
+                        RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+                        RegisterOrPair.X -> {
+                            // return value in X register has been discarded, just push a zero
+                            if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                                asmgen.out("  stz  P8ESTACK_LO,x")
+                            else
+                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
+                            asmgen.out("  dex")
+                        }
+                        RegisterOrPair.AX -> {
+                            // return value in X register has been discarded, just push a zero in this place
+                            asmgen.out("  sta  P8ESTACK_LO,x")
+                            if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                                asmgen.out("  stz  P8ESTACK_HI,x")
+                            else
+                                asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x")
+                            asmgen.out("  dex")
+                        }
+                        RegisterOrPair.XY -> {
+                            // return value in X register has been discarded, just push a zero in this place
+                            if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                                asmgen.out("  stz  P8ESTACK_LO,x")
+                            else
+                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
+                            asmgen.out("  tya |  sta  P8ESTACK_HI,x |  dex")
                         }
                     }
-                    // return value from a statusregister is not put on the stack, it should be acted on via a conditional branch such as if_cc
+                }
+                else if(reg.statusflag!=null) {
+                    TODO("statusflag result onto stack")
                 }
             }
         }

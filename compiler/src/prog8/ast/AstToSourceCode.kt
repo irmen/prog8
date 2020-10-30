@@ -143,7 +143,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 val reg =
                         when {
-                            param.second.stack -> "stack"
                             param.second.registerOrPair!=null -> param.second.registerOrPair.toString()
                             param.second.statusflag!=null -> param.second.statusflag.toString()
                             else -> "?????"

@@ -271,7 +271,7 @@ asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns?
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' identifier ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed.  TODO implement  stack='stack'
+asmsub_param :  vardecl '@' identifier ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed.
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 
@@ -279,7 +279,7 @@ clobber :  identifier (',' identifier)* ;       // A,X,Y allowed
 
 asmsub_returns :  '->' asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' (identifier | stack='stack') ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_return :  datatype '@' identifier ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later
