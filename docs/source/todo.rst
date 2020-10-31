@@ -9,7 +9,6 @@ TODO
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - use VIC banking to move up the graphics bitmap memory location. Don't move it under the ROM though as that would require IRQ disabling and memory bank swapping for every bitmap manipulation
-- add a c-64 example for using custom char sets, copying (part of) the default charset.
 - some support for recursive subroutines? via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
 - get rid of all other TODO's in the code ;-)
 
