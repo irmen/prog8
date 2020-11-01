@@ -1171,7 +1171,18 @@ $counterVar    .byte  0""")
                     assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
                 }
                 DataType.FLOAT -> {
-                    TODO("must return the float's address in AY")
+                    // return the float value via FAC1
+                    when (returnvalue) {
+                        is NumericLiteralValue -> throw AssemblyError("float literal should have been changed to auto var")
+                        is IdentifierReference -> {
+                            val asmVar = asmVariableName(returnvalue)
+                            out("  lda  #<${asmVar} |  ldy  #>${asmVar} |  jsr  floats.MOVFM")
+                        }
+                        else -> {
+                            translateExpression(returnvalue)
+                            out("  jsr  floats.pop_float_fac1")
+                        }
+                    }
                 }
                 else -> {
                     // all else take its address and assign that also to AY register pair

@@ -150,6 +150,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                         }
                                         else -> throw AssemblyError("weird target dt")
                                     }
+                                } else if(returnValue.first==DataType.FLOAT) {
+                                    // float result from function sits in FAC1
+                                    assignFAC1float(assign.target)
                                 } else {
                                     when (returnValue.second.registerOrPair) {
                                         RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
@@ -173,7 +176,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 when(returntype.typeOrElse(DataType.STRUCT)) {
                                     in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                     in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
-                                    DataType.STR -> TODO("assign string => copy string or assign string address")
+                                    DataType.STR -> throw AssemblyError("missing code for assign string from builtin func => copy string or assign string address")
                                     DataType.FLOAT -> {
                                         // float result from function sits in FAC1
                                         assignFAC1float(assign.target)

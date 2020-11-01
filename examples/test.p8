@@ -1,4 +1,5 @@
 %import textio
+%import floats
 %import syslib
 %zeropage basicsafe
 
@@ -8,27 +9,10 @@
 main {
 
     sub start() {
-        uword num
-        ubyte ss
+        float fl
 
-        num = 65535
-        ss = sqrt16(num)
-        txt.print_ub(ss)
-        txt.chrout('\n')
-
-        num = 20000
-        ss = sqrt16(num)
-        txt.print_ub(ss)
-        txt.chrout('\n')
-
-        num = 9999
-        ss = sqrt16(num)
-        txt.print_ub(ss)
-        txt.chrout('\n')
-
-        num = 500
-        ss = sqrt16(num)
-        txt.print_ub(ss)
+        fl = getfloat()
+        floats.print_f(fl)
         txt.chrout('\n')
 
         testX()
@@ -44,7 +28,9 @@ main {
     }
 
     sub getfloat() -> float {
-        return 123.456789
+        float xx
+        xx = 123.456789
+        return xx
     }
 
     sub mcp(uword from, uword dest, ubyte length) {
