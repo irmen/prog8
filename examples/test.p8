@@ -1,5 +1,4 @@
 %import textio
-%import floats
 %import syslib
 %zeropage basicsafe
 
@@ -9,29 +8,28 @@
 main {
 
     sub start() {
-        float[]  fls = [1.1, 2.2, 0.0, 4.4, 3.3]
-        float fl
-        ubyte ii
+        uword num
+        ubyte ss
 
-
-        fls[2] = sin(fls[0])
-        for ii in 0 to len(fls)-1 {
-            floats.print_f(fls[ii])
-            txt.chrout('\n')
-        }
+        num = 65535
+        ss = sqrt16(num)
+        txt.print_ub(ss)
         txt.chrout('\n')
 
-        fls[3] = cos(fls[0])
-        for ii in 0 to len(fls)-1 {
-            floats.print_f(fls[ii])
-            txt.chrout('\n')
-        }
+        num = 20000
+        ss = sqrt16(num)
+        txt.print_ub(ss)
+        txt.chrout('\n')
 
+        num = 9999
+        ss = sqrt16(num)
+        txt.print_ub(ss)
+        txt.chrout('\n')
 
-;        fl = getfloat()
-;
-;        floats.print_f(fl)
-;        txt.chrout('\n')
+        num = 500
+        ss = sqrt16(num)
+        txt.print_ub(ss)
+        txt.chrout('\n')
 
         testX()
     }
@@ -45,9 +43,9 @@ main {
         return "foobar"
     }
 
-;    sub getfloat() -> float {
-;        return 4.56789
-;    }
+    sub getfloat() -> float {
+        return 123.456789
+    }
 
     sub mcp(uword from, uword dest, ubyte length) {
         txt.print_uw(from)

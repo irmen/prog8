@@ -708,53 +708,40 @@ func_sqrt16_into_A	.proc
 		.pend
 
 func_sqrt16	.proc
-		; TODO is this one faster?  http://6502org.wikidot.com/software-math-sqrt
+		; integer square root from  http://6502org.wikidot.com/software-math-sqrt
+		txa
+		pha
 		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W2
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG
-		ldy  #$00    ; r = 0
-		ldx  #$07
-		clc         ; clear bit 16 of m
-_loop
-		tya
-		ora  _stab-1,x
-		sta  P8ZP_SCRATCH_B1     ; (r asl 8) | (d asl 7)
-		lda  P8ZP_SCRATCH_W2+1
-		bcs  _skip0  ; m >= 65536? then t <= m is always true
-		cmp  P8ZP_SCRATCH_B1
-		bcc  _skip1  ; t <= m
-_skip0
-		sbc  P8ZP_SCRATCH_B1
-		sta  P8ZP_SCRATCH_W2+1     ; m = m - t
-		tya
-		ora  _stab,x
-		tay         ; r = r or d
-_skip1
-		asl  P8ZP_SCRATCH_W2
-		rol  P8ZP_SCRATCH_W2+1     ; m = m asl 1
-		dex
-		bne  _loop
-
-		; last iteration
-		bcs  _skip2
-		sty  P8ZP_SCRATCH_B1
-		lda  P8ZP_SCRATCH_W2
-		cmp  #$80
-		lda  P8ZP_SCRATCH_W2+1
-		sbc  P8ZP_SCRATCH_B1
-		bcc  _skip3
-_skip2
-		iny         ; r = r or d (d is 1 here)
-_skip3
-		ldx  P8ZP_SCRATCH_REG
-		tya
-		sta  P8ESTACK_LO+1,x
+		ldy  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
 		lda  #0
-		sta  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_B1
+		sta  P8ZP_SCRATCH_REG
+		ldx  #8
+-		sec
+		lda  P8ZP_SCRATCH_W1+1
+		sbc  #$40
+		tay
+		lda  P8ZP_SCRATCH_REG
+		sbc  P8ZP_SCRATCH_B1
+		bcc  +
+		sty  P8ZP_SCRATCH_W1+1
+		sta  P8ZP_SCRATCH_REG
++		rol  P8ZP_SCRATCH_B1
+		asl  P8ZP_SCRATCH_W1
+		rol  P8ZP_SCRATCH_W1+1
+		rol  P8ZP_SCRATCH_REG
+		asl  P8ZP_SCRATCH_W1
+		rol  P8ZP_SCRATCH_W1+1
+		rol  P8ZP_SCRATCH_REG
+		dex
+		bne  -
+		pla
+		tax
+		lda  P8ZP_SCRATCH_B1
+		sta  P8ESTACK_LO+1,x
 		rts
-_stab   .byte $01,$02,$04,$08,$10,$20,$40,$80
 		.pend
 
 
