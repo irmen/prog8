@@ -2,8 +2,6 @@
 TODO
 ====
 
-- make memset(w) and memcopy able to work with >256 bytes
-- after that: make memset and memcopy use the ROM routines on the CX16
 - calling convention for builtin functions no longer via stack but via statically allocated vars inside the subroutine proc (just as normal subroutines)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)

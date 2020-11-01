@@ -79,7 +79,7 @@ val BuiltinFunctions = mapOf(
     "memcopy"     to FSignature(false, listOf(
                             FParam("from", IterableDatatypes + DataType.UWORD),
                             FParam("to", IterableDatatypes + DataType.UWORD),
-                            FParam("numbytes", setOf(DataType.UBYTE))), null),
+                            FParam("numbytes", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "memset"      to FSignature(false, listOf(
                             FParam("address", IterableDatatypes + DataType.UWORD),
                             FParam("numbytes", setOf(DataType.UWORD)),

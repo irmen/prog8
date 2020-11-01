@@ -9,34 +9,14 @@
 main {
 
     sub start() {
-        float fl
+        const uword ADDR = $0400
 
-        fl = getfloat()
-        floats.print_f(fl)
-        txt.chrout('\n')
+        memset(ADDR, 40*25, 100)
+        memsetw(ADDR, 20*10, $3031)
+        memcopy(ADDR, ADDR+40*12, 20*10*2)
+        ;memcopy(ADDR, ADDR+40*12, 255)
 
         testX()
-    }
-
-    sub chrin() -> ubyte {
-        return 99
-    }
-
-    sub getstr() -> str {
-        @($d020)++
-        return "foobar"
-    }
-
-    sub getfloat() -> float {
-        float xx
-        xx = 123.456789
-        return xx
-    }
-
-    sub mcp(uword from, uword dest, ubyte length) {
-        txt.print_uw(from)
-        txt.print_uw(dest)
-        txt.print_ub(length)
     }
 
     asmsub testX() {

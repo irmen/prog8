@@ -7,6 +7,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.FunctionCallStatement
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
@@ -78,13 +80,83 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "set_irqd" -> asmgen.out("  sei")
             "strlen" -> funcStrlen(fcall, resultToStack)
             "strcmp" -> funcStrcmp(fcall, func, resultToStack)
-            "substr", "leftstr", "rightstr",
-            "memcopy", "memset", "memsetw" -> {
+            "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func, functionName)
+            "substr", "leftstr", "rightstr" -> {
                 translateArguments(fcall.args, func)
                 asmgen.out("  jsr  prog8_lib.func_$functionName")
             }
             "exit" -> asmgen.out("  jmp  prog8_lib.func_exit")
             else -> TODO("missing asmgen for builtin func $functionName")
+        }
+    }
+
+    private fun funcMemSetCopy(fcall: IFunctionCall, func: FSignature, functionName: String) {
+        if(CompilationTarget.instance is Cx16Target) {
+            when(functionName) {
+                "memset" -> {
+                    // use the ROM function of the Cx16
+                    var src = AsmAssignSource.fromAstSource(fcall.args[0], program, asmgen)
+                    var tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r0")
+                    var assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+                    asmgen.translateNormalAssignment(assign)
+                    src = AsmAssignSource.fromAstSource(fcall.args[1], program, asmgen)
+                    tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r1")
+                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+                    asmgen.translateNormalAssignment(assign)
+                    src = AsmAssignSource.fromAstSource(fcall.args[2], program, asmgen)
+                    tgt = AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UBYTE, null, register = RegisterOrPair.A)
+                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+                    asmgen.translateNormalAssignment(assign)
+                    val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
+                    asmgen.saveRegister(CpuRegister.X, false, sub)
+                    asmgen.out("  jsr  cx16.memory_fill")
+                    asmgen.restoreRegister(CpuRegister.X, false)
+                }
+                "memcopy" -> {
+                    val count = fcall.args[2].constValue(program)?.number?.toInt()
+                    val countDt = fcall.args[2].inferType(program)
+                    if((count!=null && count <= 255) || countDt.istype(DataType.UBYTE) || countDt.istype(DataType.BYTE)) {
+                        // fast memcopy of up to 255
+                        translateArguments(fcall.args, func)
+                        asmgen.out("  jsr  prog8_lib.func_memcopy255")
+                        return
+                    }
+
+                    // use the ROM function of the Cx16
+                    var src = AsmAssignSource.fromAstSource(fcall.args[0], program, asmgen)
+                    var tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r0")
+                    var assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+                    asmgen.translateNormalAssignment(assign)
+                    src = AsmAssignSource.fromAstSource(fcall.args[1], program, asmgen)
+                    tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r1")
+                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+                    asmgen.translateNormalAssignment(assign)
+                    src = AsmAssignSource.fromAstSource(fcall.args[2], program, asmgen)
+                    tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r2")
+                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+                    asmgen.translateNormalAssignment(assign)
+                    val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
+                    asmgen.saveRegister(CpuRegister.X, false, sub)
+                    asmgen.out("  jsr  cx16.memory_copy")
+                    asmgen.restoreRegister(CpuRegister.X, false)
+                }
+                "memsetw" -> {
+                    translateArguments(fcall.args, func)
+                    asmgen.out("  jsr  prog8_lib.func_memsetw")
+                }
+            }
+        } else {
+            if(functionName=="memcopy") {
+                val count = fcall.args[2].constValue(program)?.number?.toInt()
+                val countDt = fcall.args[2].inferType(program)
+                if((count!=null && count <= 255) || countDt.istype(DataType.UBYTE) || countDt.istype(DataType.BYTE)) {
+                    translateArguments(fcall.args, func)
+                    asmgen.out("  jsr  prog8_lib.func_memcopy255")
+                    return
+                }
+            }
+            translateArguments(fcall.args, func)
+            asmgen.out("  jsr  prog8_lib.func_$functionName")
         }
     }
 

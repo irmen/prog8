@@ -1388,8 +1388,8 @@ func_rndw	.proc
 		.pend
 
 
-func_memcopy	.proc
-	; note: clobbers A,Y
+func_memcopy255	.proc
+	; fast memcopy of up to 255 bytes, note: clobbers A,Y
 		inx
 		stx  P8ZP_SCRATCH_REG
 		lda  P8ESTACK_LO+2,x
@@ -1409,6 +1409,50 @@ func_memcopy	.proc
 		dex
 		bne  -
 		ldx  P8ZP_SCRATCH_REG
+		inx
+		inx
+		rts
+		.pend
+
+func_memcopy	.proc
+	; memcopy of any number of bytes, note: clobbers A,Y
+		inx
+		stx  P8ZP_SCRATCH_REG
+		lda  P8ESTACK_LO+2,x
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ESTACK_HI+2,x
+		sta  P8ZP_SCRATCH_W1+1
+		lda  P8ESTACK_LO+1,x
+		sta  P8ZP_SCRATCH_W2
+		lda  P8ESTACK_HI+1,x
+		sta  P8ZP_SCRATCH_W2+1
+		lda  P8ESTACK_LO,x
+		pha
+		lda  P8ESTACK_HI,x
+		pha
+
+		ldy  #0
+		pla
+		tax
+		beq  _remain
+-		lda  (P8ZP_SCRATCH_W1),y	; move a page at a time
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		bne  -
+		inc  P8ZP_SCRATCH_W1+1
+		inc  P8ZP_SCRATCH_W2+1
+		dex
+		bne  -
+_remain		pla
+		tax
+		beq  _done
+-		lda (P8ZP_SCRATCH_W1),y		; move the remaining bytes
+		sta (P8ZP_SCRATCH_W2),y
+		iny
+		dex
+		bne  -
+
+_done		ldx  P8ZP_SCRATCH_REG
 		inx
 		inx
 		rts
@@ -1439,7 +1483,6 @@ func_memsetw	.proc
 		; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
 
 		inx
-		stx  P8ZP_SCRATCH_REG
 		lda  P8ESTACK_LO+2,x
 		sta  P8ZP_SCRATCH_W1
 		lda  P8ESTACK_HI+2,x
@@ -1448,10 +1491,13 @@ func_memsetw	.proc
 		sta  P8ZP_SCRATCH_W2
 		lda  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_W2+1
+		txa
+		pha
 		lda  P8ESTACK_LO,x
 		ldy  P8ESTACK_HI,x
 		jsr  memsetw
-		ldx  P8ZP_SCRATCH_REG
+		pla
+		tax
 		inx
 		inx
 		rts
