@@ -11,10 +11,18 @@ main {
     sub start() {
         const uword ADDR = $0400
 
+        byte bb
+        word ww
+        float fl
+
+        bb = abs(bb)
+        ww = abs(ww)
+        fl = abs(fl)
+
+
         memset(ADDR, 40*25, 100)
         memsetw(ADDR, 20*10, $3031)
         memcopy(ADDR, ADDR+40*12, 20*10*2)
-        ;memcopy(ADDR, ADDR+40*12, 255)
 
         testX()
     }
