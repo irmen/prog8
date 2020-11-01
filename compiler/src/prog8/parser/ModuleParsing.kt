@@ -92,7 +92,7 @@ internal class ModuleImporter {
         // accept additional imports
         val lines = moduleAst.statements.toMutableList()
         lines.asSequence()
-                .mapIndexed { i, it -> Pair(i, it) }
+                .mapIndexed { i, it -> i to it }
                 .filter { (it.second as? Directive)?.directive == "%import" }
                 .forEach { executeImportDirective(program, it.second as Directive, modulePath) }
 

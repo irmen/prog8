@@ -64,7 +64,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     private fun makeAllocation(address: Int, size: Int, datatype: DataType, name: String?): Int {
         free.removeAll(address until address+size)
-        allocations[address] = Pair(name ?: "<unnamed>", datatype)
+        allocations[address] = (name ?: "<unnamed>") to datatype
         return address
     }
 

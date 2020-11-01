@@ -258,7 +258,7 @@ internal class AsmGen(private val program: Program,
                         errors.handle()
                         out("${variable.name} = $address\t; auto zp ${variable.datatype}")
                         // make sure we add the var to the set of zpvars for this block
-                        allocatedZeropageVariables[fullName] = Pair(address, variable.datatype)
+                        allocatedZeropageVariables[fullName] = address to variable.datatype
                     } catch (x: ZeropageDepletedError) {
                         // leave it as it is.
                     }
@@ -1023,7 +1023,7 @@ $counterVar    .byte  0""")
                 translate(choice.statements)
                 out("  jmp  $endLabel")
             } else {
-                choiceBlocks.add(Pair(choiceLabel, choice.statements))
+                choiceBlocks.add(choiceLabel to choice.statements)
                 for (cv in choice.values!!) {
                     val value = (cv as NumericLiteralValue).number.toInt()
                     if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
