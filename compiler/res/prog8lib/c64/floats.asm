@@ -343,20 +343,16 @@ neg_f		.proc
 		rts
 		.pend
 
-abs_f		.proc
-		; -- strip the sign bit on the stack
-		lda  P8ESTACK_HI+3,x
-		and  #$7f
-		sta  P8ESTACK_HI+3,x
-		rts
+abs_f_cc	.proc
+		; -- push abs(AY) on stack
+		jsr  abs_f_into_fac1_cc
+		jmp  push_fac1
 		.pend
 
-abs_f_into_fac1	.proc
-		; -- strip the sign bit on the stack, push stack into FAC1
-		lda  P8ESTACK_HI+3,x
-		and  #$7f
-		sta  P8ESTACK_HI+3,x
-		jmp  pop_float_fac1
+abs_f_into_fac1_cc	.proc
+		; -- FAC1 = abs(AY)
+		jsr  floats.MOVFM
+		jmp  floats.ABS
 		.pend
 
 equal_f		.proc

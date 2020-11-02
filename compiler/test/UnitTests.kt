@@ -5,8 +5,6 @@ import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.Module
-import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -18,8 +16,8 @@ import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.cx16.CX16MachineDefinition
 import java.io.CharConversionException
-import java.nio.file.Path
 import kotlin.test.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -287,6 +285,22 @@ class TestC64Zeropage {
         assertEquals(0x96, zp.allocate("", DataType.UBYTE, null, errors))
         assertEquals(0xf9, zp.allocate("", DataType.UBYTE, null, errors))
         assertEquals(0, zp.available())
+    }
+
+    @Test
+    fun testReservedLocations() {
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false))
+        assertEquals(zp.SCRATCH_REG, zp.SCRATCH_B1+1, "zp _B1 and _REG must be next to each other to create a word")
+    }
+}
+
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class TestCx16Zeropage {
+    @Test
+    fun testReservedLocations() {
+        val zp = CX16MachineDefinition.CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false))
+        assertEquals(zp.SCRATCH_REG, zp.SCRATCH_B1+1, "zp _B1 and _REG must be next to each other to create a word")
     }
 }
 

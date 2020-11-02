@@ -245,24 +245,27 @@ xor_w		.proc
 		.pend
 
 
-abs_b		.proc
-	; -- push abs(byte) on stack (as byte)
-		lda  P8ESTACK_LO+1,x
-		bmi  neg_b
+abs_b_cc	.proc
+	; -- push abs(A) on stack (as byte)
+		jsr  abs_b_into_A_cc
+		sta  P8ESTACK_LO,x
+		dex
 		rts
 		.pend
 
-abs_w		.proc
-	; -- push abs(word) on stack (as word)
-		lda  P8ESTACK_HI+1,x
-		bmi  neg_w
+abs_w_cc	.proc
+	; -- push abs(AY) on stack (as word)
+		jsr  abs_w_into_AY_cc
+		sta  P8ESTACK_LO,x
+		tya
+		sta  P8ESTACK_HI,x
+		dex
 		rts
 		.pend
 
-abs_b_into_A	.proc
-	; -- A = abs(pop stack byte)
-		inx
-		lda  P8ESTACK_LO,x
+abs_b_into_A_cc	.proc
+	; -- A = abs(A)
+		cmp  #0
 		bmi  +
 		rts
 +		eor  #$ff
@@ -271,11 +274,9 @@ abs_b_into_A	.proc
 		rts
 		.pend
 
-abs_w_into_AY	.proc
-	; -- AY = abs(pop stack word)
-		inx
-		lda  P8ESTACK_LO,x
-		ldy  P8ESTACK_HI,x
+abs_w_into_AY_cc	.proc
+	; -- AY = abs(AY)
+		cpy  #0
 		bmi  +
 		rts
 +		eor  #$ff
@@ -1388,20 +1389,19 @@ func_rndw	.proc
 		.pend
 
 
-func_memcopy255	.proc
+func_memcopy255_cc	.proc
 	; fast memcopy of up to 255 bytes, note: clobbers A,Y
-		inx
+	;  note: also uses the _arg variables from regular func_memcopy
 		stx  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+2,x
+		lda  func_memcopy_cc._arg_from
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+2,x
+		lda  func_memcopy_cc._arg_from+1
 		sta  P8ZP_SCRATCH_W1+1
-		lda  P8ESTACK_LO+1,x
+		lda  func_memcopy_cc._arg_to
 		sta  P8ZP_SCRATCH_W2
-		lda  P8ESTACK_HI+1,x
+		lda  func_memcopy_cc._arg_to+1
 		sta  P8ZP_SCRATCH_W2+1
-		lda  P8ESTACK_LO,x
-		tax
+		ldx  func_memcopy_cc._arg_numbytes
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_W1), y
 		sta  (P8ZP_SCRATCH_W2), y
@@ -1409,31 +1409,23 @@ func_memcopy255	.proc
 		dex
 		bne  -
 		ldx  P8ZP_SCRATCH_REG
-		inx
-		inx
 		rts
 		.pend
 
-func_memcopy	.proc
+func_memcopy_cc	.proc
 	; memcopy of any number of bytes, note: clobbers A,Y
-		inx
 		stx  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+2,x
+		lda  _arg_from
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+2,x
+		lda  _arg_from+1
 		sta  P8ZP_SCRATCH_W1+1
-		lda  P8ESTACK_LO+1,x
+		lda  _arg_to
 		sta  P8ZP_SCRATCH_W2
-		lda  P8ESTACK_HI+1,x
+		lda  _arg_to+1
 		sta  P8ZP_SCRATCH_W2+1
-		lda  P8ESTACK_LO,x
-		pha
-		lda  P8ESTACK_HI,x
-		pha
 
 		ldy  #0
-		pla
-		tax
+		ldx  _arg_numbytes+1
 		beq  _remain
 -		lda  (P8ZP_SCRATCH_W1),y	; move a page at a time
 		sta  (P8ZP_SCRATCH_W2),y
@@ -1443,8 +1435,7 @@ func_memcopy	.proc
 		inc  P8ZP_SCRATCH_W2+1
 		dex
 		bne  -
-_remain		pla
-		tax
+_remain		ldx  _arg_numbytes
 		beq  _done
 -		lda (P8ZP_SCRATCH_W1),y		; move the remaining bytes
 		sta (P8ZP_SCRATCH_W2),y
@@ -1453,54 +1444,52 @@ _remain		pla
 		bne  -
 
 _done		ldx  P8ZP_SCRATCH_REG
-		inx
-		inx
 		rts
+
+_arg_from	.word  0
+_arg_to		.word  0
+_arg_numbytes	.word  0
 		.pend
 
-func_memset	.proc
+func_memset_cc	.proc
 	; note: clobbers A,Y
-		inx
 		stx  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+2,x
+		lda  _arg_address
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+2,x
+		lda  _arg_address+1
 		sta  P8ZP_SCRATCH_W1+1
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_B1
-		ldy  P8ESTACK_HI+1,x
-		lda  P8ESTACK_LO,x
-		ldx  P8ZP_SCRATCH_B1
+		ldx  _arg_numbytes
+		ldy  _arg_numbytes+1
+		lda  _arg_bytevalue
 		jsr  memset
 		ldx  P8ZP_SCRATCH_REG
-		inx
-		inx
 		rts
+_arg_address	.word  0
+_arg_numbytes	.word  0
+_arg_bytevalue	.byte  0
 		.pend
 
-func_memsetw	.proc
+func_memsetw_cc	.proc
 	; note: clobbers A,Y
-		; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
-
-		inx
-		lda  P8ESTACK_LO+2,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+2,x
-		sta  P8ZP_SCRATCH_W1+1
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W2
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W2+1
 		txa
 		pha
-		lda  P8ESTACK_LO,x
-		ldy  P8ESTACK_HI,x
+		lda  _arg_address
+		sta  P8ZP_SCRATCH_W1
+		lda  _arg_address+1
+		sta  P8ZP_SCRATCH_W1+1
+		lda  _arg_numwords
+		sta  P8ZP_SCRATCH_W2
+		lda  _arg_numwords+1
+		sta  P8ZP_SCRATCH_W2+1
+		lda  _arg_wordvalue
+		ldy  _arg_wordvalue+1
 		jsr  memsetw
 		pla
 		tax
-		inx
-		inx
 		rts
+_arg_address	.word  0
+_arg_numwords	.word  0
+_arg_wordvalue	.word  0
 		.pend
 
 strlen		.proc
@@ -1518,7 +1507,7 @@ strlen		.proc
 
 
 memcopy16_up	.proc
-	; -- copy memory UP from (SCRATCH_ZPWORD1) to (SCRATCH_ZPWORD2) of length X/Y (16-bit, X=lo, Y=hi)
+	; -- copy memory UP from (P8ZP_SCRATCH_W1) to (P8ZP_SCRATCH_W2) of length X/Y (16-bit, X=lo, Y=hi)
 	;    clobbers register A,X,Y
 		source = P8ZP_SCRATCH_W1
 		dest = P8ZP_SCRATCH_W2
@@ -1546,7 +1535,7 @@ memcopy16_up	.proc
 
 
 memset          .proc
-	; -- fill memory from (SCRATCH_ZPWORD1), length XY, with value in A.
+	; -- fill memory from (P8ZP_SCRATCH_W1), length XY, with value in A.
 	;    clobbers X, Y
 		stx  P8ZP_SCRATCH_B1
 		sty  _save_reg
@@ -1573,7 +1562,7 @@ _save_reg	.byte  0
 
 
 memsetw		.proc
-	; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
+	; -- fill memory from (P8ZP_SCRATCH_W1) number of words in P8ZP_SCRATCH_W2, with word value in AY.
 	;    clobbers A, X, Y
 		sta  _mod1+1                    ; self-modify
 		sty  _mod1b+1                   ; self-modify

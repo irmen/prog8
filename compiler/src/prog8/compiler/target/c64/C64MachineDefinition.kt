@@ -110,7 +110,7 @@ internal object C64MachineDefinition: IMachineDefinition {
     internal class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         override val SCRATCH_B1 = 0x02      // temp storage for a single byte
-        override val SCRATCH_REG = 0x03     // temp storage for a register
+        override val SCRATCH_REG = 0x03     // temp storage for a register, must be B1+1
         override val SCRATCH_W1 = 0xfb      // temp storage 1 for a word  $fb+$fc
         override val SCRATCH_W2 = 0xfd      // temp storage 2 for a word  $fb+$fc
 

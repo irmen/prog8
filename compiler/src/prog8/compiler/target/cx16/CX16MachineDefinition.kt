@@ -75,7 +75,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
     internal class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         override val SCRATCH_B1 = 0x79      // temp storage for a single byte
-        override val SCRATCH_REG = 0x7a     // temp storage for a register
+        override val SCRATCH_REG = 0x7a     // temp storage for a register, must be B1+1
         override val SCRATCH_W1 = 0x7c      // temp storage 1 for a word  $7c+$7d
         override val SCRATCH_W2 = 0x7e      // temp storage 2 for a word  $7e+$7f
 

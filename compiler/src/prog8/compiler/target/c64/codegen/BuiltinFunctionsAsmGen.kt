@@ -117,7 +117,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     if((count!=null && count <= 255) || countDt.istype(DataType.UBYTE) || countDt.istype(DataType.BYTE)) {
                         // fast memcopy of up to 255
                         translateArguments(fcall.args, func)
-                        asmgen.out("  jsr  prog8_lib.func_memcopy255")
+                        asmgen.out("  jsr  prog8_lib.func_memcopy255_cc")
                         return
                     }
 
@@ -141,7 +141,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
                 "memsetw" -> {
                     translateArguments(fcall.args, func)
-                    asmgen.out("  jsr  prog8_lib.func_memsetw")
+                    asmgen.out("  jsr  prog8_lib.func_memsetw_cc")
                 }
             }
         } else {
@@ -150,12 +150,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val countDt = fcall.args[2].inferType(program)
                 if((count!=null && count <= 255) || countDt.istype(DataType.UBYTE) || countDt.istype(DataType.BYTE)) {
                     translateArguments(fcall.args, func)
-                    asmgen.out("  jsr  prog8_lib.func_memcopy255")
+                    asmgen.out("  jsr  prog8_lib.func_memcopy255_cc")
                     return
                 }
             }
             translateArguments(fcall.args, func)
-            asmgen.out("  jsr  prog8_lib.func_${func.name}")
+            asmgen.out("  jsr  prog8_lib.func_${func.name}_cc")
         }
     }
 
@@ -937,16 +937,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val dt = fcall.args.single().inferType(program).typeOrElse(DataType.STRUCT)
         if(resultToStack) {
             when (dt) {
-                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b")
-                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f")
+                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_cc")
+                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_cc")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_cc")
                 else -> throw AssemblyError("weird type")
             }
         } else {
             when (dt) {
-                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_into_A")
-                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_into_fac1")
+                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_into_A_cc")
+                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY_cc")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_into_fac1_cc")
                 else -> throw AssemblyError("weird type")
             }
         }
@@ -1052,7 +1052,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             val value = it.first.first
             when {
                 conv.variable -> {
-                    val varname = "prog8_lib.func_${signature.name}_cc.arg_${paramName}"        // TODO after all builtin funcs have been changed into _cc, remove that suffix again
+                    val varname = "prog8_lib.func_${signature.name}_cc._arg_${paramName}"        // TODO after all builtin funcs have been changed into _cc, remove that suffix again
                     val src = AsmAssignSource.fromAstSource(value, program, asmgen)
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, conv.dt, null, variableAsmName = varname)
                     val assign = AsmAssignment(src, tgt, false, value.position)
