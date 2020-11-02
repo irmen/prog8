@@ -15,8 +15,8 @@ class FParam(val name: String, val possibleDatatypes: Set<DataType>)
 typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteralValue
 
 
-class ReturnConvention(val reg: RegisterOrPair?, val floatFac1: Boolean)
-class ParamConvention(val reg: RegisterOrPair?, val variable: Boolean)
+class ReturnConvention(val dt: DataType, val reg: RegisterOrPair?, val floatFac1: Boolean)
+class ParamConvention(val dt: DataType, val reg: RegisterOrPair?, val variable: Boolean)
 class CallConvention(val params: List<ParamConvention>, val returns: ReturnConvention) {
     override fun toString(): String {
         val paramConvs =  params.mapIndexed { index, it ->
@@ -45,22 +45,23 @@ class FSignature(val name: String,
 
     fun callConvention(actualParamTypes: List<DataType>): CallConvention {
         val returns = when(known_returntype) {
-            DataType.UBYTE, DataType.BYTE -> ReturnConvention(RegisterOrPair.A, false)
-            DataType.UWORD, DataType.WORD -> ReturnConvention(RegisterOrPair.AY, false)
-            DataType.FLOAT -> ReturnConvention(null, true)
-            in PassByReferenceDatatypes -> ReturnConvention(RegisterOrPair.AY, false)
+            DataType.UBYTE, DataType.BYTE -> ReturnConvention(known_returntype, RegisterOrPair.A, false)
+            DataType.UWORD, DataType.WORD -> ReturnConvention(known_returntype, RegisterOrPair.AY, false)
+            DataType.FLOAT -> ReturnConvention(known_returntype, null, true)
+            in PassByReferenceDatatypes -> ReturnConvention(known_returntype!!, RegisterOrPair.AY, false)
             else -> {
+                val paramType = actualParamTypes.first()
                 if(pure)
                     // return type depends on arg type
-                    when(actualParamTypes.first()) {
-                        DataType.UBYTE, DataType.BYTE -> ReturnConvention(RegisterOrPair.A, false)
-                        DataType.UWORD, DataType.WORD -> ReturnConvention(RegisterOrPair.AY, false)
-                        DataType.FLOAT -> ReturnConvention(null, true)
-                        in PassByReferenceDatatypes -> ReturnConvention(RegisterOrPair.AY, false)
-                        else -> ReturnConvention(null, false)
+                    when(paramType) {
+                        DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A, false)
+                        DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY, false)
+                        DataType.FLOAT -> ReturnConvention(paramType, null, true)
+                        in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY, false)
+                        else -> ReturnConvention(paramType, null, false)
                     }
                 else {
-                    ReturnConvention(null, false)
+                    ReturnConvention(paramType, null, false)
                 }
             }
         }
@@ -68,18 +69,19 @@ class FSignature(val name: String,
             actualParamTypes.isEmpty() -> CallConvention(emptyList(), returns)
             actualParamTypes.size==1 -> {
                 // one parameter? via register/registerpair
-                val paramConv = when(actualParamTypes[0]) {
-                    DataType.UBYTE, DataType.BYTE -> ParamConvention(RegisterOrPair.A, false)
-                    DataType.UWORD, DataType.WORD -> ParamConvention(RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ParamConvention(RegisterOrPair.AY, false)
-                    in PassByReferenceDatatypes -> ParamConvention(RegisterOrPair.AY, false)
-                    else -> ParamConvention(null, false)
+                val paramType = actualParamTypes[0]
+                val paramConv = when(paramType) {
+                    DataType.UBYTE, DataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
+                    DataType.UWORD, DataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
+                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)
+                    in PassByReferenceDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
+                    else -> ParamConvention(paramType, null, false)
                 }
                 CallConvention(listOf(paramConv), returns)
             }
             else -> {
                 // multiple parameters? via variables
-                val paramConvs = actualParamTypes.map { ParamConvention(null, true) }
+                val paramConvs = actualParamTypes.map { ParamConvention(it, null, true) }
                 CallConvention(paramConvs, returns)
             }
         }
