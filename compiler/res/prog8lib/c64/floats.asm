@@ -463,7 +463,7 @@ func_rndf_into_fac1	.proc
 		.pend
 
 func_sin_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  SIN
 		ldx  P8ZP_SCRATCH_REG

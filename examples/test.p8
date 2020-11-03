@@ -3,8 +3,10 @@
 %import syslib
 %zeropage basicsafe
 
+; builtin functions converted to new call convention:
+; abs (int + float)
 
-; Note: this program is compatible with C64 and CX16.
+
 
 main {
 
@@ -14,31 +16,113 @@ main {
         ubyte ubb
         ubyte zerobb
         uword zeroww
+        uword uww
+        word ww
+        float fl
+        float fzero=0.0
+        float rr=0.0
 
-        for ubb in 0 to 255 {
-            txt.print_uw(sin16u(ubb)+zerobb)
-            txt.chrout(' ')
+        rr = -4.0
+        for ubb in 0 to 20 {
+            floats.print_f(abs(rr))
+            txt.chrout('\n')
+            rr += 0.5
         }
             txt.chrout('\n')
             txt.chrout('\n')
-        for ubb in 0 to 255 {
-            txt.print_uw(cos16u(ubb)+zerobb)
-            txt.chrout(' ')
+
+        rr = -2.0
+        for ubb in 0 to 20 {
+            floats.print_f(abs(rr)+fzero)
+            txt.chrout('\n')
+            rr += 0.5
         }
             txt.chrout('\n')
             txt.chrout('\n')
-        for ubb in 0 to 255 {
-            txt.print_w(sin16(ubb)+zerobb)
-            txt.chrout(' ')
+
+        for ubb in 0 to 20 {
+            txt.print_ub(abs(ubb))
+            txt.chrout('\n')
         }
             txt.chrout('\n')
             txt.chrout('\n')
-        for ubb in 0 to 255 {
-            txt.print_w(cos16(ubb)+zerobb)
-            txt.chrout(' ')
+
+        for ubb in 0 to 20 {
+            txt.print_ub(abs(ubb)+zerobb)
+            txt.chrout('\n')
         }
             txt.chrout('\n')
             txt.chrout('\n')
+
+        for bb in -10 to 10 {
+            txt.print_b(abs(bb))
+            txt.chrout('\n')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+        for bb in -10 to 10 {
+            txt.print_b(abs(bb)+zerobb)
+            txt.chrout('\n')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+        for uww in 0 to 20 {
+            txt.print_uw(abs(uww))
+            txt.chrout('\n')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+        for uww in 0 to 20 {
+            txt.print_uw(abs(uww)+zeroww)
+            txt.chrout('\n')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+        for ww in -10 to 10 {
+            txt.print_w(abs(ww))
+            txt.chrout('\n')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+        for ww in -10 to 10 {
+            txt.print_w(abs(ww)+zeroww)
+            txt.chrout('\n')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+
+;        for ubb in 0 to 20 {
+;            floats.print_f(sin(rr))
+;            txt.chrout('\n')
+;            rr += 0.01
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;        for ubb in 0 to 20 {
+;            floats.print_f(cos(rr))
+;            txt.chrout('\n')
+;            rr += 0.01
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;        for ubb in 0 to 20 {
+;            floats.print_f(tan(rr))
+;            txt.chrout('\n')
+;            rr += 0.01
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;        for ubb in 0 to 20 {
+;            floats.print_f(atan(rr))
+;            txt.chrout('\n')
+;            rr += 0.01
+;        }
 
         testX()
 
