@@ -704,18 +704,11 @@ func_read_flags	.proc
 		.pend
 
 func_sqrt16_into_A	.proc
-		jsr  func_sqrt16
-		jmp  func_any_b_into_A._popA
-		.pend
-
-func_sqrt16	.proc
 		; integer square root from  http://6502org.wikidot.com/software-math-sqrt
-		txa
-		pha
-		lda  P8ESTACK_LO+1,x
-		ldy  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
+		txa
+		pha
 		lda  #0
 		sta  P8ZP_SCRATCH_B1
 		sta  P8ZP_SCRATCH_REG
@@ -741,7 +734,6 @@ func_sqrt16	.proc
 		pla
 		tax
 		lda  P8ZP_SCRATCH_B1
-		sta  P8ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -828,7 +820,7 @@ func_sin8_cc	.proc
 
 func_sin8u_cc	.proc
 		tay
-		lda  _sinecos8u,y
+		lda  func_sin8u_into_A._sinecos8u,y
 		sta  P8ESTACK_LO,x
 		dex
 		rts
@@ -837,9 +829,10 @@ func_sin8u_cc	.proc
 func_sin16_cc	.proc
 		tay
 		lda  func_sin16_into_AY._sinecos8lo,y
-		sta  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO,x
 		lda  func_sin16_into_AY._sinecos8hi,y
-		sta  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI,x
+		dex
 		rts
 
 		.pend
@@ -847,9 +840,10 @@ func_sin16_cc	.proc
 func_sin16u_cc	.proc
 		tay
 		lda  func_sin16u_into_AY._sinecos8ulo,y
-		sta  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO,x
 		lda  func_sin16u_into_AY._sinecos8uhi,y
-		sta  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI,x
+		dex
 		rts
 		.pend
 
@@ -872,18 +866,20 @@ func_cos8u_cc	.proc
 func_cos16_cc	.proc
 		tay
 		lda  func_sin16_into_AY._sinecos8lo+64,y
-		sta  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO,x
 		lda  func_sin16_into_AY._sinecos8hi+64,y
-		sta  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI,x
+		dex
 		rts
 		.pend
 
 func_cos16u_cc	.proc
 		tay
 		lda  func_sin16u_into_AY._sinecos8ulo+64,y
-		sta  P8ESTACK_LO+1,x
+		sta  P8ESTACK_LO,x
 		lda  func_sin16u_into_AY._sinecos8uhi+64,y
-		sta  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI,x
+		dex
 		rts
 		.pend
 

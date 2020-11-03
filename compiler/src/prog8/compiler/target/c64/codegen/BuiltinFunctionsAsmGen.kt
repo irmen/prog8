@@ -475,11 +475,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
             when (dt.typeOrElse(DataType.STRUCT)) {
-                DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub")
-                DataType.BYTE -> asmgen.out("  jsr  math.sign_b")
-                DataType.UWORD -> asmgen.out("  jsr  math.sign_uw")
-                DataType.WORD -> asmgen.out("  jsr  math.sign_w")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.sign_f")
+                DataType.UBYTE -> asmgen.out("  jsr  math.sign_ub_cc")
+                DataType.BYTE -> asmgen.out("  jsr  math.sign_b_cc")
+                DataType.UWORD -> asmgen.out("  jsr  math.sign_uw_cc")
+                DataType.WORD -> asmgen.out("  jsr  math.sign_w_cc")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.sign_f_cc")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
@@ -1054,6 +1054,29 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun translateArguments(args: MutableList<Expression>, signature: FSignature) {
         val callConv = signature.callConvention(args.map { it.inferType(program).typeOrElse(DataType.STRUCT) })
 
+        fun getSourceForFloat(value: Expression): AsmAssignSource {
+            return when (value) {
+                is IdentifierReference -> {
+                    val addr = AddressOf(value, value.position)
+                    AsmAssignSource.fromAstSource(addr, program, asmgen)
+                }
+                is NumericLiteralValue -> {
+                    throw AssemblyError("float literals should have been converted into autovar")
+                }
+                else -> {
+                    TODO("evaluate float expression, store float in (to be defined) result variable, get address of that variable.")
+//                    val variable = IdentifierReference(listOf("p8_float_eval_result"), value.position)
+//                    variable.linkParents(value)
+//                    val assign = AsmAssignment(AsmAssignSource.fromAstSource(value, program, asmgen),
+//                            AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.FLOAT, null, variableAsmName = asmgen.asmVariableName(variable)),
+//                            false, Position.DUMMY)
+//                    asmgen.translateNormalAssignment(assign)
+//                    val addr = AddressOf(variable, value.position)
+//                    AsmAssignSource.fromAstSource(addr, program, asmgen)
+                }
+            }
+        }
+
         args.zip(callConv.params).zip(signature.parameters).forEach {
             val paramName = it.second.name
             val conv = it.first.second
@@ -1061,24 +1084,32 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when {
                 conv.variable -> {
                     val varname = "prog8_lib.func_${signature.name}_cc._arg_${paramName}"        // TODO after all builtin funcs have been changed into _cc, remove that suffix again
-                    val src = if(conv.dt==DataType.FLOAT || conv.dt in PassByReferenceDatatypes) {
-                        // put the address of the argument in AY
-                        val addr = AddressOf(value as IdentifierReference, value.position)
-                        AsmAssignSource.fromAstSource(addr, program, asmgen)
-                    } else {
-                        AsmAssignSource.fromAstSource(value, program, asmgen)
+                    val src = when (conv.dt) {
+                        DataType.FLOAT -> getSourceForFloat(value)
+                        in PassByReferenceDatatypes -> {
+                            // put the address of the argument in AY
+                            val addr = AddressOf(value as IdentifierReference, value.position)
+                            AsmAssignSource.fromAstSource(addr, program, asmgen)
+                        }
+                        else -> {
+                            AsmAssignSource.fromAstSource(value, program, asmgen)
+                        }
                     }
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, conv.dt, null, variableAsmName = varname)
                     val assign = AsmAssignment(src, tgt, false, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
                 conv.reg != null -> {
-                    val src = if(conv.dt==DataType.FLOAT || conv.dt in PassByReferenceDatatypes) {
-                        // put the address of the argument in AY
-                        val addr = AddressOf(value as IdentifierReference, value.position)
-                        AsmAssignSource.fromAstSource(addr, program, asmgen)
-                    } else {
-                        AsmAssignSource.fromAstSource(value, program, asmgen)
+                    val src = when (conv.dt) {
+                        DataType.FLOAT -> getSourceForFloat(value)
+                        in PassByReferenceDatatypes -> {
+                            // put the address of the argument in AY
+                            val addr = AddressOf(value as IdentifierReference, value.position)
+                            AsmAssignSource.fromAstSource(addr, program, asmgen)
+                        }
+                        else -> {
+                            AsmAssignSource.fromAstSource(value, program, asmgen)
+                        }
                     }
                     val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
                     val assign = AsmAssignment(src, tgt, false, value.position)

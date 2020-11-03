@@ -96,7 +96,7 @@ stack_uw2float	.proc
 		.pend
 
 stack_float2w	.proc               ; also used for float2b
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  AYINT
 		ldx  P8ZP_SCRATCH_REG
@@ -109,7 +109,7 @@ stack_float2w	.proc               ; also used for float2b
 		.pend
 
 stack_float2uw	.proc               ; also used for float2ub
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  GETADR
 		ldx  P8ZP_SCRATCH_REG
@@ -173,6 +173,7 @@ pop_float	.proc
 		.pend
 
 pop_float_fac1	.proc
+		; TODO REMOVE THIS?? But is used in code generation at various places still
 		; -- pops float from stack into FAC1
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
@@ -471,7 +472,7 @@ func_sin_into_fac1	.proc
 		.pend
 
 func_cos_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  COS
 		ldx  P8ZP_SCRATCH_REG
@@ -479,7 +480,7 @@ func_cos_into_fac1	.proc
 		.pend
 
 func_tan_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  TAN
 		ldx  P8ZP_SCRATCH_REG
@@ -487,7 +488,7 @@ func_tan_into_fac1	.proc
 		.pend
 
 func_atan_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  ATN
 		ldx  P8ZP_SCRATCH_REG
@@ -495,7 +496,7 @@ func_atan_into_fac1	.proc
 		.pend
 
 func_ln_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
 		ldx  P8ZP_SCRATCH_REG
@@ -503,12 +504,12 @@ func_ln_into_fac1	.proc
 		.pend
 
 func_log2_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
 		jsr  MOVEF
-		lda  #<c64.FL_LOG2
-		ldy  #>c64.FL_LOG2
+		lda  #<FL_LOG2
+		ldy  #>FL_LOG2
 		jsr  MOVFM
 		jsr  FDIVT
 		ldx  P8ZP_SCRATCH_REG
@@ -516,7 +517,7 @@ func_log2_into_fac1	.proc
 		.pend
 
 func_sqrt_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  SQR
 		ldx  P8ZP_SCRATCH_REG
@@ -525,7 +526,7 @@ func_sqrt_into_fac1	.proc
 
 func_rad_into_fac1	.proc
 		; -- convert degrees to radians (d * pi / 180)
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		lda  #<_pi_div_180
 		ldy  #>_pi_div_180
@@ -537,7 +538,7 @@ _pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
 
 func_deg_into_fac1	.proc
 		; -- convert radians to degrees (d * (1/ pi * 180))
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		lda  #<_one_over_pi_div_180
 		ldy  #>_one_over_pi_div_180
@@ -548,7 +549,7 @@ _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
 
 func_round_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  FADDH
 		jsr  INT
@@ -557,7 +558,7 @@ func_round_into_fac1	.proc
 		.pend
 
 func_floor_into_fac1	.proc
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		jsr  INT
 		ldx  P8ZP_SCRATCH_REG
@@ -566,7 +567,7 @@ func_floor_into_fac1	.proc
 
 func_ceil_into_fac1	.proc
 		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
-		jsr  pop_float_fac1
+		jsr  MOVFM
 		stx  P8ZP_SCRATCH_REG
 		ldx  #<fmath_float1
 		ldy  #>fmath_float1
@@ -707,8 +708,8 @@ func_sum_f_into_fac1	.proc
 		rts
 		.pend
 
-sign_f		.proc
-		jsr  pop_float_fac1
+sign_f_cc	.proc
+		jsr  MOVFM
 		jsr  SIGN
 		sta  P8ESTACK_LO,x
 		dex

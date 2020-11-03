@@ -53,6 +53,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
 
  */
+            // TODO can be generelized a bit by allowing LEFT EXPR to be more complex
             if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target, program.namespace)) {
                 if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
                     return noModifications

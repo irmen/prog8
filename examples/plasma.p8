@@ -8,9 +8,6 @@
 ;  Cleanup and porting to C by Ullrich von Bassewitz.
 ;  Converted to prog8 by Irmen de Jong.
 
-; TODO the random charset is all wrong
-; TODO why has the prg become bigger since register args?
-
 
 main {
     const uword SCREEN1 = $E000

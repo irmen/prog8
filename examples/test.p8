@@ -4,8 +4,20 @@
 %zeropage basicsafe
 
 ; builtin functions converted to new call convention:
-; abs (int + float)
-
+; abs
+; atan
+; ceil
+; cos (float), cos8, cos8u, cos16, cos16u
+; deg
+; floor
+; ln
+; log2
+; rad
+; round
+; sgn (float), sgn (integers)
+; sin (float), sin8, sin8u, sin16, sin16u
+; sqrt (float), sqrt16
+; tan
 
 
 main {
@@ -22,107 +34,84 @@ main {
         float fzero=0.0
         float rr=0.0
 
-        rr = -4.0
-        for ubb in 0 to 20 {
-            floats.print_f(abs(rr))
+        ; TODO byte -> word conversion is wrong
+
+        rr = 2.0
+        for ubb in 0 to 10 {
+            floats.print_f(tan(rr))
             txt.chrout('\n')
             rr += 0.5
         }
             txt.chrout('\n')
             txt.chrout('\n')
 
-        rr = -2.0
-        for ubb in 0 to 20 {
-            floats.print_f(abs(rr)+fzero)
+        rr = 2.0
+        for ubb in 0 to 10 {
+            floats.print_f(tan(rr)+fzero)
             txt.chrout('\n')
             rr += 0.5
         }
             txt.chrout('\n')
             txt.chrout('\n')
 
-        for ubb in 0 to 20 {
-            txt.print_ub(abs(ubb))
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for ubb in 0 to 20 {
-            txt.print_ub(abs(ubb)+zerobb)
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for bb in -10 to 10 {
-            txt.print_b(abs(bb))
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for bb in -10 to 10 {
-            txt.print_b(abs(bb)+zerobb)
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for uww in 0 to 20 {
-            txt.print_uw(abs(uww))
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for uww in 0 to 20 {
-            txt.print_uw(abs(uww)+zeroww)
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for ww in -10 to 10 {
-            txt.print_w(abs(ww))
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-        for ww in -10 to 10 {
-            txt.print_w(abs(ww)+zeroww)
-            txt.chrout('\n')
-        }
-            txt.chrout('\n')
-            txt.chrout('\n')
-
-
-;        for ubb in 0 to 20 {
-;            floats.print_f(sin(rr))
+;        for uww in 0 to 50000 step 10000 {
+;            txt.print_ub(sqrt16(uww))
 ;            txt.chrout('\n')
-;            rr += 0.01
 ;        }
 ;            txt.chrout('\n')
 ;            txt.chrout('\n')
-;        for ubb in 0 to 20 {
-;            floats.print_f(cos(rr))
+
+;        for ww in -5 to 5 {
+;            txt.print_b(sgn(ww)+zerobb)
 ;            txt.chrout('\n')
-;            rr += 0.01
 ;        }
 ;            txt.chrout('\n')
 ;            txt.chrout('\n')
-;        for ubb in 0 to 20 {
-;            floats.print_f(tan(rr))
+
+;        for ww in -2 to 2 {
+;            txt.print_b(sgn(ww))
 ;            txt.chrout('\n')
-;            rr += 0.01
 ;        }
 ;            txt.chrout('\n')
 ;            txt.chrout('\n')
-;        for ubb in 0 to 20 {
-;            floats.print_f(atan(rr))
+;
+;        for ww in -2 to 2 {
+;            txt.print_b(sgn(ww)+zerobb)
 ;            txt.chrout('\n')
-;            rr += 0.01
 ;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;
+;        for bb in -2 to 2 {
+;            txt.print_b(sgn(bb))
+;            txt.chrout('\n')
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;
+;        for bb in -2 to 2 {
+;            txt.print_b(sgn(bb)+zerobb)
+;            txt.chrout('\n')
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+
+
+;        for bb in -5 to 5 {
+;            txt.print_b(sgn(bb))
+;            txt.chrout('\n')
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;
+;        for bb in -5 to 5 {
+;            txt.print_b(sgn(bb)+zerobb)
+;            txt.chrout('\n')
+;        }
+;            txt.chrout('\n')
+;            txt.chrout('\n')
+;
+
 
         testX()
 

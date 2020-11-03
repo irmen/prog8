@@ -1243,83 +1243,75 @@ mul_word_100	.proc
 
 ; ----------- end optimized multiplications -----------
 
-
-sign_b		.proc
-		lda  P8ESTACK_LO+1,x
-		beq  _sign_zero
-		bmi  _sign_neg
-_sign_pos	lda  #1
-		sta  P8ESTACK_LO+1,x
-		rts
-_sign_neg	lda  #-1
-_sign_zero	sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-sign_ub		.proc
-		lda  P8ESTACK_LO+1,x
-		beq  sign_b._sign_zero
-		bne  sign_b._sign_pos
-		.pend
-
-sign_w		.proc
-		lda  P8ESTACK_HI+1,x
-		bmi  sign_b._sign_neg
-		beq  sign_ub
-		bne  sign_b._sign_pos
-		.pend
-
-sign_uw		.proc
-		lda  P8ESTACK_HI+1,x
-		beq  _sign_possibly_zero
-_sign_pos	lda  #1
-		sta  P8ESTACK_LO+1,x
-		rts
-_sign_possibly_zero	lda  P8ESTACK_LO+1,x
-		bne  _sign_pos
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-
-sign_b_into_A	.proc
-		; -- A = sgn(pop stack byte)
-		inx
-		lda  P8ESTACK_LO,x
-		beq  _sign_zero
-		bmi  _sign_neg
-_sign_pos	lda  #1
-		rts
-_sign_neg	lda  #-1
-_sign_zero	rts
-		.pend
-
 sign_ub_into_A	.proc
-		; -- A = sgn(pop stack ubyte)
-		lda  P8ESTACK_LO+1,x
-		bne  sign_b._sign_pos
+		cmp  #0
+		bne  _pos
+		rts
+_pos		lda  #1
 		rts
 		.pend
 
-sign_w_into_A	.proc
-		; -- A = sgn(pop stack word)
-		lda  P8ESTACK_HI+1,x
-		bmi  sign_b._sign_neg
-		bne  sign_b._sign_pos
+sign_ub_cc	.proc
+		jsr  sign_ub_into_A
+		sta  P8ESTACK_LO,x
+		dex
 		rts
 		.pend
 
 sign_uw_into_A	.proc
-		; -- A = sgn(pop stack uword)
-		lda  P8ESTACK_HI+1,x
-		beq  _sign_possibly_zero
-_sign_pos	lda  #1
+		cpy  #0
+		beq  _possibly_zero
+_pos		lda  #1
 		rts
-_sign_possibly_zero	lda  P8ESTACK_LO+1,x
-		bne  _sign_pos
+_possibly_zero	cmp  #0
+		bne  _pos
 		rts
 		.pend
 
+sign_uw_cc	.proc
+		jsr  sign_uw_into_A
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
+sign_b_into_A	.proc
+		cmp  #0
+		beq  _zero
+		bmi  _neg
+		lda  #1
+_zero		rts
+_neg		lda  #-1
+		rts
+		.pend
+
+sign_b_cc	.proc
+		jsr  sign_b_into_A
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
+sign_w_into_A	.proc
+		cpy  #0
+		beq  _possibly_zero
+		bmi  _neg
+_pos		lda  #1
+		rts
+_neg		lda  #-1
+		rts
+_possibly_zero	cmp  #0
+		bne  _pos
+		rts
+		.pend
+
+
+sign_w_cc	.proc
+		jsr  sign_w_into_A
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
 
 ; bit shifts.
 ; anything below 3 is done inline. anything above 7 is done via other optimizations.
