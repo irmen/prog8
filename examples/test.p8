@@ -12,28 +12,28 @@ main {
         const uword ADDR = $0400
 
         byte zerob=0
-        word zerow=0
-        float zerof=0
+;        word zerow=0
+;        float zerof=0
         byte bb
-        word ww
-        float fl
+;        word ww
+;        float fl
 
         testX()
 
         bb = -100
-        bb = zerob+abs(bb)
+        bb = zerob+abs(bb)      ; TODO optimizer generates wrong code for this (wrong order of splitted expression?)
         txt.print_b(bb)
         txt.chrout('\n')
 
-        ww = -12345
-        ww = zerow+abs(ww)
-        txt.print_w(ww)
-        txt.chrout('\n')
-
-        fl = -9.876
-        fl = zerof+abs(fl)
-        floats.print_f(fl)
-        txt.chrout('\n')
+;        ww = -12345
+;        ww = zerow+abs(ww)      ; TODO optimizer generates wrong code for this (wrong order of splitted expression?)
+;        txt.print_w(ww)
+;        txt.chrout('\n')
+;
+;        fl = -9.876
+;        fl = zerof+abs(fl)      ; TODO optimizer generates wrong code for this (wrong order of splitted expression?)
+;        floats.print_f(fl)
+;        txt.chrout('\n')
 
 ;        memset(ADDR, 40*25, 100)
 ;        memsetw(ADDR, 20*10, $3031)

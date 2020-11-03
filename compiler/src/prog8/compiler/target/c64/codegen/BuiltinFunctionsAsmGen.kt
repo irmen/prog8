@@ -1053,25 +1053,28 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when {
                 conv.variable -> {
                     val varname = "prog8_lib.func_${signature.name}_cc._arg_${paramName}"        // TODO after all builtin funcs have been changed into _cc, remove that suffix again
-                    val src = AsmAssignSource.fromAstSource(value, program, asmgen)
+                    val src = if(conv.dt==DataType.FLOAT || conv.dt in PassByReferenceDatatypes) {
+                        // put the address of the argument in AY
+                        val addr = AddressOf(value as IdentifierReference, value.position)
+                        AsmAssignSource.fromAstSource(addr, program, asmgen)
+                    } else {
+                        AsmAssignSource.fromAstSource(value, program, asmgen)
+                    }
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, conv.dt, null, variableAsmName = varname)
                     val assign = AsmAssignment(src, tgt, false, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
                 conv.reg != null -> {
-                    if(conv.dt==DataType.FLOAT || conv.dt in PassByReferenceDatatypes) {
+                    val src = if(conv.dt==DataType.FLOAT || conv.dt in PassByReferenceDatatypes) {
                         // put the address of the argument in AY
                         val addr = AddressOf(value as IdentifierReference, value.position)
-                        val src = AsmAssignSource.fromAstSource(addr, program, asmgen)
-                        val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
-                        val assign = AsmAssignment(src, tgt, false, value.position)
-                        asmgen.translateNormalAssignment(assign)
+                        AsmAssignSource.fromAstSource(addr, program, asmgen)
                     } else {
-                        val src = AsmAssignSource.fromAstSource(value, program, asmgen)
-                        val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
-                        val assign = AsmAssignment(src, tgt, false, value.position)
-                        asmgen.translateNormalAssignment(assign)
+                        AsmAssignSource.fromAstSource(value, program, asmgen)
                     }
+                    val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
+                    val assign = AsmAssignment(src, tgt, false, value.position)
+                    asmgen.translateNormalAssignment(assign)
                 }
                 else -> throw AssemblyError("callconv")
             }

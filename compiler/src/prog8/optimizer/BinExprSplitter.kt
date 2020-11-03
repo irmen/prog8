@@ -38,22 +38,26 @@ internal class BinExprSplitter(private val program: Program) : AstWalker() {
         if (binExpr != null) {
 /*
 
-reduce the complexity of a (binary) expression that has to be evaluated on the eval stack,
-by attempting to splitting it up into individual simple steps:
+Reduce the complexity of a (binary) expression that has to be evaluated on the eval stack,
+by attempting to splitting it up into individual simple steps.
+We only consider a binary expression *one* level deep (so the operands must not be a combined expression)
 
 
-X =      BinExpr                                   X   =   LeftExpr
-        <operator>                                   followed by
-          /   \              IF 'X' not used       X   =   BinExpr
-         /     \               IN LEFTEXPR ==>             <operator>
+X =      BinExpr                                    X   =   LeftExpr
+        <operator>                                     followed by
+          /   \             IF 'X' not used         X   =   BinExpr
+         /     \             IN expression ==>             <operator>
         /       \                                           /   \
     LeftExpr.  RightExpr.                                  /     \
-      /  \       /  \                                     X     RightExpr.
-    ..  ..      ..  ..
+                                                          X     RightExpr.
+
 
  */
             if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target, program.namespace)) {
-                if (!assignment.isAugmentable) {
+                if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
+                    return noModifications
+
+                if(isSimpleExpression(binExpr.left) && isSimpleExpression(binExpr.right) && !assignment.isAugmentable) {
                     val firstAssign = Assignment(assignment.target, binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
@@ -70,6 +74,9 @@ X =      BinExpr                                   X   =   LeftExpr
 
         return noModifications
     }
+
+    private fun isSimpleExpression(expr: Expression) =
+            expr is IdentifierReference || expr is NumericLiteralValue || expr is AddressOf || expr is DirectMemoryRead || expr is StringLiteralValue || expr is ArrayLiteralValue || expr is RangeExpr
 
     private fun isSimpleTarget(target: AssignTarget, namespace: INameScope) =
             if (target.identifier!=null || target.memoryAddress!=null || target.arrayindexed!=null)
