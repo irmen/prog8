@@ -11,6 +11,40 @@ main {
     sub start() {
         const uword ADDR = $0400
 
+        ubyte ubb
+        ubyte zerobb
+        uword zeroww
+
+        for ubb in 0 to 255 {
+            txt.print_uw(sin16u(ubb)+zerobb)
+            txt.chrout(' ')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+        for ubb in 0 to 255 {
+            txt.print_uw(cos16u(ubb)+zerobb)
+            txt.chrout(' ')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+        for ubb in 0 to 255 {
+            txt.print_w(sin16(ubb)+zerobb)
+            txt.chrout(' ')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+        for ubb in 0 to 255 {
+            txt.print_w(cos16(ubb)+zerobb)
+            txt.chrout(' ')
+        }
+            txt.chrout('\n')
+            txt.chrout('\n')
+
+        testX()
+
+        return
+
+
         byte zerob=0
 ;        word zerow=0
 ;        float zerof=0

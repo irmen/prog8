@@ -82,7 +82,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func)
             "substr", "leftstr", "rightstr" -> {
                 translateArguments(fcall.args, func)
-                asmgen.out("  jsr  prog8_lib.func_${func.name}")
+                asmgen.out("  jsr  prog8_lib.func_${func.name}_cc")         // TODO
             }
             "exit" -> asmgen.out("  jmp  prog8_lib.func_exit")
             else -> TODO("missing asmgen for builtin func ${func.name}")
@@ -162,9 +162,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcStrcmp(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
         translateArguments(fcall.args, func)
         if(resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_strcmp")
+            asmgen.out("  jsr  prog8_lib.func_strcmp_cc")   // TODO
         else
-            asmgen.out("  jsr  prog8_lib.func_strcmp |  inx")       // result is also in register A
+            asmgen.out("  jsr  prog8_lib.func_strcmp_into_A")   // TODO
     }
 
     private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
@@ -178,7 +178,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcSinCosInt(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
         translateArguments(fcall.args, func)
         if(resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_${func.name}")
+            asmgen.out("  jsr  prog8_lib.func_${func.name}_cc")     // TODO
         else
             when(func.name) {
                 "sin8", "sin8u", "cos8", "cos8u" -> asmgen.out("  jsr  prog8_lib.func_${func.name}_into_A")
@@ -194,33 +194,36 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                    // TODO cc
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
-                                    jsr  prog8_lib.reverse_b
+                                    jsr  prog8_lib.reverse_b_cc
                                 """)
                 }
                 DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    // TODO cc
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
-                                    jsr  prog8_lib.reverse_w
+                                    jsr  prog8_lib.reverse_w_cc
                                 """)
                 }
                 DataType.ARRAY_F -> {
+                    // TODO cc
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
-                                    jsr  prog8_lib.reverse_f
+                                    jsr  prog8_lib.reverse_f_cc
                                 """)
                 }
                 else -> throw AssemblyError("weird type")
@@ -236,6 +239,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                    // TODO cc
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
@@ -244,9 +248,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     lda  #$numElements
                                     sta  P8ZP_SCRATCH_B1
                                 """)
-                    asmgen.out(if (decl.datatype == DataType.ARRAY_UB) "  jsr  prog8_lib.sort_ub" else "  jsr  prog8_lib.sort_b")
+                    asmgen.out(if (decl.datatype == DataType.ARRAY_UB) "  jsr  prog8_lib.sort_ub_cc" else "  jsr  prog8_lib.sort_b_cc")
                 }
                 DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    // TODO cc
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
@@ -255,7 +260,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                     lda  #$numElements
                                     sta  P8ZP_SCRATCH_B1
                                 """)
-                    asmgen.out(if (decl.datatype == DataType.ARRAY_UW) "  jsr  prog8_lib.sort_uw" else "  jsr  prog8_lib.sort_w")
+                    asmgen.out(if (decl.datatype == DataType.ARRAY_UW) "  jsr  prog8_lib.sort_uw_cc" else "  jsr  prog8_lib.sort_w_cc")
                 }
                 DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
                 else -> throw AssemblyError("weird type")
@@ -273,7 +278,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     is ArrayIndexedExpression -> {
                         asmgen.translateExpression(what.arrayvar)
                         asmgen.translateExpression(what.indexer)
-                        asmgen.out("  jsr  prog8_lib.ror2_array_ub")
+                        asmgen.out("  jsr  prog8_lib.ror2_array_ub_cc")        // TODO cc
                     }
                     is DirectMemoryRead -> {
                         if (what.addressExpression is NumericLiteralValue) {
@@ -281,7 +286,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
                         } else {
                             asmgen.translateExpression(what.addressExpression)
-                            asmgen.out("  jsr  prog8_lib.ror2_mem_ub")
+                            asmgen.out("  jsr  prog8_lib.ror2_mem_ub_cc")      // TODO cc
                         }
                     }
                     is IdentifierReference -> {
@@ -971,6 +976,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcMkword(fcall: IFunctionCall, resultToStack: Boolean) {
+        // TODO cc
         if(resultToStack) {
             // trick: push the args in reverse order (lsb first, msb second) this saves some instructions
             asmgen.translateExpression(fcall.args[1])
@@ -986,6 +992,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean) {
+        // TODO cc
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("msb required word argument")
@@ -1006,6 +1013,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcLsb(fcall: IFunctionCall, resultToStack: Boolean) {
+        // TODO cc
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("lsb required word argument")
