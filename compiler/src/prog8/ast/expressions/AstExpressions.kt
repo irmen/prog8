@@ -779,6 +779,9 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         // if it's just a regular variable, return null.
         val struct = memberOfStruct(namespace) ?: return null
         val decl = targetVarDecl(namespace)!!
+        if(decl.datatype!=DataType.STRUCT)
+            return null
+
         val firstStructMember = struct.nameOfFirstMember()
         // find the flattened var that belongs to this first struct member
         val firstVarName = listOf(decl.name, firstStructMember)
