@@ -1179,6 +1179,7 @@ $counterVar    .byte  0""")
                             out("  lda  #<${asmVar} |  ldy  #>${asmVar} |  jsr  floats.MOVFM")
                         }
                         else -> {
+                            // todo evaluate into fac1 instead of stack
                             translateExpression(returnvalue)
                             out("  jsr  floats.pop_float_fac1")
                         }

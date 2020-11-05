@@ -221,10 +221,10 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
     return when (function) {
         "abs" -> {
             val dt = args.single().inferType(program)
-            if(dt.typeOrElse(DataType.STRUCT) in NumericDatatypes)
-                return dt
+            return if(dt.typeOrElse(DataType.STRUCT) in NumericDatatypes)
+                dt
             else
-                throw FatalAstException("weird datatype passed to abs $dt")
+                InferredTypes.InferredType.unknown()
         }
         "max", "min" -> {
             when(val dt = datatypeFromIterableArg(args.single())) {

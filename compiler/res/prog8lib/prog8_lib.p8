@@ -6,4 +6,5 @@
 
 prog8_lib {
 	%asminclude "library:prog8_lib.asm", ""
+	%asminclude "library:prog8_funcs.asm", ""
 }

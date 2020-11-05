@@ -893,75 +893,27 @@ peek_address	.proc
 		rts
 		.pend
 
-func_any_b_into_A	.proc
-		jsr  func_any_b
-_popA		inx
-		lda  P8ESTACK_LO,x
-		rts
-		.pend
-
-func_all_b_into_A	.proc
-		jsr  func_all_b
-		jmp  func_any_b_into_A._popA
-		.pend
-
 func_any_w_into_A	.proc
-		jsr  func_any_w
+		jsr  func_any_w_cc
 		jmp  func_any_b_into_A._popA
 		.pend
 
 func_all_w_into_A	.proc
-		jsr  func_all_w
+		jsr  func_all_w_cc
 		jmp  func_any_b_into_A._popA
 		.pend
 
 
-func_any_b	.proc
-		inx
-		lda  P8ESTACK_LO,x	; array size
-_entry		sta  _cmp_mod+1		; self-modifying code
-		jsr  peek_address
-		ldy  #0
--		lda  (P8ZP_SCRATCH_W1),y
-		bne  _got_any
-		iny
-_cmp_mod	cpy  #255		; modified
-		bne  -
-		lda  #0
-		sta  P8ESTACK_LO+1,x
-		rts
-_got_any	lda  #1
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-func_any_w	.proc
+func_any_w_cc	.proc
+		; TODO args not via stack
 		inx
 		lda  P8ESTACK_LO,x	; array size
 		asl  a			; times 2 because of word
-		jmp  func_any_b._entry
+		jmp  func_any_b_cc._entry
 		.pend
 
-func_all_b	.proc
-		inx
-		lda  P8ESTACK_LO,x	; array size
-		sta  _cmp_mod+1		; self-modifying code
-		jsr  peek_address
-		ldy  #0
--		lda  (P8ZP_SCRATCH_W1),y
-		beq  _got_not_all
-		iny
-_cmp_mod	cpy  #255		; modified
-		bne  -
-		lda  #1
-		sta  P8ESTACK_LO+1,x
-		rts
-_got_not_all	lda  #0
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-func_all_w	.proc
+func_all_w_cc	.proc
+		; TODO arg not via stack
 		inx
 		lda  P8ESTACK_LO,x	; array size
 		asl  a			; times 2 because of word
@@ -985,7 +937,8 @@ _cmp_mod	cpy  #255		; modified
 		rts
 		.pend
 
-func_max_ub	.proc
+func_max_ub_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		lda  #0
 		sta  P8ZP_SCRATCH_B1
@@ -1002,7 +955,8 @@ func_max_ub	.proc
 		rts
 		.pend
 
-func_max_b	.proc
+func_max_b_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		lda  #-128
 		sta  P8ZP_SCRATCH_B1
@@ -1023,7 +977,8 @@ func_max_b	.proc
 		rts
 		.pend
 
-func_max_uw	.proc
+func_max_uw_bb	.proc
+		; TODO args not via stack
 		lda  #0
 		sta  _result_maxuw
 		sta  _result_maxuw+1
@@ -1060,7 +1015,8 @@ _lesseq		dey
 _result_maxuw	.word  0
 		.pend
 
-func_max_w	.proc
+func_max_w_cc	.proc
+		; TODO args not via stack
 		lda  #0
 		sta  _result_maxw
 		lda  #$80
@@ -1099,7 +1055,8 @@ _result_maxw	.word  0
 		.pend
 
 
-func_sum_b	.proc
+func_sum_b_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		lda  #0
 		sta  P8ESTACK_LO,x
@@ -1123,7 +1080,8 @@ _loop		lda  (P8ZP_SCRATCH_W1),y
 		rts
 		.pend
 
-func_sum_ub	.proc
+func_sum_ub_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		lda  #0
 		sta  P8ESTACK_HI,x
@@ -1139,7 +1097,8 @@ func_sum_ub	.proc
 		rts
 		.pend
 
-func_sum_uw	.proc
+func_sum_uw_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		tya
 		asl  a
@@ -1164,8 +1123,8 @@ func_sum_uw	.proc
 		rts
 		.pend
 
-func_sum_w	.proc
-		jmp  func_sum_uw
+func_sum_w_cc	.proc
+		jmp  func_sum_uw_cc
 		.pend
 
 
@@ -1182,29 +1141,29 @@ pop_array_and_lengthmin1Y	.proc
 		.pend
 
 func_min_ub_into_A	.proc
-		jsr  func_min_ub
+		jsr  func_min_ub_cc
 _popA		inx
 		lda  P8ESTACK_LO,x
 		rts
 		.pend
 
 func_min_b_into_A	.proc
-		jsr  func_min_b
+		jsr  func_min_b_cc
 		jmp  func_min_ub_into_A._popA
 		.pend
 
 func_max_ub_into_A	.proc
-		jsr  func_max_ub
+		jsr  func_max_ub_cc
 		jmp  func_min_ub_into_A._popA
 		.pend
 
 func_max_b_into_A	.proc
-		jsr  func_max_b
+		jsr  func_max_b_cc
 		jmp  func_min_ub_into_A._popA
 		.pend
 
 func_sum_ub_into_AY	.proc
-		jsr  func_sum_ub
+		jsr  func_sum_ub_cc
 _popAY		inx
 		lda  P8ESTACK_LO,x
 		ldy  P8ESTACK_HI,x
@@ -1212,42 +1171,43 @@ _popAY		inx
 		.pend
 
 func_sum_b_into_AY	.proc
-		jsr  func_sum_b
+		jsr  func_sum_b_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 func_min_uw_into_AY	.proc
-		jsr  func_min_uw
+		jsr  func_min_uw_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 func_min_w_into_AY	.proc
-		jsr  func_min_w
+		jsr  func_min_w_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 func_max_uw_into_AY	.proc
-		jsr  func_max_uw
+		jsr  func_max_uw_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 func_max_w_into_AY	.proc
-		jsr  func_max_w
+		jsr  func_max_w_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 func_sum_uw_into_AY	.proc
-		jsr  func_sum_uw
+		jsr  func_sum_uw_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 func_sum_w_into_AY	.proc
-		jsr  func_sum_w
+		jsr  func_sum_w_cc
 		jmp  func_sum_ub_into_AY._popAY
 		.pend
 
 
-func_min_ub	.proc
+func_min_ub_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		lda  #255
 		sta  P8ZP_SCRATCH_B1
@@ -1265,7 +1225,8 @@ func_min_ub	.proc
 		.pend
 
 
-func_min_b	.proc
+func_min_b_cc	.proc
+		; TODO args not via stack
 		jsr  pop_array_and_lengthmin1Y
 		lda  #127
 		sta  P8ZP_SCRATCH_B1
@@ -1286,7 +1247,8 @@ func_min_b	.proc
 		rts
 		.pend
 
-func_min_uw	.proc
+func_min_uw_cc	.proc
+		; TODO args not via stack
 		lda  #$ff
 		sta  _result_minuw
 		sta  _result_minuw+1
@@ -1323,7 +1285,8 @@ _gtequ		dey
 _result_minuw	.word  0
 		.pend
 
-func_min_w	.proc
+func_min_w_cc	.proc
+		; TODO not via stack
 		lda  #$ff
 		sta  _result_minw
 		lda  #$7f
@@ -1824,98 +1787,6 @@ _loop		ldy  _index_right
 		dec  _loop_count
 		bne  _loop
 		rts
-		.pend
-
-
-reverse_f	.proc
-		; --- reverse an array of floats
-_left_index = P8ZP_SCRATCH_W2
-_right_index = P8ZP_SCRATCH_W2+1
-_loop_count = P8ZP_SCRATCH_REG
-		pha
-		sta  P8ZP_SCRATCH_REG
-		asl  a
-		asl  a
-		clc
-		adc  P8ZP_SCRATCH_REG		; *5 because float
-		sec
-		sbc  #5
-		sta  _right_index
-		lda  #0
-		sta  _left_index
-		pla
-		lsr  a
-		sta  _loop_count
-_loop		; push the left indexed float on the stack
-		ldy  _left_index
-		lda  (P8ZP_SCRATCH_W1),y
-		pha
-		iny
-		lda  (P8ZP_SCRATCH_W1),y
-		pha
-		iny
-		lda  (P8ZP_SCRATCH_W1),y
-		pha
-		iny
-		lda  (P8ZP_SCRATCH_W1),y
-		pha
-		iny
-		lda  (P8ZP_SCRATCH_W1),y
-		pha
-		; copy right index float to left index float
-		ldy  _right_index
-		lda  (P8ZP_SCRATCH_W1),y
-		ldy  _left_index
-		sta  (P8ZP_SCRATCH_W1),y
-		inc  _left_index
-		inc  _right_index
-		ldy  _right_index
-		lda  (P8ZP_SCRATCH_W1),y
-		ldy  _left_index
-		sta  (P8ZP_SCRATCH_W1),y
-		inc  _left_index
-		inc  _right_index
-		ldy  _right_index
-		lda  (P8ZP_SCRATCH_W1),y
-		ldy  _left_index
-		sta  (P8ZP_SCRATCH_W1),y
-		inc  _left_index
-		inc  _right_index
-		ldy  _right_index
-		lda  (P8ZP_SCRATCH_W1),y
-		ldy  _left_index
-		sta  (P8ZP_SCRATCH_W1),y
-		inc  _left_index
-		inc  _right_index
-		ldy  _right_index
-		lda  (P8ZP_SCRATCH_W1),y
-		ldy  _left_index
-		sta  (P8ZP_SCRATCH_W1),y
-		; pop the float off the stack into the right index float
-		ldy  _right_index
-		pla
-		sta  (P8ZP_SCRATCH_W1),y
-		dey
-		pla
-		sta  (P8ZP_SCRATCH_W1),y
-		dey
-		pla
-		sta  (P8ZP_SCRATCH_W1),y
-		dey
-		pla
-		sta  (P8ZP_SCRATCH_W1),y
-		dey
-		pla
-		sta  (P8ZP_SCRATCH_W1),y
-		inc  _left_index
-		lda  _right_index
-		sec
-		sbc  #9
-		sta  _right_index
-		dec  _loop_count
-		bne  _loop
-		rts
-
 		.pend
 
 

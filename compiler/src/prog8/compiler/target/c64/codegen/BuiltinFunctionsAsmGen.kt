@@ -1,6 +1,7 @@
 package prog8.compiler.target.c64.codegen
 
 import prog8.ast.IFunctionCall
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -216,14 +217,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                                 """)
                 }
                 DataType.ARRAY_F -> {
-                    // TODO cc
                     asmgen.out("""
                                     lda  #<$varName
                                     ldy  #>$varName
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
                                     lda  #$numElements
-                                    jsr  prog8_lib.reverse_f_cc
+                                    jsr  floats.func_reverse_f
                                 """)
                 }
                 else -> throw AssemblyError("weird type")
@@ -465,9 +465,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
         translateArguments(fcall.args, func)
-        asmgen.out("  jsr  floats.func_${func.name}_into_fac1")
         if(resultToStack)
-            asmgen.out("  jsr  floats.push_fac1")
+            asmgen.out("  jsr  floats.func_${func.name}_stack")
+        else
+            asmgen.out("  jsr  floats.func_${func.name}_fac1")
     }
 
     private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean) {
@@ -479,7 +480,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 DataType.BYTE -> asmgen.out("  jsr  math.sign_b_cc")
                 DataType.UWORD -> asmgen.out("  jsr  math.sign_uw_cc")
                 DataType.WORD -> asmgen.out("  jsr  math.sign_w_cc")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.sign_f_cc")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_stack")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
@@ -488,20 +489,20 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 DataType.BYTE -> asmgen.out("  jsr  math.sign_b_into_A")
                 DataType.UWORD -> asmgen.out("  jsr  math.sign_uw_into_A")
                 DataType.WORD -> asmgen.out("  jsr  math.sign_w_into_A")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.pop_float_fac1 |  jsr  floats.SIGN")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
                 else -> throw AssemblyError("weird type $dt")
             }
         }
     }
 
     private fun funcAnyAll(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean) {
-        outputPushAddressAndLenghtOfArray(fcall.args[0])
+        outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
             when (dt.typeOrElse(DataType.STRUCT)) {
-                DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b")
-                DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f")
+                DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_cc")
+                DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_cc")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_stack")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
@@ -515,15 +516,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcMinMax(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean) {
-        outputPushAddressAndLenghtOfArray(fcall.args[0])
+        outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
             when (dt.typeOrElse(DataType.STRUCT)) {
-                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_ub")
-                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b")
-                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${function.name}_uw")
-                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_into_fac1 |  jsr  floats.push_fac1")
+                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_cc")
+                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_cc")
+                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_cc")
+                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_cc")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_stack")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
@@ -532,22 +533,22 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A")
                 DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_into_AY")
                 DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_AY")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_into_fac1")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_fac1")
                 else -> throw AssemblyError("weird type $dt")
             }
         }
     }
 
     private fun funcSum(fcall: IFunctionCall, resultToStack: Boolean) {
-        outputPushAddressAndLenghtOfArray(fcall.args[0])
+        outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
             when (dt.typeOrElse(DataType.STRUCT)) {
-                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub")
-                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b")
-                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw")
-                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f_into_fac1 |  jsr  floats.push_fac1")
+                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub_cc")
+                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b_cc")
+                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw_cc")
+                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w_cc")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f_stack")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
@@ -556,7 +557,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b_into_AY")
                 DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw_into_AY")
                 DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w_into_AY")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f_into_fac1")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f_fac1")
                 else -> throw AssemblyError("weird type $dt")
             }
         }
@@ -616,7 +617,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     lda  #>$secondName
                     sta  P8ZP_SCRATCH_W2+1
-                    jsr  floats.swap_floats
+                    jsr  floats.func_swap_f
                 """)
                 return
             }
@@ -944,14 +945,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when (dt) {
                 in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_cc")
                 in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_cc")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_cc")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_stack")
                 else -> throw AssemblyError("weird type")
             }
         } else {
             when (dt) {
                 in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_into_A_cc")
                 in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY_cc")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_into_fac1_cc")
+                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_fac1")
                 else -> throw AssemblyError("weird type")
             }
         }
@@ -976,23 +977,19 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcMkword(fcall: IFunctionCall, resultToStack: Boolean) {
-        // TODO cc
-        if(resultToStack) {
-            // trick: push the args in reverse order (lsb first, msb second) this saves some instructions
-            asmgen.translateExpression(fcall.args[1])
-            asmgen.translateExpression(fcall.args[0])
-            asmgen.out("  inx | lda  P8ESTACK_LO,x  | sta  P8ESTACK_HI+1,x")
-        } else {
-            // TODO some args without stack usage...
-            // trick: push the args in reverse order (lsb first, msb second) this saves some instructions
-            asmgen.translateExpression(fcall.args[1])
-            asmgen.translateExpression(fcall.args[0])
-            asmgen.out("  inx |  ldy  P8ESTACK_LO,x  |  inx |  lda  P8ESTACK_LO,x")
-        }
+        var src = AsmAssignSource.fromAstSource(fcall.args[0], program, asmgen)  // msb
+        var tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.Y, null, program, asmgen)
+        var assign = AsmAssignment(src, tgt, false, (fcall as Node).position)
+        asmgen.translateNormalAssignment(assign)
+        src = AsmAssignSource.fromAstSource(fcall.args[1], program, asmgen)  // lsb
+        tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.A, null, program, asmgen)
+        assign = AsmAssignment(src, tgt, false, (fcall as Node).position)
+        asmgen.translateNormalAssignment(assign)
+        if(resultToStack)
+            asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
     }
 
     private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean) {
-        // TODO cc
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("msb required word argument")
@@ -1001,53 +998,53 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
             asmgen.out("  lda  $sourceName+1")
-            if(resultToStack)
+            if (resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            asmgen.translateExpression(arg)  // TODO this evalutes onto stack, use registers instead
-            if(resultToStack)
-                asmgen.out("  lda  P8ESTACK_HI+1,x |  sta  P8ESTACK_LO+1,x")
+            val src = AsmAssignSource.fromAstSource(fcall.args.single(), program, asmgen)
+            val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
+            val assign = AsmAssignment(src, tgt, false, (fcall as Node).position)
+            asmgen.translateNormalAssignment(assign)
+            if (resultToStack)
+                asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
             else
-                asmgen.out("  inx |  lda  P8ESTACK_HI,x")
+                asmgen.out("  tya")
         }
     }
 
     private fun funcLsb(fcall: IFunctionCall, resultToStack: Boolean) {
-        // TODO cc
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("lsb required word argument")
         if (arg is NumericLiteralValue)
             throw AssemblyError("lsb(const) should have been const-folded away")
+
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
             asmgen.out("  lda  $sourceName")
-            if(resultToStack)
+            if (resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            // TODO this evalutes onto stack, use registers instead
-            asmgen.translateExpression(arg)
-            if(resultToStack) {
-                // simply ignore the high-byte of what's on the stack now
-            } else {
-                asmgen.out("  inx |  lda  P8ESTACK_LO,x")
-            }
+            val src = AsmAssignSource.fromAstSource(fcall.args.single(), program, asmgen)
+            val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
+            val assign = AsmAssignment(src, tgt, false, (fcall as Node).position)
+            asmgen.translateNormalAssignment(assign)
+            if (resultToStack)
+                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         }
     }
 
-    private fun outputPushAddressAndLenghtOfArray(arg: Expression) {
+    private fun outputAddressAndLenghtOfArray(arg: Expression) {
+        // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as IdentifierReference
         val identifierName = asmgen.asmVariableName(arg)
         val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.constIndex()!!
         asmgen.out("""
                     lda  #<$identifierName
-                    sta  P8ESTACK_LO,x
-                    lda  #>$identifierName
-                    sta  P8ESTACK_HI,x
-                    dex
+                    ldy  #>$identifierName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
                     lda  #$size
-                    sta  P8ESTACK_LO,x
-                    dex
                     """)
     }
 
