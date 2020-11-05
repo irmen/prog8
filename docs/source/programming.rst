@@ -785,11 +785,13 @@ memsetw(address, numwords, wordvalue)
 leftstr(source, target, length)
     Copies the left side of the source string of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
+    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 rightstr(source, target, length)
     Copies the right side of the source string of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
+    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 strlen(str)
@@ -806,6 +808,7 @@ substr(source, target, start, length)
     Copies a segment from the source string, starting at the given index,
     and of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
+    Also, you have to make sure yourself that start and length are within bounds of the strings.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 Miscellaneous
