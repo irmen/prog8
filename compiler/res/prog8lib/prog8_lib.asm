@@ -743,12 +743,9 @@ _done		rts
 
 
 ror2_mem_ub	.proc
-		; -- in-place 8-bit ror of byte at memory location on stack
-		inx
-		lda  P8ESTACK_LO,x
+		; -- in-place 8-bit ror of byte at memory location in AY
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
+		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
 		lda  (P8ZP_SCRATCH_W1),y
 		lsr  a
@@ -759,12 +756,9 @@ ror2_mem_ub	.proc
 		.pend
 
 rol2_mem_ub	.proc
-		; -- in-place 8-bit rol of byte at memory location on stack
-		inx
-		lda  P8ESTACK_LO,x
+		; -- in-place 8-bit rol of byte at memory location in AY
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
+		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
 		lda  (P8ZP_SCRATCH_W1),y
 		cmp  #$80
@@ -774,81 +768,79 @@ rol2_mem_ub	.proc
 		.pend
 
 rol_array_ub	.proc
-		; -- rol a ubyte in an array (index and array address on stack)
-		inx
-		ldy  P8ESTACK_LO,x
-		inx
-		lda  P8ESTACK_LO,x
+		; -- rol a ubyte in an array
+		lda  _arg_target
+		ldy  _arg_target+1
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  _arg_index
 		lda  (P8ZP_SCRATCH_W1),y
 		rol  a
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
+_arg_target	.word	0
+_arg_index	.byte   0
 		.pend
 
 
 ror_array_ub	.proc
-		; -- ror a ubyte in an array (index and array address on stack)
-		inx
-		ldy  P8ESTACK_LO,x
-		inx
-		lda  P8ESTACK_LO,x
+		; -- ror a ubyte in an array
+		lda  _arg_target
+		ldy  _arg_target+1
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  _arg_index
 		lda  (P8ZP_SCRATCH_W1),y
 		ror  a
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
+_arg_target	.word	0
+_arg_index	.byte   0
 		.pend
 
 ror2_array_ub	.proc
-		; -- ror2 (8-bit ror) a ubyte in an array (index and array address on stack)
-		inx
-		ldy  P8ESTACK_LO,x
-		inx
-		lda  P8ESTACK_LO,x
+		; -- ror2 (8-bit ror) a ubyte in an array
+		lda  _arg_target
+		ldy  _arg_target+1
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  _arg_index
 		lda  (P8ZP_SCRATCH_W1),y
 		lsr  a
 		bcc  +
 		ora  #$80
 +		sta  (P8ZP_SCRATCH_W1),y
 		rts
+_arg_target	.word	0
+_arg_index	.byte   0
 		.pend
 
 rol2_array_ub	.proc
-		; -- rol2 (8-bit rol) a ubyte in an array (index and array address on stack)
-		inx
-		ldy  P8ESTACK_LO,x
-		inx
-		lda  P8ESTACK_LO,x
+		; -- rol2 (8-bit rol) a ubyte in an array
+		lda  _arg_target
+		ldy  _arg_target+1
 		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  _arg_index
 		lda  (P8ZP_SCRATCH_W1),y
 		cmp  #$80
 		rol  a
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
+_arg_target	.word	0
+_arg_index	.byte   0
 		.pend
 
 ror_array_uw	.proc
-		; -- ror a uword in an array (index and array address on stack)
+		; -- ror a uword in an array
 		php
-		inx
-		lda  P8ESTACK_LO,x
+		lda  _arg_target
+		ldy  _arg_target+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  _arg_index
 		asl  a
 		tay
-		inx
-		lda  P8ESTACK_LO,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
 		iny
 		lda  (P8ZP_SCRATCH_W1),y
 		plp
@@ -859,20 +851,20 @@ ror_array_uw	.proc
 		ror  a
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
+_arg_target	.word  0
+_arg_index	.byte  0
 		.pend
 
 rol_array_uw	.proc
-		; -- rol a uword in an array (index and array address on stack)
+		; -- rol a uword in an array
 		php
-		inx
-		lda  P8ESTACK_LO,x
+		lda  _arg_target
+		ldy  _arg_target+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  _arg_index
 		asl  a
 		tay
-		inx
-		lda  P8ESTACK_LO,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
 		lda  (P8ZP_SCRATCH_W1),y
 		plp
 		rol  a
@@ -882,19 +874,19 @@ rol_array_uw	.proc
 		rol  a
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
+_arg_target	.word  0
+_arg_index	.byte  0
 		.pend
 
 rol2_array_uw	.proc
-		; -- rol2 (16-bit rol) a uword in an array (index and array address on stack)
-		inx
-		lda  P8ESTACK_LO,x
+		; -- rol2 (16-bit rol) a uword in an array
+		lda  _arg_target
+		ldy  _arg_target+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  _arg_index
 		asl  a
 		tay
-		inx
-		lda  P8ESTACK_LO,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
 		lda  (P8ZP_SCRATCH_W1),y
 		asl  a
 		sta  (P8ZP_SCRATCH_W1),y
@@ -908,19 +900,19 @@ rol2_array_uw	.proc
 		adc  #0
 		sta  (P8ZP_SCRATCH_W1),y
 +		rts
+_arg_target	.word  0
+_arg_index	.byte  0
 		.pend
 
 ror2_array_uw	.proc
-		; -- ror2 (16-bit ror) a uword in an array (index and array address on stack)
-		inx
-		lda  P8ESTACK_LO,x
+		; -- ror2 (16-bit ror) a uword in an array
+		lda  _arg_target
+		ldy  _arg_target+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  _arg_index
 		asl  a
 		tay
-		inx
-		lda  P8ESTACK_LO,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI,x
-		sta  P8ZP_SCRATCH_W1+1
 		iny
 		lda  (P8ZP_SCRATCH_W1),y
 		lsr  a
@@ -935,6 +927,8 @@ ror2_array_uw	.proc
 		ora  #$80
 		sta  (P8ZP_SCRATCH_W1),y
 +		rts
+_arg_target	.word  0
+_arg_index	.byte  0
 		.pend
 
 
@@ -945,7 +939,6 @@ strcpy		.proc
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  #$ff
 -		iny
-		inc $d020
 		lda  (P8ZP_SCRATCH_W2),y
 		sta  (P8ZP_SCRATCH_W1),y
 		bne  -

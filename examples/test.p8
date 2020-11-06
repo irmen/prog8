@@ -3,48 +3,270 @@
 %import syslib
 %zeropage basicsafe
 
-; builtin functions converted to new call convention:
-;
-; all functions operating on floating-point and fp arrays.
-;
-; mkword
-; lsb
-; msb
-; swap
-
-; abs
-; sgn
-; sqrt16
-; rnd, rndw
-; sin8, sin8u, cos8, cos8u
-; sin16, sin16u, cos16, cos16u
-; max, min
-; any, all
-; sum
-; sort
-; reverse
-
-; exit
-; read_flags
-; memset, memsetw, memcopy
-; leftstr, rightstr, substr
-; strlen, strcmp
-
-; TODO: in-place rols and rors
-
 main {
 
     sub start() {
-        const uword ADDR = $0400
-        const uword ADDR2 = $4000
+        rotations()
+        strings()
+        integers()
+        floatingpoint()
 
-;        memset(ADDR2, 40*25, '*')
-;        memset(ADDR2, 40, '1')
-;        memset(ADDR2+24*40, 39, '2')
-;        memsetw(ADDR2, 40*25/2, $3132)
-;        memsetw(ADDR2, 20, $4142)
-;        memsetw(ADDR2+24*40, 19, $4241)
-;        memcopy(ADDR2, ADDR, 200)
+        testX()
+    }
+
+    sub rotations() {
+        ubyte[] ubarr = [%11000111]
+        uword[] uwarr = [%1100111110101010]
+
+        repeat(10) {
+            txt.chrout('\n')
+        }
+
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        uwarr[0] = %1100111110101010
+        ror(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        clear_carry()
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        rol2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        rol2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        rol2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        rol2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        ror2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        ror2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        ror2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        ror2(uwarr[0])
+        txt.print_uwbin(uwarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        rol(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        set_carry()
+        ror(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        set_carry()
+        ror(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        rol2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        rol2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        rol2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        rol2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        ror2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        ror2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        ror2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        ror2(ubarr[0])
+        txt.print_ubbin(ubarr[0], true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        &ubyte  membyte = $c000
+        uword addr = $c000
+
+        @(addr) = %10110101
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        rol(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        rol(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        rol(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        rol(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        @(addr) = %10110101
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        ror(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        ror(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        ror(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        set_carry()
+        ror(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        @(addr) = %10110101
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        rol2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        rol2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        rol2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        rol2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+        @(addr) = %10110101
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        ror2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        ror2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        ror2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        ror2(@(addr))
+        txt.print_ubbin(@(addr), true)
+        txt.chrout('\n')
+        txt.chrout('\n')
+
+
+        testX()
+
+    }
+
+    sub strings() {
+        const uword ADDR = $8400
+        const uword ADDR2 = $8000
+
+        memset(ADDR2, 40*25, '*')
+        memset(ADDR2, 40, '1')
+        memset(ADDR2+24*40, 39, '2')
+        memsetw(ADDR2, 40*25/2, $3132)
+        memsetw(ADDR2, 20, $4142)
+        memsetw(ADDR2+24*40, 19, $4241)
+        memcopy(ADDR2, ADDR, 200)
 
         str result = "?" *10
         str s1 = "irmen"
@@ -608,47 +830,6 @@ main {
         fl = fzero+sum(flarr)*1.0+fzero
         floats.print_f(fl)
         txt.chrout('\n')
-
-;        ub = min(barr)
-;
-;        ub = zero+min(barr)*1+zero
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-;
-;        ub = max(barr)
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-;
-;        ub = zero+max(barr)*1+zero
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-;
-;        uw = sum(barr)
-;        txt.print_uw(uw)
-;        txt.chrout('\n')
-;
-;        uw = zero+sum(barr)*1+zero
-;        txt.print_uw(uw)
-;        txt.chrout('\n')
-;
-;        ub = any(barr)
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-;
-;        ub = zero+any(barr)*1
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-;
-;        ub = all(barr)
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-;
-;        ub = zero+all(barr)*1
-;        txt.print_ub(ub)
-;        txt.chrout('\n')
-
-
-
 
         testX()
     }

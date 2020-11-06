@@ -131,37 +131,41 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
                                 asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.registerOrPair!=null }
-                                if(returnValue.first==DataType.STR) {
-                                    when(assign.target.datatype) {
-                                        DataType.UWORD -> {
-                                            // assign the address of the string result value
-                                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                when (returnValue.first) {
+                                    DataType.STR -> {
+                                        when(assign.target.datatype) {
+                                            DataType.UWORD -> {
+                                                // assign the address of the string result value
+                                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                            }
+                                            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                                                // copy the actual string result into the target string variable
+                                                asmgen.out("""
+                                                                        pha
+                                                                        lda  #<${assign.target.asmVarname}
+                                                                        sta  P8ZP_SCRATCH_W1
+                                                                        lda  #>${assign.target.asmVarname}
+                                                                        sta  P8ZP_SCRATCH_W1+1
+                                                                        pla
+                                                                        jsr  prog8_lib.strcpy""")
+                                            }
+                                            else -> throw AssemblyError("weird target dt")
                                         }
-                                        DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                                            // copy the actual string result into the target string variable
-                                            asmgen.out("""
-                                                pha
-                                                lda  #<${assign.target.asmVarname}
-                                                sta  P8ZP_SCRATCH_W1
-                                                lda  #>${assign.target.asmVarname}
-                                                sta  P8ZP_SCRATCH_W1+1
-                                                pla
-                                                jsr  prog8_lib.strcpy""")
-                                        }
-                                        else -> throw AssemblyError("weird target dt")
                                     }
-                                } else if(returnValue.first==DataType.FLOAT) {
-                                    // float result from function sits in FAC1
-                                    assignFAC1float(assign.target)
-                                } else {
-                                    when (returnValue.second.registerOrPair) {
-                                        RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
-                                        RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
-                                        RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
-                                        RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
-                                        RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                        RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
-                                        else -> throw AssemblyError("should be just one register byte result value")
+                                    DataType.FLOAT -> {
+                                        // float result from function sits in FAC1
+                                        assignFAC1float(assign.target)
+                                    }
+                                    else -> {
+                                        when (returnValue.second.registerOrPair) {
+                                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
+                                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
+                                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                                            RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                                            RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                            RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
+                                            else -> throw AssemblyError("should be just one register byte result value")
+                                        }
                                     }
                                 }
                                 if (preserveStatusRegisterAfterCall)

@@ -69,8 +69,7 @@ class FSignature(val name: String,
             actualParamTypes.isEmpty() -> CallConvention(emptyList(), returns)
             actualParamTypes.size==1 -> {
                 // one parameter? via register/registerpair
-                val paramType = actualParamTypes[0]
-                val paramConv = when(paramType) {
+                val paramConv = when(val paramType = actualParamTypes[0]) {
                     DataType.UBYTE, DataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
                     DataType.UWORD, DataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)
