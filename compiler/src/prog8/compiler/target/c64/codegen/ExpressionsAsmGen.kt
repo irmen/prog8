@@ -1696,34 +1696,35 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateCompareStrings(operator: String) {
-        asmgen.out(" jsr  prog8_lib.func_strcmp")    // result  of compare is on stack but also in A
+        asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
         when(operator) {
-            "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO+1,x")
-            "!=" -> asmgen.out(" and  #1 |  sta  P8ESTACK_LO+1,x")
+            "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO,x")
+            "!=" -> asmgen.out(" and  #1 |  sta  P8ESTACK_LO,x")
             "<=" -> asmgen.out("""
                 bpl  +
                 lda  #1
                 bne  ++
 +               lda  #0
-+               sta  P8ESTACK_LO+1,x""")
++               sta  P8ESTACK_LO,x""")
             ">=" -> asmgen.out("""
                 bmi  +
                 lda  #1
                 bne  ++
 +               lda  #0
-+               sta  P8ESTACK_LO+1,x""")
++               sta  P8ESTACK_LO,x""")
             "<" -> asmgen.out("""
                 bmi  +
                 lda  #0
                 beq  ++
 +               lda  #1
-+               sta  P8ESTACK_LO+1,x""")
++               sta  P8ESTACK_LO,x""")
             ">" -> asmgen.out("""
                 bpl  +
                 lda  #0
                 beq  ++
 +               lda  #1
-+               sta  P8ESTACK_LO+1,x""")
++               sta  P8ESTACK_LO,x""")
         }
+        asmgen.out("  dex")
     }
 }

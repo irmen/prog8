@@ -945,10 +945,24 @@ strcpy		.proc
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  #$ff
 -		iny
+		inc $d020
 		lda  (P8ZP_SCRATCH_W2),y
 		sta  (P8ZP_SCRATCH_W1),y
 		bne  -
 		rts
+		.pend
+
+strcmp_expression	.proc
+		; TODO expression call args not via stack
+		inx
+		lda  P8ESTACK_LO,x
+		ldy  P8ESTACK_HI,x
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		inx
+		lda  P8ESTACK_LO,x
+		ldy  P8ESTACK_HI,x
+		jmp  strcmp_mem
 		.pend
 
 

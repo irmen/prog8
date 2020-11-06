@@ -46,27 +46,33 @@ main {
 ;        memsetw(ADDR2+24*40, 19, $4241)
 ;        memcopy(ADDR2, ADDR, 200)
 
-        str result = "." *10
+        str result = "?" *10
         str s1 = "irmen"
         str s2 = "hello"
+        str dots = "....."
 
         ubyte ub
         byte bb
         ubyte zero=0
 
-
-
         bb = strcmp(s1, s2)
+        txt.print_b(bb)
+        txt.chrout('\n')
+        bb = strcmp(s2, s1)
         txt.print_b(bb)
         txt.chrout('\n')
         txt.print_ub(s1==s2)
         txt.chrout('\n')
         txt.print_ub(s1<s2)
         txt.chrout('\n')
+        txt.print_ub(s1>s2)
+        txt.chrout('\n')
         bb = zero+strcmp(s1,s2)*1+zero
         txt.print_b(bb)
         txt.chrout('\n')
-
+        bb = zero+strcmp(s2,s1)*1+zero
+        txt.print_b(bb)
+        txt.chrout('\n')
 
         ub = strlen(s1)
         txt.print_ub(ub)
@@ -81,8 +87,9 @@ main {
         leftstr(s1, result, len(s1))
         txt.print(result)
         txt.chrout('\n')
+        txt.chrout('\n')
 
-        result = "."*10     ; TODO doesn't work??
+        result = "x"*8
         rightstr(s2, result, 3)
         txt.print(result)
         txt.chrout('\n')
@@ -90,7 +97,7 @@ main {
         txt.print(result)
         txt.chrout('\n')
 
-        result = "."*10     ; TODO doesn't work??
+        result = "y"*10
         substr(s2, result, 1, 3)
         txt.print(result)
         txt.chrout('\n')

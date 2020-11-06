@@ -287,9 +287,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.STR -> {
                         asmgen.out("""
                             lda  #<${target.asmVarname}
+                            ldy  #>${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
-                            lda  #>${target.asmVarname}
-                            sta  P8ZP_SCRATCH_W1+1
+                            sty  P8ZP_SCRATCH_W1+1
                             inx
                             lda  P8ESTACK_HI,x
                             tay
@@ -430,17 +430,17 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.UWORD -> {
                         asmgen.out("""
                             lda #<$sourceName
+                            ldy #>$sourceName
                             sta ${target.asmVarname}
-                            lda #>$sourceName
-                            sta ${target.asmVarname}+1
+                            sty ${target.asmVarname}+1
                         """)
                     }
                     DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
                         asmgen.out("""
                             lda  #<${target.asmVarname}
+                            ldy  #>${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
-                            lda  #>${target.asmVarname}
-                            sta  P8ZP_SCRATCH_W1+1
+                            sty  P8ZP_SCRATCH_W1+1
                             lda  #<$sourceName
                             ldy  #>$sourceName
                             jsr  prog8_lib.strcpy""")
@@ -451,9 +451,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.STACK -> {
                 asmgen.out("""
                     lda  #<$sourceName
+                    ldy  #>$sourceName+1
                     sta  P8ESTACK_LO,x
-                    lda  #>$sourceName+1
-                    sta  P8ESTACK_HI,x
+                    sty  P8ESTACK_HI,x
                     dex""")
             }
             else -> throw AssemblyError("string-assign to weird target")
