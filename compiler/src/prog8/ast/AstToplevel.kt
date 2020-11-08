@@ -57,19 +57,11 @@ interface IFunctionCall {
 }
 
 
-class AsmGenInfo {
-    var usedAutoArrayIndexerForStatements = mutableMapOf<String, MutableSet<Statement>>()
-    var usedRegsaveA = false
-    var usedRegsaveX = false
-    var usedRegsaveY = false
-}
-
 interface INameScope {
     val name: String
     val position: Position
     val statements: MutableList<Statement>
     val parent: Node
-    val asmGenInfo: AsmGenInfo
 
     fun linkParents(parent: Node)
 
@@ -288,7 +280,6 @@ class Module(override val name: String,
 
     override lateinit var parent: Node
     lateinit var program: Program
-    override val asmGenInfo = AsmGenInfo()
     val importedBy = mutableListOf<Module>()
     val imports = mutableSetOf<Module>()
 
@@ -322,7 +313,6 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used
     override var parent: Node = ParentSentinel
-    override val asmGenInfo = AsmGenInfo()
 
     override fun linkParents(parent: Node) {
         modules.forEach { it.linkParents(this) }
@@ -375,7 +365,6 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<Statement>()
     override var parent: Node = ParentSentinel
-    override val asmGenInfo = AsmGenInfo()
     override fun linkParents(parent: Node) {}
 }
 

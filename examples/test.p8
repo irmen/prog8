@@ -6,6 +6,17 @@
 main {
 
     sub start() {
+        float t = 0.0
+
+        repeat 10 {
+            float cosa = cos(t)
+            float sina = sin(t)
+            float cosb = cos(t*0.33)
+            float sinb = sin(t*0.33)
+            float cosc = cos(t*0.78)
+            float sinc = sin(t*0.78)
+        }
+
         testX()
     }
 

@@ -796,6 +796,8 @@ internal class AsmGen(private val program: Program,
                 out("_prog8_regsaveX     .byte  0")
             if(sub.asmGenInfo.usedRegsaveY)
                 out("_prog8_regsaveY     .byte  0")
+            if(sub.asmGenInfo.usedFloatEvalResultVar)
+                out("_prog8_float_eval_result    .byte 0,0,0,0,0")
             vardecls2asm(sub.statements)
             out("  .pend\n")
         }
@@ -1179,7 +1181,7 @@ $counterVar    .byte  0""")
                             out("  lda  #<${asmVar} |  ldy  #>${asmVar} |  jsr  floats.MOVFM")
                         }
                         else -> {
-                            // todo evaluate into fac1 instead of stack
+                            // todo evaluate directly into fac1 instead of stack
                             translateExpression(returnvalue)
                             out("  jsr  floats.pop_float_fac1")
                         }

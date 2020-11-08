@@ -52,7 +52,6 @@ class Block(override val name: String,
             val isInLibrary: Boolean,
             override val position: Position) : Statement(), INameScope {
     override lateinit var parent: Node
-    override val asmGenInfo = AsmGenInfo()
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -642,7 +641,6 @@ class AnonymousScope(override var statements: MutableList<Statement>,
                      override val position: Position) : INameScope, Statement() {
     override val name: String
     override lateinit var parent: Node
-    override val asmGenInfo = AsmGenInfo()
 
     companion object {
         private var sequenceNumber = 1
@@ -681,6 +679,18 @@ class NopStatement(override val position: Position): Statement() {
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
+class AsmGenInfo {
+    // This class contains various attributes that influence the assembly code generator.
+    // Conceptually it should be part of any INameScope.
+    // But because the resulting code only creates "real" scopes on a subroutine level,
+    // it's more consistent to only define these attributes on a Subroutine node.
+    var usedAutoArrayIndexerForStatements = mutableMapOf<String, MutableSet<Statement>>()
+    var usedRegsaveA = false
+    var usedRegsaveX = false
+    var usedRegsaveY = false
+    var usedFloatEvalResultVar = false
+}
+
 // the subroutine class covers both the normal user-defined subroutines,
 // and also the predefined/ROM/register-based subroutines.
 // (multiple return types can only occur for the latter type)
@@ -712,7 +722,7 @@ class Subroutine(override val name: String,
     }
 
     override lateinit var parent: Node
-    override val asmGenInfo = AsmGenInfo()
+    val asmGenInfo = AsmGenInfo()
     val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
@@ -996,7 +1006,6 @@ class StructDecl(override val name: String,
                  override val position: Position): Statement(), INameScope {
 
     override lateinit var parent: Node
-    override val asmGenInfo = AsmGenInfo()
 
     override fun linkParents(parent: Node) {
         this.parent = parent

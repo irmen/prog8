@@ -3,6 +3,7 @@
 %import conv
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
+; TODO doesn't draw anything on cx16 anymore...
 
 main {
 
