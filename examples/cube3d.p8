@@ -2,8 +2,6 @@
 %import syslib
 %import textio
 
-; TODO why has the prg become bigger since register args?
-
 main {
 
     ; vertices
