@@ -217,8 +217,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             if(!childIDt.isKnown)
                 throw AssemblyError("unknown dt")
             val childDt = childIDt.typeOrElse(DataType.STRUCT)
-            if (value.type.equalsSize(childDt) || value.type.largerThan(childDt)) {
+            if (value.type!=DataType.FLOAT && (value.type.equalsSize(childDt) || value.type.largerThan(childDt))) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
+                // (works for integer types, not for float.)
                 inplaceModification(target, operator, value.expression)
                 return true
             }
