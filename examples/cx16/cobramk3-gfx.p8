@@ -3,7 +3,6 @@
 %import conv
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
-; TODO doesn't draw anything on cx16 anymore...
 
 main {
 
@@ -37,7 +36,7 @@ main {
 
             cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()
-            ;draw_lines()
+            ; draw_lines()
 
             anglex += 217
             angley -= 505
@@ -224,6 +223,8 @@ main {
 }
 
 shipdata {
+
+    %option force_output
 
     ; Ship model data converted from BBC Elite's Cobra MK 3
     ; downloaded from http://www.elitehomepage.org/archive/index.htm

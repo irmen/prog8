@@ -48,7 +48,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val variable = assign.source.asmVarname
                 when (assign.target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
-                    DataType.UWORD, DataType.WORD -> assignVariableWord(assign.target, variable)
+                    DataType.WORD -> assignVariableWord(assign.target, variable)
+                    DataType.UWORD -> {
+                        if(assign.source.datatype in PassByReferenceDatatypes)
+                            assignAddressOf(assign.target, variable)
+                        else
+                            assignVariableWord(assign.target, variable)
+                    }
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
                     DataType.STR -> assignVariableString(assign.target, variable)
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
