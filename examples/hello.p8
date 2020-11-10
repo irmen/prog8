@@ -5,9 +5,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO why has the prg become bigger since register args?
-
-
 main {
 
     sub start() {

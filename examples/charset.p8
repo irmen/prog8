@@ -33,12 +33,7 @@ charset {
         set_irqd()
         ubyte bank = @($0001)
         @($0001) = bank & %11111011     ; enable CHAREN, so the character rom accessible at $d000
-        ; memcopy($d000, CHARSET, 256*8*2)  ; copy the charset to RAM    TODO memcopy > 256 length
-        uword cc = 0
-        repeat 256*8*2 {
-            @(CHARSET+cc) = @($d000+cc)
-            cc++
-        }
+        memcopy($d000, CHARSET, 256*8*2)  ; copy the charset to RAM
 
         @($0001) = bank         ; reset previous memory banking
         clear_irqd()

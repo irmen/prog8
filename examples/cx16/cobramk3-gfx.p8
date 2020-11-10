@@ -224,9 +224,7 @@ main {
 
 shipdata {
 
-    %option force_output
-
-    ; Ship model data converted from BBC Elite's Cobra MK 3
+        ; Ship model data converted from BBC Elite's Cobra MK 3
     ; downloaded from http://www.elitehomepage.org/archive/index.htm
 
 const ubyte totalNumberOfEdges = 51
