@@ -213,7 +213,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 """)
                         }
                         else -> {
-                            asmgen.translateExpression(value)
+                            asmgen.translateExpression(value)   // todo directly into A
                             asmgen.out("""
             inx
             pha

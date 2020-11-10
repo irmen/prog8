@@ -114,7 +114,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
                     }
                     else -> {
-                        asmgen.translateExpression(value.addressExpression)
+                        asmgen.translateExpression(value.addressExpression) // TODO directly into AY
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  inx")
                         assignRegisterByte(assign.target, CpuRegister.A)
                     }
@@ -201,6 +201,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     else -> {
                         // everything else just evaluate via the stack.
+                        // TODO byte and word values not via stack but via A / AY registers?
                         asmgen.translateExpression(value)
                         if(assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
                             asmgen.signExtendStackLsb(assign.source.datatype)
@@ -267,6 +268,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
 
         // give up, do it via eval stack
+        // TODO byte and word values not via stack but directly via A or AY registers?
         asmgen.translateExpression(origAssign.source.expression!!)
         assignStackValue(target)
     }
@@ -1241,7 +1243,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             else -> {
                 asmgen.out(" lda  $ldaInstructionArg |  pha")
-                asmgen.translateExpression(addressExpr)
+                asmgen.translateExpression(addressExpr)     // TODO directly into AY
                 asmgen.out("""
                     inx
                     lda  P8ESTACK_LO,x
@@ -1274,7 +1276,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             else -> {
                 asmgen.saveRegister(register, false, memoryAddress.definingSubroutine()!!)
-                asmgen.translateExpression(addressExpr)
+                asmgen.translateExpression(addressExpr) // TODO directly into AY
                 asmgen.restoreRegister(CpuRegister.A, false)
                 asmgen.out("""
                     inx

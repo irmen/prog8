@@ -902,7 +902,7 @@ internal class AsmGen(private val program: Program,
                 }
             }
             else -> {
-                translateExpression(stmt.iterations!!)
+                translateExpression(stmt.iterations!!)      // todo directly into AY?
                 val dt = stmt.iterations!!.inferType(program)
                 if(!dt.isKnown)
                     throw AssemblyError("unknown dt")
@@ -1008,7 +1008,7 @@ $counterVar    .byte  0""")
     }
 
     private fun translate(stmt: WhenStatement) {
-        expressionsAsmGen.translateExpression(stmt.condition)
+        expressionsAsmGen.translateExpression(stmt.condition)       // TODO directly into AY?
         val endLabel = makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
         val conditionDt = stmt.condition.inferType(program)
@@ -1181,7 +1181,7 @@ $counterVar    .byte  0""")
                             out("  lda  #<${asmVar} |  ldy  #>${asmVar} |  jsr  floats.MOVFM")
                         }
                         else -> {
-                            // todo evaluate directly into fac1 instead of stack
+                            // todo evaluate directly into fac1 instead of via stack intermediate
                             translateExpression(returnvalue)
                             out("  jsr  floats.pop_float_fac1")
                         }

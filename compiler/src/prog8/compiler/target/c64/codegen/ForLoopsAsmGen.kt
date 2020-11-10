@@ -13,6 +13,8 @@ import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import kotlin.math.absoluteValue
 
+// todo reduce use of stack eval translateExpression()
+
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     internal fun translate(stmt: ForLoop) {

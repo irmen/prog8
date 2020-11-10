@@ -440,7 +440,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out("  lda  P8ESTACK_LO+1,x |  tay |  lda  $name |  jsr  math.divmod_ub_asm |  sta  $name")
             }
             "<<" -> {
-                asmgen.translateExpression(value)
+                asmgen.translateExpression(value)       // todo directly into Y
                 asmgen.out("""
                     inx
                     ldy  P8ESTACK_LO,x
@@ -451,7 +451,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
             }
             ">>" -> {
-                asmgen.translateExpression(value)
+                asmgen.translateExpression(value)   // todo directly into Y
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
                         inx

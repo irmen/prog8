@@ -13,7 +13,7 @@ main {
 ;        byte c = strcmp(s1, s2)
 ;        txt.print_b(c)
 ;        txt.chrout('\n')
-        txt.print_ub(s1==s2)
+        txt.print_ub(s1<=s2)
         txt.chrout('\n')
 
         testX()

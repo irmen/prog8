@@ -74,7 +74,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         is AddressOf,
                         is RangeExpr,
                         is FunctionCall -> {
-                            translateExpression(left)
+                            translateExpression(left)   // todo directly into AY reg?
                             if(dt in ByteDatatypes) {
                                 asmgen.out("""
                                     inx
@@ -91,6 +91,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                     bne  $jumpIfFalseLabel""")
                                 return
                             }
+                            // TODO ....float?
                         }
                         else -> {}
                     }
@@ -116,7 +117,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         is AddressOf,
                         is RangeExpr,
                         is FunctionCall -> {
-                            translateExpression(left)
+                            translateExpression(left)   // todo directly into AY?
                             if(dt in ByteDatatypes) {
                                 asmgen.out("""
                                     inx
@@ -133,6 +134,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                     beq  $jumpIfFalseLabel""")
                                 return
                             }
+                            // TODO .... .float?
                         }
                         else -> {}
                     }
@@ -153,6 +155,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.UWORD -> translateUwordLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.WORD -> translateWordLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
+                        // todo via func args
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -168,6 +171,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.UWORD -> translateUwordLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.WORD -> translateWordLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
+                        // todo via func args
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -183,6 +187,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.UWORD -> translateUwordGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.WORD -> translateWordGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
+                        // todo via func args
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -198,6 +203,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.UWORD -> translateUwordGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.WORD -> translateWordGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
+                        // todo via func args
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -239,6 +245,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -268,6 +275,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -299,6 +307,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -329,6 +338,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -364,6 +374,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or registers
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -394,6 +405,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
         }
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -429,6 +441,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -465,6 +478,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -507,6 +521,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.lesseq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -540,6 +555,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.lesseq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -574,6 +590,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.lesseq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -610,6 +627,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.lesseq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -640,6 +658,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greatereq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -672,6 +691,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greatereq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -701,6 +721,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greatereq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -732,6 +753,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greatereq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -763,6 +785,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.equal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -794,6 +817,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.notequal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -827,6 +851,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.equal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -862,6 +887,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.notequal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -907,6 +933,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args
         translateExpression(left)
         translateExpression(right)
         asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -953,6 +980,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // todo via func args
         translateExpression(left)
         translateExpression(right)
         asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -1103,7 +1131,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(typecast: TypecastExpression) {
-        translateExpression(typecast.expression)
+        translateExpression(typecast.expression)        // todo avoid stack
         when(typecast.expression.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
                 when(typecast.type) {
@@ -1186,7 +1214,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             }
             else -> {
-                translateExpression(expr.addressExpression)
+                translateExpression(expr.addressExpression)  // todo directly into A
                 asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack")
                 if(pushResultOnEstack)
                     asmgen.out("  sta  P8ESTACK_LO+1,x")
@@ -1243,6 +1271,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
         val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
         // see if we can apply some optimized routines
+        // TODO avoid using evaluation on stack everywhere
         when(expr.operator) {
             "+" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
@@ -1518,6 +1547,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: PrefixExpression) {
+        // todo avoid using stack
         translateExpression(expr.expression)
         val itype = expr.inferType(program)
         if(!itype.isKnown)
