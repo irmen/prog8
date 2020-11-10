@@ -53,12 +53,11 @@ X =      BinExpr                                    X   =   LeftExpr
 
 
  */
-            // TODO can be generelized a bit by allowing LEFT EXPR to be more complex
             if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target, program.namespace)) {
                 if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
                     return noModifications
 
-                if(isSimpleExpression(binExpr.left) && isSimpleExpression(binExpr.right) && !assignment.isAugmentable) {
+                if(isSimpleExpression(binExpr.right) && !assignment.isAugmentable) {
                     val firstAssign = Assignment(assignment.target, binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)

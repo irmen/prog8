@@ -4,8 +4,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO this is 5 seconds slower than the previous compiled version.  Caused by BinExprSplitter change?
-
 main {
     const uword width = 30
     const uword height = 20
