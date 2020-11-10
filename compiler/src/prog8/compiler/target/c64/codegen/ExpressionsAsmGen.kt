@@ -9,6 +9,10 @@ import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
+import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
@@ -1497,13 +1501,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
             throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
 
-        // the general, non-optimized cases  TODO optimize more cases....
-        translateExpression(expr.left)
-        translateExpression(expr.right)
         if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in comparisonOperators) {
-            translateCompareStrings(expr.operator)
+            translateCompareStrings(expr.left, expr.operator, expr.right)
         }
         else {
+            // the general, non-optimized cases  TODO optimize more cases....
+            translateExpression(expr.left)
+            translateExpression(expr.right)
             when (leftDt) {
                 in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
                 in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
@@ -1695,7 +1699,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
-    private fun translateCompareStrings(operator: String) {
+    private fun translateCompareStrings(s1: Expression, operator: String, s2: Expression) {
+        var src = AsmAssignSource.fromAstSource(s1, program, asmgen)
+        var tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "prog8_lib.strcmp_expression._arg_s1")
+        var assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+        asmgen.translateNormalAssignment(assign)
+        src = AsmAssignSource.fromAstSource(s2, program, asmgen)
+        tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "prog8_lib.strcmp_expression._arg_s2")
+        assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+        asmgen.translateNormalAssignment(assign)
         asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
         when(operator) {
             "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO,x")

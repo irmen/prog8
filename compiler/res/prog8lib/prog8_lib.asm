@@ -946,16 +946,16 @@ strcpy		.proc
 		.pend
 
 strcmp_expression	.proc
-		; TODO expression call args not via stack
-		inx
-		lda  P8ESTACK_LO,x
-		ldy  P8ESTACK_HI,x
+		; -- compare strings, result in A
+		lda  _arg_s2
+		ldy  _arg_s2+1
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
-		inx
-		lda  P8ESTACK_LO,x
-		ldy  P8ESTACK_HI,x
+		lda  _arg_s1
+		ldy  _arg_s1+1
 		jmp  strcmp_mem
+_arg_s1		.word  0
+_arg_s2		.word  0
 		.pend
 
 

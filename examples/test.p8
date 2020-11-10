@@ -7,15 +7,13 @@ main {
 
     sub start() {
 
-        ubyte[100] array
+        str s1 = "irmen"
+        str s2 = "hello"
 
-        memset(array, len(array)-1, 255)
-
-        ubyte xx
-        for xx in array {
-            txt.print_ubhex(xx, false)
-            txt.chrout(',')
-        }
+;        byte c = strcmp(s1, s2)
+;        txt.print_b(c)
+;        txt.chrout('\n')
+        txt.print_ub(s1==s2)
         txt.chrout('\n')
 
         testX()
