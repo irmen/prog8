@@ -96,8 +96,8 @@ stack_uw2float	.proc
 		.pend
 
 stack_float2w	.proc               ; also used for float2b
-		stx  P8ZP_SCRATCH_REG
 		jsr  pop_float_fac1
+		stx  P8ZP_SCRATCH_REG
 		jsr  AYINT
 		ldx  P8ZP_SCRATCH_REG
 		lda  $64
@@ -109,8 +109,8 @@ stack_float2w	.proc               ; also used for float2b
 		.pend
 
 stack_float2uw	.proc               ; also used for float2ub
-		stx  P8ZP_SCRATCH_REG
 		jsr  pop_float_fac1
+		stx  P8ZP_SCRATCH_REG
 		jsr  GETADR
 		ldx  P8ZP_SCRATCH_REG
 		sta  P8ESTACK_HI,x
