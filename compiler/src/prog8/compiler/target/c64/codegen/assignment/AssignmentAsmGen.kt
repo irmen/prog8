@@ -1289,4 +1289,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
         }
     }
+
+    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) {
+        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
+        val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
+        val assign = AsmAssignment(src, tgt, false, expr.position)
+        translateNormalAssignment(assign)
+    }
+
+    internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
+        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
+        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
+        val assign = AsmAssignment(src, tgt, false, expr.position)
+        translateNormalAssignment(assign)
+    }
 }

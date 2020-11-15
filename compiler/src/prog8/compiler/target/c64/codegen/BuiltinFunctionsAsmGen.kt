@@ -101,18 +101,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when(func.name) {
                 "memset" -> {
                     // use the ROM function of the Cx16
-                    var src = AsmAssignSource.fromAstSource(fcall.args[0], program, asmgen)
-                    var tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r0")
-                    var assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(assign)
-                    src = AsmAssignSource.fromAstSource(fcall.args[1], program, asmgen)
-                    tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r1")
-                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(assign)
-                    src = AsmAssignSource.fromAstSource(fcall.args[2], program, asmgen)
-                    tgt = AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UBYTE, null, register = RegisterOrPair.A)
-                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(assign)
+                    asmgen.assignExpressionToVariable(fcall.args[0], "cx16.r0", DataType.UWORD, scope)
+                    asmgen.assignExpressionToVariable(fcall.args[1], "cx16.r1", DataType.UWORD, scope)
+                    asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.A)
                     val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
                     asmgen.saveRegister(CpuRegister.X, false, sub)
                     asmgen.out("  jsr  cx16.memory_fill")
@@ -129,18 +120,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
 
                     // use the ROM function of the Cx16
-                    var src = AsmAssignSource.fromAstSource(fcall.args[0], program, asmgen)
-                    var tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r0")
-                    var assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(assign)
-                    src = AsmAssignSource.fromAstSource(fcall.args[1], program, asmgen)
-                    tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r1")
-                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(assign)
-                    src = AsmAssignSource.fromAstSource(fcall.args[2], program, asmgen)
-                    tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "cx16.r2")
-                    assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-                    asmgen.translateNormalAssignment(assign)
+                    asmgen.assignExpressionToVariable(fcall.args[0], "cx16.r0", DataType.UWORD, scope)
+                    asmgen.assignExpressionToVariable(fcall.args[1], "cx16.r1", DataType.UWORD, scope)
+                    asmgen.assignExpressionToVariable(fcall.args[2], "cx16.r2", DataType.UWORD, scope)
                     val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
                     asmgen.saveRegister(CpuRegister.X, false, sub)
                     asmgen.out("  jsr  cx16.memory_copy")
@@ -995,10 +977,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             if (resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            val src = AsmAssignSource.fromAstSource(fcall.args.single(), program, asmgen)
-            val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
-            val assign = AsmAssignment(src, tgt, false, (fcall as Node).position)
-            asmgen.translateNormalAssignment(assign)
+            asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
             if (resultToStack)
                 asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
             else
@@ -1019,10 +998,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             if (resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
-            val src = AsmAssignSource.fromAstSource(fcall.args.single(), program, asmgen)
-            val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
-            val assign = AsmAssignment(src, tgt, false, (fcall as Node).position)
-            asmgen.translateNormalAssignment(assign)
+            asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
             if (resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         }

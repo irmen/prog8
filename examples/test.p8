@@ -1,11 +1,15 @@
 %import textio
+%zeropage basicsafe
 
 main {
 
     sub start() {
 
-        ; TODO breakpoint label is no longer outputted by 64tass ...
-        %breakpoint
+        str s1 = "irmen"
+        str s2 = "hello"
+
+        txt.print_ub(s1==s2)
+        txt.print_ub(s1!=s2)
 
         testX()
     }

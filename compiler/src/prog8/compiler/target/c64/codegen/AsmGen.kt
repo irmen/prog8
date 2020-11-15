@@ -14,11 +14,8 @@ import prog8.compiler.target.IAssemblyGenerator
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
 import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
-import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.generatedLabelPrefix
 import prog8.functions.BuiltinFunctions
 import prog8.functions.FSignature
@@ -201,11 +198,7 @@ internal class AsmGen(private val program: Program,
 
     private fun assignInitialValueToVar(decl: VarDecl, variableName: List<String>) {
         val asmName = asmVariableName(variableName)
-        val asgn = AsmAssignment(
-                AsmAssignSource.fromAstSource(decl.value!!, program, this),
-                AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, decl.datatype, decl.definingSubroutine(), variableAsmName = asmName),
-                false, decl.position)
-        assignmentAsmGen.translateNormalAssignment(asgn)
+        assignmentAsmGen.assignExpressionToVariable(decl.value!!, asmName, decl.datatype, decl.definingSubroutine())
     }
 
     private var generatedLabelSequenceNumber: Int = 0
@@ -752,6 +745,12 @@ internal class AsmGen(private val program: Program,
     internal fun translateNormalAssignment(assign: AsmAssignment) =
             assignmentAsmGen.translateNormalAssignment(assign)
 
+    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) =
+            assignmentAsmGen.assignExpressionToRegister(expr, register)
+
+    internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) =
+            assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt, scope)
+
     private fun translateSubroutine(sub: Subroutine) {
         out("")
         outputSourceLine(sub)
@@ -1163,16 +1162,12 @@ $label              nop""")
             val sub = ret.definingSubroutine()!!
             val returnType = sub.returntypes.single()
             val returnReg = sub.asmReturnvaluesRegisters.single()
-            val returnValueTarget =
-                    when {
-                        returnReg.registerOrPair!=null -> AsmAssignTarget.fromRegisters(returnReg.registerOrPair, sub, program, this)
-                        else -> throw AssemblyError("normal subroutines can't return value in status register directly")
-                    }
+            if(returnReg.registerOrPair==null)
+                throw AssemblyError("normal subroutines can't return value in status register directly")
 
             when (returnType) {
                 in IntegerDatatypes -> {
-                    val src = AsmAssignSource.fromAstSource(returnvalue, program, this)
-                    assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+                    assignmentAsmGen.assignExpressionToRegister(returnvalue, returnReg.registerOrPair)
                 }
                 DataType.FLOAT -> {
                     // return the float value via FAC1
@@ -1192,8 +1187,7 @@ $label              nop""")
                 else -> {
                     // all else take its address and assign that also to AY register pair
                     val addrofValue = AddressOf(returnvalue as IdentifierReference, returnvalue.position)
-                    val src = AsmAssignSource.fromAstSource(addrofValue, program, this)
-                    assignmentAsmGen.translateNormalAssignment(AsmAssignment(src, returnValueTarget, false, ret.position))
+                    assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair)
                 }
             }
         }

@@ -9,10 +9,6 @@ import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
-import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
@@ -1730,14 +1726,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateCompareStrings(s1: Expression, operator: String, s2: Expression) {
-        var src = AsmAssignSource.fromAstSource(s1, program, asmgen)
-        var tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "prog8_lib.strcmp_expression._arg_s1")
-        var assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-        asmgen.translateNormalAssignment(assign)
-        src = AsmAssignSource.fromAstSource(s2, program, asmgen)
-        tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, null, variableAsmName = "prog8_lib.strcmp_expression._arg_s2")
-        assign = AsmAssignment(src, tgt, false, Position.DUMMY)
-        asmgen.translateNormalAssignment(assign)
+        asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD, null)
+        asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD, null)
         asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
         when(operator) {
             "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO,x")
