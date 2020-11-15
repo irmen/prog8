@@ -1303,4 +1303,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val assign = AsmAssignment(src, tgt, false, expr.position)
         translateNormalAssignment(assign)
     }
+
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) {
+        val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
+        val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
+        val assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+        translateNormalAssignment(assign)
+    }
 }

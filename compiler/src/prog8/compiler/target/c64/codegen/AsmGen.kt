@@ -751,6 +751,10 @@ internal class AsmGen(private val program: Program,
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) =
             assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt, scope)
 
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) =
+            assignmentAsmGen.assignVariableToRegister(asmVarName, register)
+
+
     private fun translateSubroutine(sub: Subroutine) {
         out("")
         outputSourceLine(sub)

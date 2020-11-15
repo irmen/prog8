@@ -165,10 +165,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             throw AssemblyError("argument type incompatible")
 
         val varName = asmgen.asmVariableName(sub.scopedname+"."+parameter.value.name)
-        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, parameter.value.type, sub, variableAsmName = varName)
-        val source = AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(tgt)
-        val asgn = AsmAssignment(source, tgt, false, Position.DUMMY)
-        asmgen.translateNormalAssignment(asgn)
+        asmgen.assignExpressionToVariable(value, varName, parameter.value.type, sub)
     }
 
     private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
@@ -231,18 +228,16 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             }
             else -> {
                 // via register or register pair
-                val target = AsmAssignTarget.fromRegisters(register!!, sub, program, asmgen)
+                register!!
                 if(requiredDt largerThan valueDt) {
                     // we need to sign extend the source, do this via temporary word variable
                     val scratchVar = asmgen.asmVariableName("P8ZP_SCRATCH_W1")
-                    val scratchTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UBYTE, sub, scratchVar)
-                    val source = AsmAssignSource.fromAstSource(value, program, asmgen)
-                    asmgen.translateNormalAssignment(AsmAssignment(source, scratchTarget, false, value.position))
+                    asmgen.assignExpressionToVariable(value, scratchVar, DataType.UBYTE, sub)
                     asmgen.signExtendVariableLsb(scratchVar, valueDt)
-                    val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, DataType.UWORD, scratchVar)
-                    asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
+                    asmgen.assignVariableToRegister(scratchVar, register)
                 }
                 else {
+                    val target = AsmAssignTarget.fromRegisters(register, sub, program, asmgen)
                     val src = if(valueDt in PassByReferenceDatatypes) {
                         if(value is IdentifierReference) {
                             val addr = AddressOf(value, Position.DUMMY)

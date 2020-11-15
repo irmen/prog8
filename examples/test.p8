@@ -1,15 +1,20 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
 main {
 
     sub start() {
 
-        str s1 = "irmen"
-        str s2 = "hello"
+        ubyte[] barr = [%10011111, %10011111]
 
-        txt.print_ub(s1==s2)
-        txt.print_ub(s1!=s2)
+        rol2(barr[0])
+        ror2(barr[1])
+
+        txt.print_ubbin(barr[0],0)
+        txt.chrout('\n')
+        txt.print_ubbin(barr[1],0)
+        txt.chrout('\n')
 
         testX()
     }
