@@ -2,7 +2,6 @@
 TODO
 ====
 
-- use assignment utility functions in asmgen/assignmentAsmgen instead of creating AsmAssignment instances everywhere
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols

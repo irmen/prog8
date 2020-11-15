@@ -6,14 +6,22 @@ main {
 
     sub start() {
 
-        ubyte[] barr = [%10011111, %10011111]
+        float f = 1.1
+        float[] farr = [2.2, 3.3]
 
-        rol2(barr[0])
-        ror2(barr[1])
-
-        txt.print_ubbin(barr[0],0)
+        floats.print_f(f)
         txt.chrout('\n')
-        txt.print_ubbin(barr[1],0)
+        floats.print_f(farr[0])
+        txt.chrout(',')
+        floats.print_f(farr[1])
+        txt.chrout('\n')
+
+        swap(f, farr[1])
+        floats.print_f(f)
+        txt.chrout('\n')
+        floats.print_f(farr[0])
+        txt.chrout(',')
+        floats.print_f(farr[1])
         txt.chrout('\n')
 
         testX()

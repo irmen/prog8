@@ -641,8 +641,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         }
 
-        // all other types of swap() calls are done via the evaluation stack
-        // TODO find alternative way to swap here without using estack
+        // all other types of swap() calls are done via a temporary variable
 
         fun targetFromExpr(expr: Expression, datatype: DataType): AsmAssignTarget {
             return when (expr) {
@@ -653,24 +652,43 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         }
 
-        asmgen.translateExpression(first)
-        asmgen.translateExpression(second)
-        val idatatype = first.inferType(program)
-        if(!idatatype.isKnown)
-            throw AssemblyError("unknown dt")
-        val datatype = idatatype.typeOrElse(DataType.STRUCT)
-        val assignFirst = AsmAssignment(
-                AsmAssignSource(SourceStorageKind.STACK, program, asmgen, datatype),
-                targetFromExpr(first, datatype),
-                false, first.position
-        )
-        val assignSecond = AsmAssignment(
-                AsmAssignSource(SourceStorageKind.STACK, program, asmgen, datatype),
-                targetFromExpr(second, datatype),
-                false, second.position
-        )
-        asmgen.translateNormalAssignment(assignFirst)
-        asmgen.translateNormalAssignment(assignSecond)
+        val datatype = first.inferType(program).typeOrElse(DataType.STRUCT)
+        when(datatype) {
+            in ByteDatatypes, in WordDatatypes -> {
+                asmgen.assignExpressionToVariable(first, "P8ZP_SCRATCH_W1", datatype, null)
+                asmgen.assignExpressionToVariable(second, "P8ZP_SCRATCH_W2", datatype, null)
+                val assignFirst = AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, variableAsmName = "P8ZP_SCRATCH_W2"),
+                        targetFromExpr(first, datatype),
+                        false, first.position
+                )
+                val assignSecond = AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, variableAsmName = "P8ZP_SCRATCH_W1"),
+                        targetFromExpr(second, datatype),
+                        false, second.position
+                )
+                asmgen.translateNormalAssignment(assignFirst)
+                asmgen.translateNormalAssignment(assignSecond)
+            }
+            DataType.FLOAT -> {
+                // via evaluation stack
+                asmgen.translateExpression(first)
+                asmgen.translateExpression(second)
+                val assignFirst = AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
+                        targetFromExpr(first, datatype),
+                        false, first.position
+                )
+                val assignSecond = AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
+                        targetFromExpr(second, datatype),
+                        false, second.position
+                )
+                asmgen.translateNormalAssignment(assignFirst)
+                asmgen.translateNormalAssignment(assignSecond)
+            }
+            else -> throw AssemblyError("weird swap dt")
+        }
     }
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexValue2: NumericLiteralValue) {
