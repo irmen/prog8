@@ -143,14 +143,17 @@ Required tools
 `64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
 It's very easy to compile yourself.
 A recent precompiled .exe for Windows can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
+*You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
+It's possible to use older versions, but it is very likely that the automatic Vice breakpoints won't work with them.
 
 A **Java runtime (jre or jdk), version 8 or newer**  is required to run the prog8 compiler itself.
-If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK instead.
-Fnd for Windows it's possible to get that as well. Check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ .
+If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK in their packages repository instead.
+For Windows it's possible to get that as well; check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ .
+For MacOS you can use the Homebrew system to install a recent version of OpenJDK.
 
-Finally: a **C-64 emulator** (or a real C-64 ofcourse) can be nice to test and run your programs on.
-The compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
-If you're targeting the CommanderX16, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
+Finally: an **emulator** (or a real machine ofcourse) to test and run your programs on.
+In C64 mode, thhe compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
+If you're targeting the CommanderX16 instead, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
 
 .. important::
     **Building the compiler itself:** (*Only needed if you have not downloaded a pre-built 'fat-jar'*)

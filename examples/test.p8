@@ -1,20 +1,11 @@
 %import textio
-%import floats
-%import syslib
-%zeropage basicsafe
 
 main {
 
     sub start() {
 
-        str s1 = "irmen"
-        str s2 = "hello"
-
-;        byte c = strcmp(s1, s2)
-;        txt.print_b(c)
-;        txt.chrout('\n')
-        txt.print_ub(s1<=s2)
-        txt.chrout('\n')
+        ; TODO breakpoint label is no longer outputted by 64tass ...
+        %breakpoint
 
         testX()
     }

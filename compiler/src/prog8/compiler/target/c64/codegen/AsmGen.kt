@@ -1131,7 +1131,9 @@ $counterVar    .byte  0""")
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
                 breakpointLabels.add(label)
-                out("$label\tnop")
+                out("""
+                    nop
+$label              nop""")
             }
         }
     }
