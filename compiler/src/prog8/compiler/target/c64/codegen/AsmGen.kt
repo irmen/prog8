@@ -905,17 +905,16 @@ internal class AsmGen(private val program: Program,
                 }
             }
             else -> {
-                translateExpression(stmt.iterations!!)      // todo directly into AY?
                 val dt = stmt.iterations!!.inferType(program)
                 if(!dt.isKnown)
                     throw AssemblyError("unknown dt")
                 when (dt.typeOrElse(DataType.STRUCT)) {
                     in ByteDatatypes -> {
-                        out("  inx |  lda  P8ESTACK_LO,x")
+                        assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.A)
                         repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
                     }
                     in WordDatatypes -> {
-                        out("  inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
+                        assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.AY)
                         repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype $dt")
@@ -1011,16 +1010,16 @@ $counterVar    .byte  0""")
     }
 
     private fun translate(stmt: WhenStatement) {
-        expressionsAsmGen.translateExpression(stmt.condition)       // TODO directly into AY?
         val endLabel = makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
         val conditionDt = stmt.condition.inferType(program)
         if(!conditionDt.isKnown)
             throw AssemblyError("unknown condition dt")
         if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes)
-            out("  inx |  lda  P8ESTACK_LO,x")
+            assignExpressionToRegister(stmt.condition, RegisterOrPair.A)
         else
-            out("  inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
+            assignExpressionToRegister(stmt.condition, RegisterOrPair.AY)
+
         for(choice in stmt.choices) {
             val choiceLabel = makeLabel("choice")
             if(choice.values==null) {

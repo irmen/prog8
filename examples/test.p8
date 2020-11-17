@@ -6,12 +6,28 @@ main {
 
     sub start() {
 
-        ubyte ff = 10
+        ubyte ub = 4
+        uword uw = 5
 
-        setflag(ff-10)
-        setflag(ff-9)
-        setflag(ff-10)
-        setflag(ff-9)
+        when ub {
+            1 -> txt.chrout('1')
+            2 -> txt.chrout('2')
+            3 -> txt.chrout('3')
+            4 -> txt.chrout('4')
+            else -> txt.chrout('?')
+        }
+        txt.chrout('\n')
+
+        when uw {
+            $0001 -> txt.chrout('1')
+            $0002 -> txt.chrout('2')
+            $0003 -> txt.chrout('3')
+            $0004 -> txt.chrout('4')
+            $0005 -> txt.chrout('5')
+            else -> txt.chrout('?')
+        }
+
+        txt.chrout('\n')
 
         testX()
     }
