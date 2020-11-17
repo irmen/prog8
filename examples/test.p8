@@ -7,19 +7,11 @@ main {
     sub start() {
 
         ubyte ub = 4
+        ubyte ub2 = 8
         uword uw = 5
 
-        if ding(22)!=0
-            txt.chrout('1')
-        if ding(22)
-            txt.chrout('2')
-        txt.chrout('\n')
-
-        if dingw($1100)!=$0000
-            txt.chrout('1')
-        if dingw($1100)
-            txt.chrout('2')
-        txt.chrout('\n')
+        ub = uw*3 as ubyte
+        txt.print_ub(ub)
 
         testX()
     }

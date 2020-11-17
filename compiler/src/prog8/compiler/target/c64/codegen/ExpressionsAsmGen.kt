@@ -360,7 +360,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or registers
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -771,7 +771,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO via func args or regs
+        // todo via func args or regs
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.equal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -1117,7 +1117,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(typecast: TypecastExpression) {
-        translateExpression(typecast.expression)        // todo avoid stack
+        translateExpression(typecast.expression)
         when(typecast.expression.inferType(program).typeOrElse(DataType.STRUCT)) {
             DataType.UBYTE -> {
                 when(typecast.type) {
@@ -1200,12 +1200,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             }
             else -> {
-                translateExpression(expr.addressExpression)  // todo directly into A
-                asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack")
-                if(pushResultOnEstack)
-                    asmgen.out("  sta  P8ESTACK_LO+1,x")
-                else
-                    asmgen.out("  php |  inx |  plp")
+                asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                if(pushResultOnEstack) {
+                    asmgen.out("  dex |  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO,x")
+                } else {
+                    asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                }
             }
         }
     }
@@ -1533,7 +1533,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: PrefixExpression) {
-        // todo avoid using stack
         translateExpression(expr.expression)
         val itype = expr.inferType(program)
         if(!itype.isKnown)

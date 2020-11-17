@@ -8,6 +8,7 @@
 
 read_byte_from_address_on_stack	.proc
 	; -- read the byte from the memory address on the top of the stack, return in A (stack remains unchanged)
+	; TODO get rid of this by not evaluating the adress onto the stack, but directly into AY or SCRATCH_W2
 		lda  P8ESTACK_LO+1,x
 		ldy  P8ESTACK_HI+1,x
 		sta  P8ZP_SCRATCH_W2
