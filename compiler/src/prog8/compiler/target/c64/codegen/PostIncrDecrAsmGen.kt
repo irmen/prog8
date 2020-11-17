@@ -54,14 +54,8 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                             asmgen.out("+\tdec  ${'$'}ffff\t; modified")
                     }
                     else -> {
-                        asmgen.translateExpression(addressExpr)    // todo directly into AY?
-                        asmgen.out("""
-                            inx
-                            lda  P8ESTACK_LO,x
-                            sta  (+) + 1
-                            lda  P8ESTACK_HI,x
-                            sta  (+) + 2
-                        """)
+                        asmgen.assignExpressionToRegister(addressExpr, RegisterOrPair.AY)
+                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
                         if(incr)
                             asmgen.out("+\tinc  ${'$'}ffff\t; modified")
                         else

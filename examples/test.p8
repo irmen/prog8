@@ -6,25 +6,28 @@ main {
 
     sub start() {
 
-        float f = 1.1
-        float[] farr = [2.2, 3.3]
+        ubyte ff = 10
 
-        floats.print_f(f)
-        txt.chrout('\n')
-        floats.print_f(farr[0])
-        txt.chrout(',')
-        floats.print_f(farr[1])
-        txt.chrout('\n')
-
-        swap(f, farr[1])
-        floats.print_f(f)
-        txt.chrout('\n')
-        floats.print_f(farr[0])
-        txt.chrout(',')
-        floats.print_f(farr[1])
-        txt.chrout('\n')
+        setflag(ff-10)
+        setflag(ff-9)
+        setflag(ff-10)
+        setflag(ff-9)
 
         testX()
+    }
+
+    asmsub setflag(ubyte bitje @ Pc) {
+        %asm {{
+            bcs  +
+            lda  #'0'
+            jsr  c64.CHROUT
+            lda  #13
+            jmp  c64.CHROUT
++           lda  #'1'
+            jsr  c64.CHROUT
+            lda  #13
+            jmp  c64.CHROUT
+        }}
     }
 
     asmsub testX() {

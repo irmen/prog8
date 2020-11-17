@@ -210,17 +210,13 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 """)
                         }
                         else -> {
-                            asmgen.translateExpression(value)   // todo directly into A
+                            asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                             asmgen.out("""
-            inx
-            pha
-            lda  P8ESTACK_LO,x
-            beq  +
-            sec  
-            bcs  ++
-+           clc
-+           pla
-""")
+                                beq  +
+                                sec
+                                bcs  ++
++                               clc
++""")
                         }
                     }
                 }
