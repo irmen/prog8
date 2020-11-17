@@ -9,41 +9,29 @@ main {
         ubyte ub = 4
         uword uw = 5
 
-        when ub {
-            1 -> txt.chrout('1')
-            2 -> txt.chrout('2')
-            3 -> txt.chrout('3')
-            4 -> txt.chrout('4')
-            else -> txt.chrout('?')
-        }
+        if ding(22)!=0
+            txt.chrout('1')
+        if ding(22)
+            txt.chrout('2')
         txt.chrout('\n')
 
-        when uw {
-            $0001 -> txt.chrout('1')
-            $0002 -> txt.chrout('2')
-            $0003 -> txt.chrout('3')
-            $0004 -> txt.chrout('4')
-            $0005 -> txt.chrout('5')
-            else -> txt.chrout('?')
-        }
-
+        if dingw($1100)!=$0000
+            txt.chrout('1')
+        if dingw($1100)
+            txt.chrout('2')
         txt.chrout('\n')
 
         testX()
     }
 
-    asmsub setflag(ubyte bitje @ Pc) {
-        %asm {{
-            bcs  +
-            lda  #'0'
-            jsr  c64.CHROUT
-            lda  #13
-            jmp  c64.CHROUT
-+           lda  #'1'
-            jsr  c64.CHROUT
-            lda  #13
-            jmp  c64.CHROUT
-        }}
+    sub ding(ubyte argument) -> ubyte {
+        txt.chrout(' ')
+        return argument*2
+    }
+
+    sub dingw(uword argument) -> uword {
+        txt.chrout(' ')
+        return argument*2
     }
 
     asmsub testX() {

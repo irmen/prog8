@@ -59,8 +59,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val dt = idt.typeOrElse(DataType.STRUCT)
         when (operator) {
             "==" -> {
-                // if the left operand is an expression, and the right is 0, we can just evaluate that expression.
-                // (the extra comparison is not required as the result of the expression is already the required boolean value)
+                // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
+                // and use the result value directly to determine the boolean result. Shortcut only for integers.
                 if(rightConstVal?.number?.toDouble() == 0.0) {
                     when(left) {
                         is PrefixExpression,
@@ -70,24 +70,19 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         is AddressOf,
                         is RangeExpr,
                         is FunctionCall -> {
-                            translateExpression(left)   // todo directly into AY reg?
                             if(dt in ByteDatatypes) {
-                                asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    bne  $jumpIfFalseLabel""")
+                                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                                asmgen.out("  bne  $jumpIfFalseLabel")
                                 return
                             }
                             else if(dt in WordDatatypes) {
+                                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
                                 asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    clc
-                                    adc  P8ESTACK_HI,x
+                                    sty  P8ZP_SCRATCH_B1
+                                    ora  P8ZP_SCRATCH_B1
                                     bne  $jumpIfFalseLabel""")
                                 return
                             }
-                            // TODO ....float?
                         }
                         else -> {}
                     }
@@ -102,8 +97,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             "!=" -> {
-                // if the left operand is an expression, and the right is 0, we can just evaluate that expression.
-                // (the extra comparison is not required as the result of the expression is already the required boolean value)
+                // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
+                // and use the result value directly to determine the boolean result. Shortcut only for integers.
                 if(rightConstVal?.number?.toDouble() == 0.0) {
                     when(left) {
                         is PrefixExpression,
@@ -113,24 +108,19 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         is AddressOf,
                         is RangeExpr,
                         is FunctionCall -> {
-                            translateExpression(left)   // todo directly into AY?
                             if(dt in ByteDatatypes) {
-                                asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    beq  $jumpIfFalseLabel""")
+                                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                                asmgen.out("  beq  $jumpIfFalseLabel")
                                 return
                             }
                             else if(dt in WordDatatypes) {
+                                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
                                 asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    clc
-                                    adc  P8ESTACK_HI,x
+                                    sty  P8ZP_SCRATCH_B1
+                                    ora  P8ZP_SCRATCH_B1
                                     beq  $jumpIfFalseLabel""")
                                 return
                             }
-                            // TODO .... .float?
                         }
                         else -> {}
                     }
