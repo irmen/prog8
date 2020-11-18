@@ -8,17 +8,14 @@ main {
 
         uword uw =  %1111111110000001
         uword uw2 = %000111100001110
-        ubyte ub = %00001110
+        ubyte ub = 30
 
-        uw &= ub + 1
-        txt.print_uwbin(uw, 0)
-        txt.chrout('\n')
-        uw |= ub+1
-        txt.print_uwbin(uw, 0)
-        txt.chrout('\n')
+        uword addr = $c000
 
-        uw ^= ub+1
-        txt.print_uwbin(uw, 0)
+        @(addr) = 0
+        @(addr) ++
+        @(addr) += 2*(ub+3)
+        txt.print_uw(@(addr))
         txt.chrout('\n')
 
         testX()

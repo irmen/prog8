@@ -171,14 +171,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     is IdentifierReference -> {
                         val pointer = memory.addressExpression as IdentifierReference
                         when {
-                            valueLv != null -> inplaceModification_byte_litval_to_memory(pointer, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_byte_variable_to_memory(pointer, operator, ident)
+                            valueLv != null -> inplaceModification_byte_litval_to_pointer(pointer, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_byte_variable_to_pointer(pointer, operator, ident)
                             // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_byte_value_to_memory(pointer, operator, value)
+                                inplaceModification_byte_value_to_pointer(pointer, operator, value)
                             }
-                            else -> inplaceModification_byte_value_to_memory(pointer, operator, value)
+                            else -> inplaceModification_byte_value_to_pointer(pointer, operator, value)
                         }
                     }
                     else -> {
@@ -239,15 +239,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         return false
     }
 
-    private fun inplaceModification_byte_value_to_memory(pointervar: IdentifierReference, operator: String, value: Expression) {
+    private fun inplaceModification_byte_value_to_pointer(pointervar: IdentifierReference, operator: String, value: Expression) {
         if(asmgen.options.slowCodegenWarnings)
             println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
         asmgen.translateExpression(value)
         val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
             // note: ** (power) operator requires floats.
-            "+" -> asmgen.out(" clc |  adc  P8ESTACK_LO+1,x")
-            "-" -> asmgen.out(" sec |  sbc  P8ESTACK_LO+1,x")
+            "+" -> asmgen.out("  clc |  adc  P8ESTACK_LO+1,x")
+            "-" -> asmgen.out("  sec |  sbc  P8ESTACK_LO+1,x")
             "*" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.multiply_bytes |  ldy  #0")
             "/" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
             "%" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.divmod_ub_asm |  ldy  #0")
@@ -291,14 +291,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.out(" inx")
     }
 
-    private fun inplaceModification_byte_variable_to_memory(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
+    private fun inplaceModification_byte_variable_to_pointer(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
         val otherName = asmgen.asmVariableName(value)
         val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
 
         when (operator) {
             // note: ** (power) operator requires floats.
-            "+" -> asmgen.out(" clc |  adc  $otherName")
-            "-" -> asmgen.out(" sec |  sbc  $otherName")
+            "+" -> asmgen.out("  clc |  adc  $otherName")
+            "-" -> asmgen.out("  sec |  sbc  $otherName")
             "*" -> asmgen.out("  ldy  $otherName |  jsr  math.multiply_bytes |  ldy  #0")
             "/" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
             "%" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  ldy  #0")
@@ -331,7 +331,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
     }
 
-    private fun inplaceModification_byte_litval_to_memory(pointervar: IdentifierReference, operator: String, value: Int) {
+    private fun inplaceModification_byte_litval_to_pointer(pointervar: IdentifierReference, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> {
