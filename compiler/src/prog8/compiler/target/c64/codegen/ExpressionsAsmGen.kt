@@ -1202,7 +1202,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             else -> {
                 asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
                 if(pushResultOnEstack) {
-                    asmgen.out("  dex |  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO,x")
+                    asmgen.out("  dex |  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO+1,x")
                 } else {
                     asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
                 }
