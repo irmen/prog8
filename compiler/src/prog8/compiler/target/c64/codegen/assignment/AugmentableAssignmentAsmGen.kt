@@ -1696,16 +1696,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                             }
                             else -> {
-                                if(asmgen.options.slowCodegenWarnings)
-                                    println("warning: slow stack evaluation used (6): ${mem.addressExpression::class.simpleName} at ${mem.addressExpression.position}") // TODO
-                                asmgen.translateExpression(mem.addressExpression)  // TODO directly into P8ZP_SCRATCH_W2
+                                asmgen.assignExpressionToVariable(mem.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, target.scope)
                                 asmgen.out("""
-                                    jsr  prog8_lib.read_byte_from_address_on_stack
+                                    ldy  #0
+                                    lda  (P8ZP_SCRATCH_W2),y
                                     beq  +
                                     lda  #1
 +                                   eor  #1                                    
-                                    jsr  prog8_lib.write_byte_to_address_on_stack
-                                    inx""")
+                                    sta  (P8ZP_SCRATCH_W2),y""")
                             }
                         }
                     }
@@ -1766,14 +1764,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
                             }
                             else -> {
-                                if(asmgen.options.slowCodegenWarnings)
-                                    println("warning: slow stack evaluation used (7): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO
-                                asmgen.translateExpression(memory.addressExpression)    // TODO directly into P8ZP_SCRATCH_W2
+                                asmgen.assignExpressionToVariable(memory.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, target.scope)
                                 asmgen.out("""
-                                    jsr  prog8_lib.read_byte_from_address_on_stack
+                                    ldy  #0
+                                    lda  (P8ZP_SCRATCH_W2),y
                                     eor  #255
-                                    jsr  prog8_lib.write_byte_to_address_on_stack
-                                    inx""")
+                                    sta  (P8ZP_SCRATCH_W2),y""")
                             }
                         }
                     }
