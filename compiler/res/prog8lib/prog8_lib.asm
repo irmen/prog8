@@ -21,6 +21,7 @@ read_byte_from_address_on_stack	.proc
 
 write_byte_to_address_on_stack	.proc
 	; -- write the byte in A to the memory address on the top of the stack (stack remains unchanged)
+	; TODO get rid of this by not evaluating the adress onto the stack, but directly into AY or SCRATCH_W2
 		ldy  P8ESTACK_LO+1,x
 		sty  P8ZP_SCRATCH_W2
 		ldy  P8ESTACK_HI+1,x

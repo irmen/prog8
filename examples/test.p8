@@ -6,12 +6,17 @@ main {
 
     sub start() {
 
-        ubyte ub = 4
+        ubyte ub = 2
         ubyte ub2 = 8
         uword uw = 5
 
-        ub = uw*3 as ubyte
-        txt.print_ub(ub)
+        ub2 <<= (ub-1)
+        txt.print_ub(ub2)
+        txt.chrout('\n')
+
+        ub2 >>= (ub-1)
+        txt.print_ub(ub2)
+        txt.chrout('\n')
 
         testX()
     }
