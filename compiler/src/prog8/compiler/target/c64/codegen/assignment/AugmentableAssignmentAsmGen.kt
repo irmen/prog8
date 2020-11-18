@@ -447,15 +447,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name |  inx")
             }
             "*" -> {
-                asmgen.translateExpression(value)   // TODO directly into A
-                asmgen.out("  lda  P8ESTACK_LO+1,x |  ldy  $name |  jsr  math.multiply_bytes |  sta  $name |  inx")
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("  ldy  $name |  jsr  math.multiply_bytes |  sta  $name")
             }
             "/" -> {
-                asmgen.translateExpression(value)   // TODO directly into Y
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
                 if(dt==DataType.UBYTE)
-                    asmgen.out("  lda  P8ESTACK_LO+1,x |  tay |  lda  $name |  jsr  math.divmod_ub_asm |  sty  $name |  inx")
+                    asmgen.out("  lda  $name |  jsr  math.divmod_ub_asm |  sty  $name")
                 else
-                    asmgen.out("  lda  P8ESTACK_LO+1,x |  tay |  lda  $name |  jsr  math.divmod_b_asm |  sty  $name |  inx")
+                    asmgen.out("  lda  $name |  jsr  math.divmod_b_asm |  sty  $name")
             }
             "%" -> {
                 if(dt==DataType.BYTE)
@@ -1294,26 +1294,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.out(" inx")
                     }
                     "<<" -> {
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-                        asmgen.translateExpression(value)   // TODO directly into Y
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
                         asmgen.out("""
-                            ldy  P8ESTACK_LO+1,x
                             beq  +
 -                   	    asl  $name
                             rol  $name+1
                             dey
                             bne  -
 +""")
-                        asmgen.out(" inx")
                     }
                     ">>" -> {
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-                        asmgen.translateExpression(value)  // TODO directly into Y
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
                         if(dt==DataType.UWORD)
                             asmgen.out("""
-                            ldy  P8ESTACK_LO+1,x
                             beq  +
 -                           lsr  $name+1
                             ror  $name
@@ -1322,7 +1315,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                         else
                             asmgen.out("""
-                            ldy  P8ESTACK_LO+1,x
                             beq  +
 -                           lda  $name+1
                             asl  a
@@ -1331,30 +1323,20 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             dey
                             bne  -
 +""")
-                        asmgen.out(" inx")
                     }
                     "&" -> {
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-                        asmgen.translateExpression(value)   // TODO directly into A
-                        asmgen.out("  lda  P8ESTACK_LO+1,x |  and  $name |  sta  $name")
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                        asmgen.out("  and  $name |  sta  $name")
                         if(dt in WordDatatypes)
                             asmgen.out(" lda  #0 |  sta  $name+1")
-                        asmgen.out(" inx")
                     }
                     "^" -> {
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-                        asmgen.translateExpression(value)   // TODO directly into A
-                        asmgen.out("  lda  P8ESTACK_LO+1,x |  eor  $name |  sta  $name")
-                        asmgen.out(" inx")
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                        asmgen.out("  eor  $name |  sta  $name")
                     }
                     "|" -> {
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-                        asmgen.translateExpression(value)   // TODO directly into A
-                        asmgen.out("  lda  P8ESTACK_LO+1,x |  ora  $name |  sta  $name")
-                        asmgen.out(" inx")
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                        asmgen.out("  ora  $name |  sta  $name")
                     }
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }

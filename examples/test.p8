@@ -6,14 +6,19 @@ main {
 
     sub start() {
 
-        ubyte ub = 1
-        ubyte ub2 = %11000011
+        uword uw =  %1111111110000001
+        uword uw2 = %000111100001110
+        ubyte ub = %00001110
 
-        @($c001) = %1
+        uw &= ub + 1
+        txt.print_uwbin(uw, 0)
+        txt.chrout('\n')
+        uw |= ub+1
+        txt.print_uwbin(uw, 0)
+        txt.chrout('\n')
 
-        @($c000+ub) += @($c000+ub)
-        ub2 = @($c000+ub)
-        txt.print_ubbin(ub2, 1)
+        uw ^= ub+1
+        txt.print_uwbin(uw, 0)
         txt.chrout('\n')
 
         testX()
