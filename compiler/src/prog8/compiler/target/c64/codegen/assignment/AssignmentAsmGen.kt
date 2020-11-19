@@ -255,6 +255,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
 
         when(value) {
+            is IdentifierReference -> {
+                if(target.kind==TargetStorageKind.VARIABLE) {
+                    val sourceDt = value.inferType(program).typeOrElse(DataType.STRUCT)
+                    if (sourceDt != DataType.STRUCT)
+                        return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), sourceDt, origAssign.source.expression!!)
+                }
+            }
             is PrefixExpression -> {}
             is BinaryExpression -> {}
             is ArrayIndexedExpression -> {}
@@ -264,7 +271,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             else -> {
                 // TODO optimize the others further?
                 if(this.asmgen.options.slowCodegenWarnings)
-                    println("warning: slow stack evaluation used for typecast: into $targetDt at ${value.position}")
+                    println("warning: slow stack evaluation used for typecast: $value into $targetDt at ${value.position}")
             }
         }
 
@@ -272,6 +279,125 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         asmgen.translateExpression(origAssign.source.expression!!)
         assignStackValue(target)
     }
+
+    private fun assignTypeCastedIdentifier(targetAsmVarName: String, targetDt: DataType,
+                                           sourceAsmVarName: String, sourceDt: DataType,
+                                           origExpr: Expression) {
+        if(sourceDt == targetDt)
+            throw AssemblyError("typecast to identical value")
+
+        // also see: ExpressionAsmGen,   fun translateExpression(typecast: TypecastExpression)
+        when(sourceDt) {
+            DataType.UBYTE -> {
+                when(targetDt) {
+                    DataType.UBYTE, DataType.BYTE -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                    }
+                    DataType.UWORD, DataType.WORD -> {
+                        if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                            asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                        else
+                            asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                    }
+                    DataType.FLOAT -> {
+                        asmgen.out("""
+                            lda  #<$targetAsmVarName
+                            ldy  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            ldy  $sourceAsmVarName
+                            jsr  floats.cast_from_ub""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.BYTE -> {
+                when(targetDt) {
+                    DataType.UBYTE, DataType.BYTE -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                    }
+                    DataType.UWORD, DataType.WORD -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                        asmgen.signExtendVariableLsb(targetAsmVarName, DataType.BYTE)
+                    }
+                    DataType.FLOAT -> {
+                        asmgen.out("""
+                            lda  #<$targetAsmVarName
+                            ldy  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $sourceAsmVarName
+                            jsr  floats.cast_from_b""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.UWORD -> {
+                when(targetDt) {
+                    DataType.BYTE, DataType.UBYTE -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                    }
+                    DataType.WORD, DataType.UWORD -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
+                    }
+                    DataType.FLOAT -> {
+                        asmgen.out("""
+                            lda  #<$targetAsmVarName
+                            ldy  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $sourceAsmVarName
+                            ldy  $sourceAsmVarName+1
+                            jsr  floats.cast_from_uw""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.WORD -> {
+                when(targetDt) {
+                    DataType.BYTE, DataType.UBYTE -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                    }
+                    DataType.WORD, DataType.UWORD -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
+                    }
+                    DataType.FLOAT -> {
+                        asmgen.out("""
+                            lda  #<$targetAsmVarName
+                            ldy  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $sourceAsmVarName
+                            ldy  $sourceAsmVarName+1
+                            jsr  floats.cast_from_w""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.FLOAT -> {
+                asmgen.out("""
+                            lda  #<$targetAsmVarName
+                            ldy  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  #<$sourceAsmVarName
+                            ldy  #>$sourceAsmVarName""")
+                when(targetDt) {
+                    DataType.UBYTE -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName")
+                    DataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
+                    DataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
+                    DataType.WORD -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.STR -> {
+                if (targetDt != DataType.UWORD && targetDt == DataType.STR)
+                    throw AssemblyError("cannot typecast a string into another incompatitble type")
+            }
+            else -> throw AssemblyError("weird type")
+        }
+    }
+
 
     private fun assignStackValue(target: AsmAssignTarget) {
         when(target.kind) {

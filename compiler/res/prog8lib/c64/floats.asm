@@ -55,6 +55,59 @@ w2float		.proc
 		jmp  ub2float._fac_to_mem
 		.pend
 
+
+cast_from_uw	.proc
+		; -- uword in A/Y into float var at (P8ZP_SCRATCH_W2)
+		stx  P8ZP_SCRATCH_REG
+		jsr  GIVUAYFAY
+		jmp  ub2float._fac_to_mem
+		.pend
+
+
+cast_from_w	.proc
+		; -- word in A/Y into float var at (P8ZP_SCRATCH_W2)
+		stx  P8ZP_SCRATCH_REG
+		jsr  GIVAYFAY
+		jmp  ub2float._fac_to_mem
+		.pend
+
+
+cast_from_ub	.proc
+		; -- ubyte in Y into float var at (P8ZP_SCRATCH_W2)
+		stx  P8ZP_SCRATCH_REG
+		jsr  FREADUY
+		jmp  ub2float._fac_to_mem
+		.pend
+
+
+cast_from_b	.proc
+		; -- byte in A into float var at (P8ZP_SCRATCH_W2)
+		stx  P8ZP_SCRATCH_REG
+		jsr  FREADSA
+		jmp  ub2float._fac_to_mem
+		.pend
+
+cast_as_uw_into_ya	.proc               ; also used for float 2 ub
+		; -- cast float at A/Y to uword into Y/A
+		stx  P8ZP_SCRATCH_REG
+		jsr  MOVFM
+		jsr  GETADR     ; into Y/A
+		ldx  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+cast_as_w_into_ay	.proc               ; also used for float 2 b
+		; -- cast float at A/Y to word into A/Y
+		stx  P8ZP_SCRATCH_REG
+		jsr  MOVFM
+		jsr  AYINT
+		ldy  $64
+		lda  $65
+		ldx  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+
 stack_b2float	.proc
 		; -- b2float operating on the stack
 		inx

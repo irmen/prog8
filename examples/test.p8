@@ -6,16 +6,15 @@ main {
 
     sub start() {
 
-        uword uw =  %1111111110000001
-        uword uw2 = %000111100001110
         ubyte ub = 30
+        byte bb = -30
+        float f1
 
-        uword addr = $c000
-
-        @(addr) = 0
-        @(addr) ++
-        @(addr) += 2*(ub+3)
-        txt.print_uw(@(addr))
+        f1 = ub
+        floats.print_f(f1)
+        txt.chrout('\n')
+        f1 = bb
+        floats.print_f(f1)
         txt.chrout('\n')
 
         testX()
