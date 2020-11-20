@@ -54,11 +54,11 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.body)
                     asmgen.out("""
-                lda  $varname
-$modifiedLabel  cmp  #0         ; modified 
-                beq  $endLabel
-                $incdec  $varname
-                jmp  $loopLabel
+                        lda  $varname
+$modifiedLabel          cmp  #0         ; modified 
+                        beq  $endLabel
+                        $incdec  $varname
+                        jmp  $loopLabel
 $endLabel""")
 
                 } else {
@@ -71,22 +71,23 @@ $endLabel""")
                     asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayElementTypes.getValue(iterableDt), null)
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.body)
-                    asmgen.out("  lda  $varname")
                     if(stepsize>0) {
                         asmgen.out("""
-                clc
-                adc  #$stepsize
-                sta  $varname
-$modifiedLabel  cmp  #0    ; modified
-                bcc  $loopLabel
-                beq  $loopLabel""")
+                            lda  $varname
+                            clc
+                            adc  #$stepsize
+                            sta  $varname
+$modifiedLabel              cmp  #0    ; modified
+                            bmi  $loopLabel
+                            beq  $loopLabel""")
                     } else {
                         asmgen.out("""
-                sec
-                sbc  #${stepsize.absoluteValue}
-                sta  $varname
-$modifiedLabel  cmp  #0     ; modified 
-                bcs  $loopLabel""")
+                            lda  $varname
+                            sec
+                            sbc  #${stepsize.absoluteValue}
+                            sta  $varname
+$modifiedLabel              cmp  #0     ; modified
+                            bpl  $loopLabel""")
                     }
                     asmgen.out(endLabel)
                 }

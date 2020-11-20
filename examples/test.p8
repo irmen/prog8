@@ -12,10 +12,10 @@ main {
         uword uw
         word ww
 
-        ubyte arrub = 10
-        uword arruw = 10
-        byte arrb = 10
-        word arrw = 10
+        const ubyte arrub = 10
+        const uword arruw = 10
+        const byte arrb = 10
+        const word arrw = 10
 
         test_stack.test()
 
@@ -73,11 +73,11 @@ main {
         }
         txt.chrout('\n')
 
-        for ww in arrw-2 to -2 step -2 {
-            txt.print_w(ww)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
+;        for ww in arrw-2 to -2 step -2 {
+;            txt.print_w(ww)
+;            txt.chrout(',')
+;        }
+;        txt.chrout('\n')
 
         test_stack.test()
         txt.chrout('\n')
