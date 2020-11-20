@@ -1,19 +1,15 @@
 package prog8.compiler.target.c64.codegen
 
 import prog8.ast.Program
+import prog8.ast.base.ArrayElementTypes
 import prog8.ast.base.DataType
+import prog8.ast.base.RegisterOrPair
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.ForLoop
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
-import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.toHex
 import kotlin.math.absoluteValue
-
-// todo reduce use of stack eval translateExpression()
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
@@ -53,23 +49,17 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.loopVar)
-                    asmgen.translateExpression(range.to)
-                    asmgen.translateExpression(range.from)
+                    asmgen.assignExpressionToVariable(range.from, varname, ArrayElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayElementTypes.getValue(iterableDt), null)
+                    asmgen.out(loopLabel)
+                    asmgen.translate(stmt.body)
                     asmgen.out("""
-                inx
-                lda  P8ESTACK_LO,x
-                sta  $varname
-                lda  P8ESTACK_LO+1,x
-                sta  $modifiedLabel+1
-$loopLabel""")
-                        asmgen.translate(stmt.body)
-                        asmgen.out("""
                 lda  $varname
 $modifiedLabel  cmp  #0         ; modified 
                 beq  $endLabel
                 $incdec  $varname
                 jmp  $loopLabel
-$endLabel       inx""")
+$endLabel""")
 
                 } else {
 
@@ -77,18 +67,11 @@ $endLabel       inx""")
 
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.loopVar)
-                    asmgen.translateExpression(range.to)
-                    asmgen.translateExpression(range.from)
-                    asmgen.out("""
-                inx
-                lda  P8ESTACK_LO,x
-                sta  $varname
-                lda  P8ESTACK_LO+1,x
-                sta  $modifiedLabel+1
-$loopLabel""")
+                    asmgen.assignExpressionToVariable(range.from, varname, ArrayElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayElementTypes.getValue(iterableDt), null)
+                    asmgen.out(loopLabel)
                     asmgen.translate(stmt.body)
-                    asmgen.out("""
-                lda  $varname""")
+                    asmgen.out("  lda  $varname")
                     if(stepsize>0) {
                         asmgen.out("""
                 clc
@@ -105,8 +88,7 @@ $modifiedLabel  cmp  #0    ; modified
 $modifiedLabel  cmp  #0     ; modified 
                 bcs  $loopLabel""")
                     }
-                    asmgen.out("""
-$endLabel       inx""")
+                    asmgen.out(endLabel)
                 }
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
@@ -115,13 +97,11 @@ $endLabel       inx""")
                     // words, step 1 or -1
 
                     stepsize == 1 || stepsize == -1 -> {
-                        asmgen.translateExpression(range.to)
-                        assignLoopvar(stmt, range)
                         val varname = asmgen.asmVariableName(stmt.loopVar)
+                        assignLoopvar(stmt, range)
+                        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
                         asmgen.out("""
-                            lda  P8ESTACK_HI+1,x
-                            sta  $modifiedLabel+1
-                            lda  P8ESTACK_LO+1,x
+                            sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1
 $loopLabel""")
                         asmgen.translate(stmt.body)
@@ -148,21 +128,17 @@ $modifiedLabel2 cmp  #0    ; modified
                 jmp  $loopLabel""")
                         }
                         asmgen.out(endLabel)
-                        asmgen.out(" inx")
                     }
                     stepsize > 0 -> {
 
                         // (u)words, step >= 2
-                        asmgen.translateExpression(range.to)
-                        asmgen.out("""
-                            lda  P8ESTACK_HI+1,x
-                            sta  $modifiedLabel+1
-                            lda  P8ESTACK_LO+1,x
-                            sta  $modifiedLabel2+1
-                        """)
-                        assignLoopvar(stmt, range)
                         val varname = asmgen.asmVariableName(stmt.loopVar)
-                        asmgen.out(loopLabel)
+                        assignLoopvar(stmt, range)
+                        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                        asmgen.out("""
+                            sty  $modifiedLabel+1
+                            sta  $modifiedLabel2+1
+$loopLabel""")
                         asmgen.translate(stmt.body)
 
                         if (iterableDt == DataType.ARRAY_UW) {
@@ -181,7 +157,7 @@ $modifiedLabel2 lda  #0     ; modified
                 cmp  $varname
                 bcc  $endLabel
                 bcs  $loopLabel
-$endLabel       inx""")
+$endLabel""")
                         } else {
                             asmgen.out("""
                 lda  $varname
@@ -198,22 +174,19 @@ $modifiedLabel  lda  #0   ; modified
                 bvc  +
                 eor  #$80
 +               bpl  $loopLabel                
-$endLabel       inx""")
+$endLabel""")
                         }
                     }
                     else -> {
 
                         // (u)words, step <= -2
-                        asmgen.translateExpression(range.to)
-                        asmgen.out("""
-                            lda  P8ESTACK_HI+1,x
-                            sta  $modifiedLabel+1
-                            lda  P8ESTACK_LO+1,x
-                            sta  $modifiedLabel2+1
-                        """)
-                        assignLoopvar(stmt, range)
                         val varname = asmgen.asmVariableName(stmt.loopVar)
-                        asmgen.out(loopLabel)
+                        assignLoopvar(stmt, range)
+                        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                        asmgen.out("""
+                            sty  $modifiedLabel+1
+                            sta  $modifiedLabel2+1
+$loopLabel""")
                         asmgen.translate(stmt.body)
 
                         if(iterableDt==DataType.ARRAY_UW) {
@@ -231,7 +204,7 @@ $modifiedLabel  cmp  #0    ; modified
                 lda  $varname
 $modifiedLabel2 cmp  #0    ; modified 
                 bcs  $loopLabel
-$endLabel       inx""")
+$endLabel""")
                         } else {
                             asmgen.out("""
                 lda  $varname
@@ -249,7 +222,7 @@ $modifiedLabel  sbc  #0    ; modified
                 bvc  +
                 eor  #$80
 +               bpl  $loopLabel                
-$endLabel       inx""")
+$endLabel""")
                         }
                     }
                 }
@@ -611,10 +584,6 @@ $endLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) {
-        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), stmt.definingSubroutine(), variableAsmName=asmgen.asmVariableName(stmt.loopVar))
-        val src = AsmAssignSource.fromAstSource(range.from, program, asmgen).adjustSignedUnsigned(target)
-        val assign = AsmAssignment(src, target, false, range.position)
-        asmgen.translateNormalAssignment(assign)
-    }
+    private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) =
+        asmgen.assignExpressionToVariable(range.from, asmgen.asmVariableName(stmt.loopVar), stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), stmt.definingSubroutine())
 }

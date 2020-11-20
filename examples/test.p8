@@ -1,62 +1,85 @@
 %import textio
 %import floats
 %zeropage basicsafe
+%import test_stack
 
 main {
 
     sub start() {
 
-        ubyte ub = 30
-        byte bb = -30
-        float f1
+        ubyte ub
+        byte bb
+        uword uw
+        word ww
 
-        f1 = ub
-        floats.print_f(f1)
+        ubyte arrub = 10
+        uword arruw = 10
+        byte arrb = 10
+        word arrw = 10
+
+        test_stack.test()
+
+        for ub in 0 to arrub  step 2 {
+            txt.print_ub(ub)
+            txt.chrout(',')
+        }
         txt.chrout('\n')
-        f1 = bb
-        floats.print_f(f1)
+
+        for ub in 5 to arrub step 2 {
+            txt.print_ub(ub)
+            txt.chrout(',')
+        }
         txt.chrout('\n')
 
-        testX()
-    }
+        for uw in 0 to arruw  step 2 {
+            txt.print_uw(uw)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
 
-    sub ding(ubyte argument) -> ubyte {
-        txt.chrout(' ')
-        return argument*2
-    }
+        for uw in 5 to arruw step 2 {
+            txt.print_uw(uw)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
 
-    sub dingw(uword argument) -> uword {
-        txt.chrout(' ')
-        return argument*2
-    }
+        for bb in 0 to arrb step 2 {
+            txt.print_b(bb)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
 
-    asmsub testX() {
-        %asm {{
-            stx  _saveX
-            lda  #13
-            jsr  txt.chrout
-            lda  #'x'
-            jsr  txt.chrout
-            lda  #'='
-            jsr  txt.chrout
-            lda  _saveX
-            jsr  txt.print_ub
-            lda  #' '
-            jsr  txt.chrout
-            lda  #'s'
-            jsr  txt.chrout
-            lda  #'p'
-            jsr  txt.chrout
-            lda  #'='
-            jsr  txt.chrout
-            tsx
-            txa
-            jsr  txt.print_ub
-            lda  #13
-            jsr  txt.chrout
-            ldx  _saveX
-            rts
-_saveX   .byte 0
-        }}
+        for bb in -2 to arrb-2 step 2 {
+            txt.print_b(bb)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
+
+        for ww in 0 to arrw step 2 {
+            txt.print_w(ww)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
+
+        for ww in -2 to arrw-2 step 2{
+            txt.print_w(ww)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
+
+        for bb in arrb-2 to -2 step -2 {
+            txt.print_b(bb)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
+
+        for ww in arrw-2 to -2 step -2 {
+            txt.print_w(ww)
+            txt.chrout(',')
+        }
+        txt.chrout('\n')
+
+        test_stack.test()
+        txt.chrout('\n')
     }
 }
