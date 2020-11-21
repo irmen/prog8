@@ -444,6 +444,19 @@ less_b		.proc
 		bpl  equal_b._equal_b_false
 		.pend
 
+reg_less_uw	.proc
+		;  AY < P8ZP_SCRATCH_W2?
+		cpy  P8ZP_SCRATCH_W2+1
+		bcc  _true
+		bne  _false
+		cmp  P8ZP_SCRATCH_W2
+		bcc  _true
+_false		lda  #0
+		rts
+_true		lda  #1
+		rts
+		.pend
+
 less_uw		.proc
 		lda  P8ESTACK_HI+2,x
 		cmp  P8ESTACK_HI+1,x
@@ -455,7 +468,29 @@ less_uw		.proc
 		bcs  equal_b._equal_b_false
 		.pend
 
+reg_less_w	.proc
+		; -- AY < P8ZP_SCRATCH_W2?
+		sta  P8ZP_SCRATCH_B1
+		tya
+		sec
+		sbc  P8ZP_SCRATCH_W2+1
+		bvc  +
+		eor  #$80
++		bmi  _true
+		bvc  +
+		eor  #$80
++		bne  _false
+		lda  P8ZP_SCRATCH_B1
+		sbc  P8ZP_SCRATCH_W2
+		bcs  _false
+_true		lda  #1
+		rts
+_false		lda  #0
+		rts
+		.pend
+
 less_w		.proc
+		; TODO is this word comparison < correct? reg_less_w is a lot larger...
 		lda  P8ESTACK_LO+2,x
 		cmp  P8ESTACK_LO+1,x
 		lda  P8ESTACK_HI+2,x
@@ -497,7 +532,24 @@ lesseq_b	.proc
 		bpl  equal_b._equal_b_false
 		.pend
 
+reg_lesseq_uw	.proc
+		; AY <= P8ZP_SCRATCH_W2?
+		cpy  P8ZP_SCRATCH_W2+1
+		beq  +
+		bcc  _true
+		lda  #0
+		rts
++		cmp  P8ZP_SCRATCH_W2
+		bcc  _true
+		beq  _true
+		lda  #0
+		rts
+_true		lda  #1
+		rts
+		.pend
+
 lesseq_uw	.proc
+		; TODO is this comparison uword <= correct????
 		lda  P8ESTACK_HI+1,x
 		cmp  P8ESTACK_HI+2,x
 		bcc  equal_b._equal_b_false
@@ -508,7 +560,30 @@ lesseq_uw	.proc
 		bcc  equal_b._equal_b_false
 		.pend
 
+reg_lesseq_w	.proc
+		; -- AY <= P8ZP_SCRATCH_W2?
+		sta  P8ZP_SCRATCH_B1
+		tya
+		sec
+		sbc  P8ZP_SCRATCH_W2+1
+		bvc  +
+		eor  #$80
++		bmi  _true
+		bvc  +
+		eor  #$80
++		bne  _false
+		lda  P8ZP_SCRATCH_B1
+		sbc  P8ZP_SCRATCH_W2
+		beq  _true			; TODO is this correct word compare <= for all cases?
+		bcs  _false
+_true		lda  #1
+		rts
+_false		lda  #0
+		rts
+		.pend
+
 lesseq_w	.proc
+		; TODO is this word compare <= correct? it is different from reg_lesseq_w
 		lda  P8ESTACK_LO+1,x
 		cmp  P8ESTACK_LO+2,x
 		lda  P8ESTACK_HI+1,x

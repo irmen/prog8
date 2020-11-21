@@ -16,32 +16,64 @@ main {
         word ww1
         word ww2
 
-        ub1 = 10
-        ub2 = 11
-        if ub1<ub2
+        uw1 = $1000
+        uw2 = $1100
+        if uw1<uw2
             txt.chrout('.')
         else
             txt.chrout('!')
-        if ub1<=ub2
+        if uw1<=uw2
             txt.chrout('.')
         else
             txt.chrout('!')
-        if ub1>ub2
+        if uw1>uw2
             txt.chrout('!')
         else
             txt.chrout('.')
-        if ub1>=ub2
+
+        if uw1>=uw2
             txt.chrout('!')
         else
             txt.chrout('.')
-        if ub1==ub2
+        if uw1==uw2
             txt.chrout('!')
         else
             txt.chrout('.')
-        if ub1!=ub2
+        if uw1!=uw2
             txt.chrout('.')
         else
             txt.chrout('!')
+
+
+        txt.chrout(' ')
+        uw1 = $1000
+        uw2 = $1000
+
+        if uw1<uw2
+            txt.chrout('!')
+        else
+            txt.chrout('.')
+        if uw1<=uw2
+            txt.chrout('.')
+        else
+            txt.chrout('!')
+        if uw1>uw2
+            txt.chrout('!')
+        else
+            txt.chrout('.')
+
+        if uw1>=uw2
+            txt.chrout('.')
+        else
+            txt.chrout('!')
+        if uw1==uw2
+            txt.chrout('.')
+        else
+            txt.chrout('!')
+        if uw1!=uw2
+            txt.chrout('!')
+        else
+            txt.chrout('.')
 
         test_stack.test()
         txt.chrout('\n')

@@ -304,12 +304,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e4): '<' at ${left.position}") // TODO uword
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.less_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -337,12 +334,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e5): '<' at ${left.position}") // TODO word
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.less_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateUbyteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -451,12 +445,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e8): '>' at ${left.position}") // TODO uword
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greater_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -490,12 +481,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e9): '>' at ${left.position}") // TODO word
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greater_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateUbyteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -611,12 +599,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e12): '<=' at ${left.position}") // TODO uword
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.lesseq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateWordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -650,12 +635,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e13): '<=' at ${left.position}") // TODO word
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.lesseq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateUbyteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -749,12 +731,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e16): '>=' at ${left.position}") // TODO uword
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greatereq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateWordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -783,12 +762,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e17): '>=' at ${left.position}") // TODO word
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greatereq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateByteEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -881,12 +857,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e20): '==' at ${left.position}") // TODO (u)word
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.equal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.out("""
+            cmp  P8ZP_SCRATCH_W2
+            bne  $jumpIfFalseLabel
+            cpy  P8ZP_SCRATCH_W2+1
+            bne  $jumpIfFalseLabel""")
     }
 
     private fun translateWordNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -919,12 +896,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e21): '!=' at ${left.position}") // TODO (u)word
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.notequal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.out("""
+            cmp  P8ZP_SCRATCH_W2
+            bne  +
+            cpy  P8ZP_SCRATCH_W2+1
+            beq  $jumpIfFalseLabel
++""")
     }
 
     private fun translateFloatEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
