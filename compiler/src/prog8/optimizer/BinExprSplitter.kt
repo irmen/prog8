@@ -79,7 +79,7 @@ X =      BinExpr                                    X   =   LeftExpr
             expr is IdentifierReference || expr is NumericLiteralValue || expr is AddressOf || expr is DirectMemoryRead || expr is StringLiteralValue || expr is ArrayLiteralValue || expr is RangeExpr
 
     private fun isSimpleTarget(target: AssignTarget, namespace: INameScope) =
-            if (target.identifier!=null || target.memoryAddress!=null || target.arrayindexed!=null)
+            if (target.identifier!=null || target.memoryAddress!=null)
                 target.isInRegularRAM(namespace)
             else
                 false

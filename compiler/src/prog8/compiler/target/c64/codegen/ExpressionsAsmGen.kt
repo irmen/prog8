@@ -89,10 +89,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
 
                 when (dt) {
-                    in ByteDatatypes -> translateByteEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    in WordDatatypes -> translateWordEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringEquals(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    in ByteDatatypes -> translateByteEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringEqualsJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
@@ -127,19 +127,19 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
 
                 when (dt) {
-                    in ByteDatatypes -> translateByteNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    in WordDatatypes -> translateWordNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatNotEquals(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringNotEquals(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    in ByteDatatypes -> translateByteNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringNotEqualsJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLess(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
@@ -148,16 +148,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> translateStringLess(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    DataType.STR -> translateStringLessJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLessOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
@@ -166,16 +166,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> translateStringLessOrEqual(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    DataType.STR -> translateStringLessOrEqualJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreater(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
@@ -184,16 +184,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> translateStringGreater(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    DataType.STR -> translateStringGreaterJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreaterOrEqual(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
@@ -202,14 +202,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
                     }
-                    DataType.STR -> translateStringGreaterOrEqual(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    DataType.STR -> translateStringGreaterOrEqualJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
         }
     }
 
-    private fun translateUbyteLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
@@ -247,7 +247,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.less_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
@@ -279,7 +279,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.less_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
@@ -313,7 +313,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.less_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLess(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
@@ -346,7 +346,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.less_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
@@ -384,7 +384,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greater_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
@@ -418,7 +418,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greater_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
@@ -456,7 +456,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greater_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordGreater(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
@@ -495,7 +495,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greater_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
@@ -540,7 +540,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.lesseq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
@@ -576,7 +576,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.lesseq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
@@ -613,7 +613,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.lesseq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLessOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
@@ -652,7 +652,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.lesseq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
@@ -685,7 +685,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greatereq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
@@ -720,7 +720,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greatereq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUwordGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
@@ -752,7 +752,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greatereq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordGreaterOrEqual(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
@@ -786,7 +786,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.greatereq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -812,15 +812,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e18): '==' at ${left.position}") // TODO byte ==
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.equal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
     }
 
-    private fun translateByteNotEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
@@ -846,15 +843,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e19): '!=' at ${left.position}") // TODO byte !=
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.notequal_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -890,7 +884,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.equal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordNotEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
@@ -928,7 +922,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  prog8_lib.notequal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateFloatEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -976,7 +970,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateFloatNotEquals(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
@@ -1025,7 +1019,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateStringEquals(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+    private fun translateStringEqualsJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
         val leftNam = asmgen.asmVariableName(left)
         val rightNam = asmgen.asmVariableName(right)
         asmgen.out("""
@@ -1040,7 +1034,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             bne  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringNotEquals(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+    private fun translateStringNotEqualsJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
         val leftNam = asmgen.asmVariableName(left)
         val rightNam = asmgen.asmVariableName(right)
         asmgen.out("""
@@ -1055,7 +1049,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             beq  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringLess(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+    private fun translateStringLessJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
         val leftNam = asmgen.asmVariableName(left)
         val rightNam = asmgen.asmVariableName(right)
         asmgen.out("""
@@ -1069,7 +1063,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             bpl  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringGreater(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+    private fun translateStringGreaterJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
         val leftNam = asmgen.asmVariableName(left)
         val rightNam = asmgen.asmVariableName(right)
         asmgen.out("""
@@ -1084,7 +1078,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             bmi  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringLessOrEqual(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+    private fun translateStringLessOrEqualJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
         val leftNam = asmgen.asmVariableName(left)
         val rightNam = asmgen.asmVariableName(right)
         asmgen.out("""
@@ -1100,7 +1094,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 +""")
     }
 
-    private fun translateStringGreaterOrEqual(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+    private fun translateStringGreaterOrEqualJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
         val leftNam = asmgen.asmVariableName(left)
         val rightNam = asmgen.asmVariableName(right)
         asmgen.out("""

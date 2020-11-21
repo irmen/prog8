@@ -41,7 +41,7 @@ main {
                 ; Clear existing Location the ball is at
                 txt.setclr(BX[lp], BY[lp], 0)
 
-                if DX[lp] == 0 {                ; TODO how is this optimized now? why does it still push a value on the stack?
+                if DX[lp] == 0 {
                     if (BX[lp] == 0)
                     {
                         DX[lp] = 1
