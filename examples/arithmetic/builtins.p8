@@ -1,6 +1,7 @@
 %import textio
 %import floats
 %import syslib
+%import test_stack
 %zeropage basicsafe
 
 main {
@@ -11,7 +12,7 @@ main {
         integers()
         floatingpoint()
 
-        testX()
+        test_stack.test()
     }
 
     sub rotations() {
@@ -251,8 +252,7 @@ main {
         txt.chrout('\n')
         txt.chrout('\n')
 
-
-        testX()
+        test_stack.test()
 
     }
 
@@ -324,7 +324,7 @@ main {
         txt.print(result)
         txt.chrout('\n')
 
-        testX()
+        test_stack.test()
 
     }
 
@@ -643,7 +643,7 @@ main {
         reverse(uwarr)
         reverse(warr)
 
-        testX()
+        test_stack.test()
     }
 
     sub floatingpoint() {
@@ -831,36 +831,6 @@ main {
         floats.print_f(fl)
         txt.chrout('\n')
 
-        testX()
-    }
-
-    asmsub testX() {
-        %asm {{
-            stx  _saveX
-            lda  #13
-            jsr  txt.chrout
-            lda  #'x'
-            jsr  txt.chrout
-            lda  #'='
-            jsr  txt.chrout
-            lda  _saveX
-            jsr  txt.print_ub
-            lda  #' '
-            jsr  txt.chrout
-            lda  #'s'
-            jsr  txt.chrout
-            lda  #'p'
-            jsr  txt.chrout
-            lda  #'='
-            jsr  txt.chrout
-            tsx
-            txa
-            jsr  txt.print_ub
-            lda  #13
-            jsr  txt.chrout
-            ldx  _saveX
-            rts
-_saveX   .byte 0
-        }}
+        test_stack.test()
     }
 }

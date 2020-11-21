@@ -1181,7 +1181,7 @@ $label              nop""")
                             out("  lda  #<${asmVar} |  ldy  #>${asmVar} |  jsr  floats.MOVFM")
                         }
                         else -> {
-                            // todo evaluate directly into fac1 instead of via stack intermediate
+                            // todo evaluate directly into fac1 instead of via stack intermediate  (add RegisterOrPair.FAC1 ??)
                             translateExpression(returnvalue)
                             out("  jsr  floats.pop_float_fac1")
                         }

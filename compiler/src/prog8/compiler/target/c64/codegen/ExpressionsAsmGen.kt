@@ -143,7 +143,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO
+                            println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO float
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -161,7 +161,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO
+                            println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO float
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -179,7 +179,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO
+                            println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO float
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -197,7 +197,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     DataType.FLOAT -> {
                         // todo via func args
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO
+                            println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO float
                         translateExpression(left)
                         translateExpression(right)
                         asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -239,12 +239,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e2): '<' at ${left.position}") // TODO  ubyte <
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.less_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bcs  $jumpIfFalseLabel")
     }
 
     private fun translateByteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -271,12 +268,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e3): '<' at ${left.position}") // TODO  byte <
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.less_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("""
+            sec
+            sbc  P8ZP_SCRATCH_B1
+            bvc  +
+            eor  #$80
++           bpl  $jumpIfFalseLabel""")
     }
 
     private fun translateUwordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -307,7 +306,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e4): '<' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e4): '<' at ${left.position}") // TODO uword
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -340,7 +339,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e5): '<' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e5): '<' at ${left.position}") // TODO word
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.less_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -376,12 +375,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e6): '>' at ${left.position}") // TODO  ubyte >
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greater_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("""
+            cmp  P8ZP_SCRATCH_B1
+            bcc  $jumpIfFalseLabel
+            beq  $jumpIfFalseLabel""")
     }
 
     private fun translateByteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -410,12 +409,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e7): '>' at ${left.position}") // TODO  byte >
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greater_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("""
+            clc
+            sbc  P8ZP_SCRATCH_B1
+            bvc  +
+            eor  #$80
++           bpl  +
+            bmi  $jumpIfFalseLabel
++""")
     }
 
     private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -450,7 +453,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e8): '>' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e8): '>' at ${left.position}") // TODO uword
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -489,7 +492,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e9): '>' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e9): '>' at ${left.position}") // TODO word
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greater_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -532,12 +535,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e10): '<=' at ${left.position}") // TODO ubyte <=
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.lesseq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("""
+            cmp  P8ZP_SCRATCH_B1
+            beq  +
+            bcs  $jumpIfFalseLabel
++""")
     }
 
     private fun translateByteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -568,12 +572,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e11): '<=' at ${left.position}") // TODO byte <=
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.lesseq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("""
+            clc
+            sbc  P8ZP_SCRATCH_B1
+            bvc  +
+            eor  #$80
++           bpl  $jumpIfFalseLabel""")
     }
 
     private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -607,7 +613,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e12): '<=' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e12): '<=' at ${left.position}") // TODO uword
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.lesseq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -646,7 +652,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e13): '<=' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e13): '<=' at ${left.position}") // TODO word
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.lesseq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -677,12 +683,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e14): '>=' at ${left.position}") // TODO ubyte >=
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greatereq_ub |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bcc  $jumpIfFalseLabel")
     }
 
     private fun translateByteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -712,12 +715,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args or regs, or rather inline for bytes?
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e15): '>=' at ${left.position}") // TODO  byte >=
-        asmgen.translateExpression(left)
-        asmgen.translateExpression(right)
-        asmgen.out("  jsr  prog8_lib.greatereq_b |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+        asmgen.out("""
+            sec
+            sbc  P8ZP_SCRATCH_B1
+            bvc  +
+            eor  #$80
++           bmi  $jumpIfFalseLabel""")
     }
 
     private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -746,7 +751,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e16): '>=' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e16): '>=' at ${left.position}") // TODO uword
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greatereq_uw |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -780,7 +785,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e17): '>=' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e17): '>=' at ${left.position}") // TODO word
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.greatereq_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -878,7 +883,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e20): '==' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e20): '==' at ${left.position}") // TODO (u)word
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.equal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -916,7 +921,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args or regs
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e21): '!=' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e21): '!=' at ${left.position}") // TODO (u)word
         asmgen.translateExpression(left)
         asmgen.translateExpression(right)
         asmgen.out("  jsr  prog8_lib.notequal_w |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -964,7 +969,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e22): '==' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e22): '==' at ${left.position}") // TODO float
         translateExpression(left)
         translateExpression(right)
         asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
@@ -1013,7 +1018,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         // todo via func args
         if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e23): '!=' at ${left.position}") // TODO
+            println("warning: slow stack evaluation used (e23): '!=' at ${left.position}") // TODO float
         translateExpression(left)
         translateExpression(right)
         asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")

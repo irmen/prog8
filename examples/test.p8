@@ -7,77 +7,41 @@ main {
 
     sub start() {
 
-        ubyte ub
-        byte bb
-        uword uw
-        word ww
+        byte ub1
+        byte ub2
+        byte bb1
+        byte bb2
+        uword uw1
+        uword uw2
+        word ww1
+        word ww2
 
-        const ubyte arrub = 10
-        const uword arruw = 10
-        const byte arrb = 10
-        const word arrw = 10
-
-        test_stack.test()
-
-        for ub in 0 to arrub  step 2 {
-            txt.print_ub(ub)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for ub in 5 to arrub step 2 {
-            txt.print_ub(ub)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for uw in 0 to arruw  step 2 {
-            txt.print_uw(uw)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for uw in 5 to arruw step 2 {
-            txt.print_uw(uw)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for bb in 0 to arrb step 2 {
-            txt.print_b(bb)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for bb in -2 to arrb-2 step 2 {
-            txt.print_b(bb)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for ww in 0 to arrw step 2 {
-            txt.print_w(ww)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for ww in -2 to arrw-2 step 2{
-            txt.print_w(ww)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-        for bb in arrb-2 to -2 step -2 {
-            txt.print_b(bb)
-            txt.chrout(',')
-        }
-        txt.chrout('\n')
-
-;        for ww in arrw-2 to -2 step -2 {
-;            txt.print_w(ww)
-;            txt.chrout(',')
-;        }
-;        txt.chrout('\n')
+        ub1 = 10
+        ub2 = 11
+        if ub1<ub2
+            txt.chrout('.')
+        else
+            txt.chrout('!')
+        if ub1<=ub2
+            txt.chrout('.')
+        else
+            txt.chrout('!')
+        if ub1>ub2
+            txt.chrout('!')
+        else
+            txt.chrout('.')
+        if ub1>=ub2
+            txt.chrout('!')
+        else
+            txt.chrout('.')
+        if ub1==ub2
+            txt.chrout('!')
+        else
+            txt.chrout('.')
+        if ub1!=ub2
+            txt.chrout('.')
+        else
+            txt.chrout('!')
 
         test_stack.test()
         txt.chrout('\n')
