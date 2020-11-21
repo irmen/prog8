@@ -182,15 +182,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
-                        asmgen.assignExpressionToVariable(memory.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, target.scope)
-                        asmgen.out("""
-                            lda  P8ZP_SCRATCH_W2
-                            pha
-                            lda  P8ZP_SCRATCH_W2+1
-                            pha
-                            ldy  #0
-                            lda  (P8ZP_SCRATCH_W2),y
-                            sta  P8ZP_SCRATCH_B1""")
+                        if(asmgen.options.slowCodegenWarnings)
+                            println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
+                        asmgen.translateExpression(memory.addressExpression)  // TODO directly into P8ZP_SCRATCH_W2
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         val zp = CompilationTarget.instance.machine.zeropage
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
@@ -202,14 +197,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                             else -> inplaceModification_byte_value_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
                         }
-                        asmgen.out("""
-                            pla
-                            sta  P8ZP_SCRATCH_W2+1
-                            pla
-                            sta  P8ZP_SCRATCH_W2
-                            ldy  #0
-                            lda  P8ZP_SCRATCH_B1
-                            sta  (P8ZP_SCRATCH_W2),y""")
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
                     }
                 }
             }

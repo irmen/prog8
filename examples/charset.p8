@@ -5,7 +5,6 @@
 %option no_sysinit
 
 ;  Create a custom character set on the C64.
-; TODO why is this one significantly larger than with older compiler?
 
 main {
 
