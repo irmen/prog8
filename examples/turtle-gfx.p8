@@ -1,6 +1,7 @@
 %target c64
 %import floats
 %import graphics
+%import test_stack
 %zeropage floatsafe
 
 main {
@@ -17,6 +18,8 @@ main {
             turtle.fd(i+20)
             turtle.rt(94)
         }
+
+        ; test_stack.test()
 
         repeat {
         }

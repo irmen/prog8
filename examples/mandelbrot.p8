@@ -1,5 +1,6 @@
 %import textio
 %import floats
+%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -57,5 +58,7 @@ main {
         txt.print("finished in ")
         floats.print_f(duration)
         txt.print(" seconds!\n")
+
+        ; test_stack.test()
     }
 }

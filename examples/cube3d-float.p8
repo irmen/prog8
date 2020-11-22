@@ -1,5 +1,6 @@
 %import floats
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -41,6 +42,8 @@ main {
             txt.print(" jiffies/fr = ")
             txt.print_ub(60/timer_jiffies)
             txt.print(" fps")
+
+            ;test_stack.test()
         }
     }
 

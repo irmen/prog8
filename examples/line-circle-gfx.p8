@@ -1,4 +1,5 @@
 %import graphics
+%import test_stack
 
 ; Note: this program is compatible with C64 and CX16.
 
@@ -6,8 +7,13 @@ main {
 
     sub start() {
         graphics.enable_bitmap_mode()
+
         draw_lines()
         draw_circles()
+
+        ; graphics.disable_bitmap_mode()
+        ; test_stack.test()
+
         repeat {
         }
     }

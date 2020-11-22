@@ -1,6 +1,7 @@
 %target c64
 %import syslib
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 main {
@@ -23,6 +24,9 @@ main {
         ubyte upwards = true
 
         repeat {
+            ;txt.plot(0,0)
+            ;test_stack.test()
+
             ubyte mountain = 223        ; slope upwards
             if active_height < target_height {
                 active_height++

@@ -1,5 +1,6 @@
 %import textio
 %import syslib
+%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -39,6 +40,8 @@ main {
         rect(20, 12, 30, 20, true)
         rect(10, 10, 10, 10, false)
         rect(6, 0, 16, 20, true)
+
+        ; test_stack.test()
 
 
         sub rect(ubyte x1, ubyte y1, ubyte x2, ubyte y2, ubyte fill) {

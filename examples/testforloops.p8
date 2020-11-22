@@ -1,4 +1,5 @@
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -963,6 +964,9 @@ main {
             txt.print("ok\n")
         else
             txt.print("fail!!!\n")
+
+
+        test_stack.test()
     }
 
     sub wait_input() {

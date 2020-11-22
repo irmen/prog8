@@ -1,5 +1,6 @@
 %target cx16
 %import syslib
+%import test_stack
 %import conv
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
@@ -41,6 +42,8 @@ main {
             anglex += 217
             angley -= 505
             anglez += 452
+
+            ; test_stack.test()
         }
     }
 

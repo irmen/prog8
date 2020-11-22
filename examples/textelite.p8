@@ -1,6 +1,7 @@
 %import textio
 %import conv
 %import diskio
+%import test_stack
 %option no_sysinit
 %zeropage basicsafe
 
@@ -26,6 +27,8 @@ main {
         planet.display(false)
 
         repeat {
+            ; test_stack.test()
+
             str input = "????????"
             txt.print("\nCash: ")
             util.print_10s(ship.cash)

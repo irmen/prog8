@@ -1,5 +1,6 @@
 %target c64
 %import syslib
+%import test_stack
 %import textio
 
 ;  converted from plasma test program for cc65.
@@ -26,7 +27,7 @@ main {
         ; ubyte v = c64.VMCSB
         c64.CIA2PRA = (block & $FC) | (lsb(SCREEN1 >> 14) ^ $03)
 
-        repeat {
+        repeat 100 {
             doplasma(SCREEN1)
             c64.VMCSB = PAGE1
             doplasma(SCREEN2)
@@ -37,6 +38,9 @@ main {
         ;c64.VMCSB = v
         ;c64.CIA2PRA = block
         ;txt.print("done!\n")
+        ;test_stack.test()
+        ;repeat {
+        ;}
     }
 
     ; several variables outside of doplasma to make them retain their value

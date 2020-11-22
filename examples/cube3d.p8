@@ -1,5 +1,6 @@
 %target c64
 %import syslib
+%import test_stack
 %import textio
 
 main {
@@ -33,6 +34,8 @@ main {
             txt.print_ub(60/c64.TIME_LO)
             txt.print(" fps")
             c64.TIME_LO=0
+
+            ; test_stack.test()
         }
     }
 

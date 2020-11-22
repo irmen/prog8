@@ -1,4 +1,5 @@
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -31,6 +32,7 @@ main {
         txt.print("reversed\n")
         print_arrays()
 
+        ;test_stack.test()
         return
 
 

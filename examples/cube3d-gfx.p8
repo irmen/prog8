@@ -1,5 +1,6 @@
 %import syslib
 %import graphics
+%import test_stack
 
 ; Note: this program is compatible with C64 and CX16.
 
@@ -37,6 +38,8 @@ main {
             anglez+=452
 
             wait_a_little_bit()
+
+            ; test_stack.test()
         }
     }
 

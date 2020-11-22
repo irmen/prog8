@@ -1,4 +1,5 @@
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -26,6 +27,8 @@ main {
         txt.print("number of primes (expected 54): ")
         txt.print_ub(amount)
         txt.chrout('\n')
+
+        ; test_stack.test()
     }
 
 

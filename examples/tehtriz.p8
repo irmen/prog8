@@ -10,6 +10,7 @@
 %target c64
 %import syslib
 %import textio
+%import test_stack
 
 
 main {
@@ -67,6 +68,9 @@ waitkey:
             }
 
             drawScore()
+
+            ; txt.plot(0,0)
+            ; test_stack.test()
         }
 
         ubyte key=c64.GETIN()

@@ -1,3 +1,4 @@
+%import textio
 
 test_stack {
 

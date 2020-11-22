@@ -1,6 +1,7 @@
 %target c64
 %import syslib
 %import textio
+%import test_stack
 
 spritedata $2000 {
     ; this memory block contains the sprite data
@@ -95,6 +96,8 @@ main {
             txt.print(" jiffies/fr = ")
             txt.print_ub(60/c64.TIME_LO)
             txt.print(" fps")
+
+            ; test_stack.test()
         }
     }
 

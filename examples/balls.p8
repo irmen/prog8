@@ -1,4 +1,6 @@
 %import textio
+%import test_stack
+
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -86,12 +88,16 @@ main {
         ; read clock
         uword jiffies
         %asm {{
+            stx  P8ZP_SCRATCH_REG
             jsr  c64.RDTIM
             sta  jiffies
             stx  jiffies+1
+            ldx  P8ZP_SCRATCH_REG
         }}
         txt.print("\nbenchmark: ")
         txt.print_uw(jiffies)
         txt.print(" jiffies for 1000 frames.\n")
+
+        ; test_stack.test()
     }
 }
