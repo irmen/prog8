@@ -55,6 +55,8 @@ private fun compileMain(args: Array<String>) {
         exitProcess(1)
     }
 
+    // TODO: make watching work with multiple source files
+
     if(watchMode && moduleFiles.size<=1) {
         val watchservice = FileSystems.getDefault().newWatchService()
 
@@ -68,15 +70,24 @@ private fun compileMain(args: Array<String>) {
                 for (importedFile in compilationResult.importedFiles) {
                     print("  ")
                     println(importedFile)
-                    importedFile.parent.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
+                    val watchDir = importedFile.parent ?: Path.of(".")
+                    watchDir.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
                 }
                 println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")
-                val event = watchservice.take()
-                for(changed in event.pollEvents()) {
-                    val changedPath = changed.context() as Path
-                    println("  change detected: $changedPath")
+
+                var recompile=false
+                while(!recompile) {
+                    val event = watchservice.take()
+                    for (changed in event.pollEvents()) {
+                        val changedPath = changed.context() as Path
+                        if(compilationResult.importedFiles.any { it.fileName == changedPath.fileName }) {
+                            println("  change detected: $changedPath")
+                            recompile = true
+                        }
+                    }
+                    event.reset()
                 }
-                event.reset()
+
                 println("\u001b[H\u001b[2J")      // clear the screen
             } catch (x: Exception) {
                 throw x
