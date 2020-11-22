@@ -27,6 +27,7 @@ main {
             BC[lp] = rnd() & 15
             DX[lp] = rnd() & 1
             DY[lp] = rnd() & 1
+            void rnd()
         }
 
         ; start clock
