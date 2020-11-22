@@ -93,6 +93,8 @@ Almost instant compilation times (less than a second) can be achieved when using
 Start the compiler with the ``-watch`` argument to enable this.
 It will compile your program and then instead of exiting, it waits for any changes in the module source files.
 As soon as a change happens, the program gets compiled again.
+It is possible to use the watch mode with multiple modules as well, but it will
+recompile everything in that list even if only of the files got updated.
 
 Other options
 ^^^^^^^^^^^^^

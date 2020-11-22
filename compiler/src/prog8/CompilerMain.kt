@@ -55,43 +55,42 @@ private fun compileMain(args: Array<String>) {
         exitProcess(1)
     }
 
-    // TODO: make watching work with multiple source files
-
-    if(watchMode && moduleFiles.size<=1) {
+    if(watchMode) {
         val watchservice = FileSystems.getDefault().newWatchService()
 
         while(true) {
-            val filepath = pathFrom(moduleFiles.single()).normalize()
-            println("Continuous watch mode active. Main module: $filepath")
-
-            try {
+            println("Continuous watch mode active. Modules: $moduleFiles")
+            val results = mutableListOf<CompilationResult>()
+            for(filepathRaw in moduleFiles) {
+                val filepath = pathFrom(filepathRaw).normalize()
                 val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, slowCodegenWarnings, compilationTarget, outputPath)
-                println("Imported files (now watching:)")
-                for (importedFile in compilationResult.importedFiles) {
-                    print("  ")
-                    println(importedFile)
-                    val watchDir = importedFile.parent ?: Path.of(".")
-                    watchDir.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
-                }
-                println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")
-
-                var recompile=false
-                while(!recompile) {
-                    val event = watchservice.take()
-                    for (changed in event.pollEvents()) {
-                        val changedPath = changed.context() as Path
-                        if(compilationResult.importedFiles.any { it.fileName == changedPath.fileName }) {
-                            println("  change detected: $changedPath")
-                            recompile = true
-                        }
-                    }
-                    event.reset()
-                }
-
-                println("\u001b[H\u001b[2J")      // clear the screen
-            } catch (x: Exception) {
-                throw x
+                results.add(compilationResult)
             }
+
+            val allImportedFiles = results.flatMap { it.importedFiles }
+            println("Imported files (now watching:)")
+            for (importedFile in allImportedFiles) {
+                print("  ")
+                println(importedFile)
+                val watchDir = importedFile.parent ?: Path.of(".")
+                watchDir.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
+            }
+            println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")
+
+            var recompile=false
+            while(!recompile) {
+                val event = watchservice.take()
+                for (changed in event.pollEvents()) {
+                    val changedPath = changed.context() as Path
+                    if(allImportedFiles.any { it.fileName == changedPath.fileName }) {
+                        println("  change detected: $changedPath")
+                        recompile = true
+                    }
+                }
+                event.reset()
+            }
+
+            println("\u001b[H\u001b[2J")      // clear the screen
         }
 
     } else {
