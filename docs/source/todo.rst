@@ -3,8 +3,6 @@ TODO
 ====
 
 - check cpu stack consistency in all examples
-- reduce the amount of translateExpression() calls when the result can be directly assigned to register or variable
-- cc = xbuf[i] + ybuf[ii]  generates unnecessary stack push/pulls (and no slow warning is given for it)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols

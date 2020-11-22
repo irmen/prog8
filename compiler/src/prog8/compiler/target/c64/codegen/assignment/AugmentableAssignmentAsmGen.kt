@@ -184,7 +184,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> {
                         if(asmgen.options.slowCodegenWarnings)
                             println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
-                        asmgen.translateExpression(memory.addressExpression)  // TODO directly into P8ZP_SCRATCH_W2
+                        asmgen.translateExpression(memory.addressExpression)  // TODO directly into P8ZP_SCRATCH_W2?
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         val zp = CompilationTarget.instance.machine.zeropage
                         when {

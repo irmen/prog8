@@ -68,12 +68,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     // constant array index value
                     val indexValue = value.indexer.constIndex()!! * elementDt.memorySize()
                     when (elementDt) {
-                        in ByteDatatypes ->
-                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")
-                        in WordDatatypes ->
-                            asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+$indexValue+1 |  sta  P8ESTACK_HI,x | dex")
-                        DataType.FLOAT ->
-                            asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  floats.push_float")
+                        in ByteDatatypes -> {
+                            asmgen.out("  lda  $arrayVarName+$indexValue")
+                            assignRegisterByte(assign.target, CpuRegister.A)
+                        }
+                        in WordDatatypes -> {
+                            asmgen.out("  lda  $arrayVarName+$indexValue |  ldy  $arrayVarName+$indexValue+1")
+                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        }
+                        DataType.FLOAT -> {
+                            asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue")
+                            assignFloatFromAY(assign.target)
+                        }
                         else ->
                             throw AssemblyError("weird array type")
                     }
@@ -81,11 +87,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     when (elementDt) {
                         in ByteDatatypes -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                            asmgen.out("  lda  $arrayVarName,y |  sta  P8ESTACK_LO,x |  dex")
+                            asmgen.out("  lda  $arrayVarName,y")
+                            assignRegisterByte(assign.target, CpuRegister.A)
                         }
                         in WordDatatypes  -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                            asmgen.out("  lda  $arrayVarName,y |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+1,y |  sta  P8ESTACK_HI,x |  dex")
+                            asmgen.out("  lda  $arrayVarName,y |  pha |  lda  $arrayVarName+1,y |  tay |  pla")
+                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         }
                         DataType.FLOAT -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.A)
@@ -95,13 +103,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 adc  #<$arrayVarName
                                 bcc  +
                                 iny
-+                               jsr  floats.push_float""")
++""")
+                            assignFloatFromAY(assign.target)
                         }
                         else ->
                             throw AssemblyError("weird array elt type")
                     }
                 }
-                assignStackValue(assign.target)
             }
             SourceStorageKind.MEMORY -> {
                 val value = assign.source.memory!!
@@ -723,6 +731,39 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
             TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_fac1")
+        }
+    }
+
+    private fun assignFloatFromAY(target: AsmAssignTarget) {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1                    
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<${target.asmVarname} 
+                    ldy  #>${target.asmVarname}
+                    jsr  floats.copy_float""")
+            }
+            TargetStorageKind.ARRAY -> {
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<${target.asmVarname} 
+                    ldy  #>${target.asmVarname}
+                    sta  P8ZP_SCRATCH_W2
+                    sty  P8ZP_SCRATCH_W2+1""")
+                if(target.array!!.indexer.indexNum!=null) {
+                    val index = target.array.indexer.constIndex()!!
+                    asmgen.out(" lda  #$index")
+                } else {
+                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                    asmgen.out(" lda  $asmvarname")
+                }
+                asmgen.out(" jsr  floats.set_array_float")
+            }
+            TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
+            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+            TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_float")
         }
     }
 

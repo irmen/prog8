@@ -7,65 +7,40 @@ main {
 
     sub start() {
 
-        float uw1
-        const float uw2 = 2.2
+        ubyte[]  ubarray = [1,2,3,4]
+        byte[]  barray = [1,2,3,4]
+        uword[]  uwarray = [1,2,3,4]
+        word[]  warray = [1,2,3,4]
+        float[]  farray = [1.1,2.2,3.3,4.4]
 
-        uw1 = 1.1
-        if uw1<uw2
-            txt.chrout('.')
-        else
-            txt.chrout('!')
-        if uw1<=uw2
-            txt.chrout('.')
-        else
-            txt.chrout('!')
-        if uw1>uw2
-            txt.chrout('!')
-        else
-            txt.chrout('.')
+        ubyte ub
+        byte bb
+        uword uw
+        word ww
+        float fl
 
-        if uw1>=uw2
-            txt.chrout('!')
-        else
-            txt.chrout('.')
-        if uw1==uw2
-            txt.chrout('!')
-        else
-            txt.chrout('.')
-        if uw1!=uw2
-            txt.chrout('.')
-        else
-            txt.chrout('!')
+        const ubyte i = 2
+        const ubyte j = 3
 
+        ub = ubarray[i]
+        txt.print_ub(ub)
+        txt.chrout('\n')
 
-        txt.chrout(' ')
-        uw1 = 2.2
+        bb = barray[i]
+        txt.print_b(bb)
+        txt.chrout('\n')
 
-        if uw1<uw2
-            txt.chrout('!')
-        else
-            txt.chrout('.')
-        if uw1<=uw2
-            txt.chrout('.')
-        else
-            txt.chrout('!')
-        if uw1>uw2
-            txt.chrout('!')
-        else
-            txt.chrout('.')
+        uw = uwarray[i]
+        txt.print_uw(uw)
+        txt.chrout('\n')
 
-        if uw1>=uw2
-            txt.chrout('.')
-        else
-            txt.chrout('!')
-        if uw1==uw2
-            txt.chrout('.')
-        else
-            txt.chrout('!')
-        if uw1!=uw2
-            txt.chrout('!')
-        else
-            txt.chrout('.')
+        ww = warray[i]
+        txt.print_w(ww)
+        txt.chrout('\n')
+
+        fl = farray[i]
+        floats.print_f(fl)
+        txt.chrout('\n')
 
         test_stack.test()
         txt.chrout('\n')
