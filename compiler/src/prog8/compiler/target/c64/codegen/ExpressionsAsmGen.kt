@@ -182,35 +182,91 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateFloatLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO float via func args?
-        translateExpression(left)
-        translateExpression(right)
-        asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.asmVariableName(right)
+            asmgen.out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            if (asmgen.options.slowCodegenWarnings)
+                println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO float via func args?
+            translateExpression(left)
+            translateExpression(right)
+            asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        }
     }
 
     private fun translateFloatLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO float via func args?
-        translateExpression(left)
-        translateExpression(right)
-        asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.asmVariableName(right)
+            asmgen.out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            if (asmgen.options.slowCodegenWarnings)
+                println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO float via func args?
+            translateExpression(left)
+            translateExpression(right)
+            asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        }
     }
 
     private fun translateFloatGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO float via func args?
-        translateExpression(left)
-        translateExpression(right)
-        asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.asmVariableName(right)
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            if (asmgen.options.slowCodegenWarnings)
+                println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO float via func args?
+            translateExpression(left)
+            translateExpression(right)
+            asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        }
     }
 
     private fun translateFloatGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO float via func args
-        translateExpression(left)
-        translateExpression(right)
-        asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.asmVariableName(right)
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            if (asmgen.options.slowCodegenWarnings)
+                println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO float via func args
+            translateExpression(left)
+            translateExpression(right)
+            asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        }
     }
 
     private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {

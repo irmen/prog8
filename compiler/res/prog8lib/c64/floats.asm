@@ -447,6 +447,40 @@ notequal_f	.proc
 		rts
 		.pend
 
+vars_less_f	.proc
+		; -- is float in AY < float in P8ZP_SCRATCH_W2 ?
+		jsr  MOVFM
+		lda  P8ZP_SCRATCH_W2
+		ldy  P8ZP_SCRATCH_W2+1
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		cmp  #255
+		bne  +
+		lda  #1
+		rts
++		lda  #0
+		rts
+		.pend
+
+vars_lesseq_f	.proc
+		; -- is float in AY <= float in P8ZP_SCRATCH_W2 ?
+		jsr  MOVFM
+		lda  P8ZP_SCRATCH_W2
+		ldy  P8ZP_SCRATCH_W2+1
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		cmp  #255
+		bne  +
+-		lda  #1
+		rts
++		cmp  #0
+		beq  -
+		lda  #0
+		rts
+		.pend
+
 less_f		.proc
 		; -- is f1 < f2?
 		jsr  compare_floats
