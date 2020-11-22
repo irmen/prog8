@@ -136,77 +136,81 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             "<" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLessJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> {
-                        // todo via func args
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO float
-                        translateExpression(left)
-                        translateExpression(right)
-                        asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
-                    }
+                    DataType.UBYTE -> translateUbyteLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.STR -> translateStringLessJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLessOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> {
-                        // todo via func args
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO float
-                        translateExpression(left)
-                        translateExpression(right)
-                        asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
-                    }
+                    DataType.UBYTE -> translateUbyteLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.STR -> translateStringLessOrEqualJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> {
-                        // todo via func args
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO float
-                        translateExpression(left)
-                        translateExpression(right)
-                        asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
-                    }
+                    DataType.UBYTE -> translateUbyteGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
                     DataType.STR -> translateStringGreaterJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreaterOrEqualJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> {
-                        // todo via func args
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO float
-                        translateExpression(left)
-                        translateExpression(right)
-                        asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
-                    }
+                    DataType.UBYTE -> translateUbyteGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.STR -> translateStringGreaterOrEqualJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
         }
+    }
+
+    private fun translateFloatLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO float via func args?
+        translateExpression(left)
+        translateExpression(right)
+        asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateFloatLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO float via func args?
+        translateExpression(left)
+        translateExpression(right)
+        asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateFloatGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO float via func args?
+        translateExpression(left)
+        translateExpression(right)
+        asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateFloatGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO float via func args
+        translateExpression(left)
+        translateExpression(right)
+        asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -946,12 +950,25 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e22): '==' at ${left.position}") // TODO float
-        translateExpression(left)
-        translateExpression(right)
-        asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.asmVariableName(right)
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            if (asmgen.options.slowCodegenWarnings)
+                println("warning: slow stack evaluation used (e22): '==' at ${left.position}") // TODO float via func args?
+            translateExpression(left)
+            translateExpression(right)
+            asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        }
     }
 
     private fun translateFloatNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -995,12 +1012,25 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // todo via func args
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (e23): '!=' at ${left.position}") // TODO float
-        translateExpression(left)
-        translateExpression(right)
-        asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.asmVariableName(right)
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                bne  $jumpIfFalseLabel""")
+        } else {
+            if (asmgen.options.slowCodegenWarnings)
+                println("warning: slow stack evaluation used (e23): '!=' at ${left.position}") // TODO float via func args?
+            translateExpression(left)
+            translateExpression(right)
+            asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+        }
     }
 
     private fun translateStringEqualsJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {

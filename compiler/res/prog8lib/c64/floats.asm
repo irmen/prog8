@@ -380,6 +380,36 @@ neg_f		.proc
 		rts
 		.pend
 
+vars_equal_f	.proc
+		; -- are the mflpt5 numbers in P8ZP_SCRATCH_W1 and AY identical?
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  _false
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  _false
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  _false
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  _false
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  _false
+		lda  #1
+		rts
+_false		lda  #0
+		rts
+		.pend
+
 equal_f		.proc
 		; -- are the two mflpt5 numbers on the stack identical?
 		inx
