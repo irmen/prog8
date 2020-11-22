@@ -32,7 +32,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     internal fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-        // first, if it is of the form:   <constvalue> <comparison> X  ,  swap the operands around
+        // first, if it is of the form:   <constvalue> <comparison> X  ,  swap the operands around,
+        // so that the constant value is always the right operand.
         var left = expr.left
         var right = expr.right
         var operator = expr.operator
@@ -182,7 +183,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateFloatLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(left is IdentifierReference && right is IdentifierReference) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.getFloatAsmConst(rightConstVal.number.toDouble())
+            asmgen.out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
             val leftName = asmgen.asmVariableName(left)
             val rightName = asmgen.asmVariableName(right)
             asmgen.out("""
@@ -204,7 +224,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateFloatLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(left is IdentifierReference && right is IdentifierReference) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.getFloatAsmConst(rightConstVal.number.toDouble())
+            asmgen.out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
             val leftName = asmgen.asmVariableName(left)
             val rightName = asmgen.asmVariableName(right)
             asmgen.out("""
@@ -226,7 +265,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateFloatGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(left is IdentifierReference && right is IdentifierReference) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.getFloatAsmConst(rightConstVal.number.toDouble())
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
             val leftName = asmgen.asmVariableName(left)
             val rightName = asmgen.asmVariableName(right)
             asmgen.out("""
@@ -248,7 +306,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateFloatGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        if(left is IdentifierReference && right is IdentifierReference) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.getFloatAsmConst(rightConstVal.number.toDouble())
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
             val leftName = asmgen.asmVariableName(left)
             val rightName = asmgen.asmVariableName(right)
             asmgen.out("""
@@ -1006,7 +1083,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(left is IdentifierReference && right is IdentifierReference) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.getFloatAsmConst(rightConstVal.number.toDouble())
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
             val leftName = asmgen.asmVariableName(left)
             val rightName = asmgen.asmVariableName(right)
             asmgen.out("""
@@ -1068,7 +1164,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(left is IdentifierReference && right is IdentifierReference) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmgen.asmVariableName(left)
+            val rightName = asmgen.getFloatAsmConst(rightConstVal.number.toDouble())
+            asmgen.out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                bne  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
             val leftName = asmgen.asmVariableName(left)
             val rightName = asmgen.asmVariableName(right)
             asmgen.out("""

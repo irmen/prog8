@@ -7,17 +7,10 @@ main {
 
     sub start() {
 
-        byte ub1
-        byte ub2
-        byte bb1
-        byte bb2
         float uw1
-        float uw2
-        word ww1
-        word ww2
+        const float uw2 = 2.2
 
         uw1 = 1.1
-        uw2 = 2.2
         if uw1<uw2
             txt.chrout('.')
         else
@@ -46,8 +39,7 @@ main {
 
 
         txt.chrout(' ')
-        uw1 = -1.1
-        uw2 = -1.1
+        uw1 = 2.2
 
         if uw1<uw2
             txt.chrout('!')
