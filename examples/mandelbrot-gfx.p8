@@ -45,6 +45,7 @@ main {
             }
         }
 
+        ; graphics.disable_bitmap_mode()
         ; test_stack.test()
 
         repeat {

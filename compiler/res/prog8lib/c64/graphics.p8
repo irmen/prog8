@@ -12,7 +12,7 @@ graphics {
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
-        c64.SCROLY = %00111000
+        c64.SCROLY = %00111011
         c64.SCROLX = %00001000
         c64.VMCSB = (c64.VMCSB & %11110000) | %00001000   ; $2000-$3fff
         clear_screen(1, 0)
@@ -20,7 +20,7 @@ graphics {
 
     sub disable_bitmap_mode() {
         ; enables text mode, erase the text screen, color white
-        c64.SCROLY = %00011000
+        c64.SCROLY = %00011011
         c64.SCROLX = %00001000
         c64.VMCSB = (c64.VMCSB & %11110000) | %00000100   ; $1000-$2fff
         txt.fill_screen(' ', 1)
