@@ -146,7 +146,7 @@ A recent precompiled .exe for Windows can be obtained from my `clone <https://gi
 *You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
 It's possible to use older versions, but it is very likely that the automatic Vice breakpoints won't work with them.
 
-A **Java runtime (jre or jdk), version 8 or newer**  is required to run the prog8 compiler itself.
+A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK in their packages repository instead.
 For Windows it's possible to get that as well; check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ .
 For MacOS you can use the Homebrew system to install a recent version of OpenJDK.
