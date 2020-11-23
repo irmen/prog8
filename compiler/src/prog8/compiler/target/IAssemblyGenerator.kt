@@ -7,6 +7,7 @@ internal interface IAssemblyGenerator {
 }
 
 internal const val generatedLabelPrefix = "_prog8_label_"
+internal const val subroutineFloatEvalResultVar = "_prog8_float_eval_result"
 
 internal interface IAssemblyProgram {
     val name: String

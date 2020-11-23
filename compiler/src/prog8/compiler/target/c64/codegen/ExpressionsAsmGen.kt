@@ -9,6 +9,7 @@ import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
+import prog8.compiler.target.subroutineFloatEvalResultVar
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
@@ -215,11 +216,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_less_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            if (asmgen.options.slowCodegenWarnings)
-                println("warning: slow stack evaluation used (e1): '<' at ${left.position}") // TODO float via func args?
-            translateExpression(left)
-            translateExpression(right)
-            asmgen.out("  jsr  floats.less_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+            val subroutine = left.definingSubroutine()!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            asmgen.out("""
+                lda  #<$subroutineFloatEvalResultVar
+                ldy  #>$subroutineFloatEvalResultVar
+                jsr  floats.var_fac1_less_f
+                beq  $jumpIfFalseLabel""")
         }
     }
 
@@ -256,11 +261,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_lesseq_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            if (asmgen.options.slowCodegenWarnings)
-                println("warning: slow stack evaluation used (e1): '<=' at ${left.position}") // TODO float via func args?
-            translateExpression(left)
-            translateExpression(right)
-            asmgen.out("  jsr  floats.lesseq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+            val subroutine = left.definingSubroutine()!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            asmgen.out("""
+                lda  #<$subroutineFloatEvalResultVar
+                ldy  #>$subroutineFloatEvalResultVar
+                jsr  floats.var_fac1_lesseq_f
+                beq  $jumpIfFalseLabel""")
         }
     }
 
@@ -297,11 +306,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_less_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            if (asmgen.options.slowCodegenWarnings)
-                println("warning: slow stack evaluation used (e1): '>' at ${left.position}") // TODO float via func args?
-            translateExpression(left)
-            translateExpression(right)
-            asmgen.out("  jsr  floats.greater_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+            val subroutine = left.definingSubroutine()!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            asmgen.out("""
+                lda  #<$subroutineFloatEvalResultVar
+                ldy  #>$subroutineFloatEvalResultVar
+                jsr  floats.var_fac1_greater_f
+                beq  $jumpIfFalseLabel""")
         }
     }
 
@@ -338,11 +351,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_lesseq_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            if (asmgen.options.slowCodegenWarnings)
-                println("warning: slow stack evaluation used (e1): '>=' at ${left.position}") // TODO float via func args
-            translateExpression(left)
-            translateExpression(right)
-            asmgen.out("  jsr  floats.greatereq_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+            val subroutine = left.definingSubroutine()!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            asmgen.out("""
+                lda  #<$subroutineFloatEvalResultVar
+                ldy  #>$subroutineFloatEvalResultVar
+                jsr  floats.var_fac1_greatereq_f
+                beq  $jumpIfFalseLabel""")
         }
     }
 
@@ -1115,11 +1132,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_equal_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            if (asmgen.options.slowCodegenWarnings)
-                println("warning: slow stack evaluation used (e22): '==' at ${left.position}") // TODO float via func args?
-            translateExpression(left)
-            translateExpression(right)
-            asmgen.out("  jsr  floats.equal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+            val subroutine = left.definingSubroutine()!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            asmgen.out("""
+                lda  #<$subroutineFloatEvalResultVar
+                ldy  #>$subroutineFloatEvalResultVar
+                jsr  floats.var_fac1_notequal_f
+                bne  $jumpIfFalseLabel""")
         }
     }
 
@@ -1196,11 +1217,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_equal_f
                 bne  $jumpIfFalseLabel""")
         } else {
-            if (asmgen.options.slowCodegenWarnings)
-                println("warning: slow stack evaluation used (e23): '!=' at ${left.position}") // TODO float via func args?
-            translateExpression(left)
-            translateExpression(right)
-            asmgen.out("  jsr  floats.notequal_f |  inx |  lda  P8ESTACK_LO,x |  beq  $jumpIfFalseLabel")
+            val subroutine = left.definingSubroutine()!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            asmgen.out("""
+                lda  #<$subroutineFloatEvalResultVar
+                ldy  #>$subroutineFloatEvalResultVar
+                jsr  floats.var_fac1_notequal_f
+                beq  $jumpIfFalseLabel""")
         }
     }
 

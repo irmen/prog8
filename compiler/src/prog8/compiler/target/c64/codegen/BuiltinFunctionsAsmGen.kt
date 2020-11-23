@@ -17,6 +17,7 @@ import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
 import prog8.compiler.target.c64.codegen.assignment.SourceStorageKind
 import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
+import prog8.compiler.target.subroutineFloatEvalResultVar
 import prog8.compiler.toHex
 import prog8.functions.FSignature
 
@@ -1033,7 +1034,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
                 else -> {
                     scope.asmGenInfo.usedFloatEvalResultVar = true
-                    val variable = IdentifierReference(listOf("_prog8_float_eval_result"), value.position)
+                    val variable = IdentifierReference(listOf(subroutineFloatEvalResultVar), value.position)
                     val addr = AddressOf(variable, value.position)
                     addr.linkParents(value)
                     asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT, scope)

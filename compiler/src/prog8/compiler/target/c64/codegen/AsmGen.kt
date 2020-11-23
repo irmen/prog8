@@ -8,6 +8,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*
+import prog8.compiler.target.*
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.IAssemblyGenerator
@@ -800,7 +801,7 @@ internal class AsmGen(private val program: Program,
             if(sub.asmGenInfo.usedRegsaveY)
                 out("_prog8_regsaveY     .byte  0")
             if(sub.asmGenInfo.usedFloatEvalResultVar)
-                out("_prog8_float_eval_result    .byte 0,0,0,0,0")
+                out("$subroutineFloatEvalResultVar    .byte 0,0,0,0,0")
             vardecls2asm(sub.statements)
             out("  .pend\n")
         }

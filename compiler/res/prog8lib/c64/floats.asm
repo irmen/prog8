@@ -380,6 +380,69 @@ neg_f		.proc
 		rts
 		.pend
 
+var_fac1_less_f	.proc
+		; -- is the float in FAC1 < the variable AY?
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		cmp  #255
+		beq  +
+		lda  #0
+		rts
++		lda  #1
+		rts
+		.pend
+
+var_fac1_lesseq_f	.proc
+		; -- is the float in FAC1 <= the variable AY?
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		cmp  #0
+		beq  +
+		cmp  #255
+		beq  +
+		lda  #0
+		rts
++		lda  #1
+		rts
+		.pend
+
+var_fac1_greater_f	.proc
+		; -- is the float in FAC1 > the variable AY?
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		cmp  #1
+		beq  +
+		lda  #0
++		rts
+		.pend
+
+var_fac1_greatereq_f	.proc
+		; -- is the float in FAC1 >= the variable AY?
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		cmp  #0
+		beq  +
+		cmp  #1
+		beq  +
+		lda  #0
+		rts
++		lda  #1
+		rts
+		.pend
+
+var_fac1_notequal_f	.proc
+		; -- are the floats numbers in FAC1 and the variable AY *not* identical?
+		stx  P8ZP_SCRATCH_REG
+		jsr  FCOMP
+		ldx  P8ZP_SCRATCH_REG
+		and  #1
+		rts
+		.pend
+
 vars_equal_f	.proc
 		; -- are the mflpt5 numbers in P8ZP_SCRATCH_W1 and AY identical?
 		sta  P8ZP_SCRATCH_W2
