@@ -49,8 +49,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     lateinit var origAssign: AsmAssignment
 
     init {
-        if(register!=null && datatype !in IntegerDatatypes)
-            throw AssemblyError("register must be integer type")
+        if(register!=null && datatype !in NumericDatatypes)
+            throw AssemblyError("register must be integer or float type")
     }
 
     companion object {
@@ -75,6 +75,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
                     RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, scope, register = registers)
+                    RegisterOrPair.FAC1,
+                    RegisterOrPair.FAC2 -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.FLOAT, scope, register = registers)
                 }
     }
 }

@@ -1174,18 +1174,7 @@ $label              nop""")
                 }
                 DataType.FLOAT -> {
                     // return the float value via FAC1
-                    when (returnvalue) {
-                        is NumericLiteralValue -> throw AssemblyError("float literal should have been changed to auto var")
-                        is IdentifierReference -> {
-                            val asmVar = asmVariableName(returnvalue)
-                            out("  lda  #<${asmVar} |  ldy  #>${asmVar} |  jsr  floats.MOVFM")
-                        }
-                        else -> {
-                            // todo evaluate directly into fac1 instead of via stack intermediate  (add RegisterOrPair.FAC1/FAC2 ??)
-                            translateExpression(returnvalue)
-                            out("  jsr  floats.pop_float_fac1")
-                        }
-                    }
+                    assignExpressionToRegister(returnvalue, RegisterOrPair.FAC1)
                 }
                 else -> {
                     // all else take its address and assign that also to AY register pair

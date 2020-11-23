@@ -19,6 +19,11 @@ main {
         word ww
         float fl
 
+
+        fl = func(33)
+        floats.print_f(fl)
+        txt.chrout('\n')
+
         const ubyte i = 2
         const ubyte j = 3
 
@@ -44,5 +49,10 @@ main {
 
         test_stack.test()
         txt.chrout('\n')
+    }
+
+    sub func(ubyte w) -> float {
+        w = w*99
+        return 3344.55
     }
 }

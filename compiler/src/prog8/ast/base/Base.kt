@@ -80,7 +80,9 @@ enum class RegisterOrPair {
     Y,
     AX,
     AY,
-    XY;
+    XY,
+    FAC1,
+    FAC2;
 
     companion object {
         val names by lazy { values().map { it.toString()} }

@@ -1339,6 +1339,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                 asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
                             asmgen.out("  tya |  sta  P8ESTACK_HI,x |  dex")
                         }
+                        RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.push_fac1")
+                        RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.push_fac2")
                     }
                 }
                 else if(reg.statusflag!=null) {

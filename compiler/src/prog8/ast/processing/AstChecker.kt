@@ -288,6 +288,7 @@ internal class AstChecker(private val program: Program,
                             regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
                             regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
                         }
+                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> { /* no sensible way to count this */ }
                         null ->
                             if(p.statusflag!=null)
                                 statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1

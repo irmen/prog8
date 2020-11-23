@@ -527,6 +527,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             else -> throw AssemblyError("can't assign word to single byte register")
                         }
                     }
+                    DataType.FLOAT -> {
+                        when(target.register!!) {
+                            RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.pop_float_fac1")
+                            RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.pop_float_fac2")
+                            else -> throw AssemblyError("can only assign float to Fac1 or 2")
+                        }
+                    }
+
                     else -> throw AssemblyError("weird dt")
                 }
             }
@@ -729,7 +737,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  jsr  floats.set_array_float_from_fac1")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
-            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign Fac1 float to another fac register")
             TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_fac1")
         }
     }
@@ -762,7 +770,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out(" jsr  floats.set_array_float")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
-            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+            TargetStorageKind.REGISTER -> {
+                when(target.register!!) {
+                    RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.MOVFM")
+                    RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.CONUPK")
+                    else -> throw AssemblyError("can only assign float to Fac1 or 2")
+                }
+            }
             TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_float")
         }
     }
@@ -803,7 +817,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out(" jsr  floats.set_array_float")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
-            TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+            TargetStorageKind.REGISTER -> {
+                when(target.register!!) {
+                    RegisterOrPair.FAC1 -> asmgen.out("  lda  #<$sourceName  | ldy  #>$sourceName |  jsr  floats.MOVFM")
+                    RegisterOrPair.FAC2 -> asmgen.out("  lda  #<$sourceName  | ldy  #>$sourceName |  jsr  floats.CONUPK")
+                    else -> throw AssemblyError("can only assign float to Fac1 or 2")
+                }
+            }
             TargetStorageKind.STACK -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
         }
     }
@@ -837,6 +857,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
                     RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
                     RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
+                    RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                 }
             }
             TargetStorageKind.STACK -> {
@@ -988,6 +1009,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { asmgen.out("  ldy  #0") }
                         RegisterOrPair.AX -> { asmgen.out("  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  tax |  ldy  #0") }
+                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
                     }
                     CpuRegister.X -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  txa") }
@@ -996,6 +1018,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { asmgen.out("  txa |  ldy  #0") }
                         RegisterOrPair.AX -> { asmgen.out("  txa |  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  ldy  #0") }
+                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
                     }
                     CpuRegister.Y -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  tya") }
@@ -1004,6 +1027,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { asmgen.out("  tya |  ldy  #0") }
                         RegisterOrPair.AX -> { asmgen.out("  tya |  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  tya |  tax |  ldy  #0") }
+                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
                     }
                 }
             }
@@ -1156,6 +1180,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.AX -> asmgen.out("  lda  #${byte.toHex()} |  ldx  #0")
                 RegisterOrPair.AY -> asmgen.out("  lda  #${byte.toHex()} |  ldy  #0")
                 RegisterOrPair.XY -> asmgen.out("  ldx  #${byte.toHex()} |  ldy  #0")
+                RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
             }
             TargetStorageKind.STACK -> {
                 asmgen.out("""
@@ -1213,7 +1238,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
-                TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+                TargetStorageKind.REGISTER -> {
+                    val floatConst = asmgen.getFloatAsmConst(float)
+                    when(target.register!!) {
+                        RegisterOrPair.FAC1 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.MOVFM")
+                        RegisterOrPair.FAC2 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.CONUPK")
+                        else -> throw AssemblyError("can only assign float to Fac1 or 2")
+                    }
+                }
                 TargetStorageKind.STACK -> {
                     val floatConst = asmgen.getFloatAsmConst(float)
                     asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
@@ -1270,7 +1302,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
-                TargetStorageKind.REGISTER -> throw AssemblyError("can't assign float to register")
+                TargetStorageKind.REGISTER -> {
+                    val floatConst = asmgen.getFloatAsmConst(float)
+                    when(target.register!!) {
+                        RegisterOrPair.FAC1 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.MOVFM")
+                        RegisterOrPair.FAC2 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.CONUPK")
+                        else -> throw AssemblyError("can only assign float to Fac1 or 2")
+                    }
+                }
                 TargetStorageKind.STACK -> {
                     val floatConst = asmgen.getFloatAsmConst(float)
                     asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
@@ -1301,6 +1340,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  ${address.toHex()} |  ldx  #0")
                     RegisterOrPair.AY -> asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
                     RegisterOrPair.XY -> asmgen.out("  ldy  ${address.toHex()} |  ldy  #0")
+                    RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                 }
                 TargetStorageKind.STACK -> {
                     asmgen.out("""
@@ -1331,6 +1371,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> asmgen.out("  ldx  #0")
                         RegisterOrPair.AY -> asmgen.out("  ldy  #0")
                         RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
+                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     }
                 }
                 TargetStorageKind.STACK -> {
