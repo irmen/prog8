@@ -1207,7 +1207,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 sec
                                 sbc  P8ESTACK_LO+1,x
                                 sta  $name
-                                bcc  +
+                                bcs  +
                                 dec  $name+1
 +""")
                         else

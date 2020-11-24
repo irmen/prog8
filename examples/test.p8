@@ -17,7 +17,7 @@ main {
         txt.chrout('\n')
 
         uw = 1000
-        uw -= ub+ub2            ; TODO FIX COMPUTATION ERROR
+        uw -= ub+ub2
         txt.print_uw(uw)
         txt.chrout('\n')
 
