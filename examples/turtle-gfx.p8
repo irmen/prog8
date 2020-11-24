@@ -49,7 +49,7 @@ turtle {
         uword xx = xpos as uword
         c64.SPXY[0] = lsb(xx) + 12
         c64.MSIGX = msb(xx) > 0
-        c64.SPXY[1] = ypos as ubyte + 37
+        c64.SPXY[1] = ypos as ubyte + 40
     }
 
     sub pos(float x, float y) {

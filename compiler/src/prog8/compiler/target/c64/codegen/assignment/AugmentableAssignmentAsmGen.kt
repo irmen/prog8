@@ -1381,12 +1381,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression, scope: Subroutine) {
-        // this should be the last resort for code generation for this,
-        // because the value is evaluated onto the eval stack (=slow).
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (2):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
-        asmgen.translateExpression(value)
-        asmgen.out("  jsr  floats.pop_float_fac1")
+        asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
         asmgen.saveRegister(CpuRegister.X, false, scope)
         when (operator) {
             "**" -> {
