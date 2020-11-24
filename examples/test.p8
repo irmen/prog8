@@ -7,29 +7,44 @@ main {
 
     sub start() {
 
-        uword address = $c000
+        uword uw = $c000
         ubyte ub = 1
         ubyte ub2 = 1
 
-        @(address) = 13
-
-        @(address) <<= ub+ub2
-
-        txt.print_ub(@(address))
-        txt.chrout('\n')
-        txt.print_ub(13 << (ub+ub2))
+        uw = 1000
+        uw += ub+ub2
+        txt.print_uw(uw)
         txt.chrout('\n')
 
-
-        @(address) = 200
-
-        @(address) >>= ub+ub2
-
-        txt.print_ub(@(address))
-        txt.chrout('\n')
-        txt.print_ub(200 >> (ub+ub2))
+        uw = 1000
+        uw -= ub+ub2            ; TODO FIX COMPUTATION ERROR
+        txt.print_uw(uw)
         txt.chrout('\n')
 
+        uw = 1000
+        uw *= ub+ub2
+        txt.print_uw(uw)
+        txt.chrout('\n')
+
+        uw = 1000
+        uw /= ub+ub2
+        txt.print_uw(uw)
+        txt.chrout('\n')
+
+        uw = 1000
+        uw %= 5*ub+ub2+ub2
+        txt.print_uw(uw)
+        txt.chrout('\n')
+
+        uw = 1000
+        uw <<= ub+ub2
+        txt.print_uw(uw)
+        txt.chrout('\n')
+
+        uw = 1000
+        uw >>= ub+ub2
+        txt.print_uw(uw)
+        txt.chrout('\n')
 
         test_stack.test()
 

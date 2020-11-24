@@ -182,20 +182,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
-                        if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (1): ${memory.addressExpression::class.simpleName} at ${memory.addressExpression.position}") // TODO optimize...
-                        asmgen.translateExpression(memory.addressExpression)  // TODO directly into P8ZP_SCRATCH_W2?
+                        asmgen.translateExpression(memory.addressExpression)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
-                        val zp = CompilationTarget.instance.machine.zeropage
                         when {
-                            valueLv != null -> inplaceModification_byte_litval_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, valueLv.toInt())
-                            ident != null -> inplaceModification_byte_variable_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, ident)
-                            memread != null -> inplaceModification_byte_memread_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, memread)
+                            valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
+                            ident != null -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, ident)
+                            memread != null -> inplaceModification_byte_memread_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, memread)
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
-                                inplaceModification_byte_value_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
+                                inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value)
                             }
-                            else -> inplaceModification_byte_value_to_variable(zp.SCRATCH_B1.toHex(), DataType.UBYTE, operator, value)
+                            else -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value)
                         }
                         asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
                     }
@@ -1175,7 +1172,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     // note: ** (power) operator requires floats.
                     "+" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4):  $name += ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
@@ -1202,7 +1199,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "-" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4):  $name -= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
@@ -1232,7 +1229,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "*" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4):  $name *= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.signExtendStackLsb(valueDt)
                         multiplyWord()
@@ -1241,7 +1238,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "/" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4):  $name /= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.signExtendStackLsb(valueDt)
                         divideWord()
@@ -1250,7 +1247,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "%" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4):  $name %= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.signExtendStackLsb(valueDt)
                         remainderWord()
@@ -1310,33 +1307,33 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     // note: ** (power) operator requires floats.
                     "+" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name += ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.out(" lda  $name |  clc |  adc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  adc  P8ESTACK_HI+1,x |  sta  $name+1 |  inx")
                     }
                     "-" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name -= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.out(" lda  $name |  sec |  sbc  P8ESTACK_LO+1,x |  sta  $name |  lda  $name+1 |  sbc  P8ESTACK_HI+1,x |  sta  $name+1 |  inx")
                     }
                     "*" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name *= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         multiplyWord()
                         asmgen.out(" inx")
                     }
                     "/" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name /= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         divideWord()
                         asmgen.out(" inx")
                     }
                     "%" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name %= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         remainderWord()
                         asmgen.out(" inx")
@@ -1344,19 +1341,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
                     "&" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name &= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.out(" lda  $name |  and  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  and  P8ESTACK_HI+1,x  |  sta  $name+1 |  inx")
                     }
                     "^" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name ^= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.out(" lda  $name |  eor  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  eor  P8ESTACK_HI+1,x  |  sta  $name+1 |  inx")
                     }
                     "|" -> {
                         if(asmgen.options.slowCodegenWarnings)
-                            println("warning: slow stack evaluation used (4):  $name $operator= ${value::class.simpleName} at ${value.position}") // TODO
+                            println("warning: slow stack evaluation used (4w):  $name |r= ${value::class.simpleName} at ${value.position}") // TODO
                         asmgen.translateExpression(value)
                         asmgen.out(" lda  $name |  ora  P8ESTACK_LO+1,x |  sta  $name | lda  $name+1 |  ora  P8ESTACK_HI+1,x  |  sta  $name+1 |  inx")
                     }
