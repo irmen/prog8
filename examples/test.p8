@@ -7,43 +7,31 @@ main {
 
     sub start() {
 
-        float fl = 2.0
-        float cf = 1.5
+        uword address = $c000
+        ubyte ub = 1
+        ubyte ub2 = 1
 
-        if fl == cf+0.5
-            txt.print(".\n")
-        else
-            txt.print("!\n")
+        @(address) = 13
 
-        if fl != cf+0.5
-            txt.print("!\n")
-        else
-            txt.print(".\n")
+        @(address) <<= ub+ub2
 
-        if fl < cf+0.5
-            txt.print("!\n")
-        else
-            txt.print(".\n")
+        txt.print_ub(@(address))
+        txt.chrout('\n')
+        txt.print_ub(13 << (ub+ub2))
+        txt.chrout('\n')
 
-        if fl <= cf+0.5
-            txt.print(".\n")
-        else
-            txt.print("!\n")
 
-        if fl > cf+0.5
-            txt.print("!\n")
-        else
-            txt.print(".\n")
+        @(address) = 200
 
-        if fl >= cf+0.5
-            txt.print(".\n")
-        else
-            txt.print("!\n")
+        @(address) >>= ub+ub2
 
-    }
+        txt.print_ub(@(address))
+        txt.chrout('\n')
+        txt.print_ub(200 >> (ub+ub2))
+        txt.chrout('\n')
 
-    sub func(float fa) -> float {
-        fa = fa*99.0
-        return fa + 1.0
+
+        test_stack.test()
+
     }
 }

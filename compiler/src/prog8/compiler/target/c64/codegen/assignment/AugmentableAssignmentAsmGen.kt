@@ -228,26 +228,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_byte_value_to_pointer(pointervar: IdentifierReference, operator: String, value: Expression) {
-        if(asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used (3):  @(${pointervar.nameInSource.last()}) $operator= ${value::class.simpleName} at ${value.position}") // TODO
-        asmgen.translateExpression(value)
+        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
             // note: ** (power) operator requires floats.
-            "+" -> asmgen.out("  clc |  adc  P8ESTACK_LO+1,x")
-            "-" -> asmgen.out("  sec |  sbc  P8ESTACK_LO+1,x")
-            "*" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.multiply_bytes |  ldy  #0")
-            "/" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
-            "%" -> asmgen.out("  pha |  lda  P8ESTACK_LO+1,x |  tay |  pla |  jsr  math.divmod_ub_asm |  ldy  #0")
+            "+" -> asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
+            "-" -> asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
+            "*" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.multiply_bytes |  ldy  #0")
+            "/" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
+            "%" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm |  ldy  #0")
             "<<" -> {
                 asmgen.out("""
-                    pha
-                    lda  P8ESTACK_LO+1,x
-                    bne  +
-                    pla
-                    rts
-+                   tay
-                    pla 
+                    ldy  P8ZP_SCRATCH_B1
+                    beq  +
 -                   asl  a
                     dey
                     bne  -
@@ -255,28 +248,22 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             ">>" -> {
                 asmgen.out("""
-                    pha
-                    lda  P8ESTACK_LO+1,x
-                    bne  +
-                    pla
-                    rts
-+                   tay
-                    pla 
+                    ldy  P8ZP_SCRATCH_B1
+                    beq  +
 -                   lsr  a
                     dey
                     bne  -
 +""")
             }
-            "&" -> asmgen.out(" and  P8ESTACK_LO+1,x")
-            "^" -> asmgen.out(" eor  P8ESTACK_LO+1,x")
-            "|" -> asmgen.out(" ora  P8ESTACK_LO+1,x")
+            "&" -> asmgen.out(" and  P8ZP_SCRATCH_B1")
+            "^" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
+            "|" -> asmgen.out(" ora  P8ZP_SCRATCH_B1")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         if(ptrOnZp)
             asmgen.out("  sta  ($sourceName),y")
         else
             asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
-        asmgen.out(" inx")
     }
 
     private fun inplaceModification_byte_variable_to_pointer(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
