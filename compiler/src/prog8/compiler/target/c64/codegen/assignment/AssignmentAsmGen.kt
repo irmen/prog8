@@ -333,7 +333,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.UBYTE, DataType.BYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.UWORD, DataType.WORD -> {
+                    DataType.UWORD -> {
+                        if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                            asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                        else
+                            asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                    }
+                    DataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, DataType.BYTE)
                     }

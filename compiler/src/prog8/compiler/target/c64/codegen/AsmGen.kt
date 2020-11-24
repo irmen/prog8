@@ -1193,7 +1193,7 @@ $label              nop""")
     }
 
     internal fun signExtendAYlsb(valueDt: DataType) {
-        // sign extend signed byte in AY to full word in AY
+        // sign extend signed byte in A to full word in AY
         when(valueDt) {
             DataType.UBYTE -> out("  ldy  #0")
             DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_AY_byte")
@@ -1202,7 +1202,7 @@ $label              nop""")
     }
 
     internal fun signExtendStackLsb(valueDt: DataType) {
-        // sign extend signed byte on stack to signed word
+        // sign extend signed byte on stack to signed word on stack
         when(valueDt) {
             DataType.UBYTE -> out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
             DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_stack_byte")
@@ -1211,14 +1211,14 @@ $label              nop""")
     }
 
     internal fun signExtendVariableLsb(asmvar: String, valueDt: DataType) {
-        // sign extend signed byte in a word variable
+        // sign extend signed byte in a var to a full word in that variable
         when(valueDt) {
             DataType.UBYTE -> {
                 out("  lda  #0 |  sta  $asmvar+1")
             }
             DataType.BYTE -> {
                 out("""
-                    lda  $asmvar+1
+                    lda  $asmvar
                     ora  #$7f
                     bmi  +
                     lda  #0

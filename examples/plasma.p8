@@ -10,6 +10,7 @@
 ;  Converted to prog8 by Irmen de Jong.
 
 
+
 main {
     const uword SCREEN1 = $E000
     const uword SCREEN2 = $E400
@@ -27,7 +28,7 @@ main {
         ; ubyte v = c64.VMCSB
         c64.CIA2PRA = (block & $FC) | (lsb(SCREEN1 >> 14) ^ $03)
 
-        repeat 100 {
+        repeat {
             doplasma(SCREEN1)
             c64.VMCSB = PAGE1
             doplasma(SCREEN2)
