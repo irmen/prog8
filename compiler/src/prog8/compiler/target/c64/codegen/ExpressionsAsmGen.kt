@@ -1619,9 +1619,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             ">>" -> {
-                translateExpression(expr.left)
                 val amount = expr.right.constValue(program)?.number?.toInt()
                 if(amount!=null) {
+                    translateExpression(expr.left)
                     when (leftDt) {
                         DataType.UBYTE -> {
                             if (amount <= 2)
@@ -1669,9 +1669,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             "<<" -> {
-                translateExpression(expr.left)
                 val amount = expr.right.constValue(program)?.number?.toInt()
                 if(amount!=null) {
+                    translateExpression(expr.left)
                     if (leftDt in ByteDatatypes) {
                         if (amount <= 2)
                             repeat(amount) { asmgen.out("  asl  P8ESTACK_LO+1,x") }
