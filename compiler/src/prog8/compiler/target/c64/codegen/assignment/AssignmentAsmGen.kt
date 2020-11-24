@@ -267,10 +267,25 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
 
         // special case optimizations
-        if (value is IdentifierReference) {
-            if(target.kind==TargetStorageKind.VARIABLE) {
-                if (valueDt != DataType.STRUCT)
-                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
+        if(target.kind==TargetStorageKind.VARIABLE) {
+            if(value is IdentifierReference && valueDt != DataType.STRUCT)
+                return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
+
+            when (valueDt) {
+                in ByteDatatypes, in WordDatatypes -> {
+                    // TODO optimize byte/word typecasts even more by only using registers
+                    asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", valueDt, null)
+                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, "P8ZP_SCRATCH_W1", valueDt)
+                }
+                DataType.FLOAT -> {
+                    // float value cast, fall through and do it via stack for now
+                    // TODO optimize float casts to not use stack
+                }
+                in PassByReferenceDatatypes -> {
+                    // str/array value cast (most likely to UWORD, take address-of)
+                    return asmgen.assignExpressionToVariable(value, target.asmVarname, targetDt, null)     // TODO test this cast
+                }
+                else -> throw AssemblyError("strange dt in typecast assign to var: $valueDt  -->  $targetDt")
             }
         }
 
@@ -278,7 +293,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         // TODO optimize typecasts for more special cases?
         // note: cannot use assignTypeCastedValue because that is ourselves :P
         if(this.asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used for typecast: $value into $targetDt at ${value.position}")
+            println("warning: slow stack evaluation used for typecast: $value into $targetDt (target=${target.kind} at ${value.position}")
         asmgen.translateExpression(origTypeCastExpression)      // this performs the actual type cast in translateExpression(Typecast)
         assignStackValue(target)
     }
@@ -395,6 +410,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             DataType.STR -> {
                 if (targetDt != DataType.UWORD && targetDt == DataType.STR)
                     throw AssemblyError("cannot typecast a string into another incompatitble type")
+                TODO("assign typecasted string into target var")
             }
             else -> throw AssemblyError("weird type")
         }
