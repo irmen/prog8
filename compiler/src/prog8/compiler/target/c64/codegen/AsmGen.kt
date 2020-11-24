@@ -1192,20 +1192,20 @@ $label              nop""")
         assemblyLines.add(assembly)
     }
 
+    internal fun signExtendAYlsb(valueDt: DataType) {
+        // sign extend signed byte in AY to full word in AY
+        when(valueDt) {
+            DataType.UBYTE -> out("  ldy  #0")
+            DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_AY_byte")
+            else -> throw AssemblyError("need byte type")
+        }
+    }
+
     internal fun signExtendStackLsb(valueDt: DataType) {
         // sign extend signed byte on stack to signed word
         when(valueDt) {
-            DataType.UBYTE -> {
-                out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
-            }
-            DataType.BYTE -> {
-                out("""
-                    lda  P8ESTACK_LO+1,x
-                    ora  #$7f
-                    bmi  +
-                    lda  #0
-+                   sta  P8ESTACK_HI+1,x""")
-            }
+            DataType.UBYTE -> out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
+            DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_stack_byte")
             else -> throw AssemblyError("need byte type")
         }
     }

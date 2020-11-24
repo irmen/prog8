@@ -1065,3 +1065,29 @@ _return_minusone
             lda  #-1
             rts
             .pend
+
+
+sign_extend_stack_byte	.proc
+	; -- sign extend the (signed) byte on the stack to full 16 bits
+		lda  P8ESTACK_LO+1,x
+		ora  #$7f
+		bmi  +
+		lda  #0
++		sta  P8ESTACK_HI+1,x
+		rts
+		.pend
+
+
+sign_extend_AY_byte	.proc
+	; -- sign extend the (signed) byte in AY to full 16 bits
+		pha
+		tya
+		and  #$80
+		beq  +
+		ldy  #$ff
+		pla
+		rts
++		ldy  #0
+		pla
+		rts
+		.pend

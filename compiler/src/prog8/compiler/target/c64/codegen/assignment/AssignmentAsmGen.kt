@@ -138,7 +138,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is IdentifierReference -> throw AssemblyError("source kind should have been variable")
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
-                    is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, assign)
+                    is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, value)
                     is FunctionCall -> {
                         when (val sub = value.target.targetStatement(program.namespace)) {
                             is Subroutine -> {
@@ -227,11 +227,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origAssign: AsmAssignment) {
+    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origTypeCastExpression: TypecastExpression) {
         val valueIDt = value.inferType(program)
         if(!valueIDt.isKnown)
             throw AssemblyError("unknown dt")
         val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
+        if(valueDt==targetDt)
+            throw AssemblyError("type cast to identical dt should have been removed")
+
         when(value) {
             is IdentifierReference -> {
                 if(targetDt in WordDatatypes) {
@@ -262,35 +265,26 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             else -> {}
         }
 
-        when(value) {
-            is IdentifierReference -> {
-                if(target.kind==TargetStorageKind.VARIABLE) {
-                    val sourceDt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    if (sourceDt != DataType.STRUCT)
-                        return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), sourceDt, origAssign.source.expression!!)
-                }
-            }
-            is PrefixExpression -> {}
-            is BinaryExpression -> {}
-            is ArrayIndexedExpression -> {}
-            is TypecastExpression -> {}
-            is RangeExpr -> {}
-            is FunctionCall -> {}
-            else -> {
-                // TODO optimize the others further?
-                if(this.asmgen.options.slowCodegenWarnings)
-                    println("warning: slow stack evaluation used for typecast: $value into $targetDt at ${value.position}")
+
+        // special case optimizations
+        if (value is IdentifierReference) {
+            if(target.kind==TargetStorageKind.VARIABLE) {
+                if (valueDt != DataType.STRUCT)
+                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
             }
         }
 
         // give up, do it via eval stack
-        asmgen.translateExpression(origAssign.source.expression!!)
+        // TODO optimize typecasts for more special cases?
+        // note: cannot use assignTypeCastedValue because that is ourselves :P
+        if(this.asmgen.options.slowCodegenWarnings)
+            println("warning: slow stack evaluation used for typecast: $value into $targetDt at ${value.position}")
+        asmgen.translateExpression(origTypeCastExpression)      // this performs the actual type cast in translateExpression(Typecast)
         assignStackValue(target)
     }
 
     private fun assignTypeCastedIdentifier(targetAsmVarName: String, targetDt: DataType,
-                                           sourceAsmVarName: String, sourceDt: DataType,
-                                           origExpr: Expression) {
+                                           sourceAsmVarName: String, sourceDt: DataType) {
         if(sourceDt == targetDt)
             throw AssemblyError("typecast to identical value")
 
