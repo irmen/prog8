@@ -274,22 +274,23 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             when (valueDt) {
                 in ByteDatatypes -> {
                     assignExpressionToRegister(value, RegisterOrPair.A)
-                    return assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
                 }
                 in WordDatatypes -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY)
-                    return assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
                 }
                 DataType.FLOAT -> {
                     assignExpressionToRegister(value, RegisterOrPair.FAC1)
-                    return assignTypecastedFloatFAC1(target.asmVarname, targetDt)
+                    assignTypecastedFloatFAC1(target.asmVarname, targetDt)
                 }
                 in PassByReferenceDatatypes -> {
                     // str/array value cast (most likely to UWORD, take address-of)
-                    return assignExpressionToVariable(value, target.asmVarname, targetDt, null)     // TODO test this cast
+                    assignExpressionToVariable(value, target.asmVarname, targetDt, null)
                 }
                 else -> throw AssemblyError("strange dt in typecast assign to var: $valueDt  -->  $targetDt")
             }
+            return
         }
 
         // give up, do it via eval stack

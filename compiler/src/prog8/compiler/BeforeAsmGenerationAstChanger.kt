@@ -170,6 +170,12 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
                             AddressOf(typecast.expression as IdentifierReference, typecast.position),
                             parent
                     ))
+                } else if(typecast.expression is IFunctionCall) {
+                    return listOf(IAstModification.ReplaceNode(
+                            typecast,
+                            typecast.expression,
+                            parent
+                    ))
                 }
             } else {
                 errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)

@@ -12,26 +12,28 @@ main {
         uword uw
         byte bb
         ubyte ub
+        str string1 = "irmen"
+        uword[] array = [1111,2222,3333]
 
-
-        fl = 9997.999
-        ww = (fl+1.1) as word
-        uw = (fl+1.1) as uword
-        fl = 97.999
-        bb = (fl+1.1) as byte
-        ub = (fl+1.1) as ubyte
-
-        txt.print_w(ww)
+        uw = string1 as uword
+        txt.print_uwhex(uw,1)
         txt.chrout('\n')
-        txt.print_uw(uw)
+        uw = array as uword
+        txt.print_uwhex(uw,1)
         txt.chrout('\n')
-        txt.print_b(bb)
+        uw = name() as uword
+        txt.print_uwhex(uw,1)
         txt.chrout('\n')
-        txt.print_ub(ub)
+        uw = name()
+        txt.print_uwhex(uw,1)
         txt.chrout('\n')
 
 
         test_stack.test()
 
+    }
+
+    sub name() -> str {
+        return "irmen"
     }
 }
