@@ -9,6 +9,7 @@ import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
+import prog8.compiler.target.subroutineFloatEvalResultVar
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import prog8.functions.builtinFunctionReturnType
@@ -281,13 +282,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     return assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
                 }
                 DataType.FLOAT -> {
-                    // float value cast, fall through and do it via stack for now
-                    // because doing it with an intermediate variable uses up quite a few extra instructions at this point..
-                    // TODO re-enable float cast via var once expression code generation is more efficent? Or do it via FAC1 directly?
-//                    val scope = value.definingSubroutine()!!
-//                    scope.asmGenInfo.usedFloatEvalResultVar = true
-//                    assignExpressionToVariable(value, subroutineFloatEvalResultVar, valueDt, scope)
-//                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, subroutineFloatEvalResultVar, valueDt)
+                    // TODO try with FAC1 directly
+//                    assignExpressionToRegister(value, RegisterOrPair.FAC1)
+//                    assignTypecastedFloatFAC1(target.asmVarname, targetDt)
+                    val scope = value.definingSubroutine()!!
+                    scope.asmGenInfo.usedFloatEvalResultVar = true
+                    assignExpressionToVariable(value, subroutineFloatEvalResultVar, valueDt, scope)
+                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, subroutineFloatEvalResultVar, valueDt)
                 }
                 in PassByReferenceDatatypes -> {
                     // str/array value cast (most likely to UWORD, take address-of)
@@ -306,10 +307,17 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         assignStackValue(target)
     }
 
+    private fun assignTypecastedFloatFAC1(targetAsmVarName: String, targetDt: DataType) {
+
+        if(targetDt==DataType.FLOAT)
+            throw AssemblyError("typecast to identical type")
+    }
+
+
     private fun assignTypeCastedIdentifier(targetAsmVarName: String, targetDt: DataType,
                                            sourceAsmVarName: String, sourceDt: DataType) {
         if(sourceDt == targetDt)
-            throw AssemblyError("typecast to identical value")
+            throw AssemblyError("typecast to identical type")
 
         // also see: ExpressionAsmGen,   fun translateExpression(typecast: TypecastExpression)
         when(sourceDt) {
@@ -406,14 +414,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             DataType.FLOAT -> {
-                // TODO loading targetasmname in SCRATCH_W2 no longer needed???????
-                asmgen.out("""
-                            lda  #<$targetAsmVarName
-                            ldy  #>$targetAsmVarName
-                            sta  P8ZP_SCRATCH_W2
-                            sty  P8ZP_SCRATCH_W2+1
-                            lda  #<$sourceAsmVarName
-                            ldy  #>$sourceAsmVarName""")
+                asmgen.out("  lda  #<$sourceAsmVarName |  ldy  #>$sourceAsmVarName")
                 when(targetDt) {
                     DataType.UBYTE -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName")
                     DataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
@@ -435,7 +436,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     private fun assignTypeCastedRegisters(targetAsmVarName: String, targetDt: DataType,
                                           regs: RegisterOrPair, sourceDt: DataType) {
         if(sourceDt == targetDt)
-            throw AssemblyError("typecast to identical value")
+            throw AssemblyError("typecast to identical type")
 
         // also see: ExpressionAsmGen,   fun translateExpression(typecast: TypecastExpression)
         when(sourceDt) {
