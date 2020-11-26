@@ -122,7 +122,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
                     }
                     else -> {
-                        asmgen.assignExpressionToVariable(value.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
+                        assignExpressionToVariable(value.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
                         asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
                         assignRegisterByte(assign.target, CpuRegister.A)
                     }
@@ -272,18 +272,26 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
             when (valueDt) {
-                in ByteDatatypes, in WordDatatypes -> {
-                    // TODO optimize byte/word typecasts even more by only using registers
-                    asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", valueDt, null)
-                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, "P8ZP_SCRATCH_W1", valueDt)
+                in ByteDatatypes -> {
+                    assignExpressionToRegister(value, RegisterOrPair.A)
+                    return assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
+                }
+                in WordDatatypes -> {
+                    assignExpressionToRegister(value, RegisterOrPair.AY)
+                    return assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
                 }
                 DataType.FLOAT -> {
                     // float value cast, fall through and do it via stack for now
-                    // TODO optimize float casts to not use stack
+                    // because doing it with an intermediate variable uses up quite a few extra instructions at this point..
+                    // TODO re-enable float cast via var once expression code generation is more efficent? Or do it via FAC1 directly?
+//                    val scope = value.definingSubroutine()!!
+//                    scope.asmGenInfo.usedFloatEvalResultVar = true
+//                    assignExpressionToVariable(value, subroutineFloatEvalResultVar, valueDt, scope)
+//                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, subroutineFloatEvalResultVar, valueDt)
                 }
                 in PassByReferenceDatatypes -> {
                     // str/array value cast (most likely to UWORD, take address-of)
-                    return asmgen.assignExpressionToVariable(value, target.asmVarname, targetDt, null)     // TODO test this cast
+                    return assignExpressionToVariable(value, target.asmVarname, targetDt, null)     // TODO test this cast
                 }
                 else -> throw AssemblyError("strange dt in typecast assign to var: $valueDt  -->  $targetDt")
             }
@@ -398,6 +406,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             DataType.FLOAT -> {
+                // TODO loading targetasmname in SCRATCH_W2 no longer needed???????
                 asmgen.out("""
                             lda  #<$targetAsmVarName
                             ldy  #>$targetAsmVarName
@@ -410,6 +419,145 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
                     DataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
                     DataType.WORD -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.STR -> {
+                if (targetDt != DataType.UWORD && targetDt == DataType.STR)
+                    throw AssemblyError("cannot typecast a string into another incompatitble type")
+                TODO("assign typecasted string into target var")
+            }
+            else -> throw AssemblyError("weird type")
+        }
+    }
+
+
+    private fun assignTypeCastedRegisters(targetAsmVarName: String, targetDt: DataType,
+                                          regs: RegisterOrPair, sourceDt: DataType) {
+        if(sourceDt == targetDt)
+            throw AssemblyError("typecast to identical value")
+
+        // also see: ExpressionAsmGen,   fun translateExpression(typecast: TypecastExpression)
+        when(sourceDt) {
+            DataType.UBYTE -> {
+                when(targetDt) {
+                    DataType.UBYTE, DataType.BYTE -> {
+                        asmgen.out("  st${regs.toString().toLowerCase()}  $targetAsmVarName")
+                    }
+                    DataType.UWORD, DataType.WORD -> {
+                        if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                            asmgen.out("  st${regs.toString().toLowerCase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                        else
+                            asmgen.out("  st${regs.toString().toLowerCase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                    }
+                    DataType.FLOAT -> {
+                        when(regs) {
+                            RegisterOrPair.A -> asmgen.out("  tay")
+                            RegisterOrPair.X -> asmgen.out("  txa |  tay")
+                            RegisterOrPair.Y -> {}
+                            else -> throw AssemblyError("non-byte regs")
+                        }
+                        asmgen.out("""
+                            lda  #<$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            lda  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2+1
+                            jsr  floats.cast_from_ub""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.BYTE -> {
+                when(targetDt) {
+                    DataType.UBYTE, DataType.BYTE -> {
+                        asmgen.out("  st${regs.toString().toLowerCase()}  $targetAsmVarName")
+                    }
+                    DataType.UWORD -> {
+                        if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                            asmgen.out("  st${regs.toString().toLowerCase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                        else
+                            asmgen.out("  st${regs.toString().toLowerCase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                    }
+                    DataType.WORD -> {
+                        when(regs) {
+                            RegisterOrPair.A -> {}
+                            RegisterOrPair.X -> asmgen.out("  txa")
+                            RegisterOrPair.Y -> asmgen.out("  tya")
+                            else -> throw AssemblyError("non-byte regs")
+                        }
+                        asmgen.signExtendAYlsb(sourceDt)
+                        asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                    }
+                    DataType.FLOAT -> {
+                        when(regs) {
+                            RegisterOrPair.A -> {}
+                            RegisterOrPair.X -> asmgen.out("  txa")
+                            RegisterOrPair.Y -> asmgen.out("  tya")
+                            else -> throw AssemblyError("non-byte regs")
+                        }
+                        asmgen.out("""
+                            ldy  #<$targetAsmVarName
+                            sty  P8ZP_SCRATCH_W2
+                            ldy  #>$targetAsmVarName
+                            sty  P8ZP_SCRATCH_W2+1
+                            jsr  floats.cast_from_b""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.UWORD -> {
+                when(targetDt) {
+                    DataType.BYTE, DataType.UBYTE -> {
+                        asmgen.out("  st${regs.toString().toLowerCase().first()}  $targetAsmVarName")
+                    }
+                    DataType.WORD, DataType.UWORD -> {
+                        when(regs) {
+                            RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
+                            RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            else -> throw AssemblyError("non-word regs")
+                        }
+                    }
+                    DataType.FLOAT -> {
+                        if(regs!=RegisterOrPair.AY)
+                            throw AssemblyError("only supports AY here")
+                        asmgen.out("""
+                            pha
+                            lda  #<$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            lda  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2+1
+                            pla
+                            jsr  floats.cast_from_uw""")
+                    }
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            DataType.WORD -> {
+                when(targetDt) {
+                    DataType.BYTE, DataType.UBYTE -> {
+                        asmgen.out("  st${regs.toString().toLowerCase().first()}  $targetAsmVarName")
+                    }
+                    DataType.WORD, DataType.UWORD -> {
+                        when(regs) {
+                            RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
+                            RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            else -> throw AssemblyError("non-word regs")
+                        }
+                    }
+                    DataType.FLOAT -> {
+                        if(regs!=RegisterOrPair.AY)
+                            throw AssemblyError("only supports AY here")
+                        asmgen.out("""
+                            pha
+                            lda  #<$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2
+                            lda  #>$targetAsmVarName
+                            sta  P8ZP_SCRATCH_W2+1
+                            pla
+                            jsr  floats.cast_from_w""")
+                    }
                     else -> throw AssemblyError("weird type")
                 }
             }
@@ -1469,7 +1617,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, ldaInstructionArg)
             }
             else -> {
-                asmgen.assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
                 asmgen.out("  ldy  #0 |  lda  $ldaInstructionArg |  sta  (P8ZP_SCRATCH_W2),y")
             }
         }
@@ -1494,7 +1642,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             else -> {
                 asmgen.saveRegister(register, false, memoryAddress.definingSubroutine()!!)
-                asmgen.assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
                 asmgen.restoreRegister(CpuRegister.A, false)
                 asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
             }

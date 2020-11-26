@@ -1081,7 +1081,6 @@ sign_extend_stack_byte	.proc
 sign_extend_AY_byte	.proc
 	; -- sign extend the (signed) byte in AY to full 16 bits
 		pha
-		tya
 		and  #$80
 		beq  +
 		ldy  #$ff
