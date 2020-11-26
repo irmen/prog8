@@ -89,17 +89,27 @@ cast_from_b	.proc
 
 cast_as_uw_into_ya	.proc               ; also used for float 2 ub
 		; -- cast float at A/Y to uword into Y/A
-		stx  P8ZP_SCRATCH_REG
 		jsr  MOVFM
+		jmp  cast_FAC1_as_uw_into_ya
+		.pend
+
+cast_as_w_into_ay	.proc               ; also used for float 2 b
+		; -- cast float at A/Y to word into A/Y
+		jsr  MOVFM
+		jmp  cast_FAC1_as_w_into_ay
+		.pend
+
+cast_FAC1_as_uw_into_ya	.proc               ; also used for float 2 ub
+		; -- cast fac1 to uword into Y/A
+		stx  P8ZP_SCRATCH_REG
 		jsr  GETADR     ; into Y/A
 		ldx  P8ZP_SCRATCH_REG
 		rts
 		.pend
 
-cast_as_w_into_ay	.proc               ; also used for float 2 b
-		; -- cast float at A/Y to word into A/Y
+cast_FAC1_as_w_into_ay	.proc               ; also used for float 2 b
+		; -- cast fac1 to word into A/Y
 		stx  P8ZP_SCRATCH_REG
-		jsr  MOVFM
 		jsr  AYINT
 		ldy  $64
 		lda  $65

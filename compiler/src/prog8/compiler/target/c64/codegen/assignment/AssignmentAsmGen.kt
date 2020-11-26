@@ -9,7 +9,6 @@ import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
-import prog8.compiler.target.subroutineFloatEvalResultVar
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import prog8.functions.builtinFunctionReturnType
@@ -282,13 +281,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     return assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
                 }
                 DataType.FLOAT -> {
-                    // TODO try with FAC1 directly
-//                    assignExpressionToRegister(value, RegisterOrPair.FAC1)
-//                    assignTypecastedFloatFAC1(target.asmVarname, targetDt)
-                    val scope = value.definingSubroutine()!!
-                    scope.asmGenInfo.usedFloatEvalResultVar = true
-                    assignExpressionToVariable(value, subroutineFloatEvalResultVar, valueDt, scope)
-                    return assignTypeCastedIdentifier(target.asmVarname, targetDt, subroutineFloatEvalResultVar, valueDt)
+                    assignExpressionToRegister(value, RegisterOrPair.FAC1)
+                    return assignTypecastedFloatFAC1(target.asmVarname, targetDt)
                 }
                 in PassByReferenceDatatypes -> {
                     // str/array value cast (most likely to UWORD, take address-of)
@@ -311,6 +305,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
         if(targetDt==DataType.FLOAT)
             throw AssemblyError("typecast to identical type")
+
+        when(targetDt) {
+            DataType.UBYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName")
+            DataType.BYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName")
+            DataType.UWORD -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
+            DataType.WORD -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+            else -> throw AssemblyError("weird type")
+        }
     }
 
 
