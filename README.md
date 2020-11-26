@@ -20,36 +20,36 @@ Full documentation (syntax reference, how to use the language and the compiler, 
 https://prog8.readthedocs.io/
 
 
-What use Prog8 provide?
------------------------
+What does Prog8 provide?
+------------------------
 
-- reduction of source code length over raw assembly
+- big reduction of source code length over raw assembly
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - automatic variable allocations, automatic string and array variables and string sharing
 - subroutines with an input- and output parameter signature
 - constant folding in expressions
 - conditional branches
-- 'when' statement to provide a concise jump table alternative to if/elseif chains
-- structs to group together sets of variables and manipulate them at once
 - floating point operations  (requires the C64 Basic ROM routines for this)
+- 'when' statement to provide a concise jump table alternative to if/elseif chains
+- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
+- structs to group together sets of variables and manipulate them at once
 - abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - various code optimizations (code structure, logical and numerical expressions, unused code removal...)
+- fast execution speed due to compilation to native assembly code
 - inline assembly allows you to have full control when every cycle or byte matters
-- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
 
 *Rapid edit-compile-run-debug cycle:*
 
-- use a modern PC to do the work on
-- very quick compilation times
+- use a modern PC to do the work on, use nice editors and enjoy quick compilation times
 - can automatically run the program in the Vice emulator after succesful compilation
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 
 *Two supported compiler targets* (contributions to improve these or to add support for other machines are welcome!):
 
-- "c64": Commodore-64  (6510 CPU = almost a 6502)  premium support.
-- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)  experimental support.
+- "c64": Commodore-64  (6510 CPU = almost a 6502), the main target.
+- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU) .
 - If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
@@ -61,7 +61,7 @@ Additional required tools
 A recent .exe version of this tool for Windows can be obtained from my [clone](https://github.com/irmen/64tass/releases) of this project.
 For other platforms it is very easy to compile it yourself (make ; make install).
 
-A **Java runtime (jre or jdk), version 8 or newer**  is required to run a prepackaged version of the compiler.
+A **Java runtime (jre or jdk), version 11 or newer**  is required to run a prepackaged version of the compiler.
 If you want to build it from source, you'll need a Java SDK + Kotlin 1.3.x SDK (or for instance,
 IntelliJ IDEA with the Kotlin plugin).
 
