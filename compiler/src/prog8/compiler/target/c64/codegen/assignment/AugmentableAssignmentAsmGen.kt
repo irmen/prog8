@@ -160,7 +160,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(addr.toHex(), DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.
+                            // TODO more specialized code for types such as memory read etc.  -> inplaceModification_byte_memread_to_variable()
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
@@ -173,7 +173,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_pointer(pointer, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_pointer(pointer, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_pointer(pointer, operator, value)
@@ -199,9 +198,75 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             TargetStorageKind.ARRAY -> {
-                if(asmgen.options.slowCodegenWarnings)
-                    println("*** TODO optimize simple inplace array assignment ${target.array}  $operator=  $value")
-                assignmentAsmGen.translateNormalAssignment(target.origAssign) // TODO get rid of this fallback for the most common cases here
+                with(target.array!!.indexer) {
+                    when {
+                        indexNum!=null -> {
+                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*target.datatype.memorySize()}"
+                            when(target.datatype) {
+                                in ByteDatatypes -> {
+                                    when {
+                                        valueLv != null -> inplaceModification_byte_litval_to_variable(targetVarName, target.datatype, operator, valueLv.toInt())
+                                        ident != null -> inplaceModification_byte_variable_to_variable(targetVarName, target.datatype, operator, ident)
+                                        memread != null -> inplaceModification_byte_memread_to_variable(targetVarName, target.datatype, operator, memread)
+                                        value is TypecastExpression -> {
+                                            if (tryRemoveRedundantCast(value, target, operator)) return
+                                            inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value)
+                                        }
+                                        else -> inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value)
+                                    }
+                                }
+                                in WordDatatypes -> {
+                                    when {
+                                        valueLv != null -> inplaceModification_word_litval_to_variable(targetVarName, target.datatype, operator, valueLv.toInt())
+                                        ident != null -> inplaceModification_word_variable_to_variable(targetVarName, target.datatype, operator, ident)
+                                        memread != null -> inplaceModification_word_memread_to_variable(targetVarName, target.datatype, operator, memread)
+                                        value is TypecastExpression -> {
+                                            if (tryRemoveRedundantCast(value, target, operator)) return
+                                            inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value)
+                                        }
+                                        else -> inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value)
+                                    }
+                                }
+                                DataType.FLOAT -> {
+                                    when {
+                                        valueLv != null -> inplaceModification_float_litval_to_variable(targetVarName, operator, valueLv.toDouble(), target.scope!!)
+                                        ident != null -> inplaceModification_float_variable_to_variable(targetVarName, operator, ident, target.scope!!)
+                                        value is TypecastExpression -> {
+                                            if (tryRemoveRedundantCast(value, target, operator)) return
+                                            inplaceModification_float_value_to_variable(targetVarName, operator, value, target.scope!!)
+                                        }
+                                        else -> inplaceModification_float_value_to_variable(targetVarName, operator, value, target.scope!!)
+                                    }
+                                }
+                                else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
+                            }
+                        }
+                        indexVar!=null -> {
+                            when(target.datatype) {
+                                in ByteDatatypes -> {
+                                    val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.A, null, program, asmgen)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, value.position)
+                                    assignmentAsmGen.translateNormalAssignment(assign)
+                                    assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
+                                }
+                                in WordDatatypes -> {
+                                    val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, value.position)
+                                    assignmentAsmGen.translateNormalAssignment(assign)
+                                    assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
+                                }
+                                DataType.FLOAT -> {
+                                    val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.FAC1, null, program, asmgen)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, value.position)
+                                    assignmentAsmGen.translateNormalAssignment(assign)
+                                    assignmentAsmGen.assignFAC1float(target)
+                                }
+                                else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
+                            }
+                        }
+                        else -> throw AssemblyError("indexer expression should have been replaced by auto indexer var")
+                    }
+                }
             }
             TargetStorageKind.REGISTER -> TODO("reg in-place modification")
             TargetStorageKind.STACK -> TODO("stack in-place modification")

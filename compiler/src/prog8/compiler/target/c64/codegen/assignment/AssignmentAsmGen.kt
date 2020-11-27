@@ -878,7 +878,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignFAC1float(target: AsmAssignTarget) {
+    internal fun assignFAC1float(target: AsmAssignTarget) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -1143,7 +1143,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister) {
+    internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister) {
         require(target.datatype in ByteDatatypes)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -1212,7 +1212,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
+    internal fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
         require(target.datatype in NumericDatatypes)
         if(target.datatype==DataType.FLOAT)
             throw AssemblyError("float value should be from FAC1 not from registerpair memory pointer")

@@ -8,14 +8,23 @@ main {
     sub start() {
 
         ubyte[] ubarray = [100,200]
+        uword[] uwarray = [1000, 2000]
 
         ubyte index = 0
         ubarray[index+1] += 13
         ubarray[index+1] += 13
         ubarray[index+1] += 13
-        ubarray[index+2] += 13
+        ; ubarray[index+2] += 13
 
         txt.print_ub(ubarray[1])
+        txt.chrout('\n')
+
+        uwarray[index+1] += 13
+        uwarray[index+1] += 13
+        uwarray[index+1] += 13
+        ; uwarray[index+2] += 13
+
+        txt.print_uw(uwarray[1])
         txt.chrout('\n')
     }
 
