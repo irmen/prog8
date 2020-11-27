@@ -216,6 +216,14 @@ interface INameScope {
             null
     }
 
+    fun previousSibling(stmt: Statement): Statement? {
+        val previousIdx = statements.indexOfFirst { it===stmt } - 1
+        return if(previousIdx>=0)
+            statements[previousIdx]
+        else
+            null
+    }
+
     fun indexOfChild(stmt: Statement): Int {
         val idx = statements.indexOfFirst { it===stmt }
         if(idx>=0)

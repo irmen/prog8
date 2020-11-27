@@ -313,6 +313,7 @@ class ArrayIndex(var origExpression: Expression?,            // will be replaced
                     }
                     is IdentifierReference -> {
                         indexVar = replacement
+                        indexNum = null
                     }
                     else -> {
                         throw FatalAstException("invalid replace")
@@ -347,7 +348,12 @@ class ArrayIndex(var origExpression: Expression?,            // will be replaced
 
     fun constIndex() = indexNum?.number?.toInt()
 
-    infix fun isSameAs(other: ArrayIndex) = indexNum==other.indexNum && indexVar == other.indexVar
+    infix fun isSameAs(other: ArrayIndex): Boolean {
+        return if(indexNum!=null || indexVar!=null)
+            indexNum==other.indexNum && indexVar == other.indexVar
+        else
+            other.origExpression!=null && origExpression!! isSameAs other.origExpression!!
+    }
 }
 
 open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
@@ -679,16 +685,19 @@ class NopStatement(override val position: Position): Statement() {
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
+
 class AsmGenInfo {
     // This class contains various attributes that influence the assembly code generator.
     // Conceptually it should be part of any INameScope.
     // But because the resulting code only creates "real" scopes on a subroutine level,
     // it's more consistent to only define these attributes on a Subroutine node.
-    var usedAutoArrayIndexerForStatements = mutableMapOf<String, MutableSet<Statement>>()
+    var usedAutoArrayIndexerForStatements = mutableListOf<ArrayIndexerInfo>()
     var usedRegsaveA = false
     var usedRegsaveX = false
     var usedRegsaveY = false
     var usedFloatEvalResultVar = false
+
+    class ArrayIndexerInfo(val name: String, val replaces: ArrayIndex, val partOfStatement: Statement, var used: Int=0)
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
