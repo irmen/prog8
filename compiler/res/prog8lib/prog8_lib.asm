@@ -554,28 +554,23 @@ lesseq_uw	.proc
 
 reg_lesseq_w	.proc
 		; -- AY <= P8ZP_SCRATCH_W2?
-		sta  P8ZP_SCRATCH_B1
-		tya
-		sec
-		sbc  P8ZP_SCRATCH_W2+1
+		; TODO can we reverse this comparison and not use zeropage storage?
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  P8ZP_SCRATCH_W2
+		cmp  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W2+1
+		sbc  P8ZP_SCRATCH_W1+1
 		bvc  +
 		eor  #$80
-+		bmi  _true
-		bvc  +
-		eor  #$80
-+		bne  _false
-		lda  P8ZP_SCRATCH_B1
-		sbc  P8ZP_SCRATCH_W2
-		beq  _true			; TODO is this correct word compare <= for all cases?
-		bcs  _false
-_true		lda  #1
++		bpl  _true
+		lda  #0
 		rts
-_false		lda  #0
+_true		lda  #1
 		rts
 		.pend
 
 lesseq_w	.proc
-		; TODO is this word compare <= correct? it is different from reg_lesseq_w
 		lda  P8ESTACK_LO+1,x
 		cmp  P8ESTACK_LO+2,x
 		lda  P8ESTACK_HI+1,x
@@ -657,6 +652,7 @@ greatereq_uw	.proc
 		.pend
 
 greatereq_w	.proc
+		; TODO IS THIS CORRECT???
 		lda  P8ESTACK_LO+2,x
 		cmp  P8ESTACK_LO+1,x
 		lda  P8ESTACK_HI+2,x
