@@ -38,6 +38,27 @@ This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/license
     :alt: Fully playable tetris clone
 
 
+Language features
+-----------------
+
+- It is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
+  The generated output is a machine code program runnable on actual 8-bit 6502 hardware.
+- Provide a very convenient edit/compile/run cycle by being able to directly launch
+  the compiled program in an emulator and provide debugging information to this emulator.
+- Based on simple and familiar imperative structured programming (it looks like a mix of C and Python)
+- Modular programming and scoping via modules, code blocks, and subroutines.
+- Provide high level programming constructs but at the same time stay close to the metal;
+  still able to directly use memory addresses and ROM subroutines,
+  and inline assembly to have full control when every register, cycle or byte matters
+- Arbitrary number of subroutine parameters, Complex nested expressions are possible
+- No stack frame allocations because parameters and local variables are automatically allocated statically
+- Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
+- Variable data types include signed and unsigned bytes and words, arrays, strings and floats.
+- High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
+- Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``substr``, ``sort`` and ``reverse`` (and others)
+- If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
+
+
 Code example
 ------------
 
@@ -102,37 +123,6 @@ when the exact same program is compiled for the Commander X16 target, and run on
     :align: center
     :alt: result when run on CX16 emulator
 
-
-
-Design principles and features
-------------------------------
-
-- It is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
-  The generated output is a machine code program runnable on actual 8-bit 6502 hardware.
-- Based on simple and familiar imperative structured programming (it looks like a mix of C and Python)
-- 'One statement per line' code, resulting in clear readable programs.
-- Modular programming and scoping via modules, code blocks, and subroutines.
-- Provide high level programming constructs but at the same time stay close to the metal;
-  still able to directly use memory addresses and ROM subroutines,
-  and inline assembly to have full control when every register, cycle or byte matters
-- Arbitrary number of subroutine parameters
-- Complex nested expressions are possible
-- Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
-- Values are typed. Available data types include signed and unsigned bytes and words, arrays, strings and floats.
-- No dynamic memory allocation or sizing! All variables stay fixed size as determined at compile time.
-- Provide various quality of life language features and library subroutines specifically for the target platform.
-- Provide a very convenient edit/compile/run cycle by being able to directly launch
-  the compiled program in an emulator and provide debugging information to this emulator.
-- Arbitrary control flow jumps and branches are possible,
-  and will usually translate directly into the appropriate single 6502 jump/branch instruction.
-- There are no complicated built-in error handling or overflow checks, you'll have to take care
-  of this yourself if required. This keeps the language and code simple and efficient.
-- The compiler tries to optimize the program and generated code a bit, but hand-tuning of the
-  performance or space-critical parts will likely still be required. This is supported by
-  the ability to easily write embedded assembly code directly in the program source code.
-- There are many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``substr``, ``sort`` and ``reverse`` (and others)
-- Assembling the generated code into a program wil be done by an external cross-assembler tool.
-- If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
 .. _requirements:

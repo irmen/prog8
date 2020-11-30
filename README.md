@@ -28,14 +28,14 @@ What does Prog8 provide?
 - various data types other than just bytes (16-bit words, floats, strings)
 - automatic variable allocations, automatic string and array variables and string sharing
 - subroutines with an input- and output parameter signature
-- constant folding in expressions
+- no stack frame allocations because parameters and local variables are automatically allocated statically
+- constant folding in expressions and other high-level program optimizations
 - conditional branches
 - floating point operations  (requires the C64 Basic ROM routines for this)
 - 'when' statement to provide a concise jump table alternative to if/elseif chains
 - many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
 - structs to group together sets of variables and manipulate them at once
-- abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
-- various code optimizations (code structure, logical and numerical expressions, unused code removal...)
+- convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - fast execution speed due to compilation to native assembly code
 - inline assembly allows you to have full control when every cycle or byte matters
 
