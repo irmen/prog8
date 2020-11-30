@@ -541,7 +541,6 @@ _true		lda  #1
 		.pend
 
 lesseq_uw	.proc
-		; TODO is this comparison uword <= correct????
 		lda  P8ESTACK_HI+1,x
 		cmp  P8ESTACK_HI+2,x
 		bcc  equal_b._equal_b_false
@@ -652,15 +651,14 @@ greatereq_uw	.proc
 		.pend
 
 greatereq_w	.proc
-		; TODO IS THIS CORRECT???
 		lda  P8ESTACK_LO+2,x
 		cmp  P8ESTACK_LO+1,x
 		lda  P8ESTACK_HI+2,x
 		sbc  P8ESTACK_HI+1,x
 		bvc  +
 		eor  #$80
-+		bpl  equal_b._equal_b_true
-		bmi  equal_b._equal_b_false
++		bmi  equal_b._equal_b_false
+		bpl  equal_b._equal_b_true
 		.pend
 
 
