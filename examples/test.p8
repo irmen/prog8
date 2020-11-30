@@ -7,77 +7,116 @@ main {
 
     sub start() {
 
-        ubyte[] ubarray = [100,200]
-        uword[] uwarray = [1000, 2000]
+        word lessvar
+        word comparevar
 
-        ubyte index = 0
-        ubarray[index+1] += 13
-        ubarray[index+1] += 13
-        ubarray[index+1] += 13
-        ; ubarray[index+2] += 13
-
-        txt.print_ub(ubarray[1])
+        comparevar = 0
+        txt.print_w(comparevar)
         txt.chrout('\n')
+        for lessvar in -1 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
 
-        uwarray[index+1] += 13
-        uwarray[index+1] += 13
-        uwarray[index+1] += 13
-        ; uwarray[index+2] += 13
-
-        txt.print_uw(uwarray[1])
+        comparevar = -2
+        txt.print_w(comparevar)
         txt.chrout('\n')
+        for lessvar in -3 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = -254
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in -255 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = -255
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in -256 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = -256
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in -257 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = -5000
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in -5001 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = 1
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in 0 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = 255
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in 254 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = 256
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in 255 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = 257
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in 256 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+        comparevar = 32767
+        txt.print_w(comparevar)
+        txt.chrout('\n')
+        for lessvar in 32766 downto -32768  {
+            check_less_w(lessvar, comparevar)
+        }
+
+
+        test_stack.test()
+        return
+
+        sub check_less_w(word w1, word w2) {
+            word zero = 0
+            ubyte error=0
+
+            ubyte ub = w1<w2
+            if not ub {
+                error++
+                txt.print("ub!")
+            }
+
+            if w1<(w2+zero) {
+                zero = 0 ; dummy
+            } else {
+                error++
+                txt.print("c!")
+            }
+
+            if error {
+                txt.print("  ")
+                txt.print_w(w1)
+                txt.print(" < ")
+                txt.print_w(w2)
+                txt.chrout('\n')
+                exit(1)
+            }
+        }
     }
 
-;    sub start222() {
-;
-;        ubyte[] ubarray = [100,200]
-;        uword[] uwarray = [1000,2000]
-;        float[] flarray = [100.1, 200.2]
-;
-;        ubyte index = 1
-;
-;        ubarray[1] += 3
-;        txt.print_ub(ubarray[1])
-;        txt.chrout('\n')
-;        ubarray[index] += 3
-;        txt.print_ub(ubarray[1])
-;        txt.chrout('\n')
-;        index = 0
-;        ubarray[index*99+1] += 3
-;        txt.print_ub(ubarray[1])
-;        txt.chrout('\n')
-;        txt.chrout('\n')
-;
-;        index = 1
-;        uwarray[1] += 3
-;        txt.print_uw(uwarray[1])
-;        txt.chrout('\n')
-;        uwarray[index] += 3
-;        txt.print_uw(uwarray[1])
-;        txt.chrout('\n')
-;        index = 0
-;        uwarray[index*99+1] += 3
-;        txt.print_uw(uwarray[1])
-;        txt.chrout('\n')
-;        txt.chrout('\n')
-;
-;        index=1
-;        flarray[1] += 3.0
-;        floats.print_f(flarray[1])
-;        txt.chrout('\n')
-;        flarray[index] += 3.0
-;        floats.print_f(flarray[1])
-;        txt.chrout('\n')
-;        index = 0
-;        flarray[index*99+1] += 3.0
-;        floats.print_f(flarray[1])
-;        txt.chrout('\n')
-;
-;        test_stack.test()
-;
-;    }
-;
-;    sub name() -> str {
-;        return "irmen"
-;    }
 }

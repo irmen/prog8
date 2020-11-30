@@ -470,27 +470,19 @@ less_uw		.proc
 
 reg_less_w	.proc
 		; -- AY < P8ZP_SCRATCH_W2?
-		sta  P8ZP_SCRATCH_B1
+		cmp  P8ZP_SCRATCH_W2
 		tya
-		sec
 		sbc  P8ZP_SCRATCH_W2+1
 		bvc  +
 		eor  #$80
 +		bmi  _true
-		bvc  +
-		eor  #$80
-+		bne  _false
-		lda  P8ZP_SCRATCH_B1
-		sbc  P8ZP_SCRATCH_W2
-		bcs  _false
-_true		lda  #1
+		lda  #0
 		rts
-_false		lda  #0
+_true		lda  #1
 		rts
 		.pend
 
 less_w		.proc
-		; TODO is this word comparison < correct? reg_less_w is a lot larger...
 		lda  P8ESTACK_LO+2,x
 		cmp  P8ESTACK_LO+1,x
 		lda  P8ESTACK_HI+2,x
