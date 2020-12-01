@@ -695,7 +695,8 @@ class AsmGenInfo {
     var usedRegsaveA = false
     var usedRegsaveX = false
     var usedRegsaveY = false
-    var usedFloatEvalResultVar = false
+    var usedFloatEvalResultVar1 = false
+    var usedFloatEvalResultVar2 = false
 
     class ArrayIndexerInfo(val name: String, val replaces: ArrayIndex, val partOfStatement: Statement, var used: Int=0)
 }

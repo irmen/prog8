@@ -22,9 +22,9 @@ main {
         mul_word(-10,1000,-10000)
         mul_word(1,-3333,-3333)
 
-        mul_float(0,0,0)         ; TODO FIX ERROR
-        mul_float(2.5,10,25)     ; TODO FIX ERROR
-        mul_float(-1.5,10,-15)   ; TODO FIX ERROR
+        mul_float(0,0,0)
+        mul_float(2.5,10,25)
+        mul_float(-1.5,10,-15)
     }
 
     sub mul_ubyte(ubyte a1, ubyte a2, ubyte c) {

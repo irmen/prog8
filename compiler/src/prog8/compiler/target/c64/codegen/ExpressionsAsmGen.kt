@@ -9,7 +9,7 @@ import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.subroutineFloatEvalResultVar
+import prog8.compiler.target.subroutineFloatEvalResultVar1
 import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
@@ -217,12 +217,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine()!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar = true
-            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
             asmgen.out("""
-                lda  #<$subroutineFloatEvalResultVar
-                ldy  #>$subroutineFloatEvalResultVar
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
                 jsr  floats.var_fac1_less_f
                 beq  $jumpIfFalseLabel""")
         }
@@ -262,12 +262,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine()!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar = true
-            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
             asmgen.out("""
-                lda  #<$subroutineFloatEvalResultVar
-                ldy  #>$subroutineFloatEvalResultVar
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
                 jsr  floats.var_fac1_lesseq_f
                 beq  $jumpIfFalseLabel""")
         }
@@ -307,12 +307,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine()!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar = true
-            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
             asmgen.out("""
-                lda  #<$subroutineFloatEvalResultVar
-                ldy  #>$subroutineFloatEvalResultVar
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
                 jsr  floats.var_fac1_greater_f
                 beq  $jumpIfFalseLabel""")
         }
@@ -352,12 +352,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine()!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar = true
-            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
             asmgen.out("""
-                lda  #<$subroutineFloatEvalResultVar
-                ldy  #>$subroutineFloatEvalResultVar
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
                 jsr  floats.var_fac1_greatereq_f
                 beq  $jumpIfFalseLabel""")
         }
@@ -1133,12 +1133,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine()!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar = true
-            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
             asmgen.out("""
-                lda  #<$subroutineFloatEvalResultVar
-                ldy  #>$subroutineFloatEvalResultVar
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
                 jsr  floats.var_fac1_notequal_f
                 bne  $jumpIfFalseLabel""")
         }
@@ -1218,12 +1218,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 bne  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine()!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar = true
-            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar, DataType.FLOAT, subroutine)
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
             asmgen.out("""
-                lda  #<$subroutineFloatEvalResultVar
-                ldy  #>$subroutineFloatEvalResultVar
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
                 jsr  floats.var_fac1_notequal_f
                 beq  $jumpIfFalseLabel""")
         }

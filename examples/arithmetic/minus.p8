@@ -29,9 +29,9 @@ main {
         minus_word(0,-3333,3333)
         minus_word(-3333,0,-3333)
 
-        minus_float(0,0,0)              ; TODO FIX ERROR
-        minus_float(2.5,1.5,1.0)        ; TODO FIX ERROR
-        minus_float(-1.5,3.5,-5.0)      ; TODO FIX ERROR
+        minus_float(0,0,0)
+        minus_float(2.5,1.5,1.0)
+        minus_float(-1.5,3.5,-5.0)
 
         test_stack.test()
     }
@@ -98,7 +98,7 @@ main {
 
     sub minus_float(float  a1, float a2, float  c) {
         float r = a1-a2
-        if abs(r-c)<0.00001             ; TODO FIX COMPARISON  (it works when only comparing a var)
+        if abs(r-c)<0.00001
             txt.print(" ok  ")
         else {
             txt.print("err! ")

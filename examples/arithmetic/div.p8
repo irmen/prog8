@@ -21,8 +21,8 @@ main {
         div_word(-20000,500,-40)
         div_word(-2222,2,-1111)
 
-        div_float(0,1,0)                            ; TODO FIX ERROR
-        div_float(999.9,111.0,9.008108108108107)    ; TODO FIX ERROR
+        div_float(0,1,0)
+        div_float(999.9,111.0,9.008108108108107)
     }
 
     sub div_ubyte(ubyte a1, ubyte a2, ubyte c) {

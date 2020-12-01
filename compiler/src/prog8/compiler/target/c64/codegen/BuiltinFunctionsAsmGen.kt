@@ -17,7 +17,7 @@ import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
 import prog8.compiler.target.c64.codegen.assignment.SourceStorageKind
 import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
-import prog8.compiler.target.subroutineFloatEvalResultVar
+import prog8.compiler.target.subroutineFloatEvalResultVar2
 import prog8.compiler.toHex
 import prog8.functions.FSignature
 
@@ -1033,8 +1033,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     throw AssemblyError("float literals should have been converted into autovar")
                 }
                 else -> {
-                    scope.asmGenInfo.usedFloatEvalResultVar = true
-                    val variable = IdentifierReference(listOf(subroutineFloatEvalResultVar), value.position)
+                    scope.asmGenInfo.usedFloatEvalResultVar2 = true
+                    val variable = IdentifierReference(listOf(subroutineFloatEvalResultVar2), value.position)
                     val addr = AddressOf(variable, value.position)
                     addr.linkParents(value)
                     asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT, scope)

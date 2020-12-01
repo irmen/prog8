@@ -25,7 +25,6 @@ main {
         plus_word(0,-3333,-3333)
         plus_word(-3333,0,-3333)
 
-         ; TODO FIX ERRORs in float
         plus_float(0,0,0)
         plus_float(1.5,2.5,4.0)
         plus_float(-1.5,3.5,2.0)

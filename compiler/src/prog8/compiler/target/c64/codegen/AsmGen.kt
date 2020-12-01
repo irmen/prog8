@@ -800,8 +800,10 @@ internal class AsmGen(private val program: Program,
                 out("_prog8_regsaveX     .byte  0")
             if(sub.asmGenInfo.usedRegsaveY)
                 out("_prog8_regsaveY     .byte  0")
-            if(sub.asmGenInfo.usedFloatEvalResultVar)
-                out("$subroutineFloatEvalResultVar    .byte 0,0,0,0,0")
+            if(sub.asmGenInfo.usedFloatEvalResultVar1)
+                out("$subroutineFloatEvalResultVar1    .byte 0,0,0,0,0")
+            if(sub.asmGenInfo.usedFloatEvalResultVar2)
+                out("$subroutineFloatEvalResultVar2    .byte 0,0,0,0,0")
             vardecls2asm(sub.statements)
             out("  .pend\n")
         }
