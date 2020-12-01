@@ -1642,6 +1642,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             }
                         }
                         DataType.UWORD -> {
+                            if(amount>=16) {
+                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                                    asmgen.out("  stz  P8ESTACK_LO+1,x |  stz  P8ESTACK_HI+1,x")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  P8ESTACK_LO+1,x |  sta  P8ESTACK_HI+1,x")
+                                return
+                            }
                             var left = amount
                             while (left >= 7) {
                                 asmgen.out(" jsr  math.shift_right_uw_7")
@@ -1653,6 +1660,20 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                 asmgen.out(" jsr  math.shift_right_uw_$left")
                         }
                         DataType.WORD -> {
+                            if(amount>=16) {
+                                asmgen.out("""
+                                    lda  P8ESTACK_HI+1,x
+                                    bmi  +
+                                    lda  #0
+                                    sta  P8ESTACK_LO+1,x
+                                    sta  P8ESTACK_HI+1,x
+                                    beq  ++
++                                   lda  #255
+                                    sta  P8ESTACK_LO+1,x
+                                    sta  P8ESTACK_HI+1,x
++""")
+                                return
+                            }
                             var left = amount
                             while (left >= 7) {
                                 asmgen.out(" jsr  math.shift_right_w_7")
