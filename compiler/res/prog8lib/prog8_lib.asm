@@ -552,20 +552,16 @@ lesseq_uw	.proc
 		.pend
 
 reg_lesseq_w	.proc
-		; -- AY <= P8ZP_SCRATCH_W2?
-		; TODO can we reverse this comparison and not use zeropage storage?
-		sta  P8ZP_SCRATCH_W1
-		sty  P8ZP_SCRATCH_W1+1
-		lda  P8ZP_SCRATCH_W2
-		cmp  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W2+1
-		sbc  P8ZP_SCRATCH_W1+1
+		; -- P8ZP_SCRATCH_W2 <= AY ?   (note: order different from other routines)
+		cmp  P8ZP_SCRATCH_W2
+		tya
+		sbc  P8ZP_SCRATCH_W2+1
 		bvc  +
 		eor  #$80
-+		bpl  _true
++		bpl  +
 		lda  #0
 		rts
-_true		lda  #1
++		lda  #1
 		rts
 		.pend
 

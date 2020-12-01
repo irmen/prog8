@@ -789,8 +789,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -916,8 +916,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
