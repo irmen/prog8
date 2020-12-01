@@ -211,6 +211,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         // Everything else just evaluate via the stack.
                         // (we can't use the assignment helper functions to do it via registers here,
                         // because the code here is the implementation of exactly that...)
+                        if(value.parent is Return) {
+                            if (this.asmgen.options.slowCodegenWarnings)
+                                println("warning: slow stack evaluation used for return: $value  target=${assign.target.kind} at ${value.position}")
+                        }
                         asmgen.translateExpression(value)
                         if(assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
                             asmgen.signExtendStackLsb(assign.source.datatype)

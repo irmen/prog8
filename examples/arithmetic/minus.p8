@@ -1,5 +1,6 @@
 %import floats
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 main {
@@ -28,9 +29,11 @@ main {
         minus_word(0,-3333,3333)
         minus_word(-3333,0,-3333)
 
-        minus_float(0,0,0)
-        minus_float(2.5,1.5,1.0)
-        minus_float(-1.5,3.5,-5.0)
+        minus_float(0,0,0)              ; TODO FIX ERROR
+        minus_float(2.5,1.5,1.0)        ; TODO FIX ERROR
+        minus_float(-1.5,3.5,-5.0)      ; TODO FIX ERROR
+
+        test_stack.test()
     }
 
     sub minus_ubyte(ubyte a1, ubyte a2, ubyte c) {
@@ -95,12 +98,13 @@ main {
 
     sub minus_float(float  a1, float a2, float  c) {
         float r = a1-a2
-        if abs(r-c)<0.00001
+        if abs(r-c)<0.00001             ; TODO FIX COMPARISON  (it works when only comparing a var)
             txt.print(" ok  ")
-        else
+        else {
             txt.print("err! ")
+        }
 
-        txt.print("float ")
+        txt.print("  float ")
         floats.print_f(a1)
         txt.print(" - ")
         floats.print_f(a2)
