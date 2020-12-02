@@ -6,6 +6,7 @@
 main {
 
     sub start() {
+        txt.print("hello\n")
     }
 
 }
