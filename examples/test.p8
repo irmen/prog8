@@ -5,11 +5,24 @@
 
 main {
     sub start() {
-        uword foo = [1,2,3,4]      ; TODO SYNTAX ERROR
-        uword bar = "sdfadsaf"      ; TODO SYNTAX ERROR
+        uword foo
+        uword bar
 
+        uword[] arra = [1,2,3]
+        str nom = "omnom"
 
+        foo = &arra
+        foo++
+        foo = &nom
+        foo++
+
+        ding(nom)
+        ding("sdfsdfd")
 
         txt.print("hello\n")
+    }
+
+    sub ding(uword ss) {
+        txt.print(ss)
     }
 }

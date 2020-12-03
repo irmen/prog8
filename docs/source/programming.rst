@@ -309,18 +309,21 @@ read the syntax reference on strings.
 
 
 .. hint::
-    Strings and uwords (=memory address) can often be interchanged.
+    Strings/arrays and uwords (=memory address) can often be interchanged.
     An array of strings is actually an array of uwords where every element is the memory
     address of the string. You can pass a memory address to assembly functions
     that require a string as an argument.
+    For regular assignments you still need to use an explicit ``&`` (address-of) to take
+    the address of the string or array.
 
 .. caution::
-    It's probably best to avoid changing strings after they've been created. This
-    includes changing certain letters by index, or by assigning a new value, or by
+    It's probably best to avoid changing the contents in strings and treat them as static.
+    This includes changing certain letters by index, or by assigning a new value, or by
     modifying the string via other means for example ``substr`` function and its cousins.
-    This is because if your program exits and is restarted (without loading it again),
-    it will then start working with the changed strings instead of the original ones!
-    The same is true for arrays.
+    This is because the changes persist in memory. If your program exits and is restarted
+    (without reloading it from disk), it will then start working with the modified strings
+    instead of the original ones!
+    The same is true for arrays! So be careful to (re)initialize them if needed.
 
 
 Structs
