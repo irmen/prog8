@@ -242,8 +242,43 @@ romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)
 
 
-
 ; ---- end of kernal routines ----
+
+; ---- utilities -----
+    asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
+        ; -- get a byte from VERA's video memory
+        ;    note: inefficient when reading multiple sequential bytes!
+        %asm {{
+                stz  cx16.VERA_CTRL
+                and  #1
+                sta  cx16.VERA_ADDR_H
+                sty  cx16.VERA_ADDR_M
+                stx  cx16.VERA_ADDR_L
+                lda  cx16.VERA_DATA0
+                rts
+            }}
+    }
+
+    sub vpoke(ubyte bank, uword address, ubyte value) {
+        ; -- write a single byte to VERA's video memory
+        ;    note: inefficient when writing multiple sequential bytes!
+        %asm {{
+            stz  cx16.VERA_CTRL
+            lda  bank
+            and  #1
+            sta  cx16.VERA_ADDR_H
+            lda  address
+            sta  cx16.VERA_ADDR_L
+            lda  address+1
+            sta  cx16.VERA_ADDR_M
+            lda  value
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+    }
+
+
+; ---- system stuff -----
 
 asmsub init_system()  {
     ; Initializes the machine to a sane starting state.

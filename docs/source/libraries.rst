@@ -88,6 +88,15 @@ A 'fun' module that contains the Commander X16 logo and that allows you
 to print it anywhere on the screen.
 
 
+c64colors
+---------
+Available for the CommanderX16 target, a module that contains a few better
+color palettes for how the colors of the VIC-II looked on the Commodore-64.
+There are subroutines to activate one of the several palettes of your liking.
+The Commander X16's default colors for this (the first 16 colors) are too saturated
+and are quite different than how a C-64 looked.
+
+
 prog8_lib
 ---------
 Low level language support. You should not normally have to bother with this directly.

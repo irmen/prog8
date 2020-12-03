@@ -2,6 +2,7 @@
 %import graphics
 %import textio
 %import diskio
+%import c64colors
 
 main {
     const uword load_location = $4000
@@ -19,6 +20,8 @@ main {
             "i07-katakis-jegg.bin"
         ]
 
+        ; set a better C64 color palette, the Cx16's default is too saturated
+        c64colors.set_palette_pepto()
         graphics.enable_bitmap_mode()
         repeat {
             ubyte file_idx
