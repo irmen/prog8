@@ -97,10 +97,14 @@ io_error:
             plp
         }}
 
+        ubyte result=0
         if_cc
-            return c64.READST()==0
+            result = c64.READST()==0
 
-        return false
+        c64.CLRCHN()
+        c64.CLOSE(1)
+
+        return result
     }
 
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
@@ -121,6 +125,9 @@ io_error:
             sty  end_of_load+1
 +           ldx  P8ZP_SCRATCH_REG
         }}
+
+        c64.CLRCHN()
+        c64.CLOSE(1)
 
         if end_of_load
             return end_of_load - address_override
