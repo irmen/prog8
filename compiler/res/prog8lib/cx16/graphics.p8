@@ -110,25 +110,25 @@ graphics {
             cx16.r0 = xcenter-xx
             cx16.r1 = ycenter_plus_yy
             cx16.FB_cursor_position()
-            repeat xx*2
+            repeat xx*2+1
                 cx16.FB_set_pixel(1)
 
             cx16.r0 = xcenter-xx
             cx16.r1 = ycenter_min_yy
             cx16.FB_cursor_position()
-            repeat xx*2
+            repeat xx*2+1
                 cx16.FB_set_pixel(1)
 
             cx16.r0 = xcenter-yy
             cx16.r1 = ycenter_plus_xx
             cx16.FB_cursor_position()
-            repeat yy*2
+            repeat yy*2+1
                 cx16.FB_set_pixel(1)
 
             cx16.r0 = xcenter-yy
             cx16.r1 = ycenter_min_xx
             cx16.FB_cursor_position()
-            repeat yy*2
+            repeat yy*2+1
                 cx16.FB_set_pixel(1)
 
             yy++

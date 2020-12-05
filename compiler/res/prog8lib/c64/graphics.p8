@@ -158,21 +158,17 @@ graphics {
             ubyte ycenter_plus_xx = ycenter + xx
             ubyte ycenter_min_xx = ycenter - xx
 
-            for internal_plotx in xcenter to xcenter+xx {
+            internal_plotx = xcenter-xx
+            repeat xx*2+1 {
                 internal_plot(ycenter_plus_yy)
                 internal_plot(ycenter_min_yy)
+                internal_plotx++
             }
-            for internal_plotx in xcenter-xx to xcenter-1 {
-                internal_plot(ycenter_plus_yy)
-                internal_plot(ycenter_min_yy)
-            }
-            for internal_plotx in xcenter to xcenter+yy {
+            internal_plotx = xcenter-yy
+            repeat yy*2+1 {
                 internal_plot(ycenter_plus_xx)
                 internal_plot(ycenter_min_xx)
-            }
-            for internal_plotx in xcenter-yy to xcenter {
-                internal_plot(ycenter_plus_xx)
-                internal_plot(ycenter_min_xx)
+                internal_plotx++
             }
             yy++
             if decisionOver2<=0
