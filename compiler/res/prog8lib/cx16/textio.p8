@@ -154,10 +154,9 @@ sub uppercase() {
     cx16.screen_set_charset(2, 0)  ; uppercase charset
 }
 
-asmsub  scroll_left  (ubyte dummy @ Pc) clobbers(A, Y)  {
+asmsub  scroll_left() clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag is a dummy on the cx16
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
@@ -198,10 +197,9 @@ _lx     ldx  #0                ; modified
 	}}
 }
 
-asmsub  scroll_right  (ubyte dummy @ Pc) clobbers(A)  {
+asmsub  scroll_right() clobbers(A)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag is a dummy on the cx16
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
@@ -250,10 +248,9 @@ _lx     ldx  #0                 ; modified
 	}}
 }
 
-asmsub  scroll_up  (ubyte dummy @ Pc) clobbers(A, Y)  {
+asmsub  scroll_up() clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
-	;      Carry flag is a dummy on the cx16
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
@@ -300,10 +297,9 @@ _nextline
 	}}
 }
 
-asmsub  scroll_down  (ubyte dummy @ Pc) clobbers(A, Y)  {
+asmsub  scroll_down() clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
-	;      Carry flag is a dummy on the cx16
 	%asm {{
 	    phx
 	    jsr  c64.SCREEN
