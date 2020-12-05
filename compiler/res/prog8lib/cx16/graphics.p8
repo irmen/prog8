@@ -21,7 +21,7 @@ graphics {
     sub disable_bitmap_mode() {
         ; enables text mode, erase the text screen, color white
         void cx16.screen_set_mode(2)
-        txt.fill_screen(' ', 1)     ; TODO doesn't seem to fully clear the text screen after returning from gfx mode
+        txt.fill_screen(' ', 1)     ; doesn't seem to fully clear the text screen after returning from gfx mode
     }
 
 
@@ -43,7 +43,7 @@ graphics {
         ;cx16.r1 = ycenter - radius/2
         ;cx16.r2 = radius*2
         ;cx16.r3 = radius*2
-        ;cx16.GRAPH_draw_oval(false)          ; TODO  currently is not implemented on cx16, does a BRK
+        ;cx16.GRAPH_draw_oval(false)          ; currently this call is not implemented on cx16, does a BRK
 
         ; Midpoint algorithm
         ubyte @zp xx = radius
@@ -94,7 +94,7 @@ graphics {
 ;        cx16.r1 = ycenter - radius/2
 ;        cx16.r2 = radius*2
 ;        cx16.r3 = radius*2
-;        cx16.GRAPH_draw_oval(true)          ; TODO  currently is not implemented on cx16, does a BRK
+;        cx16.GRAPH_draw_oval(true)          ; currently this call is not implemented on cx16, does a BRK
 
         ubyte xx = radius
         ubyte yy = 0
@@ -107,42 +107,30 @@ graphics {
             ubyte ycenter_min_xx = ycenter - xx
             uword @zp plotx
 
-            for plotx in xcenter to xcenter+xx {
-                cx16.r0 = plotx
-                cx16.r1 = ycenter_plus_yy
-                cx16.FB_cursor_position()
+            cx16.r0 = xcenter-xx
+            cx16.r1 = ycenter_plus_yy
+            cx16.FB_cursor_position()
+            repeat xx*2
                 cx16.FB_set_pixel(1)
-                cx16.r1 = ycenter_min_yy
-                cx16.FB_cursor_position()
+
+            cx16.r0 = xcenter-xx
+            cx16.r1 = ycenter_min_yy
+            cx16.FB_cursor_position()
+            repeat xx*2
                 cx16.FB_set_pixel(1)
-            }
-            for plotx in xcenter-xx to xcenter-1 {
-                cx16.r0 = plotx
-                cx16.r1 = ycenter_plus_yy
-                cx16.FB_cursor_position()
+
+            cx16.r0 = xcenter-yy
+            cx16.r1 = ycenter_plus_xx
+            cx16.FB_cursor_position()
+            repeat yy*2
                 cx16.FB_set_pixel(1)
-                cx16.r1 = ycenter_min_yy
-                cx16.FB_cursor_position()
+
+            cx16.r0 = xcenter-yy
+            cx16.r1 = ycenter_min_xx
+            cx16.FB_cursor_position()
+            repeat yy*2
                 cx16.FB_set_pixel(1)
-            }
-            for plotx in xcenter to xcenter+yy {
-                cx16.r0 = plotx
-                cx16.r1 = ycenter_plus_xx
-                cx16.FB_cursor_position()
-                cx16.FB_set_pixel(1)
-                cx16.r1 = ycenter_min_xx
-                cx16.FB_cursor_position()
-                cx16.FB_set_pixel(1)
-            }
-            for plotx in xcenter-yy to xcenter {
-                cx16.r0 = plotx
-                cx16.r1 = ycenter_plus_xx
-                cx16.FB_cursor_position()
-                cx16.FB_set_pixel(1)
-                cx16.r1 = ycenter_min_xx
-                cx16.FB_cursor_position()
-                cx16.FB_set_pixel(1)
-            }
+
             yy++
             if decisionOver2<=0
                 decisionOver2 += 2*yy+1
