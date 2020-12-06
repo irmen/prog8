@@ -6,7 +6,6 @@
 
 main {
     const uword load_location = $4000
-    ubyte screen_color
 
     sub start() {
 
@@ -65,9 +64,7 @@ main {
         ubyte @zp cx
         uword @zp cy_times_forty = 0
         ubyte @zp d
-        uword bitmap = load_location
-
-        screen_color = @(load_location + 8000 + 1000 + 1000) & 15
+        uword bitmap_ptr = load_location
 
         ; theoretically you could put the 8-pixel array in zeropage to squeeze out another tiny bit of performance
         ubyte[8] pixels
@@ -88,7 +85,7 @@ main {
         }
 
         sub get_8_pixels() {
-            ubyte  bm = @(bitmap)
+            ubyte  bm = @(bitmap_ptr)
             ubyte  @zp  m = mcol(bm)
             pixels[7] = m
             pixels[6] = m
@@ -104,12 +101,12 @@ main {
             m = mcol(bm)
             pixels[1] = m
             pixels[0] = m
-            bitmap++
+            bitmap_ptr++
 
             sub mcol(ubyte b) -> ubyte {
                 ubyte @zp color
                 when b & 3 {
-                    0 -> color = screen_color
+                    0 -> color = @(load_location + 8000 + 1000 + 1000) & 15
                     1 -> color = @(load_location + 8000 + cy_times_forty + cx) >>4
                     2 -> color = @(load_location + 8000 + cy_times_forty + cx) & 15
                     else -> color = @(load_location + 8000 + 1000 + cy_times_forty + cx) & 15
