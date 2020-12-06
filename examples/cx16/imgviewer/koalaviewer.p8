@@ -64,46 +64,47 @@ main {
         ubyte cy
         ubyte @zp cx
         uword @zp cy_times_forty = 0
-        ubyte @zp c0
-        ubyte @zp c1
-        ubyte @zp c2
-        ubyte @zp c3
+        ubyte @zp d
         uword bitmap = load_location
 
         screen_color = @(load_location + 8000 + 1000 + 1000) & 15
 
+        ; theoretically you could put the 8-pixel array in zeropage to squeeze out another tiny bit of performance
+        ubyte[8] pixels
+
         for cy in 0 to 24*8 step 8 {
-            cx16.r0 = 0
             for cx in 0 to 39 {
-                cx16.r1 = cy
-                repeat 8 {
+                for d in 0 to 7 {
+                    cx16.r0 = cx as uword * 8
+                    cx16.r1 = cy as uword + d
                     cx16.FB_cursor_position()
-                    cx16.r1 ++
-                    get_4_pixels()
-                    cx16.FB_set_pixel(c0)
-                    cx16.FB_set_pixel(c0)
-                    cx16.FB_set_pixel(c1)
-                    cx16.FB_set_pixel(c1)
-                    cx16.FB_set_pixel(c2)
-                    cx16.FB_set_pixel(c2)
-                    cx16.FB_set_pixel(c3)
-                    cx16.FB_set_pixel(c3)
-                    bitmap++
+                    get_8_pixels()
+                    cx16.r0 = &pixels
+                    cx16.r1 = 8
+                    cx16.FB_set_pixels()
                 }
-                cx16.r0 += 8
             }
             cy_times_forty += 40
         }
 
-        sub get_4_pixels() {
+        sub get_8_pixels() {
             ubyte  bm = @(bitmap)
-            c3 = mcol(bm)
+            ubyte  @zp  m = mcol(bm)
+            pixels[7] = m
+            pixels[6] = m
             bm >>= 2
-            c2 = mcol(bm)
+            m = mcol(bm)
+            pixels[5] = m
+            pixels[4] = m
             bm >>= 2
-            c1 = mcol(bm)
+            m = mcol(bm)
+            pixels[3] = m
+            pixels[2] = m
             bm >>= 2
-            c0 = mcol(bm)
+            m = mcol(bm)
+            pixels[1] = m
+            pixels[0] = m
+            bitmap++
 
             sub mcol(ubyte b) -> ubyte {
                 ubyte @zp color
