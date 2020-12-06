@@ -75,11 +75,11 @@ private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
 
 private fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // the when statement (on bytes) generates a sequence of:
-    //	 lda $ce01,x
-    //	 cmp #$20
+    //	 lda  $ce01,x
+    //	 cmp  #$20
     //	 beq  check_prog8_s72choice_32
-    //	 lda $ce01,x
-    //	 cmp #$21
+    //	 lda  $ce01,x
+    //	 cmp  #$21
     //	 beq  check_prog8_s73choice_33
     // the repeated lda can be removed
     val mods = mutableListOf<Modification>()

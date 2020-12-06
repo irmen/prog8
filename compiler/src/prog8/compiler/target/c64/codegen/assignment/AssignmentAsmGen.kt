@@ -755,10 +755,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 when(target.datatype) {
                     DataType.UWORD -> {
                         asmgen.out("""
-                            lda #<$sourceName
-                            ldy #>$sourceName
-                            sta ${target.asmVarname}
-                            sty ${target.asmVarname}+1
+                            lda  #<$sourceName
+                            ldy  #>$sourceName
+                            sta  ${target.asmVarname}
+                            sty  ${target.asmVarname}+1
                         """)
                     }
                     DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
@@ -1619,7 +1619,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val addressLv = addressExpr as? NumericLiteralValue
         when {
             addressLv != null -> {
-                asmgen.out("  lda $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
+                asmgen.out("  lda  $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
             }
             addressExpr is IdentifierReference -> {
                 asmgen.storeByteIntoPointer(addressExpr, ldaInstructionArg)
