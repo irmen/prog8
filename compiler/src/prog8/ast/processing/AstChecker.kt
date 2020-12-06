@@ -604,23 +604,28 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        // array length limits
+        // array length limits and constant lenghts
         if(decl.isArray) {
-            val length = decl.arraysize!!.constIndex() ?: 1
-            when (decl.datatype) {
-                DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                    if(length==0 || length>256)
-                        err("string and byte array length must be 1-256")
+            val length = decl.arraysize!!.constIndex()
+            if(length==null)
+                err("array length must be a constant")
+            else {
+                when (decl.datatype) {
+                    DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                        if (length == 0 || length > 256)
+                            err("string and byte array length must be 1-256")
+                    }
+                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                        if (length == 0 || length > 128)
+                            err("word array length must be 1-128")
+                    }
+                    DataType.ARRAY_F -> {
+                        if (length == 0 || length > 51)
+                            err("float array length must be 1-51")
+                    }
+                    else -> {
+                    }
                 }
-                DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                    if(length==0 || length>128)
-                        err("word array length must be 1-128")
-                }
-                DataType.ARRAY_F -> {
-                    if(length==0 || length>51)
-                        err("float array length must be 1-51")
-                }
-                else -> {}
             }
         }
 
