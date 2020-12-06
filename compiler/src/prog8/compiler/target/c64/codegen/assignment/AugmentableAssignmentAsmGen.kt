@@ -881,7 +881,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         else
                             asmgen.out("  lda  #0 |  sta  $name")
                     }
-                    value>2 -> asmgen.out("""
+                    value>3 -> asmgen.out("""
                         ldy  #$value
 -                       asl  $name
                         rol  $name+1
