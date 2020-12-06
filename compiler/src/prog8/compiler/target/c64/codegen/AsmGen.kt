@@ -1206,7 +1206,12 @@ $label              nop""")
     internal fun signExtendStackLsb(valueDt: DataType) {
         // sign extend signed byte on stack to signed word on stack
         when(valueDt) {
-            DataType.UBYTE -> out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
+            DataType.UBYTE -> {
+                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    out("  stz  P8ESTACK_HI+1,x")
+                else
+                    out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
+            }
             DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_stack_byte")
             else -> throw AssemblyError("need byte type")
         }
@@ -1216,7 +1221,10 @@ $label              nop""")
         // sign extend signed byte in a var to a full word in that variable
         when(valueDt) {
             DataType.UBYTE -> {
-                out("  lda  #0 |  sta  $asmvar+1")
+                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    out("  stz  $asmvar+1")
+                else
+                    out("  lda  #0 |  sta  $asmvar+1")
             }
             DataType.BYTE -> {
                 out("""

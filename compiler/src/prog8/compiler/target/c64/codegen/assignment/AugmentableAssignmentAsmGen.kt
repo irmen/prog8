@@ -643,14 +643,24 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sta  $name""")
             }
             "<<" -> {
-                if(value>=8) asmgen.out(" lda  #0 |  sta  $name")
-                else repeat(value) { asmgen.out(" asl  $name") }
+                if(value>=8) {
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  $name")
+                    else
+                        asmgen.out("  lda  #0 |  sta  $name")
+                }
+                else repeat(value) { asmgen.out("  asl  $name") }
             }
             ">>" -> {
                 if(value>0) {
                     if (dt == DataType.UBYTE) {
-                        if(value>=8) asmgen.out(" lda  #0 |  sta  $name")
-                        else repeat(value) { asmgen.out(" lsr  $name") }
+                        if(value>=8) {
+                            if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                asmgen.out("  stz  $name")
+                            else
+                                asmgen.out("  lda  #0 |  sta  $name")
+                        }
+                        else repeat(value) { asmgen.out("  lsr  $name") }
                     } else {
                         when {
                             value>=8 -> asmgen.out("""
@@ -665,7 +675,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 ldy  #$value
                                 jsr  math.lsr_byte_A
                                 sta  $name""")
-                            else -> repeat(value) { asmgen.out(" lda  $name | asl  a |  ror  $name") }
+                            else -> repeat(value) { asmgen.out("  lda  $name | asl  a |  ror  $name") }
                         }
                     }
                 }
@@ -858,8 +868,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "<<" -> {
                 when {
-                    value>=16 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
-                    value==8 -> asmgen.out(" lda  $name |  sta  $name+1 |  lda  #0 |  sta  $name")
+                    value>=16 -> {
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  stz  $name |  stz  $name+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
+                    }
+                    value==8 -> {
+                        asmgen.out("  lda  $name |  sta  $name+1")
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  stz  $name")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name")
+                    }
                     value>2 -> asmgen.out("""
                         ldy  #$value
 -                       asl  $name
@@ -874,8 +895,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if (value > 0) {
                     if(dt==DataType.UWORD) {
                         when {
-                            value>=16 -> asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
-                            value==8 -> asmgen.out(" lda  $name+1 |  sta  $name |  lda  #0 |  sta  $name+1")
+                            value>=16 -> {
+                                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                    asmgen.out("  stz  $name |  stz  $name+1")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
+                            }
+                            value==8 -> {
+                                asmgen.out("  lda  $name+1 |  sta  $name")
+                                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                    asmgen.out("  stz  $name+1")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  $name+1")
+                            }
                             value>2 -> asmgen.out("""
                                 ldy  #$value
 -                               lsr  $name+1
@@ -921,41 +953,41 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 when {
                     value == 0 -> {
                         if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                            asmgen.out(" stz  $name |  stz  $name+1")
+                            asmgen.out("  stz  $name |  stz  $name+1")
                         else
-                            asmgen.out(" lda  #0 |  sta  $name |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
                     }
                     value and 255 == 0 -> {
                         if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                            asmgen.out(" stz  $name")
+                            asmgen.out("  stz  $name")
                         else
-                            asmgen.out(" lda  #0 |  sta  $name")
-                        asmgen.out(" lda  $name+1 |  and  #>$value |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $name")
+                        asmgen.out("  lda  $name+1 |  and  #>$value |  sta  $name+1")
                     }
                     value < 0x0100 -> {
-                        asmgen.out(" lda  $name |  and  #$value |  sta  $name")
+                        asmgen.out("  lda  $name |  and  #$value |  sta  $name")
                         if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name+1")
                     }
-                    else -> asmgen.out(" lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
+                    else -> asmgen.out("  lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
                 }
             }
             "^" -> {
                 when {
                     value == 0 -> {}
-                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  eor  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
-                    else -> asmgen.out(" lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
+                    value and 255 == 0 -> asmgen.out("  lda  $name+1 |  eor  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out("  lda  $name |  eor  #$value |  sta  $name")
+                    else -> asmgen.out("  lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
                 }
             }
             "|" -> {
                 when {
                     value == 0 -> {}
-                    value and 255 == 0 -> asmgen.out(" lda  $name+1 |  ora  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
-                    else -> asmgen.out(" lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
+                    value and 255 == 0 -> asmgen.out("  lda  $name+1 |  ora  #>$value |  sta  $name+1")
+                    value < 0x0100 -> asmgen.out("  lda  $name |  ora  #$value |  sta  $name")
+                    else -> asmgen.out("  lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
                 }
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
@@ -1019,11 +1051,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 sta  $name+1""")
                     }
                     "*" -> {
+                        asmgen.out("  lda  $otherName |  sta  P8ZP_SCRATCH_W1")
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  stz  P8ZP_SCRATCH_W1+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  P8ZP_SCRATCH_W1+1")
                         asmgen.out("""
-                            lda  $otherName
-                            sta  P8ZP_SCRATCH_W1
-                            lda  #0
-                            sta  P8ZP_SCRATCH_W1+1
                             lda  $name
                             ldy  $name+1
                             jsr  math.multiply_words
@@ -1068,12 +1101,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     "&" -> {
-                        asmgen.out(" lda  $otherName |  and  $name |  sta  $name")
-                        if(dt in WordDatatypes)
-                            asmgen.out(" lda  #0 |  sta  $name+1")
+                        asmgen.out("  lda  $otherName |  and  $name |  sta  $name")
+                        if(dt in WordDatatypes) {
+                            if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                asmgen.out("  stz  $name+1")
+                            else
+                                asmgen.out("  lda  #0 |  sta  $name+1")
+                        }
                     }
-                    "^" -> asmgen.out(" lda  $otherName |  eor  $name |  sta  $name")
-                    "|" -> asmgen.out(" lda  $otherName |  ora  $name |  sta  $name")
+                    "^" -> asmgen.out("  lda  $otherName |  eor  $name |  sta  $name")
+                    "|" -> asmgen.out("  lda  $otherName |  ora  $name |  sta  $name")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1081,8 +1118,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
                     // note: ** (power) operator requires floats.
-                    "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
-                    "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
+                    "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
+                    "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
                         asmgen.out("""
                             lda  $otherName
@@ -1322,8 +1359,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  and  $name |  sta  $name")
-                        if(dt in WordDatatypes)
-                            asmgen.out(" lda  #0 |  sta  $name+1")
+                        if(dt in WordDatatypes) {
+                            if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                asmgen.out("  stz  $name+1")
+                            else
+                                asmgen.out("  lda  #0 |  sta  $name+1")
+                        }
                     }
                     "^" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)

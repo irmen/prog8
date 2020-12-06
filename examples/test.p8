@@ -9,7 +9,7 @@ main {
         ubyte ub1
         ubyte ub2
 
-        uw = ub1 as uword + ub2     ; fairly ok asm  (TODO make it use stz on cx16)
+        uw = ub1 as uword + ub2     ; fairly ok asm.. but the next though...:
         ub1++
         uw = ub1 + ub2          ; TODO horrible asm using the eval stack... fix
 

@@ -1110,21 +1110,28 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val sourceName = asmgen.asmVariableName(bytevar)
         when(wordtarget.kind) {
             TargetStorageKind.VARIABLE -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    sta  ${wordtarget.asmVarname}
-                    lda  #0
-                    sta  ${wordtarget.asmVarname}+1
-                    """)
+                asmgen.out("  lda  $sourceName |  sta  ${wordtarget.asmVarname}")
+                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    asmgen.out("  stz  ${wordtarget.asmVarname}+1")
+                else
+                    asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
             }
             TargetStorageKind.ARRAY -> {
                 if (wordtarget.constArrayIndexValue!=null) {
                     val scaledIdx = wordtarget.constArrayIndexValue!! * 2
-                    asmgen.out(" lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx |  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
+                    asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  ${wordtarget.asmVarname}+$scaledIdx+1")
+                    else
+                        asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
                 }
                 else {
                     asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array!!, wordtarget.datatype, CpuRegister.Y)
-                    asmgen.out(" lda  $sourceName |  sta  ${wordtarget.asmVarname},y |  lda  #0 |  iny |  sta  ${wordtarget.asmVarname},y")
+                    asmgen.out("  lda  $sourceName |  sta  ${wordtarget.asmVarname},y |  iny")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  ${wordtarget.asmVarname},y")
+                    else
+                        asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -1136,12 +1143,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    sta  P8ESTACK_LO,x
-                    lda  #0
-                    sta  P8ESTACK_HI,x
-                    dex""")
+                asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x")
+                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    asmgen.out("  stz  P8ESTACK_HI,x |  dex")
+                else
+                    asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
             }
             else -> throw AssemblyError("target type isn't word")
         }
@@ -1392,14 +1398,23 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.ARRAY -> {
                     if (target.array!!.indexer.indexNum!=null) {
                         val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
-                        asmgen.out("""
-                            lda  #0
-                            sta  ${target.asmVarname}+$indexValue
-                            sta  ${target.asmVarname}+$indexValue+1
-                            sta  ${target.asmVarname}+$indexValue+2
-                            sta  ${target.asmVarname}+$indexValue+3
-                            sta  ${target.asmVarname}+$indexValue+4
-                        """)
+                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("""
+                                stz  ${target.asmVarname}+$indexValue
+                                stz  ${target.asmVarname}+$indexValue+1
+                                stz  ${target.asmVarname}+$indexValue+2
+                                stz  ${target.asmVarname}+$indexValue+3
+                                stz  ${target.asmVarname}+$indexValue+4
+                            """)
+                        else
+                            asmgen.out("""
+                                lda  #0
+                                sta  ${target.asmVarname}+$indexValue
+                                sta  ${target.asmVarname}+$indexValue+1
+                                sta  ${target.asmVarname}+$indexValue+2
+                                sta  ${target.asmVarname}+$indexValue+3
+                                sta  ${target.asmVarname}+$indexValue+4
+                            """)
                     } else {
                         val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
                         asmgen.out("""
@@ -1561,12 +1576,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         if (address != null) {
             when(wordtarget.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    asmgen.out("""
-                        lda  ${address.toHex()}
-                        sta  ${wordtarget.asmVarname}
-                        lda  #0
-                        sta  ${wordtarget.asmVarname}+1
-                        """)
+                    asmgen.out("  lda  ${address.toHex()} |  sta  ${wordtarget.asmVarname}")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  ${wordtarget.asmVarname}+1")
+                    else
+                        asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
                 }
                 TargetStorageKind.ARRAY -> {
                     throw AssemblyError("no asm gen for assign memory byte at $address to array ${wordtarget.asmVarname}")
@@ -1578,12 +1592,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("word regs can only be pair")
                 }
                 TargetStorageKind.STACK -> {
-                    asmgen.out("""
-                        lda  ${address.toHex()}
-                        sta  P8ESTACK_LO,x
-                        lda  #0
-                        sta  P8ESTACK_HI,x
-                        dex""")
+                    asmgen.out("  lda  ${address.toHex()} |  sta  P8ESTACK_LO,x")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  P8ESTACK_HI,x |  dex")
+                    else
+                        asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 else -> throw AssemblyError("other types aren't word")
             }
@@ -1591,7 +1604,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             when(wordtarget.kind) {
                 TargetStorageKind.VARIABLE -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
-                    asmgen.out(" sta  ${wordtarget.asmVarname} |  lda  #0 |  sta ${wordtarget.asmVarname}+1")
+                    asmgen.out(" sta  ${wordtarget.asmVarname}")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  ${wordtarget.asmVarname}+1")
+                    else
+                        asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
                 }
                 TargetStorageKind.ARRAY -> {
                     throw AssemblyError("no asm gen for assign memory byte $identifier to array ${wordtarget.asmVarname} ")
@@ -1607,7 +1624,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.STACK -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
-                    asmgen.out(" sta  P8ESTACK_LO,x |  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
+                    asmgen.out("  sta  P8ESTACK_LO,x")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  P8ESTACK_HI,x |  dex")
+                    else
+                        asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 else -> throw AssemblyError("other types aren't word")
             }
