@@ -61,24 +61,24 @@ main {
     }
 
     sub convert_koalapic() {
-        ubyte cx
         ubyte cy
-        uword cy_times_forty = 0
-        ubyte bb
-        ubyte c0
-        ubyte c1
-        ubyte c2
-        ubyte c3
+        ubyte @zp cx
+        uword @zp cy_times_forty = 0
+        ubyte @zp c0
+        ubyte @zp c1
+        ubyte @zp c2
+        ubyte @zp c3
         uword bitmap = load_location
 
         screen_color = @(load_location + 8000 + 1000 + 1000) & 15
 
-        for cy in 0 to 24 {
+        for cy in 0 to 24*8 step 8 {
+            cx16.r0 = 0
             for cx in 0 to 39 {
-                for bb in 0 to 7 {
-                    cx16.r0 = cx * $0008
-                    cx16.r1 = cy * 8 + bb
+                cx16.r1 = cy
+                repeat 8 {
                     cx16.FB_cursor_position()
+                    cx16.r1 ++
                     get_4_pixels()
                     cx16.FB_set_pixel(c0)
                     cx16.FB_set_pixel(c0)
@@ -90,18 +90,23 @@ main {
                     cx16.FB_set_pixel(c3)
                     bitmap++
                 }
+                cx16.r0 += 8
             }
             cy_times_forty += 40
         }
 
         sub get_4_pixels() {
-            c0 = mcol(@(bitmap)>>6)
-            c1 = mcol(@(bitmap)>>4)
-            c2 = mcol(@(bitmap)>>2)
-            c3 = mcol(@(bitmap))
+            ubyte  bm = @(bitmap)
+            c3 = mcol(bm)
+            bm >>= 2
+            c2 = mcol(bm)
+            bm >>= 2
+            c1 = mcol(bm)
+            bm >>= 2
+            c0 = mcol(bm)
 
             sub mcol(ubyte b) -> ubyte {
-                ubyte color
+                ubyte @zp color
                 when b & 3 {
                     0 -> color = screen_color
                     1 -> color = @(load_location + 8000 + cy_times_forty + cx) >>4

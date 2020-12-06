@@ -2,6 +2,7 @@
 TODO
 ====
 
+- use 'stz' more on cx16 when setting variables to zero or clearing a word's msb etc.
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - Cx16 target: support full-screen 640x480 and 320x240 graphics? That requires our own custom graphics routines though to draw lines.
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
