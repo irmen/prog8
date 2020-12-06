@@ -41,7 +41,7 @@ main {
         rect(10, 10, 10, 10, false)
         rect(6, 0, 16, 20, true)
 
-        ; test_stack.test()
+        test_stack.test()
 
 
         sub rect(ubyte x1, ubyte y1, ubyte x2, ubyte y2, ubyte fill) {
@@ -140,21 +140,17 @@ main {
             ubyte xx
 
             while x>=y {
-                for xx in cx to cx+x {
-                    txt.setcc(xx, cy + y as ubyte, 81, 1)
-                    txt.setcc(xx, cy - y as ubyte, 81, 2)
+                xx = cx-x
+                repeat 2*x+1 {
+                    txt.setcc(xx, cy + y as ubyte, 81, 11)
+                    txt.setcc(xx, cy - y as ubyte, 81, 12)
+                    xx++
                 }
-                for xx in cx-x to cx-1 {
-                    txt.setcc(xx, cy + y as ubyte, 81, 3)
-                    txt.setcc(xx, cy - y as ubyte, 81, 4)
-                }
-                for xx in cx to cx+y {
-                    txt.setcc(xx, cy + x as ubyte, 81, 5)
-                    txt.setcc(xx, cy - x as ubyte, 81, 6)
-                }
-                for xx in cx-y to cx {
-                    txt.setcc(xx, cy + x as ubyte, 81, 7)
-                    txt.setcc(xx, cy - x as ubyte, 81, 8)
+                xx = cx-y
+                repeat 2*y+1 {
+                    txt.setcc(xx, cy + x as ubyte, 81, 13)
+                    txt.setcc(xx, cy - x as ubyte, 81, 14)
+                    xx++
                 }
                 y++
                 if decisionOver2<=0

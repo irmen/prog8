@@ -38,13 +38,13 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	%asm {{
-		ldy  #0
-_loop		sta  c64.Screen,y
-		sta  c64.Screen+$0100,y
-		sta  c64.Screen+$0200,y
-		sta  c64.Screen+$02e8,y
-		iny
-		bne  _loop
+		ldy  #250
+-		sta  c64.Screen+250*0-1,y
+		sta  c64.Screen+250*1-1,y
+		sta  c64.Screen+250*2-1,y
+		sta  c64.Screen+250*3-1,y
+		dey
+		bne  -
 		rts
         }}
 }
@@ -53,13 +53,13 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
-		ldy  #0
-_loop		sta  c64.Colors,y
-		sta  c64.Colors+$0100,y
-		sta  c64.Colors+$0200,y
-		sta  c64.Colors+$02e8,y
-		iny
-		bne  _loop
+		ldy  #250
+-		sta  c64.Colors+250*0-1,y
+		sta  c64.Colors+250*1-1,y
+		sta  c64.Colors+250*2-1,y
+		sta  c64.Colors+250*3-1,y
+		dey
+		bne  -
 		rts
         }}
 }
@@ -83,29 +83,31 @@ asmsub  scroll_left  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
+		bcc _scroll_screen
 
-+               ; scroll the color memory
++               ; scroll the screen and the color memory
 		ldx  #0
 		ldy  #38
 -
-	.for row=0, row<=24, row+=1
-		lda  c64.Colors + 40*row + 1,x
-		sta  c64.Colors + 40*row,x
-	.next
+        .for row=0, row<=24, row+=1
+            lda  c64.Screen + 40*row + 1,x
+            sta  c64.Screen + 40*row + 0,x
+            lda  c64.Colors + 40*row + 1,x
+            sta  c64.Colors + 40*row + 0,x
+        .next
 		inx
 		dey
 		bpl  -
+		rts
 
-_scroll_screen  ; scroll the screen memory
+_scroll_screen  ; scroll only the screen memory
 		ldx  #0
 		ldy  #38
 -
-	.for row=0, row<=24, row+=1
-		lda  c64.Screen + 40*row + 1,x
-		sta  c64.Screen + 40*row,x
-	.next
+        .for row=0, row<=24, row+=1
+            lda  c64.Screen + 40*row + 1,x
+            sta  c64.Screen + 40*row + 0,x
+        .next
 		inx
 		dey
 		bpl  -
@@ -121,26 +123,28 @@ asmsub  scroll_right  (ubyte alsocolors @ Pc) clobbers(A)  {
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
+		bcc  _scroll_screen
 
-+               ; scroll the color memory
++               ; scroll the screen and the color memory
 		ldx  #38
 -
-	.for row=0, row<=24, row+=1
-		lda  c64.Colors + 40*row + 0,x
-		sta  c64.Colors + 40*row + 1,x
-	.next
+        .for row=0, row<=24, row+=1
+            lda  c64.Screen + 40*row + 0,x
+            sta  c64.Screen + 40*row + 1,x
+            lda  c64.Colors + 40*row + 0,x
+            sta  c64.Colors + 40*row + 1,x
+        .next
 		dex
 		bpl  -
+		rts
 
-_scroll_screen  ; scroll the screen memory
+_scroll_screen  ; scroll only the screen memory
 		ldx  #38
 -
-	.for row=0, row<=24, row+=1
-		lda  c64.Screen + 40*row + 0,x
-		sta  c64.Screen + 40*row + 1,x
-	.next
+        .for row=0, row<=24, row+=1
+            lda  c64.Screen + 40*row + 0,x
+            sta  c64.Screen + 40*row + 1,x
+        .next
 		dex
 		bpl  -
 
@@ -155,26 +159,28 @@ asmsub  scroll_up  (ubyte alsocolors @ Pc) clobbers(A)  {
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
+		bcc  _scroll_screen
 
-+               ; scroll the color memory
++               ; scroll the screen and the color memory
 		ldx #39
 -
-	.for row=1, row<=24, row+=1
-		lda  c64.Colors + 40*row,x
-		sta  c64.Colors + 40*(row-1),x
-	.next
+        .for row=1, row<=24, row+=1
+            lda  c64.Screen + 40*row,x
+            sta  c64.Screen + 40*(row-1),x
+            lda  c64.Colors + 40*row,x
+            sta  c64.Colors + 40*(row-1),x
+        .next
 		dex
 		bpl  -
+		rts
 
-_scroll_screen  ; scroll the screen memory
+_scroll_screen  ; scroll only the screen memory
 		ldx #39
 -
-	.for row=1, row<=24, row+=1
-		lda  c64.Screen + 40*row,x
-		sta  c64.Screen + 40*(row-1),x
-	.next
+        .for row=1, row<=24, row+=1
+            lda  c64.Screen + 40*row,x
+            sta  c64.Screen + 40*(row-1),x
+        .next
 		dex
 		bpl  -
 
@@ -189,26 +195,28 @@ asmsub  scroll_down  (ubyte alsocolors @ Pc) clobbers(A)  {
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
-		bcs  +
-		jmp  _scroll_screen
+		bcc  _scroll_screen
 
-+               ; scroll the color memory
++               ; scroll the screen and the color memory
 		ldx #39
 -
-	.for row=23, row>=0, row-=1
-		lda  c64.Colors + 40*row,x
-		sta  c64.Colors + 40*(row+1),x
-	.next
+        .for row=23, row>=0, row-=1
+            lda  c64.Colors + 40*row,x
+            sta  c64.Colors + 40*(row+1),x
+            lda  c64.Screen + 40*row,x
+            sta  c64.Screen + 40*(row+1),x
+        .next
 		dex
 		bpl  -
+		rts
 
-_scroll_screen  ; scroll the screen memory
+_scroll_screen  ; scroll only the screen memory
 		ldx #39
 -
-	.for row=23, row>=0, row-=1
-		lda  c64.Screen + 40*row,x
-		sta  c64.Screen + 40*(row+1),x
-	.next
+        .for row=23, row>=0, row-=1
+            lda  c64.Screen + 40*row,x
+            sta  c64.Screen + 40*(row+1),x
+        .next
 		dex
 		bpl  -
 
