@@ -774,6 +774,31 @@ stack_mul_word_100	.proc
 		rts
 		.pend
 
+stack_mul_word_320	.proc
+		; stackW = stackLo * 256 + stackLo * 64	 (stackHi doesn't matter)
+		ldy  P8ESTACK_LO+1,x
+		lda  #0
+		sta  P8ESTACK_HI+1,x
+		tya
+		asl  a
+		rol  P8ESTACK_HI+1,x
+		asl  a
+		rol  P8ESTACK_HI+1,x
+		asl  a
+		rol  P8ESTACK_HI+1,x
+		asl  a
+		rol  P8ESTACK_HI+1,x
+		asl  a
+		rol  P8ESTACK_HI+1,x
+		asl  a
+		rol  P8ESTACK_HI+1,x
+		sta  P8ESTACK_LO+1,x
+		tya
+		clc
+		adc  P8ESTACK_HI+1,x
+		sta  P8ESTACK_HI+1,x
+		rts
+		.pend
 
 ; ----------- optimized multiplications (in-place A (byte) and ?? (word)) : ---------
 mul_byte_3	.proc
@@ -1238,6 +1263,32 @@ mul_word_100	.proc
 		asl  a
 		rol  P8ZP_SCRATCH_REG
 		ldy  P8ZP_SCRATCH_REG
+		rts
+		.pend
+
+mul_word_320	.proc
+		; AY = A * 256 + A * 64	 (msb doesn't matter)
+		sta  P8ZP_SCRATCH_B1
+		ldy  #0
+		sty  P8ZP_SCRATCH_REG
+		asl  a
+		rol  P8ZP_SCRATCH_REG
+		asl  a
+		rol  P8ZP_SCRATCH_REG
+		asl  a
+		rol  P8ZP_SCRATCH_REG
+		asl  a
+		rol  P8ZP_SCRATCH_REG
+		asl  a
+		rol  P8ZP_SCRATCH_REG
+		asl  a
+		rol  P8ZP_SCRATCH_REG
+		pha
+		clc
+		lda  P8ZP_SCRATCH_B1
+		adc  P8ZP_SCRATCH_REG
+		tay
+		pla
 		rts
 		.pend
 
