@@ -6,8 +6,8 @@
 diskio {
 
 
-    sub directory(ubyte drivenumber) -> byte {
-        ; -- Shows the directory contents of disk drive 8-11 (provide as argument).
+    sub directory(ubyte drivenumber) -> ubyte {
+        ; -- Shows the directory contents of disk drive 8-11 (provide as argument). Returns success flag.
 
         c64.SETNAM(1, "$")
         c64.SETLFS(1, drivenumber, 0)
@@ -57,6 +57,74 @@ io_error:
     }
 
 
+    sub listfiles(ubyte drivenumber, uword pattern, ubyte prefixOrSuffix,
+                  uword filenamesbufferptr, uword blocksizesptr, ubyte max_files) -> ubyte {
+        ; -- returns a list of files in the directory matching the given pattern (optional)
+        ;    their blocksizes will be put into the uword array given by blocksizesptr
+        ;    their names will be concatenated into the filenamesbuffer, separated by a 0-byte
+        ;    The buffer should be at least 17 times max_files and the block sizes array should be big enough too.
+        if max_files==0  return 0
+        if pattern!=0 and strlen(pattern)==0  pattern=0
+
+;        @(blocksizesptr) = lsb(333)
+;        @(blocksizesptr+1) = msb(333)
+;        @(blocksizesptr+2) = lsb(444)
+;        @(blocksizesptr+3) = msb(444)
+;        @(blocksizesptr+4) = lsb(555)
+;        @(blocksizesptr+5) = msb(555)
+;        str name1 = "filename1.txt"
+;        str name2 = "filename2.txt"
+;        str name3 = "filename3.txt"
+;        memcopy(name1, filenamesbufferptr, len(name1)+1)
+;        filenamesbufferptr += len(name1) + 1
+;        memcopy(name2, filenamesbufferptr, len(name2)+1)
+;        filenamesbufferptr += len(name2) + 1
+;        memcopy(name3, filenamesbufferptr, len(name3)+1)
+;        filenamesbufferptr += len(name3) + 1
+
+        ubyte num_files = 0
+
+        c64.SETNAM(1, "$")
+        c64.SETLFS(1, drivenumber, 0)
+        void c64.OPEN()          ; open 1,8,0,"$"
+        if_cs
+            goto io_error
+        void c64.CHKIN(1)        ; use #1 as input channel
+        if_cs
+            goto io_error
+
+        repeat 4 {
+            void c64.CHRIN()     ; skip the 4 prologue bytes
+        }
+
+        while not c64.READST() {
+            @(blocksizesptr) = c64.CHRIN()
+            @(blocksizesptr+1) = c64.CHRIN()
+            blocksizesptr += 2
+
+            ; read until the filename starts after the first "
+            while c64.CHRIN()!='\"'  {
+                if c64.READST()
+                    goto io_error
+            }
+
+            ubyte char
+            do {
+                char = c64.CHRIN()
+                @(filenamesbufferptr) = char
+                filenamesbufferptr++
+            } until char==0
+            num_files++
+            void c64.CHRIN()     ; skip 2 bytes
+            void c64.CHRIN()
+        }
+
+io_error:
+        c64.CLRCHN()        ; restore default i/o devices
+        c64.CLOSE(1)
+        return num_files
+    }
+
     sub status(ubyte drivenumber) {
         ; -- display the disk drive's current status message
         c64.SETNAM(0, $0000)
@@ -77,7 +145,7 @@ io_error:
     }
 
 
-    sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> byte {
+    sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> ubyte {
         c64.SETNAM(strlen(filenameptr), filenameptr)
         c64.SETLFS(1, drivenumber, 0)
         uword end_address = address + size
