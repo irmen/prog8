@@ -25,7 +25,9 @@ diskio {
         ; while not key pressed / EOF encountered, read data.
         ubyte status = c64.READST()
         while not status {
-            txt.print_uw(mkword(c64.CHRIN(), c64.CHRIN()))
+            ubyte low = c64.CHRIN()
+            ubyte high = c64.CHRIN()
+            txt.print_uw(mkword(high, low))
             txt.chrout(' ')
             ubyte @zp char
             do {
@@ -97,10 +99,18 @@ io_error:
             void c64.CHRIN()     ; skip the 4 prologue bytes
         }
 
+        ubyte disk_name = true
+
         while not c64.READST() {
-            @(blocksizesptr) = c64.CHRIN()
-            @(blocksizesptr+1) = c64.CHRIN()
-            blocksizesptr += 2
+            if disk_name {
+                void c64.CHRIN()
+                void c64.CHRIN()
+            }
+            else {
+                @(blocksizesptr) = c64.CHRIN()
+                @(blocksizesptr+1) = c64.CHRIN()
+                blocksizesptr += 2
+            }
 
             ; read until the filename starts after the first "
             while c64.CHRIN()!='\"'  {
@@ -108,15 +118,33 @@ io_error:
                     goto io_error
             }
 
-            ubyte char
-            do {
-                char = c64.CHRIN()
-                @(filenamesbufferptr) = char
+            repeat {
+                ubyte char = c64.CHRIN()
+                ;if_z
+                ;    break      ; TODO fix assembly code generation for this
+                if char=='\"'
+                    break
+                if not disk_name {
+                    @(filenamesbufferptr) = char
+                    filenamesbufferptr++
+                }
+            }
+
+            if not disk_name {
+                @(filenamesbufferptr) = 0
                 filenamesbufferptr++
-            } until char==0
-            num_files++
+                num_files++
+            }
+
+            ; read the rest of the entry until the end
+            do {
+                ubyte char2 = c64.CHRIN()
+                char2++              ; TODO fix condition test problem with ldx
+            } until char2==1
+
             void c64.CHRIN()     ; skip 2 bytes
             void c64.CHRIN()
+            disk_name = false
         }
 
 io_error:
@@ -127,7 +155,7 @@ io_error:
 
     sub status(ubyte drivenumber) {
         ; -- display the disk drive's current status message
-        c64.SETNAM(0, $0000)
+        c64.SETNAM(0, filename)
         c64.SETLFS(15, drivenumber, 15)
         void c64.OPEN()          ; open 15,8,15
         if_cs
