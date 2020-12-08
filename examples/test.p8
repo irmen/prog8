@@ -33,6 +33,8 @@ errors {
 ;            char = c64.CHRIN()      ; TODO fix undefined symbol error, should refer to 'char' above in the subroutine's scope
 ;        } until char==0
 
+        ; TODO fix compiler crash:
+        ; str[max_files] names
     }
 }
 
@@ -51,17 +53,18 @@ main {
 ;        txt.chrout('\n')
 ;        test_stack.test()
 
-        const ubyte max_files = 10
+        const ubyte max_files = 8
         uword[max_files] blocks
-        str filenames = "?????????????????" * max_files
+        uword[max_files] names
+        str filenamesbuffer = "?????????????????" * max_files
 
         ubyte num_files=0
         txt.print("files starting with 'cub':\n")
-        num_files = diskio.listfiles(8, "cub", false, filenames, blocks, max_files)
+        num_files = diskio.listfiles(8, "cub", false, names, blocks, filenamesbuffer, max_files)
         print_listing()
         txt.chrout('\n')
         txt.print("files ending with 'gfx':\n")
-        num_files = diskio.listfiles(8, "gfx", true, filenames, blocks, max_files)
+        num_files = diskio.listfiles(8, "gfx", true, names, blocks, filenamesbuffer, max_files)
         print_listing()
         ;test_stack.test()
 
@@ -70,15 +73,13 @@ main {
                 txt.print("no files found.")
             else {
                 ubyte i
-                uword filenameptr = &filenames
                 for i in 0 to num_files-1 {
                     txt.print_ub(i+1)
                     txt.print(": ")
-                    txt.print(filenameptr)
+                    txt.print(names[i])
                     txt.print("   = ")
                     txt.print_uw(blocks[i])
                     txt.print(" blocks\n")
-                    filenameptr += strlen(filenameptr) + 1
                 }
             }
         }

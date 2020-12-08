@@ -59,13 +59,13 @@ io_error:
     }
 
 
-    sub listfiles(ubyte drivenumber, uword pattern, ubyte matchSuffix,
-                  uword filenamesbufferptr, uword blocksizesptr, ubyte max_files) -> ubyte {
+    sub listfiles(ubyte drivenumber, uword pattern, ubyte suffixmatch,
+                  uword namesarray, uword blocksarray, uword namesbuffer, ubyte maxnum) -> ubyte {
         ; -- returns a list of files in the directory matching the given prefix or suffix (optional)
-        ;    their blocksizes will be put into the uword array given by blocksizesptr
-        ;    their names will be concatenated into the filenamesbuffer, separated by a 0-byte
-        ;    The buffer should be at least 17 * max_files and the block sizes array should be that large as well.
-        if max_files==0  return 0
+        ;    their blocksizes will be put into the blocksarray
+        ;    pointers to their names will be put into the namesarray
+        ;    The namesbuffer should be at least 17 * maxnum and both arrays should be at least maxnum size as well.
+        if maxnum==0  return 0
 
         ubyte num_files = 0
         ubyte pattern_size = 0
@@ -86,11 +86,11 @@ io_error:
         }
 
         ubyte disk_name = true
-        uword last_filename_ptr = filenamesbufferptr
+        uword last_filename_ptr = namesbuffer
 
         while not c64.READST() {
-            @(blocksizesptr) = c64.CHRIN()
-            @(blocksizesptr+1) = c64.CHRIN()
+            @(blocksarray) = c64.CHRIN()
+            @(blocksarray+1) = c64.CHRIN()
 
             ; read until the filename starts after the first "
             while c64.CHRIN()!='\"'  {
@@ -98,6 +98,7 @@ io_error:
                     goto close_end
             }
 
+            ; append the filename to the buffer
             repeat {
                 ubyte char = c64.CHRIN()
                 if char==0
@@ -106,31 +107,37 @@ io_error:
                 ;    break              ; TODO fix generated code for this jump
                 if char=='\"'
                     break
-                if not disk_name {
-                    @(filenamesbufferptr) = char
-                    filenamesbufferptr++
-                }
+                @(namesbuffer) = char
+                namesbuffer++
             }
 
-            if not disk_name {
-                @(filenamesbufferptr) = 0
-                filenamesbufferptr++
+            if disk_name
+                namesbuffer = last_filename_ptr
+            else {
+                @(namesbuffer) = 0
+                namesbuffer++
                 ubyte matches = true
                 if pattern_size {
-                    if matchSuffix
+                    ; do filename matching
+                    if suffixmatch
                         rightstr(last_filename_ptr, filename, pattern_size)
                     else
                         leftstr(last_filename_ptr, filename, pattern_size)
                     matches = strcmp(filename, pattern)==0
                 }
                 if matches {
-                    blocksizesptr += 2
+                    ; enter the details into the arrays and increment
                     num_files++
-                    last_filename_ptr = filenamesbufferptr
-                    if num_files>=max_files
+                    @(namesarray) = lsb(last_filename_ptr)
+                    @(namesarray+1) = msb(last_filename_ptr)
+                    last_filename_ptr = namesbuffer
+                    namesarray += 2
+                    blocksarray += 2
+                    if num_files>=maxnum
                         goto close_end
                 } else {
-                    filenamesbufferptr = last_filename_ptr
+                    ; no match, reset buffer to overwrite previous
+                    namesbuffer = last_filename_ptr
                 }
             }
 
