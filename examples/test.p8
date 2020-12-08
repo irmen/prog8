@@ -8,6 +8,12 @@
 errors {
     sub tofix() {
 
+        ; TODO fix compiler crash: when passing the name of a subroutine instead of an array or string to an UWORD parameter
+
+        ; TODO allow taking the address of a subroutine   &routine
+
+
+
         while c64.CHRIN() {
             ; TODO: the loop condition isn't properly tested because a ldx is in the way before the beq
         }
@@ -40,48 +46,6 @@ errors {
 
 main {
     sub start() {
-
-;        ubyte result = diskio.directory(8)
-;        txt.print("result: ")
-;        txt.print_ub(result)
-;        txt.chrout('\n')
-;        test_stack.test()
-;
-;        diskio.status(8)
-;        txt.chrout('\n')
-;        txt.chrout('\n')
-;        txt.chrout('\n')
-;        test_stack.test()
-
-        const ubyte max_files = 8
-        uword[max_files] blocks
-        uword[max_files] names
-        str filenamesbuffer = "?????????????????" * max_files
-
-        ubyte num_files=0
-        txt.print("files starting with 'cub':\n")
-        num_files = diskio.listfiles(8, "cub", false, names, blocks, filenamesbuffer, max_files)
-        print_listing()
-        txt.chrout('\n')
-        txt.print("files ending with 'gfx':\n")
-        num_files = diskio.listfiles(8, "gfx", true, names, blocks, filenamesbuffer, max_files)
-        print_listing()
-        ;test_stack.test()
-
-        sub print_listing() {
-            if num_files==0
-                txt.print("no files found.")
-            else {
-                ubyte i
-                for i in 0 to num_files-1 {
-                    txt.print_ub(i+1)
-                    txt.print(": ")
-                    txt.print(names[i])
-                    txt.print("   = ")
-                    txt.print_uw(blocks[i])
-                    txt.print(" blocks\n")
-                }
-            }
-        }
+        txt.print("hello\n")
     }
 }

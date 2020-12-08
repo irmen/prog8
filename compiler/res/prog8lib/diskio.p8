@@ -59,6 +59,8 @@ io_error:
     }
 
 
+    ; TODO make a listfiles() call that accepts a callback routine to process the file entries.  This avoids the need to allocate and pass all those buffers.
+
     sub listfiles(ubyte drivenumber, uword pattern, ubyte suffixmatch,
                   uword namesarray, uword blocksarray, uword namesbuffer, ubyte maxnum) -> ubyte {
         ; -- returns a list of files in the directory matching the given prefix or suffix (optional)
