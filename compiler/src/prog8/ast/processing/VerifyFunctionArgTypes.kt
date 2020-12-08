@@ -41,8 +41,9 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
         fun checkTypes(call: IFunctionCall, scope: INameScope, program: Program): String? {
             val argITypes = call.args.map { it.inferType(program) }
-            if(argITypes.any { !it.isKnown })
-                throw FatalAstException("unknown dt")
+            val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
+            if(firstUnknownDt>=0)
+                return "argument ${firstUnknownDt+1} invalid argument type"
             val argtypes = argITypes.map { it.typeOrElse(DataType.STRUCT) }
             val target = call.target.targetStatement(scope)
             if (target is Subroutine) {

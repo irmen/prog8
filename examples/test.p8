@@ -8,12 +8,6 @@
 errors {
     sub tofix() {
 
-        ; TODO fix compiler crash: when passing the name of a subroutine instead of an array or string to an UWORD parameter
-
-        ; TODO allow taking the address of a subroutine   &routine
-
-
-
         while c64.CHRIN() {
             ; TODO: the loop condition isn't properly tested because a ldx is in the way before the beq
         }
@@ -46,7 +40,12 @@ errors {
 
 main {
     sub start() {
-
+        function(&start)
         test_stack.test()
+    }
+
+    sub function(uword param) {
+        txt.print_uwhex(param, 1)
+        param++
     }
 }
