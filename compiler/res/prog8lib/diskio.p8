@@ -146,16 +146,15 @@ io_error:
             void c64.CHRIN()
 
             if not list_skip_disk_name {
-                ubyte matches = true
                 if list_pattern_size {
                     ; do filename matching
                     if list_suffixmatch
                         rightstr(list_filename, filename, list_pattern_size)
                     else
                         leftstr(list_filename, filename, list_pattern_size)
-                    matches = strcmp(filename, list_pattern)==0
-                }
-                if matches
+                    if strcmp(filename, list_pattern)==0
+                        return true
+                } else
                     return true
             }
             list_skip_disk_name = false
