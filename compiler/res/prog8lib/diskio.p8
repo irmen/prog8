@@ -134,11 +134,9 @@ io_error:
 
             @(nameptr) = 0
 
-            ; read the rest of the entry until the end
-            do {
-                ubyte char2 = c64.CHRIN()
-                char2++              ; TODO fix condition test problem with ldx
-            } until char2==1
+            while c64.CHRIN() {
+                ; read the rest of the entry until the end
+            }
 
             void c64.CHRIN()     ; skip 2 bytes
             void c64.CHRIN()

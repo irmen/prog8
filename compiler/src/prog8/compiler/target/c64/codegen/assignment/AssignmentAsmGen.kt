@@ -142,7 +142,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is FunctionCall -> {
                         when (val sub = value.target.targetStatement(program.namespace)) {
                             is Subroutine -> {
-                                val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any { it.statusflag != null }
+                                val preserveStatusRegisterAfterCall = sub.shouldPreserveStatusRegisterAfterCall()
                                 asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.registerOrPair!=null }
                                 when (returnValue.first) {

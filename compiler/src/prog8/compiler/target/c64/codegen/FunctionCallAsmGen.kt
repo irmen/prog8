@@ -16,7 +16,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
     internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
         val sub = stmt.target.targetSubroutine(program.namespace)!!
-        val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
+        val preserveStatusRegisterAfterCall = sub.shouldPreserveStatusRegisterAfterCall()
         translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
         // functioncalls no longer return results on the stack, so simply ignore the results in the registers
         if(preserveStatusRegisterAfterCall)
@@ -28,7 +28,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // output the code to setup the parameters and perform the actual call
         // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
-        val saveX = CpuRegister.X in sub.asmClobbers || sub.regXasResult() || sub.regXasParam()
+        val saveX = sub.shouldSaveX()
         if(saveX)
             asmgen.saveRegister(CpuRegister.X, preserveStatusRegisterAfterCall, (stmt as Node).definingSubroutine()!!)
 

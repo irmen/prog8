@@ -1329,7 +1329,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             asmgen.translateBuiltinFunctionCallExpression(expression, builtinFunc, true)
         } else {
             sub as Subroutine
-            val preserveStatusRegisterAfterCall = sub.asmReturnvaluesRegisters.any {it.statusflag!=null}
+            val preserveStatusRegisterAfterCall = sub.shouldPreserveStatusRegisterAfterCall()
             asmgen.translateFunctionCall(expression, preserveStatusRegisterAfterCall)
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
             for ((_, reg) in returns) {
