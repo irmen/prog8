@@ -1164,22 +1164,20 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 storeRegisterInMemoryAddress(register, target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                when {
-                    target.constArrayIndexValue!=null -> {
-                        when (register) {
-                            CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
-                            CpuRegister.X -> asmgen.out("  stx  ${target.asmVarname}+${target.constArrayIndexValue}")
-                            CpuRegister.Y -> asmgen.out("  sty  ${target.asmVarname}+${target.constArrayIndexValue}")
-                        }
+                if (target.constArrayIndexValue!=null) {
+                    when (register) {
+                        CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
+                        CpuRegister.X -> asmgen.out("  stx  ${target.asmVarname}+${target.constArrayIndexValue}")
+                        CpuRegister.Y -> asmgen.out("  sty  ${target.asmVarname}+${target.constArrayIndexValue}")
                     }
-                    else -> {
-                        when (register) {
-                            CpuRegister.A -> {}
-                            CpuRegister.X -> asmgen.out(" txa")
-                            CpuRegister.Y -> asmgen.out(" tya")
-                        }
-                        asmgen.out(" ldy  ${asmgen.asmVariableName(target.array!!.indexer.indexVar!!)} |  sta  ${target.asmVarname},y")
+                }
+                else {
+                    when (register) {
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> asmgen.out(" txa")
+                        CpuRegister.Y -> asmgen.out(" tya")
                     }
+                    asmgen.out(" ldy  ${asmgen.asmVariableName(target.array!!.indexer.indexVar!!)} |  sta  ${target.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -1238,20 +1236,30 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             TargetStorageKind.ARRAY -> {
-                // TODO can be a bit more optimized if the array indexer is a number
-                when(regs) {
-                    RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
-                    RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
-                    RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
-                    else -> throw AssemblyError("expected reg pair")
+                if (target.constArrayIndexValue!=null) {
+                    val idx = target.constArrayIndexValue!! * 2
+                    when (regs) {
+                        RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname}+$idx |  stx  ${target.asmVarname}+$idx+1")
+                        RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
+                        RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
+                        else -> throw AssemblyError("expected reg pair")
+                    }
                 }
-                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
-                asmgen.out("""
-                    pla
-                    sta  ${target.asmVarname},y
-                    dey
-                    pla
-                    sta  ${target.asmVarname},y""")
+                else {
+                    when(regs) {
+                        RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                        RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                        RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                        else -> throw AssemblyError("expected reg pair")
+                    }
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
+                    asmgen.out("""
+                        pla
+                        sta  ${target.asmVarname},y
+                        dey
+                        pla
+                        sta  ${target.asmVarname},y""")
+                    }
             }
             TargetStorageKind.REGISTER -> {
                 when(regs) {
