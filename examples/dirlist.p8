@@ -6,38 +6,48 @@
 
 main {
     sub start() {
-        const ubyte max_files = 8
-        uword[max_files] blocks
-        uword[max_files] names
-        str filenamesbuffer = "?????????????????" * max_files
 
-        ubyte num_files=0
-
-        txt.print("\nfiles starting with 'cub':\n")
-        num_files = diskio.listfiles(8, "cub", false, names, blocks, filenamesbuffer, max_files)
-        print_listing()
-        txt.print("\nfiles ending with 'gfx':\n")
-        num_files = diskio.listfiles(8, "gfx", true, names, blocks, filenamesbuffer, max_files)
-        print_listing()
-        txt.print("\nfiles, no filtering (limited number):\n")
-        num_files = diskio.listfiles(8, 0, false, names, blocks, filenamesbuffer, max_files)
-        print_listing()
-        ;test_stack.test()
-
-        sub print_listing() {
-            if num_files==0
-                txt.print("no files found.\n")
-            else {
-                ubyte i
-                for i in 0 to num_files-1 {
-                    txt.print_ub(i+1)
-                    txt.print(": ")
-                    txt.print(names[i])
-                    txt.print("   = ")
-                    txt.print_uw(blocks[i])
-                    txt.print(" blocks\n")
-                }
+        if diskio.lf_start_list(8, "cub", false) {
+            txt.print("\nfiles starting with 'cub':\n")
+            while diskio.lf_next_entry() {
+                txt.print(diskio.list_filename)
+                txt.print("  ")
+                txt.print_uw(diskio.list_blocks)
+                txt.print(" blocks\n")
             }
+            diskio.lf_end_list()
+        } else {
+            txt.print("error\n")
         }
+
+        if diskio.lf_start_list(8, "gfx", true) {
+            txt.print("\nfiles ending with 'gfx':\n")
+            while diskio.lf_next_entry() {
+                txt.print(diskio.list_filename)
+                txt.print("  ")
+                txt.print_uw(diskio.list_blocks)
+                txt.print(" blocks\n")
+            }
+            diskio.lf_end_list()
+        } else {
+            txt.print("error\n")
+        }
+
+        if diskio.lf_start_list(8, 0, false) {
+            txt.print("\nfirst 10 files:\n")
+            ubyte counter=0
+            while counter < 10 and diskio.lf_next_entry() {
+                txt.print(diskio.list_filename)
+                txt.print("  ")
+                txt.print_uw(diskio.list_blocks)
+                txt.print(" blocks\n")
+                counter++
+            }
+            diskio.lf_end_list()
+        } else {
+            txt.print("error\n")
+        }
+
+        ; test_stack.test()
     }
 }

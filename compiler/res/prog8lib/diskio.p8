@@ -59,40 +59,61 @@ io_error:
     }
 
 
-    ; TODO make a listfiles() call that accepts a callback routine to process the file entries.  This avoids the need to allocate and pass all those buffers.
+    ; internal variables for the iterative file lister
+    ubyte list_suffixmatch
+    ubyte list_in_progress = false
+    ubyte list_pattern_size
+    ubyte list_skip_disk_name
+    uword list_pattern
+    uword list_blocks
+    str   list_filename = "????????????????"
 
-    sub listfiles(ubyte drivenumber, uword pattern, ubyte suffixmatch,
-                  uword namesarray, uword blocksarray, uword namesbuffer, ubyte maxnum) -> ubyte {
-        ; -- returns a list of files in the directory matching the given prefix or suffix (optional)
-        ;    their blocksizes will be put into the blocksarray
-        ;    pointers to their names will be put into the namesarray
-        ;    The namesbuffer should be at least 17 * maxnum and both arrays should be at least maxnum size as well.
-        if maxnum==0  return 0
-
-        ubyte num_files = 0
-        ubyte pattern_size = 0
-        if pattern!=0
-            pattern_size = strlen(pattern)
+    sub lf_start_list(ubyte drivenumber, uword pattern, ubyte suffixmatch) -> ubyte {
+        ; -- start an iterative file listing with optional prefix or suffix name matching.
+        lf_end_list()
+        list_pattern = pattern
+        list_suffixmatch = suffixmatch
+        list_skip_disk_name = true
+        list_in_progress = true
+        if pattern==0
+            list_pattern_size = 0
+        else
+            list_pattern_size = strlen(pattern)
 
         c64.SETNAM(1, "$")
         c64.SETLFS(1, drivenumber, 0)
         void c64.OPEN()          ; open 1,8,0,"$"
         if_cs
-            goto close_end
+            goto io_error
         void c64.CHKIN(1)        ; use #1 as input channel
         if_cs
-            goto close_end
+            goto io_error
 
         repeat 4 {
             void c64.CHRIN()     ; skip the 4 prologue bytes
         }
 
-        ubyte disk_name = true
-        uword last_filename_ptr = namesbuffer
+        if c64.READST()==0
+            return true
+
+io_error:
+        lf_end_list()
+        return false
+    }
+
+    sub lf_next_entry() -> ubyte {
+        ; -- retrieve the next entry from an iterative file listing session.
+        ;    results will be found in list_blocks and list_filename.
+        ;    if it returns false though, there are no more entries (or an error occurred).
+
+        if not list_in_progress
+            return false
 
         while not c64.READST() {
-            @(blocksarray) = c64.CHRIN()
-            @(blocksarray+1) = c64.CHRIN()
+            uword nameptr = &list_filename
+            ubyte blocks_lsb = c64.CHRIN()
+            ubyte blocks_msb = c64.CHRIN()
+            list_blocks = mkword(blocks_msb, blocks_lsb)
 
             ; read until the filename starts after the first "
             while c64.CHRIN()!='\"'  {
@@ -100,7 +121,7 @@ io_error:
                     goto close_end
             }
 
-            ; append the filename to the buffer
+            ; read the filename
             repeat {
                 ubyte char = c64.CHRIN()
                 if char==0
@@ -109,39 +130,11 @@ io_error:
                 ;    break              ; TODO fix generated code for this jump
                 if char=='\"'
                     break
-                @(namesbuffer) = char
-                namesbuffer++
+                @(nameptr) = char
+                nameptr++
             }
 
-            if disk_name
-                namesbuffer = last_filename_ptr
-            else {
-                @(namesbuffer) = 0
-                namesbuffer++
-                ubyte matches = true
-                if pattern_size {
-                    ; do filename matching
-                    if suffixmatch
-                        rightstr(last_filename_ptr, filename, pattern_size)
-                    else
-                        leftstr(last_filename_ptr, filename, pattern_size)
-                    matches = strcmp(filename, pattern)==0
-                }
-                if matches {
-                    ; enter the details into the arrays and increment
-                    num_files++
-                    @(namesarray) = lsb(last_filename_ptr)
-                    @(namesarray+1) = msb(last_filename_ptr)
-                    last_filename_ptr = namesbuffer
-                    namesarray += 2
-                    blocksarray += 2
-                    if num_files>=maxnum
-                        goto close_end
-                } else {
-                    ; no match, reset buffer to overwrite previous
-                    namesbuffer = last_filename_ptr
-                }
-            }
+            @(nameptr) = 0
 
             ; read the rest of the entry until the end
             do {
@@ -151,14 +144,37 @@ io_error:
 
             void c64.CHRIN()     ; skip 2 bytes
             void c64.CHRIN()
-            disk_name = false
+
+            if not list_skip_disk_name {
+                ubyte matches = true
+                if list_pattern_size {
+                    ; do filename matching
+                    if list_suffixmatch
+                        rightstr(list_filename, filename, list_pattern_size)
+                    else
+                        leftstr(list_filename, filename, list_pattern_size)
+                    matches = strcmp(filename, list_pattern)==0
+                }
+                if matches
+                    return true
+            }
+            list_skip_disk_name = false
         }
 
 close_end:
-        c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(1)
-        return num_files
+        lf_end_list()
+        return false
     }
+
+    sub lf_end_list() {
+        ; -- end an iterative file listing session (close channels).
+        if list_in_progress {
+            c64.CLRCHN()
+            c64.CLOSE(1)
+            list_in_progress = false
+        }
+    }
+
 
     sub status(ubyte drivenumber) {
         ; -- display the disk drive's current status message

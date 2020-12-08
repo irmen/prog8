@@ -46,6 +46,7 @@ errors {
 
 main {
     sub start() {
-        txt.print("hello\n")
+
+        test_stack.test()
     }
 }
