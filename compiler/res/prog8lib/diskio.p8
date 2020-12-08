@@ -124,10 +124,8 @@ io_error:
             ; read the filename
             repeat {
                 ubyte char = c64.CHRIN()
-                if char==0
+                if_z
                     break
-                ; if_z
-                ;    break              ; TODO fix generated code for this jump
                 if char=='\"'
                     break
                 @(nameptr) = char

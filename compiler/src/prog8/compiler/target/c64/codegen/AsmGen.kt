@@ -1076,21 +1076,43 @@ $counterVar    .byte  0""")
             out("  $instruction  ${getJumpTarget(jump)}")
             translate(stmt.elsepart)
         } else {
+            val truePartIsJustBreak = stmt.truepart.statements.firstOrNull() is Break
+            val elsePartIsJustBreak = stmt.elsepart.statements.firstOrNull() is Break
             if(stmt.elsepart.containsNoCodeNorVars()) {
+                if(truePartIsJustBreak) {
+                    // branch with just a break (jump out of loop)
+                    val instruction = branchInstruction(stmt.condition, false)
+                    val loopEndLabel = loopEndLabels.peek()
+                    out("  $instruction  $loopEndLabel")
+                } else {
+                    val instruction = branchInstruction(stmt.condition, true)
+                    val elseLabel = makeLabel("branch_else")
+                    out("  $instruction  $elseLabel")
+                    translate(stmt.truepart)
+                    out(elseLabel)
+                }
+            }
+            else if(truePartIsJustBreak) {
+                // branch with just a break (jump out of loop)
+                val instruction = branchInstruction(stmt.condition, false)
+                val loopEndLabel = loopEndLabels.peek()
+                out("  $instruction  $loopEndLabel")
+                translate(stmt.elsepart)
+            } else if(elsePartIsJustBreak) {
+                // branch with just a break (jump out of loop) but true/false inverted
+                val instruction = branchInstruction(stmt.condition, true)
+                val loopEndLabel = loopEndLabels.peek()
+                out("  $instruction  $loopEndLabel")
+                translate(stmt.truepart)
+            } else {
                 val instruction = branchInstruction(stmt.condition, true)
                 val elseLabel = makeLabel("branch_else")
+                val endLabel = makeLabel("branch_end")
                 out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
-                out(elseLabel)
-            } else {
-                val instruction = branchInstruction(stmt.condition, false)
-                val trueLabel = makeLabel("branch_true")
-                val endLabel = makeLabel("branch_end")
-                out("  $instruction  $trueLabel")
-                translate(stmt.elsepart)
                 out("  jmp  $endLabel")
-                out(trueLabel)
-                translate(stmt.truepart)
+                out(elseLabel)
+                translate(stmt.elsepart)
                 out(endLabel)
             }
         }

@@ -10,10 +10,15 @@ errors {
 
         repeat {
             ubyte char3 = c64.CHRIN()
+            if_cc
+                break
+
             if_z
-                goto labeltje
-            if_z
-                break   ; TODO wrong jump asm generated, works fine if you use a label instead to jump to
+                char3 ++
+            else
+                break
+
+            char3--
         }
 labeltje:
 
