@@ -39,46 +39,48 @@ errors {
 main {
     sub start() {
 
-        ubyte result = diskio.directory(8)
-
-        txt.print("result: ")
-        txt.print_ub(result)
-        txt.chrout('\n')
-        test_stack.test()
-
-        diskio.status(8)
-        txt.chrout('\n')
-        txt.chrout('\n')
-        txt.chrout('\n')
-        test_stack.test()
-        return
+;        ubyte result = diskio.directory(8)
+;        txt.print("result: ")
+;        txt.print_ub(result)
+;        txt.chrout('\n')
+;        test_stack.test()
+;
+;        diskio.status(8)
+;        txt.chrout('\n')
+;        txt.chrout('\n')
+;        txt.chrout('\n')
+;        test_stack.test()
 
         const ubyte max_files = 10
         uword[max_files] blocks
         str filenames = "?????????????????" * max_files
 
         ubyte num_files=0
-        ; num_files = diskio.listfiles(8, ".bin", true, filenames, blocks, max_files)
-        txt.print("num files: ")
-        txt.print_ub(num_files)
+        txt.print("files starting with 'cub':\n")
+        num_files = diskio.listfiles(8, "cub", false, filenames, blocks, max_files)
+        print_listing()
         txt.chrout('\n')
+        txt.print("files ending with 'gfx':\n")
+        num_files = diskio.listfiles(8, "gfx", true, filenames, blocks, max_files)
+        print_listing()
+        ;test_stack.test()
 
-        test_stack.test()
-
-        if num_files>0 {
-            ubyte i
-            uword filenameptr = &filenames
-            for i in 0 to num_files-1 {
-                txt.print_ub(i+1)
-                txt.print(": ")
-                txt.print(filenameptr)
-                txt.print(" (")
-                txt.print_uw(blocks[i])
-                txt.print(" blocks)\n")
-                filenameptr += strlen(filenameptr) + 1
+        sub print_listing() {
+            if num_files==0
+                txt.print("no files found.")
+            else {
+                ubyte i
+                uword filenameptr = &filenames
+                for i in 0 to num_files-1 {
+                    txt.print_ub(i+1)
+                    txt.print(": ")
+                    txt.print(filenameptr)
+                    txt.print("   = ")
+                    txt.print_uw(blocks[i])
+                    txt.print(" blocks\n")
+                    filenameptr += strlen(filenameptr) + 1
+                }
             }
         }
-
-        test_stack.test()
     }
 }

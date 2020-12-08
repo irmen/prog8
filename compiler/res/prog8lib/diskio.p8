@@ -59,69 +59,51 @@ io_error:
     }
 
 
-    sub listfiles(ubyte drivenumber, uword pattern, ubyte prefixOrSuffix,
+    sub listfiles(ubyte drivenumber, uword pattern, ubyte matchSuffix,
                   uword filenamesbufferptr, uword blocksizesptr, ubyte max_files) -> ubyte {
-        ; -- returns a list of files in the directory matching the given pattern (optional)
+        ; -- returns a list of files in the directory matching the given prefix or suffix (optional)
         ;    their blocksizes will be put into the uword array given by blocksizesptr
         ;    their names will be concatenated into the filenamesbuffer, separated by a 0-byte
-        ;    The buffer should be at least 17 times max_files and the block sizes array should be big enough too.
+        ;    The buffer should be at least 17 * max_files and the block sizes array should be that large as well.
         if max_files==0  return 0
-        if pattern!=0 and strlen(pattern)==0  pattern=0
-
-;        @(blocksizesptr) = lsb(333)
-;        @(blocksizesptr+1) = msb(333)
-;        @(blocksizesptr+2) = lsb(444)
-;        @(blocksizesptr+3) = msb(444)
-;        @(blocksizesptr+4) = lsb(555)
-;        @(blocksizesptr+5) = msb(555)
-;        str name1 = "filename1.txt"
-;        str name2 = "filename2.txt"
-;        str name3 = "filename3.txt"
-;        memcopy(name1, filenamesbufferptr, len(name1)+1)
-;        filenamesbufferptr += len(name1) + 1
-;        memcopy(name2, filenamesbufferptr, len(name2)+1)
-;        filenamesbufferptr += len(name2) + 1
-;        memcopy(name3, filenamesbufferptr, len(name3)+1)
-;        filenamesbufferptr += len(name3) + 1
 
         ubyte num_files = 0
+        ubyte pattern_size = 0
+        if pattern!=0
+            pattern_size = strlen(pattern)
 
         c64.SETNAM(1, "$")
         c64.SETLFS(1, drivenumber, 0)
         void c64.OPEN()          ; open 1,8,0,"$"
         if_cs
-            goto io_error
+            goto close_end
         void c64.CHKIN(1)        ; use #1 as input channel
         if_cs
-            goto io_error
+            goto close_end
 
         repeat 4 {
             void c64.CHRIN()     ; skip the 4 prologue bytes
         }
 
         ubyte disk_name = true
+        uword last_filename_ptr = filenamesbufferptr
 
         while not c64.READST() {
-            if disk_name {
-                void c64.CHRIN()
-                void c64.CHRIN()
-            }
-            else {
-                @(blocksizesptr) = c64.CHRIN()
-                @(blocksizesptr+1) = c64.CHRIN()
-                blocksizesptr += 2
-            }
+            @(blocksizesptr) = c64.CHRIN()
+            @(blocksizesptr+1) = c64.CHRIN()
 
             ; read until the filename starts after the first "
             while c64.CHRIN()!='\"'  {
                 if c64.READST()
-                    goto io_error
+                    goto close_end
             }
 
             repeat {
                 ubyte char = c64.CHRIN()
-                ;if_z
-                ;    break      ; TODO fix assembly code generation for this
+                if char==0
+                    break
+                ; if_z
+                ;    break              ; TODO fix generated code for this jump
                 if char=='\"'
                     break
                 if not disk_name {
@@ -133,7 +115,23 @@ io_error:
             if not disk_name {
                 @(filenamesbufferptr) = 0
                 filenamesbufferptr++
-                num_files++
+                ubyte matches = true
+                if pattern_size {
+                    if matchSuffix
+                        rightstr(last_filename_ptr, filename, pattern_size)
+                    else
+                        leftstr(last_filename_ptr, filename, pattern_size)
+                    matches = strcmp(filename, pattern)==0
+                }
+                if matches {
+                    blocksizesptr += 2
+                    num_files++
+                    last_filename_ptr = filenamesbufferptr
+                    if num_files>=max_files
+                        goto close_end
+                } else {
+                    filenamesbufferptr = last_filename_ptr
+                }
             }
 
             ; read the rest of the entry until the end
@@ -147,7 +145,7 @@ io_error:
             disk_name = false
         }
 
-io_error:
+close_end:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(1)
         return num_files

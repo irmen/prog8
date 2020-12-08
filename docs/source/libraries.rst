@@ -54,7 +54,8 @@ diskio
 ------
 Provides several routines that deal with disk drive I/O, such as:
 
-- show directory
+- list files on disk, optionally filtering by prefix or suffix
+- show disk directory as-is
 - display disk drive status
 - load and save data from and to the disk
 - delete and rename files on the disk
