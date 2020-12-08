@@ -200,7 +200,7 @@ open class VarDecl(val type: VarDeclType,
         fun defaultZero(dt: DataType, position: Position) = when(dt) {
             DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, 0,  position)
             DataType.BYTE -> NumericLiteralValue(DataType.BYTE, 0,  position)
-            DataType.UWORD -> NumericLiteralValue(DataType.UWORD, 0, position)
+            DataType.UWORD, DataType.STR -> NumericLiteralValue(DataType.UWORD, 0, position)
             DataType.WORD -> NumericLiteralValue(DataType.WORD, 0, position)
             DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, 0.0, position)
             else -> throw FatalAstException("can only determine default zero value for a numeric type")
