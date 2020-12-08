@@ -814,12 +814,12 @@ internal class AsmGen(private val program: Program,
                 when (condition) {
                     BranchCondition.CS -> "bcc"
                     BranchCondition.CC -> "bcs"
-                    BranchCondition.EQ, BranchCondition.Z -> "beq"
-                    BranchCondition.NE, BranchCondition.NZ -> "bne"
+                    BranchCondition.EQ, BranchCondition.Z -> "bne"
+                    BranchCondition.NE, BranchCondition.NZ -> "beq"
                     BranchCondition.VS -> "bvc"
                     BranchCondition.VC -> "bvs"
-                    BranchCondition.MI, BranchCondition.NEG -> "bmi"
-                    BranchCondition.PL, BranchCondition.POS -> "bpl"
+                    BranchCondition.MI, BranchCondition.NEG -> "bpl"
+                    BranchCondition.PL, BranchCondition.POS -> "bmi"
                 }
             } else {
                 when (condition) {
@@ -1071,7 +1071,7 @@ $counterVar    .byte  0""")
 
         val jump = stmt.truepart.statements.first() as? Jump
         if(jump!=null) {
-            // branch with only a jump
+            // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")
             translate(stmt.elsepart)
