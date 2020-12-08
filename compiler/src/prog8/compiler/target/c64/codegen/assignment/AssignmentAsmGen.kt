@@ -725,10 +725,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     """)
             }
             TargetStorageKind.MEMORY -> {
-                throw AssemblyError("no asm gen for assign address $sourceName to memory word $target")
+                throw AssemblyError("can't store word into memory byte")
             }
             TargetStorageKind.ARRAY -> {
-                throw AssemblyError("no asm gen for assign address $sourceName to array ${target.asmVarname}")
+                asmgen.out("  lda  #<$sourceName |  ldy #>$sourceName")
+                assignRegisterpairWord(target, RegisterOrPair.AY)
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {

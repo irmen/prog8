@@ -384,7 +384,7 @@ internal class AstChecker(private val program: Program,
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
             if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
                 errors.err("cannot assign value to string or array", assignment.value.position)
-            else
+            else if(!(valueDt.istype(DataType.STR) && targetDt.istype(DataType.UWORD)))
                 errors.err("value's type doesn't match target", assignment.value.position)
         }
 
