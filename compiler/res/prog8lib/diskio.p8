@@ -7,7 +7,7 @@ diskio {
 
 
     sub directory(ubyte drivenumber) -> ubyte {
-        ; -- Shows the directory contents of disk drive 8-11 (provide as argument). Returns success flag.
+        ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
 
         c64.SETNAM(1, "$")
         c64.SETLFS(1, drivenumber, 0)
@@ -61,11 +61,11 @@ io_error:
 
     ; internal variables for the iterative file lister
     ubyte list_suffixmatch
-    ubyte list_in_progress = false
     ubyte list_pattern_size
     ubyte list_skip_disk_name
     uword list_pattern
     uword list_blocks
+    ubyte iteration_in_progress = false
     str   list_filename = "????????????????"
 
     sub lf_start_list(ubyte drivenumber, uword pattern, ubyte suffixmatch) -> ubyte {
@@ -74,7 +74,7 @@ io_error:
         list_pattern = pattern
         list_suffixmatch = suffixmatch
         list_skip_disk_name = true
-        list_in_progress = true
+        iteration_in_progress = true
         if pattern==0
             list_pattern_size = 0
         else
@@ -106,7 +106,7 @@ io_error:
         ;    results will be found in list_blocks and list_filename.
         ;    if it returns false though, there are no more entries (or an error occurred).
 
-        if not list_in_progress
+        if not iteration_in_progress
             return false
 
         while not c64.READST() {
@@ -163,16 +163,17 @@ close_end:
 
     sub lf_end_list() {
         ; -- end an iterative file listing session (close channels).
-        if list_in_progress {
+        if iteration_in_progress {
             c64.CLRCHN()
             c64.CLOSE(1)
-            list_in_progress = false
+            iteration_in_progress = false
         }
     }
 
 
-    sub status(ubyte drivenumber) {
-        ; -- display the disk drive's current status message
+    sub status(ubyte drivenumber) -> uword {
+        ; -- retrieve the disk drive's current status message
+        uword messageptr = &filename
         c64.SETNAM(0, filename)
         c64.SETLFS(15, drivenumber, 15)
         void c64.OPEN()          ; open 15,8,15
@@ -182,12 +183,16 @@ close_end:
         if_cs
             goto io_error
 
-        while not c64.READST()
-            txt.chrout(c64.CHRIN())
+        while not c64.READST() {
+            @(messageptr) = c64.CHRIN()
+            messageptr++
+        }
 
 io_error:
+        @(messageptr) = 0
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(15)
+        return filename
     }
 
 
