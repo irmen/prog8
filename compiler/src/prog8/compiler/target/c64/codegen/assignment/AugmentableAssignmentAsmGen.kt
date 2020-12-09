@@ -320,6 +320,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&" -> asmgen.out(" and  P8ZP_SCRATCH_B1")
             "^" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
             "|" -> asmgen.out(" ora  P8ZP_SCRATCH_B1")
+            "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         if(ptrOnZp)
@@ -360,6 +361,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&" -> asmgen.out(" and  $otherName")
             "^" -> asmgen.out(" eor  $otherName")
             "|" -> asmgen.out(" ora  $otherName")
+            "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         if(ptrOnZp)
@@ -462,6 +464,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 else
                     asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
             }
+            "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -537,6 +540,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                 asmgen.out("  ora  $name |  sta  $name")
             }
+            "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -612,6 +616,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 beq  +
                 lda  #1
 +               sta  $name""")
+            in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -683,6 +688,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
             "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
+            "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -990,6 +996,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> asmgen.out("  lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
                 }
             }
+            "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -1111,6 +1118,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "^" -> asmgen.out("  lda  $otherName |  eor  $name |  sta  $name")
                     "|" -> asmgen.out("  lda  $otherName |  ora  $name |  sta  $name")
+                    "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1184,6 +1192,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
                     "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
+                    "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1374,6 +1383,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  ora  $name |  sta  $name")
                     }
+                    "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1414,6 +1424,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  ora  $name |  sta  $name |  tya |  ora  $name+1 |  sta  $name+1")
                     }
+                    "and", "or", "xor", in comparisonOperators -> TODO("in-place modification for $operator")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1461,6 +1472,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     jsr  floats.FDIV
                 """)
             }
+            in comparisonOperators -> TODO("in-place float modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         asmgen.out("""
@@ -1529,6 +1541,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     jsr  floats.FDIV
                 """)
             }
+            in comparisonOperators -> TODO("in-place float modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory
@@ -1601,6 +1614,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     jsr  floats.FDIV
                 """)
             }
+            in comparisonOperators -> TODO("in-place float modification for $operator")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory
