@@ -59,7 +59,7 @@ io_error:
     }
 
 
-    ; internal variables for the iterative file lister
+    ; internal variables for the iterative file lister / loader
     ubyte list_suffixmatch
     ubyte list_pattern_size
     ubyte list_skip_disk_name
@@ -67,6 +67,9 @@ io_error:
     uword list_blocks
     ubyte iteration_in_progress = false
     str   list_filename = "????????????????"
+
+
+    ; ----- iterative file lister functions -----
 
     sub lf_start_list(ubyte drivenumber, uword pattern, ubyte suffixmatch) -> ubyte {
         ; -- start an iterative file listing with optional prefix or suffix name matching.
@@ -166,6 +169,53 @@ close_end:
         if iteration_in_progress {
             c64.CLRCHN()
             c64.CLOSE(1)
+            iteration_in_progress = false
+        }
+    }
+
+
+    ; ----- iterative file loader functions -----
+
+    sub f_open(ubyte drivenumber, uword filenameptr) -> ubyte {
+        f_close()
+
+        c64.SETNAM(strlen(filenameptr), filenameptr)
+        c64.SETLFS(11, drivenumber, 0)
+        void c64.OPEN()          ; open 11,8,0,"filename"
+        if_cc {
+            iteration_in_progress = true
+            void c64.CHKIN(11)        ; use #2 as input channel
+            if_cc
+                return true
+        }
+        f_close()
+        return false
+    }
+
+    sub f_read(uword bufferpointer, uword buffersize) -> uword {
+        if not iteration_in_progress
+            return 0
+
+        uword actual = 0
+        repeat buffersize {
+            ubyte data = c64.CHRIN()
+            @(bufferpointer) = data
+            bufferpointer++
+            actual++
+            ubyte status = c64.READST()
+            if status==64
+                f_close()       ; end of file, close it
+            if status
+                return actual
+        }
+        return actual
+    }
+
+    sub f_close() {
+        ; -- end an iterative file loading session (close channels).
+        if iteration_in_progress {
+            c64.CLRCHN()
+            c64.CLOSE(11)
             iteration_in_progress = false
         }
     }
