@@ -7,6 +7,16 @@
 
 main {
     sub start() {
+        ubyte error
+
+        error = error and error!=64  ; TODO fix crash (also for other datatypes)
+        ubyte bpp = buffer[7]
+        uword num_colors = 1 << bpp     ; TODO FIX THIS
+
+
+
+
+
         ubyte[] barr = [0,0,0]
         uword[] warr = [0,0,0]
 
