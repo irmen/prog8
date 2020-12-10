@@ -53,14 +53,14 @@ main {
     ubyte[256] buffer3  ;   to store a 256 color palette
 
     str filename = "trsi256.ci"
-    const uword bitmap_load_address = $2000         ; TODO use progend() once it is available
-    const uword max_bitmap_size = $9eff - bitmap_load_address
 
     sub start() {
         buffer[0] = 0
         buffer2[0] = 0
         buffer3[0] = 0
         ubyte read_success = false
+        uword bitmap_load_address = progend()
+        uword max_bitmap_size = $9eff - bitmap_load_address
 
         txt.print(filename)
         txt.chrout('\n')
@@ -118,7 +118,7 @@ main {
                                     txt.print("ok\n")
                                     ; restrict the height to what can be displayed using the graphics functions...
                                     if height > graphics.HEIGHT
-                                        height = graphics.HEIGHT           ; TODO use maxv() once it is available
+                                        height = graphics.HEIGHT
                                     graphics.enable_bitmap_mode()
                                     set_palette(num_colors, palette_format, buffer)
                                     when bpp {
