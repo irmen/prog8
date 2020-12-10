@@ -7,6 +7,7 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
+import kotlin.math.pow
 
 
 internal class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
@@ -97,6 +98,43 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)
+        val modifications = mutableListOf<IAstModification>()
+
+        if(expr.operator == "**" && leftconst!=null) {
+            // optimize various simple cases of ** :
+            //  optimize away 1 ** x into just 1 and 0 ** x into just 0
+            //  optimize 2 ** x into (1<<x)  if both operands are integer.
+            val leftDt = leftconst.inferType(program).typeOrElse(DataType.STRUCT)
+            when (leftconst.number.toDouble()) {
+                0.0 -> {
+                    val value = NumericLiteralValue(leftDt, 0, expr.position)
+                    modifications += IAstModification.ReplaceNode(expr, value, parent)
+                }
+                1.0 -> {
+                    val value = NumericLiteralValue(leftDt, 1, expr.position)
+                    modifications += IAstModification.ReplaceNode(expr, value, parent)
+                }
+                2.0 -> {
+                    if(rightconst!=null) {
+                        val value = NumericLiteralValue(leftDt, 2.0.pow(rightconst.number.toDouble()), expr.position)
+                        modifications += IAstModification.ReplaceNode(expr, value, parent)
+                    } else {
+                        val rightDt = expr.right.inferType(program).typeOrElse(DataType.STRUCT)
+                        if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
+                            val targetDt =
+                                when (parent) {
+                                    is Assignment -> parent.target.inferType(program).typeOrElse(DataType.STRUCT)
+                                    is VarDecl -> parent.datatype
+                                    else -> leftDt
+                                }
+                            val one = NumericLiteralValue(targetDt, 1, expr.position)
+                            val shift = BinaryExpression(one, "<<", expr.right, expr.position)
+                            modifications += IAstModification.ReplaceNode(expr, shift, parent)
+                        }
+                    }
+                }
+            }
+        }
 
         val subExpr: BinaryExpression? = when {
             leftconst!=null -> expr.right as? BinaryExpression
@@ -111,7 +149,8 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                 val change = groupTwoConstsTogether(expr, subExpr,
                         leftconst != null, rightconst != null,
                         subleftconst != null, subrightconst != null)
-                return change?.let { listOf(it) } ?: noModifications
+                if(change!=null)
+                    modifications += change
             }
         }
 
@@ -119,10 +158,10 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         if(leftconst != null && rightconst != null) {
             val evaluator = ConstExprEvaluator()
             val result = evaluator.evaluate(leftconst, expr.operator, rightconst)
-            return listOf(IAstModification.ReplaceNode(expr, result, parent))
+            modifications += IAstModification.ReplaceNode(expr, result, parent)
         }
 
-        return noModifications
+        return modifications
     }
 
     override fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> {

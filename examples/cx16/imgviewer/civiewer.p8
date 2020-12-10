@@ -75,7 +75,7 @@ main {
                         uword width = mkword(buffer[4], buffer[3])
                         uword height = mkword(buffer[6], buffer[5])
                         ubyte bpp = buffer[7]
-                        uword num_colors = $0001 << bpp
+                        uword num_colors = 2 ** bpp
                         ubyte flags = buffer[8]
                         ubyte compression = flags & %00000011
                         ubyte palette_format = (flags & %00000100) >> 2
