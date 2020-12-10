@@ -2,6 +2,8 @@
 TODO
 ====
 
+- optimize away 1 ** x into just 1 and 0 ** x into just 0
+- optimize 2 ** x into (1<<x)  if x is an integer.  where 1 is in the type of the assign target if possible
 - add minv(a,b) and maxv(a,b) functions to determine the max or min of 2 values
 - add progend() builtin function that returns the last address of the program in memory + 1 (to be able to stick dynamic data after the program easily)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
