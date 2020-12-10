@@ -5,10 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.ArrayIndex
-import prog8.ast.statements.DirectMemoryWrite
-import prog8.ast.statements.FunctionCallStatement
-import prog8.ast.statements.Subroutine
+import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.Cx16Target
@@ -92,6 +89,17 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "exit" -> {
                 translateArguments(fcall.args, func, scope)
                 asmgen.out("  jmp  prog8_lib.func_exit")
+            }
+            "progend" -> {
+                if(resultToStack)
+                    asmgen.out("""
+                        lda  #<prog8_program_end
+                        sta  P8ESTACK_LO,x
+                        lda  #>prog8_program_end
+                        sta  P8ESTACK_HI,x
+                        dex""")
+                else
+                    asmgen.out("  lda  #<prog8_program_end |  ldy  #>prog8_program_end")
             }
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }

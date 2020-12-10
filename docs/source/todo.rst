@@ -2,8 +2,6 @@
 TODO
 ====
 
-- add minv(a,b) and maxv(a,b) functions to determine the max or min of 2 values
-- add progend() builtin function that returns the last address of the program in memory + 1 (to be able to stick dynamic data after the program easily)
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - Cx16 target: support full-screen 640x480 and 320x240 graphics? That requires our own custom graphics routines though to draw lines.
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)

@@ -894,6 +894,10 @@ set_irqd()  /  clear_irqd()
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
+progend()
+    Returns the last address of the program in memory + 1.
+    Can be used to load dynamic data after the program, instead of hardcoding something.
+
 
 Library routines
 ----------------

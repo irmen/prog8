@@ -141,6 +141,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("set_irqd"    , false, emptyList(), null),
     FSignature("clear_irqd"  , false, emptyList(), null),
     FSignature("read_flags"  , false, emptyList(), DataType.UBYTE),
+    FSignature("progend"     , true, emptyList(), DataType.UWORD),
     FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
     FSignature("memcopy"     , false, listOf(
                             FParam("from", IterableDatatypes + DataType.UWORD),

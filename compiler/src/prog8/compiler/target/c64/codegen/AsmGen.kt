@@ -160,6 +160,7 @@ internal class AsmGen(private val program: Program,
             val floatvalue = flt.key
             out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
         }
+        out("prog8_program_end\t; end of program label for progend()")
     }
 
     private fun block2asm(block: Block) {
