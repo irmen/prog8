@@ -20,7 +20,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
         // functioncalls no longer return results on the stack, so simply ignore the results in the registers
         if(preserveStatusRegisterAfterCall)
-            asmgen.out("  plp\t; restore status flags from call")
+            asmgen.out("  plp")     // restore status flags from call
     }
 
 
@@ -69,7 +69,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         asmgen.out("  jsr  $subName")
 
         if(preserveStatusRegisterAfterCall) {
-            asmgen.out("  php\t; save status flags from call")
+            asmgen.out("  php")    // save status flags from call
             // note: the containing statement (such as the FunctionCallStatement or the Assignment or the Expression)
             //       must take care of popping this value again at the end!
         }

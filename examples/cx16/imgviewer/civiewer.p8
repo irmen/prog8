@@ -2,8 +2,7 @@
 %import graphics
 %import textio
 %import diskio
-%import c64colors
-%zeropage basicsafe
+%option no_sysinit
 
 ; CommanderX16 Image file format.
 ; Numbers are encoded in little endian format (lsb first).
@@ -19,12 +18,12 @@
 ;          this also determines the number of palette entries following later.
 ; 8      Settings bits.
 ;          bit 0 and 1 = compression.  00 = uncompressed
-;                                      01 = PCX-RLE    [TODO not yet implemented]
+;                                      01 = RLE        [TODO not yet implemented]
 ;                                      10 = LZSA       [TODO not yet implemented]
 ;                                      11 = Exomizer   [TODO not yet implemented]
 ;          bit 2 = palette format.  0 = 4 bits/channel  (2 bytes per color, $0R $GB)  [TODO not yet implemented]
 ;                                   1 = 8 bits/channel  (3 bytes per color, $RR $GG $BB)
-;                 4 bits per channel is the Cx16's native palette format.
+;                  4 bits per channel is what the Vera in the Cx16 supports.
 ;          bit 3 = bitmap format.   0 = raw bitmap pixels
 ;                                   1 = tile-based image   [TODO not yet implemented]
 ;          bit 4 = hscale (horizontal display resulution) 0 = 320 pixels, 1 = 640 pixels
@@ -43,24 +42,31 @@
 ; of bytes making up the image's scan lines. #bytes per scan line = width * bits-per-pixel / 8
 ; If it is 'tiles', .... [TODO]
 ; If a compression scheme is used, the bitmap data here has to be decompressed first.
+; TODO: with compressed files, store the data in compressed chunks of max 8kb uncompressed?
+; (it is a problem to load let alone decompress a full bitmap at once because there will likely not be enough ram to do that)
+; (doing it in chunks of 8 kb allows for sticking each chunk in one of the banked 8kb ram blocks, or even copy it directly to the screen)
 
 main {
 
     ubyte[256] buffer
-    ubyte[256] buffer2
-    ubyte[256] buffer3
+    ubyte[256] buffer2  ; add two more buffers to make enoughs space
+    ubyte[256] buffer3  ;   to store a 256 color palette
 
     str filename = "trsi256.ci"
+    const uword bitmap_load_address = $2000         ; TODO use progend() once it is available
+    const uword max_bitmap_size = $9eff - bitmap_load_address
 
     sub start() {
         buffer[0] = 0
         buffer2[0] = 0
         buffer3[0] = 0
-
         ubyte read_success = false
 
-        if(io.f_open(8, filename)) {
-            uword size = io.f_read(buffer, 12)  ; read the header
+        txt.print(filename)
+        txt.chrout('\n')
+
+        if(diskio.f_open(8, filename)) {
+            uword size = diskio.f_read(buffer, 12)  ; read the header
             if size==12 {
                 if buffer[0]=='c' and buffer[1]=='i' and buffer[2] == 9 {
                     if buffer[11] {
@@ -75,111 +81,136 @@ main {
                         ubyte compression = flags & %00000011
                         ubyte palette_format = (flags & %00000100) >> 2
                         ubyte bitmap_format = (flags & %00001000) >> 3
-                        ubyte hscale = (flags & %00010000) >> 4
-                        ubyte vscale = (flags & %00100000) >> 5
+                        ; ubyte hscale = (flags & %00010000) >> 4
+                        ; ubyte vscale = (flags & %00100000) >> 5
                         uword bitmap_size = mkword(buffer[10], buffer[9])
-                        uword palette_size
-
+                        uword palette_size = num_colors*2
                         if palette_format
-                            palette_size = 3*num_colors
-                        else
-                            palette_size = 2*num_colors
-                        txt.print(filename)
-                        txt.print("\ndimensions: ")
+                            palette_size += num_colors  ; 3
                         txt.print_uw(width)
                         txt.chrout('*')
                         txt.print_uw(height)
-                        txt.print("\nbits-per-pixel: ")
-                        txt.print_ub(bpp)
-                        txt.print(" #colors: ")
+                        txt.print(" * ")
                         txt.print_uw(num_colors)
-                        txt.print("\ncompression: ")
-                        txt.print_ub(compression)
-                        txt.print("\npalette format: ")
-                        txt.print_ub(palette_format)
-                        txt.print("\nbitmap format: ")
-                        txt.print_ub(bitmap_format)
-                        txt.print("\nscaling: ")
-                        txt.print_ub(hscale)
-                        txt.chrout(',')
-                        txt.print_ub(vscale)
-                        txt.chrout('\n')
-                        if compression!=0 {
-                            txt.print("compression not yet supported\n")    ; TODO implement this
+                        txt.print(" colors\n")
+                        if width > graphics.WIDTH {
+                            txt.print("image is too wide for the display!\n")
+                        } else if compression!=0 {
+                            txt.print("compressed image not yet supported!\n")    ; TODO implement the various decompressions
                         } else if bitmap_format==1 {
-                            txt.print("tiled bitmap not yet supported\n")       ; TODO implement this
+                            txt.print("tiled bitmap not yet supported!\n")       ; TODO implement tiled image
+                        } else if bitmap_size > max_bitmap_size {
+                            ; TODO implement large file support by using memory banks  (nasty if compression is used though)
+                            ; TODO in case of uncompressed data: do not read the full bitmap in memory but read a scanline at a time and display them as we go
+                            txt.print("not enough ram to load bitmap!\nrequired: ")
+                            txt.print_uw(bitmap_size)
+                            txt.print(" available: ")
+                            txt.print_uw(max_bitmap_size)
+                            txt.chrout('\n')
                         } else {
-                            txt.print("reading palette and bitmap...\n")
-                            size = io.f_read(buffer, palette_size)
+                            txt.print("loading...")
+                            size = diskio.f_read(buffer, palette_size)
                             if size==palette_size {
-                                size = io.f_read($3000, bitmap_size)
-                                read_success = size==bitmap_size
+                                size = diskio.f_read(bitmap_load_address, bitmap_size)
+                                if size==bitmap_size {
+                                    ; all data has been loaded, display the image
+                                    diskio.f_close()
+                                    read_success = true
+                                    txt.print("ok\n")
+                                    ; restrict the height to what can be displayed using the graphics functions...
+                                    if height > graphics.HEIGHT
+                                        height = graphics.HEIGHT           ; TODO use maxv() once it is available
+                                    graphics.enable_bitmap_mode()
+                                    set_palette(num_colors, palette_format, buffer)
+                                    when bpp {
+                                        8 -> display_uncompressed_256c(width, height, bitmap_load_address)
+                                        4 -> display_uncompressed_16c(width, height, bitmap_load_address)
+                                        2 -> display_uncompressed_4c(width, height, bitmap_load_address)
+                                        1 -> display_uncompressed_2c(width, height, bitmap_load_address)
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            } else {
-                txt.print("io error or invalid image file\n")
             }
 
-            io.f_close()
+            diskio.f_close()
 
-            if read_success {
-                txt.print("done!\n")
-            } else {
-                txt.print("error loading image file.\n")
+            if not read_success {
+                txt.print("error!\n")
             }
         }
 
-        txt.print(diskio.status(8))
-    }
-}
-
-io {
-
-    ubyte iteration_in_progress = false
-
-    sub f_open(ubyte drivenumber, uword filenameptr) -> ubyte {
-        f_close()
-
-        c64.SETNAM(strlen(filenameptr), filenameptr)
-        c64.SETLFS(11, drivenumber, 0)
-        void c64.OPEN()          ; open 11,8,0,"filename"
-        if_cc {
-            iteration_in_progress = true
-            void c64.CHKIN(11)        ; use #2 as input channel
-            if_cc
-                return true
+        repeat {
+            ; endless loop
         }
-        f_close()
-        return false
     }
 
-    sub f_read(uword bufferpointer, uword buffersize) -> uword {
-        if not iteration_in_progress
-            return 0
+    sub set_palette(uword num_colors, ubyte format, uword palletteptr) {
+        uword vera_palette_ptr = $fa00
+        ubyte red
+        ubyte greenblue
 
-        uword actual = 0
-        repeat buffersize {
-            ubyte data = c64.CHRIN()
-            @(bufferpointer) = data
-            bufferpointer++
-            actual++
-            ubyte status = c64.READST()
-            if status==64
-                f_close()       ; end of file, close it
-            if status
-                return actual
+        if format {
+            ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
+            repeat num_colors {
+                red = @(palletteptr) >> 4
+                palletteptr++
+                greenblue = @(palletteptr) & %11110000
+                palletteptr++
+                greenblue |= @(palletteptr) >> 4    ; add Blue
+                palletteptr++
+                cx16.vpoke(1, vera_palette_ptr, greenblue)
+                vera_palette_ptr++
+                cx16.vpoke(1, vera_palette_ptr, red)
+                vera_palette_ptr++
+            }
+        } else {
+            ; 2 bytes per color entry, the Vera uses this, but the R/GB bytes order is swapped
+            repeat num_colors {
+                cx16.vpoke(1, vera_palette_ptr+1, @(palletteptr))
+                palletteptr++
+                cx16.vpoke(1, vera_palette_ptr, @(palletteptr))
+                palletteptr++
+                vera_palette_ptr+=2
+            }
         }
-        return actual
     }
 
-    sub f_close() {
-        ; -- end an iterative file loading session (close channels).
-        if iteration_in_progress {
-            c64.CLRCHN()
-            c64.CLOSE(11)
-            iteration_in_progress = false
+    sub display_uncompressed_256c(uword width, uword height, uword bitmapptr) {
+        uword y
+        for y in 0 to height-1 {
+            cx16.r0 = 0
+            cx16.r1 = y
+            cx16.FB_cursor_position()
+
+            ; FB_set_pixels crashes with a size > 255 hence the loop for strips of 128
+            ; TODO remove this workaround once the bug is fixed, see https://github.com/commanderx16/x16-rom/issues/179
+            cx16.r1 = 128
+            ubyte rest = lsb(width) & 127
+            repeat width >> 7 {
+                cx16.r0 = bitmapptr
+                cx16.FB_set_pixels()
+                bitmapptr += 128
+            }
+            if rest {
+                cx16.r0 = bitmapptr
+                cx16.FB_set_pixels()
+                bitmapptr += rest
+            }
         }
+    }
+
+    sub display_uncompressed_16c(uword width, uword height, uword bitmapptr) {
+        ; TODO 16 color
+    }
+
+    sub display_uncompressed_4c(uword width, uword height, uword bitmapptr) {
+        ; TODO 4 color
+    }
+
+    sub display_uncompressed_2c(uword width, uword height, uword bitmapptr) {
+        ; TODO 2 color
     }
 }

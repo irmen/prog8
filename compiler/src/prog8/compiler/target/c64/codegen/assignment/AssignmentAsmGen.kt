@@ -183,7 +183,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     }
                                 }
                                 if (preserveStatusRegisterAfterCall)
-                                    asmgen.out("  plp\t; restore status flags from call")
+                                    asmgen.out("  plp")   // restore status flags from call
                             }
                             is BuiltinFunctionStatementPlaceholder -> {
                                 val signature = BuiltinFunctions.getValue(sub.name)
