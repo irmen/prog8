@@ -64,6 +64,7 @@ romsub $fe7e = FINLOG(byte value @A) clobbers (A, X, Y)           ; fac1 += sign
 romsub $fe81 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
 romsub $fe8a = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 romsub $fe8d = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
+; note: there is no FPWR() on the Cx16
 romsub $fe93 = NEGOP() clobbers(A)                          ; switch the sign of fac1
 romsub $fe96 = EXP() clobbers(A,X,Y)                        ; fac1 = EXP(fac1)  (e ** fac1)
 romsub $fe9f = RND2(byte value @A) clobbers(A,X,Y)                ; fac1 = RND(A) float random number generator

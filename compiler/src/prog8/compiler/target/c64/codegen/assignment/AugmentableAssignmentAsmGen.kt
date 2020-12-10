@@ -7,6 +7,7 @@ import prog8.ast.statements.Subroutine
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
+import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
 import prog8.compiler.toHex
@@ -1474,14 +1475,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.saveRegister(CpuRegister.X, false, scope)
         when (operator) {
             "**" -> {
-                asmgen.out("""
-                    lda  #<$name
-                    ldy  #>$name
-                    jsr  floats.CONUPK
-                    lda  #<$otherName
-                    ldy  #>$otherName
-                    jsr  floats.FPWR
-                """)
+                if(CompilationTarget.instance is Cx16Target) {
+                    // cx16 doesn't have FPWR() only FPWRT()
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.CONUPK
+                        lda  #<$otherName
+                        ldy  #>$otherName
+                        jsr  floats.MOVFM
+                        jsr  floats.FPWRT
+                    """)
+                } else
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.CONUPK
+                        lda  #<$otherName
+                        ldy  #>$otherName
+                        jsr  floats.FPWR
+                    """)
             }
             "+" -> {
                 asmgen.out("""
@@ -1540,14 +1553,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.saveRegister(CpuRegister.X, false, scope)
         when (operator) {
             "**" -> {
-                asmgen.out("""
-                    lda  #<$name
-                    ldy  #>$name
-                    jsr  floats.CONUPK
-                    lda  #<$constValueName
-                    ldy  #>$constValueName
-                    jsr  floats.FPWR
-                """)
+                if(CompilationTarget.instance is Cx16Target) {
+                    // cx16 doesn't have FPWR() only FPWRT()
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.CONUPK
+                        lda  #<$constValueName
+                        ldy  #>$constValueName
+                        jsr  floats.MOVFM
+                        jsr  floats.FPWRT
+                    """)
+                } else
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.CONUPK
+                        lda  #<$constValueName
+                        ldy  #>$constValueName
+                        jsr  floats.FPWR
+                    """)
             }
             "+" -> {
                 if (value == 0.0)
