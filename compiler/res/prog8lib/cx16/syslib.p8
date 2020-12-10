@@ -277,6 +277,40 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
         }}
     }
 
+    sub FB_set_pixels_from_buf(uword buffer, uword count) {
+        %asm {{
+            ; -- This is replacement code for the normal FB_set_pixels subroutine in ROM
+            ;    However that routine contains a bug in the current v38 ROM that makes it crash when count > 255.
+            ;    So the code below replaces that. Once the ROM is patched this routine is no longer necessary.
+            ;    See https://github.com/commanderx16/x16-rom/issues/179
+            phx
+            lda  buffer
+            ldy  buffer+1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            jsr  _pixels
+            plx
+            rts
+
+_pixels     lda  count+1
+            beq  +
+            ldx  #0
+-           jsr  _loop
+            inc  P8ZP_SCRATCH_W1+1
+            dec  count+1
+            bne  -
+
++           ldx  count
+_loop       ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            sta  cx16.VERA_DATA0
+            iny
+            dex
+            bne  -
+            rts
+        }}
+    }
+
 
 ; ---- system stuff -----
 

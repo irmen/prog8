@@ -184,20 +184,9 @@ main {
             cx16.r1 = y
             cx16.FB_cursor_position()
 
-            ; FB_set_pixels crashes with a size > 255 hence the loop for strips of 128
-            ; TODO remove this workaround once the bug is fixed, see https://github.com/commanderx16/x16-rom/issues/179
-            cx16.r1 = 128
-            ubyte rest = lsb(width) & 127
-            repeat width >> 7 {
-                cx16.r0 = bitmapptr
-                cx16.FB_set_pixels()
-                bitmapptr += 128
-            }
-            if rest {
-                cx16.r0 = bitmapptr
-                cx16.FB_set_pixels()
-                bitmapptr += rest
-            }
+            ; FB_set_pixels in rom v38 crashes with a size > 255 so we use our own replacement for now
+            cx16.FB_set_pixels_from_buf(bitmapptr, width)
+            bitmapptr += width
         }
     }
 
