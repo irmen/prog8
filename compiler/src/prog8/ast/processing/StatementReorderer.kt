@@ -91,6 +91,32 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
         }
     }
 
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        // when using a simple bit shift and assigning it to a variable of a different type,
+        // try to make the bit shifting 'wide enough' to fall into the variable's type.
+        // with this, for instance, uword x = 1 << 10  will result in 1024 rather than 0 (the ubyte result).
+        if(expr.operator=="<<" || expr.operator==">>") {
+            val leftDt = expr.left.inferType(program)
+            when (parent) {
+                is Assignment -> {
+                    val targetDt = parent.target.inferType(program)
+                    if(leftDt != targetDt) {
+                        val cast = TypecastExpression(expr.left, targetDt.typeOrElse(DataType.STRUCT), true, parent.position)
+                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                    }
+                }
+                is VarDecl -> {
+                    if(!leftDt.istype(parent.datatype)) {
+                        val cast = TypecastExpression(expr.left, parent.datatype, true, parent.position)
+                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                    }
+                }
+                else -> return noModifications
+            }
+        }
+        return noModifications
+    }
+
     private fun getAutoIndexerVarFor(expr: ArrayIndexedExpression): MutableList<IAstModification> {
         val modifications = mutableListOf<IAstModification>()
         val subroutine = expr.definingSubroutine()!!
