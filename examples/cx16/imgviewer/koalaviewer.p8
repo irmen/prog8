@@ -8,26 +8,31 @@ main {
     const uword load_location = $4000
 
     sub start() {
-
-        str[] pictures = [
-            "i01-blubb-sphinx.bin",
-            "i02-bugjam-jsl.bin",
-            "i03-dinothawr-ar.bin",
-            "i04-fox-leon.bin",
-            "i05-hunter-agod.bin",
-            "i06-jazzman-jds.bin",
-            "i07-katakis-jegg.bin"
-        ]
-
+        graphics.enable_bitmap_mode()
         ; set a better C64 color palette, the Cx16's default is too saturated
         c64colors.set_palette_pepto()
-        graphics.enable_bitmap_mode()
+
+        show_pics_on_disk()     ; only works with sdcard image
         repeat {
-            ubyte file_idx
-            for file_idx in 0 to len(pictures)-1 {
-                load_image(pictures[file_idx])
+            ;
+        }
+    }
+
+    sub show_pics_on_disk() {
+
+        ; load and show all *.koa pictures on the disk.
+        ; this only works in the emulator V38 with an sd-card image with the files on it.
+
+        str[20] filename_ptrs
+        ubyte num_files = diskio.list_files(8, ".koa", true, &filename_ptrs, len(filename_ptrs))
+        if num_files {
+            while num_files {
+                num_files--
+                load_image_from_disk(filename_ptrs[num_files])
                 wait()
             }
+        } else {
+            txt.print("no files found\n")
         }
     }
 
@@ -35,7 +40,7 @@ main {
         uword jiffies = 0
         c64.SETTIM(0,0,0)
 
-        while jiffies < 180 {
+        while jiffies < 60 {
             ; read clock
             %asm {{
                 stx  P8ZP_SCRATCH_REG
@@ -47,16 +52,22 @@ main {
         }
     }
 
-    sub load_image(uword filenameptr) {
-        uword length = diskio.load(8, filenameptr, load_location)
-
-        if length != 10001 {
-            txt.print_uw(length)
-            txt.print("\nload error\n")
-            diskio.status(8)
-            exit(1)
+    sub load_image_from_disk(uword filenameptr) {
+        ; special load routine that uses per-byte loading so it works from an sd-card image
+        if diskio.f_open(8, filenameptr) {
+            uword size = diskio.f_read(load_location, 2)    ; skip the first 2 bytes (load address)
+            if size==2 {
+                size = diskio.f_read(load_location, 10001)
+                if size == 10001 {
+                    convert_koalapic()
+                } else {
+                    txt.print_uw(size)
+                    txt.print("\nload error\n")
+                    txt.print(diskio.status(8))
+                }
+            }
+            diskio.f_close()
         }
-        convert_koalapic()
     }
 
     sub convert_koalapic() {
