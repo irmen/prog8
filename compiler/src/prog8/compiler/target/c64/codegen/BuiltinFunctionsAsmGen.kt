@@ -540,14 +540,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcStrlen(fcall: IFunctionCall, resultToStack: Boolean) {
-        val name = asmgen.asmVariableName(fcall.args[0] as IdentifierReference)
-        val type = fcall.args[0].inferType(program)
-        when {
-            type.istype(DataType.STR) -> asmgen.out("  lda  #<$name |  ldy  #>$name")
-            type.istype(DataType.UWORD) -> asmgen.out("  lda  $name |  ldy  $name+1")
-            else -> throw AssemblyError("strlen requires str or uword arg")
+        if (fcall.args[0] is IdentifierReference) {
+            // use the address of the variable
+            val name = asmgen.asmVariableName(fcall.args[0] as IdentifierReference)
+            val type = fcall.args[0].inferType(program)
+            when {
+                type.istype(DataType.STR) -> asmgen.out("  lda  #<$name |  ldy  #>$name")
+                type.istype(DataType.UWORD) -> asmgen.out("  lda  $name |  ldy  $name+1")
+                else -> throw AssemblyError("strlen requires str or uword arg")
+            }
         }
-        if(resultToStack)
+        else {
+            // use the expression value as address of the string
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        }
+        if (resultToStack)
             asmgen.out("  jsr  prog8_lib.func_strlen_stack")
         else
             asmgen.out("  jsr  prog8_lib.func_strlen_into_A")

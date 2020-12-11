@@ -354,7 +354,7 @@ private fun builtinStrlen(args: List<Expression>, position: Position, program: P
     val argument=args[0]
     if(argument is StringLiteralValue)
         return NumericLiteralValue.optimalInteger(argument.value.length, argument.position)
-    val vardecl = (argument as IdentifierReference).targetVarDecl(program.namespace)
+    val vardecl = (argument as? IdentifierReference)?.targetVarDecl(program.namespace)
     if(vardecl!=null) {
         if(vardecl.datatype!=DataType.STR && vardecl.datatype!=DataType.UWORD)
             throw SyntaxError("strlen must have string argument", position)
