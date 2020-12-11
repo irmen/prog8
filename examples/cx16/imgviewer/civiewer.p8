@@ -54,9 +54,20 @@ main {
     ubyte[256] buffer4  ;  .. and some more to be able to store 1280=
     ubyte[256] buffer5  ;     two 640 bytes worth of bitmap scanline data
 
-    str filename = "trsi256.ci"
-
     sub start() {
+        str[20] filename_ptrs
+        ubyte num_files = diskio.list_files(8, ".ci", true, &filename_ptrs, len(filename_ptrs))
+        while num_files {
+            num_files--
+            show_image(filename_ptrs[num_files])
+        }
+
+        repeat {
+            ; endless loop
+        }
+    }
+
+    sub show_image(uword filename) {
         ubyte read_success = false
         uword bitmap_load_address = progend()
         ; uword max_bitmap_size = $9eff - bitmap_load_address
@@ -115,7 +126,7 @@ main {
                                 for y in 0 to lsb(height)-1 {
                                     void diskio.f_read(buffer, scanline_size)
                                     when bpp {
-                                        8 -> display_scanline_256c(buffer, scanline_size)
+                                        8 -> cx16.FB_set_pixels_from_buf(buffer, scanline_size)  ; FB_set_pixels in rom v38 crashes with a size > 255 so we use our own replacement for now
                                         4 -> display_scanline_16c(buffer, scanline_size)
                                         2 -> display_scanline_4c(buffer, scanline_size)
                                         1 -> display_scanline_2c(buffer, scanline_size)
@@ -129,14 +140,10 @@ main {
             }
 
             diskio.f_close()
-
-            if not read_success {
+            if not read_success
                 txt.print("error!\n")
-            }
-        }
-
-        repeat {
-            ; endless loop
+            else
+                txt.print("ok\n")
         }
     }
 
@@ -169,11 +176,6 @@ main {
                 vera_palette_ptr+=2
             }
         }
-    }
-
-    sub display_scanline_256c(uword dataptr, uword numbytes) {
-        ; FB_set_pixels in rom v38 crashes with a size > 255 so we use our own replacement for now
-        cx16.FB_set_pixels_from_buf(dataptr, numbytes)
     }
 
     sub display_scanline_16c(uword dataptr, uword numbytes) {

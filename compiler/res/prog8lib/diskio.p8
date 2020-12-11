@@ -10,11 +10,11 @@ diskio {
         ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
 
         c64.SETNAM(1, "$")
-        c64.SETLFS(1, drivenumber, 0)
-        void c64.OPEN()          ; open 1,8,0,"$"
+        c64.SETLFS(13, drivenumber, 0)
+        void c64.OPEN()          ; open 13,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(1)        ; use #1 as input channel
+        void c64.CHKIN(13)        ; use #13 as input channel
         if_cs
             goto io_error
 
@@ -39,14 +39,14 @@ diskio {
             void c64.CHRIN()
             status = c64.READST()
             void c64.STOP()
-            if_nz
+            if_z
                 break
         }
 
 io_error:
         status = c64.READST()
         c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(1)
+        c64.CLOSE(13)
 
         if status and status != 64 {            ; 64=end of file
             txt.print("\ni/o error, status: ")
@@ -66,13 +66,41 @@ io_error:
     uword list_pattern
     uword list_blocks
     ubyte iteration_in_progress = false
-    str   list_filename = "????????????????"
+    str   list_filename = "?" * 32
 
+
+    ; ----- get a list of files (uses iteration functions internally -----
+
+    sub list_files(ubyte drivenumber, uword pattern, ubyte suffixmatch, uword name_ptrs, ubyte max_names) -> ubyte {
+        ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
+        ubyte[256] names_buffer
+        uword buf_ptr = &names_buffer
+        ubyte files_found = 0
+        if lf_start_list(drivenumber, pattern, suffixmatch) {
+            while lf_next_entry() {
+                @(name_ptrs) = lsb(buf_ptr)
+                name_ptrs++
+                @(name_ptrs) = msb(buf_ptr)
+                name_ptrs++
+                ; ubyte length = strcpy(diskio.list_filename, buf_ptr)
+                memcopy(diskio.list_filename, buf_ptr, strlen(list_filename)+1)        ; todo replace with strcpy()
+                buf_ptr += strlen(list_filename)+1
+                files_found++
+                if buf_ptr - &names_buffer > 256-18
+                    break
+                if files_found == max_names
+                    break
+            }
+            lf_end_list()
+        }
+        return files_found
+    }
 
     ; ----- iterative file lister functions -----
 
     sub lf_start_list(ubyte drivenumber, uword pattern, ubyte suffixmatch) -> ubyte {
         ; -- start an iterative file listing with optional prefix or suffix name matching.
+        ;    note: only a single iteration loop can be active at a time!
         lf_end_list()
         list_pattern = pattern
         list_suffixmatch = suffixmatch
@@ -84,11 +112,11 @@ io_error:
             list_pattern_size = strlen(pattern)
 
         c64.SETNAM(1, "$")
-        c64.SETLFS(1, drivenumber, 0)
-        void c64.OPEN()          ; open 1,8,0,"$"
+        c64.SETLFS(12, drivenumber, 0)
+        void c64.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(1)        ; use #1 as input channel
+        void c64.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
@@ -112,10 +140,16 @@ io_error:
         if not iteration_in_progress
             return false
 
-        while not c64.READST() {
+        repeat {
+            void c64.CHKIN(12)        ; use #12 as input channel again
+
             uword nameptr = &list_filename
             ubyte blocks_lsb = c64.CHRIN()
             ubyte blocks_msb = c64.CHRIN()
+
+            if c64.READST()
+                goto close_end
+
             list_blocks = mkword(blocks_msb, blocks_lsb)
 
             ; read until the filename starts after the first "
@@ -168,7 +202,7 @@ close_end:
         ; -- end an iterative file listing session (close channels).
         if iteration_in_progress {
             c64.CLRCHN()
-            c64.CLOSE(1)
+            c64.CLOSE(12)
             iteration_in_progress = false
         }
     }
@@ -177,6 +211,8 @@ close_end:
     ; ----- iterative file loader functions -----
 
     sub f_open(ubyte drivenumber, uword filenameptr) -> ubyte {
+        ; -- open a file for iterative reading with f_read
+        ;    note: only a single iteration loop can be active at a time!
         f_close()
 
         c64.SETNAM(strlen(filenameptr), filenameptr)
@@ -184,7 +220,7 @@ close_end:
         void c64.OPEN()          ; open 11,8,0,"filename"
         if_cc {
             iteration_in_progress = true
-            void c64.CHKIN(11)        ; use #2 as input channel
+            void c64.CHKIN(11)        ; use #11 as input channel
             if_cc
                 return true
         }
@@ -197,6 +233,7 @@ close_end:
             return 0
 
         uword actual = 0
+        void c64.CHKIN(11)        ; use #11 as input channel again
         repeat buffersize {
             ubyte data = c64.CHRIN()
             @(bufferpointer) = data
