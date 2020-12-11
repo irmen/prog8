@@ -47,20 +47,19 @@
 ; (doing it in chunks of 8 kb allows for sticking each chunk in one of the banked 8kb ram blocks, or even copy it directly to the screen)
 
 main {
-
+    %option force_output
     ubyte[256] buffer
-    ubyte[256] buffer2  ; add two more buffers to make enoughs space
+    ubyte[256] buffer2  ; add two more buffers to make enough space
     ubyte[256] buffer3  ;   to store a 256 color palette
+    ubyte[256] buffer4  ;  .. and some more to be able to store 1280=
+    ubyte[256] buffer5  ;     two 640 bytes worth of bitmap scanline data
 
     str filename = "trsi256.ci"
 
     sub start() {
-        buffer[0] = 0
-        buffer2[0] = 0
-        buffer3[0] = 0
         ubyte read_success = false
         uword bitmap_load_address = progend()
-        uword max_bitmap_size = $9eff - bitmap_load_address
+        ; uword max_bitmap_size = $9eff - bitmap_load_address
 
         txt.print(filename)
         txt.chrout('\n')
@@ -69,65 +68,60 @@ main {
             uword size = diskio.f_read(buffer, 12)  ; read the header
             if size==12 {
                 if buffer[0]=='c' and buffer[1]=='i' and buffer[2] == 9 {
-                    if buffer[11] {
-                        txt.print("file too large >64kb!\n")       ; TODO add support for large files
+                    uword width = mkword(buffer[4], buffer[3])
+                    uword height = mkword(buffer[6], buffer[5])
+                    ubyte bpp = buffer[7]
+                    uword num_colors = 2 ** bpp
+                    ubyte flags = buffer[8]
+                    ubyte compression = flags & %00000011
+                    ubyte palette_format = (flags & %00000100) >> 2
+                    ubyte bitmap_format = (flags & %00001000) >> 3
+                    ; ubyte hscale = (flags & %00010000) >> 4
+                    ; ubyte vscale = (flags & %00100000) >> 5
+                    uword bitmap_size = mkword(buffer[10], buffer[9])
+                    uword palette_size = num_colors*2
+                    if palette_format
+                        palette_size += num_colors  ; 3
+                    txt.print_uw(width)
+                    txt.chrout('*')
+                    txt.print_uw(height)
+                    txt.print(" * ")
+                    txt.print_uw(num_colors)
+                    txt.print(" colors\n")
+                    if width > graphics.WIDTH {
+                        txt.print("image is too wide for the display!\n")
+                    } else if compression!=0 {
+                        txt.print("compressed image not yet supported!\n")    ; TODO implement the various decompressions
+                    } else if bitmap_format==1 {
+                        txt.print("tiled bitmap not yet supported!\n")       ; TODO implement tiled image
                     } else {
-                        uword width = mkword(buffer[4], buffer[3])
-                        uword height = mkword(buffer[6], buffer[5])
-                        ubyte bpp = buffer[7]
-                        uword num_colors = 2 ** bpp
-                        ubyte flags = buffer[8]
-                        ubyte compression = flags & %00000011
-                        ubyte palette_format = (flags & %00000100) >> 2
-                        ubyte bitmap_format = (flags & %00001000) >> 3
-                        ; ubyte hscale = (flags & %00010000) >> 4
-                        ; ubyte vscale = (flags & %00100000) >> 5
-                        uword bitmap_size = mkword(buffer[10], buffer[9])
-                        uword palette_size = num_colors*2
-                        if palette_format
-                            palette_size += num_colors  ; 3
-                        txt.print_uw(width)
-                        txt.chrout('*')
-                        txt.print_uw(height)
-                        txt.print(" * ")
-                        txt.print_uw(num_colors)
-                        txt.print(" colors\n")
-                        if width > graphics.WIDTH {
-                            txt.print("image is too wide for the display!\n")
-                        } else if compression!=0 {
-                            txt.print("compressed image not yet supported!\n")    ; TODO implement the various decompressions
-                        } else if bitmap_format==1 {
-                            txt.print("tiled bitmap not yet supported!\n")       ; TODO implement tiled image
-                        } else if bitmap_size > max_bitmap_size {
-                            ; TODO implement large file support by using memory banks  (nasty if compression is used though)
-                            ; TODO in case of uncompressed data: do not read the full bitmap in memory but read a scanline at a time and display them as we go
-                            txt.print("not enough ram to load bitmap!\nrequired: ")
-                            txt.print_uw(bitmap_size)
-                            txt.print(" available: ")
-                            txt.print_uw(max_bitmap_size)
-                            txt.chrout('\n')
-                        } else {
-                            txt.print("loading...")
-                            size = diskio.f_read(buffer, palette_size)
-                            if size==palette_size {
-                                size = diskio.f_read(bitmap_load_address, bitmap_size)
-                                if size==bitmap_size {
-                                    ; all data has been loaded, display the image
-                                    diskio.f_close()
-                                    read_success = true
-                                    txt.print("ok\n")
-                                    ; restrict the height to what can be displayed using the graphics functions...
-                                    if height > graphics.HEIGHT
-                                        height = graphics.HEIGHT
-                                    graphics.enable_bitmap_mode()
-                                    set_palette(num_colors, palette_format, buffer)
+                        txt.print("loading...")
+                        size = diskio.f_read(buffer, palette_size)
+                        if size==palette_size {
+                            if compression {
+                                txt.print("todo: compressed image support\n")
+                            } else {
+                                ; uncompressed bitmap data. read it a scanline at a time and display as we go.
+                                ; restrict height to the maximun that can be displayed
+                                if height > graphics.HEIGHT
+                                    height = graphics.HEIGHT
+                                graphics.enable_bitmap_mode()
+                                set_palette(num_colors, palette_format, buffer)
+                                cx16.r0 = 0
+                                cx16.r1 = 0
+                                cx16.FB_cursor_position()
+                                uword scanline_size = width * bpp / 8
+                                ubyte y
+                                for y in 0 to lsb(height)-1 {
+                                    void diskio.f_read(buffer, scanline_size)
                                     when bpp {
-                                        8 -> display_uncompressed_256c(width, height, bitmap_load_address)
-                                        4 -> display_uncompressed_16c(width, height, bitmap_load_address)
-                                        2 -> display_uncompressed_4c(width, height, bitmap_load_address)
-                                        1 -> display_uncompressed_2c(width, height, bitmap_load_address)
+                                        8 -> display_scanline_256c(buffer, scanline_size)
+                                        4 -> display_scanline_16c(buffer, scanline_size)
+                                        2 -> display_scanline_4c(buffer, scanline_size)
+                                        1 -> display_scanline_2c(buffer, scanline_size)
                                     }
                                 }
+                                read_success = true
                             }
                         }
                     }
@@ -177,28 +171,20 @@ main {
         }
     }
 
-    sub display_uncompressed_256c(uword width, uword height, uword bitmapptr) {
-        uword y
-        for y in 0 to height-1 {
-            cx16.r0 = 0
-            cx16.r1 = y
-            cx16.FB_cursor_position()
-
-            ; FB_set_pixels in rom v38 crashes with a size > 255 so we use our own replacement for now
-            cx16.FB_set_pixels_from_buf(bitmapptr, width)
-            bitmapptr += width
-        }
+    sub display_scanline_256c(uword dataptr, uword numbytes) {
+        ; FB_set_pixels in rom v38 crashes with a size > 255 so we use our own replacement for now
+        cx16.FB_set_pixels_from_buf(dataptr, numbytes)
     }
 
-    sub display_uncompressed_16c(uword width, uword height, uword bitmapptr) {
-        ; TODO 16 color
+    sub display_scanline_16c(uword dataptr, uword numbytes) {
+        ; TODO
     }
 
-    sub display_uncompressed_4c(uword width, uword height, uword bitmapptr) {
-        ; TODO 4 color
+    sub display_scanline_4c(uword dataptr, uword numbytes) {
+        ; TODO
     }
 
-    sub display_uncompressed_2c(uword width, uword height, uword bitmapptr) {
-        ; TODO 2 color
+    sub display_scanline_2c(uword dataptr, uword numbytes) {
+        ; TODO
     }
 }
