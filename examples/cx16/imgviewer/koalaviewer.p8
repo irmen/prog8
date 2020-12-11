@@ -5,20 +5,51 @@
 %import c64colors
 
 main {
-    const uword load_location = $4000
+    const uword load_location = $6000
 
     sub start() {
         graphics.enable_bitmap_mode()
         ; set a better C64 color palette, the Cx16's default is too saturated
         c64colors.set_palette_pepto()
 
-        show_pics_on_disk()     ; only works with sdcard image
+        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
+            show_pics_sdcard()
+        else
+            show_file_list()
+
         repeat {
             ;
         }
     }
 
-    sub show_pics_on_disk() {
+    sub show_file_list() {
+        ; listing a directory doesn't work with a shared host directory in the emulator...
+        str[] pictures = [
+            "i01-blubb-sphinx.koa",
+            "i02-bugjam-jsl.koa",
+            "i03-dinothawr-ar.koa",
+            "i04-fox-leon.koa",
+            "i05-hunter-agod.koa",
+            "i06-jazzman-jds.koa",
+            "i07-katakis-jegg.koa"
+        ]
+
+        uword nameptr
+        for nameptr in pictures {
+            uword size = diskio.load(8, nameptr, load_location)
+            if size==10001 {
+                convert_koalapic()
+            } else {
+                txt.print_uw(size)
+                txt.print("\nload error\n")
+                txt.print(diskio.status(8))
+            }
+            load_image_from_disk(nameptr)
+            wait()
+        }
+    }
+
+    sub show_pics_sdcard() {
 
         ; load and show all *.koa pictures on the disk.
         ; this only works in the emulator V38 with an sd-card image with the files on it.
