@@ -63,7 +63,7 @@ main {
                 wait()
             }
         } else {
-            txt.print("no files found\n")
+            txt.print("no *.koa files found\n")
         }
     }
 
