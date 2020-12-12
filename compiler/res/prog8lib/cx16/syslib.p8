@@ -220,7 +220,7 @@ romsub $ff08 = FB_get_pixels()  clobbers(A,X,Y)         ; uses ptr=r0, count=r1
 romsub $ff0b = FB_set_pixel(ubyte color @A)  clobbers(A,X,Y)
 romsub $ff0e = FB_set_pixels()  clobbers(A,X,Y)         ; uses ptr=r0, count=r1
 romsub $ff11 = FB_set_8_pixels(ubyte pattern @A, ubyte color @X)  clobbers(A,X,Y)
-romsub $ff14 = FB_set_8_pixels_opaque(ubyte pattern @A, ubyte color1 @X, ubyte color2 @Y)  clobbers(A,X,Y)  ; also uses mask=r0L
+romsub $ff14 = FB_set_8_pixels_opaque(ubyte mask @A, ubyte color1 @X, ubyte color2 @Y)  clobbers(A,X,Y)  ; also uses r0L=pattern
 romsub $ff17 = FB_fill_pixels(ubyte color @A)  clobbers(A,X,Y)   ; also uses count=r0, step=r1
 romsub $ff1a = FB_filter_pixels()  clobbers(A,X,Y)      ; uses ptr=r0, count=r1
 romsub $ff1d = FB_move_pixels()  clobbers(A,X,Y)        ; uses sx=r0, sy=r1, tx=r2, ty=r3, count=r4
