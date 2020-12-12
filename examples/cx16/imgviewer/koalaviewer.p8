@@ -45,7 +45,7 @@ main {
                 txt.print(diskio.status(8))
             }
             load_image_from_disk(nameptr)
-            wait()
+            cx16.wait(60)
         }
     }
 
@@ -60,26 +60,10 @@ main {
             while num_files {
                 num_files--
                 load_image_from_disk(filename_ptrs[num_files])
-                wait()
+                cx16.wait(60)
             }
         } else {
             txt.print("no *.koa files found\n")
-        }
-    }
-
-    sub wait() {
-        uword jiffies = 0
-        c64.SETTIM(0,0,0)
-
-        while jiffies < 60 {
-            ; read clock
-            %asm {{
-                stx  P8ZP_SCRATCH_REG
-                jsr  c64.RDTIM
-                sta  jiffies
-                stx  jiffies+1
-                ldx  P8ZP_SCRATCH_REG
-            }}
         }
     }
 

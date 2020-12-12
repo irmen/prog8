@@ -245,7 +245,7 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
 ; ---- end of kernal routines ----
 
 ; ---- utilities -----
-    asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
+asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
         ; -- get a byte from VERA's video memory
         ;    note: inefficient when reading multiple sequential bytes!
         %asm {{
@@ -257,9 +257,9 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
                 lda  cx16.VERA_DATA0
                 rts
             }}
-    }
+}
 
-    sub vpoke(ubyte bank, uword address, ubyte value) {
+sub vpoke(ubyte bank, uword address, ubyte value) {
         ; -- write a single byte to VERA's video memory
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
@@ -275,10 +275,10 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
             sta  cx16.VERA_DATA0
             rts
         }}
-    }
+}
 
-    sub FB_set_pixels_from_buf(uword buffer, uword count) {
-        %asm {{
+sub FB_set_pixels_from_buf(uword buffer, uword count) {
+    %asm {{
             ; -- This is replacement code for the normal FB_set_pixels subroutine in ROM
             ;    However that routine contains a bug in the current v38 ROM that makes it crash when count > 255.
             ;    So the code below replaces that. Once the ROM is patched this routine is no longer necessary.
@@ -309,7 +309,25 @@ _loop       ldy  #0
             bne  -
             rts
         }}
+}
+
+
+
+sub wait(uword jiffies) {
+    uword current_time = 0
+    c64.SETTIM(0,0,0)
+
+    while current_time < jiffies {
+        ; read clock
+        %asm {{
+            phx
+            jsr  c64.RDTIM
+            sta  current_time
+            stx  current_time+1
+            plx
+        }}
     }
+}
 
 
 ; ---- system stuff -----

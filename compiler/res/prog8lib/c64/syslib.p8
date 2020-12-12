@@ -269,6 +269,22 @@ asmsub  reset_system()  {
     }}
 }
 
+sub wait(uword jiffies) {
+    uword current_time = 0
+    c64.SETTIM(0,0,0)
+
+    while current_time < jiffies {
+        ; read clock
+        %asm {{
+            stx  P8ZP_SCRATCH_REG
+            jsr  c64.RDTIM
+            sta  current_time
+            stx  current_time+1
+            ldx  P8ZP_SCRATCH_REG
+        }}
+    }
+}
+
 asmsub  disable_runstop_and_charsetswitch() {
     %asm {{
         lda  #$80

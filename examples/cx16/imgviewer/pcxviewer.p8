@@ -7,13 +7,11 @@ main {
     sub start() {
         graphics.enable_bitmap_mode()
 
-        show_pcx_image("nier2mono.pcx")
-
-;        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
-;            show_pics_sdcard()
-;        else {
-;            txt.print("only works with *.png files on\nsdcard image!\n")
-;        }
+        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
+            show_pics_sdcard()
+        else {
+            txt.print("only works with files on\nsdcard image!\n")
+        }
 
         repeat {
             ;
@@ -31,26 +29,10 @@ main {
             while num_files {
                 num_files--
                 show_pcx_image(filename_ptrs[num_files])
-                wait()
+                cx16.wait(120)
             }
         } else {
             txt.print("no *.pcx files found\n")
-        }
-    }
-
-    sub wait() {
-        uword jiffies = 0
-        c64.SETTIM(0,0,0)
-
-        while jiffies < 60 {
-            ; read clock
-            %asm {{
-                stx  P8ZP_SCRATCH_REG
-                jsr  c64.RDTIM
-                sta  jiffies
-                stx  jiffies+1
-                ldx  P8ZP_SCRATCH_REG
-            }}
         }
     }
 
@@ -73,7 +55,6 @@ main {
                         uword num_colors = 2**bits_per_pixel
                         if number_of_planes == 1 {
                             if (width & 7) == 0 {
-                                txt.print("dimensions: ")
                                 txt.print_uw(width)
                                 txt.chrout('x')
                                 txt.print_uw(height)
@@ -91,7 +72,6 @@ main {
                                     4 -> load_ok = bitmap.do4bpp(width, height)
                                     1 -> load_ok = bitmap.do1bpp(width, height)
                                 }
-                                txt.print_ub(load_ok)
                                 if load_ok {
                                     txt.clear_screen()
                                     load_ok = c64.CHRIN()
@@ -123,7 +103,6 @@ main {
     }
 
     sub set_monochrome_palette() {
-        ubyte c = 0
         uword vera_palette_ptr = $fa00
         cx16.vpoke(1, vera_palette_ptr, 0)
         vera_palette_ptr++
@@ -179,18 +158,19 @@ bitmap {
     uword offsety
     uword py
     uword px
-    ubyte y_ok = true
+    ubyte y_ok
     ubyte status
 
-    sub init_plot(uword width, uword height) {
+    sub start_plot(uword width, uword height) {
         offsetx = 0
         offsety = 0
+        y_ok = true
         py = 0
         px = 0
         if width < graphics.WIDTH
-            offsetx = (graphics.WIDTH - width) / 2
+            offsetx = (graphics.WIDTH - width - 1) / 2
         if height < graphics.HEIGHT
-            offsety = (graphics.HEIGHT - height) / 2
+            offsety = (graphics.HEIGHT - height - 1) / 2
         status = (not c64.READST()) or c64.READST()==64
     }
 
@@ -200,118 +180,90 @@ bitmap {
         cx16.FB_cursor_position()
     }
 
+    sub next_scanline() {
+        px = 0
+        py++
+        y_ok = py < graphics.HEIGHT-1
+        set_cursor(0, py)
+        status = (not c64.READST()) or c64.READST()==64
+    }
+
     sub do1bpp(uword width, uword height) -> ubyte {
-        init_plot(width, height)
+        start_plot(width, height)
         set_cursor(0, 0)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
-                ubyte rle = b & %00111111
-                b = c64.CHRIN()
-                if y_ok {
-                    repeat rle {
-                        cx16.FB_set_8_pixels(b, 255)
-                        px += 8
+                b &= %00111111
+                ubyte dat = c64.CHRIN()
+                repeat b {
+                    if y_ok {
+                        cx16.r0 = dat
+                        cx16.FB_set_8_pixels_opaque(255, 255, 0)
                     }
+                    px += 8
                 }
             } else {
-                if y_ok
-                    cx16.FB_set_8_pixels(b, 255)
-                px+=8
+                if y_ok {
+                    cx16.r0 = b
+                    cx16.FB_set_8_pixels_opaque(255, 255, 0)
+                }
+                px += 8
             }
-            if px >= width {
-                px = 0
-                py++
-                set_cursor(0, py)
-                y_ok = py < graphics.HEIGHT - 1
-                status = (not c64.READST()) or c64.READST()==64
-            }
+            if px==width
+                next_scanline()
         }
 
         return status
-
-;        asmsub reversebits(ubyte b @A) -> ubyte @A {
-;            %asm {{
-;                stz  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                asl  a
-;                ror  P8ZP_SCRATCH_B1
-;                lda  P8ZP_SCRATCH_B1
-;                rts
-;            }}
-;        }
     }
 
     sub do4bpp(uword width, uword height) -> ubyte {
-        init_plot(width, height)
+        start_plot(width, height)
         set_cursor(0, 0)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
-                ubyte rle = b & %00111111
-                b = c64.CHRIN()
+                b &= %00111111
+                ubyte dat = c64.CHRIN()
                 if y_ok
-                    repeat rle {
-                        cx16.FB_set_pixel(b>>4 & 15)
-                        cx16.FB_set_pixel(b & 15)
+                    repeat b {
+                        cx16.FB_set_pixel(dat>>4)
+                        cx16.FB_set_pixel(dat & 15)
                     }
-                px += rle*2
+                px += b*2
             } else {
                 if y_ok {
-                    cx16.FB_set_pixel(b>>4 & 15)
+                    cx16.FB_set_pixel(b>>4)
                     cx16.FB_set_pixel(b & 15)
                 }
-                px+=2
+                px += 2
             }
-            if px == width {
-                px = 0
-                py++
-                y_ok = py < graphics.HEIGHT-1
-                set_cursor(0, py)
-                status = (not c64.READST()) or c64.READST()==64
-            }
+            if px==width
+                next_scanline()
         }
 
         return status
     }
 
     sub do8bpp(uword width, uword height) -> ubyte {
-        init_plot(width, height)
+        start_plot(width, height)
         set_cursor(0, 0)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
-                ubyte rle = b & %00111111
-                b = c64.CHRIN()
+                b &= %00111111
+                ubyte dat = c64.CHRIN()
                 if y_ok
-                    repeat rle
-                        cx16.FB_set_pixel(b)
-                px += rle
+                    repeat b
+                        cx16.FB_set_pixel(dat)
+                px += b
             } else {
                 if y_ok
                     cx16.FB_set_pixel(b)
                 px++
             }
-            if px == width {
-                px = 0
-                py++
-                y_ok = py < graphics.HEIGHT-1
-                set_cursor(0, py)
-                status = (not c64.READST()) or c64.READST()==64
-            }
+            if px==width
+                next_scanline()
         }
 
         return status
