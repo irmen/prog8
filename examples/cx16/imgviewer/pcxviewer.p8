@@ -74,6 +74,7 @@ main {
                                 }
                                 if load_ok {
                                     txt.clear_screen()
+                                    graphics.clear_screen(1, 0)
                                     load_ok = c64.CHRIN()
                                     if load_ok == 12 {
                                         ; there is 256 colors of palette data at the end

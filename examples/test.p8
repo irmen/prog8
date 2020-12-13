@@ -19,6 +19,11 @@ main {
         txt.print_uwhex(xx, 1)
         txt.print_uwhex(progend(), 1)
 
+        uword scanline_data_ptr= $6000
+        uword pixptr = x/8 + scanline_data_ptr      ; TODO why is this code so much larger than the following:
+        uword pixptr2 = scanline_data_ptr + x/8
+
+
         test_stack.test()
     }
 
