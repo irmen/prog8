@@ -6,17 +6,25 @@
 %import iff_module
 %import pcx_module
 %import bmp_module
-%import ci_module
+;; %import ci_module
 
 main {
     sub start() {
-        graphics.enable_bitmap_mode()
+        ; trick to check if we're running on sdcard or host system shared folder
+        txt.print("\nimage viewer for commander x16\nformats supported: .iff, .pcx, .bmp, .koa (c64 koala)\n\n")
+        if strlen(diskio.status(8)) {
+            txt.print("enter image file name or just enter for all on disk: ")
+            ubyte i = txt.input_chars(diskio.filename)
+            graphics.enable_bitmap_mode()
+            if i
+                attempt_load(diskio.filename)
+            else
+                show_pics_sdcard()
 
-        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
-            show_pics_sdcard()
-        else {
-            txt.print("only works with files on sdcard image!\n(because of emulator restrictions)")
+            txt.print("\nnothing more to do.\n")
         }
+        else
+            txt.print("files are read with sequential file loading.\nin the emulator this currently only works with files on an sd-card image.\nsorry :(\n")
 
         repeat {
             ;
@@ -35,7 +43,6 @@ main {
                 num_files--
                 attempt_load(filename_ptrs[num_files])
             }
-            txt.print("\nthat was the last file.\n")
         } else
             txt.print("no files in directory!\n")
 
@@ -49,38 +56,48 @@ main {
         if strcmp(extension, ".iff")==0 {
             txt.print("loading ")
             txt.print("iff\n")
-            void iff_module.show_image(filenameptr)
-            txt.clear_screen()
+            if iff_module.show_image(filenameptr)
+                txt.clear_screen()
+            else
+                txt.print("load error!\n")
             cx16.wait(120)
         }
         else if strcmp(extension, ".pcx")==0 {
             txt.print("loading ")
             txt.print("pcx\n")
-            void pcx_module.show_image(filenameptr)
-            txt.clear_screen()
+            if pcx_module.show_image(filenameptr)
+                txt.clear_screen()
+            else
+                txt.print("load error!\n")
             cx16.wait(120)
         }
         else if strcmp(extension, ".koa")==0 {
             txt.print("loading ")
             txt.print("koala\n")
-            void koala_module.show_image(filenameptr)
-            txt.clear_screen()
+            if koala_module.show_image(filenameptr)
+                txt.clear_screen()
+            else
+                txt.print("load error!\n")
             cx16.wait(120)
         }
         else if strcmp(extension, ".bmp")==0 {
             txt.print("loading ")
             txt.print("bmp\n")
-            void bmp_module.show_image(filenameptr)
-            txt.clear_screen()
+            if bmp_module.show_image(filenameptr)
+                txt.clear_screen()
+            else
+                txt.print("load error!\n")
             cx16.wait(120)
         }
-        else if strcmp(extension, ".ci")==0 {
-            txt.print("loading ")
-            txt.print("ci\n")
-            void ci_module.show_image(filenameptr)
-            txt.clear_screen()
-            cx16.wait(120)
-        }
+;        else if strcmp(extension, ".ci")==0 {
+;            txt.print("loading ")
+;            txt.print("ci\n")
+;            if ci_module.show_image(filenameptr)
+;                txt.clear_screen()
+;            else
+;                txt.print("load error!\n")
+;            cx16.wait(120)
+;        }
     }
 
     sub extension_equals(uword stringptr, uword extensionptr) -> ubyte {
@@ -125,6 +142,24 @@ palette {
             palletteptr++
             greenblue |= @(palletteptr) >> 4    ; add Blue
             palletteptr++
+            cx16.vpoke(1, vera_palette_ptr, greenblue)
+            vera_palette_ptr++
+            cx16.vpoke(1, vera_palette_ptr, red)
+            vera_palette_ptr++
+        }
+    }
+
+    sub set_bgra(uword palletteptr, uword num_colors) {
+        uword vera_palette_ptr = $fa00
+        ubyte red
+        ubyte greenblue
+
+        ; 4 bytes per color entry (BGRA), adjust color depth from 8 to 4 bits per channel.
+        repeat num_colors {
+            red = @(palletteptr+2) >> 4
+            greenblue = @(palletteptr+1) & %11110000
+            greenblue |= @(palletteptr+0) >> 4    ; add Blue
+            palletteptr+=4
             cx16.vpoke(1, vera_palette_ptr, greenblue)
             vera_palette_ptr++
             cx16.vpoke(1, vera_palette_ptr, red)

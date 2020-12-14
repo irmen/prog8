@@ -1,15 +1,11 @@
 %target cx16
 %import graphics
-%import textio
 %import diskio
 
 bmp_module {
 
-    sub show_image(uword filenameptr) {
+    sub show_image(uword filenameptr) -> ubyte {
         ubyte load_ok = false
-        txt.print(filenameptr)
-        txt.chrout('\n')
-
         ubyte[$36] header
         uword size
         uword width
@@ -51,20 +47,17 @@ bmp_module {
                         repeat bm_data_offset - total_read
                             void c64.CHRIN()
                         graphics.clear_screen(1, 0)
-                        set_palette(&palette0, num_colors)
+                        palette.set_bgra(&palette0, num_colors)
                         decode_bitmap()
                         load_ok = true
                     }
-                } else
-                    txt.print("not a bmp file!\n")
+                }
             }
 
             diskio.f_close()
         }
 
-        if not load_ok {
-            txt.print("load error!\n")
-        }
+        return load_ok
 
         sub start_plot() {
             offsetx = 0
@@ -129,23 +122,4 @@ bmp_module {
             }
         }
     }
-
-    sub set_palette(uword palletteptr, uword num_colors) {
-        uword vera_palette_ptr = $fa00
-        ubyte red
-        ubyte greenblue
-
-        ; 4 bytes per color entry (BGRA), adjust color depth from 8 to 4 bits per channel.
-        repeat num_colors {
-            red = @(palletteptr+2) >> 4
-            greenblue = @(palletteptr+1) & %11110000
-            greenblue |= @(palletteptr+0) >> 4    ; add Blue
-            palletteptr+=4
-            cx16.vpoke(1, vera_palette_ptr, greenblue)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, red)
-            vera_palette_ptr++
-        }
-    }
-
 }

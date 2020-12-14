@@ -4,7 +4,7 @@
 %import diskio
 %option no_sysinit
 
-; CommanderX16 Image file format.
+; CommanderX16 Image file format.  (EXPERIMENTAL/ UNFINISHED)
 ; Numbers are encoded in little endian format (lsb first).
 ;
 ; offset      value
@@ -54,13 +54,10 @@ ci_module {
     ubyte[256] buffer4  ;  .. and some more to be able to store 1280=
     ubyte[256] buffer5  ;     two 640 bytes worth of bitmap scanline data
 
-    sub show_image(uword filename) {
+    sub show_image(uword filename) -> ubyte {
         ubyte read_success = false
         uword bitmap_load_address = progend()
         ; uword max_bitmap_size = $9eff - bitmap_load_address
-
-        txt.print(filename)
-        txt.chrout('\n')
 
         if(diskio.f_open(8, filename)) {
             uword size = diskio.f_read(buffer, 12)  ; read the header
@@ -80,12 +77,6 @@ ci_module {
                     uword palette_size = num_colors*2
                     if palette_format
                         palette_size += num_colors  ; 3
-                    txt.print_uw(width)
-                    txt.chrout('*')
-                    txt.print_uw(height)
-                    txt.print(" * ")
-                    txt.print_uw(num_colors)
-                    txt.print(" colors\n")
                     if width > graphics.WIDTH {
                         txt.print("image is too wide for the display!\n")
                     } else if compression!=0 {
@@ -93,7 +84,6 @@ ci_module {
                     } else if bitmap_format==1 {
                         txt.print("tiled bitmap not yet supported!\n")       ; TODO implement tiled image
                     } else {
-                        txt.print("loading...")
                         size = diskio.f_read(buffer, palette_size)
                         if size==palette_size {
                             if compression {
@@ -131,9 +121,9 @@ ci_module {
             }
 
             diskio.f_close()
-            if not read_success
-                txt.print("error!\n")
         }
+
+        return read_success
     }
 
     sub display_scanline_16c(uword dataptr, uword numbytes) {

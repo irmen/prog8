@@ -5,10 +5,8 @@
 
 pcx_module {
 
-    sub show_image(uword filenameptr) {
+    sub show_image(uword filenameptr) -> ubyte {
         ubyte load_ok = false
-        txt.print(filenameptr)
-        txt.chrout('\n')
 
         if diskio.f_open(8, filenameptr) {
             ubyte[128] header
@@ -45,7 +43,7 @@ pcx_module {
                                         size = diskio.f_read(palette_mem, 3*256)
                                         if size==3*256 {
                                             load_ok = true
-                                            set_palette_8rgb(palette_mem, num_colors)
+                                            palette.set_rgb8(palette_mem, num_colors)
                                         }
                                     }
                                 }
@@ -59,34 +57,8 @@ pcx_module {
             diskio.f_close()
         }
 
-        if not load_ok {
-            txt.print("load error!\n")
-            txt.print(diskio.status(8))
-        }
+        return load_ok
     }
-
-
-
-    sub set_palette_8rgb(uword palletteptr, uword num_colors) {
-        uword vera_palette_ptr = $fa00
-        ubyte red
-        ubyte greenblue
-
-        ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
-        repeat num_colors {
-            red = @(palletteptr) >> 4
-            palletteptr++
-            greenblue = @(palletteptr) & %11110000
-            palletteptr++
-            greenblue |= @(palletteptr) >> 4    ; add Blue
-            palletteptr++
-            cx16.vpoke(1, vera_palette_ptr, greenblue)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, red)
-            vera_palette_ptr++
-        }
-    }
-
 }
 
 bitmap {

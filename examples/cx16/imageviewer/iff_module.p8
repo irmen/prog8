@@ -4,7 +4,7 @@
 %import diskio
 
 iff_module {
-    sub show_image(uword filenameptr) {
+    sub show_image(uword filenameptr) -> ubyte {
         ubyte load_ok = false
         uword size
         ubyte[32] buffer
@@ -79,9 +79,7 @@ iff_module {
             diskio.f_close()
         }
 
-        if not load_ok
-            txt.print("load error!\n")
-
+        return load_ok
 
         sub read_chunk_header() -> ubyte {
             size = diskio.f_read(buffer, 8)
