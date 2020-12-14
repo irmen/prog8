@@ -6,6 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
+import prog8.ast.statements.Assignment
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -97,6 +98,12 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         if (leftVal != null && expr.operator in associativeOperators && rightVal == null)
             return listOf(IAstModification.SwapOperands(expr))
+
+        // NonBinaryExpression  <associativeoperator>  BinaryExpression  -->  BinaryExpression  <associativeoperator>  NonBinaryExpression
+        if (expr.operator in associativeOperators && expr.left !is BinaryExpression && expr.right is BinaryExpression) {
+            if(parent !is Assignment || !(expr.left isSameAs parent.target))
+                return listOf(IAstModification.SwapOperands(expr))
+        }
 
         // X + (-A)  -->  X - A
         if (expr.operator == "+" && (expr.right as? PrefixExpression)?.operator == "-") {
@@ -338,7 +345,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         if (leftVal == null && rightVal == null)
             return null
 
-        val (expr2, _, rightVal2) = reorderAssociative(expr, leftVal)
+        val (expr2, _, rightVal2) = reorderAssociativeWithConstant(expr, leftVal)
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal2
@@ -562,7 +569,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         if (leftVal == null && rightVal == null)
             return null
 
-        val (expr2, _, rightVal2) = reorderAssociative(expr, leftVal)
+        val (expr2, _, rightVal2) = reorderAssociativeWithConstant(expr, leftVal)
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
             val leftValue: Expression = expr2.left
@@ -682,17 +689,17 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         return null
     }
 
-    private fun reorderAssociative(expr: BinaryExpression, leftVal: NumericLiteralValue?): ReorderedAssociativeBinaryExpr {
+    private fun reorderAssociativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteralValue?): BinExprWithConstants {
         if (expr.operator in associativeOperators && leftVal != null) {
             // swap left and right so that right is always the constant
             val tmp = expr.left
             expr.left = expr.right
             expr.right = tmp
-            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(program), leftVal)
+            return BinExprWithConstants(expr, expr.right.constValue(program), leftVal)
         }
-        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(program))
+        return BinExprWithConstants(expr, leftVal, expr.right.constValue(program))
     }
 
-    private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
+    private data class BinExprWithConstants(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
 
 }

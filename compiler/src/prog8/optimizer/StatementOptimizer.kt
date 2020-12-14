@@ -323,7 +323,7 @@ internal class StatementOptimizer(private val program: Program,
                     val op1 = binExpr.operator
                     val op2 = rExpr.operator
 
-                    if(rExpr.left is NumericLiteralValue && op2 in setOf("+", "*", "&", "|")) {
+                    if(rExpr.left is NumericLiteralValue && op2 in associativeOperators) {
                         // associative operator, make sure the constant numeric value is second (right)
                         return listOf(IAstModification.SwapOperands(rExpr))
                     }

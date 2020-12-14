@@ -7,7 +7,7 @@
 main {
     sub start() {
         txt.print("showing the full directory of drive 8:\n")
-        diskio.directory(8)
+        void diskio.directory(8)
         txt.chrout('\n')
 
         if diskio.lf_start_list(8, "cub", false) {
