@@ -3,67 +3,9 @@
 %import textio
 %import diskio
 
-main {
-    sub start() {
-        graphics.enable_bitmap_mode()
-
-        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
-            show_pics_sdcard()
-        else {
-            txt.print("only works with files on\nsdcard image!\n")
-        }
-
-        repeat {
-            ;
-        }
-    }
-
-    sub show_pics_sdcard() {
-
-        ; load and show all *.iff pictures on the disk.
-        ; this only works in the emulator V38 with an sd-card image with the files on it.
-
-        str[20] filename_ptrs
-        ubyte num_files = diskio.list_files(8, ".iff", true, &filename_ptrs, len(filename_ptrs))
-        if num_files {
-            while num_files {
-                num_files--
-                iff.show_iff_image(filename_ptrs[num_files])
-                cx16.wait(120)
-            }
-        } else {
-            txt.print("no *.iff files found\n")
-        }
-    }
-
-    sub set_palette_8rgb(uword palletteptr, uword num_colors) {
-        uword vera_palette_ptr = $fa00
-        ubyte red
-        ubyte greenblue
-
-        ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
-        repeat num_colors {
-            red = @(palletteptr) >> 4
-            palletteptr++
-            greenblue = @(palletteptr) & %11110000
-            palletteptr++
-            greenblue |= @(palletteptr) >> 4    ; add Blue
-            palletteptr++
-            cx16.vpoke(1, vera_palette_ptr, greenblue)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, red)
-            vera_palette_ptr++
-        }
-    }
-
-}
-
-iff {
-    sub show_iff_image(uword filenameptr) {
+iff_module {
+    sub show_image(uword filenameptr) {
         ubyte load_ok = false
-        txt.print(filenameptr)
-        txt.chrout('\n')
-
         uword size
         ubyte[32] buffer
         ubyte[256] cmap
@@ -113,13 +55,12 @@ iff {
                             void diskio.f_read(&cmap, chunk_size_lo)
                         }
                         else if chunk_id == "body" {
-                            txt.clear_screen()
                             graphics.clear_screen(1, 0)
                             if camg & $0004
                                 height /= 2     ; interlaced: just skip every odd scanline later
                             if camg & $0080 and have_cmap
                                 make_ehb_palette()
-                            main.set_palette_8rgb(&cmap, num_colors)
+                            palette.set_rgb8(&cmap, num_colors)
                             if compression
                                 decode_rle()
                             else
@@ -138,10 +79,8 @@ iff {
             diskio.f_close()
         }
 
-        if not load_ok {
+        if not load_ok
             txt.print("load error!\n")
-            txt.print(diskio.status(8))
-        }
 
 
         sub read_chunk_header() -> ubyte {

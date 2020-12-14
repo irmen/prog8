@@ -3,40 +3,9 @@
 %import textio
 %import diskio
 
-main {
-    sub start() {
-        graphics.enable_bitmap_mode()
+pcx_module {
 
-        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
-            show_pics_sdcard()
-        else {
-            txt.print("only works with files on\nsdcard image!\n")
-        }
-
-        repeat {
-            ;
-        }
-    }
-
-    sub show_pics_sdcard() {
-
-        ; load and show all *.pcx pictures on the disk.
-        ; this only works in the emulator V38 with an sd-card image with the files on it.
-
-        str[20] filename_ptrs
-        ubyte num_files = diskio.list_files(8, ".pcx", true, &filename_ptrs, len(filename_ptrs))
-        if num_files {
-            while num_files {
-                num_files--
-                show_pcx_image(filename_ptrs[num_files])
-                cx16.wait(120)
-            }
-        } else {
-            txt.print("no *.pcx files found\n")
-        }
-    }
-
-    sub show_pcx_image(uword filenameptr) {
+    sub show_image(uword filenameptr) {
         ubyte load_ok = false
         txt.print(filenameptr)
         txt.chrout('\n')
@@ -55,14 +24,13 @@ main {
                         uword num_colors = 2**bits_per_pixel
                         if number_of_planes == 1 {
                             if (width & 7) == 0 {
-                                txt.clear_screen()
                                 graphics.clear_screen(1, 0)
                                 if palette_format==2
-                                    set_grayscale_palette()
+                                    palette.set_grayscale()
                                 else if num_colors == 16
-                                    set_palette_8rgb(&header + $10, 16)
+                                    palette.set_rgb8(&header + $10, 16)
                                 else if num_colors == 2
-                                    set_monochrome_palette()
+                                    palette.set_monochrome()
                                 when bits_per_pixel {
                                     8 -> load_ok = bitmap.do8bpp(width, height)
                                     4 -> load_ok = bitmap.do4bpp(width, height)
@@ -97,33 +65,7 @@ main {
         }
     }
 
-    sub set_monochrome_palette() {
-        uword vera_palette_ptr = $fa00
-        cx16.vpoke(1, vera_palette_ptr, 0)
-        vera_palette_ptr++
-        cx16.vpoke(1, vera_palette_ptr, 0)
-        vera_palette_ptr++
-        repeat 255 {
-            cx16.vpoke(1, vera_palette_ptr, 255)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, 255)
-            vera_palette_ptr++
-        }
-    }
 
-    sub set_grayscale_palette() {
-        ubyte c = 0
-        uword vera_palette_ptr = $fa00
-        repeat 16 {
-            repeat 16 {
-                cx16.vpoke(1, vera_palette_ptr, c)
-                vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, c)
-                vera_palette_ptr++
-            }
-            c += $11
-        }
-    }
 
     sub set_palette_8rgb(uword palletteptr, uword num_colors) {
         uword vera_palette_ptr = $fa00

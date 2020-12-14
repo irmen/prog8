@@ -3,44 +3,9 @@
 %import textio
 %import diskio
 
-main {
-    sub start() {
-        graphics.enable_bitmap_mode()
+bmp_module {
 
-        if strlen(diskio.status(8))     ; trick to check if we're running on sdcard or host system shared folder
-            show_pics_sdcard()
-        else {
-            txt.print("only works with files on\nsdcard image!\n")
-        }
-
-        repeat {
-            ;
-        }
-    }
-
-    sub show_pics_sdcard() {
-
-        ; load and show all *.bmp pictures on the disk.
-        ; this only works in the emulator V38 with an sd-card image with the files on it.
-
-        str[20] filename_ptrs
-        ubyte num_files = diskio.list_files(8, ".bmp", true, &filename_ptrs, len(filename_ptrs))
-        if num_files {
-            while num_files {
-                num_files--
-                bmp.show_bmp_image(filename_ptrs[num_files])
-                cx16.wait(120)
-            }
-        } else {
-            txt.print("no *.bmp files found\n")
-        }
-    }
-
-}
-
-bmp {
-
-    sub show_bmp_image(uword filenameptr) {
+    sub show_image(uword filenameptr) {
         ubyte load_ok = false
         txt.print(filenameptr)
         txt.chrout('\n')
@@ -85,7 +50,6 @@ bmp {
                         total_read += size
                         repeat bm_data_offset - total_read
                             void c64.CHRIN()
-                        txt.clear_screen()
                         graphics.clear_screen(1, 0)
                         set_palette(&palette0, num_colors)
                         decode_bitmap()
@@ -100,9 +64,7 @@ bmp {
 
         if not load_ok {
             txt.print("load error!\n")
-            txt.print(diskio.status(8))
         }
-
 
         sub start_plot() {
             offsetx = 0

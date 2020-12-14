@@ -46,26 +46,13 @@
 ; (it is a problem to load let alone decompress a full bitmap at once because there will likely not be enough ram to do that)
 ; (doing it in chunks of 8 kb allows for sticking each chunk in one of the banked 8kb ram blocks, or even copy it directly to the screen)
 
-main {
+ci_module {
     %option force_output
     ubyte[256] buffer
     ubyte[256] buffer2  ; add two more buffers to make enough space
     ubyte[256] buffer3  ;   to store a 256 color palette
     ubyte[256] buffer4  ;  .. and some more to be able to store 1280=
     ubyte[256] buffer5  ;     two 640 bytes worth of bitmap scanline data
-
-    sub start() {
-        str[20] filename_ptrs
-        ubyte num_files = diskio.list_files(8, ".ci", true, &filename_ptrs, len(filename_ptrs))
-        while num_files {
-            num_files--
-            show_image(filename_ptrs[num_files])
-        }
-
-        repeat {
-            ; endless loop
-        }
-    }
 
     sub show_image(uword filename) {
         ubyte read_success = false
@@ -117,7 +104,11 @@ main {
                                 if height > graphics.HEIGHT
                                     height = graphics.HEIGHT
                                 graphics.enable_bitmap_mode()
-                                set_palette(num_colors, palette_format, buffer)
+                                if palette_format
+                                    palette.set_rgb8(buffer, num_colors)
+                                else
+                                    palette.set_rgb4(buffer, num_colors)
+                                graphics.clear_screen(1,0)
                                 cx16.r0 = 0
                                 cx16.r1 = 0
                                 cx16.FB_cursor_position()
@@ -142,39 +133,6 @@ main {
             diskio.f_close()
             if not read_success
                 txt.print("error!\n")
-            else
-                txt.print("ok\n")
-        }
-    }
-
-    sub set_palette(uword num_colors, ubyte format, uword palletteptr) {
-        uword vera_palette_ptr = $fa00
-        ubyte red
-        ubyte greenblue
-
-        if format {
-            ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
-            repeat num_colors {
-                red = @(palletteptr) >> 4
-                palletteptr++
-                greenblue = @(palletteptr) & %11110000
-                palletteptr++
-                greenblue |= @(palletteptr) >> 4    ; add Blue
-                palletteptr++
-                cx16.vpoke(1, vera_palette_ptr, greenblue)
-                vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, red)
-                vera_palette_ptr++
-            }
-        } else {
-            ; 2 bytes per color entry, the Vera uses this, but the R/GB bytes order is swapped
-            repeat num_colors {
-                cx16.vpoke(1, vera_palette_ptr+1, @(palletteptr))
-                palletteptr++
-                cx16.vpoke(1, vera_palette_ptr, @(palletteptr))
-                palletteptr++
-                vera_palette_ptr+=2
-            }
         }
     }
 
