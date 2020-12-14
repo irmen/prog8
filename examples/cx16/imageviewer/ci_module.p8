@@ -21,7 +21,7 @@
 ;                                      01 = RLE        [TODO not yet implemented]
 ;                                      10 = LZSA       [TODO not yet implemented]
 ;                                      11 = Exomizer   [TODO not yet implemented]
-;          bit 2 = palette format.  0 = 4 bits/channel  (2 bytes per color, $0R $GB)  [TODO not yet implemented]
+;          bit 2 = palette format.  0 = 4 bits/channel  (2 bytes per color, $0R $GB)
 ;                                   1 = 8 bits/channel  (3 bytes per color, $RR $GG $BB)
 ;                  4 bits per channel is what the Vera in the Cx16 supports.
 ;          bit 3 = bitmap format.   0 = raw bitmap pixels

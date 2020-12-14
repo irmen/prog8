@@ -4,6 +4,7 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.functions.BuiltinFunctions
 
 
 internal class StatementReorderer(val program: Program, val errors: ErrorReporter) : AstWalker() {
@@ -109,6 +110,29 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
                     if(!leftDt.istype(parent.datatype)) {
                         val cast = TypecastExpression(expr.left, parent.datatype, true, parent.position)
                         return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                    }
+                }
+                is IFunctionCall -> {
+                    val argnum = parent.args.indexOf(expr)
+                    when (val callee = parent.target.targetStatement(program.namespace)) {
+                        is Subroutine -> {
+                            val paramType = callee.parameters[argnum].type
+                            if(leftDt isAssignableTo paramType) {
+                                val cast = TypecastExpression(expr.left, paramType, true, parent.position)
+                                return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                            }
+                        }
+                        is BuiltinFunctionStatementPlaceholder -> {
+                            val func = BuiltinFunctions.getValue(callee.name)
+                            val paramTypes = func.parameters[argnum].possibleDatatypes
+                            for(type in paramTypes) {
+                                if(leftDt isAssignableTo type) {
+                                    val cast = TypecastExpression(expr.left, type, true, parent.position)
+                                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                                }
+                            }
+                        }
+                        else -> throw FatalAstException("weird callee")
                     }
                 }
                 else -> return noModifications

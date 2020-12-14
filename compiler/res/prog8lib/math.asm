@@ -1352,6 +1352,33 @@ shift_left_w_3	.proc
 		jmp  shift_left_w_7._shift3
 		.pend
 
+
+shift_left_w	.proc
+		; -- variable number of shifts left
+		inx
+		ldy  P8ESTACK_LO,x
+		bne  _shift
+		rts
+_shift		asl  P8ESTACK_LO+1,x
+		rol  P8ESTACK_HI+1,x
+		dey
+		bne  _shift
+		rts
+		.pend
+
+shift_right_uw	.proc
+		; -- uword variable number of shifts right
+		inx
+		ldy  P8ESTACK_LO,x
+		bne  _shift
+		rts
+_shift		lsr  P8ESTACK_HI+1,x
+		ror  P8ESTACK_LO+1,x
+		dey
+		bne  _shift
+		rts
+		.pend
+
 shift_right_uw_7	.proc
 		lda  P8ESTACK_LO+1,x
 		sta  P8ZP_SCRATCH_B1
@@ -1481,6 +1508,21 @@ shift_right_w_3	.proc
 		jmp  shift_right_w_7._shift3
 		.pend
 
+
+shift_right_w	.proc
+		; -- signed word variable number of shifts right
+		inx
+		ldy  P8ESTACK_LO,x
+		bne  _shift
+		rts
+_shift		lda  P8ESTACK_HI+1,x
+		asl  a
+		ror  P8ESTACK_HI+1,x
+		ror  P8ESTACK_LO+1,x
+		dey
+		bne  _shift
+		rts
+		.pend
 
 
 ; support for bit shifting that is too large to be unrolled:
