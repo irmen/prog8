@@ -102,7 +102,7 @@ internal class ModuleImporter {
 
     private fun discoverImportedModuleFile(name: String, source: Path, position: Position?): Path {
         val fileName = "$name.p8"
-        val locations = if(source.toString().isEmpty()) mutableListOf<Path>() else mutableListOf(source.parent)
+        val locations = if(source.toString().isEmpty()) mutableListOf<Path>() else mutableListOf(source.parent ?: Path.of("."))
 
         val propPath = System.getProperty("prog8.libdir")
         if(propPath!=null)
