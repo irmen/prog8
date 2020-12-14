@@ -4,6 +4,12 @@
 %import test_stack
 %zeropage basicsafe
 
+; note: The flickering in the scrolling is caused by the CPU requiring
+;       too long to scroll the characters + the colors in course scroll.
+;       This takes nearly a full frame to accomplish, and causes tearing.
+;       It's very difficult to remove this flicker: it requires double buffering
+;       and splitting the coarse character scrolling on multiple phases...
+
 main {
 
     ubyte perform_scroll = false
@@ -17,7 +23,7 @@ main {
 
         c64.SCROLX &= %11110111     ; 38 column mode
 
-        c64.set_rasterirq(40)     ; enable animation
+        c64.set_rasterirq(200)     ; enable animation
 
         ubyte target_height = 10
         ubyte active_height = 24
@@ -123,10 +129,10 @@ spritedata $0f00 {
 
 
 irq {
-    ubyte smoothx=7
+    ubyte smoothx=0
     sub irq() {
         smoothx = (smoothx-1) & 7
-        main.perform_scroll = smoothx==0
+        main.perform_scroll = smoothx==7
         c64.SCROLX = (c64.SCROLX & %11111000) | smoothx
     }
 }
