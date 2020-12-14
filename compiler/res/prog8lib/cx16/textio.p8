@@ -16,7 +16,7 @@ const ubyte DEFAULT_HEIGHT = 60
 
 
 sub  clear_screen() {
-    clear_screenchars(' ')
+    txt.chrout(147)
 }
 
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
