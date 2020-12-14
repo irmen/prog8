@@ -74,6 +74,7 @@ io_error:
     sub list_files(ubyte drivenumber, uword pattern, ubyte suffixmatch, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
         ubyte[256] names_buffer
+        ubyte[256] names_buffer1        ; to store a bit more names
         uword buf_ptr = &names_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern, suffixmatch) {
@@ -86,7 +87,7 @@ io_error:
                 memcopy(diskio.list_filename, buf_ptr, strlen(list_filename)+1)        ; todo replace with strcpy()
                 buf_ptr += strlen(list_filename)+1
                 files_found++
-                if buf_ptr - &names_buffer > 256-18
+                if buf_ptr - &names_buffer > (len(names_buffer) + len(names_buffer1) - 18)
                     break
                 if files_found == max_names
                     break
