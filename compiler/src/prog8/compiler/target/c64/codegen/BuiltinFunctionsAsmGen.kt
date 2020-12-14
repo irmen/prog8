@@ -81,6 +81,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "set_irqd" -> asmgen.out("  sei")
             "strlen" -> funcStrlen(fcall, resultToStack)
             "strcmp" -> funcStrcmp(fcall, func, resultToStack, scope)
+            "strcopy" -> {
+                translateArguments(fcall.args, func, scope)
+                if(resultToStack)
+                    asmgen.out("  jsr  prog8_lib.func_strcopy_to_stack")
+                else
+                    asmgen.out("  jsr  prog8_lib.func_strcopy")
+            }
             "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func, scope)
             "substr", "leftstr", "rightstr" -> {
                 translateArguments(fcall.args, func, scope)

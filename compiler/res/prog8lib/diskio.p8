@@ -83,9 +83,7 @@ io_error:
                 name_ptrs++
                 @(name_ptrs) = msb(buf_ptr)
                 name_ptrs++
-                ; ubyte length = strcpy(diskio.list_filename, buf_ptr)
-                memcopy(diskio.list_filename, buf_ptr, strlen(list_filename)+1)        ; todo replace with strcpy()
-                buf_ptr += strlen(list_filename)+1
+                buf_ptr += strcopy(diskio.list_filename, buf_ptr) + 1
                 files_found++
                 if buf_ptr - &names_buffer > (len(names_buffer) + len(names_buffer1) - 18)
                     break

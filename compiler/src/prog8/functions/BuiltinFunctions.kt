@@ -156,6 +156,7 @@ private val functionSignatures: List<FSignature> = listOf(
                             FParam("numwords", setOf(DataType.UWORD)),
                             FParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
     FSignature("strlen"      , true, listOf(FParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen),
+    FSignature("strcopy"     , false, listOf(FParam("from", IterableDatatypes + DataType.UWORD), FParam("to", IterableDatatypes + DataType.UWORD)), DataType.UBYTE),
     FSignature("substr"      , false, listOf(
             FParam("source", IterableDatatypes + DataType.UWORD),
             FParam("target", IterableDatatypes + DataType.UWORD),

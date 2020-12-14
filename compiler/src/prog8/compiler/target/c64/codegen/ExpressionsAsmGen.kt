@@ -1947,24 +1947,29 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
-    private fun translateBinaryOperatorWords(operator: String, types: DataType) {
+    private fun translateBinaryOperatorWords(operator: String, dt: DataType) {
         when(operator) {
             "**" -> throw AssemblyError("** operator requires floats")
             "*" -> asmgen.out("  jsr  prog8_lib.mul_word")
-            "/" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.idiv_uw" else "  jsr  prog8_lib.idiv_w")
+            "/" -> asmgen.out(if(dt==DataType.UWORD) "  jsr  prog8_lib.idiv_uw" else "  jsr  prog8_lib.idiv_w")
             "%" -> {
-                if(types==DataType.WORD)
+                if(dt==DataType.WORD)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 asmgen.out("  jsr prog8_lib.remainder_uw")
             }
             "+" -> asmgen.out("  jsr  prog8_lib.add_w")
             "-" -> asmgen.out("  jsr  prog8_lib.sub_w")
-            "<<" -> throw AssemblyError("<< should not operate via stack")
-            ">>" -> throw AssemblyError(">> should not operate via stack")
-            "<" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.less_uw" else "  jsr  prog8_lib.less_w")
-            ">" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.greater_uw" else "  jsr  prog8_lib.greater_w")
-            "<=" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.lesseq_uw" else "  jsr  prog8_lib.lesseq_w")
-            ">=" -> asmgen.out(if(types==DataType.UWORD) "  jsr  prog8_lib.greatereq_uw" else "  jsr  prog8_lib.greatereq_w")
+            "<<" -> asmgen.out("  jsr  math.shift_left_w")
+            ">>" -> {
+                if(dt==DataType.UWORD)
+                    asmgen.out("  jsr  math.shift_right_uw")
+                else
+                    asmgen.out("  jsr  math.shift_right_w")
+            }
+            "<" -> asmgen.out(if(dt==DataType.UWORD) "  jsr  prog8_lib.less_uw" else "  jsr  prog8_lib.less_w")
+            ">" -> asmgen.out(if(dt==DataType.UWORD) "  jsr  prog8_lib.greater_uw" else "  jsr  prog8_lib.greater_w")
+            "<=" -> asmgen.out(if(dt==DataType.UWORD) "  jsr  prog8_lib.lesseq_uw" else "  jsr  prog8_lib.lesseq_w")
+            ">=" -> asmgen.out(if(dt==DataType.UWORD) "  jsr  prog8_lib.greatereq_uw" else "  jsr  prog8_lib.greatereq_w")
             "==" -> asmgen.out("  jsr  prog8_lib.equal_w")
             "!=" -> asmgen.out("  jsr  prog8_lib.notequal_w")            "&" -> asmgen.out("  jsr  prog8_lib.bitand_w")
             "^" -> asmgen.out("  jsr  prog8_lib.bitxor_w")

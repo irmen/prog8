@@ -1346,3 +1346,24 @@ func_strcmp_stack	.proc
 		dex
 		rts
 		.pend
+
+func_strcopy	.proc
+		lda  _arg_to
+		ldy  _arg_to+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  _arg_from
+		ldy  _arg_from+1
+		jsr  strcpy
+		tya
+		rts
+_arg_from	.word  0
+_arg_to		.word  0
+		.pend
+
+func_strcopy_to_stack	.proc
+		jsr  func_strcopy
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend

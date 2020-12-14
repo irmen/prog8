@@ -2,8 +2,6 @@
 TODO
 ====
 
-- txt.clear_screen() must also position text cursor at 0,0 on both machines
-- add strcpy()
 - reverse mkword() again because of consistency with the platform and AY register pairs...
 - see if we can group some errors together for instance the (now single) errors about unidentified symbols
 - Cx16 target: support full-screen 640x480 and 320x240 graphics? That requires our own custom graphics routines though to draw lines.

@@ -993,6 +993,7 @@ _arg_index	.byte  0
 strcpy		.proc
 		; copy a string (must be 0-terminated) from A/Y to (P8ZP_SCRATCH_W1)
 		; it is assumed the target string is large enough.
+		; returns the length of the string that was copied in Y.
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  #$ff

@@ -324,6 +324,10 @@ main {
         txt.print(result)
         txt.chrout('\n')
 
+        void strcopy(s2, s1)
+        txt.print_ub(99+strcopy(s2,s1))
+        txt.chrout('\n')
+
         test_stack.test()
 
     }
