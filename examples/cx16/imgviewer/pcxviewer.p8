@@ -55,16 +55,12 @@ main {
                         uword num_colors = 2**bits_per_pixel
                         if number_of_planes == 1 {
                             if (width & 7) == 0 {
-                                txt.print_uw(width)
-                                txt.chrout('x')
-                                txt.print_uw(height)
-                                txt.print(", ")
-                                txt.print_uw(num_colors)
-                                txt.print(" colors\n")
+                                txt.clear_screen()
+                                graphics.clear_screen(1, 0)
                                 if palette_format==2
                                     set_grayscale_palette()
                                 else if num_colors == 16
-                                    set_palette(&header + $10, 16)
+                                    set_palette_8rgb(&header + $10, 16)
                                 else if num_colors == 2
                                     set_monochrome_palette()
                                 when bits_per_pixel {
@@ -73,8 +69,6 @@ main {
                                     1 -> load_ok = bitmap.do1bpp(width, height)
                                 }
                                 if load_ok {
-                                    txt.clear_screen()
-                                    graphics.clear_screen(1, 0)
                                     load_ok = c64.CHRIN()
                                     if load_ok == 12 {
                                         ; there is 256 colors of palette data at the end
@@ -83,7 +77,7 @@ main {
                                         size = diskio.f_read(palette_mem, 3*256)
                                         if size==3*256 {
                                             load_ok = true
-                                            set_palette(palette_mem, num_colors)
+                                            set_palette_8rgb(palette_mem, num_colors)
                                         }
                                     }
                                 }
@@ -131,7 +125,7 @@ main {
         }
     }
 
-    sub set_palette(uword palletteptr, uword num_colors) {
+    sub set_palette_8rgb(uword palletteptr, uword num_colors) {
         uword vera_palette_ptr = $fa00
         ubyte red
         ubyte greenblue

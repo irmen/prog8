@@ -36,7 +36,7 @@ main {
         }
     }
 
-    sub set_palette(uword palletteptr, uword num_colors) {
+    sub set_palette_8rgb(uword palletteptr, uword num_colors) {
         uword vera_palette_ptr = $fa00
         ubyte red
         ubyte greenblue
@@ -119,7 +119,7 @@ iff {
                                 height /= 2     ; interlaced: just skip every odd scanline later
                             if camg & $0080 and have_cmap
                                 make_ehb_palette()
-                            main.set_palette(&cmap, num_colors)
+                            main.set_palette_8rgb(&cmap, num_colors)
                             if compression
                                 decode_rle()
                             else
