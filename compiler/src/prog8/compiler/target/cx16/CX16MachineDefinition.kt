@@ -38,8 +38,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
     override fun launchEmulator(programName: String) {
         for(emulator in listOf("x16emu")) {
             println("\nStarting Commander X16 emulator $emulator...")
-            val cmdline = listOf(emulator, "-rom", "/usr/share/x16-rom/rom.bin", "-scale", "2",
-                    "-run", "-prg", programName + ".prg")
+            val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "$programName.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()
             val process: Process
             try {
