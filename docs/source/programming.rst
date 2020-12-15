@@ -836,6 +836,12 @@ mkword(msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.
     So mkword($80, $22) results in $8022.
 
+    .. note::
+        The arguments to the mkword() function are in 'natural' order that is first the msb then the lsb.
+        Don't get confused by how the system actually stores this 16-bit word value in memory (which is
+        in little-endian format, so lsb first then msb)
+
+
 rnd()
     returns a pseudo-random byte from 0..255
 
