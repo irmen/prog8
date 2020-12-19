@@ -54,7 +54,8 @@ These are usually declarations of kernel (ROM) routines or low-level assembly on
 that have their arguments solely passed into specific registers.
 Sometimes even via a processor status flag such as the Carry flag.
 Return values also via designated registers.
-
+The processor status flag is preserved on returning so you can immediately act on that for instance
+via a special branch instruction such as ``if_z`` or ``if_cs`` etc.
 
 
 regular subroutines
@@ -73,8 +74,12 @@ regular subroutines
   Float values will be put in the ``FAC1`` float 'register' (Basic allocated this somewhere in ram).
 
 
-
 Calls to builtin functions are treated in a special way:
 Generally if they have a single argument it's passed in a register or register pair.
 Multiple arguments are passed like a normal subroutine, into variables.
 Some builtin functions have a fully custom implementation.
+
+
+The compiler will warn about routines that are called and that return a value, if you're not
+doing something with that returnvalue. This can be on purpuse if you're simply not interested in it.
+Use the ``void`` keyword in front of the subroutine call to get rid of the warning in that case.
