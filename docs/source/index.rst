@@ -165,6 +165,7 @@ If you're targeting the CommanderX16 instead, there's the `x16emu <https://githu
     programming.rst
     syntaxreference.rst
     libraries.rst
+    technical.rst
     todo.rst
 
 

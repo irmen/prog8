@@ -724,7 +724,7 @@ class Subroutine(override val name: String,
             return when(returntypes.singleOrNull()) {
                 in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null))
                 in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
-                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
+                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.FAC1, null))
                 null -> emptyList()
                 else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
             }

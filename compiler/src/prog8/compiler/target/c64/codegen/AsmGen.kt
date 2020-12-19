@@ -1195,12 +1195,8 @@ $label              nop""")
                 throw AssemblyError("normal subroutines can't return value in status register directly")
 
             when (returnType) {
-                in IntegerDatatypes -> {
-                    assignmentAsmGen.assignExpressionToRegister(returnvalue, returnReg.registerOrPair)
-                }
-                DataType.FLOAT -> {
-                    // return the float value via FAC1
-                    assignExpressionToRegister(returnvalue, RegisterOrPair.FAC1)
+                in NumericDatatypes -> {
+                    assignExpressionToRegister(returnvalue, returnReg.registerOrPair)
                 }
                 else -> {
                     // all else take its address and assign that also to AY register pair

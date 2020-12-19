@@ -20,7 +20,6 @@ Add more compiler optimizations to the existing ones.
 
 - further optimize assignment codegeneration, such as the following:
 - binexpr splitting (beware self-referencing expressions and asm code ballooning though)
-- detect var->var argument passing to subroutines and avoid the second variable and copying of the value
 - more optimizations on the language AST level
 - more optimizations on the final assembly source level
 - note: subroutine inlining is abandoned because of problems referencing non-local stuff. Can't move everything around.
