@@ -289,6 +289,22 @@ internal class AstChecker(private val program: Program,
                             regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
                         }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> { /* no sensible way to count this */ }
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> { /* no sensible way to count this */ }
                         null ->
                             if(p.statusflag!=null)
                                 statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1

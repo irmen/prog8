@@ -4,7 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.statements.*

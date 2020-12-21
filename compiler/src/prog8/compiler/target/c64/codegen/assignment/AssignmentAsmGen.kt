@@ -688,6 +688,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
                             RegisterOrPair.AX -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldx  #0")
                             RegisterOrPair.AY -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  #0")
+                            RegisterOrPair.R0,
+                            RegisterOrPair.R1,
+                            RegisterOrPair.R2,
+                            RegisterOrPair.R3,
+                            RegisterOrPair.R4,
+                            RegisterOrPair.R5,
+                            RegisterOrPair.R6,
+                            RegisterOrPair.R7,
+                            RegisterOrPair.R8,
+                            RegisterOrPair.R9,
+                            RegisterOrPair.R10,
+                            RegisterOrPair.R11,
+                            RegisterOrPair.R12,
+                            RegisterOrPair.R13,
+                            RegisterOrPair.R14,
+                            RegisterOrPair.R15 -> TODO("assign stack byte to cx16 register")
                             else -> throw AssemblyError("can't assign byte from stack to register pair XY")
                         }
                     }
@@ -696,6 +712,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             RegisterOrPair.AY-> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
                             RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
+                            RegisterOrPair.R0,
+                            RegisterOrPair.R1,
+                            RegisterOrPair.R2,
+                            RegisterOrPair.R3,
+                            RegisterOrPair.R4,
+                            RegisterOrPair.R5,
+                            RegisterOrPair.R6,
+                            RegisterOrPair.R7,
+                            RegisterOrPair.R8,
+                            RegisterOrPair.R9,
+                            RegisterOrPair.R10,
+                            RegisterOrPair.R11,
+                            RegisterOrPair.R12,
+                            RegisterOrPair.R13,
+                            RegisterOrPair.R14,
+                            RegisterOrPair.R15 -> TODO("assign stack word to cx16 register")
                             else -> throw AssemblyError("can't assign word to single byte register")
                         }
                     }
@@ -736,6 +768,29 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName |  ldx  #>$sourceName")
                     RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
                     RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName |  ldy  #>$sourceName")
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> {
+                        asmgen.out("""
+                            lda  #<$sourceName
+                            sta  cx16.${target.register.toString().toLowerCase()}
+                            lda  #>$sourceName
+                            sta  cx16.${target.register.toString().toLowerCase()}+1
+                        """)
+                    }
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
@@ -869,6 +924,29 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  $sourceName+1")
                     RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  $sourceName+1")
                     RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  $sourceName+1")
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> {
+                        asmgen.out("""
+                            lda  $sourceName
+                            sta  cx16.${target.register.toString().toLowerCase()}
+                            lda  $sourceName+1
+                            sta  cx16.${target.register.toString().toLowerCase()}+1
+                        """)
+                    }
                     else -> throw AssemblyError("can't load word in a single 8-bit register")
                 }
             }
@@ -1034,6 +1112,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
                     RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> TODO("cx16 register assign byte var")
                 }
             }
             TargetStorageKind.STACK -> {
@@ -1190,6 +1284,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> { asmgen.out("  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  tax |  ldy  #0") }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("cx16 register assign from register A")
                     }
                     CpuRegister.X -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  txa") }
@@ -1199,6 +1309,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> { asmgen.out("  txa |  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  ldy  #0") }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("cx16 register assign from register X")
                     }
                     CpuRegister.Y -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  tya") }
@@ -1208,6 +1334,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> { asmgen.out("  tya |  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  tya |  tax |  ldy  #0") }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("cx16 register assign from register Y")
                     }
                 }
             }
@@ -1267,18 +1409,66 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.AX -> { }
                         RegisterOrPair.XY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG |  tax") }
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("assign reg.pair to cx16 register")
                         else -> throw AssemblyError("expected reg pair")
                     }
                     RegisterOrPair.AY -> when(target.register!!) {
                         RegisterOrPair.AY -> { }
                         RegisterOrPair.AX -> { asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.XY -> { asmgen.out("  tax") }
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("assign reg.pair to cx16 register")
                         else -> throw AssemblyError("expected reg pair")
                     }
                     RegisterOrPair.XY -> when(target.register!!) {
                         RegisterOrPair.AY -> { asmgen.out("  txa") }
                         RegisterOrPair.AX -> { asmgen.out("  txa |  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.XY -> { }
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("assign reg.pair to cx16 register")
                         else -> throw AssemblyError("expected reg pair")
                     }
                     else -> throw AssemblyError("expected reg pair")
@@ -1382,6 +1572,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.AY -> asmgen.out("  lda  #${byte.toHex()} |  ldy  #0")
                 RegisterOrPair.XY -> asmgen.out("  ldx  #${byte.toHex()} |  ldy  #0")
                 RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
+                RegisterOrPair.R0,
+                RegisterOrPair.R1,
+                RegisterOrPair.R2,
+                RegisterOrPair.R3,
+                RegisterOrPair.R4,
+                RegisterOrPair.R5,
+                RegisterOrPair.R6,
+                RegisterOrPair.R7,
+                RegisterOrPair.R8,
+                RegisterOrPair.R9,
+                RegisterOrPair.R10,
+                RegisterOrPair.R11,
+                RegisterOrPair.R12,
+                RegisterOrPair.R13,
+                RegisterOrPair.R14,
+                RegisterOrPair.R15 -> TODO("cx16 register assign constant byte")
             }
             TargetStorageKind.STACK -> {
                 asmgen.out("""
@@ -1551,6 +1757,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AY -> asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
                     RegisterOrPair.XY -> asmgen.out("  ldy  ${address.toHex()} |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> TODO("cx16 register assign memory byte")
                 }
                 TargetStorageKind.STACK -> {
                     asmgen.out("""
@@ -1582,6 +1804,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> asmgen.out("  ldy  #0")
                         RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("cx16 register assign memory byte")
                     }
                 }
                 TargetStorageKind.STACK -> {

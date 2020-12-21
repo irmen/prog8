@@ -1145,10 +1145,10 @@ $counterVar    .byte  0""")
             "%asminclude" -> {
                 val sourcecode = loadAsmIncludeFile(stmt.args[0].str!!, stmt.definingModule().source)
                 val scopeprefix = stmt.args[1].str ?: ""
-                if(!scopeprefix.isBlank())
+                if(scopeprefix.isNotBlank())
                     out("$scopeprefix\t.proc")
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
-                if(!scopeprefix.isBlank())
+                if(scopeprefix.isNotBlank())
                     out("  .pend\n")
             }
             "%asmbinary" -> {

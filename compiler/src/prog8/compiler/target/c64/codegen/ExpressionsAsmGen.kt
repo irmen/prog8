@@ -1366,6 +1366,22 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         }
                         RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.push_fac1")
                         RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.push_fac2")
+                        RegisterOrPair.R0,
+                        RegisterOrPair.R1,
+                        RegisterOrPair.R2,
+                        RegisterOrPair.R3,
+                        RegisterOrPair.R4,
+                        RegisterOrPair.R5,
+                        RegisterOrPair.R6,
+                        RegisterOrPair.R7,
+                        RegisterOrPair.R8,
+                        RegisterOrPair.R9,
+                        RegisterOrPair.R10,
+                        RegisterOrPair.R11,
+                        RegisterOrPair.R12,
+                        RegisterOrPair.R13,
+                        RegisterOrPair.R14,
+                        RegisterOrPair.R15 -> TODO("cx16 register onto stack")
                     }
                 }
                 else if(reg.statusflag!=null) {

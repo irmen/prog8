@@ -190,53 +190,54 @@ romsub $ff6b = mouse_get(ubyte zpdataptr @X)  clobbers(A)
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
-romsub $ff4d = clock_set_date_time()  clobbers(A, X, Y)      ; args: r0, r1, r2, r3L
-romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)      ; outout args: r0, r1, r2, r3L
+romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
+romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
 
 ; TODO specify the correct clobbers for alle these functions below, we now assume all 3 regs are clobbered
 
 ; high level graphics & fonts
-romsub $ff20 = GRAPH_init()  clobbers(A,X,Y)           ; uses vectors=r0
+romsub $ff20 = GRAPH_init(uword vectors @R0)  clobbers(A,X,Y)
 romsub $ff23 = GRAPH_clear()  clobbers(A,X,Y)
-romsub $ff26 = GRAPH_set_window()  clobbers(A,X,Y)      ; uses x=r0, y=r1, width=r2, height=r3
+romsub $ff26 = GRAPH_set_window(uword x @R0, uword y @R1, uword width @R2, uword height @R3)  clobbers(A,X,Y)
 romsub $ff29 = GRAPH_set_colors(ubyte stroke @A, ubyte fill @X, ubyte background @Y)  clobbers (A,X,Y)
-romsub $ff2c = GRAPH_draw_line()  clobbers(A,X,Y)       ; uses x1=r0, y1=r1, x2=r2, y2=r3
-romsub $ff2f = GRAPH_draw_rect(ubyte fill @Pc)  clobbers(A,X,Y)   ; uses x=r0, y=r1, width=r2, height=r3, cornerradius=r4
-romsub $ff32 = GRAPH_move_rect()  clobbers(A,X,Y)       ; uses sx=r0, sy=r1, tx=r2, ty=r3, width=r4, height=r5
-romsub $ff35 = GRAPH_draw_oval(ubyte fill @Pc)  clobbers(A,X,Y)       ; uses x=r0, y=r1, width=r2, height=r3
-romsub $ff38 = GRAPH_draw_image()  clobbers(A,X,Y)      ; uses x=r0, y=r1, ptr=r2, width=r3, height=r4
-romsub $ff3b = GRAPH_set_font()  clobbers(A,X,Y)         ; uses ptr=r0
+romsub $ff2c = GRAPH_draw_line(uword x1 @R0, uword y1 @R1, uword x2 @R2, uword y2 @R3)  clobbers(A,X,Y)
+romsub $ff2f = GRAPH_draw_rect(uword x @R0, uword y @R1, uword width @R2, uword height @R3, uword cornerradius @R4, ubyte fill @Pc)  clobbers(A,X,Y)
+romsub $ff32 = GRAPH_move_rect(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword width @R4, uword height @R5)  clobbers(A,X,Y)
+romsub $ff35 = GRAPH_draw_oval(uword x @R0, uword y @R1, uword width @R2, uword height @R3, ubyte fill @Pc)  clobbers(A,X,Y)
+romsub $ff38 = GRAPH_draw_image(uword x @R0, uword y @R1, uword ptr @R2, uword width @R3, uword height @R4)  clobbers(A,X,Y)
+romsub $ff3b = GRAPH_set_font(uword fontptr @R0)  clobbers(A,X,Y)
 romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte height_or_style @Y, ubyte is_control @Pc)  clobbers(A,X,Y)
-romsub $ff41 = GRAPH_put_char(ubyte char @A)  clobbers(A,X,Y)   ; uses x=r0, y=r1
+romsub $ff41 = GRAPH_put_char(uword x @R0, uword y @R1, ubyte char @A)  clobbers(A,X,Y)
+romsub $ff41 = GRAPH_put_next_char(ubyte char @A)  clobbers(A,X,Y)     ; alias for the routine above that doesn't reset the position of the initial character
 
 ; framebuffer
 romsub $fef6 = FB_init()  clobbers(A,X,Y)
-romsub $fef9 = FB_get_info()  clobbers(X,Y) -> byte @A    ; also outputs width=r0, height=r1
-romsub $fefc = FB_set_palette(ubyte index @A, ubyte bytecount @X)  clobbers(A,X,Y)      ; also uses pointer=r0
-romsub $feff = FB_cursor_position()  clobbers(A,X,Y)    ; uses x=r0, y=r1
-romsub $ff02 = FB_cursor_next_line()  clobbers(A,X,Y)   ; uses x=r0
+romsub $fef9 = FB_get_info()  clobbers(X,Y) -> byte @A, uword @R0, uword @R1    ; width=r0, height=r1
+romsub $fefc = FB_set_palette(uword pointer @R0, ubyte index @A, ubyte bytecount @X)  clobbers(A,X,Y)
+romsub $feff = FB_cursor_position(uword x @R0, uword y @R1)  clobbers(A,X,Y)
+romsub $ff02 = FB_cursor_next_line(uword x @R0)  clobbers(A,X,Y)
 romsub $ff05 = FB_get_pixel()  clobbers(X,Y) -> ubyte @A
-romsub $ff08 = FB_get_pixels()  clobbers(A,X,Y)         ; uses ptr=r0, count=r1
+romsub $ff08 = FB_get_pixels(uword pointer @R0, uword count @R1)  clobbers(A,X,Y)
 romsub $ff0b = FB_set_pixel(ubyte color @A)  clobbers(A,X,Y)
-romsub $ff0e = FB_set_pixels()  clobbers(A,X,Y)         ; uses ptr=r0, count=r1
+romsub $ff0e = FB_set_pixels(uword pointer @R0, uword count @R1)  clobbers(A,X,Y)
 romsub $ff11 = FB_set_8_pixels(ubyte pattern @A, ubyte color @X)  clobbers(A,X,Y)
-romsub $ff14 = FB_set_8_pixels_opaque(ubyte mask @A, ubyte color1 @X, ubyte color2 @Y)  clobbers(A,X,Y)  ; also uses r0L=pattern
-romsub $ff17 = FB_fill_pixels(ubyte color @A)  clobbers(A,X,Y)   ; also uses count=r0, step=r1
-romsub $ff1a = FB_filter_pixels()  clobbers(A,X,Y)      ; uses ptr=r0, count=r1
-romsub $ff1d = FB_move_pixels()  clobbers(A,X,Y)        ; uses sx=r0, sy=r1, tx=r2, ty=r3, count=r4
+romsub $ff14 = FB_set_8_pixels_opaque(ubyte mask @A, ubyte color1 @X, ubyte color2 @Y, ubyte pattern @R0)  clobbers(A,X,Y)
+romsub $ff17 = FB_fill_pixels(ubyte color @A, uword count @R0, uword pstep @R1)  clobbers(A,X,Y)
+romsub $ff1a = FB_filter_pixels(uword pointer @ R0, uword count @R1)  clobbers(A,X,Y)
+romsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4)  clobbers(A,X,Y)
 
 ; misc
-romsub $fef0 = sprite_set_image(ubyte number @A, ubyte width @X, ubyte height @Y, ubyte apply_mask @Pc)  clobbers(A,X,Y) -> ubyte @Pc  ; also uses pixels=r0, mask=r1, bpp=r2L
-romsub $fef3 = sprite_set_position(ubyte number @A)  clobbers(A,X,Y)  ; also uses x=r0 and y=r1
-romsub $fee4 = memory_fill(ubyte value @A)  clobbers(A,X,Y)      ; uses address=r0, num_bytes=r1
-romsub $fee7 = memory_copy()  clobbers(A,X,Y)                    ; uses source=r0, target=r1, num_bytes=r2
-romsub $feea = memory_crc()  clobbers(A,X,Y)                     ; uses address=r0, num_bytes=r1     result->r2
-romsub $feed = memory_decompress()  clobbers(A,X,Y)              ; uses input=r0, output=r1     result->r1
-romsub $fedb = console_init()  clobbers(A,X,Y)           ; uses x=r0, y=r1, width=r2, height=r3
+romsub $fef0 = sprite_set_image(ubyte number @A, ubyte width @X, ubyte height @Y, uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte apply_mask @Pc)  clobbers(A,X,Y) -> ubyte @Pc
+romsub $fef3 = sprite_set_position(ubyte number @A, uword x @R0, uword y @R1)  clobbers(A,X,Y)
+romsub $fee4 = memory_fill(uword address @R0, uword num_bytes @R1, ubyte value @A)  clobbers(A,X,Y)
+romsub $fee7 = memory_copy(uword source @R0, uword target @R1, uword num_bytes @R2)  clobbers(A,X,Y)
+romsub $feea = memory_crc(uword address @R0, uword num_bytes @R1)  clobbers(A,X,Y) -> uword @R2
+romsub $feed = memory_decompress(uword input @R0, uword output @R1)  clobbers(A,X,Y) -> uword @R1       ; last address +1 is result in R1
+romsub $fedb = console_init(uword x @R0, uword y @R1, uword width @R2, uword height @R3)  clobbers(A,X,Y)
 romsub $fede = console_put_char(ubyte char @A, ubyte wrapping @Pc)  clobbers(A,X,Y)
 romsub $fee1 = console_get_char()  clobbers(X,Y) -> ubyte @A
-romsub $fed8 = console_put_image()  clobbers(A,X,Y)      ; uses ptr=r0, width=r1, height=r2
-romsub $fed5 = console_set_paging_message()  clobbers(A,X,Y)     ; uses messageptr=r0
+romsub $fed8 = console_put_image(uword pointer @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
+romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
 romsub $fed2 = kbdbuf_put(ubyte key @A)  clobbers(A,X,Y)
 romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)

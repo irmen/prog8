@@ -1,11 +1,11 @@
 buildscript {
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.20"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.21"
     }
 }
 
 plugins {
-    // id "org.jetbrains.kotlin.jvm" version "1.4.20"
+    // id "org.jetbrains.kotlin.jvm" version "1.4.21"
     id 'application'
     id 'org.jetbrains.dokka' version "0.9.18"
     id 'com.github.johnrengelman.shadow' version '5.2.0'

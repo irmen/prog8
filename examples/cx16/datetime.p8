@@ -8,11 +8,7 @@ main {
 
     sub start() {
 
-        cx16.r0 = mkword(8, 2020 - 1900)
-        cx16.r1 = mkword(19, 27)
-        cx16.r2 = mkword(0, 16)
-        cx16.r3 = 0
-        cx16.clock_set_date_time()
+        cx16.clock_set_date_time(mkword(8, 2020 - 1900), mkword(19, 27), mkword(0, 16), 0)
         txt.lowercase()
 
         repeat {

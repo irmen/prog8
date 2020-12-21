@@ -18,8 +18,7 @@ main {
         uword anglez
 
         void cx16.screen_set_mode($80)
-        cx16.r0 = 0
-        cx16.GRAPH_init()
+        cx16.GRAPH_init(0)
         cx16.GRAPH_set_colors(13, 6, 6)
         cx16.GRAPH_clear()
         print_ship_name()
@@ -28,12 +27,7 @@ main {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
 
             cx16.GRAPH_set_colors(0, 0, 0)
-            cx16.r0 = 32
-            cx16.r1 = 10
-            cx16.r2 = 256
-            cx16.r3 = 185
-            cx16.r4 = 0
-            cx16.GRAPH_draw_rect(true)
+            cx16.GRAPH_draw_rect(32, 10, 256, 185, 0, true)
 
             cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()
@@ -52,20 +46,20 @@ main {
         cx16.r1 = 8
         ubyte c
         for c in "ship: "
-            cx16.GRAPH_put_char(c)
+            cx16.GRAPH_put_next_char(c)
         for c in shipdata.shipName
-            cx16.GRAPH_put_char(c)
+            cx16.GRAPH_put_next_char(c)
 
         cx16.r0 += 16
         print_number_gfx(shipdata.totalNumberOfPoints)
         for c in " vertices, "
-            cx16.GRAPH_put_char(c)
+            cx16.GRAPH_put_next_char(c)
         print_number_gfx(shipdata.totalNumberOfEdges)
         for c in " edges, "
-            cx16.GRAPH_put_char(c)
+            cx16.GRAPH_put_next_char(c)
         print_number_gfx(shipdata.totalNumberOfFaces)
         for c in " faces"
-            cx16.GRAPH_put_char(c)
+            cx16.GRAPH_put_next_char(c)
     }
 
     asmsub print_number_gfx(ubyte num @ A) clobbers(A,Y) {
@@ -136,11 +130,10 @@ main {
             ubyte @zp vTo = shipdata.edgesTo[i]
             word persp1 = 200 + rotatedz[vFrom]/256
             word persp2 = 200 + rotatedz[vTo]/256
-            cx16.r0 = rotatedx[vFrom] / persp1 + screen_width/2 as uword
-            cx16.r1 = rotatedy[vFrom] / persp1 + screen_height/2 as uword
-            cx16.r2 = rotatedx[vTo] / persp2 + screen_width/2 as uword
-            cx16.r3 = rotatedy[vTo] / persp2 + screen_height/2 as uword
-            cx16.GRAPH_draw_line()
+            cx16.GRAPH_draw_line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+                rotatedy[vFrom] / persp1 + screen_height/2 as uword,
+                rotatedx[vTo] / persp2 + screen_width/2 as uword,
+                rotatedy[vTo] / persp2 + screen_height/2 as uword)
         }
     }
 
@@ -217,11 +210,10 @@ main {
         ubyte vTo = shipdata.edgesTo[edgeidx]
         word persp1 = 200 + rotatedz[vFrom]/256
         word persp2 = 200 + rotatedz[vTo]/256
-        cx16.r0 = rotatedx[vFrom] / persp1 + screen_width/2 as uword
-        cx16.r1 = rotatedy[vFrom] / persp1 + screen_height/2 as uword
-        cx16.r2 = rotatedx[vTo] / persp2 + screen_width/2 as uword
-        cx16.r3 = rotatedy[vTo] / persp2 + screen_height/2 as uword
-        cx16.GRAPH_draw_line()
+        cx16.GRAPH_draw_line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+            rotatedy[vFrom] / persp1 + screen_height/2 as uword,
+            rotatedx[vTo] / persp2 + screen_width/2 as uword,
+            rotatedy[vTo] / persp2 + screen_height/2 as uword)
     }
 }
 

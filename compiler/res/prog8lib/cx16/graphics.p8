@@ -13,8 +13,7 @@ graphics {
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
         void cx16.screen_set_mode($80)
-        cx16.r0 = 0
-        cx16.GRAPH_init()
+        cx16.GRAPH_init(0)
         clear_screen(1, 0)
     }
 
@@ -31,11 +30,7 @@ graphics {
     }
 
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
-        cx16.r0 = x1
-        cx16.r1 = y1
-        cx16.r2 = x2
-        cx16.r3 = y2
-        cx16.GRAPH_draw_line()
+        cx16.GRAPH_draw_line(x1, y1, x2, y2)
     }
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {

@@ -44,9 +44,7 @@ koala_module {
                     cx16.r1 = cy as uword + d
                     cx16.FB_cursor_position()
                     get_8_pixels()
-                    cx16.r0 = &pixels
-                    cx16.r1 = 8
-                    cx16.FB_set_pixels()
+                    cx16.FB_set_pixels(pixels, 8)
                 }
             }
             cy_times_forty += 40

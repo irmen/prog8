@@ -29,9 +29,7 @@ main {
         for pixely in 0 to height-1 {
             float yy = YL+dy*(pixely as float)
 
-            cx16.r0 = 0
-            cx16.r1 = pixely
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position(0, pixely)
 
             for pixelx in 0 to width-1 {
                 float xx = XL+dx*(pixelx as float)
@@ -71,18 +69,14 @@ main {
         txt.print_b(max_iter)
         txt.print(" iter")
 
-        cx16.r0 = 0
-        cx16.r1 = 0
-        cx16.r2 = 0
-        cx16.r3 = 0
-        cx16.clock_set_date_time()
+        cx16.clock_set_date_time(0, 0, 0, 0)
 
         cx16.r0=0
         cx16.FB_init()
     }
 
     sub print_time() {
-        cx16.clock_get_date_time()
+        void cx16.clock_get_date_time()
         txt.plot(33, 12)
         if lsb(cx16.r2) < 10
             c64.CHROUT('0')
