@@ -1331,7 +1331,18 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  #<${word.toHex()} |  ldx  #>${word.toHex()}")
                     RegisterOrPair.AY -> asmgen.out("  lda  #<${word.toHex()} |  ldy  #>${word.toHex()}")
                     RegisterOrPair.XY -> asmgen.out("  ldx  #<${word.toHex()} |  ldy  #>${word.toHex()}")
-                    else -> throw AssemblyError("can't assign word to single byte register")
+                    RegisterOrPair.R0, RegisterOrPair.R1,  RegisterOrPair.R2, RegisterOrPair.R3,
+                    RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
+                    RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
+                    RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15 -> {
+                        asmgen.out("""
+                            lda  #<${word.toHex()}
+                            sta  cx16.${target.register.toString().toLowerCase()}
+                            lda  #>${word.toHex()}
+                            sta  cx16.${target.register.toString().toLowerCase()}+1
+                            """)
+                    }
+                    else -> throw AssemblyError("invalid register for word value")
                 }
             }
             TargetStorageKind.STACK -> {

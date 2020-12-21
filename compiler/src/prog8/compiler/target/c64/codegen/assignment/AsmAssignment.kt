@@ -77,6 +77,22 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, scope, register = registers)
                     RegisterOrPair.FAC1,
                     RegisterOrPair.FAC2 -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.FLOAT, scope, register = registers)
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, scope, register = registers)
                 }
     }
 }

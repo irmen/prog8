@@ -272,13 +272,13 @@ private class AsmSubroutineReturn(val type: DataType,
 
 private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
         = asmsub_return().map {
-            val register = it.identifier()?.toAst()
+            val register = it.register().text
             var registerorpair: RegisterOrPair? = null
             var statusregister: Statusflag? = null
             if(register!=null) {
-                when (val name = register.nameInSource.single()) {
-                    in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(name)
-                    in Statusflag.names -> statusregister = Statusflag.valueOf(name)
+                when (register) {
+                    in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(register)
+                    in Statusflag.names -> statusregister = Statusflag.valueOf(register)
                     else -> throw FatalAstException("invalid register or status flag in $it")
                 }
             }
@@ -293,14 +293,14 @@ private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParamete
         = asmsub_param().map {
     val vardecl = it.vardecl()
     val datatype = vardecl.datatype()?.toAst() ?: DataType.STRUCT
-    val register = it.identifier()?.toAst()
+    val register = it.register().text
     var registerorpair: RegisterOrPair? = null
     var statusregister: Statusflag? = null
     if(register!=null) {
-        when (val name = register.nameInSource.single()) {
-            in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(name)
-            in Statusflag.names -> statusregister = Statusflag.valueOf(name)
-            else -> throw FatalAstException("invalid register or status flag '$name'")
+        when (register) {
+            in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(register)
+            in Statusflag.names -> statusregister = Statusflag.valueOf(register)
+            else -> throw FatalAstException("invalid register or status flag '$register'")
         }
     }
     AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister, toPosition())
@@ -371,7 +371,7 @@ private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
 }
 
 private fun prog8Parser.ClobberContext.toAst() : Set<CpuRegister> {
-    val names = this.identifier().map { it.toAst().nameInSource.single() }
+    val names = this.cpuregister().map { it.text }
     return names.map { CpuRegister.valueOf(it) }.toSet()
 }
 

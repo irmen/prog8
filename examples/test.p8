@@ -7,15 +7,10 @@
 %option no_sysinit
 
 main {
-    sub start () {
-        float x = floo()
-        floats.print_f(x2)
-        test_stack.test2()
-        blerp=foobar+xxx
-    }
 
-    sub floo() -> float {
-        float fl = 1.1
-        return flxxx * 2
+    romsub $ff2c = GRAPH_draw_line(uword x1 @R0, uword y1 @R1, uword x2 @R2, uword y2 @R3)  clobbers(A,X,Y)       ; uses x1=r0, y1=r1, x2=r2, y2=r3
+
+    sub start () {
+        GRAPH_draw_line(1,2,3,4)
     }
 }
