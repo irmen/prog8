@@ -14,6 +14,6 @@
     <orderEntry type="module" module-name="parser" />
     <orderEntry type="library" name="unittest-libs" level="project" />
     <orderEntry type="library" name="kotlinx-cli-jvm-0.1.0-dev-5" level="project" />
-    <orderEntry type="library" name="antlr-runtime-4.8" level="project" />
+    <orderEntry type="library" name="antlr-runtime-4.9" level="project" />
   </component>
 </module>
