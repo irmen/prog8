@@ -222,14 +222,15 @@ romsub $ff08 = FB_get_pixels(uword pointer @R0, uword count @R1)  clobbers(A,X,Y
 romsub $ff0b = FB_set_pixel(ubyte color @A)  clobbers(A,X,Y)
 romsub $ff0e = FB_set_pixels(uword pointer @R0, uword count @R1)  clobbers(A,X,Y)
 romsub $ff11 = FB_set_8_pixels(ubyte pattern @A, ubyte color @X)  clobbers(A,X,Y)
-romsub $ff14 = FB_set_8_pixels_opaque(ubyte mask @A, ubyte color1 @X, ubyte color2 @Y, ubyte pattern @R0)  clobbers(A,X,Y)
-romsub $ff17 = FB_fill_pixels(ubyte color @A, uword count @R0, uword pstep @R1)  clobbers(A,X,Y)
+romsub $ff14 = FB_set_8_pixels_opaque(ubyte pattern @R0, ubyte mask @A, ubyte color1 @X, ubyte color2 @Y)  clobbers(A,X,Y)
+romsub $ff14 = FB_set_8_pixels_opaque_OLD(ubyte mask @A, ubyte color1 @X, ubyte color2 @Y)  clobbers(A,X,Y)     ; TODO WEG!!!!
+romsub $ff17 = FB_fill_pixels(uword count @R0, uword pstep @R1, ubyte color @A)  clobbers(A,X,Y)
 romsub $ff1a = FB_filter_pixels(uword pointer @ R0, uword count @R1)  clobbers(A,X,Y)
 romsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4)  clobbers(A,X,Y)
 
 ; misc
-romsub $fef0 = sprite_set_image(ubyte number @A, ubyte width @X, ubyte height @Y, uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte apply_mask @Pc)  clobbers(A,X,Y) -> ubyte @Pc
-romsub $fef3 = sprite_set_position(ubyte number @A, uword x @R0, uword y @R1)  clobbers(A,X,Y)
+romsub $fef0 = sprite_set_image(uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, ubyte apply_mask @Pc)  clobbers(A,X,Y) -> ubyte @Pc
+romsub $fef3 = sprite_set_position(uword x @R0, uword y @R1, ubyte number @A)  clobbers(A,X,Y)
 romsub $fee4 = memory_fill(uword address @R0, uword num_bytes @R1, ubyte value @A)  clobbers(A,X,Y)
 romsub $fee7 = memory_copy(uword source @R0, uword target @R1, uword num_bytes @R2)  clobbers(A,X,Y)
 romsub $feea = memory_crc(uword address @R0, uword num_bytes @R1)  clobbers(A,X,Y) -> uword @R2

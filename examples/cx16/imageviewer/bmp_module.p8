@@ -104,8 +104,10 @@ bmp_module {
                         }
                     }
                     1 -> {
-                        for x in 0 to width-1 step 8
-                            cx16.FB_set_8_pixels_opaque(255, 255, 0, c64.CHRIN())
+                        for x in 0 to width-1 step 8 {
+                            cx16.r0 = c64.CHRIN()
+                            cx16.FB_set_8_pixels_opaque_OLD(255, 255, 0)        ; TODO update
+                        }
                     }
                 }
 

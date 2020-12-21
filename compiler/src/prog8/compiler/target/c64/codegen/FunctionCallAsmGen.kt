@@ -113,8 +113,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 argi.value.second.registerOrPair == RegisterOrPair.Y -> {
                     asmgen.out("  ldy  P8ESTACK_LO+${argi.index},x")
                 }
-                argi.value.second.registerOrPair in setOf(RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3, RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
-                    RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11, RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15) -> {
+                argi.value.second.registerOrPair in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  P8ESTACK_LO+${argi.index},x
                             sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
