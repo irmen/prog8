@@ -139,12 +139,6 @@ iff_module {
                 height = graphics.HEIGHT-1
         }
 
-        sub set_cursor(uword x, uword y) {
-            cx16.r0=offsetx+x
-            cx16.r1=offsety+y
-            cx16.FB_cursor_position()
-        }
-
         sub decode_raw() {
             start_plot()
             ubyte interlaced = (camg & $0004) != 0
@@ -153,7 +147,7 @@ iff_module {
                 void diskio.f_read(scanline_data_ptr, interleave_stride)
                 if interlaced
                     void diskio.f_read(scanline_data_ptr, interleave_stride)
-                set_cursor(0, y)
+                cx16.FB_cursor_position(offsetx, offsety+y)
                 planar_to_chunky_scanline()
             }
         }
@@ -166,7 +160,7 @@ iff_module {
                 decode_rle_scanline()
                 if interlaced
                     decode_rle_scanline()
-                set_cursor(0, y)
+                cx16.FB_cursor_position(offsetx, offsety+y)
                 planar_to_chunky_scanline()
             }
         }

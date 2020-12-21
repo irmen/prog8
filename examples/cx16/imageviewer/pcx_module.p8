@@ -83,23 +83,17 @@ bitmap {
         status = (not c64.READST()) or c64.READST()==64
     }
 
-    sub set_cursor(uword x, uword y) {
-        cx16.r0=offsetx+x
-        cx16.r1=offsety+y
-        cx16.FB_cursor_position()
-    }
-
     sub next_scanline() {
         px = 0
         py++
         y_ok = py < graphics.HEIGHT-1
-        set_cursor(0, py)
+        cx16.FB_cursor_position(offsetx, offsety+py)
         status = (not c64.READST()) or c64.READST()==64
     }
 
     sub do1bpp(uword width, uword height) -> ubyte {
         start_plot(width, height)
-        set_cursor(0, 0)
+        cx16.FB_cursor_position(offsetx, offsety)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
@@ -124,7 +118,7 @@ bitmap {
 
     sub do4bpp(uword width, uword height) -> ubyte {
         start_plot(width, height)
-        set_cursor(0, 0)
+        cx16.FB_cursor_position(offsetx, offsety)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
@@ -152,7 +146,7 @@ bitmap {
 
     sub do8bpp(uword width, uword height) -> ubyte {
         start_plot(width, height)
-        set_cursor(0, 0)
+        cx16.FB_cursor_position(offsetx, offsety)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {

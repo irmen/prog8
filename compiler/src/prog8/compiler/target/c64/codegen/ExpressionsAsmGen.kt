@@ -1381,7 +1381,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         RegisterOrPair.R12,
                         RegisterOrPair.R13,
                         RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> TODO("cx16 register onto stack")
+                        RegisterOrPair.R15 -> {
+                            asmgen.out("""
+                                lda  cx16.${reg.registerOrPair.toString().toLowerCase()}
+                                sta  P8ESTACK_LO,x
+                                lda  cx16.${reg.registerOrPair.toString().toLowerCase()}+1
+                                sta  P8ESTACK_HI,x
+                                dex
+                            """)
+                        }
                     }
                 }
                 else if(reg.statusflag!=null) {

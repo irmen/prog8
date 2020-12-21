@@ -117,8 +117,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when(func.name) {
                 "memset" -> {
                     // use the ROM function of the Cx16
-                    asmgen.assignExpressionToVariable(fcall.args[0], "cx16.r0", DataType.UWORD, scope)      // TODO register R0
-                    asmgen.assignExpressionToVariable(fcall.args[1], "cx16.r1", DataType.UWORD, scope)      // TODO register R1
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
                     asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.A)
                     val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
                     asmgen.saveRegister(CpuRegister.X, false, sub)
@@ -136,9 +136,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
 
                     // use the ROM function of the Cx16
-                    asmgen.assignExpressionToVariable(fcall.args[0], "cx16.r0", DataType.UWORD, scope)  // TODO register R0
-                    asmgen.assignExpressionToVariable(fcall.args[1], "cx16.r1", DataType.UWORD, scope)  // TODO register R1
-                    asmgen.assignExpressionToVariable(fcall.args[2], "cx16.r2", DataType.UWORD, scope)  // TODO register R2
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
+                    asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R2)
                     val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
                     asmgen.saveRegister(CpuRegister.X, false, sub)
                     asmgen.out("  jsr  cx16.memory_copy")

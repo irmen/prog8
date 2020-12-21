@@ -10,8 +10,8 @@ main {
         void diskio.directory(8)
         txt.chrout('\n')
 
-        if diskio.lf_start_list(8, "cub", false) {
-            txt.print("\nfiles starting with 'cub':\n")
+        if diskio.lf_start_list(8, "nier", false) {
+            txt.print("\nfiles starting with 'nier':\n")
             while diskio.lf_next_entry() {
                 txt.print(diskio.list_filename)
                 txt.print("  ")
@@ -23,8 +23,8 @@ main {
             txt.print("error\n")
         }
 
-        if diskio.lf_start_list(8, "gfx", true) {
-            txt.print("\nfiles ending with 'gfx':\n")
+        if diskio.lf_start_list(8, "pcx", true) {
+            txt.print("\nfiles ending with 'pcx':\n")
             while diskio.lf_next_entry() {
                 txt.print(diskio.list_filename)
                 txt.print("  ")

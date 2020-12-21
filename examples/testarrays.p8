@@ -29,7 +29,7 @@ main {
         &uword[4] muwarray = $c000
         &float[4] mflarray = $c000
 
-        ubyte A
+        ubyte a
         byte bb
         ubyte ub
         word ww
@@ -37,14 +37,14 @@ main {
         float fl
 
         ; read array
-        A=s1[2]
+        a=s1[2]
         ub=s1[2]
         bb=barray[2]
         ub=ubarray[2]
         ww=warray[2]
         uw=uwarray[2]
         fl=flarray[2]
-        A=ms1[2]
+        a=ms1[2]
         ub=ms1[2]
         bb=mbarray[2]
         ub=mubarray[2]
@@ -52,29 +52,29 @@ main {
         uw=muwarray[2]
         fl=mflarray[2]
 
-        A=s1[A]
-        ub=s1[A]
-        bb=barray[A]
-        ub=ubarray[A]
-        ww=warray[A]
-        uw=uwarray[A]
-        fl=flarray[A]
-        A=ms1[A]
-        ub=ms1[A]
-        bb=mbarray[A]
-        ub=mubarray[A]
-        ww=mwarray[A]
-        uw=muwarray[A]
-        fl=mflarray[A]
+        a=s1[a]
+        ub=s1[a]
+        bb=barray[a]
+        ub=ubarray[a]
+        ww=warray[a]
+        uw=uwarray[a]
+        fl=flarray[a]
+        a=ms1[a]
+        ub=ms1[a]
+        bb=mbarray[a]
+        ub=mubarray[a]
+        ww=mwarray[a]
+        uw=muwarray[a]
+        fl=mflarray[a]
 
-        A=s1[bb]
+        a=s1[bb]
         ub=s1[bb]
         bb=barray[bb]
         ub=ubarray[bb]
         ww=warray[bb]
         uw=uwarray[bb]
         fl=flarray[bb]
-        A=ms1[bb]
+        a=ms1[bb]
         ub=ms1[bb]
         bb=mbarray[bb]
         ub=mubarray[bb]
@@ -82,14 +82,14 @@ main {
         uw=muwarray[bb]
         fl=mflarray[bb]
 
-;        A=s1[bb*3]
+;        a=s1[bb*3]
 ;        ub=s1[bb*3]
 ;        bb=barray[bb*3]
 ;        ub=ubarray[bb*3]
 ;        ww=warray[bb*3]
 ;        uw=uwarray[bb*3]
 ;        fl=flarray[bb*3]
-;        A=ms1[bb*3]
+;        a=ms1[bb*3]
 ;        ub=ms1[bb*3]
 ;        bb=mbarray[bb*3]
 ;        ub=mubarray[bb*3]
@@ -100,14 +100,14 @@ main {
         ; write array
         barray[2]++
         barray[2]--
-        s1[2] = A
+        s1[2] = a
         s1[2] = ub
         barray[2] = bb
         ubarray[2] = ub
         warray[2] = ww
         uwarray[2] = uw
         flarray[2] = fl
-        ms1[2] = A
+        ms1[2] = a
         ms1[2] = ub
         mbarray[2]++
         mbarray[2] = bb
@@ -117,12 +117,12 @@ main {
         muwarray[2] = uw
         mflarray[2] = fl
 
-        s1[A] = ub
-        barray[A] = bb
-        ubarray[A] = ub
-        warray[A] = ww
-        uwarray[A] = uw
-        flarray[A] = fl
+        s1[a] = ub
+        barray[a] = bb
+        ubarray[a] = ub
+        warray[a] = ww
+        uwarray[a] = uw
+        flarray[a] = fl
 
         s1[bb] = ub
         barray[bb] = bb

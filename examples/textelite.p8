@@ -100,7 +100,7 @@ trader {
             txt.print("ok\n")
         } else {
             txt.print("\ni/o error: ")
-            diskio.status(8)
+            txt.print(diskio.status(8))
             txt.chrout('\n')
             return
         }
@@ -128,7 +128,7 @@ trader {
             txt.print("ok\n")
         } else {
             txt.print("\ni/o error: ")
-            diskio.status(8)
+            txt.print(diskio.status(8))
             txt.chrout('\n')
         }
     }
@@ -927,7 +927,6 @@ planet {
 
 util {
     sub prefix_matches(uword prefixptr, uword stringptr) -> ubyte {
-        ubyte ix=0
         repeat {
             ubyte pc = @(prefixptr)
             ubyte sc = @(stringptr)

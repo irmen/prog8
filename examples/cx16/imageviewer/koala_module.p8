@@ -40,9 +40,7 @@ koala_module {
         for cy in 0 to 24*8 step 8 {
             for cx in 0 to 39 {
                 for d in 0 to 7 {
-                    cx16.r0 = cx as uword * 8
-                    cx16.r1 = cy as uword + d
-                    cx16.FB_cursor_position()
+                    cx16.FB_cursor_position(cx as uword * 8, cy as uword + d)
                     get_8_pixels()
                     cx16.FB_set_pixels(pixels, 8)
                 }

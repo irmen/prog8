@@ -8,7 +8,7 @@ main {
 
         txt.plot(0,24)
 
-        ubyte Y
+        ubyte y
         ubyte ub=200
         byte bb=-100
         uword uw = 2000
@@ -33,9 +33,9 @@ main {
         flarr[1] ++
 
         check_ub(ub, 201)
-        Y=100
-        Y++
-        check_ub(Y, 101)
+        y=100
+        y++
+        check_ub(y, 101)
         check_fl(fl, 1000.99)
         check_b(bb, -99)
         check_uw(uw, 2001)
@@ -64,9 +64,9 @@ main {
         flarr[1] --
         check_ub(ub, 200)
 
-        Y=100
-        Y--
-        check_ub(Y, 99)
+        y=100
+        y--
+        check_ub(y, 99)
         check_fl(fl, 999.99)
         check_b(bb, -100)
         check_uw(uw, 2000)

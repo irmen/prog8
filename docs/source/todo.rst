@@ -2,6 +2,7 @@
 TODO
 ====
 
+- add target() function that returns 16=cx16, 64=C64
 - Cx16 target: support full-screen 640x480 and 320x240 graphics? That requires our own custom graphics routines though to draw lines.
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'

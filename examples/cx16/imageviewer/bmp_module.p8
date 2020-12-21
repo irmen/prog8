@@ -72,12 +72,6 @@ bmp_module {
                 height = graphics.HEIGHT-1
         }
 
-        sub set_cursor(uword x, uword y) {
-            cx16.r0=offsetx+x
-            cx16.r1=offsety+y
-            cx16.FB_cursor_position()
-        }
-
         sub decode_bitmap() {
             start_plot()
             uword bits_width = width * bpp
@@ -87,7 +81,7 @@ bmp_module {
             uword y
             ubyte b
             for y in height-1 downto 0 {
-                set_cursor(0, y)
+                cx16.FB_cursor_position(offsetx, offsety+y)
                 when bpp {
                     8 -> {
                         for x in 0 to width-1

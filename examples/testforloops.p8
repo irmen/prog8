@@ -16,7 +16,7 @@ main {
         ubyte ub
         byte bb
         word total
-        ubyte A
+        ubyte a
 
         txt.plot(0,24)
 
@@ -24,8 +24,8 @@ main {
         count = 0
         total = 0
         txt.print("a in string: ")
-        for A in "hello" {
-            aa=A
+        for a in "hello" {
+            aa=a
             count++
             total += aa
         }
@@ -37,8 +37,8 @@ main {
         count = 0
         total = 0
         txt.print("a in arrayliteral: ")
-        for A in [1,3,5,99] {
-            aa=A
+        for a in [1,3,5,99] {
+            aa=a
             count++
             total += aa
         }
@@ -50,8 +50,8 @@ main {
         count = 0
         total = 0
         txt.print("a in arrayvar: ")
-        for A in ubarr {
-            aa=A
+        for a in ubarr {
+            aa=a
             count++
             total += aa
         }
@@ -63,8 +63,8 @@ main {
         count = 0
         total = 0
         txt.print("a in range step 1: ")
-        for A in 10 to 20 {
-            aa=A
+        for a in 10 to 20 {
+            aa=a
             count++
             total += aa
         }
@@ -76,8 +76,8 @@ main {
         count = 0
         total = 0
         txt.print("a in range step -1: ")
-        for A in 20 downto 10 {
-            aa=A
+        for a in 20 downto 10 {
+            aa=a
             count++
             total += aa
         }
@@ -89,8 +89,8 @@ main {
         count = 0
         total = 0
         txt.print("a in range step 3: ")
-        for A in 10 to 21 step 3 {
-            aa=A
+        for a in 10 to 21 step 3 {
+            aa=a
             count++
             total += aa
         }
@@ -102,8 +102,8 @@ main {
         count = 0
         total = 0
         txt.print("a in rangeincl step 3: ")
-        for A in 10 to 22 step 3 {
-            aa=A
+        for a in 10 to 22 step 3 {
+            aa=a
             count++
             total += aa
         }
@@ -115,8 +115,8 @@ main {
         count = 0
         total = 0
         txt.print("a in range step -3: ")
-        for A in 24 to 10 step -3 {
-            aa=A
+        for a in 24 to 10 step -3 {
+            aa=a
             count++
             total += aa
         }
@@ -128,8 +128,8 @@ main {
         count = 0
         total = 0
         txt.print("a in rangeincl step -3: ")
-        for A in 24 to 9 step -3 {
-            aa=A
+        for a in 24 to 9 step -3 {
+            aa=a
             count++
             total += aa
         }
@@ -142,8 +142,8 @@ main {
         total = 0
         endub1=101
         txt.print("a in ncrange step 1: ")
-        for A in 95 to endub1 step 1 {
-            aa=A
+        for a in 95 to endub1 step 1 {
+            aa=a
             count++
             total += aa
         }
@@ -156,8 +156,8 @@ main {
         total = 0
         endub1=101
         txt.print("a in ncrange step -1: ")
-        for A in endub1 downto 95 {
-            aa=A
+        for a in endub1 downto 95 {
+            aa=a
             count++
             total += aa
         }
@@ -170,8 +170,8 @@ main {
         total = 0
         endub1=105
         txt.print("a in ncrange step 3: ")
-        for A in 95 to endub1 step 3 {
-            aa=A
+        for a in 95 to endub1 step 3 {
+            aa=a
             count++
             total += aa
         }
@@ -184,8 +184,8 @@ main {
         total = 0
         endub1=105
         txt.print("a in ncrange step -3: ")
-        for A in endub1 to 95 step -3 {
-            aa=A
+        for a in endub1 to 95 step -3 {
+            aa=a
             count++
             total += aa
         }
@@ -198,8 +198,8 @@ main {
         total = 0
         endub1=107
         txt.print("a in ncrangeinc step 3: ")
-        for A in 95 to endub1 step 3 {
-            aa=A
+        for a in 95 to endub1 step 3 {
+            aa=a
             count++
             total += aa
         }
@@ -212,8 +212,8 @@ main {
         total = 0
         endub1=107
         txt.print("a in ncrangeinc step -3: ")
-        for A in endub1 to 95 step -3 {
-            aa=A
+        for a in endub1 to 95 step -3 {
+            aa=a
             count++
             total += aa
         }
