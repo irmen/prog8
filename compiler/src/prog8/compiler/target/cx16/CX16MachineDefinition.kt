@@ -21,7 +21,6 @@ internal object CX16MachineDefinition: IMachineDefinition {
     override val RAW_LOAD_ADDRESS = 0x8000
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    // and some heavily used string constants derived from the two values above
     override val ESTACK_LO = 0x0400        //  $0400-$04ff inclusive
     override val ESTACK_HI = 0x0500        //  $0500-$05ff inclusive
 

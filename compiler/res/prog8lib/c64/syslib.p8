@@ -462,3 +462,30 @@ _raster_irq_handler
 
 
 }
+
+
+cx16 {
+
+    ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
+    ; they are simulated on the C64 as well but their location in memory is different
+    ; (because there's no room for them in the zeropage)
+    ; they are allocated at the bottom of the eval-stack (should be ample space unless
+    ; you're doing insane nesting of expressions...)
+    &uword r0  = $cf00
+    &uword r1  = $cf02
+    &uword r2  = $cf04
+    &uword r3  = $cf06
+    &uword r4  = $cf08
+    &uword r5  = $cf0a
+    &uword r6  = $cf0c
+    &uword r7  = $cf0e
+    &uword r8  = $cf10
+    &uword r9  = $cf12
+    &uword r10 = $cf14
+    &uword r11 = $cf16
+    &uword r12 = $cf18
+    &uword r13 = $cf1a
+    &uword r14 = $cf1c
+    &uword r15 = $cf1e
+
+}

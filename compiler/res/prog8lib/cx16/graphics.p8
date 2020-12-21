@@ -48,31 +48,31 @@ graphics {
         while xx>=yy {
             cx16.r0 = xcenter + xx
             cx16.r1 = ycenter + yy
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter - xx
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter + xx
             cx16.r1 = ycenter - yy
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter - xx
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter + yy
             cx16.r1 = ycenter + xx
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter - yy
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter + yy
             cx16.r1 = ycenter - xx
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             cx16.r0 = xcenter - yy
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position2()
             cx16.FB_set_pixel(1)
             yy++
             if decisionOver2<=0 {
@@ -102,27 +102,19 @@ graphics {
             ubyte ycenter_min_xx = ycenter - xx
             uword @zp plotx
 
-            cx16.r0 = xcenter-xx
-            cx16.r1 = ycenter_plus_yy
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position(xcenter-xx, ycenter_plus_yy)
             repeat xx*2+1
                 cx16.FB_set_pixel(1)
 
-            cx16.r0 = xcenter-xx
-            cx16.r1 = ycenter_min_yy
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position(xcenter-xx, ycenter_min_yy)
             repeat xx*2+1
                 cx16.FB_set_pixel(1)
 
-            cx16.r0 = xcenter-yy
-            cx16.r1 = ycenter_plus_xx
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position(xcenter-yy, ycenter_plus_xx)
             repeat yy*2+1
                 cx16.FB_set_pixel(1)
 
-            cx16.r0 = xcenter-yy
-            cx16.r1 = ycenter_min_xx
-            cx16.FB_cursor_position()
+            cx16.FB_cursor_position(xcenter-yy, ycenter_min_xx)
             repeat yy*2+1
                 cx16.FB_set_pixel(1)
 
@@ -137,9 +129,7 @@ graphics {
     }
 
     sub  plot(uword plotx, ubyte ploty) {
-        cx16.r0 = plotx
-        cx16.r1 = ploty
-        cx16.FB_cursor_position()
+        cx16.FB_cursor_position(plotx, ploty)
         cx16.FB_set_pixel(1)
     }
 }

@@ -24,7 +24,6 @@ internal object C64MachineDefinition: IMachineDefinition {
     override val RAW_LOAD_ADDRESS = 0xc000
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    // and some heavily used string constants derived from the two values above
     override val ESTACK_LO = 0xce00        //  $ce00-$ceff inclusive
     override val ESTACK_HI = 0xcf00        //  $ce00-$ceff inclusive
 
