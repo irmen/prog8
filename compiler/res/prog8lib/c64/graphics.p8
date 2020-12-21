@@ -33,10 +33,10 @@ graphics {
 
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
-        ; This code special cases various quadrant loops to allow simple ++ and -- operations.
+        ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
         ; TODO rewrite this in optimized assembly
         if y1>y2 {
-            ; make sure dy is always positive to avoid 8 instead of just 4 special cases
+            ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
             swap(y1, y2)
         }
