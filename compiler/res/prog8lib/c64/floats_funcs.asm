@@ -175,8 +175,8 @@ func_log2_fac1	.proc
 		stx  P8ZP_SCRATCH_REG
 		jsr  LOG
 		jsr  MOVEF
-		lda  #<FL_LOG2
-		ldy  #>FL_LOG2
+		lda  #<FL_LOG2_const
+		ldy  #>FL_LOG2_const
 		jsr  MOVFM
 		jsr  FDIVT
 		ldx  P8ZP_SCRATCH_REG

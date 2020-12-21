@@ -32,7 +32,6 @@ internal interface IMachineDefinition {
 
     fun initializeZeropage(compilerOptions: CompilationOptions)
     fun getFloat(num: Number): IMachineFloat
-    fun getFloatRomConst(number: Double): String?
     fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program)
     fun launchEmulator(programName: String)
     fun isRegularRAMaddress(address: Int): Boolean

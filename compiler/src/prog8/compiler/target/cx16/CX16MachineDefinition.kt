@@ -28,7 +28,6 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
     override fun getFloat(num: Number) = C64MachineDefinition.Mflpt5.fromNumber(num)
 
-    override fun getFloatRomConst(number: Double): String? = null       // Cx16 has no pulblic ROM float locations
     override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
         if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             importer.importLibraryModule(program, "syslib")

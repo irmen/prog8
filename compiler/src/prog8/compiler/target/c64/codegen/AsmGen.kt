@@ -470,16 +470,13 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun getFloatAsmConst(number: Double): String {
-        var asmName = CompilationTarget.instance.machine.getFloatRomConst(number)
-        if(asmName.isNullOrEmpty()) {
-            // no ROM float const for this value, create our own
-            asmName = globalFloatConsts[number]
-            if(asmName==null) {
-                asmName = "prog8_float_const_${globalFloatConsts.size}"
-                globalFloatConsts[number] = asmName
-            }
-        }
-        return asmName
+        val asmName = globalFloatConsts[number]
+        if(asmName!=null)
+            return asmName
+
+        val newName = "prog8_float_const_${globalFloatConsts.size}"
+        globalFloatConsts[number] = newName
+        return newName
     }
 
     internal fun asmSymbolName(identifier: IdentifierReference): String {

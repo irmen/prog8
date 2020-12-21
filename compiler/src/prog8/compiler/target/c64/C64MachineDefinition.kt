@@ -7,7 +7,6 @@ import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.IMachineFloat
 import prog8.parser.ModuleImporter
 import java.io.IOException
-import java.math.RoundingMode
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
@@ -30,41 +29,6 @@ internal object C64MachineDefinition: IMachineDefinition {
     override lateinit var zeropage: Zeropage
 
     override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
-
-    override fun getFloatRomConst(number: Double): String? {
-        // try to match the ROM float constants to save memory
-        val mflpt5 = Mflpt5.fromNumber(number)
-        val floatbytes = shortArrayOf(mflpt5.b0, mflpt5.b1, mflpt5.b2, mflpt5.b3, mflpt5.b4)
-        when {
-            floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "floats.FL_ZERO_const"        // not a ROM const
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x00, 0x00, 0x00, 0x00)) -> return "floats.FL_ONE_const"        // not a ROM const
-            floatbytes.contentEquals(shortArrayOf(0x82, 0x49, 0x0f, 0xda, 0xa1)) -> return "floats.FL_PIVAL"
-            floatbytes.contentEquals(shortArrayOf(0x90, 0x80, 0x00, 0x00, 0x00)) -> return "floats.FL_N32768"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x00, 0x00, 0x00, 0x00)) -> return "floats.FL_FONE"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x35, 0x04, 0xf3, 0x34)) -> return "floats.FL_SQRHLF"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x35, 0x04, 0xf3, 0x34)) -> return "floats.FL_SQRTWO"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x80, 0x00, 0x00, 0x00)) -> return "floats.FL_NEGHLF"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x31, 0x72, 0x17, 0xf8)) -> return "floats.FL_LOG2"
-            floatbytes.contentEquals(shortArrayOf(0x84, 0x20, 0x00, 0x00, 0x00)) -> return "floats.FL_TENC"
-            floatbytes.contentEquals(shortArrayOf(0x9e, 0x6e, 0x6b, 0x28, 0x00)) -> return "floats.FL_NZMIL"
-            floatbytes.contentEquals(shortArrayOf(0x80, 0x00, 0x00, 0x00, 0x00)) -> return "floats.FL_FHALF"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x38, 0xaa, 0x3b, 0x29)) -> return "floats.FL_LOGEB2"
-            floatbytes.contentEquals(shortArrayOf(0x81, 0x49, 0x0f, 0xda, 0xa2)) -> return "floats.FL_PIHALF"
-            floatbytes.contentEquals(shortArrayOf(0x83, 0x49, 0x0f, 0xda, 0xa2)) -> return "floats.FL_TWOPI"
-            floatbytes.contentEquals(shortArrayOf(0x7f, 0x00, 0x00, 0x00, 0x00)) -> return "floats.FL_FR4"
-            else -> {
-                // attempt to correct for a few rounding issues
-                when (number.toBigDecimal().setScale(10, RoundingMode.HALF_DOWN).toDouble()) {
-                    3.1415926536 -> return "floats.FL_PIVAL"
-                    1.4142135624 -> return "floats.FL_SQRTWO"
-                    0.7071067812 -> return "floats.FL_SQRHLF"
-                    0.6931471806 -> return "floats.FL_LOG2"
-                    else -> {}
-                }
-            }
-        }
-        return null
-    }
 
     override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
         if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
