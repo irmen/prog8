@@ -8,7 +8,14 @@
 
 main {
     sub start () {
+        float x = floo()
+        floats.print_f(x2)
+        test_stack.test2()
+        blerp=foobar+xxx
+    }
 
-        test_stack.test()
+    sub floo() -> float {
+        float fl = 1.1
+        return flxxx * 2
     }
 }

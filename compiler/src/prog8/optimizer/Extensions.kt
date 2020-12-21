@@ -5,7 +5,7 @@ import prog8.ast.base.ErrorReporter
 
 
 internal fun Program.constantFold(errors: ErrorReporter) {
-    val valuetypefixer = VarConstantValueTypeAdjuster(this)
+    val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
     valuetypefixer.visit(this)
     if(errors.isEmpty()) {
         valuetypefixer.applyModifications()

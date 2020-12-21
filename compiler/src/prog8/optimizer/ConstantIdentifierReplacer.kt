@@ -13,18 +13,23 @@ import prog8.ast.statements.VarDecl
 import prog8.compiler.target.CompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl
-internal class VarConstantValueTypeAdjuster(private val program: Program) : AstWalker() {
+internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        val declConstValue = decl.value?.constValue(program)
-        if(declConstValue!=null && (decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST)
+        try {
+            val declConstValue = decl.value?.constValue(program)
+            if(declConstValue!=null && (decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST)
                 && !declConstValue.inferType(program).istype(decl.datatype)) {
-            // cast the numeric literal to the appropriate datatype of the variable
-            val cast = declConstValue.cast(decl.datatype)
-            if(cast.isValid)
-                return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
+                // cast the numeric literal to the appropriate datatype of the variable
+                val cast = declConstValue.cast(decl.datatype)
+                if(cast.isValid)
+                    return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
+            }
+        } catch (x: UndefinedSymbolError) {
+            errors.err(x.message, x.position)
         }
+
         return noModifications
     }
 }
@@ -47,11 +52,22 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
         if(forloop!=null && identifier===forloop.loopVar)
             return noModifications
 
-        val cval = identifier.constValue(program) ?: return noModifications
-        return when (cval.type) {
-            in NumericDatatypes -> listOf(IAstModification.ReplaceNode(identifier, NumericLiteralValue(cval.type, cval.number, identifier.position), identifier.parent))
-            in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
-            else -> noModifications
+        try {
+            val cval = identifier.constValue(program) ?: return noModifications
+            return when (cval.type) {
+                in NumericDatatypes -> listOf(
+                    IAstModification.ReplaceNode(
+                        identifier,
+                        NumericLiteralValue(cval.type, cval.number, identifier.position),
+                        identifier.parent
+                    )
+                )
+                in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
+                else -> noModifications
+            }
+        } catch (x: UndefinedSymbolError) {
+            errors.err(x.message, x.position)
+            return noModifications
         }
     }
 
@@ -78,11 +94,16 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     }
                 } else if(arraysize.constIndex()==null) {
                     // see if we can calculate the size from other fields
-                    val cval = arraysize.indexVar?.constValue(program) ?: arraysize.origExpression?.constValue(program)
-                    if(cval!=null) {
-                        arraysize.indexVar = null
-                        arraysize.origExpression = null
-                        arraysize.indexNum = cval
+                    try {
+                        val cval =  arraysize.indexVar?.constValue(program) ?: arraysize.origExpression?.constValue(program)
+                        if (cval != null) {
+                            arraysize.indexVar = null
+                            arraysize.origExpression = null
+                            arraysize.indexNum = cval
+                        }
+                    } catch (x: UndefinedSymbolError) {
+                        errors.err(x.message, x.position)
+                        return noModifications
                     }
                 }
             }
