@@ -143,7 +143,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         when (val sub = value.target.targetStatement(program.namespace)) {
                             is Subroutine -> {
                                 asmgen.translateFunctionCall(value)
-                                val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.registerOrPair!=null }
+                                val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
+                                    sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.statusflag!=null }
                                 when (returnValue.first) {
                                     DataType.STR -> {
                                         when(assign.target.datatype) {
@@ -177,7 +178,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                             RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                                             RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                                             RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
-                                            else -> throw AssemblyError("should be just one register byte result value")
+                                            else -> {
+                                                val sflag = returnValue.second.statusflag
+                                                if(sflag!=null)
+                                                    assignStatusFlagByte(assign.target, sflag)
+                                                else
+                                                    throw AssemblyError("should be just one register byte result value")
+                                            }
                                         }
                                     }
                                 }
@@ -226,6 +233,24 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 assignStackValue(assign.target)
             }
         }
+    }
+
+    private fun assignStatusFlagByte(target: AsmAssignTarget, statusflag: Statusflag) {
+        when(statusflag) {
+            Statusflag.Pc -> {
+                asmgen.out("  lda  #0 |  rol  a")
+            }
+            Statusflag.Pv -> {
+                asmgen.out("""
+                    bvs  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            else -> throw AssemblyError("can't use Z or N flags as return 'values'")
+        }
+        assignRegisterByte(target, CpuRegister.A)
     }
 
     private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origTypeCastExpression: TypecastExpression) {

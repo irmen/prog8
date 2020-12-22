@@ -150,7 +150,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is FunctionCall -> {
                     when (val sub = value.target.targetStatement(program.namespace)) {
                         is Subroutine -> {
-                            val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null }?.first
+                            val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
                                     ?: throw AssemblyError("can't translate zero return values in assignment")
 
                             AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)

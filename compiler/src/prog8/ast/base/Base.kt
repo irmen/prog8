@@ -95,9 +95,9 @@ enum class RegisterOrPair {
 
 enum class Statusflag {
     Pc,
-    Pz,
+    Pz,     // don't use
     Pv,
-    Pn;
+    Pn;     // don't use
 
     companion object {
         val names by lazy { values().map { it.toString()} }
