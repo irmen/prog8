@@ -888,9 +888,11 @@ rsave()
     Note: it's not needed to rsave() before an asm subroutine that clobbers the X register
     (which is used as the internal evaluation stack pointer).
     The compiler will take care of this situation automatically.
+    Note: the 16 bit 'virtual' registers of the Commander X16 are not saved.
 
 rrestore()
     Restores the CPU registers and the status flags from previously saved values.
+    Note: the 16 bit 'virtual' registers of the Commander X16 are not restored.
 
 read_flags()
     Returns the current value of the CPU status register.
@@ -914,6 +916,8 @@ swap(x, y)
 
 target()
     Returns byte value designating the target machine that the program was compiled for.
+    Notice that this is a compile-time constant value and is not determined on the
+    system when the program is running.
     The following return values are currently defined:
 
     - 16 = compiled for CommanderX16 with 65C02 CPU

@@ -38,6 +38,7 @@ What does Prog8 provide?
 - convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - fast execution speed due to compilation to native assembly code
 - inline assembly allows you to have full control when every cycle or byte matters
+- supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the C64.
 
 *Rapid edit-compile-run-debug cycle:*
 

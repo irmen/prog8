@@ -56,6 +56,7 @@ Language features
 - Variable data types include signed and unsigned bytes and words, arrays, strings and floats.
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``substr``, ``sort`` and ``reverse`` (and others)
+- Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the C64.
 - If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
@@ -132,7 +133,7 @@ Required tools
 
 `64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
 It's very easy to compile yourself.
-A recent precompiled .exe for Windows can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
+A recent precompiled .exe (only for Windows) can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
 *You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
 It's possible to use older versions, but it is very likely that the automatic Vice breakpoints won't work with them.
 

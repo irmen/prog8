@@ -131,21 +131,8 @@ The status register (P) carry flag and interrupt disable flag can be written via
 builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
 and read via the ``read_flags()`` function.
 
-
-Subroutine Calling Conventions
-------------------------------
-
-**Kernel/assembly subroutines:**
-Arguments and results are passed via registers.
-Sometimes the status register's Carry flag is used as well (as a boolean flag).
-Special care should be taken when the subroutine clobbers the X register.
-If it does, X must be saved before and restored after the call.
-
-**Normal user defined subroutines:**
-Arguments and result values are passed via global variables stored in memory
-*These are not allocated on a stack* so it is not possible to create recursive calls!
-The result value(s) of a subroutine are returned on the evaluation stack,
-to make it possible to use subroutines in expressions.
+The 16 'virtual' 16-bit registers that are defined on the Commander X16 machine are not real hardware
+registers and are just 16 memory-mapped word values that you *can* access directly.
 
 
 IRQ Handling

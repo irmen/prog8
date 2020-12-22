@@ -517,11 +517,11 @@ You can still call the subroutine and not store the results.
 
 **There is an exception:** if there's just one return value in a register, and one or more others that are returned
 as bits in the status register (such as the Carry bit), the compiler allows you to call the subroutine.
-It will then store the result value in a variable if required, and *keep the status register untouched
-after the call* so you can use a conditional branch statement for that.
-Note that this makes no sense inside an expression, so the compiler will still give an error for that.
+It will then store the result value in a variable if required, and *try to keep the status register untouched
+after the call* so you can often use a conditional branch statement for that. But the latter is tricky,
+make sure you check the generated assembly code.
 
-If there really are multiple return values (other than a combined 16 bit return value in 2 registers),
+If there really are multiple relevant return values (other than a combined 16 bit return value in 2 registers),
 you'll have to write a small block of custom inline assembly that does the call and stores the values
 appropriately. Don't forget to save/restore any registers that are modified.
 
@@ -557,7 +557,6 @@ This defines the ``LOAD`` subroutine at ROM memory address $FFD5, taking argumen
 and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
 
-
 User subroutines in the program source code that are implemented purely in assembly and which have an assembly calling convention (i.e.
 the parameters are strictly passed via cpu registers), are defined with ``asmsub`` like this::
 
@@ -575,6 +574,19 @@ the parameters are strictly passed via cpu registers), are defined with ``asmsub
     }
 
 the statement body of such a subroutine should consist of just an inline assembly block.
+
+The ``@ <register>`` part is required for rom and assembly-subroutines, as it specifies for the compiler
+what cpu registers should take the routine's arguments.  You can use the regular set of registers
+(A, X, Y), the special 16-bit register pairs to take word values (AX, AY and XY) and even a processor status
+flag such as Carry (Pc).
+
+.. note::
+    The 'virtual' 16-bit registers from the Commander X16 can also be used as ``R0`` .. ``R15`` .
+    This means you don't have to set them up manually before calling a subroutine that takes
+    one or more parameters in those 'registers'. You can just list the arguments directly.
+    *This also works on the Commodore-64!*  (however they are not as efficient there because they're not in zeropage)
+    In prog8 and assembly code these 'registers' are directly accessible too via
+    ``cx16.r0`` .. ``cx16.r15``  (they're memory mapped uword values)
 
 
 Expressions
