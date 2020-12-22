@@ -7,8 +7,6 @@
 ;   staged speed increase
 ;   some simple sound effects
 
-; TODO BROKEN: DOESN'T REGISTER KEYSTROKES ANYMORE (CAN'T START GAME)
-
 
 %target c64
 %import syslib

@@ -10,9 +10,6 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
-; TODO BROKEN IN VICE WHEN LOADING WITHOUT DISK: PRINTS WEIRD CHARACTERS FOR IO-ERROR
-
-
 main {
 
     const ubyte numforLave = 7      ;  Lave is 7th generated planet in galaxy one

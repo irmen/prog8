@@ -4,6 +4,8 @@
 %import test_stack
 %zeropage floatsafe
 
+; TODO WHY is this a couple of 100 bytes larger than a few hours ago?
+
 main {
 
     sub start() {

@@ -71,9 +71,13 @@ _y  .byte 0
 
     sub start () {
 
-                while c64.CHRIN() {
-                    ; read the rest of the entry until the end
-                }
+        txt.print("status 8: ")
+        uword ss = diskio.status(8)
+        txt.print(ss)
+        txt.print("\nstatus 9: ")
+        ss = diskio.status(9)
+        txt.print(ss)
+        txt.chrout('\n')
 
 ;        cx16.r0 = 65535
 ;        set_8_pixels_opaque_OLD(111,222,33)

@@ -8,6 +8,8 @@
 %import bmp_module
 ;; %import ci_module
 
+; TODO WHY is this 400 bytes larger than a few hours ago?
+
 main {
     sub start() {
         ; trick to check if we're running on sdcard or host system shared folder

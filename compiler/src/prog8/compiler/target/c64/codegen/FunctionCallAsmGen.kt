@@ -25,8 +25,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val saveX = sub.shouldSaveX()
+        val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
         if(saveX)
-            asmgen.saveRegister(CpuRegister.X, (stmt as Node).definingSubroutine()!!, true)
+            asmgen.saveRegister(CpuRegister.X, (stmt as Node).definingSubroutine()!!, regSaveOnStack)
 
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
@@ -64,7 +65,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
         asmgen.out("  jsr  $subName")
         if(saveX)
-            asmgen.restoreRegister(CpuRegister.X, true)
+            asmgen.restoreRegister(CpuRegister.X, regSaveOnStack)
     }
 
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {

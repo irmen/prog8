@@ -584,16 +584,16 @@ internal class AsmGen(private val program: Program,
                 CpuRegister.A -> out("  pla")
                 CpuRegister.X -> {
                     if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  plx")
-                    else out("  pla |  tax")
+                    else out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
                 }
                 CpuRegister.Y -> {
                     if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  ply")
-                    else out("  pla |  tay")
+                    else out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
                 }
             }
         } else {
             when (register) {
-                CpuRegister.A -> out("  sta  _prog8_regsaveA")
+                CpuRegister.A -> out("  lda  _prog8_regsaveA")
                 CpuRegister.X -> out("  ldx  _prog8_regsaveX")
                 CpuRegister.Y -> out("  ldy  _prog8_regsaveY")
             }
