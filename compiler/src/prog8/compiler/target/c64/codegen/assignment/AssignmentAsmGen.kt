@@ -2000,9 +2000,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, null)
             }
             else -> {
-                asmgen.saveRegister(register, memoryAddress.definingSubroutine()!!, true)
+                asmgen.saveRegisterStack(register, false)
                 assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                asmgen.restoreRegister(CpuRegister.A, true)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
                 asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
             }
         }

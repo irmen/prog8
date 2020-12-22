@@ -758,6 +758,16 @@ class Subroutine(override val name: String,
     fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
     fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
     fun shouldSaveX() = CpuRegister.X in asmClobbers || regXasResult() || regXasParam()
+    fun shouldKeepA(): Pair<Boolean, Boolean> {
+        // determine if A's value should be kept when preparing for calling the subroutine, and when returning from it
+        if(!isAsmSubroutine)
+            return Pair(false, false)
+
+        // it seems that we never have to save A when calling? will be loaded correctly after setup.
+        // but on return it depends on wether the routine returns something in A.
+        val saveAonReturn = asmReturnvaluesRegisters.any { it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AY || it.registerOrPair==RegisterOrPair.AX }
+        return Pair(false, saveAonReturn)
+    }
 
     fun amountOfRtsInAsm(): Int = statements
             .asSequence()

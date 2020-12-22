@@ -120,9 +120,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
                     asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.A)
-                    asmgen.saveRegister(CpuRegister.X, scope, false)
+                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
                     asmgen.out("  jsr  cx16.memory_fill")
-                    asmgen.restoreRegister(CpuRegister.X, false)
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 "memcopy" -> {
                     val count = fcall.args[2].constValue(program)?.number?.toInt()
@@ -138,9 +138,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
                     asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R2)
-                    asmgen.saveRegister(CpuRegister.X, scope, false)
+                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
                     asmgen.out("  jsr  cx16.memory_copy")
-                    asmgen.restoreRegister(CpuRegister.X, false)
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 "memsetw" -> {
                     translateArguments(fcall.args, func, scope)

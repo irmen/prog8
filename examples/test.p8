@@ -69,14 +69,22 @@ _y  .byte 0
         }}
     }
 
-    sub start () {
+    asmsub withasm(uword foo @R0, ubyte arg1 @A, ubyte arg2 @Y) clobbers(X) -> ubyte @A {
+        %asm {{
+            sty  P8ZP_SCRATCH_REG
+            clc
+            adc  P8ZP_SCRATCH_REG
+            rts
+        }}
+    }
 
-        txt.print("status 8: ")
-        uword ss = diskio.status(8)
-        txt.print(ss)
-        txt.print("\nstatus 9: ")
-        ss = diskio.status(9)
-        txt.print(ss)
+    sub derp(uword aa)-> uword {
+        return 9999+aa
+    }
+
+    sub start () {
+        ubyte ss = withasm(derp(1), 33,66)
+        txt.print_ub(ss)
         txt.chrout('\n')
 
 ;        cx16.r0 = 65535

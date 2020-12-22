@@ -1417,7 +1417,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression, scope: Subroutine) {
         asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
-        asmgen.saveRegister(CpuRegister.X, scope, false)
+        asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
                 asmgen.out("""
@@ -1463,7 +1463,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegister(CpuRegister.X, false)
+        asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
     private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference, scope: Subroutine) {
@@ -1472,7 +1472,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             throw AssemblyError("float variable expected")
 
         val otherName = asmgen.asmVariableName(ident)
-        asmgen.saveRegister(CpuRegister.X, scope, false)
+        asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
                 if(CompilationTarget.instance is Cx16Target) {
@@ -1545,12 +1545,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegister(CpuRegister.X, false)
+        asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: Subroutine) {
         val constValueName = asmgen.getFloatAsmConst(value)
-        asmgen.saveRegister(CpuRegister.X, scope, false)
+        asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
                 if(CompilationTarget.instance is Cx16Target) {
@@ -1630,7 +1630,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegister(CpuRegister.X, false)
+        asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
     private fun inplaceCast(target: AsmAssignTarget, cast: TypecastExpression, position: Position) {
