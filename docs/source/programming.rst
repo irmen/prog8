@@ -912,6 +912,13 @@ set_irqd()  /  clear_irqd()
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
+target()
+    Returns byte value designating the target machine that the program was compiled for.
+    The following return values are currently defined:
+
+    - 16 = compiled for CommanderX16 with 65C02 CPU
+    - 64 = compiled for Commodore-64 with 6502/6510 CPU
+
 progend()
     Returns the last address of the program in memory + 1.
     Can be used to load dynamic data after the program, instead of hardcoding something.

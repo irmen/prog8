@@ -6,6 +6,9 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
+import prog8.compiler.target.C64Target
+import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.Cx16Target
 import kotlin.math.*
 
 
@@ -142,6 +145,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("clear_irqd"  , false, emptyList(), null),
     FSignature("read_flags"  , false, emptyList(), DataType.UBYTE),
     FSignature("progend"     , true, emptyList(), DataType.UWORD),
+    FSignature("target"      , true, emptyList(), DataType.UBYTE, ::builtinTarget),
     FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
     FSignature("memcopy"     , false, listOf(
                             FParam("from", IterableDatatypes + DataType.UWORD),
@@ -478,6 +482,17 @@ private fun builtinSgn(args: List<Expression>, position: Position, program: Prog
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return NumericLiteralValue(DataType.BYTE, constval.number.toDouble().sign.toInt().toShort(), position)
+}
+
+private fun builtinTarget(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+    if (args.isNotEmpty())
+        throw SyntaxError("target requires no arguments", position)
+    val target = when(CompilationTarget.instance) {
+        is C64Target -> 64
+        is Cx16Target -> 16
+        else -> throw CompilerException("unrecognised compilation target")
+    }
+    return NumericLiteralValue(DataType.UBYTE, target, position)
 }
 
 private fun numericLiteral(value: Number, position: Position): NumericLiteralValue {

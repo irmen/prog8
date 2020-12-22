@@ -83,8 +83,7 @@ _y  .byte 0
     }
 
     sub start () {
-        ubyte ss = withasm(derp(1), 33,66)
-        txt.print_ub(ss)
+        txt.print_ub(target())
         txt.chrout('\n')
 
 ;        cx16.r0 = 65535
