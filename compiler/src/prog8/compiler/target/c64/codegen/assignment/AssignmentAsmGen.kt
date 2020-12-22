@@ -1563,6 +1563,46 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignConstantWord(target: AsmAssignTarget, word: Int) {
+        if(word==0 && CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+            // optimize setting zero value for this processor
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
+                    asmgen.out("  stz  ${target.asmVarname} |  stz  ${target.asmVarname}+1")
+                }
+                TargetStorageKind.MEMORY -> {
+                    throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
+                }
+                TargetStorageKind.ARRAY -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
+                    asmgen.out("""
+                        lda  #0
+                        sta  ${target.asmVarname},y
+                        sta  ${target.asmVarname}+1,y
+                    """)
+                }
+                TargetStorageKind.REGISTER -> {
+                    when(target.register!!) {
+                        RegisterOrPair.AX -> asmgen.out("  lda  #0 |  tax")
+                        RegisterOrPair.AY -> asmgen.out("  lda  #0 |  tay")
+                        RegisterOrPair.XY -> asmgen.out("  ldx  #0 |  ldy  #0")
+                        RegisterOrPair.R0, RegisterOrPair.R1,  RegisterOrPair.R2, RegisterOrPair.R3,
+                        RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
+                        RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
+                        RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15 -> {
+                            asmgen.out("  stz  cx16.${target.register.toString().toLowerCase()} |  stz  cx16.${target.register.toString().toLowerCase()}+1")
+                        }
+                        else -> throw AssemblyError("invalid register for word value")
+                    }
+                }
+                TargetStorageKind.STACK -> {
+                    asmgen.out("  stz  P8ESTACK_LO,x |  stz  P8ESTACK_HI,x |  dex")
+                }
+            }
+
+            return
+        }
+
+
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 if (word ushr 8 == word and 255) {
@@ -1624,6 +1664,61 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignConstantByte(target: AsmAssignTarget, byte: Short) {
+        if(byte==0.toShort() && CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+            // optimize setting zero value for this cpu
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
+                    asmgen.out("  stz  ${target.asmVarname} ")
+                }
+                TargetStorageKind.MEMORY -> {
+                    storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
+                }
+                TargetStorageKind.ARRAY -> {
+                    if (target.constArrayIndexValue!=null) {
+                        val indexValue = target.constArrayIndexValue!!
+                        asmgen.out("  stz  ${target.asmVarname}+$indexValue")
+                    }
+                    else {
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                        asmgen.out("  stz  ${target.asmVarname},y")
+                    }
+                }
+                TargetStorageKind.REGISTER -> when(target.register!!) {
+                    RegisterOrPair.A -> asmgen.out("  lda  #0")
+                    RegisterOrPair.X -> asmgen.out("  ldx  #0")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  #0")
+                    RegisterOrPair.AX -> asmgen.out("  lda  #0 |  tax")
+                    RegisterOrPair.AY -> asmgen.out("  lda  #0 |  tay")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  #0 |  ldy  #0")
+                    RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> {
+                        asmgen.out("  stz  cx16.${target.register.toString().toLowerCase()} |  stz  cx16.${target.register.toString().toLowerCase()}+1")
+                    }
+                }
+                TargetStorageKind.STACK -> {
+                    asmgen.out("  stz  P8ESTACK_LO,x |  dex")
+                }
+            }
+
+            return
+        }
+
+
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname} ")
