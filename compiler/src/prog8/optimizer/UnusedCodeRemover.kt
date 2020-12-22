@@ -4,6 +4,7 @@ import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
+import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
@@ -93,7 +94,14 @@ internal class UnusedCodeRemover(private val program: Program, private val error
             if (assign1 != null && assign2 != null && !assign2.isAugmentable) {
                 if (assign1.target.isSameAs(assign2.target, program) && assign1.target.isInRegularRAM(program.namespace))  {
                     if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(*(assign2.target.identifier!!.nameInSource.toTypedArray())))
-                        linesToRemove.add(assign1)
+                        // only remove the second assignment if its value is a simple expression!
+                        when(assign2.value) {
+                            is PrefixExpression,
+                            is BinaryExpression,
+                            is TypecastExpression,
+                            is FunctionCall -> { /* don't remove */ }
+                            else -> linesToRemove.add(assign1)
+                        }
                 }
             }
         }
