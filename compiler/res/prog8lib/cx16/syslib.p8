@@ -165,22 +165,22 @@ cx16 {
     &ubyte  d1ora	= via1+15
 
     const uword  via2  = $9f70                  ;VIA 6522 #2
-    &ubyte  d2prb	=via2+0
-    &ubyte  d2pra	=via2+1
-    &ubyte  d2ddrb	=via2+2
-    &ubyte  d2ddra	=via2+3
-    &ubyte  d2t1l	=via2+4
-    &ubyte  d2t1h	=via2+5
-    &ubyte  d2t1ll	=via2+6
-    &ubyte  d2t1lh	=via2+7
-    &ubyte  d2t2l	=via2+8
-    &ubyte  d2t2h	=via2+9
-    &ubyte  d2sr	=via2+10
-    &ubyte  d2acr	=via2+11
-    &ubyte  d2pcr	=via2+12
-    &ubyte  d2ifr	=via2+13
-    &ubyte  d2ier	=via2+14
-    &ubyte  d2ora	=via2+15
+    &ubyte  d2prb	= via2+0
+    &ubyte  d2pra	= via2+1
+    &ubyte  d2ddrb	= via2+2
+    &ubyte  d2ddra	= via2+3
+    &ubyte  d2t1l	= via2+4
+    &ubyte  d2t1h	= via2+5
+    &ubyte  d2t1ll	= via2+6
+    &ubyte  d2t1lh	= via2+7
+    &ubyte  d2t2l	= via2+8
+    &ubyte  d2t2h	= via2+9
+    &ubyte  d2sr	= via2+10
+    &ubyte  d2acr	= via2+11
+    &ubyte  d2pcr	= via2+12
+    &ubyte  d2ifr	= via2+13
+    &ubyte  d2ier	= via2+14
+    &ubyte  d2ora	= via2+15
 
 
 ; ---- Commander X-16 additions on top of C64 kernal routines ----

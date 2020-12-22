@@ -1203,8 +1203,6 @@ mul_word_40	.proc
 		rol  a
 		asl  P8ZP_SCRATCH_W1
 		rol  a
-		asl  P8ZP_SCRATCH_W1
-		rol  a
 		tay
 		lda  P8ZP_SCRATCH_W1
 		rts
