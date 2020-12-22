@@ -8,9 +8,6 @@
 %import bmp_module
 ;; %import ci_module
 
-; TODO fix crash after first image (occurs since cx16 register support was added in compiler)
-
-
 main {
     sub start() {
         ; trick to check if we're running on sdcard or host system shared folder

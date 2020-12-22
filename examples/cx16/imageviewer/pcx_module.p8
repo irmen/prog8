@@ -100,17 +100,13 @@ bitmap {
                 b &= %00111111
                 ubyte dat = c64.CHRIN()
                 repeat b {
-                    if y_ok {
-                        cx16.r0 = dat
-                        cx16.FB_set_8_pixels_opaque_OLD(255, 255, 0)        ; TODO update
-                    }
+                    if y_ok
+                        cx16.FB_set_8_pixels_opaque(dat, 255, 255, 0)
                     px += 8
                 }
             } else {
-                if y_ok {
-                    cx16.r0 = b
-                    cx16.FB_set_8_pixels_opaque_OLD(255, 255, 0)    ; TODO update
-                }
+                if y_ok
+                    cx16.FB_set_8_pixels_opaque(b, 255, 255, 0)
                 px += 8
             }
             if px==width
