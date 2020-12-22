@@ -15,22 +15,18 @@ import prog8.compiler.target.c64.codegen.assignment.*
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
-        val sub = stmt.target.targetSubroutine(program.namespace)!!
-        val preserveStatusRegisterAfterCall = sub.shouldPreserveStatusRegisterAfterCall()
-        translateFunctionCall(stmt, preserveStatusRegisterAfterCall)
+        translateFunctionCall(stmt)
         // functioncalls no longer return results on the stack, so simply ignore the results in the registers
-        if(preserveStatusRegisterAfterCall)
-            asmgen.out("  plp")     // restore status flags from call
     }
 
 
-    internal fun translateFunctionCall(stmt: IFunctionCall, preserveStatusRegisterAfterCall: Boolean) {
+    internal fun translateFunctionCall(stmt: IFunctionCall) {
         // output the code to setup the parameters and perform the actual call
         // does NOT output the code to deal with the result values!
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val saveX = sub.shouldSaveX()
         if(saveX)
-            asmgen.saveRegister(CpuRegister.X, preserveStatusRegisterAfterCall, (stmt as Node).definingSubroutine()!!)
+            asmgen.saveRegister(CpuRegister.X, (stmt as Node).definingSubroutine()!!, true)
 
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
@@ -67,15 +63,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             }
         }
         asmgen.out("  jsr  $subName")
-
-        if(preserveStatusRegisterAfterCall) {
-            asmgen.out("  php")    // save status flags from call
-            // note: the containing statement (such as the FunctionCallStatement or the Assignment or the Expression)
-            //       must take care of popping this value again at the end!
-        }
-
         if(saveX)
-            asmgen.restoreRegister(CpuRegister.X, preserveStatusRegisterAfterCall)
+            asmgen.restoreRegister(CpuRegister.X, true)
     }
 
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {

@@ -225,6 +225,27 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 ; ---- end of C64 ROM kernal routines ----
 
+; ---- utilities -----
+
+asmsub STOP2() -> ubyte @A  {
+    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
+    %asm {{
+        txa
+        pha
+        jsr  c64.STOP
+        beq  +
+        pla
+        tax
+        lda  #0
+        rts
++       pla
+        tax
+        lda  #1
+        rts
+    }}
+}
+
+
 
 ; ---- C64 specific system utility routines: ----
 

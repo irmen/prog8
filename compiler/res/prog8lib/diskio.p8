@@ -3,6 +3,8 @@
 
 ; Note: this code is compatible with C64 and CX16.
 
+; TODO directory() BROKEN ON C64, SEEMS TO WORK ON CX16
+
 diskio {
 
 
@@ -30,16 +32,17 @@ diskio {
             txt.print_uw(mkword(high, low))
             txt.chrout(' ')
             ubyte @zp char
-            do {
+            repeat {
                 char = c64.CHRIN()
+                if char==0                  ; TODO doesn't work???
+                    break
                 txt.chrout(char)
-            } until char==0
+            }
             txt.chrout('\n')
             void c64.CHRIN()     ; skip 2 bytes
             void c64.CHRIN()
             status = c64.READST()
-            void c64.STOP()
-            if_z
+            if c64.STOP2()
                 break
         }
 
@@ -160,7 +163,7 @@ io_error:
             ; read the filename
             repeat {
                 ubyte char = c64.CHRIN()
-                if_z
+                if char==0
                     break
                 if char=='\"'
                     break

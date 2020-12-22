@@ -179,7 +179,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
 }
 
 private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
-    // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can be eliminated
+    // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
     // TODO this is not true if X is not a regular RAM memory address (but instead mapped I/O or ROM)
     val mods = mutableListOf<Modification>()
     for (pair in linesByFour) {
@@ -196,10 +196,14 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>)
                 (first.startsWith("sty ") && second.startsWith("ldy ")) ||
                 (first.startsWith("stx ") && second.startsWith("ldx "))
         ) {
-            val firstLoc = first.substring(4).trimStart()
-            val secondLoc = second.substring(4).trimStart()
-            if (firstLoc == secondLoc) {
-                mods.add(Modification(pair[1].index, true, null))
+            val third = pair[2].value.trimStart()
+            if(!third.startsWith("b")) {
+                // no branch instruction follows, we can potentiall remove the load instruction
+                val firstLoc = first.substring(4).trimStart()
+                val secondLoc = second.substring(4).trimStart()
+                if (firstLoc == secondLoc) {
+                    mods.add(Modification(pair[1].index, true, null))
+                }
             }
         }
     }

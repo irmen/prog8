@@ -142,8 +142,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is FunctionCall -> {
                         when (val sub = value.target.targetStatement(program.namespace)) {
                             is Subroutine -> {
-                                val preserveStatusRegisterAfterCall = sub.shouldPreserveStatusRegisterAfterCall()
-                                asmgen.translateFunctionCall(value, preserveStatusRegisterAfterCall)
+                                asmgen.translateFunctionCall(value)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.registerOrPair!=null }
                                 when (returnValue.first) {
                                     DataType.STR -> {
@@ -182,8 +181,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                         }
                                     }
                                 }
-                                if (preserveStatusRegisterAfterCall)
-                                    asmgen.out("  plp")   // restore status flags from call
                             }
                             is BuiltinFunctionStatementPlaceholder -> {
                                 val signature = BuiltinFunctions.getValue(sub.name)
@@ -2003,9 +2000,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, null)
             }
             else -> {
-                asmgen.saveRegister(register, false, memoryAddress.definingSubroutine()!!)
+                asmgen.saveRegister(register, memoryAddress.definingSubroutine()!!, true)
                 assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                asmgen.restoreRegister(CpuRegister.A, false)
+                asmgen.restoreRegister(CpuRegister.A, true)
                 asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
             }
         }

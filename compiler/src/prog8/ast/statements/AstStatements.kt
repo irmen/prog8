@@ -757,7 +757,6 @@ class Subroutine(override val name: String,
 
     fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
     fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-    fun shouldPreserveStatusRegisterAfterCall() = asmReturnvaluesRegisters.any { it.statusflag != null } || shouldSaveX()
     fun shouldSaveX() = CpuRegister.X in asmClobbers || regXasResult() || regXasParam()
 
     fun amountOfRtsInAsm(): Int = statements

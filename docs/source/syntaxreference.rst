@@ -721,6 +721,13 @@ The XX corresponds to one of the eigth branching instructions so the possibiliti
 ``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
 It can also be one of the four aliases that are easier to read: ``if_z``, ``if_nz``, ``if_pos`` and ``if_neg``.
 
+.. caution::
+    These special ``if_XX`` branching statements are only useful in certain specific situations where you are *certain*
+    that the status register (still) contains the correct status bits.
+    This is not always the case after a fuction call or other operations!
+    If in doubt, check the generated assembly code!
+
+
 when statement ('jump table')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The structure of a when statement is like this::

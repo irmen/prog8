@@ -1,5 +1,5 @@
 %import textio
-;%import diskio
+%import diskio
 ;%import floats
 ;%import graphics
 %zeropage basicsafe
@@ -70,14 +70,24 @@ _y  .byte 0
     }
 
     sub start () {
+
+                while c64.CHRIN() {
+                    ; read the rest of the entry until the end
+                }
+
 ;        cx16.r0 = 65535
 ;        set_8_pixels_opaque_OLD(111,222,33)
 ;        txt.chrout('\n')
-        ubyte bb = 44
-        set_8_pixels_opaque(bb,111,222,33)
-        txt.chrout('\n')
-        set_8_pixels_opaque(c64.CHRIN(),111,222,33)
-        txt.chrout('\n')
+;        ;ubyte qq=c64.CHKIN(3)   ;; TODO fix compiler crash "can't translate zero return values in assignment"
+;
+;        test_stack.test()
+;        ubyte bb = 44
+;        set_8_pixels_opaque(bb,111,222,33)
+;        txt.chrout('\n')
+;        test_stack.test()
+;
+;        set_8_pixels_opaque(c64.CHRIN(),111,222,33)
+;        txt.chrout('\n')
 
         test_stack.test()
     }

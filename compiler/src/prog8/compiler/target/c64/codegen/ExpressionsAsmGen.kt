@@ -74,6 +74,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         is FunctionCall -> {
                             if(dt in ByteDatatypes) {
                                 asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                                if(left is FunctionCall)
+                                    asmgen.out("  cmp  #0")
                                 asmgen.out("  bne  $jumpIfFalseLabel")
                                 return
                             }
@@ -112,6 +114,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         is FunctionCall -> {
                             if(dt in ByteDatatypes) {
                                 asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                                if(left is FunctionCall)
+                                    asmgen.out("  cmp  #0")
                                 asmgen.out("  beq  $jumpIfFalseLabel")
                                 return
                             }
@@ -1329,8 +1333,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             asmgen.translateBuiltinFunctionCallExpression(expression, builtinFunc, true)
         } else {
             sub as Subroutine
-            val preserveStatusRegisterAfterCall = sub.shouldPreserveStatusRegisterAfterCall()
-            asmgen.translateFunctionCall(expression, preserveStatusRegisterAfterCall)
+            asmgen.translateFunctionCall(expression)
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
             for ((_, reg) in returns) {
                 // result value in cpu or status registers, put it on the stack

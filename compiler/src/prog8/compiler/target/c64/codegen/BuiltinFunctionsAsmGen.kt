@@ -120,8 +120,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
                     asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.A)
-                    val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
-                    asmgen.saveRegister(CpuRegister.X, false, sub)
+                    asmgen.saveRegister(CpuRegister.X, scope, false)
                     asmgen.out("  jsr  cx16.memory_fill")
                     asmgen.restoreRegister(CpuRegister.X, false)
                 }
@@ -139,8 +138,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
                     asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R2)
-                    val sub = (fcall as FunctionCallStatement).definingSubroutine()!!
-                    asmgen.saveRegister(CpuRegister.X, false, sub)
+                    asmgen.saveRegister(CpuRegister.X, scope, false)
                     asmgen.out("  jsr  cx16.memory_copy")
                     asmgen.restoreRegister(CpuRegister.X, false)
                 }

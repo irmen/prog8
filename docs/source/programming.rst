@@ -481,6 +481,12 @@ condition              meaning
 
 So ``if_cc goto target`` will directly translate into the single CPU instruction ``BCC target``.
 
+.. caution::
+    These special ``if_XX`` branching statements are only useful in certain specific situations where you are *certain*
+    that the status register (still) contains the correct status bits.
+    This is not always the case after a fuction call or other operations!
+    If in doubt, check the generated assembly code!
+
 .. note::
     For now, the symbols used or declared in the statement block(s) are shared with
     the same scope the if statement itself is in.

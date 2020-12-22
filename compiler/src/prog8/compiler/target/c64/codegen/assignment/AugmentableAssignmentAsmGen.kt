@@ -1417,7 +1417,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: Expression, scope: Subroutine) {
         asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
-        asmgen.saveRegister(CpuRegister.X, false, scope)
+        asmgen.saveRegister(CpuRegister.X, scope, false)
         when (operator) {
             "**" -> {
                 asmgen.out("""
@@ -1472,7 +1472,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             throw AssemblyError("float variable expected")
 
         val otherName = asmgen.asmVariableName(ident)
-        asmgen.saveRegister(CpuRegister.X, false, scope)
+        asmgen.saveRegister(CpuRegister.X, scope, false)
         when (operator) {
             "**" -> {
                 if(CompilationTarget.instance is Cx16Target) {
@@ -1550,7 +1550,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: Subroutine) {
         val constValueName = asmgen.getFloatAsmConst(value)
-        asmgen.saveRegister(CpuRegister.X, false, scope)
+        asmgen.saveRegister(CpuRegister.X, scope, false)
         when (operator) {
             "**" -> {
                 if(CompilationTarget.instance is Cx16Target) {
