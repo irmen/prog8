@@ -8,7 +8,6 @@
 %import bmp_module
 ;; %import ci_module
 
-; TODO WHY is this 400 bytes larger than a few hours ago?
 
 main {
     sub start() {

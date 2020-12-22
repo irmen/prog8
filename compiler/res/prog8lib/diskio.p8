@@ -3,10 +3,7 @@
 
 ; Note: this code is compatible with C64 and CX16.
 
-; TODO directory() BROKEN ON C64, SEEMS TO WORK ON CX16
-
 diskio {
-
 
     sub directory(ubyte drivenumber) -> ubyte {
         ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
@@ -34,7 +31,7 @@ diskio {
             ubyte @zp char
             repeat {
                 char = c64.CHRIN()
-                if char==0                  ; TODO doesn't work???
+                if char==0
                     break
                 txt.chrout(char)
             }
