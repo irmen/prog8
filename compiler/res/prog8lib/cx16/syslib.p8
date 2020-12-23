@@ -278,6 +278,32 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
             }}
 }
 
+
+sub vaddr(ubyte bank, uword address, ubyte addrsel, byte incrdecr) {
+        ; -- setup the VERA's address register 0 or 1
+        %asm {{
+            lda  addrsel
+            and  #1
+            sta  cx16.VERA_CTRL
+            lda  address
+            sta  cx16.VERA_ADDR_L
+            lda  address+1
+            sta  cx16.VERA_ADDR_M
+            lda  bank
+            and  #1
+            ldy  incrdecr
+            bmi  _decr
+            beq  _seth
+            ora  #%00010000
+_seth       sta  cx16.VERA_ADDR_H
+            rts
+_decr       ora  #%00011000
+            bra  _seth
+        }}
+}
+
+
+; TODO make asmsub versions once that no longer generates larger code...
 sub vpoke(ubyte bank, uword address, ubyte value) {
         ; -- write a single byte to VERA's video memory
         ;    note: inefficient when writing multiple sequential bytes!

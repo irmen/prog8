@@ -8,6 +8,15 @@
 
 main {
 
+    ; TODO asmsub version generates LARGER CODE , why is this?
+    sub vpoke(ubyte bank, uword address, ubyte value) {
+
+    }
+
+    asmsub vpokeasm(uword address @R0, ubyte bank @A, ubyte value @Y) {
+
+    }
+
     sub start () {
         txt.print("hello\n")
     }

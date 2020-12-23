@@ -1,6 +1,7 @@
 %import textio
 %import graphics
 %import test_stack
+%zeropage basicsafe
 %option no_sysinit
 
 ; TODO full-screen graphics mode library, in development.  (as replacement for the graphics routines in ROM that are constrained to 200 vertical pixels and lores mode only)
@@ -13,13 +14,8 @@ main {
         ubyte mode
         for mode in modes {
             gfx2.set_mode(mode)
-            gfx2.clear_screen()
             draw()
             cx16.wait(120)
-        }
-
-        repeat {
-            ;
         }
     }
 
@@ -58,7 +54,6 @@ gfx2 {
     uword width = 0
     uword height = 0
     ubyte bpp = 0
-
 
     sub set_mode(ubyte mode) {
         ; mode 0 = bitmap 320 x 240 x 1c monochrome
@@ -105,34 +100,27 @@ gfx2 {
             }
         }
         active_mode = mode
+        clear_screen()
     }
 
     sub clear_screen() {
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_H = %00010000
+        cx16.VERA_ADDR_M = 0
+        cx16.VERA_ADDR_L = 0
         when active_mode {
             0 -> {
                 ; 320 x 240 x 1c
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = %00010000
-                cx16.VERA_ADDR_M = 0
-                cx16.VERA_ADDR_L = 0
                 repeat 240/2/8
                     cs_innerloop640()
             }
             1 -> {
                 ; 320 x 240 x 256c
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = %00010000
-                cx16.VERA_ADDR_M = 0
-                cx16.VERA_ADDR_L = 0
                 repeat 240/2
                     cs_innerloop640()
             }
             128 -> {
                 ; 640 x 480 x 1c
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = %00010000
-                cx16.VERA_ADDR_M = 0
-                cx16.VERA_ADDR_L = 0
                 repeat 480/8
                     cs_innerloop640()
             }
@@ -142,21 +130,69 @@ gfx2 {
     sub plot(uword x, uword y, ubyte color) {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
         when active_mode {
-            0 -> {
-                cx16.vpoke_or(0, y*(320/8) + x/8, bits[lsb(x)&7])
-            }
+            0 -> cx16.vpoke_or(0, y*(320/8) + x/8, bits[lsb(x)&7])
+            128 -> cx16.vpoke_or(0, y*(640/8) + x/8, bits[lsb(x)&7])
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
                 cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
             }
-            128 -> {
-                cx16.vpoke_or(0, y*(640/8) + x/8, bits[lsb(x)&7])
+        }
+        ; activate vera auto-increment mode so next_pixel() can be used after this
+        cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
+        return
+    }
+
+    sub location(uword x, uword y) {
+        when active_mode {
+            0 -> cx16.vaddr(0, y*(320/8) + x/8, 0, 1)
+            128 -> cx16.vaddr(0, y*(640/8) + x/8, 0, 1)
+            1 -> {
+                void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
+                cx16.vaddr(lsb(cx16.r1), cx16.r0, 0, 1)
             }
         }
-        return
+    }
 
+    asmsub next_pixel(ubyte color @A) {
+        ; -- sets the next pixel byte to the graphics chip.
+        ;    for 8 bpp screens this will plot 1 pixel. for 1 bpp screens it will actually plot 8 pixels at once (bitmask).
+        %asm {{
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+    }
 
-        asmsub addr_mul_320_add_24(uword address @R0, uword value @AY) -> uword @R0, ubyte @R1  {
+    sub next_pixels(uword pixels, uword amount) {
+        repeat msb(amount) {
+            repeat 256 {
+                cx16.VERA_DATA0 = @(pixels)
+                pixels++
+            }
+        }
+        repeat lsb(amount) {
+            cx16.VERA_DATA0 = @(pixels)
+            pixels++
+        }
+    }
+
+    asmsub cs_innerloop640() {
+        %asm {{
+            ldy  #80
+-           stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            stz  cx16.VERA_DATA0
+            dey
+            bne  -
+            rts
+        }}
+    }
+
+    asmsub addr_mul_320_add_24(uword address @R0, uword value @AY) -> uword @R0, ubyte @R1  {
             %asm {{
                 sta  P8ZP_SCRATCH_W1
                 sty  P8ZP_SCRATCH_W1+1
@@ -199,22 +235,5 @@ gfx2 {
                 rts
             }}
         }
-    }
 
-    asmsub cs_innerloop640() {
-        %asm {{
-            ldy  #80
--           stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            dey
-            bne  -
-            rts
-        }}
-    }
 }
