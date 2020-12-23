@@ -69,6 +69,14 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
                 )
             }
         }
+
+        val subs = subroutine.statements.filterIsInstance<Subroutine>()
+        if(subs.isNotEmpty()) {
+            // all subroutines defined within this subroutine are moved to the end
+            return subs.map { IAstModification.Remove(it, subroutine) } +
+                    subs.map { IAstModification.InsertLast(it, subroutine) }
+        }
+
         return noModifications
     }
 
