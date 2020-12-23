@@ -119,14 +119,14 @@ iff_module {
             }
         }
 
-        uword bitplane_stride
+        ubyte bitplane_stride
         uword interleave_stride
         uword offsetx
         uword offsety
 
         sub start_plot() {
-            bitplane_stride = width>>3
-            interleave_stride = bitplane_stride * num_planes
+            bitplane_stride = lsb(width>>3)
+            interleave_stride = (bitplane_stride as uword) * num_planes
             offsetx = 0
             offsety = 0
             if width < graphics.WIDTH
@@ -190,17 +190,59 @@ iff_module {
         }
 
         sub planar_to_chunky_scanline() {
+            ; ubyte[8] masks = [128,64,32,16,8,4,2,1]
             uword x
             for x in 0 to width-1 {
-                ubyte bitnr = ((lsb(x) ^ 255) & 7) + 1
+                ; ubyte mask = masks[lsb(x) & 7]
                 uword pixptr = x/8 + scanline_data_ptr
-                ubyte bits=0
-                repeat num_planes {
-                    ubyte bb = @(pixptr) >> bitnr       ; extract bit
-                    ror(bits)           ; shift it into the byte
-                    pixptr += bitplane_stride
-                }
-                bits >>= 8-num_planes
+                ubyte bits = 0
+                %asm {{
+                    bra  +
+_masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
++                   lda  x
+                    and  #7
+                    tay
+                    lda  _masks,y
+                    sta  P8ZP_SCRATCH_B1        ; mask
+                    phx
+                    ldx  num_planes
+                    ldy  #0
+-                   lda  (pixptr),y
+                    clc
+                    and  P8ZP_SCRATCH_B1
+                    beq  +
+                    sec
++                   ror  bits                   ; shift planar bit into chunky byte
+                    lda  pixptr
+                    ; clc
+                    adc  bitplane_stride
+                    sta  pixptr
+                    bcc  +
+                    inc  pixptr+1
++                   dex
+                    bne  -
+                    plx
+                    lda  #8
+                    sec
+                    sbc  num_planes
+                    beq  +
+                    tay
+-                   lsr  bits
+                    dey
+                    bne  -
++
+                }}
+
+; the assembly above is the optimized version of this:
+;                repeat num_planes {
+;                    clear_carry()
+;                    if @(pixptr) & mask
+;                        set_carry()
+;                    ror(bits)           ; shift planar bit into chunky byte
+;                    pixptr += bitplane_stride
+;                }
+;                bits >>= 8-num_planes
+
                 cx16.FB_set_pixel(bits)
             }
         }
