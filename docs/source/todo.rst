@@ -2,11 +2,10 @@
 TODO
 ====
 
-- optimize (byte) bitshifting 1<<x (and 2**x) via lookup table 1,2,4,8,...
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
-- use VIC banking to move up the graphics bitmap memory location. Move it to $e000 under the kernal rom?
+- c64: use VIC banking to move up the graphics bitmap memory location. Move it to $e000 under the kernal rom?
 - some support for recursive subroutines?
     - via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
     - Or via a special recursive call operation that copies the current values of all local vars (including arguments) to the stack, replaces the arguments, jsr subroutine, and after returning copy the stack back to the local variables
