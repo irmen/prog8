@@ -9,6 +9,8 @@
 ;; %import ci_module
 
 
+; TODO use the gfx2 graphics module for full-screen 320x240 display instead of 320x200 truncated.
+
 main {
     sub start() {
         ; trick to check if we're running on sdcard or host system shared folder
@@ -61,7 +63,14 @@ main {
                 txt.clear_screen()
             else
                 txt.print("load error!\n")
-            cx16.wait(120)
+            if iff_module.num_cycles {
+                repeat 400 {
+                    cx16.wait(1)
+                    iff_module.cycle_colors_each_jiffy()
+                }
+            }
+            else
+                cx16.wait(120)
         }
         else if strcmp(extension, ".pcx")==0 {
             txt.print("loading ")

@@ -376,6 +376,19 @@ address you specified, and setting the varible will directly modify that memory 
 	&word  SCREENCOLORS = $d020             ; a 16-bit word at the addres $d020-$d021
 
 
+Direct access to memory locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Normally memory locations are accessed by a *memory mapped* name, such as ``c64.BGCOL0`` that is defined
+as the memory mapped address $d021.
+
+If you want to access a memory location directly (by using the address itself), without defining
+a memory mapped location, you can do so by enclosing the address in ``@(...)``::
+
+    color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
+    @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
+    @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
+
+
 Converting types into other types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -535,18 +548,6 @@ a fixed amount of memory which will not change.  (You *can* change the value of 
     a variable of a smaller datatype without an explicit conversion. Otherwise you'll get an error telling you
     that there is a loss of precision. You can use builtin functions such as ``round`` and ``lsb`` to convert
     to a smaller datatype, or revert to integer arithmetic.
-
-Direct access to memory locations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Normally memory locations are accessed by a *memory mapped* name, such as ``c64.BGCOL0`` that is defined
-as the memory mapped address $d021.
-
-If you want to access a memory location directly (by using the address itself), without defining
-a memory mapped location, you can do so by enclosing the address in ``@(...)``::
-
-    color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
-    @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
-    @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
 
 
 Expressions

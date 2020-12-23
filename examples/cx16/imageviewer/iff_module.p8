@@ -4,13 +4,21 @@
 %import diskio
 
 iff_module {
+    ubyte[256] cmap
+    ubyte[256] cmap1
+    ubyte[256] cmap2
+    uword num_colors
+    uword[16] cycle_rates
+    uword[16] cycle_rate_ticks
+    ubyte[16] cycle_reverseflags
+    ubyte[16] cycle_lows
+    ubyte[16] cycle_highs
+    ubyte num_cycles
+
     sub show_image(uword filenameptr) -> ubyte {
         ubyte load_ok = false
         uword size
         ubyte[32] buffer
-        ubyte[256] cmap
-        ubyte[256] cmap1
-        ubyte[256] cmap2
         uword camg = 0
         str chunk_id = "????"
         uword chunk_size_hi
@@ -20,12 +28,12 @@ iff_module {
         uword width
         uword height
         ubyte num_planes
-        uword num_colors
         ubyte compression
         ubyte have_cmap = false
         cmap[0] = 0
         cmap1[0] = 0
         cmap2[0] = 0
+        num_cycles = 0
 
         if diskio.f_open(8, filenameptr) {
             size = diskio.f_read(buffer, 12)
@@ -53,6 +61,16 @@ iff_module {
                         else if chunk_id == "cmap" {
                             have_cmap = true
                             void diskio.f_read(&cmap, chunk_size_lo)
+                        }
+                        else if chunk_id == "crng" {
+                            ; DeluxePaint color cycle range
+                            void diskio.f_read(buffer, chunk_size_lo)
+                            cycle_rates[num_cycles] = mkword(buffer[2], buffer[3])
+                            cycle_rate_ticks[num_cycles] = 1
+                            cycle_lows[num_cycles] = buffer[6]
+                            cycle_highs[num_cycles] = buffer[7]
+                            cycle_reverseflags[num_cycles] = (buffer[5] & 2)!=0
+                            num_cycles += 1
                         }
                         else if chunk_id == "body" {
                             graphics.clear_screen(1, 0)
@@ -244,6 +262,70 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
 ;                bits >>= 8-num_planes
 
                 cx16.FB_set_pixel(bits)
+            }
+        }
+    }
+
+    sub cycle_colors_each_jiffy() {
+        if num_cycles==0
+            return
+
+        ubyte changed = false
+        ubyte ci
+        for ci in 0 to num_cycles-1 {
+            ; TODO COMPILER:  cycle_rate_ticks[ci]--  is broken!!!!!!!!!!
+            uword ticks = cycle_rate_ticks[ci]
+            ticks--
+            cycle_rate_ticks[ci] = ticks
+            if ticks==0 {
+                changed = true
+                cycle_rate_ticks[ci] = 16384 / cycle_rates[ci]
+                do_cycle(cycle_lows[ci], cycle_highs[ci], cycle_reverseflags[ci])
+            }
+        }
+
+        if changed
+            palette.set_rgb8(&cmap, num_colors)     ; set the new palette
+
+        sub do_cycle(uword low, uword high, ubyte reversed) {
+            low *= 3
+            high *= 3
+            uword bytecount = high-low
+            uword cptr
+            ubyte red
+            ubyte green
+            ubyte blue
+
+            if reversed {
+                cptr = &cmap + low
+                red = @(cptr)
+                green = @(cptr+1)
+                blue = @(cptr+2)
+                repeat bytecount {
+                    @(cptr) = @(cptr+3)
+                    cptr++
+                }
+                @(cptr) = red
+                cptr++
+                @(cptr) = green
+                cptr++
+                @(cptr) = blue
+            } else {
+                cptr = &cmap + high
+                red = @(cptr)
+                cptr++
+                green = @(cptr)
+                cptr++
+                blue = @(cptr)
+                repeat bytecount {
+                    @(cptr) = @(cptr-3)
+                    cptr--
+                }
+                @(cptr) = blue
+                cptr--
+                @(cptr) = green
+                cptr--
+                @(cptr) = red
             }
         }
     }
