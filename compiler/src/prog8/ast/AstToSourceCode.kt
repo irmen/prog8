@@ -172,8 +172,19 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             output(") ")
         }
         if(subroutine.returntypes.any()) {
-            val rt = subroutine.returntypes.single()
-            output("-> ${datatypeString(rt)} ")
+            if(subroutine.asmReturnvaluesRegisters.isNotEmpty()) {
+                val rts = subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).joinToString(", ") {
+                    val dtstr = datatypeString(it.first)
+                    if(it.second.registerOrPair!=null)
+                        "$dtstr @${it.second.registerOrPair}"
+                    else
+                        "$dtstr @${it.second.statusflag}"
+                }
+                output("-> $rts ")
+            } else {
+                val rts = subroutine.returntypes.joinToString(", ") { datatypeString(it) }
+                output("-> $rts ")
+            }
         }
         if(subroutine.asmAddress!=null)
             outputln("= ${subroutine.asmAddress.toHex()}")
