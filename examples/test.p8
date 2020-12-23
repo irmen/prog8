@@ -15,40 +15,6 @@ main {
     sub start () {
         txt.print("hello\n")
 
-        uword xx
-        xx = 777
-        %asm {{
-            lda  xx
-            ldy  xx+1
-            jsr  math.mul_word_20
-            sta  xx
-            sty  xx+1
-        }}
-        txt.print_uw(xx)
-        txt.chrout('\n')
-        xx = 777
-        %asm {{
-            lda  xx
-            ldy  xx+1
-            jsr  math.mul_word_40
-            sta  xx
-            sty  xx+1
-        }}
-        txt.print_uw(xx)
-        txt.chrout('\n')
-        xx = 777
-        %asm {{
-            lda  xx
-            ldy  xx+1
-            jsr  math.mul_word_80
-            sta  xx
-            sty  xx+1
-        }}
-        txt.print_uw(xx)
-        txt.chrout('\n')
-
-        return
-
         gfx2.set_mode(128)
         gfx2.clear_screen()
 
@@ -167,7 +133,6 @@ gfx2 {
 
         when active_mode {
             0 -> {
-                ; TODO problem when y>=204 and x=..something... then the address gets > 64K; so we really need 24 bit address calculations...
                 addr = y
                 addr_mul_24_320()
                 addr_add_word_24(x)
@@ -175,11 +140,7 @@ gfx2 {
             }
             128 -> {
                 ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
-                addr = 0
-                addr += y*(640/8)
-                addr += x/8
-                ubyte pix = cx16.vpeek(0, addr) | bits[lsb(x)&7]
-                cx16.vpoke(0, addr, pix)
+                cx16.vpoke_or(0, y*(640/8) + x/8, bits[lsb(x)&7])
             }
         }
 

@@ -296,6 +296,63 @@ sub vpoke(ubyte bank, uword address, ubyte value) {
         }}
 }
 
+sub vpoke_or(ubyte bank, uword address, ubyte value) {
+        ; -- or a single byte to the value already in the VERA's video memory at that location
+        ;    note: inefficient when writing multiple sequential bytes!
+        %asm {{
+            stz  cx16.VERA_CTRL
+            lda  bank
+            and  #1
+            sta  cx16.VERA_ADDR_H
+            lda  address
+            sta  cx16.VERA_ADDR_L
+            lda  address+1
+            sta  cx16.VERA_ADDR_M
+            lda  value
+            ora  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+}
+
+sub vpoke_and(ubyte bank, uword address, ubyte value) {
+        ; -- and a single byte to the value already in the VERA's video memory at that location
+        ;    note: inefficient when writing multiple sequential bytes!
+        %asm {{
+            stz  cx16.VERA_CTRL
+            lda  bank
+            and  #1
+            sta  cx16.VERA_ADDR_H
+            lda  address
+            sta  cx16.VERA_ADDR_L
+            lda  address+1
+            sta  cx16.VERA_ADDR_M
+            lda  value
+            and  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+}
+
+sub vpoke_xor(ubyte bank, uword address, ubyte value) {
+        ; -- xor a single byte to the value already in the VERA's video memory at that location
+        ;    note: inefficient when writing multiple sequential bytes!
+        %asm {{
+            stz  cx16.VERA_CTRL
+            lda  bank
+            and  #1
+            sta  cx16.VERA_ADDR_H
+            lda  address
+            sta  cx16.VERA_ADDR_L
+            lda  address+1
+            sta  cx16.VERA_ADDR_M
+            lda  value
+            eor  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+}
+
 sub FB_set_pixels_from_buf(uword buffer, uword count) {
     %asm {{
             ; -- This is replacement code for the normal FB_set_pixels subroutine in ROM
