@@ -698,7 +698,7 @@ class AsmGenInfo {
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
 
-    class ArrayIndexerInfo(val name: String, val replaces: ArrayIndex, val partOfStatement: Statement, var used: Int=0)
+    class ArrayIndexerInfo(val name: String, val replaces: ArrayIndex)
 }
 
 // the subroutine class covers both the normal user-defined subroutines,

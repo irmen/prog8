@@ -1,18 +1,29 @@
 %import textio
-%import diskio
-%import floats
 %import graphics
 %import test_stack
-%zeropage basicsafe
 %option no_sysinit
+
+; TODO full-screen graphics mode library, in development.  (as replacement for the graphics routines in ROM that are constrained to 200 vertical pixels and lores mode only)
+
 
 main {
 
     sub start () {
+        ubyte[] modes = [0, 1, 128]
+        ubyte mode
+        for mode in modes {
+            gfx2.set_mode(mode)
+            gfx2.clear_screen()
+            draw()
+            cx16.wait(120)
+        }
 
-        gfx2.set_mode(128)
-        gfx2.clear_screen()
+        repeat {
+            ;
+        }
+    }
 
+    sub draw() {
         uword offset
         ubyte angle
         uword x
@@ -42,10 +53,12 @@ main {
 
 gfx2 {
 
+    ; read-only control variables:
     ubyte active_mode = 255
     uword width = 0
     uword height = 0
     ubyte bpp = 0
+
 
     sub set_mode(ubyte mode) {
         ; mode 0 = bitmap 320 x 240 x 1c monochrome
@@ -130,7 +143,7 @@ gfx2 {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
         when active_mode {
             0 -> {
-                cx16.vpoke_or(0, y*(320/8) + x/8, bits[lsb(x)&7])           ; TODO !?!? if the &7 remains, the code at the '128' label is wrong!!! if changed or removed, the code at 128 works fine!
+                cx16.vpoke_or(0, y*(320/8) + x/8, bits[lsb(x)&7])
             }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
