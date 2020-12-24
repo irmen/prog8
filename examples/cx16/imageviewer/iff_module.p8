@@ -69,12 +69,15 @@ iff_module {
                             if not cycle_ccrt {
                                 cycle_crng = true
                                 diskio.f_read_exact(buffer, chunk_size_lo)
-                                cycle_rates[num_cycles] = mkword(buffer[2], buffer[3])
-                                cycle_rate_ticks[num_cycles] = 1
-                                cycle_lows[num_cycles] = buffer[6]
-                                cycle_highs[num_cycles] = buffer[7]
-                                cycle_reverseflags[num_cycles] = (buffer[5] & 2)!=0
-                                num_cycles++
+                                ubyte flags = buffer[5]
+                                if flags & 1 {
+                                    cycle_rates[num_cycles] = mkword(buffer[2], buffer[3])
+                                    cycle_rate_ticks[num_cycles] = 1
+                                    cycle_lows[num_cycles] = buffer[6]
+                                    cycle_highs[num_cycles] = buffer[7]
+                                    cycle_reverseflags[num_cycles] = flags & 2 != 0
+                                    num_cycles++
+                                }
                             } else
                                 skip_chunk()
                         }
