@@ -910,7 +910,7 @@ internal class AsmGen(private val program: Program,
             }
             is NumericLiteralValue -> {
                 val iterations = (stmt.iterations as NumericLiteralValue).number.toInt()
-                if(iterations<0 || iterations > 65536)
+                if(iterations<0 || iterations > 65535)
                     throw AssemblyError("invalid number of iterations")
                 when {
                     iterations == 0 -> {}

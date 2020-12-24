@@ -365,6 +365,13 @@ internal class AstChecker(private val program: Program,
         super.visit(whileLoop)
     }
 
+    override fun visit(repeatLoop: RepeatLoop) {
+        val iterations = repeatLoop.iterations?.constValue(program)
+        if(iterations != null && iterations.number.toInt() > 65535)
+            errors.err("repeat cannot go over 65535 iterations", iterations.position)
+        super.visit(repeatLoop)
+    }
+
     override fun visit(assignment: Assignment) {
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
