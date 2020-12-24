@@ -227,13 +227,15 @@ close_end:
         return false
     }
 
-    sub f_read(uword bufferpointer, uword buffersize) -> uword {
+    sub f_read(uword bufferpointer, uword num_bytes) -> uword {
+        ; -- read from the currently open file, up to the given number of bytes.
+        ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
         if not iteration_in_progress
             return 0
 
         uword actual = 0
         void c64.CHKIN(11)        ; use #11 as input channel again
-        repeat buffersize {
+        repeat num_bytes {
             ubyte data = c64.CHRIN()
             @(bufferpointer) = data
             bufferpointer++
@@ -245,6 +247,19 @@ close_end:
                 return actual
         }
         return actual
+    }
+
+    sub f_read_exact(uword bufferpointer, uword num_bytes) {
+        ; -- read from the currently open file, the given number of bytes. File must contain enough data!
+        ;    doesn't check for error conditions or end of file, to make the read as fast as possible.
+        if not iteration_in_progress
+            return
+
+        void c64.CHKIN(11)        ; use #11 as input channel again
+        repeat num_bytes {
+            @(bufferpointer) = c64.CHRIN()
+            bufferpointer++
+        }
     }
 
     sub f_close() {
