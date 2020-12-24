@@ -279,19 +279,18 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
 }
 
 
-sub vaddr(ubyte bank, uword address, ubyte addrsel, byte incrdecr) {
+asmsub vaddr(uword address @R0, ubyte bank @R1, ubyte addrsel @A, byte incrdecr @Y) {
         ; -- setup the VERA's address register 0 or 1
         %asm {{
-            lda  addrsel
             and  #1
             sta  cx16.VERA_CTRL
-            lda  address
+            lda  cx16.r0
             sta  cx16.VERA_ADDR_L
-            lda  address+1
+            lda  cx16.r0+1
             sta  cx16.VERA_ADDR_M
-            lda  bank
+            lda  cx16.r1
             and  #1
-            ldy  incrdecr
+            cpy  #0
             bmi  _decr
             beq  _seth
             ora  #%00010000
@@ -303,76 +302,70 @@ _decr       ora  #%00011000
 }
 
 
-; TODO make asmsub versions once that no longer generates larger code...
-sub vpoke(ubyte bank, uword address, ubyte value) {
+asmsub vpoke(uword address @R0, ubyte bank @A,  ubyte value @Y) {
         ; -- write a single byte to VERA's video memory
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
             stz  cx16.VERA_CTRL
-            lda  bank
             and  #1
             sta  cx16.VERA_ADDR_H
-            lda  address
+            lda  cx16.r0
             sta  cx16.VERA_ADDR_L
-            lda  address+1
+            lda  cx16.r0+1
             sta  cx16.VERA_ADDR_M
-            lda  value
-            sta  cx16.VERA_DATA0
+            sty  cx16.VERA_DATA0
             rts
         }}
 }
 
-sub vpoke_or(ubyte bank, uword address, ubyte value) {
+asmsub vpoke_or(uword address @R0, ubyte bank @A,  ubyte value @Y) {
         ; -- or a single byte to the value already in the VERA's video memory at that location
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
             stz  cx16.VERA_CTRL
-            lda  bank
             and  #1
             sta  cx16.VERA_ADDR_H
-            lda  address
+            lda  cx16.r0
             sta  cx16.VERA_ADDR_L
-            lda  address+1
+            lda  cx16.r0+1
             sta  cx16.VERA_ADDR_M
-            lda  value
+            tya
             ora  cx16.VERA_DATA0
             sta  cx16.VERA_DATA0
             rts
         }}
 }
 
-sub vpoke_and(ubyte bank, uword address, ubyte value) {
+asmsub vpoke_and(uword address @R0, ubyte bank @A,  ubyte value @Y) {
         ; -- and a single byte to the value already in the VERA's video memory at that location
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
             stz  cx16.VERA_CTRL
-            lda  bank
             and  #1
             sta  cx16.VERA_ADDR_H
-            lda  address
+            lda  cx16.r0
             sta  cx16.VERA_ADDR_L
-            lda  address+1
+            lda  cx16.r0+1
             sta  cx16.VERA_ADDR_M
-            lda  value
+            tya
             and  cx16.VERA_DATA0
             sta  cx16.VERA_DATA0
             rts
         }}
 }
 
-sub vpoke_xor(ubyte bank, uword address, ubyte value) {
+asmsub vpoke_xor(uword address @R0, ubyte bank @A,  ubyte value @Y) {
         ; -- xor a single byte to the value already in the VERA's video memory at that location
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
             stz  cx16.VERA_CTRL
-            lda  bank
             and  #1
             sta  cx16.VERA_ADDR_H
-            lda  address
+            lda  cx16.r0
             sta  cx16.VERA_ADDR_L
-            lda  address+1
+            lda  cx16.r0+1
             sta  cx16.VERA_ADDR_M
-            lda  value
+            tya
             eor  cx16.VERA_DATA0
             sta  cx16.VERA_DATA0
             rts

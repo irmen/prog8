@@ -14,6 +14,12 @@ main {
         ubyte mode
         for mode in modes {
             gfx2.set_mode(mode)
+
+;            gfx2.location(20, 50)
+;            repeat 200 {
+;                gfx2.next_pixel(255)
+;            }
+
             draw()
             cx16.wait(120)
         }
@@ -129,12 +135,23 @@ gfx2 {
 
     sub plot(uword x, uword y, ubyte color) {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
+        uword addr
+        ubyte value
         when active_mode {
-            0 -> cx16.vpoke_or(0, y*(320/8) + x/8, bits[lsb(x)&7])
-            128 -> cx16.vpoke_or(0, y*(640/8) + x/8, bits[lsb(x)&7])
+            0 -> {
+                addr = x/8 + y*(320/8)
+                value = bits[lsb(x)&7]
+                cx16.vpoke_or(addr, 0, value)
+            }
+            128 -> {
+                addr = x/8 + y*(640/8)
+                value = bits[lsb(x)&7]
+                cx16.vpoke_or(addr, 0, value)
+            }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
-                cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
+                ubyte bank = lsb(cx16.r1)
+                cx16.vpoke(cx16.r0, bank, color)
             }
         }
         ; activate vera auto-increment mode so next_pixel() can be used after this
@@ -143,12 +160,20 @@ gfx2 {
     }
 
     sub location(uword x, uword y) {
+        uword address
         when active_mode {
-            0 -> cx16.vaddr(0, y*(320/8) + x/8, 0, 1)
-            128 -> cx16.vaddr(0, y*(640/8) + x/8, 0, 1)
+            0 -> {
+                address = y*(320/8) + x/8
+                cx16.vaddr(address, 0, 0, 1)
+            }
+            128 -> {
+                address = y*(640/8) + x/8
+                cx16.vaddr(address, 0, 0, 1)
+            }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
-                cx16.vaddr(lsb(cx16.r1), cx16.r0, 0, 1)
+                ubyte bank = lsb(cx16.r1)
+                cx16.vaddr(cx16.r0, bank, 0, 1)
             }
         }
     }

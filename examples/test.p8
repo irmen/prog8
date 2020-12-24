@@ -9,7 +9,6 @@
 main {
 
 
-    ; TODO asmsub version generates LARGER CODE , why is this?
     sub vpoke(ubyte bank, uword address, ubyte value) {
         %asm {{
             rts
@@ -29,6 +28,7 @@ main {
         ubyte value = 123
         bank++
         vpoke(bank, address, value)
-        vpokeasm(address, bank, value)
+        vpokeasm(address, bank, value)      ; TODO generates params on stack if expression is used such as lsb(bank).  CHECK STACK UNWINDING!!!
+        ; TODO also see if we can do this via R0-R15 temp registers rather than using the estack???
     }
 }
