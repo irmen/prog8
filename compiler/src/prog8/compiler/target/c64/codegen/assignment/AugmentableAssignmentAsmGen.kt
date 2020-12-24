@@ -1652,10 +1652,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 }
                                 TargetStorageKind.ARRAY -> {
                                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y, true)
-                                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                                        asmgen.out("  stz  ${target.asmVarname},y")
-                                    else
-                                        asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
+                                    asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
                                 }
                                 TargetStorageKind.STACK -> {
                                     if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)

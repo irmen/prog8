@@ -105,7 +105,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
     lda  $asmArrayvarname,x
     bne  +
     dec  $asmArrayvarname+1,x
-+       dec  $asmArrayvarname 
++       dec  $asmArrayvarname,x 
 """)
                         }
                         DataType.FLOAT -> {

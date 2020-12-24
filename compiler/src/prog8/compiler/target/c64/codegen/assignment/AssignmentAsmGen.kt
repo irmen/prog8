@@ -1267,11 +1267,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 else {
                     asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array!!, wordtarget.datatype, CpuRegister.Y)
-                    asmgen.out("  lda  $sourceName |  sta  ${wordtarget.asmVarname},y |  iny")
-                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                        asmgen.out("  stz  ${wordtarget.asmVarname},y")
-                    else
-                        asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname},y")
+                    asmgen.out("""
+                        lda  $sourceName
+                        sta  ${wordtarget.asmVarname},y
+                        iny
+                        lda  #0
+                        sta  ${wordtarget.asmVarname},y""")
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -1680,7 +1681,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     else {
                         asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                        asmgen.out("  stz  ${target.asmVarname},y")
+                        asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
                     }
                 }
                 TargetStorageKind.REGISTER -> when(target.register!!) {
