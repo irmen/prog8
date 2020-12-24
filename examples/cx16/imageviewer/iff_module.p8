@@ -30,6 +30,8 @@ iff_module {
         ubyte num_planes
         ubyte compression
         ubyte have_cmap = false
+        ubyte cycle_crng = false
+        ubyte cycle_ccrt = false
         cmap[0] = 0
         cmap1[0] = 0
         cmap2[0] = 0
@@ -64,13 +66,39 @@ iff_module {
                         }
                         else if chunk_id == "crng" {
                             ; DeluxePaint color cycle range
-                            void diskio.f_read(buffer, chunk_size_lo)
-                            cycle_rates[num_cycles] = mkword(buffer[2], buffer[3])
-                            cycle_rate_ticks[num_cycles] = 1
-                            cycle_lows[num_cycles] = buffer[6]
-                            cycle_highs[num_cycles] = buffer[7]
-                            cycle_reverseflags[num_cycles] = (buffer[5] & 2)!=0
-                            num_cycles += 1
+                            if not cycle_ccrt {
+                                cycle_crng = true
+                                void diskio.f_read(buffer, chunk_size_lo)
+                                cycle_rates[num_cycles] = mkword(buffer[2], buffer[3])
+                                cycle_rate_ticks[num_cycles] = 1
+                                cycle_lows[num_cycles] = buffer[6]
+                                cycle_highs[num_cycles] = buffer[7]
+                                cycle_reverseflags[num_cycles] = (buffer[5] & 2)!=0
+                                num_cycles++
+                            } else
+                                skip_chunk()
+                        }
+                        else if chunk_id == "ccrt" {
+                            ; Graphicraft color cycle range
+                            if not cycle_crng {
+                                cycle_ccrt = true
+                                void diskio.f_read(buffer, chunk_size_lo)
+                                ubyte direction = buffer[1]
+                                if direction {
+                                    ; delay_sec = buffer[4] * 256 * 256 * 256 + buffer[5] * 256 * 256 + buffer[6] * 256 + buffer[7]
+                                    ; delay_micro = buffer[8] * 256 * 256 * 256 + buffer[9] * 256 * 256 + buffer[10] * 256 + buffer[11]
+                                    ; We're ignoring the delay_sec field for now. Not many images will have this slow of a color cycle anyway (>1 sec per cycle)
+                                    ; rate = int(16384 // (60*delay_micro/1e6))
+                                    ; float rate = (65*16384.0) / (mkword(buffer[9], buffer[10]) as float)  ; fairly good approximation using float arithmetic
+                                    cycle_rates[num_cycles] = 33280 / (mkword(buffer[9], buffer[10]) >> 5)      ; reasonable approximation using only 16-bit integer arithmetic
+                                    cycle_rate_ticks[num_cycles] = 1
+                                    cycle_lows[num_cycles] = buffer[2]
+                                    cycle_highs[num_cycles] = buffer[3]
+                                    cycle_reverseflags[num_cycles] = direction == 1    ; TODO weird, the spec say that -1 = reversed but several example images that I have downloaded are the opposite
+                                    num_cycles++
+                                }
+                            } else
+                                skip_chunk()
                         }
                         else if chunk_id == "body" {
                             graphics.clear_screen(1, 0)
@@ -217,7 +245,11 @@ iff_module {
                 %asm {{
                     bra  +
 _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
-+                   lda  x
++                   lda  pixptr
+                    sta  P8ZP_SCRATCH_W1
+                    lda  pixptr+1
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  x
                     and  #7
                     tay
                     lda  _masks,y
@@ -225,18 +257,18 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
                     phx
                     ldx  num_planes
                     ldy  #0
--                   lda  (pixptr),y
+-                   lda  (P8ZP_SCRATCH_W1),y
                     clc
                     and  P8ZP_SCRATCH_B1
                     beq  +
                     sec
 +                   ror  bits                   ; shift planar bit into chunky byte
-                    lda  pixptr
+                    lda  P8ZP_SCRATCH_W1
                     ; clc
                     adc  bitplane_stride
-                    sta  pixptr
+                    sta  P8ZP_SCRATCH_W1
                     bcc  +
-                    inc  pixptr+1
+                    inc  P8ZP_SCRATCH_W1+1
 +                   dex
                     bne  -
                     plx
@@ -273,11 +305,8 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
         ubyte changed = false
         ubyte ci
         for ci in 0 to num_cycles-1 {
-            ; TODO COMPILER:  cycle_rate_ticks[ci]--  is broken!!!!!!!!!!
-            uword ticks = cycle_rate_ticks[ci]
-            ticks--
-            cycle_rate_ticks[ci] = ticks
-            if ticks==0 {
+            cycle_rate_ticks[ci]--
+            if cycle_rate_ticks[ci]==0 {
                 changed = true
                 cycle_rate_ticks[ci] = 16384 / cycle_rates[ci]
                 do_cycle(cycle_lows[ci], cycle_highs[ci], cycle_reverseflags[ci])

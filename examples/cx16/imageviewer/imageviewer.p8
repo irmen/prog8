@@ -7,6 +7,7 @@
 %import pcx_module
 %import bmp_module
 ;; %import ci_module
+%zeropage basicsafe
 
 
 ; TODO use the gfx2 graphics module for full-screen 320x240 display instead of 320x200 truncated.
@@ -64,7 +65,7 @@ main {
             else
                 txt.print("load error!\n")
             if iff_module.num_cycles {
-                repeat 400 {
+                repeat 500 {
                     cx16.wait(1)
                     iff_module.cycle_colors_each_jiffy()
                 }

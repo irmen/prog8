@@ -9,10 +9,6 @@
 main {
 
 
-
-    ; TODO COMPILER:  cycle_rate_ticks[ci]--  is broken!!!!!!!!!!
-
-
     ; TODO asmsub version generates LARGER CODE , why is this?
     sub vpoke(ubyte bank, uword address, ubyte value) {
 
@@ -23,6 +19,6 @@ main {
     }
 
     sub start () {
-        txt.print("hello\n")
+        txt.chrout('!')
     }
 }
