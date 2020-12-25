@@ -1,9 +1,4 @@
 %target cx16
-%import textio
-%import graphics
-%import test_stack
-%zeropage basicsafe
-%option no_sysinit
 
 ; Bitmap pixel graphics module for the CommanderX16
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
@@ -11,54 +6,55 @@
 ; For compatible graphics code that words on C64 too, use the "graphics" module instead.
 
 
-; TODO this is in development.
+; TODO this is in development.  Add line drawing, circles and discs (like the graphics module has)
 
 
-main {
-
-    sub start () {
-        ubyte[] modes = [0, 1, 128]
-        ubyte mode
-        for mode in modes {
-            gfx2.set_mode(mode)
-
-;            gfx2.location(20, 50)
+;main {
+;
+;    sub start () {
+;        ubyte[] modes = [0, 1, 128]
+;        ubyte mode
+;        for mode in modes {
+;            gfx2.set_mode(mode)
+;
+;            gfx2.position(20, 50)
 ;            repeat 200 {
 ;                gfx2.next_pixel(255)
 ;            }
+;
+;            draw()
+;            cx16.wait(120)
+;        }
+;    }
+;
+;    sub draw() {
+;        uword offset
+;        ubyte angle
+;        uword x
+;        uword y
+;        when gfx2.active_mode {
+;            0, 1 -> {
+;                for offset in 0 to 90 step 3 {
+;                    for angle in 0 to 255 {
+;                        x = $0008+sin8u(angle)/2
+;                        y = $0008+cos8u(angle)/2
+;                        gfx2.plot(x+offset*2,y+offset, lsb(x+y))
+;                    }
+;                }
+;            }
+;            128 -> {
+;                for offset in 0 to 190 step 6 {
+;                    for angle in 0 to 255 {
+;                        x = $0008+sin8u(angle)
+;                        y = $0008+cos8u(angle)
+;                        gfx2.plot(x+offset*2,y+offset, 1)
+;                    }
+;                }
+;            }
+;        }
+;    }
+;}
 
-            draw()
-            cx16.wait(120)
-        }
-    }
-
-    sub draw() {
-        uword offset
-        ubyte angle
-        uword x
-        uword y
-        when gfx2.active_mode {
-            0, 1 -> {
-                for offset in 0 to 90 step 3 {
-                    for angle in 0 to 255 {
-                        x = $0008+sin8u(angle)/2
-                        y = $0008+cos8u(angle)/2
-                        gfx2.plot(x+offset*2,y+offset, lsb(x+y))
-                    }
-                }
-            }
-            128 -> {
-                for offset in 0 to 190 step 6 {
-                    for angle in 0 to 255 {
-                        x = $0008+sin8u(angle)
-                        y = $0008+cos8u(angle)
-                        gfx2.plot(x+offset*2,y+offset, 1)
-                    }
-                }
-            }
-        }
-    }
-}
 
 gfx2 {
 
@@ -111,16 +107,22 @@ gfx2 {
                 height = 480
                 bpp = 1
             }
+            255 -> {
+                ; back to default text mode and colors
+                cx16.VERA_CTRL = %10000000      ; reset VERA and palette
+                c64.CINT()      ; back to text mode
+                width = 0
+                height = 0
+                bpp = 0
+            }
         }
         active_mode = mode
-        clear_screen()
+        if bpp
+            clear_screen()
     }
 
     sub clear_screen() {
-        cx16.VERA_CTRL = 0
-        cx16.VERA_ADDR_H = %00010000
-        cx16.VERA_ADDR_M = 0
-        cx16.VERA_ADDR_L = 0
+        position(0, 0)
         when active_mode {
             0 -> {
                 ; 320 x 240 x 1c
@@ -138,6 +140,7 @@ gfx2 {
                     cs_innerloop640()
             }
         }
+        position(0, 0)
     }
 
     sub plot(uword x, uword y, ubyte color) {
@@ -148,17 +151,17 @@ gfx2 {
             0 -> {
                 addr = x/8 + y*(320/8)
                 value = bits[lsb(x)&7]
-                cx16.vpoke_or(addr, 0, value)
+                cx16.vpoke_or(0, addr, value)
             }
             128 -> {
                 addr = x/8 + y*(640/8)
                 value = bits[lsb(x)&7]
-                cx16.vpoke_or(addr, 0, value)
+                cx16.vpoke_or(0, addr, value)
             }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
                 ubyte bank = lsb(cx16.r1)
-                cx16.vpoke(cx16.r0, bank, color)
+                cx16.vpoke(bank, cx16.r0, color)
             }
         }
         ; activate vera auto-increment mode so next_pixel() can be used after this
@@ -166,21 +169,21 @@ gfx2 {
         return
     }
 
-    sub location(uword x, uword y) {
+    sub position(uword x, uword y) {
         uword address
         when active_mode {
             0 -> {
                 address = y*(320/8) + x/8
-                cx16.vaddr(address, 0, 0, 1)
+                cx16.vaddr(0, address, 0, 1)
             }
             128 -> {
                 address = y*(640/8) + x/8
-                cx16.vaddr(address, 0, 0, 1)
+                cx16.vaddr(0, address, 0, 1)
             }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
                 ubyte bank = lsb(cx16.r1)
-                cx16.vaddr(cx16.r0, bank, 0, 1)
+                cx16.vaddr(bank, cx16.r0, 0, 1)
             }
         }
     }
@@ -205,6 +208,22 @@ gfx2 {
             cx16.VERA_DATA0 = @(pixels)
             pixels++
         }
+    }
+
+    asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) {
+        %asm {{
+            phx
+            ldx  #8
+-           asl  cx16.r0
+            bcc  +
+            sta  cx16.VERA_DATA0
+            bra  ++
++           sty  cx16.VERA_DATA0
++           dex
+            bne  -
+            plx
+            rts
+        }}
     }
 
     asmsub cs_innerloop640() {

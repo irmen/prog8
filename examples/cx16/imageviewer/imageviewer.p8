@@ -1,5 +1,5 @@
 %target cx16
-%import graphics
+%import gfx2
 %import textio
 %import diskio
 %import koala_module
@@ -10,8 +10,6 @@
 %zeropage basicsafe
 
 
-; TODO use the gfx2 graphics module for full-screen 320x240 display instead of 320x200 truncated.
-
 main {
     sub start() {
         ; trick to check if we're running on sdcard or host system shared folder
@@ -19,20 +17,19 @@ main {
         if strlen(diskio.status(8)) {
             txt.print("enter image file name or just enter for all on disk: ")
             ubyte i = txt.input_chars(diskio.filename)
-            graphics.enable_bitmap_mode()
+            gfx2.set_mode(1)    ; 320*240, 256c
             if i
                 attempt_load(diskio.filename)
             else
                 show_pics_sdcard()
 
-            txt.print("\nnothing more to do.\n")
+            ; txt.print("\nnothing more to do.\n")
         }
         else
             txt.print("files are read with sequential file loading.\nin the emulator this currently only works with files on an sd-card image.\nsorry :(\n")
 
-        repeat {
-            ;
-        }
+        gfx2.set_mode(255)      ; back to default text mode and palette
+        txt.print("that was all folks!\n")
     }
 
     sub show_pics_sdcard() {
@@ -53,62 +50,69 @@ main {
     }
 
     sub attempt_load(uword filenameptr) {
-        txt.print(">> ")
-        txt.print(filenameptr)
-        txt.chrout('\n')
+        ;txt.print(">> ")
+        ;txt.print(filenameptr)
+        ;txt.chrout('\n')
         uword extension = filenameptr + rfind(filenameptr, '.')
         if strcmp(extension, ".iff")==0 {
-            txt.print("loading ")
-            txt.print("iff\n")
-            if iff_module.show_image(filenameptr)
-                txt.clear_screen()
-            else
-                txt.print("load error!\n")
-            if iff_module.num_cycles {
-                repeat 500 {
-                    cx16.wait(1)
-                    iff_module.cycle_colors_each_jiffy()
+            ;txt.print("loading ")
+            ;txt.print("iff\n")
+            if iff_module.show_image(filenameptr) {
+                if iff_module.num_cycles {
+                    repeat 500 {
+                        cx16.wait(1)
+                        iff_module.cycle_colors_each_jiffy()
+                    }
                 }
+                else
+                    cx16.wait(180)
+            } else {
+                load_error(filenameptr)
             }
-            else
-                cx16.wait(120)
         }
         else if strcmp(extension, ".pcx")==0 {
-            txt.print("loading ")
-            txt.print("pcx\n")
-            if pcx_module.show_image(filenameptr)
-                txt.clear_screen()
-            else
-                txt.print("load error!\n")
-            cx16.wait(120)
+            ;txt.print("loading ")
+            ;txt.print("pcx\n")
+            if pcx_module.show_image(filenameptr) {
+                cx16.wait(180)
+            } else {
+                load_error(filenameptr)
+            }
         }
         else if strcmp(extension, ".koa")==0 {
-            txt.print("loading ")
-            txt.print("koala\n")
-            if koala_module.show_image(filenameptr)
-                txt.clear_screen()
-            else
-                txt.print("load error!\n")
-            cx16.wait(120)
+            ;txt.print("loading ")
+            ;txt.print("koala\n")
+            if koala_module.show_image(filenameptr) {
+                cx16.wait(180)
+            } else {
+                load_error(filenameptr)
+            }
         }
         else if strcmp(extension, ".bmp")==0 {
-            txt.print("loading ")
-            txt.print("bmp\n")
-            if bmp_module.show_image(filenameptr)
-                txt.clear_screen()
-            else
-                txt.print("load error!\n")
-            cx16.wait(120)
+            ;txt.print("loading ")
+            ;txt.print("bmp\n")
+            if bmp_module.show_image(filenameptr) {
+                cx16.wait(180)
+            } else {
+                load_error(filenameptr)
+            }
         }
 ;        else if strcmp(extension, ".ci")==0 {
 ;            txt.print("loading ")
 ;            txt.print("ci\n")
-;            if ci_module.show_image(filenameptr)
-;                txt.clear_screen()
-;            else
-;                txt.print("load error!\n")
-;            cx16.wait(120)
+;            if bmp_module.ci_module(filenameptr) {
+;                cx16.wait(180)
+;            } else {
+;                load_error(filenameptr)
+;            }
 ;        }
+    }
+
+    sub load_error(uword filenameptr) {
+        gfx2.set_mode(255)      ; back to default text mode and palette
+        txt.print(filenameptr)
+        txt.print(": load error\n")
+        exit(1)
     }
 
     sub extension_equals(uword stringptr, uword extensionptr) -> ubyte {

@@ -8,6 +8,13 @@
 
 main {
 
+    ; TODO  the R0 is loaded as a WORD even though its type is specified as a BYTE...:
+    asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) {
+
+    }
+
+
+
     asmsub derp(ubyte value @A, uword address @R0) {
         %asm {{
             rts

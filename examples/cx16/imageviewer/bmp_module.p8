@@ -1,5 +1,5 @@
 %target cx16
-%import graphics
+%import gfx2
 %import diskio
 
 bmp_module {
@@ -46,7 +46,7 @@ bmp_module {
                         total_read += size
                         repeat bm_data_offset - total_read
                             void c64.CHRIN()
-                        graphics.clear_screen(1, 0)
+                        gfx2.clear_screen()
                         palette.set_bgra(&palette0, num_colors)
                         decode_bitmap()
                         load_ok = true
@@ -62,14 +62,14 @@ bmp_module {
         sub start_plot() {
             offsetx = 0
             offsety = 0
-            if width < graphics.WIDTH
-                offsetx = (graphics.WIDTH - width - 1) / 2
-            if height < graphics.HEIGHT
-                offsety = (graphics.HEIGHT - height - 1) / 2
-            if width > graphics.WIDTH
-                width = graphics.WIDTH
-            if height > graphics.HEIGHT-1
-                height = graphics.HEIGHT-1
+            if width < gfx2.width
+                offsetx = (gfx2.width - width - 1) / 2
+            if height < gfx2.height
+                offsety = (gfx2.height - height - 1) / 2
+            if width > gfx2.width
+                width = gfx2.width
+            if height > gfx2.height
+                height = gfx2.height
         }
 
         sub decode_bitmap() {
@@ -81,31 +81,31 @@ bmp_module {
             uword y
             ubyte b
             for y in height-1 downto 0 {
-                cx16.FB_cursor_position(offsetx, offsety+y)
+                gfx2.position(offsetx, offsety+y)
                 when bpp {
                     8 -> {
                         for x in 0 to width-1
-                            cx16.FB_set_pixel(c64.CHRIN())
+                            gfx2.next_pixel(c64.CHRIN())
                     }
                     4 -> {
                         for x in 0 to width-1 step 2 {
                             b = c64.CHRIN()
-                            cx16.FB_set_pixel(b>>4)
-                            cx16.FB_set_pixel(b&15)
+                            gfx2.next_pixel(b>>4)
+                            gfx2.next_pixel(b&15)
                         }
                     }
                     2 -> {
                         for x in 0 to width-1 step 4 {
                             b = c64.CHRIN()
-                            cx16.FB_set_pixel(b>>6)
-                            cx16.FB_set_pixel(b>>4 & 3)
-                            cx16.FB_set_pixel(b>>2 & 3)
-                            cx16.FB_set_pixel(b & 3)
+                            gfx2.next_pixel(b>>6)
+                            gfx2.next_pixel(b>>4 & 3)
+                            gfx2.next_pixel(b>>2 & 3)
+                            gfx2.next_pixel(b & 3)
                         }
                     }
                     1 -> {
                         for x in 0 to width-1 step 8
-                            cx16.FB_set_8_pixels_opaque(c64.CHRIN(), 255, 255, 0)
+                            gfx2.set_8_pixels_from_bits(c64.CHRIN(), 1, 0)
                     }
                 }
 

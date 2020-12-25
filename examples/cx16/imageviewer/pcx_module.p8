@@ -1,5 +1,5 @@
 %target cx16
-%import graphics
+%import gfx2
 %import textio
 %import diskio
 
@@ -22,7 +22,7 @@ pcx_module {
                         uword num_colors = 2**bits_per_pixel
                         if number_of_planes == 1 {
                             if (width & 7) == 0 {
-                                graphics.clear_screen(1, 0)
+                                gfx2.clear_screen()
                                 if palette_format==2
                                     palette.set_grayscale()
                                 else if num_colors == 16
@@ -76,24 +76,24 @@ bitmap {
         y_ok = true
         py = 0
         px = 0
-        if width < graphics.WIDTH
-            offsetx = (graphics.WIDTH - width - 1) / 2
-        if height < graphics.HEIGHT
-            offsety = (graphics.HEIGHT - height - 1) / 2
+        if width < gfx2.width
+            offsetx = (gfx2.width - width) / 2
+        if height < gfx2.height
+            offsety = (gfx2.height - height) / 2
         status = (not c64.READST()) or c64.READST()==64
     }
 
     sub next_scanline() {
         px = 0
         py++
-        y_ok = py < graphics.HEIGHT-1
-        cx16.FB_cursor_position(offsetx, offsety+py)
+        y_ok = py < gfx2.height
+        gfx2.position(offsetx, offsety+py)
         status = (not c64.READST()) or c64.READST()==64
     }
 
     sub do1bpp(uword width, uword height) -> ubyte {
         start_plot(width, height)
-        cx16.FB_cursor_position(offsetx, offsety)
+        gfx2.position(offsetx, offsety)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
@@ -101,12 +101,12 @@ bitmap {
                 ubyte dat = c64.CHRIN()
                 repeat b {
                     if y_ok
-                        cx16.FB_set_8_pixels_opaque(dat, 255, 255, 0)
+                        gfx2.set_8_pixels_from_bits(dat, 1, 0)
                     px += 8
                 }
             } else {
                 if y_ok
-                    cx16.FB_set_8_pixels_opaque(b, 255, 255, 0)
+                    gfx2.set_8_pixels_from_bits(b, 1, 0)
                 px += 8
             }
             if px==width
@@ -118,7 +118,7 @@ bitmap {
 
     sub do4bpp(uword width, uword height) -> ubyte {
         start_plot(width, height)
-        cx16.FB_cursor_position(offsetx, offsety)
+        gfx2.position(offsetx, offsety)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
@@ -126,14 +126,14 @@ bitmap {
                 ubyte dat = c64.CHRIN()
                 if y_ok
                     repeat b {
-                        cx16.FB_set_pixel(dat>>4)
-                        cx16.FB_set_pixel(dat & 15)
+                        gfx2.next_pixel(dat>>4)
+                        gfx2.next_pixel(dat & 15)
                     }
                 px += b*2
             } else {
                 if y_ok {
-                    cx16.FB_set_pixel(b>>4)
-                    cx16.FB_set_pixel(b & 15)
+                    gfx2.next_pixel(b>>4)
+                    gfx2.next_pixel(b & 15)
                 }
                 px += 2
             }
@@ -146,7 +146,7 @@ bitmap {
 
     sub do8bpp(uword width, uword height) -> ubyte {
         start_plot(width, height)
-        cx16.FB_cursor_position(offsetx, offsety)
+        gfx2.position(offsetx, offsety)
         while py < height and status {
             ubyte b = c64.CHRIN()
             if b>>6==3 {
@@ -154,11 +154,11 @@ bitmap {
                 ubyte dat = c64.CHRIN()
                 if y_ok
                     repeat b
-                        cx16.FB_set_pixel(dat)
+                        gfx2.next_pixel(dat)
                 px += b
             } else {
                 if y_ok
-                    cx16.FB_set_pixel(b)
+                    gfx2.next_pixel(b)
                 px++
             }
             if px==width

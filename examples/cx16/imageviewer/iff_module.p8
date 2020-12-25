@@ -1,5 +1,5 @@
 %target cx16
-%import graphics
+%import gfx2
 %import textio
 %import diskio
 
@@ -104,7 +104,7 @@ iff_module {
                                 skip_chunk()
                         }
                         else if chunk_id == "body" {
-                            graphics.clear_screen(1, 0)
+                            gfx2.clear_screen()
                             if camg & $0004
                                 height /= 2     ; interlaced: just skip every odd scanline later
                             if camg & $0080 and have_cmap
@@ -178,14 +178,14 @@ iff_module {
             interleave_stride = (bitplane_stride as uword) * num_planes
             offsetx = 0
             offsety = 0
-            if width < graphics.WIDTH
-                offsetx = (graphics.WIDTH - width - 1) / 2
-            if height < graphics.HEIGHT
-                offsety = (graphics.HEIGHT - height - 1) / 2
-            if width > graphics.WIDTH
-                width = graphics.WIDTH
-            if height > graphics.HEIGHT-1
-                height = graphics.HEIGHT-1
+            if width < gfx2.width
+                offsetx = (gfx2.width - width - 1) / 2
+            if height < gfx2.height
+                offsety = (gfx2.height - height - 1) / 2
+            if width > gfx2.width
+                width = gfx2.width
+            if height > gfx2.height
+                height = gfx2.height
         }
 
         sub decode_raw() {
@@ -196,7 +196,7 @@ iff_module {
                 diskio.f_read_exact(scanline_data_ptr, interleave_stride)
                 if interlaced
                     diskio.f_read_exact(scanline_data_ptr, interleave_stride)
-                cx16.FB_cursor_position(offsetx, offsety+y)
+                gfx2.position(offsetx, offsety+y)
                 planar_to_chunky_scanline()
             }
         }
@@ -209,7 +209,7 @@ iff_module {
                 decode_rle_scanline()
                 if interlaced
                     decode_rle_scanline()
-                cx16.FB_cursor_position(offsetx, offsety+y)
+                gfx2.position(offsetx, offsety+y)
                 planar_to_chunky_scanline()
             }
         }
@@ -296,7 +296,7 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
 ;                }
 ;                bits >>= 8-num_planes
 
-                cx16.FB_set_pixel(bits)
+                gfx2.next_pixel(bits)
             }
         }
     }
@@ -304,6 +304,8 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
     sub cycle_colors_each_jiffy() {
         if num_cycles==0
             return
+
+        ; TODO implement Blend Shifting see http://www.effectgames.com/demos/canvascycle/palette.js
 
         ubyte changed = false
         ubyte ci

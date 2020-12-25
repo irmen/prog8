@@ -1,5 +1,5 @@
 %target cx16
-%import graphics
+%import gfx2
 %import diskio
 %import c64colors
 
@@ -33,14 +33,17 @@ koala_module {
         ; theoretically you could put the 8-pixel array in zeropage to squeeze out another tiny bit of performance
         ubyte[8] pixels
 
-        graphics.clear_screen(1, 0)
+        gfx2.clear_screen()
+        uword offsety = (gfx2.height - 200) / 2
 
         for cy in 0 to 24*8 step 8 {
+            uword posy = cy + offsety
             for cx in 0 to 39 {
+                uword posx = cx as uword * 8
                 for d in 0 to 7 {
-                    cx16.FB_cursor_position(cx as uword * 8, cy as uword + d)
+                    gfx2.position(posx, posy + d)
                     get_8_pixels()
-                    cx16.FB_set_pixels(pixels, 8)
+                    gfx2.next_pixels(pixels, 8)
                 }
             }
             cy_times_forty += 40

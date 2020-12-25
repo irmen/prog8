@@ -1,5 +1,5 @@
 %target cx16
-%import graphics
+%import gfx2
 %import textio
 %import diskio
 %option no_sysinit
@@ -77,7 +77,7 @@ ci_module {
                     uword palette_size = num_colors*2
                     if palette_format
                         palette_size += num_colors  ; 3
-                    if width > graphics.WIDTH {
+                    if width > gfx2.width {
                         txt.print("image is too wide for the display!\n")
                     } else if compression!=0 {
                         txt.print("compressed image not yet supported!\n")    ; TODO implement the various decompressions
@@ -91,23 +91,20 @@ ci_module {
                             } else {
                                 ; uncompressed bitmap data. read it a scanline at a time and display as we go.
                                 ; restrict height to the maximun that can be displayed
-                                if height > graphics.HEIGHT
-                                    height = graphics.HEIGHT
-                                graphics.enable_bitmap_mode()
+                                if height > gfx2.height
+                                    height = gfx2.height
                                 if palette_format
                                     palette.set_rgb8(buffer, num_colors)
                                 else
                                     palette.set_rgb4(buffer, num_colors)
-                                graphics.clear_screen(1,0)
-                                cx16.r0 = 0
-                                cx16.r1 = 0
-                                cx16.FB_cursor_position()
+                                gfx2.clear_screen()
+                                gfx2.position(0 ,0)
                                 uword scanline_size = width * bpp / 8
                                 ubyte y
                                 for y in 0 to lsb(height)-1 {
                                     void diskio.f_read(buffer, scanline_size)
                                     when bpp {
-                                        8 -> cx16.FB_set_pixels_from_buf(buffer, scanline_size)  ; FB_set_pixels in rom v38 crashes with a size > 255 so we use our own replacement for now
+                                        8 -> gfx2.next_pixels(buffer, scanline_size)
                                         4 -> display_scanline_16c(buffer, scanline_size)
                                         2 -> display_scanline_4c(buffer, scanline_size)
                                         1 -> display_scanline_2c(buffer, scanline_size)
