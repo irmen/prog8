@@ -710,22 +710,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
                             RegisterOrPair.AX -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldx  #0")
                             RegisterOrPair.AY -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  #0")
-                            RegisterOrPair.R0,
-                            RegisterOrPair.R1,
-                            RegisterOrPair.R2,
-                            RegisterOrPair.R3,
-                            RegisterOrPair.R4,
-                            RegisterOrPair.R5,
-                            RegisterOrPair.R6,
-                            RegisterOrPair.R7,
-                            RegisterOrPair.R8,
-                            RegisterOrPair.R9,
-                            RegisterOrPair.R10,
-                            RegisterOrPair.R11,
-                            RegisterOrPair.R12,
-                            RegisterOrPair.R13,
-                            RegisterOrPair.R14,
-                            RegisterOrPair.R15 -> {
+                            in Cx16VirtualRegisters -> {
                                 asmgen.out("""
                                     inx
                                     lda  P8ESTACK_LO,x
@@ -742,22 +727,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             RegisterOrPair.AY-> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
                             RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
-                            RegisterOrPair.R0,
-                            RegisterOrPair.R1,
-                            RegisterOrPair.R2,
-                            RegisterOrPair.R3,
-                            RegisterOrPair.R4,
-                            RegisterOrPair.R5,
-                            RegisterOrPair.R6,
-                            RegisterOrPair.R7,
-                            RegisterOrPair.R8,
-                            RegisterOrPair.R9,
-                            RegisterOrPair.R10,
-                            RegisterOrPair.R11,
-                            RegisterOrPair.R12,
-                            RegisterOrPair.R13,
-                            RegisterOrPair.R14,
-                            RegisterOrPair.R15 -> {
+                            in Cx16VirtualRegisters -> {
                                 asmgen.out("""
                                     inx
                                     lda  P8ESTACK_LO,x
@@ -806,22 +776,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName |  ldx  #>$sourceName")
                     RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
                     RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName |  ldy  #>$sourceName")
-                    RegisterOrPair.R0,
-                    RegisterOrPair.R1,
-                    RegisterOrPair.R2,
-                    RegisterOrPair.R3,
-                    RegisterOrPair.R4,
-                    RegisterOrPair.R5,
-                    RegisterOrPair.R6,
-                    RegisterOrPair.R7,
-                    RegisterOrPair.R8,
-                    RegisterOrPair.R9,
-                    RegisterOrPair.R10,
-                    RegisterOrPair.R11,
-                    RegisterOrPair.R12,
-                    RegisterOrPair.R13,
-                    RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  #<$sourceName
                             sta  cx16.${target.register.toString().toLowerCase()}
@@ -962,22 +917,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  $sourceName+1")
                     RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  $sourceName+1")
                     RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  $sourceName+1")
-                    RegisterOrPair.R0,
-                    RegisterOrPair.R1,
-                    RegisterOrPair.R2,
-                    RegisterOrPair.R3,
-                    RegisterOrPair.R4,
-                    RegisterOrPair.R5,
-                    RegisterOrPair.R6,
-                    RegisterOrPair.R7,
-                    RegisterOrPair.R8,
-                    RegisterOrPair.R9,
-                    RegisterOrPair.R10,
-                    RegisterOrPair.R11,
-                    RegisterOrPair.R12,
-                    RegisterOrPair.R13,
-                    RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  $sourceName
                             sta  cx16.${target.register.toString().toLowerCase()}
@@ -1150,22 +1090,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
                     RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
-                    RegisterOrPair.R0,
-                    RegisterOrPair.R1,
-                    RegisterOrPair.R2,
-                    RegisterOrPair.R3,
-                    RegisterOrPair.R4,
-                    RegisterOrPair.R5,
-                    RegisterOrPair.R6,
-                    RegisterOrPair.R7,
-                    RegisterOrPair.R8,
-                    RegisterOrPair.R9,
-                    RegisterOrPair.R10,
-                    RegisterOrPair.R11,
-                    RegisterOrPair.R12,
-                    RegisterOrPair.R13,
-                    RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  $sourceName
                             sta  cx16.${target.register.toString().toLowerCase()}
@@ -1173,6 +1098,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  cx16.${target.register.toString().toLowerCase()}+1
                             """)
                     }
+                    else -> throw AssemblyError("weird register")
                 }
             }
             TargetStorageKind.STACK -> {
@@ -1295,7 +1221,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister) {
-        require(target.datatype in ByteDatatypes)
+        if(target.register !in Cx16VirtualRegisters)
+            require(target.datatype in ByteDatatypes)
+
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  st${register.name.toLowerCase()}  ${target.asmVarname}")
@@ -1330,28 +1258,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> { asmgen.out("  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  tax |  ldy  #0") }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
-                            asmgen.out("""
-                                sta  cx16.${target.register.toString().toLowerCase()}
-                                ldy  #0
-                                sty  cx16.${target.register.toString().toLowerCase()}+1
-                            """)
+                        in Cx16VirtualRegisters -> {
+                            // only assign a single byte to the virtual register's Lsb
+                            asmgen.out("  sta  cx16.${target.register.toString().toLowerCase()}")
                         }
+                        else -> throw AssemblyError("weird register")
                     }
                     CpuRegister.X -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  txa") }
@@ -1361,28 +1272,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> { asmgen.out("  txa |  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  ldy  #0") }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
-                            asmgen.out("""
-                                stx  cx16.${target.register.toString().toLowerCase()}
-                                lda  #0
-                                sta  cx16.${target.register.toString().toLowerCase()}+1
-                            """)
+                        in Cx16VirtualRegisters -> {
+                            // only assign a single byte to the virtual register's Lsb
+                            asmgen.out("  stx  cx16.${target.register.toString().toLowerCase()}")
                         }
+                        else -> throw AssemblyError("weird register")
                     }
                     CpuRegister.Y -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  tya") }
@@ -1392,27 +1286,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> { asmgen.out("  tya |  ldx  #0") }
                         RegisterOrPair.XY -> { asmgen.out("  tya |  tax |  ldy  #0") }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
-                            asmgen.out("""
-                                sty  cx16.${target.register.toString().toLowerCase()}
-                                lda  #0
-                                sta  cx16.${target.register.toString().toLowerCase()}+1
-                            """)                        }
+                        in Cx16VirtualRegisters -> {
+                            // only assign a single byte to the virtual register's Lsb
+                            asmgen.out("  sty  cx16.${target.register.toString().toLowerCase()}")
+                        }
+                        else -> throw AssemblyError("weird register")
                     }
                 }
             }
@@ -1472,22 +1350,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.AX -> { }
                         RegisterOrPair.XY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG |  tax") }
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
+                        in Cx16VirtualRegisters -> {
                             asmgen.out("""
                                     sta  cx16.${target.register.toString().toLowerCase()}
                                     stx  cx16.${target.register.toString().toLowerCase()}+1
@@ -1499,22 +1362,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { }
                         RegisterOrPair.AX -> { asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.XY -> { asmgen.out("  tax") }
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
+                        in Cx16VirtualRegisters -> {
                             asmgen.out("""
                                     sta  cx16.${target.register.toString().toLowerCase()}
                                     sty  cx16.${target.register.toString().toLowerCase()}+1
@@ -1526,22 +1374,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> { asmgen.out("  txa") }
                         RegisterOrPair.AX -> { asmgen.out("  txa |  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.XY -> { }
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
+                        in Cx16VirtualRegisters -> {
                             asmgen.out("""
                                     stx  cx16.${target.register.toString().toLowerCase()}
                                     sty  cx16.${target.register.toString().toLowerCase()}+1
@@ -1586,10 +1419,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> asmgen.out("  lda  #0 |  tax")
                         RegisterOrPair.AY -> asmgen.out("  lda  #0 |  tay")
                         RegisterOrPair.XY -> asmgen.out("  ldx  #0 |  ldy  #0")
-                        RegisterOrPair.R0, RegisterOrPair.R1,  RegisterOrPair.R2, RegisterOrPair.R3,
-                        RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
-                        RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
-                        RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15 -> {
+                        in Cx16VirtualRegisters -> {
                             asmgen.out("  stz  cx16.${target.register.toString().toLowerCase()} |  stz  cx16.${target.register.toString().toLowerCase()}+1")
                         }
                         else -> throw AssemblyError("invalid register for word value")
@@ -1639,10 +1469,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  lda  #<${word.toHex()} |  ldx  #>${word.toHex()}")
                     RegisterOrPair.AY -> asmgen.out("  lda  #<${word.toHex()} |  ldy  #>${word.toHex()}")
                     RegisterOrPair.XY -> asmgen.out("  ldx  #<${word.toHex()} |  ldy  #>${word.toHex()}")
-                    RegisterOrPair.R0, RegisterOrPair.R1,  RegisterOrPair.R2, RegisterOrPair.R3,
-                    RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
-                    RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
-                    RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  #<${word.toHex()}
                             sta  cx16.${target.register.toString().toLowerCase()}
@@ -1692,24 +1519,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AY -> asmgen.out("  lda  #0 |  tay")
                     RegisterOrPair.XY -> asmgen.out("  ldx  #0 |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
-                    RegisterOrPair.R0,
-                    RegisterOrPair.R1,
-                    RegisterOrPair.R2,
-                    RegisterOrPair.R3,
-                    RegisterOrPair.R4,
-                    RegisterOrPair.R5,
-                    RegisterOrPair.R6,
-                    RegisterOrPair.R7,
-                    RegisterOrPair.R8,
-                    RegisterOrPair.R9,
-                    RegisterOrPair.R10,
-                    RegisterOrPair.R11,
-                    RegisterOrPair.R12,
-                    RegisterOrPair.R13,
-                    RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         asmgen.out("  stz  cx16.${target.register.toString().toLowerCase()} |  stz  cx16.${target.register.toString().toLowerCase()}+1")
                     }
+                    else -> throw AssemblyError("weird register")
                 }
                 TargetStorageKind.STACK -> {
                     asmgen.out("  stz  P8ESTACK_LO,x |  dex")
@@ -1745,22 +1558,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.AY -> asmgen.out("  lda  #${byte.toHex()} |  ldy  #0")
                 RegisterOrPair.XY -> asmgen.out("  ldx  #${byte.toHex()} |  ldy  #0")
                 RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
-                RegisterOrPair.R0,
-                RegisterOrPair.R1,
-                RegisterOrPair.R2,
-                RegisterOrPair.R3,
-                RegisterOrPair.R4,
-                RegisterOrPair.R5,
-                RegisterOrPair.R6,
-                RegisterOrPair.R7,
-                RegisterOrPair.R8,
-                RegisterOrPair.R9,
-                RegisterOrPair.R10,
-                RegisterOrPair.R11,
-                RegisterOrPair.R12,
-                RegisterOrPair.R13,
-                RegisterOrPair.R14,
-                RegisterOrPair.R15 -> {
+                in Cx16VirtualRegisters -> {
                     asmgen.out("""
                         lda  #${byte.toHex()}
                         sta  cx16.${target.register.toString().toLowerCase()}
@@ -1768,6 +1566,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         sta  cx16.${target.register.toString().toLowerCase()}+1
                     """)
                 }
+                else -> throw AssemblyError("weird register")
             }
             TargetStorageKind.STACK -> {
                 asmgen.out("""
@@ -1937,22 +1736,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AY -> asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
                     RegisterOrPair.XY -> asmgen.out("  ldy  ${address.toHex()} |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
-                    RegisterOrPair.R0,
-                    RegisterOrPair.R1,
-                    RegisterOrPair.R2,
-                    RegisterOrPair.R3,
-                    RegisterOrPair.R4,
-                    RegisterOrPair.R5,
-                    RegisterOrPair.R6,
-                    RegisterOrPair.R7,
-                    RegisterOrPair.R8,
-                    RegisterOrPair.R9,
-                    RegisterOrPair.R10,
-                    RegisterOrPair.R11,
-                    RegisterOrPair.R12,
-                    RegisterOrPair.R13,
-                    RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  ${address.toHex()}
                             sta  cx16.${target.register.toString().toLowerCase()}
@@ -1960,6 +1744,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  cx16.${target.register.toString().toLowerCase()}+1
                         """)
                     }
+                    else -> throw AssemblyError("weird register")
                 }
                 TargetStorageKind.STACK -> {
                     asmgen.out("""
@@ -1991,28 +1776,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AY -> asmgen.out("  ldy  #0")
                         RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
+                        in Cx16VirtualRegisters -> {
                             asmgen.out("""
                                 sta  cx16.${target.register.toString().toLowerCase()}
                                 lda  #0
                                 sta  cx16.${target.register.toString().toLowerCase()}+1
                             """)
                         }
+                        else -> throw AssemblyError("weird register")
                     }
                 }
                 TargetStorageKind.STACK -> {

@@ -151,7 +151,7 @@ val ElementArrayTypes = mapOf(
         DataType.UWORD to DataType.ARRAY_UW,
         DataType.FLOAT to DataType.ARRAY_F
 )
-val Cx16VirtualRegisters = setOf(RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
+val Cx16VirtualRegisters = listOf(RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
     RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
     RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
     RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15)
