@@ -339,14 +339,6 @@ internal class AstChecker(private val program: Program,
             if(carryParameter!=null && carryParameter !== subroutine.asmParameterRegisters.last())
                 err("carry parameter has to come last")
 
-            val cx16virtualRegParameters = subroutine.asmParameterRegisters.withIndex().filter { it.value.registerOrPair in Cx16VirtualRegisters }
-            if(cx16virtualRegParameters.isNotEmpty()) {
-                for(elt in cx16virtualRegParameters.withIndex()) {
-                    if(elt.index != elt.value.index)
-                        err("cx16 virtual register parameters have to be specified first")
-                }
-            }
-
         } else {
             // Pass-by-reference datatypes can not occur as parameters to a subroutine directly
             // Instead, their reference (address) should be passed (as an UWORD).

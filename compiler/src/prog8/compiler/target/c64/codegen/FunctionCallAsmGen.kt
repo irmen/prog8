@@ -54,13 +54,15 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                                 it is ArrayLiteralValue ||
                                 it is IdentifierReference} -> {
                             // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
-                            for(arg in sub.parameters.withIndex().zip(stmt.args)) {
-                                argumentViaRegister(sub, arg.first, arg.second)
-                            }
+                            val argsInfo = sub.parameters.withIndex().zip(stmt.args).zip(sub.asmParameterRegisters)
+                            val (vregsArgsInfo, otherRegsArgsInfo) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
+                            for(arg in vregsArgsInfo)
+                                argumentViaRegister(sub, arg.first.first, arg.first.second)
+                            for(arg in otherRegsArgsInfo)
+                                argumentViaRegister(sub, arg.first.first, arg.first.second)
                         }
                         else -> {
                             // Risk of clobbering due to complex expression args. Evaluate first, then assign registers.
-                            // TODO not used yet because code is larger: registerArgsViaVirtualRegistersEvaluation(stmt, sub)
                             registerArgsViaStackEvaluation(stmt, sub)
                         }
                     }
@@ -75,96 +77,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 asmgen.restoreRegisterLocal(CpuRegister.X)
         }
     }
-
-    private fun registerArgsViaVirtualRegistersEvaluation(stmt: IFunctionCall, sub: Subroutine) {
-        // This is called when one or more of the arguments are 'complex' and
-        // cannot be assigned to a cpu register easily or risk clobbering other cpu registers.
-        // To solve this, the expressions are first evaluated into the 'virtual registers and then loaded from there.
-
-        // TODO not used yet; code generated here is bigger than the eval-stack based code because it always treats the virtual regs as words and also sometimes uses the stack for evaluation and then copies it to a virtual register.
-
-        if(sub.parameters.isEmpty())
-            return
-
-        // 1. load all arguments left-to-right into the R0..R15 registers
-        for (vrarg in stmt.args.zip(Cx16VirtualRegisters)) {
-            asmgen.assignExpressionToRegister(vrarg.first, vrarg.second)
-        }
-
-        // 2. Gather up the arguments in the correct registers (in specific order to not clobber earlier values)
-        var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
-        var argForXregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
-        var argForAregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
-
-        for(argi in stmt.args.zip(sub.asmParameterRegisters).withIndex()) {
-            val valueIsInVirtualReg = Cx16VirtualRegisters[argi.index]
-            val valueIsInVirtualRegAsmString = valueIsInVirtualReg.toString().toLowerCase()
-            when {
-                argi.value.second.statusflag == Statusflag.Pc -> {
-                    require(argForCarry == null)
-                    argForCarry = argi
-                }
-                argi.value.second.statusflag != null -> throw AssemblyError("can only use Carry as status flag parameter")
-                argi.value.second.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) -> {
-                    require(argForXregister==null)
-                    argForXregister = argi
-                }
-                argi.value.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.AY) -> {
-                    require(argForAregister == null)
-                    argForAregister = argi
-                }
-                argi.value.second.registerOrPair == RegisterOrPair.Y -> {
-                    asmgen.out("  ldy  cx16.$valueIsInVirtualRegAsmString")
-                }
-                argi.value.second.registerOrPair in Cx16VirtualRegisters -> {
-                    if(argi.value.second.registerOrPair != valueIsInVirtualReg) {
-                        asmgen.out("""
-                            lda  cx16.$valueIsInVirtualRegAsmString  
-                            sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
-                            lda  cx16.$valueIsInVirtualRegAsmString+1   
-                            sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1
-                        """)
-                    }
-                }
-                else -> throw AssemblyError("weird argument")
-            }
-        }
-
-        if(argForCarry!=null) {
-            asmgen.out("""
-                lda  cx16.${Cx16VirtualRegisters[argForCarry.index].toString().toLowerCase()}
-                beq  +
-                sec
-                bcs  ++
-+               clc
-+               php""")             // push the status flags
-        }
-
-        if(argForAregister!=null) {
-            when(argForAregister.value.second.registerOrPair) {
-                RegisterOrPair.A -> asmgen.out("  lda  cx16.${Cx16VirtualRegisters[argForAregister.index].toString().toLowerCase()}")
-                RegisterOrPair.AY -> asmgen.out("  lda  cx16.${Cx16VirtualRegisters[argForAregister.index].toString().toLowerCase()} |  ldy  cx16.${Cx16VirtualRegisters[argForAregister.index].toString().toLowerCase()}+1")
-                else -> throw AssemblyError("weird arg")
-            }
-        }
-
-        if(argForXregister!=null) {
-            if(argForAregister!=null)
-                asmgen.out("  pha")
-            when(argForXregister.value.second.registerOrPair) {
-                RegisterOrPair.X -> asmgen.out("  ldx  cx16.${Cx16VirtualRegisters[argForXregister.index].toString().toLowerCase()}")
-                RegisterOrPair.AX -> asmgen.out("  lda  cx16.${Cx16VirtualRegisters[argForXregister.index].toString().toLowerCase()} |  ldx  cx16.${Cx16VirtualRegisters[argForXregister.index].toString().toLowerCase()}+1")
-                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.${Cx16VirtualRegisters[argForXregister.index].toString().toLowerCase()} |  ldy  cx16.${Cx16VirtualRegisters[argForXregister.index].toString().toLowerCase()}+1")
-                else -> throw AssemblyError("weird arg")
-            }
-            if(argForAregister!=null)
-                asmgen.out("  pla")
-        }
-
-        if(argForCarry!=null)
-            asmgen.out("  plp")       // set the carry flag back to correct value
-    }
-
 
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {
         // this is called when one or more of the arguments are 'complex' and
@@ -202,6 +114,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     asmgen.out("  ldy  P8ESTACK_LO+${argi.index},x")
                 }
                 argi.value.second.registerOrPair in Cx16VirtualRegisters -> {
+                        // immediately output code to load the virtual register, to avoid clobbering the A register later
                         asmgen.out("""
                             lda  P8ESTACK_LO+${argi.index},x
                             sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
