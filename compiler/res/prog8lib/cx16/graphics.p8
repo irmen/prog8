@@ -2,9 +2,10 @@
 %import syslib
 %import textio
 
-; bitmap pixel graphics module for the CommanderX16
+; Bitmap pixel graphics module for the CommanderX16
 ; wraps the graphics functions that are in ROM.
-; only black/white monchrome 320x200 for now.
+; only black/white monchrome 320x200 for now. (i.e. truncated at the bottom)
+; For full-screen 640x480 or 320x240 graphics, use the "gfx2" module instead. (but that is Cx16-specific)
 
 graphics {
     const uword WIDTH = 320
@@ -133,5 +134,3 @@ graphics {
         cx16.FB_set_pixel(1)
     }
 }
-
-

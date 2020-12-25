@@ -1,10 +1,17 @@
+%target cx16
 %import textio
 %import graphics
 %import test_stack
 %zeropage basicsafe
 %option no_sysinit
 
-; TODO full-screen graphics mode library, in development.  (as replacement for the graphics routines in ROM that are constrained to 200 vertical pixels and lores mode only)
+; Bitmap pixel graphics module for the CommanderX16
+; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
+; This is only compatible with the Cx16.
+; For compatible graphics code that words on C64 too, use the "graphics" module instead.
+
+
+; TODO this is in development.
 
 
 main {

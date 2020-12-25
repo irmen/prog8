@@ -47,21 +47,19 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     // just a single parameter, no risk of clobbering registers
                     argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), stmt.args[0])
                 } else {
-                    // multiple register arguments, risk of register clobbering.
-                    // evaluate arguments onto the stack, and load the registers from the evaluated values on the stack.
                     when {
                         stmt.args.all {it is AddressOf ||
                                 it is NumericLiteralValue ||
                                 it is StringLiteralValue ||
                                 it is ArrayLiteralValue ||
                                 it is IdentifierReference} -> {
-                            // no risk of clobbering for these simple argument types. Optimize the register loading.
+                            // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
                             for(arg in sub.parameters.withIndex().zip(stmt.args)) {
                                 argumentViaRegister(sub, arg.first, arg.second)
                             }
                         }
                         else -> {
-                            // Risk of clobbering due to complex expression args. Work via the stack.
+                            // Risk of clobbering due to complex expression args. Work via the evaluation stack.
                             registerArgsViaStackEvaluation(stmt, sub)
                         }
                     }

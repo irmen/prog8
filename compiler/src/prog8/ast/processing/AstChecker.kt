@@ -202,6 +202,9 @@ internal class AstChecker(private val program: Program,
         if(subroutine.name in BuiltinFunctions)
             err("cannot redefine a built-in function")
 
+        if(subroutine.parameters.size>16)
+            err("subroutines are limited to 16 parameters")
+
         val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
