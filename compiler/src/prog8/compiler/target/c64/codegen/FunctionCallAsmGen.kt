@@ -9,6 +9,8 @@ import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.assignment.*
 
 
@@ -96,6 +98,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         asmgen.out("  inx")     // align estack pointer
 
         for(argi in stmt.args.zip(sub.asmParameterRegisters).withIndex()) {
+            val plusIdxStr = if(argi.index==0) "" else "+${argi.index}"
             when {
                 argi.value.second.statusflag == Statusflag.Pc -> {
                     require(argForCarry == null)
@@ -111,24 +114,40 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     argForAregister = argi
                 }
                 argi.value.second.registerOrPair == RegisterOrPair.Y -> {
-                    asmgen.out("  ldy  P8ESTACK_LO+${argi.index},x")
+                    asmgen.out("  ldy  P8ESTACK_LO$plusIdxStr,x")
                 }
                 argi.value.second.registerOrPair in Cx16VirtualRegisters -> {
-                        // immediately output code to load the virtual register, to avoid clobbering the A register later
-                        asmgen.out("""
-                            lda  P8ESTACK_LO+${argi.index},x
-                            sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
-                            lda  P8ESTACK_HI+${argi.index},x
-                            sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1
-                        """)
+                    // immediately output code to load the virtual register, to avoid clobbering the A register later
+                    when (sub.parameters[argi.index].type) {
+                        in ByteDatatypes -> {
+                            // only load the lsb of the virtual register
+                            asmgen.out("""
+                                lda  P8ESTACK_LO$plusIdxStr,x
+                                sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
+                            """)
+                            if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                asmgen.out("  stz  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
+                            else
+                                asmgen.out("  lda  #0 |  sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
+                        }
+                        in WordDatatypes ->
+                            asmgen.out("""
+                                lda  P8ESTACK_LO$plusIdxStr,x
+                                sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
+                                lda  P8ESTACK_HI$plusIdxStr,x
+                                sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1
+                            """)
+                        else -> throw AssemblyError("weird dt")
                     }
+                }
                 else -> throw AssemblyError("weird argument")
             }
         }
 
         if(argForCarry!=null) {
+            val plusIdxStr = if(argForCarry.index==0) "" else "+${argForCarry.index}"
             asmgen.out("""
-                lda  P8ESTACK_LO+${argForCarry.index},x
+                lda  P8ESTACK_LO$plusIdxStr,x
                 beq  +
                 sec
                 bcs  ++
@@ -137,21 +156,23 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
 
         if(argForAregister!=null) {
+            val plusIdxStr = if(argForAregister.index==0) "" else "+${argForAregister.index}"
             when(argForAregister.value.second.registerOrPair) {
-                RegisterOrPair.A -> asmgen.out("  lda  P8ESTACK_LO+${argForAregister.index},x")
-                RegisterOrPair.AY -> asmgen.out("  lda  P8ESTACK_LO+${argForAregister.index},x |  ldy  P8ESTACK_HI+${argForAregister.index},x")
+                RegisterOrPair.A -> asmgen.out("  lda  P8ESTACK_LO$plusIdxStr,x")
+                RegisterOrPair.AY -> asmgen.out("  lda  P8ESTACK_LO$plusIdxStr,x |  ldy  P8ESTACK_HI$plusIdxStr,x")
                 else -> throw AssemblyError("weird arg")
             }
         }
 
         if(argForXregister!=null) {
+            val plusIdxStr = if(argForXregister.index==0) "" else "+${argForXregister.index}"
 
             if(argForAregister!=null)
                 asmgen.out("  pha")
             when(argForXregister.value.second.registerOrPair) {
-                RegisterOrPair.X -> asmgen.out("  lda  P8ESTACK_LO+${argForXregister.index},x |  tax")
-                RegisterOrPair.AX -> asmgen.out("  ldy  P8ESTACK_LO+${argForXregister.index},x |  lda  P8ESTACK_HI+${argForXregister.index},x |  tax |  tya")
-                RegisterOrPair.XY -> asmgen.out("  ldy  P8ESTACK_HI+${argForXregister.index},x |  lda  P8ESTACK_LO+${argForXregister.index},x |  tax")
+                RegisterOrPair.X -> asmgen.out("  lda  P8ESTACK_LO$plusIdxStr,x |  tax")
+                RegisterOrPair.AX -> asmgen.out("  ldy  P8ESTACK_LO$plusIdxStr,x |  lda  P8ESTACK_HI$plusIdxStr,x |  tax |  tya")
+                RegisterOrPair.XY -> asmgen.out("  ldy  P8ESTACK_HI$plusIdxStr,x |  lda  P8ESTACK_LO$plusIdxStr,x |  tax")
                 else -> throw AssemblyError("weird arg")
             }
             if(argForAregister!=null)
@@ -242,7 +263,11 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     asmgen.assignVariableToRegister(scratchVar, register)
                 }
                 else {
-                    val target = AsmAssignTarget.fromRegisters(register, sub, program, asmgen)
+                    val target: AsmAssignTarget =
+                        if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
+                            AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, parameter.value.type, sub, register = register)
+                        else
+                            AsmAssignTarget.fromRegisters(register, sub, program, asmgen)
                     val src = if(valueDt in PassByReferenceDatatypes) {
                         if(value is IdentifierReference) {
                             val addr = AddressOf(value, Position.DUMMY)

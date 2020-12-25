@@ -1559,12 +1559,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.XY -> asmgen.out("  ldx  #${byte.toHex()} |  ldy  #0")
                 RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                 in Cx16VirtualRegisters -> {
-                    asmgen.out("""
-                        lda  #${byte.toHex()}
-                        sta  cx16.${target.register.toString().toLowerCase()}
-                        lda  #0
-                        sta  cx16.${target.register.toString().toLowerCase()}+1
-                    """)
+                    asmgen.out("  lda  #${byte.toHex()} |  sta  cx16.${target.register.toString().toLowerCase()}")
+                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  stz  cx16.${target.register.toString().toLowerCase()}+1\n")
+                    else
+                        asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().toLowerCase()}+1\n")
                 }
                 else -> throw AssemblyError("weird register")
             }
