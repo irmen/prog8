@@ -209,6 +209,13 @@ internal class AstChecker(private val program: Program,
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
+        if(subroutine.inline) {
+            if (subroutine.containsDefinedVariables())
+                err("can't inline a subroutine that defines variables")
+            if (!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty())
+                err("can't inline a non-asm subroutine that has parameters")
+        }
+
         super.visit(subroutine)
 
         // user-defined subroutines can only have zero or one return type
@@ -222,8 +229,8 @@ internal class AstChecker(private val program: Program,
             if (subroutine.amountOfRtsInAsm() == 0) {
                 if (subroutine.returntypes.isNotEmpty()) {
                     // for asm subroutines with an address, no statement check is possible.
-                    if (subroutine.asmAddress == null)
-                        err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                    if (subroutine.asmAddress == null && !subroutine.inline)
+                        err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
                 }
             }
         }

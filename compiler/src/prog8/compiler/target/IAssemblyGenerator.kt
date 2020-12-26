@@ -3,7 +3,7 @@ package prog8.compiler.target
 import prog8.compiler.CompilationOptions
 
 internal interface IAssemblyGenerator {
-    fun compileToAssembly(optimize: Boolean): IAssemblyProgram
+    fun compileToAssembly(): IAssemblyProgram
 }
 
 internal const val generatedLabelPrefix = "_prog8_label_"

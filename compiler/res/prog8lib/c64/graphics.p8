@@ -188,11 +188,11 @@ graphics {
 ;        @(addr) |= ormask[lsb(px) & 7]
 ;    }
 
-    asmsub  plot(uword plotx @XY, ubyte ploty @A) clobbers (A, X, Y) {
+    inline asmsub  plot(uword plotx @XY, ubyte ploty @A) clobbers (A, X, Y) {
         %asm {{
-            stx  internal_plotx
-            sty  internal_plotx+1
-            jmp  internal_plot
+            stx  graphics.internal_plotx
+            sty  graphics.internal_plotx+1
+            jsr  graphics.internal_plot
         }}
     }
 

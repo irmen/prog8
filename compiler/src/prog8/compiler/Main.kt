@@ -51,17 +51,18 @@ fun compileProgram(filepath: Path,
             // import main module and everything it needs
             val (ast, compilationOptions, imported) = parseImports(filepath, errors)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
+            compilationOptions.optimize = optimize
             programAst = ast
             importedFiles = imported
             processAst(programAst, errors, compilationOptions)
-            if (optimize)
+            if (compilationOptions.optimize)
                 optimizeAst(programAst, errors)
             postprocessAst(programAst, errors, compilationOptions)
 
             // printAst(programAst)
 
             if(writeAssembly)
-                programName = writeAssembly(programAst, errors, outputDir, optimize, compilationOptions)
+                programName = writeAssembly(programAst, errors, outputDir, compilationOptions)
         }
         System.out.flush()
         System.err.flush()
@@ -218,7 +219,7 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
 }
 
 private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir: Path,
-                          optimize: Boolean, compilerOptions: CompilationOptions): String {
+                          compilerOptions: CompilationOptions): String {
     // asm generation directly from the Ast,
     programAst.processAstBeforeAsmGeneration(errors)
     errors.handle()
@@ -231,7 +232,7 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
             errors,
             CompilationTarget.instance.machine.zeropage,
             compilerOptions,
-            outputDir).compileToAssembly(optimize)
+            outputDir).compileToAssembly()
     assembly.assemble(compilerOptions)
     errors.handle()
     return assembly.name

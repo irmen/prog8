@@ -111,6 +111,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         val mods = mutableListOf<IAstModification>()
         val returnStmt = Return(null, subroutine.position)
         if (subroutine.asmAddress == null
+                && !subroutine.inline
                 && subroutine.statements.isNotEmpty()
                 && subroutine.amountOfRtsInAsm() == 0
                 && subroutine.statements.lastOrNull { it !is VarDecl } !is Return

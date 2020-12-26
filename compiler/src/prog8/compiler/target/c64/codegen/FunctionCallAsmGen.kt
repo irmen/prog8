@@ -5,10 +5,9 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.RegisterOrStatusflag
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.SubroutineParameter
+import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
+import prog8.compiler.CompilationOptions
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.assignment.*
@@ -71,7 +70,20 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 }
             }
         }
-        asmgen.out("  jsr  $subName")
+
+        if(sub.inline && asmgen.options.optimize) {
+            if(sub.containsDefinedVariables())
+                throw AssemblyError("can't inline sub with vars")
+            if(!sub.isAsmSubroutine && sub.parameters.isNotEmpty())
+                throw AssemblyError("can't inline a non-asm subroutine with parameters")
+            asmgen.out("  \t; inlined routine follows: ${sub.name} from ${sub.position}")
+            val statements = sub.statements.filter { it !is ParameterVarDecl && it !is Directive }
+            statements.forEach { asmgen.translate(it) }
+        }
+        else {
+            asmgen.out("  jsr  $subName")
+        }
+
         if(saveX) {
             if(regSaveOnStack)
                 asmgen.restoreRegisterStack(CpuRegister.X, keepAonReturn)

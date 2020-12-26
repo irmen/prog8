@@ -477,7 +477,7 @@ class TestMemory {
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         return target
     }
@@ -497,7 +497,7 @@ class TestMemory {
         val decl = VarDecl(VarDeclType.VAR, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", null, null, false, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         assertTrue(target.isInRegularRAM(target.definingScope()))
     }
@@ -509,7 +509,7 @@ class TestMemory {
         val decl = VarDecl(VarDeclType.MEMORY, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         assertTrue(target.isInRegularRAM(target.definingScope()))
     }
@@ -521,7 +521,7 @@ class TestMemory {
         val decl = VarDecl(VarDeclType.MEMORY, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         assertFalse(target.isInRegularRAM(target.definingScope()))
     }
@@ -533,7 +533,7 @@ class TestMemory {
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         assertTrue(target.isInRegularRAM(target.definingScope()))
     }
@@ -546,7 +546,7 @@ class TestMemory {
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         assertTrue(target.isInRegularRAM(target.definingScope()))
     }
@@ -559,7 +559,7 @@ class TestMemory {
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
-        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
         assertFalse(target.isInRegularRAM(target.definingScope()))
     }

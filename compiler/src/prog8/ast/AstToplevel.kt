@@ -175,6 +175,7 @@ interface INameScope {
         }
     }
 
+    fun containsDefinedVariables() = statements.any { it is VarDecl && (it !is ParameterVarDecl) }
     fun containsCodeOrVars() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm"}
     fun containsNoCodeNorVars() = !containsCodeOrVars()
 

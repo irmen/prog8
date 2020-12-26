@@ -30,6 +30,7 @@ data class CompilationOptions(val output: OutputType,
                               val floats: Boolean,
                               val noSysInit: Boolean) {
     var slowCodegenWarnings = false
+    var optimize = false
 }
 
 

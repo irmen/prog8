@@ -51,7 +51,7 @@ internal class AsmGen(private val program: Program,
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
 
-    override fun compileToAssembly(optimize: Boolean): IAssemblyProgram {
+    override fun compileToAssembly(): IAssemblyProgram {
         assemblyLines.clear()
         loopEndLabels.clear()
 
@@ -70,7 +70,7 @@ internal class AsmGen(private val program: Program,
             for (line in assemblyLines) { it.println(line) }
         }
 
-        if(optimize) {
+        if(options.optimize) {
             assemblyLines.clear()
             assemblyLines.addAll(outputFile.readLines())
             var optimizationsDone = 1
@@ -789,8 +789,18 @@ internal class AsmGen(private val program: Program,
 
 
     private fun translateSubroutine(sub: Subroutine) {
+        if(sub.inline) {
+            if(options.optimize)
+                return      // inline subroutines don't exist anymore on their own
+            else if(sub.amountOfRtsInAsm()==0) {
+                // make sure the NOT INLINED subroutine actually does an rts at the end
+                sub.statements.add(Return(null, Position.DUMMY))
+            }
+        }
+
         out("")
         outputSourceLine(sub)
+
 
         if(sub.isAsmSubroutine) {
             if(sub.asmAddress!=null)

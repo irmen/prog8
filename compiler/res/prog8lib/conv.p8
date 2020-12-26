@@ -250,21 +250,21 @@ output	.text  "0000", $00      ; 0-terminated output buffer (to make printing ea
 }
 
 
-asmsub  str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
+inline asmsub  str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
 	; -- returns the unsigned byte value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
 	%asm {{
-    	jmp  str2uword
+    	jsr  conv.str2uword
 	}}
 }
 
-asmsub  str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
+inline asmsub  str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
 	; -- returns the signed byte value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
 	%asm {{
-    	jmp  str2word
+    	jsr  conv.str2word
 	}}
 }
 

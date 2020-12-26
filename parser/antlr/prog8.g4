@@ -244,9 +244,10 @@ literalvalue :
 
 inlineasm :  '%asm' INLINEASMBLOCK;
 
+inline: 'inline';
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
+	inline? 'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
 	;
 
 sub_return_part : '->' sub_returns  ;
@@ -263,7 +264,7 @@ sub_params :  vardecl (',' EOL? vardecl)* ;
 sub_returns :  datatype (',' EOL? datatype)*  ;
 
 asmsubroutine :
-    'asmsub' asmsub_decl  statement_block
+    inline? 'asmsub' asmsub_decl  statement_block
     ;
 
 romsubroutine :

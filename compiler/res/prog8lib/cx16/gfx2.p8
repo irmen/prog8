@@ -141,12 +141,12 @@ gfx2 {
         }
     }
 
-    asmsub next_pixel(ubyte color @A) {
+    inline asmsub next_pixel(ubyte color @A) {
         ; -- sets the next pixel byte to the graphics chip.
         ;    for 8 bpp screens this will plot 1 pixel. for 1 bpp screens it will actually plot 8 pixels at once (bitmask).
+        ;    For super fast pixel plotting, don't call this subroutine but instead just use the assignment:  cx16.VERA_DATA0 = color
         %asm {{
             sta  cx16.VERA_DATA0
-            rts
         }}
     }
 

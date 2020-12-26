@@ -129,8 +129,11 @@ graphics {
         }
     }
 
-    sub  plot(uword plotx, ubyte ploty) {
-        cx16.FB_cursor_position(plotx, ploty)
-        cx16.FB_set_pixel(1)
+    inline asmsub  plot(uword plotx @R0, uword ploty @R1) {
+        %asm {{
+            jsr  cx16.FB_cursor_position
+            lda  #1
+            jsr  cx16.FB_set_pixel
+        }}
     }
 }

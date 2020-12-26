@@ -712,11 +712,12 @@ class Subroutine(override val name: String,
                  val asmClobbers: Set<CpuRegister>,
                  val asmAddress: Int?,
                  val isAsmSubroutine: Boolean,
+                 val inline: Boolean,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 
-    constructor(name: String, parameters: List<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, position: Position)
-            : this(name, parameters, returntypes, emptyList(), determineReturnRegisters(returntypes), emptySet(), null, false, statements, position)
+    constructor(name: String, parameters: List<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, inline: Boolean, position: Position)
+            : this(name, parameters, returntypes, emptyList(), determineReturnRegisters(returntypes), emptySet(), null, false, inline, statements, position)
 
     companion object {
         private fun determineReturnRegisters(returntypes: List<DataType>): List<RegisterOrStatusflag> {
