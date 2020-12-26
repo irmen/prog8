@@ -632,6 +632,13 @@ Defining a subroutine
 Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
 Their definition, using the ``sub`` statement, includes the specification of the required parameters and return value.
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
+With ``asmsub`` you can define a low-level subroutine that is implemented in inline assembly and takes any parameters
+in registers directly.
+
+Trivial subroutines can be tagged as inline to tell the compiler to copy their code
+in-place to the locations where the subroutine is called, rather than inserting an actual call and return to the
+subroutine. This may increase code size significantly and can only be used in limited scenarios, so YMMV.
+
 
 Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^

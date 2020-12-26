@@ -31,6 +31,13 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         else
             blocks[block.name] = block
 
+        if(!block.isInLibrary) {
+            val libraries = program.modules.filter { it.isLibraryModule }
+            val libraryBlockNames = libraries.flatMap { it.statements.filterIsInstance<Block>().map { b -> b.name } }
+            if(block.name in libraryBlockNames)
+                errors.err("block is already defined in an included library module", block.position)
+        }
+
         super.visit(block)
     }
 

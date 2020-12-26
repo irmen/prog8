@@ -131,38 +131,7 @@ main {
 
 }
 
-palette {
-
-    sub set_rgb4(uword palletteptr, uword num_colors) {
-        ; 2 bytes per color entry, the Vera uses this, but the R/GB bytes order is swapped
-        uword vera_palette_ptr = $fa00
-        repeat num_colors {
-            cx16.vpoke(1, vera_palette_ptr+1, @(palletteptr))
-            palletteptr++
-            cx16.vpoke(1, vera_palette_ptr, @(palletteptr))
-            palletteptr++
-            vera_palette_ptr+=2
-        }
-    }
-
-    sub set_rgb8(uword palletteptr, uword num_colors) {
-        ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
-        uword vera_palette_ptr = $fa00
-        ubyte red
-        ubyte greenblue
-        repeat num_colors {
-            red = @(palletteptr) >> 4
-            palletteptr++
-            greenblue = @(palletteptr) & %11110000
-            palletteptr++
-            greenblue |= @(palletteptr) >> 4    ; add Blue
-            palletteptr++
-            cx16.vpoke(1, vera_palette_ptr, greenblue)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, red)
-            vera_palette_ptr++
-        }
-    }
+custompalette {
 
     sub set_bgra(uword palletteptr, uword num_colors) {
         uword vera_palette_ptr = $fa00
@@ -182,21 +151,8 @@ palette {
         }
     }
 
-    sub set_monochrome() {
-        uword vera_palette_ptr = $fa00
-        cx16.vpoke(1, vera_palette_ptr, 0)
-        vera_palette_ptr++
-        cx16.vpoke(1, vera_palette_ptr, 0)
-        vera_palette_ptr++
-        repeat 255 {
-            cx16.vpoke(1, vera_palette_ptr, 255)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, 255)
-            vera_palette_ptr++
-        }
-    }
-
-    sub set_grayscale() {
+    sub set_grayscale256() {
+        ; grays $000- $fff stretched out over all the 256 colors
         ubyte c = 0
         uword vera_palette_ptr = $fa00
         repeat 16 {

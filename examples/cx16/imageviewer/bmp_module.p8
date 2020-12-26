@@ -47,7 +47,7 @@ bmp_module {
                         repeat bm_data_offset - total_read
                             void c64.CHRIN()
                         gfx2.clear_screen()
-                        palette.set_bgra(&palette0, num_colors)
+                        custompalette.set_bgra(&palette0, num_colors)
                         decode_bitmap()
                         load_ok = true
                     }

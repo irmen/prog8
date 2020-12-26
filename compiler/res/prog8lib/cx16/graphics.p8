@@ -6,6 +6,8 @@
 ; wraps the graphics functions that are in ROM.
 ; only black/white monchrome 320x200 for now. (i.e. truncated at the bottom)
 ; For full-screen 640x480 or 320x240 graphics, use the "gfx2" module instead. (but that is Cx16-specific)
+; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
+
 
 graphics {
     const uword WIDTH = 320

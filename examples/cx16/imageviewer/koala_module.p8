@@ -1,7 +1,7 @@
 %target cx16
 %import gfx2
 %import diskio
-%import c64colors
+%import palette
 
 koala_module {
     const uword load_location = $6000
@@ -13,7 +13,7 @@ koala_module {
             if size==2 {
                 diskio.f_read_exact(load_location, 10001)
                 ; set a better C64 color palette, the Cx16's default is too saturated
-                c64colors.set_palette_pepto()
+                palette.set_c64pepto()
                 convert_koalapic()
                 load_ok = true
             }

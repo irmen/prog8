@@ -531,7 +531,7 @@ Subroutine definitions
 
 The syntax is::
 
-        sub   <identifier>  ( [parameters] )  [ -> returntype ]  {
+        [inline]  sub   <identifier>  ( [parameters] )  [ -> returntype ]  {
                 ... statements ...
         }
 
@@ -544,6 +544,9 @@ The open curly brace must immediately follow the subroutine result specification
 and can have nothing following it. The close curly brace must be on its own line as well.
 The parameters is a (possibly empty) comma separated list of "<datatype> <parametername>" pairs specifying the input parameters.
 The return type has to be specified if the subroutine returns a value.
+The ``inline`` keyword makes their code copied in-place to the locations where the subroutine is called,
+rather than having an actual call and return to the subroutine. This is meant for trivial subroutines only
+as it can increase code size significantly.
 
 
 Assembly /  ROM subroutines
@@ -579,6 +582,13 @@ The ``@ <register>`` part is required for rom and assembly-subroutines, as it sp
 what cpu registers should take the routine's arguments.  You can use the regular set of registers
 (A, X, Y), the special 16-bit register pairs to take word values (AX, AY and XY) and even a processor status
 flag such as Carry (Pc).
+
+.. note::
+    Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
+    directly instead of a call to them. Note that it is literal copy-paste of code that is done,
+    so make sure the assembly is actually written to behave like such - which probably means you
+    don't want a ``rts`` or ``jmp`` in it!
+
 
 .. note::
     The 'virtual' 16-bit registers from the Commander X16 can also be used as ``R0`` .. ``R15`` .

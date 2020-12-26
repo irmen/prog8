@@ -24,7 +24,7 @@ pcx_module {
                             if (width & 7) == 0 {
                                 gfx2.clear_screen()
                                 if palette_format==2
-                                    palette.set_grayscale()
+                                    custompalette.set_grayscale256()
                                 else if num_colors == 16
                                     palette.set_rgb8(&header + $10, 16)
                                 else if num_colors == 2

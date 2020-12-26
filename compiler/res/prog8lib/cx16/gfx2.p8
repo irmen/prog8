@@ -4,7 +4,7 @@
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
 ; This only works on the Cx16. No text layer is currently shown, text can be drawn as part of the bitmap itself.
 ; Note: for compatible graphics code that words on C64 too, use the "graphics" module instead.
-
+; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 
 ; TODO this is in development.  Add line drawing, circles and discs (like the graphics module has)
 

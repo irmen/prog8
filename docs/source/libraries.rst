@@ -73,12 +73,36 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 
 graphics
 --------
-High-res monochrome bitmap graphics routines:
+Monochrome bitmap graphics routines, fixed 320*200 resolution:
 
 - clearing the screen
 - drawing lines
 - drawing circles and discs (filled circles)
 - plotting individual pixels
+
+This library is available both on the C64 and the Cx16.
+It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
+That also means though that it is constrained to 320*200 resolution on the Cx16 as well.
+Use the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing.
+
+
+gfx2  (cx16 only)
+-----------------
+Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
+
+- multiple full-screen resolutions: 640 * 480 monochrome, and 320 * 240 monochrome and 256 colors
+- clearing screen, switching screen mode
+- drawing pixels
+- drawing text inside the bitmap
+- **TODO:** lines, circles, discs.
+
+
+palette  (cx16 only)
+--------------------
+Available for the Cx16 target. Various routines to set the display color palette.
+There are also a few better looking Commodore-64 color palettes available here,
+because the Commander X16's default colors for this (the first 16 colors) are too saturated
+and are quite different than how they looked on a VIC-II chip in a C-64.
 
 
 math
@@ -91,15 +115,6 @@ cx16logo
 --------
 A 'fun' module that contains the Commander X16 logo and that allows you
 to print it anywhere on the screen.
-
-
-c64colors
----------
-Available for the CommanderX16 target, a module that contains a few better
-color palettes for how the colors of the VIC-II looked on the Commodore-64.
-There are subroutines to activate one of the several palettes of your liking.
-The Commander X16's default colors for this (the first 16 colors) are too saturated
-and are quite different than how a C-64 looked.
 
 
 prog8_lib
