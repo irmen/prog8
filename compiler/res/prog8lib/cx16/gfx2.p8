@@ -2,12 +2,11 @@
 
 ; Bitmap pixel graphics module for the CommanderX16
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
-; This is only compatible with the Cx16.
-; For compatible graphics code that words on C64 too, use the "graphics" module instead.
+; This only works on the Cx16. No text layer is currently shown, text can be drawn as part of the bitmap itself.
+; Note: for compatible graphics code that words on C64 too, use the "graphics" module instead.
 
 
 ; TODO this is in development.  Add line drawing, circles and discs (like the graphics module has)
-; TODO enable text layer too?
 
 gfx2 {
 
@@ -17,11 +16,6 @@ gfx2 {
     uword height = 0
     ubyte bpp = 0
 
-    const ubyte charset_orig_bank = $0
-    const uword charset_orig_addr = $f800        ; in bank 0, so $0f800
-    const ubyte charset_bank = $1
-    const uword charset_addr = $f000       ; in bank 1, so $1f000
-
     sub screen_mode(ubyte mode) {
         ; mode 0 = bitmap 320 x 240 x 1c monochrome
         ; mode 1 = bitmap 320 x 240 x 256c
@@ -29,12 +23,6 @@ gfx2 {
         ; ...other modes?
 
         ; copy the lower-case charset to the upper part of the vram, so we can use it later to plot text
-        cx16.screen_set_charset(3, 0)
-        cx16.vaddr(charset_orig_bank, charset_orig_addr, 0, 1)
-        cx16.vaddr(charset_bank, charset_addr, 1, 1)
-        repeat 256*8 {
-            cx16.VERA_DATA1 = cx16.VERA_DATA0
-        }
 
         when mode {
             0 -> {
@@ -127,13 +115,12 @@ gfx2 {
             }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
-                ubyte bank = lsb(cx16.r1)
-                cx16.vpoke(bank, cx16.r0, color)
+                value = lsb(cx16.r1)
+                cx16.vpoke(value, cx16.r0, color)
             }
         }
         ; activate vera auto-increment mode so next_pixel() can be used after this
         cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
-        return
     }
 
     sub position(uword x, uword y) {
@@ -164,6 +151,8 @@ gfx2 {
     }
 
     sub next_pixels(uword pixels, uword amount) {
+        ; -- sets the next bunch of pixels from a prepared array of bytes.
+        ;    for 8 bpp screens this will plot 1 pixel per byte, but for 1 bpp screens the bytes contain 8 pixels each.
         repeat msb(amount) {
             repeat 256 {
                 cx16.VERA_DATA0 = @(pixels)
@@ -177,6 +166,7 @@ gfx2 {
     }
 
     asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) {
+        ; this is only useful in 256 color mode where one pixel equals one byte value.
         %asm {{
             phx
             ldx  #8
@@ -192,28 +182,63 @@ gfx2 {
         }}
     }
 
+    const ubyte charset_orig_bank = $0
+    const uword charset_orig_addr = $f800        ; in bank 0, so $0f800
+    const ubyte charset_bank = $1
+    const uword charset_addr = $f000       ; in bank 1, so $1f000
+
+    sub text_charset(ubyte charset) {
+        ; -- make a copy of the selected character set to use with text()
+        ;    the charset number is the same as for the cx16.screen_set_charset() ROM function.
+        ;    1 = ISO charset, 2 = PETSCII uppercase+graphs, 3= PETSCII uppercase+lowercase.
+        cx16.screen_set_charset(charset, 0)
+        cx16.vaddr(charset_orig_bank, charset_orig_addr, 0, 1)
+        cx16.vaddr(charset_bank, charset_addr, 1, 1)
+        repeat 256*8 {
+            cx16.VERA_DATA1 = cx16.VERA_DATA0
+        }
+    }
+
     sub text(uword x, uword y, ubyte color, uword sctextptr) {
-        ; -- Write some text at the given pixel position.
-        ;    The text string must be in screencode encoding (not petscii!).
+        ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
+        ;    You must also have called text_charset() first to select and prepare the character set to use.
         ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !
         uword chardataptr
-        ubyte cy
-        ubyte cb
+        ubyte cy222         ; TODO why not removed by compiler???
+        ubyte cb222         ; TODO why not removed by compiler???
         when active_mode {
             0, 128 -> {
                 ; 1-bitplane modes
-                cy = 11<<4     ; auto increment 40
+                cx16.r2 = 40
                 if active_mode>=128
-                    cy = 12<<4    ; auto increment 80
+                    cx16.r2 = 80
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, 1)
                     position(x,y)
-                    cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | cy      ; enable auto increment 40 or 80
-                    repeat 8 {
-                        cx16.VERA_DATA0 = cx16.VERA_DATA1
-                        x++
-                    }
+                    %asm {{
+                        lda  cx16.VERA_ADDR_H
+                        and  #%111              ; don't auto-increment, we have to do that manually because of the ora
+                        sta  cx16.VERA_ADDR_H
+                        ldy  #8
+-                       lda  cx16.VERA_DATA0
+                        ora  cx16.VERA_DATA1
+                        sta  cx16.VERA_DATA0
+                        lda  cx16.VERA_ADDR_L
+                        clc
+                        adc  cx16.r2
+                        sta  cx16.VERA_ADDR_L
+                        bcc  +
+                        inc  cx16.VERA_ADDR_M
++                       lda  x
+                        clc
+                        adc  #1
+                        sta  x
+                        bcc  +
+                        inc  x+1
++                       dey
+                        bne  -
+                    }}
                     sctextptr++
                 }
             }
@@ -226,15 +251,19 @@ gfx2 {
                         position(x,y)
                         y++
                         %asm {{
+                            phx
+                            ldx  #1
                             lda  cx16.VERA_DATA1
                             sta  P8ZP_SCRATCH_B1
                             ldy  #8
--                           lda  #0
-                            asl  P8ZP_SCRATCH_B1
-                            adc  #0
-                            sta  cx16.VERA_DATA0
-                            dey
+-                           asl  P8ZP_SCRATCH_B1
+                            bcc  +
+                            stx  cx16.VERA_DATA0    ; write a pixel
+                            bra  ++
++                           lda  cx16.VERA_DATA0    ; don't write a pixel, but do advance to the next address
++                           dey
                             bne  -
+                            plx
                         }}
                     }
                     x+=8

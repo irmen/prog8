@@ -8,13 +8,19 @@ main {
 
     sub start () {
 
-        ;gfx2.screen_mode(0)
-        gfx2.screen_mode(255)
+        void cx16.screen_set_mode($80)
+        cx16.GRAPH_init(0)
+        cx16.GRAPH_set_colors(13, 6, 6)
+        cx16.GRAPH_clear()
 
-        uword address
-        for address in gfx2.charset_addr to gfx2.charset_addr+4*8-1 {
-            txt.print_ubbin(cx16.vpeek(gfx2.charset_bank, address),0)
-            txt.chrout('\n')
+        uword cp
+
+        for cp in 0 to 15 {
+            cx16.r0 = 10+cp*2
+            cx16.r1 = 10+cp*11
+            ubyte cc
+            for cc in "Hello world, 123456789<>-=!#$%"
+                cx16.GRAPH_put_next_char(cc)
         }
 
         test_stack.test()

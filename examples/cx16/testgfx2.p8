@@ -6,7 +6,9 @@
 main {
 
     sub start () {
-        ubyte[] modes = [128, 0, 1]
+        gfx2.text_charset(3)
+
+        ubyte[] modes = [0, 1, 128]
         ubyte mode
         for mode in modes {
             gfx2.screen_mode(mode)
