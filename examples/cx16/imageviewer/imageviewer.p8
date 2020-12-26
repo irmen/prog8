@@ -17,7 +17,7 @@ main {
         if strlen(diskio.status(8)) {
             txt.print("enter image file name or just enter for all on disk: ")
             ubyte i = txt.input_chars(diskio.filename)
-            gfx2.set_mode(1)    ; 320*240, 256c
+            gfx2.screen_mode(1)    ; 320*240, 256c
             if i
                 attempt_load(diskio.filename)
             else
@@ -28,7 +28,7 @@ main {
         else
             txt.print("files are read with sequential file loading.\nin the emulator this currently only works with files on an sd-card image.\nsorry :(\n")
 
-        gfx2.set_mode(255)      ; back to default text mode and palette
+        gfx2.screen_mode(255)      ; back to default text mode and palette
         txt.print("that was all folks!\n")
     }
 
@@ -109,7 +109,7 @@ main {
     }
 
     sub load_error(uword filenameptr) {
-        gfx2.set_mode(255)      ; back to default text mode and palette
+        gfx2.screen_mode(255)      ; back to default text mode and palette
         txt.print(filenameptr)
         txt.print(": load error\n")
         exit(1)

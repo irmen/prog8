@@ -7,54 +7,7 @@
 
 
 ; TODO this is in development.  Add line drawing, circles and discs (like the graphics module has)
-
-
-;main {
-;
-;    sub start () {
-;        ubyte[] modes = [0, 1, 128]
-;        ubyte mode
-;        for mode in modes {
-;            gfx2.set_mode(mode)
-;
-;            gfx2.position(20, 50)
-;            repeat 200 {
-;                gfx2.next_pixel(255)
-;            }
-;
-;            draw()
-;            cx16.wait(120)
-;        }
-;    }
-;
-;    sub draw() {
-;        uword offset
-;        ubyte angle
-;        uword x
-;        uword y
-;        when gfx2.active_mode {
-;            0, 1 -> {
-;                for offset in 0 to 90 step 3 {
-;                    for angle in 0 to 255 {
-;                        x = $0008+sin8u(angle)/2
-;                        y = $0008+cos8u(angle)/2
-;                        gfx2.plot(x+offset*2,y+offset, lsb(x+y))
-;                    }
-;                }
-;            }
-;            128 -> {
-;                for offset in 0 to 190 step 6 {
-;                    for angle in 0 to 255 {
-;                        x = $0008+sin8u(angle)
-;                        y = $0008+cos8u(angle)
-;                        gfx2.plot(x+offset*2,y+offset, 1)
-;                    }
-;                }
-;            }
-;        }
-;    }
-;}
-
+; TODO enable text layer too?
 
 gfx2 {
 
@@ -64,11 +17,24 @@ gfx2 {
     uword height = 0
     ubyte bpp = 0
 
-    sub set_mode(ubyte mode) {
+    const ubyte charset_orig_bank = $0
+    const uword charset_orig_addr = $f800        ; in bank 0, so $0f800
+    const ubyte charset_bank = $1
+    const uword charset_addr = $f000       ; in bank 1, so $1f000
+
+    sub screen_mode(ubyte mode) {
         ; mode 0 = bitmap 320 x 240 x 1c monochrome
         ; mode 1 = bitmap 320 x 240 x 256c
         ; mode 128 = bitmap 640 x 480 x 1c monochrome
         ; ...other modes?
+
+        ; copy the lower-case charset to the upper part of the vram, so we can use it later to plot text
+        cx16.screen_set_charset(3, 0)
+        cx16.vaddr(charset_orig_bank, charset_orig_addr, 0, 1)
+        cx16.vaddr(charset_bank, charset_addr, 1, 1)
+        repeat 256*8 {
+            cx16.VERA_DATA1 = cx16.VERA_DATA0
+        }
 
         when mode {
             0 -> {
@@ -116,6 +82,7 @@ gfx2 {
                 bpp = 0
             }
         }
+
         active_mode = mode
         if bpp
             clear_screen()
@@ -170,15 +137,14 @@ gfx2 {
     }
 
     sub position(uword x, uword y) {
-        uword address
         when active_mode {
             0 -> {
-                address = y*(320/8) + x/8
-                cx16.vaddr(0, address, 0, 1)
+                cx16.r0 = y*(320/8) + x/8
+                cx16.vaddr(0, cx16.r0, 0, 1)
             }
             128 -> {
-                address = y*(640/8) + x/8
-                cx16.vaddr(0, address, 0, 1)
+                cx16.r0 = y*(640/8) + x/8
+                cx16.vaddr(0, cx16.r0, 0, 1)
             }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
@@ -224,6 +190,59 @@ gfx2 {
             plx
             rts
         }}
+    }
+
+    sub text(uword x, uword y, ubyte color, uword sctextptr) {
+        ; -- Write some text at the given pixel position.
+        ;    The text string must be in screencode encoding (not petscii!).
+        ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !
+        uword chardataptr
+        ubyte cy
+        ubyte cb
+        when active_mode {
+            0, 128 -> {
+                ; 1-bitplane modes
+                cy = 11<<4     ; auto increment 40
+                if active_mode>=128
+                    cy = 12<<4    ; auto increment 80
+                while @(sctextptr) {
+                    chardataptr = charset_addr + (@(sctextptr) as uword)*8
+                    cx16.vaddr(charset_bank, chardataptr, 1, 1)
+                    position(x,y)
+                    cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | cy      ; enable auto increment 40 or 80
+                    repeat 8 {
+                        cx16.VERA_DATA0 = cx16.VERA_DATA1
+                        x++
+                    }
+                    sctextptr++
+                }
+            }
+            1 -> {
+                ; 320 x 240 x 256c
+                while @(sctextptr) {
+                    chardataptr = charset_addr + (@(sctextptr) as uword)*8
+                    cx16.vaddr(charset_bank, chardataptr, 1, 1)
+                    repeat 8 {
+                        position(x,y)
+                        y++
+                        %asm {{
+                            lda  cx16.VERA_DATA1
+                            sta  P8ZP_SCRATCH_B1
+                            ldy  #8
+-                           lda  #0
+                            asl  P8ZP_SCRATCH_B1
+                            adc  #0
+                            sta  cx16.VERA_DATA0
+                            dey
+                            bne  -
+                        }}
+                    }
+                    x+=8
+                    y-=8
+                    sctextptr++
+                }
+            }
+        }
     }
 
     asmsub cs_innerloop640() {

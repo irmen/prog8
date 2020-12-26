@@ -268,19 +268,22 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
         ; -- get a byte from VERA's video memory
         ;    note: inefficient when reading multiple sequential bytes!
         %asm {{
-                stz  cx16.VERA_CTRL
+                pha
+                lda  #1
+                sta  cx16.VERA_CTRL
+                pla
                 and  #1
                 sta  cx16.VERA_ADDR_H
                 sty  cx16.VERA_ADDR_M
                 stx  cx16.VERA_ADDR_L
-                lda  cx16.VERA_DATA0
+                lda  cx16.VERA_DATA1
                 rts
             }}
 }
 
 
-asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte incrdecr @Y) {
-        ; -- setup the VERA's address register 0 or 1
+asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) {
+        ; -- setup the VERA's data address register 0 or 1
         %asm {{
             and  #1
             pha

@@ -6,14 +6,18 @@
 main {
 
     sub start () {
-        ubyte[] modes = [0, 1, 128]
+        ubyte[] modes = [128, 0, 1]
         ubyte mode
         for mode in modes {
-            gfx2.set_mode(mode)
+            gfx2.screen_mode(mode)
             draw()
+            ubyte tp
+            for tp in 0 to 15 {
+                gfx2.text(19+tp,20+tp*11, 5, @"ScreenCODE text! 1234![]<>#$%&*()")
+            }
             cx16.wait(120)
         }
-        gfx2.set_mode(255)
+        gfx2.screen_mode(255)
         txt.print("done!\n")
     }
 
