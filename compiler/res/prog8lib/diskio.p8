@@ -75,7 +75,9 @@ io_error:
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
         ubyte[256] names_buffer
         ubyte[256] names_buffer1        ; to store a bit more names
+        ; TODO  names_buffer = memory("filenames", 512)
         uword buf_ptr = &names_buffer
+        names_buffer1[0] = 0  ; TODO force array to exist
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern, suffixmatch) {
             while lf_next_entry() {

@@ -204,8 +204,6 @@ gfx2 {
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !
         uword chardataptr
-        ubyte cy222         ; TODO why not removed by compiler???
-        ubyte cb222         ; TODO why not removed by compiler???
         when active_mode {
             0, 128 -> {
                 ; 1-bitplane modes

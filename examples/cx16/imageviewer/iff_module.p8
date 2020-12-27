@@ -4,6 +4,7 @@
 %import diskio
 
 iff_module {
+    ; TODO uword cmap = memory("palette", 768)
     ubyte[256] cmap
     ubyte[256] cmap1
     ubyte[256] cmap2
