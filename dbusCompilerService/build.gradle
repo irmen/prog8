@@ -1,8 +1,8 @@
+
 plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm" version "1.4.21"
-    id 'org.jetbrains.dokka' version "0.9.18"
     id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
@@ -15,17 +15,12 @@ repositories {
     maven { url "https://kotlin.bintray.com/kotlinx" }
 }
 
-def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
-
 dependencies {
-    implementation project(':parser')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.antlr:antlr4-runtime:4.8'
     implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.1'
-    // implementation 'net.razorvine:ksim65:1.8'
-    // implementation "com.github.hypfvieh:dbus-java:3.2.4"
-    implementation project(':parser')
+    implementation "com.github.hypfvieh:dbus-java:3.2.4"
+    implementation "org.slf4j:slf4j-simple:1.7.30"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
@@ -63,11 +58,11 @@ sourceSets {
     }
 }
 
-startScripts.enabled = true
+startScripts.enabled = false
 
 application {
-    mainClassName = 'prog8.CompilerMainKt'
-    applicationName = 'p8compile'
+    mainClassName = 'prog8.dbus.TestdbusKt'
+    applicationName = 'testdbus'
 }
 
 artifacts {
@@ -76,8 +71,8 @@ artifacts {
 
 
 shadowJar {
-    archiveBaseName = 'prog8compiler'
-    archiveVersion = prog8version
+    archiveBaseName = 'prog8compilerservice'
+    archiveVersion = '1.0'
     // minimize()
 }
 
@@ -93,12 +88,6 @@ test {
     testLogging {
         events "skipped", "failed"
     }
-}
-
-
-dokka {
-    outputFormat = 'html'
-    outputDirectory = "$buildDir/kdoc"
 }
 
 task wrapper(type: Wrapper) {
