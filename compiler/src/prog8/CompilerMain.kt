@@ -57,6 +57,7 @@ private fun compileMain(args: Array<String>) {
 
     if(watchMode) {
         val watchservice = FileSystems.getDefault().newWatchService()
+        val allImportedFiles = mutableSetOf<Path>()
 
         while(true) {
             println("Continuous watch mode active. Modules: $moduleFiles")
@@ -67,7 +68,9 @@ private fun compileMain(args: Array<String>) {
                 results.add(compilationResult)
             }
 
-            val allImportedFiles = results.flatMap { it.importedFiles }
+            val allNewlyImportedFiles = results.flatMap { it.importedFiles }
+            allImportedFiles.addAll(allNewlyImportedFiles)
+
             println("Imported files (now watching:)")
             for (importedFile in allImportedFiles) {
                 print("  ")
