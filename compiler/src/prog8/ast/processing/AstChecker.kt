@@ -11,6 +11,7 @@ import prog8.compiler.target.C64Target
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.Cx16Target
 import prog8.functions.BuiltinFunctions
+import prog8.functions.builtinFunctionReturnType
 import java.io.File
 
 internal class AstChecker(private val program: Program,
@@ -971,6 +972,11 @@ internal class AstChecker(private val program: Program,
                     errors.warn("result value of subroutine call is discarded (use void?)", functionCallStatement.position)
                 else
                     errors.warn("result values of subroutine call are discarded (use void?)", functionCallStatement.position)
+            }
+            else if(targetStatement is BuiltinFunctionStatementPlaceholder) {
+                val rt = builtinFunctionReturnType(targetStatement.name, functionCallStatement.args, program)
+                if(rt.isKnown)
+                    errors.warn("result value of a function call is discarded (use void?)", functionCallStatement.position)
             }
         }
 
