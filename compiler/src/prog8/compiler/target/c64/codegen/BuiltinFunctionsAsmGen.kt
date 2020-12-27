@@ -108,8 +108,38 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else
                     asmgen.out("  lda  #<prog8_program_end |  ldy  #>prog8_program_end")
             }
+            "memory" -> funcMemory(fcall, discardResult, resultToStack)
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }
+    }
+
+    private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean) {
+        if(discardResult || fcall !is FunctionCall)
+            throw AssemblyError("should not discard result of memory allocation at $fcall")
+        val scope = fcall.definingScope()
+        val nameRef = fcall.args[0] as IdentifierReference
+        val name = (nameRef.targetVarDecl(program.namespace)!!.value as StringLiteralValue).value
+        val size = (fcall.args[1] as NumericLiteralValue).number.toInt()
+
+        val existingSize = asmgen.slabs[name]
+        if(existingSize!=null && existingSize!=size)
+            throw AssemblyError("memory slab '$name' already exists with a different size ($size) at ${fcall.position}")
+
+        val slabname = IdentifierReference(listOf("prog8_slabs", name), fcall.position)
+        slabname.linkParents(fcall)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = AddressOf(slabname, fcall.position))
+        val target =
+            if(resultToStack)
+                AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, null)
+            else
+                AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
+        val assign = AsmAssignment(src, target, false, fcall.position)
+        asmgen.translateNormalAssignment(assign)
+
+        // remove the variable for the name, it's not used as a variable only as a tag for the assembler.
+        val nameDecl = scope.statements.single { it is VarDecl && it.name==nameRef.nameInSource.single() }
+        (scope as Subroutine).asmGenInfo.removals.add(nameDecl)
+        asmgen.slabs[name] = size
     }
 
     private fun funcMemSetCopy(fcall: IFunctionCall, func: FSignature, scope: Subroutine) {

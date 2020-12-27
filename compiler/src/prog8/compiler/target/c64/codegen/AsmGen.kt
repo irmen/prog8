@@ -50,6 +50,7 @@ internal class AsmGen(private val program: Program,
     private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
+    internal val slabs = mutableMapOf<String, Int>()
 
     override fun compileToAssembly(): IAssemblyProgram {
         assemblyLines.clear()
@@ -63,6 +64,7 @@ internal class AsmGen(private val program: Program,
             throw AssemblyError("first block should be 'main'")
         for(b in program.allBlocks())
             block2asm(b)
+        slaballocations()
         footer()
 
         val outputFile = outputDir.resolve("${program.name}.asm").toFile()
@@ -150,6 +152,14 @@ internal class AsmGen(private val program: Program,
         }
 
         out("  jmp  main.start  ; start program / force start proc to be included")
+    }
+
+    private fun slaballocations() {
+        out("; memory slabs")
+        out("prog8_slabs\t.block")
+        for((name, size) in slabs)
+            out("$name\t.fill  $size")
+        out("\t.bend")
     }
 
     private fun footer() {
@@ -834,6 +844,12 @@ internal class AsmGen(private val program: Program,
 
             out("; statements")
             sub.statements.forEach{ translate(it) }
+
+            for(stmt in sub.asmGenInfo.removals) {
+                sub.remove(stmt)
+            }
+            sub.asmGenInfo.removals.clear()
+
             out("; variables")
             out("; register saves")
             if(sub.asmGenInfo.usedRegsaveA)

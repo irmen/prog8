@@ -964,11 +964,14 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
-        if(!functionCallStatement.void && targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
-            if(targetStatement.returntypes.size==1)
-                errors.warn("result value of subroutine call is discarded (use void?)", functionCallStatement.position)
-            else
-                errors.warn("result values of subroutine call are discarded (use void?)", functionCallStatement.position)
+        if (!functionCallStatement.void) {
+            // check for unused return values
+            if (targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
+                if(targetStatement.returntypes.size==1)
+                    errors.warn("result value of subroutine call is discarded (use void?)", functionCallStatement.position)
+                else
+                    errors.warn("result values of subroutine call are discarded (use void?)", functionCallStatement.position)
+            }
         }
 
         if(functionCallStatement.target.nameInSource.last() == "sort") {

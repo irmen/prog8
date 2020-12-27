@@ -931,6 +931,14 @@ target()
     - 16 = compiled for CommanderX16 with 65C02 CPU
     - 64 = compiled for Commodore-64 with 6502/6510 CPU
 
+memory(name, size)
+    Statically allocates a fixed portion of memory of the given size in bytes, and returns its address.
+    Slabs are considered identical if their name and size are the same.
+    This can be used to allocate parts of the memory where a normal byte array would
+    not suffice for instance if you need more than 256 bytes, and/or don't want to work
+    with fixed memory addresses for buffers.
+    The portion of memory cannot be used as an array, you only have the address of the first byte.
+
 progend()
     Returns the last address of the program in memory + 1.
     Can be used to load dynamic data after the program, instead of hardcoding something.

@@ -697,6 +697,7 @@ class AsmGenInfo {
     var usedRegsaveY = false
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
+    val removals = mutableListOf<Statement>()
 
     class ArrayIndexerInfo(val name: String, val replaces: ArrayIndex)
 }
