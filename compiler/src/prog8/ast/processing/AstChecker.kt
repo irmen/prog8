@@ -35,24 +35,6 @@ internal class AstChecker(private val program: Program,
                 if (startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
                     errors.err("program entrypoint subroutine can't have parameters and/or return values", startSub.position)
             }
-
-            // the main module cannot contain 'regular' statements (they will never be executed!)
-            for (statement in mainBlock.statements) {
-                val ok = when (statement) {
-                    is Block -> true
-                    is Directive -> true
-                    is Label -> true
-                    is VarDecl -> true
-                    is InlineAssembly -> true
-                    is INameScope -> true
-                    is NopStatement -> true
-                    else -> false
-                }
-                if (!ok) {
-                    errors.err("main block contains regular statements, this is not allowed (they'll never get executed). Use subroutines.", statement.position)
-                    break
-                }
-            }
         }
 
         // there can be an optional single 'irq' block with a 'irq' subroutine in it,
@@ -184,6 +166,23 @@ internal class AstChecker(private val program: Program,
     override fun visit(block: Block) {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
             errors.err("block memory address must be valid integer 0..\$ffff", block.position)
+        }
+
+        for (statement in block.statements) {
+            val ok = when (statement) {
+                is Block,
+                is Directive,
+                is Label,
+                is VarDecl,
+                is InlineAssembly,
+                is INameScope,
+                is NopStatement -> true
+                else -> false
+            }
+            if (!ok) {
+                errors.err("statement occurs in a block, where it will never be executed. Use it in a subroutine instead.", statement.position)
+                break
+            }
         }
 
         super.visit(block)
@@ -616,7 +615,7 @@ internal class AstChecker(private val program: Program,
                         err("memory address must be valid integer 0..\$ffff", decl.value?.position)
                     }
                 } else {
-                    err("value of memory mapped variable can only be a number, perhaps you meant to use an address pointer type instead?", decl.value?.position)
+                    err("value of memory mapped variable can only be a fixed number, perhaps you meant to use an address pointer type instead?", decl.value?.position)
                 }
             }
         }
