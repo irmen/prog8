@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="takes-http">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/httpCompilerService/lib/cactoos-0.42.jar!/" />
+      <root url="jar://$PROJECT_DIR$/httpCompilerService/lib/commons-lang3-3.7.jar!/" />
+      <root url="jar://$PROJECT_DIR$/httpCompilerService/lib/commons-text-1.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/httpCompilerService/lib/takes-1.19.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

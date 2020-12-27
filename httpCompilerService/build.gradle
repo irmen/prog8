@@ -16,10 +16,13 @@ repositories {
 }
 
 dependencies {
+    implementation project(':compiler')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.1'
-    implementation "com.github.hypfvieh:dbus-java:3.2.4"
+    implementation "org.takes:takes:1.19"
+    implementation "javax.json:javax.json-api:1.1.4"
+    implementation "org.glassfish:javax.json:1.1.4"
     implementation "org.slf4j:slf4j-simple:1.7.30"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
@@ -61,8 +64,8 @@ sourceSets {
 startScripts.enabled = true
 
 application {
-    mainClassName = 'prog8.dbus.TestdbusKt'
-    applicationName = 'testdbus'
+    mainClassName = 'prog8.http.TestHttpKt'
+    applicationName = 'testhttp'
 }
 
 artifacts {
@@ -71,7 +74,7 @@ artifacts {
 
 
 shadowJar {
-    archiveBaseName = 'prog8compilerservicedbus'
+    archiveBaseName = 'prog8compilerservicehttp'
     archiveVersion = '1.0'
     // minimize()
 }

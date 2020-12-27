@@ -1,3 +1,4 @@
 include ':parser'
 include ':compiler'
 include ':dbusCompilerService'
+include ':httpCompilerService'

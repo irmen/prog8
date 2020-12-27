@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" filepath="$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/httpCompilerService/httpCompilerService.iml" filepath="$PROJECT_DIR$/httpCompilerService/httpCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
     </modules>
   </component>
