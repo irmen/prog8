@@ -32,20 +32,20 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 
 private fun compileMain(args: Array<String>) {
-    val cli = CommandLineInterface("prog8compiler")
-    val startEmulator by cli.flagArgument("-emu", "auto-start emulator after successful compilation")
-    val outputDir by cli.flagValueArgument("-out", "directory", "directory for output files instead of current directory", ".")
-    val dontWriteAssembly by cli.flagArgument("-noasm", "don't create assembly code")
-    val dontOptimize by cli.flagArgument("-noopt", "don't perform any optimizations")
-    val watchMode by cli.flagArgument("-watch", "continuous compilation mode (watches for file changes), greatly increases compilation speed")
-    val slowCodegenWarnings by cli.flagArgument("-slowwarn", "show debug warnings about slow/problematic assembly code generation")
-    val compilationTarget by cli.flagValueArgument("-target", "compilertarget",
-            "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available", C64Target.name)
-    val moduleFiles by cli.positionalArgumentsList("modules", "main module file(s) to compile", minArgs = 1)
+    val cli = ArgParser("prog8compiler")
+    val startEmulator by cli.option(ArgType.Boolean, shortName="emu", description = "auto-start emulator after successful compilation")
+    val outputDir by cli.option(ArgType.String, shortName = "out", description = "directory for output files instead of current directory").default(".")
+    val dontWriteAssembly by cli.option(ArgType.Boolean, shortName = "noasm", description="don't create assembly code")
+    val dontOptimize by cli.option(ArgType.Boolean, shortName = "noopt", description = "don't perform any optimizations")
+    val watchMode by cli.option(ArgType.Boolean, shortName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
+    val slowCodegenWarnings by cli.option(ArgType.Boolean, shortName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
+    val compilationTarget by cli.option(ArgType.String, shortName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
+    val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
         cli.parse(args)
-    } catch (e: Exception) {
+    } catch (e: IllegalStateException) {
+        System.err.println(e.message)
         exitProcess(1)
     }
 
@@ -55,7 +55,7 @@ private fun compileMain(args: Array<String>) {
         exitProcess(1)
     }
 
-    if(watchMode) {
+    if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
         val allImportedFiles = mutableSetOf<Path>()
 
@@ -64,7 +64,7 @@ private fun compileMain(args: Array<String>) {
             val results = mutableListOf<CompilationResult>()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, slowCodegenWarnings, compilationTarget, outputPath)
+                val compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, outputPath)
                 results.add(compilationResult)
             }
 
@@ -101,7 +101,7 @@ private fun compileMain(args: Array<String>) {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath, !dontOptimize, !dontWriteAssembly, slowCodegenWarnings, compilationTarget, outputPath)
+                compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, outputPath)
                 if(!compilationResult.success)
                     exitProcess(1)
             } catch (x: ParsingFailedError) {
@@ -110,10 +110,10 @@ private fun compileMain(args: Array<String>) {
                 exitProcess(1)
             }
 
-            if (startEmulator) {
+            if (startEmulator==true) {
                 if (compilationResult.programName.isEmpty())
                     println("\nCan't start emulator because no program was assembled.")
-                else if(startEmulator) {
+                else {
                     CompilationTarget.instance.machine.launchEmulator(compilationResult.programName)
                 }
             }

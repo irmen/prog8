@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="kotlinx-cli-jvm">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/compiler/lib/kotlinx-cli-jvm-0.3.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

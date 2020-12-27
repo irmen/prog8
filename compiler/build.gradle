@@ -21,8 +21,7 @@ sourceCompatibility = 11
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
-    maven { url "https://dl.bintray.com/orangy/maven/" }
+    maven { url "https://kotlin.bintray.com/kotlinx" }
 }
 
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
@@ -32,9 +31,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation 'org.antlr:antlr4-runtime:4.8'
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.1.0-dev-5'
-    // implementation 'net.razorvine:ksim65:1.6'
-    // implementation "com.github.hypfvieh:dbus-java:3.2.0"
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.1'
+    // implementation 'net.razorvine:ksim65:1.8'
+    // implementation "com.github.hypfvieh:dbus-java:3.2.4"
     implementation project(':parser')
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
