@@ -3,7 +3,7 @@ plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm" version "1.4.21"
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 targetCompatibility = 11
@@ -61,7 +61,8 @@ sourceSets {
 startScripts.enabled = true
 
 application {
-    mainClassName = 'prog8.dbus.TestdbusKt'
+    mainClass = 'prog8.dbus.TestdbusKt'
+    mainClassName = 'prog8.dbus.TestdbusKt'  // deprecated
     applicationName = 'testdbus'
 }
 
@@ -91,5 +92,5 @@ test {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '6.1.1'
+    gradleVersion = '6.7'
 }

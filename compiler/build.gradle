@@ -3,7 +3,7 @@ plugins {
     id 'application'
     id "org.jetbrains.kotlin.jvm" version "1.4.21"
     id 'org.jetbrains.dokka' version "0.9.18"
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 targetCompatibility = 11
@@ -66,7 +66,8 @@ sourceSets {
 startScripts.enabled = true
 
 application {
-    mainClassName = 'prog8.CompilerMainKt'
+    mainClass = 'prog8.CompilerMainKt'
+    mainClassName = 'prog8.CompilerMainKt'  // deprecated
     applicationName = 'p8compile'
 }
 
@@ -102,5 +103,5 @@ dokka {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '6.1.1'
+    gradleVersion = '6.7'
 }
