@@ -99,9 +99,9 @@ _flt65536    .byte 145,0,0,0,0       ; 65536.0
 asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
-		sta  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_B1
 		tya
-		ldy  P8ZP_SCRATCH_W2
+		ldy  P8ZP_SCRATCH_B1
 		jmp  GIVAYF		; this uses the inverse order, Y/A
 	}}
 }
@@ -110,9 +110,9 @@ asmsub  FTOSWRDAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to signed word in A/Y
 	%asm {{
 		jsr  FTOSWORDYA	; note the inverse Y/A order
-		sta  P8ZP_SCRATCH_REG
+		sta  P8ZP_SCRATCH_B1
 		tya
-		ldy  P8ZP_SCRATCH_REG
+		ldy  P8ZP_SCRATCH_B1
 		rts
 	}}
 }
