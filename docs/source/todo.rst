@@ -2,7 +2,6 @@
 TODO
 ====
 
-- nice error msg for float as for loop var
 - implement gfx2's rect, fillrect, horizontal_line and vertical_line in graphics modules as well. (and optimize bresenham line to use vert/horiz line if possible)
 - detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)

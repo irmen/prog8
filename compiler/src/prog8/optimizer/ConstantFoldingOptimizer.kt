@@ -226,7 +226,8 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         val rangeTo = iterableRange.to as? NumericLiteralValue
         if(rangeFrom==null || rangeTo==null) return noModifications
 
-        val loopvar = forLoop.loopVar.targetVarDecl(program.namespace)!!
+        val loopvar = forLoop.loopVar.targetVarDecl(program.namespace) ?: throw UndefinedSymbolError(forLoop.loopVar)
+
         val stepLiteral = iterableRange.step as? NumericLiteralValue
         when(loopvar.datatype) {
             DataType.UBYTE -> {

@@ -137,7 +137,7 @@ gfx2 {
             }
             0, 128 -> {
                 ; 1 bpp mode
-                ; TODO optimize this to plot 8 pixels at once while possible
+                ; TODO optimize this to plot 8 pixels at once while possible, note: do mind the stipple setting
                 repeat length {
                     gfx2.plot(x, y, color)
                     x++
@@ -147,7 +147,7 @@ gfx2 {
     }
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
-        ; TODO optimize this to use vera special increment mode
+        ; TODO optimize this to use vera special increment mode, note: do mind the stipple setting
         repeat height {
             plot(x, y, color)
             y++
