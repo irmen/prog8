@@ -7,46 +7,17 @@ main {
 
 
     sub start () {
-        uword length
-        uword total = 0
 
-        length=200
-        count()
-        txt.print_uw(total)
-        txt.chrout('\n')
-        length=255
-        count()
-        txt.print_uw(total)
-        txt.chrout('\n')
-        length=256
-        count()
-        txt.print_uw(total)
-        txt.chrout('\n')
-        length=257
-        count()
-        txt.print_uw(total)
-        txt.chrout('\n')
-        length=9999
-        count()
-        txt.print_uw(total)
-        txt.chrout('\n')
+        ; TODO uword var = rndw() % 640 doesn't work???   works if its in an expression.
 
-        test_stack.test()
-
-
-        sub count() {
-            total = 0
-            if length>256 {
-                repeat length-1
-                    total++
-            } else {
-                uword total2
-                repeat lsb(length-1)
-                    total++
-;                repeat (length-1) as ubyte      ; TODO lsb(length-1) doesn't work!?!?!?
-;                    total++
-            }
+        x_f = -300.0
+        for ww in -300 to 300 {
+            ;fl = ww as float / 10.0         ; TODO doesn't work???
+            y_f = cos(x_f/30)*60 - x_f/1.7
+            gfx2.plot(ww + 320 as uword, (y_f + 240) as uword, 1)
+            x_f += 1.0
         }
+
     }
 
 

@@ -6,7 +6,6 @@
 ; Note: for compatible graphics code that words on C64 too, use the "graphics" module instead.
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 
-; TODO this is in development.  Add line drawing, circles and discs (like the graphics module has)
 
 gfx2 {
 
@@ -15,6 +14,7 @@ gfx2 {
     uword width = 0
     uword height = 0
     ubyte bpp = 0
+    ubyte monochrome_dont_stipple_flag = false            ; set to false to enable stippling mode in monochrome displaymodes
 
     sub screen_mode(ubyte mode) {
         ; mode 0 = bitmap 320 x 240 x 1c monochrome
@@ -77,6 +77,7 @@ gfx2 {
     }
 
     sub clear_screen() {
+        monochrome_stipple(false)
         position(0, 0)
         when active_mode {
             0 -> {
@@ -96,6 +97,10 @@ gfx2 {
             }
         }
         position(0, 0)
+    }
+
+    sub monochrome_stipple(ubyte enable) {
+        monochrome_dont_stipple_flag = ~enable
     }
 
     sub rect(uword x, uword y, uword width, uword height, ubyte color) {
@@ -289,8 +294,8 @@ gfx2 {
         word @zp decisionOver2 = (1 as word)-radius
 
         while radius>=yy {
-            horizontal_line(xcenter-radius, ycenter+yy, radius*2+1, color)
-            horizontal_line(xcenter-radius, ycenter-yy, radius*2+1, color)
+            horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
+            horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
             horizontal_line(xcenter-yy, ycenter+radius, yy*2+1, color)
             horizontal_line(xcenter-yy, ycenter-radius, yy*2+1, color)
             yy++
@@ -307,26 +312,53 @@ gfx2 {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
         uword addr
         ubyte value
+
         when active_mode {
             0 -> {
-                addr = x/8 + y*(320/8)
-                value = bits[lsb(x)&7]
-                cx16.vpoke_or(0, addr, value)
+                %asm {{
+                    lda  x
+                    eor  y
+                    ora  monochrome_dont_stipple_flag
+                    and  #1
+                }}
+                if_nz {
+                    addr = x/8 + y*(320/8)
+                    value = bits[lsb(x)&7]
+                    if color
+                        cx16.vpoke_or(0, addr, value)
+                    else {
+                        value = ~value
+                        cx16.vpoke_and(0, addr, value)
+                    }
+                }
             }
             128 -> {
-                addr = x/8 + y*(640/8)
-                value = bits[lsb(x)&7]
-                cx16.vpoke_or(0, addr, value)
+                %asm {{
+                    lda  x
+                    eor  y
+                    ora  monochrome_dont_stipple_flag
+                    and  #1
+                }}
+                if_nz {
+                    addr = x/8 + y*(640/8)
+                    value = bits[lsb(x)&7]
+                    if color
+                        cx16.vpoke_or(0, addr, value)
+                    else {
+                        value = ~value
+                        cx16.vpoke_and(0, addr, value)
+                    }
+                }
             }
             1 -> {
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
                 value = lsb(cx16.r1)
                 cx16.vpoke(value, cx16.r0, color)
+                ; activate vera auto-increment mode so next_pixel() can be used after this
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
+                color = cx16.VERA_DATA0
             }
         }
-        ; activate vera auto-increment mode so next_pixel() can be used after this
-        cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
-        color = cx16.VERA_DATA0
     }
 
     sub position(uword @zp x, uword y) {
@@ -424,10 +456,18 @@ gfx2 {
                         lda  cx16.VERA_ADDR_H
                         and  #%111              ; don't auto-increment, we have to do that manually because of the ora
                         sta  cx16.VERA_ADDR_H
+                        lda  color
+                        sta  P8ZP_SCRATCH_B1
                         ldy  #8
--                       lda  cx16.VERA_DATA0
+-                       lda  P8ZP_SCRATCH_B1
+                        bne  +                  ; white color, plot normally
+                        lda  cx16.VERA_DATA1
+                        eor  #255               ; black color, keep only the other pixels
+                        and  cx16.VERA_DATA0
+                        bra  ++
++                       lda  cx16.VERA_DATA0
                         ora  cx16.VERA_DATA1
-                        sta  cx16.VERA_DATA0
++                       sta  cx16.VERA_DATA0
                         lda  cx16.VERA_ADDR_L
                         clc
                         adc  cx16.r2

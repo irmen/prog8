@@ -91,10 +91,11 @@ gfx2  (cx16 only)
 Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
 
 - multiple full-screen resolutions: 640 * 480 monochrome, and 320 * 240 monochrome and 256 colors
-- clearing screen, switching screen mode
-- drawing pixels
+- clearing screen, switching screen mode, also back to text mode is possible.
+- drawing individual pixels
+- drawing lines, rectangles, filled rectangles, circles, discs
 - drawing text inside the bitmap
-- lines, rectangles, circles, discs.
+- in monochrome mode, it's possible to use a stippled drawing pattern to simulate a shade of gray.
 
 
 palette  (cx16 only)
