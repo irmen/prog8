@@ -98,6 +98,86 @@ gfx2 {
         position(0, 0)
     }
 
+    sub horizontal_line(uword x, uword y, ubyte length, ubyte color) {
+        when active_mode {
+            1 -> {
+                ; 8bpp mode
+                gfx2.plot(x, y, color)
+                repeat length-1
+                    gfx2.next_pixel(color)
+            }
+            0, 128 -> {
+                ; 1 bpp mode
+                ; TODO optimize this to plot 8 pixels at once while possible
+                repeat length {
+                    gfx2.plot(x, y, color)
+                    x++
+                }
+            }
+        }
+    }
+
+    sub circle(uword xcenter, uword ycenter, ubyte radius, ubyte color) {
+        ; Midpoint algorithm.
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-xx
+        ; R14 = internal plot X
+        ; R15 = internal plot Y
+
+        while xx>=yy {
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter + yy
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter - xx
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter - yy
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter - xx
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter + xx
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter - yy
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter - xx
+            plot(cx16.r14, cx16.r15, color)
+            cx16.r14 = xcenter - yy
+            plot(cx16.r14, cx16.r15, color)
+
+            yy++
+            if decisionOver2<=0
+                decisionOver2 += (yy as word)*2+1
+            else {
+                xx--
+                decisionOver2 += (yy as word -xx)*2+1
+            }
+        }
+    }
+
+    sub disc(uword xcenter, uword ycenter, ubyte radius, ubyte color) {
+        ; Midpoint algorithm, filled
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-xx
+
+        while xx>=yy {
+            horizontal_line(xcenter-xx, ycenter+yy, xx*2+1, color)
+            horizontal_line(xcenter-xx, ycenter-yy, xx*2+1, color)
+            horizontal_line(xcenter-yy, ycenter+xx, yy*2+1, color)
+            horizontal_line(xcenter-yy, ycenter-xx, yy*2+1, color)
+            yy++
+            if decisionOver2<=0
+                decisionOver2 += (yy as word)*2+1
+            else {
+                xx--
+                decisionOver2 += (yy as word -xx)*2+1
+            }
+        }
+    }
+
     sub plot(uword x, uword y, ubyte color) {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
         uword addr
@@ -121,6 +201,7 @@ gfx2 {
         }
         ; activate vera auto-increment mode so next_pixel() can be used after this
         cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
+        color = cx16.VERA_DATA0
     }
 
     sub position(uword x, uword y) {
