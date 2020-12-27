@@ -110,6 +110,8 @@ graphics {
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Midpoint algorithm
+        if radius==0
+            return
         ubyte @zp ploty
         ubyte @zp xx = radius
         ubyte @zp yy = 0
@@ -148,8 +150,10 @@ graphics {
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Midpoint algorithm, filled
-        ubyte xx = radius
-        ubyte yy = 0
+        if radius==0
+            return
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
         byte decisionOver2 = 1-xx as byte
 
         while xx>=yy {

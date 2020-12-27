@@ -44,6 +44,8 @@ graphics {
         ;cx16.GRAPH_draw_oval(false)          ; currently this call is not implemented on cx16, does a BRK
 
         ; Midpoint algorithm
+        if radius==0
+            return
         ubyte @zp xx = radius
         ubyte @zp yy = 0
         byte @zp decisionOver2 = 1-xx as byte
@@ -94,8 +96,10 @@ graphics {
 ;        cx16.r3 = radius*2
 ;        cx16.GRAPH_draw_oval(true)          ; currently this call is not implemented on cx16, does a BRK
 
-        ubyte xx = radius
-        ubyte yy = 0
+        if radius==0
+            return
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
         byte decisionOver2 = 1-xx as byte
 
         while xx>=yy {

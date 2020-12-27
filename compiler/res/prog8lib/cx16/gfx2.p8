@@ -98,7 +98,31 @@ gfx2 {
         position(0, 0)
     }
 
-    sub horizontal_line(uword x, uword y, ubyte length, ubyte color) {
+    sub rect(uword x, uword y, uword width, uword height, ubyte color) {
+        if width==0 or height==0
+            return
+        horizontal_line(x, y, width, color)
+        if height==1
+            return
+        horizontal_line(x, y+height-1, width, color)
+        vertical_line(x, y+1, height-2, color)
+        if width==1
+            return
+        vertical_line(x+width-1, y+1, height-2, color)
+    }
+
+    sub fillrect(uword x, uword y, uword width, uword height, ubyte color) {
+        if width==0
+            return
+        repeat height {
+            horizontal_line(x, y, width, color)
+            y++
+        }
+    }
+
+    sub horizontal_line(uword x, uword y, uword length, ubyte color) {
+        if length==0
+            return
         when active_mode {
             1 -> {
                 ; 8bpp mode
@@ -117,8 +141,108 @@ gfx2 {
         }
     }
 
-    sub circle(uword xcenter, uword ycenter, ubyte radius, ubyte color) {
+    sub vertical_line(uword x, uword y, uword height, ubyte color) {
+        ; TODO optimize this to use vera special increment mode
+        repeat height {
+            plot(x, y, color)
+            y++
+        }
+    }
+
+    sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
+        ; Bresenham algorithm.
+        ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+        ; TODO rewrite this in optimized assembly
+        if y1>y2 {
+            ; make sure dy is always positive to have only 4 instead of 8 special cases
+            swap(x1, x2)
+            swap(y1, y2)
+        }
+        word @zp dx = x2-x1 as word
+        word @zp dy = y2-y1 as word
+
+        if dx==0 {
+            vertical_line(x1, y1, abs(dy)+1 as uword, 255)
+            return
+        }
+        if dy==0 {
+            if x1>x2
+                x1=x2
+            horizontal_line(x1, y1, abs(dx)+1 as uword, 255)
+            return
+        }
+
+        word @zp d = 0
+        ubyte positive_ix = true
+        if dx < 0 {
+            dx = -dx
+            positive_ix = false
+        }
+        dx *= 2
+        dy *= 2
+        cx16.r14 = x1       ; internal plot X
+
+        if dx >= dy {
+            if positive_ix {
+                repeat {
+                    plot(cx16.r14, y1, color)
+                    if cx16.r14==x2
+                        return
+                    cx16.r14++
+                    d += dy
+                    if d > dx {
+                        y1++
+                        d -= dx
+                    }
+                }
+            } else {
+                repeat {
+                    plot(cx16.r14, y1, color)
+                    if cx16.r14==x2
+                        return
+                    cx16.r14--
+                    d += dy
+                    if d > dx {
+                        y1++
+                        d -= dx
+                    }
+                }
+            }
+        }
+        else {
+            if positive_ix {
+                repeat {
+                    plot(cx16.r14, y1, color)
+                    if y1 == y2
+                        return
+                    y1++
+                    d += dx
+                    if d > dy {
+                        cx16.r14++
+                        d -= dy
+                    }
+                }
+            } else {
+                repeat {
+                    plot(cx16.r14, y1, color)
+                    if y1 == y2
+                        return
+                    y1++
+                    d += dx
+                    if d > dy {
+                        cx16.r14--
+                        d -= dy
+                    }
+                }
+            }
+        }
+    }
+
+    sub circle(uword @zp xcenter, uword @zp ycenter, ubyte radius, ubyte color) {
         ; Midpoint algorithm.
+        if radius==0
+            return
+
         ubyte @zp xx = radius
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-xx
@@ -157,28 +281,29 @@ gfx2 {
         }
     }
 
-    sub disc(uword xcenter, uword ycenter, ubyte radius, ubyte color) {
+    sub disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, ubyte color) {
         ; Midpoint algorithm, filled
-        ubyte @zp xx = radius
+        if radius==0
+            return
         ubyte @zp yy = 0
-        word @zp decisionOver2 = (1 as word)-xx
+        word @zp decisionOver2 = (1 as word)-radius
 
-        while xx>=yy {
-            horizontal_line(xcenter-xx, ycenter+yy, xx*2+1, color)
-            horizontal_line(xcenter-xx, ycenter-yy, xx*2+1, color)
-            horizontal_line(xcenter-yy, ycenter+xx, yy*2+1, color)
-            horizontal_line(xcenter-yy, ycenter-xx, yy*2+1, color)
+        while radius>=yy {
+            horizontal_line(xcenter-radius, ycenter+yy, radius*2+1, color)
+            horizontal_line(xcenter-radius, ycenter-yy, radius*2+1, color)
+            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1, color)
+            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1, color)
             yy++
             if decisionOver2<=0
                 decisionOver2 += (yy as word)*2+1
             else {
-                xx--
-                decisionOver2 += (yy as word -xx)*2+1
+                radius--
+                decisionOver2 += (yy as word -radius)*2+1
             }
         }
     }
 
-    sub plot(uword x, uword y, ubyte color) {
+    sub plot(uword @zp x, uword y, ubyte color) {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
         uword addr
         ubyte value
@@ -204,7 +329,7 @@ gfx2 {
         color = cx16.VERA_DATA0
     }
 
-    sub position(uword x, uword y) {
+    sub position(uword @zp x, uword y) {
         when active_mode {
             0 -> {
                 cx16.r0 = y*(320/8) + x/8
@@ -280,7 +405,7 @@ gfx2 {
         }
     }
 
-    sub text(uword x, uword y, ubyte color, uword sctextptr) {
+    sub text(uword @zp x, uword y, ubyte color, uword sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !

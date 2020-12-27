@@ -94,7 +94,7 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 - clearing screen, switching screen mode
 - drawing pixels
 - drawing text inside the bitmap
-- **TODO:** lines, circles, discs.
+- lines, rectangles, circles, discs.
 
 
 palette  (cx16 only)
