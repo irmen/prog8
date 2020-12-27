@@ -708,8 +708,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             RegisterOrPair.A -> asmgen.out(" inx |  lda  P8ESTACK_LO,x")
                             RegisterOrPair.X -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
-                            RegisterOrPair.AX -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldx  #0")
-                            RegisterOrPair.AY -> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  #0")
+                            RegisterOrPair.AX -> asmgen.out(" inx |  txy |  ldx  #0 |  lda  P8ESTACK_LO,y")
+                            RegisterOrPair.AY -> asmgen.out(" inx |  ldy  #0 |  lda  P8ESTACK_LO,x")
                             in Cx16VirtualRegisters -> {
                                 asmgen.out("""
                                     inx
@@ -725,7 +725,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> {
                         when(target.register!!) {
                             RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
-                            RegisterOrPair.AY-> asmgen.out(" inx |  lda  P8ESTACK_LO,x |  ldy  P8ESTACK_HI,x")
+                            RegisterOrPair.AY-> asmgen.out(" inx |  ldy  P8ESTACK_HI,x |  lda  P8ESTACK_LO,x")
                             RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
                             in Cx16VirtualRegisters -> {
                                 asmgen.out("""
@@ -773,9 +773,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  #<$sourceName |  ldx  #>$sourceName")
-                    RegisterOrPair.AY -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  #<$sourceName |  ldy  #>$sourceName")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$sourceName |  lda  #<$sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$sourceName |  lda  #<$sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$sourceName |  ldx  #<$sourceName")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  #<$sourceName
@@ -914,9 +914,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  $sourceName+1")
-                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  $sourceName+1")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  $sourceName+1")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  $sourceName+1 |  lda  $sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  $sourceName+1 |  lda  $sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  $sourceName+1 |  ldx  $sourceName")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  $sourceName
@@ -1086,9 +1086,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
                     RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
                     RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
-                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
-                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
@@ -1203,9 +1203,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.REGISTER -> {
                 when(wordtarget.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
-                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
                     else -> throw AssemblyError("only reg pairs are words")
                 }
             }
@@ -1466,9 +1466,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  #<${word.toHex()} |  ldx  #>${word.toHex()}")
-                    RegisterOrPair.AY -> asmgen.out("  lda  #<${word.toHex()} |  ldy  #>${word.toHex()}")
-                    RegisterOrPair.XY -> asmgen.out("  ldx  #<${word.toHex()} |  ldy  #>${word.toHex()}")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #>${word.toHex()} |  lda  #<${word.toHex()}")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #>${word.toHex()} |  lda  #<${word.toHex()}")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #>${word.toHex()} |  ldx  #<${word.toHex()}")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
                             lda  #<${word.toHex()}
@@ -1554,9 +1554,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.A -> asmgen.out("  lda  #${byte.toHex()}")
                 RegisterOrPair.X -> asmgen.out("  ldx  #${byte.toHex()}")
                 RegisterOrPair.Y -> asmgen.out("  ldy  #${byte.toHex()}")
-                RegisterOrPair.AX -> asmgen.out("  lda  #${byte.toHex()} |  ldx  #0")
-                RegisterOrPair.AY -> asmgen.out("  lda  #${byte.toHex()} |  ldy  #0")
-                RegisterOrPair.XY -> asmgen.out("  ldx  #${byte.toHex()} |  ldy  #0")
+                RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  #${byte.toHex()}")
+                RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  #${byte.toHex()}")
+                RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  #${byte.toHex()}")
                 RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                 in Cx16VirtualRegisters -> {
                     asmgen.out("  lda  #${byte.toHex()} |  sta  cx16.${target.register.toString().toLowerCase()}")
@@ -1731,9 +1731,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.A -> asmgen.out("  lda  ${address.toHex()}")
                     RegisterOrPair.X -> asmgen.out("  ldx  ${address.toHex()}")
                     RegisterOrPair.Y -> asmgen.out("  ldy  ${address.toHex()}")
-                    RegisterOrPair.AX -> asmgen.out("  lda  ${address.toHex()} |  ldx  #0")
-                    RegisterOrPair.AY -> asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  ${address.toHex()} |  ldy  #0")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  ${address.toHex()}")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  ${address.toHex()}")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldy  ${address.toHex()}")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
@@ -1807,9 +1807,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     throw AssemblyError("no asm gen for assign memory byte at $address to array ${wordtarget.asmVarname}")
                 }
                 TargetStorageKind.REGISTER -> when(wordtarget.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  lda  ${address.toHex()} |  ldx  #0")
-                    RegisterOrPair.AY -> asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  ${address.toHex()} |  ldy  #0")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  ${address.toHex()}")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  ${address.toHex()}")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldy  ${address.toHex()}")
                     else -> throw AssemblyError("word regs can only be pair")
                 }
                 TargetStorageKind.STACK -> {

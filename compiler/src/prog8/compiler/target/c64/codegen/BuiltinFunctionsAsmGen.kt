@@ -1056,6 +1056,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         } else {
             asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+            // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
+            //       this is required because the compiler assumes the status bits are set according to what A is (lsb)
+            //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
             if (resultToStack)
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
         }
