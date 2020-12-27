@@ -98,9 +98,9 @@ main {
             }
         }
 ;        else if strcmp(extension, ".ci")==0 {
-;            txt.print("loading ")
-;            txt.print("ci\n")
-;            if bmp_module.ci_module(filenameptr) {
+;;            txt.print("loading ")
+;;            txt.print("ci\n")
+;            if ci_module.show_image(filenameptr) {
 ;                cx16.wait(180)
 ;            } else {
 ;                load_error(filenameptr)

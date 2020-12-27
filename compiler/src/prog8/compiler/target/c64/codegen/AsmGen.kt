@@ -51,6 +51,7 @@ internal class AsmGen(private val program: Program,
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
     internal val slabs = mutableMapOf<String, Int>()
+    internal val removals = mutableListOf<Pair<Statement, INameScope>>()
 
     override fun compileToAssembly(): IAssemblyProgram {
         assemblyLines.clear()
@@ -64,6 +65,12 @@ internal class AsmGen(private val program: Program,
             throw AssemblyError("first block should be 'main'")
         for(b in program.allBlocks())
             block2asm(b)
+
+        for(removal in removals.toList()) {
+            removal.second.remove(removal.first)
+            removals.remove(removal)
+        }
+
         slaballocations()
         footer()
 
@@ -845,10 +852,12 @@ internal class AsmGen(private val program: Program,
             out("; statements")
             sub.statements.forEach{ translate(it) }
 
-            for(stmt in sub.asmGenInfo.removals) {
-                sub.remove(stmt)
+            for(removal in removals.toList()) {
+                if(removal.second==sub) {
+                    removal.second.remove(removal.first)
+                    removals.remove(removal)
+                }
             }
-            sub.asmGenInfo.removals.clear()
 
             out("; variables")
             out("; register saves")

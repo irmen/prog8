@@ -47,14 +47,9 @@
 ; (doing it in chunks of 8 kb allows for sticking each chunk in one of the banked 8kb ram blocks, or even copy it directly to the screen)
 
 ci_module {
-    %option force_output
-    ubyte[256] buffer
-    ubyte[256] buffer2  ; add two more buffers to make enough space
-    ubyte[256] buffer3  ;   to store a 256 color palette
-    ubyte[256] buffer4  ;  .. and some more to be able to store 1280=
-    ubyte[256] buffer5  ;     two 640 bytes worth of bitmap scanline data
 
     sub show_image(uword filename) -> ubyte {
+        uword buffer = memory("buffer", 620*2)        ; enough to store two scanlines of 640 bytes
         ubyte read_success = false
         uword bitmap_load_address = progend()
         ; uword max_bitmap_size = $9eff - bitmap_load_address
@@ -62,18 +57,18 @@ ci_module {
         if(diskio.f_open(8, filename)) {
             uword size = diskio.f_read(buffer, 12)  ; read the header
             if size==12 {
-                if buffer[0]=='c' and buffer[1]=='i' and buffer[2] == 9 {
-                    uword width = mkword(buffer[4], buffer[3])
-                    uword height = mkword(buffer[6], buffer[5])
-                    ubyte bpp = buffer[7]
+                if @(buffer+0)=='c' and @(buffer+1)=='i' and @(buffer+2) == 9 {
+                    uword width = mkword(@(buffer+4), @(buffer+3))
+                    uword height = mkword(@(buffer+6), @(buffer+5))
+                    ubyte bpp = @(buffer+7)
                     uword num_colors = 2 ** bpp
-                    ubyte flags = buffer[8]
+                    ubyte flags = @(buffer+8)
                     ubyte compression = flags & %00000011
                     ubyte palette_format = (flags & %00000100) >> 2
                     ubyte bitmap_format = (flags & %00001000) >> 3
                     ; ubyte hscale = (flags & %00010000) >> 4
                     ; ubyte vscale = (flags & %00100000) >> 5
-                    uword bitmap_size = mkword(buffer[10], buffer[9])
+                    uword bitmap_size = mkword(@(buffer+10), @(buffer+9))
                     uword palette_size = num_colors*2
                     if palette_format
                         palette_size += num_colors  ; 3

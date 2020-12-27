@@ -13,16 +13,8 @@ bmp_module {
         ubyte bpp
         uword offsetx
         uword offsety
-        ubyte[256] palette0
-        ubyte[256] palette1
-        ubyte[256] palette2
-        ubyte[256] palette3
+        uword palette = memory("palette", 256*4)
         uword total_read = 0
-
-        palette0[0] = 0
-        palette1[0] = 0
-        palette2[0] = 0
-        palette3[0] = 0
 
         if diskio.f_open(8, filenameptr) {
             size = diskio.f_read(header, $36)
@@ -41,13 +33,13 @@ bmp_module {
                     repeat skip_hdr
                         void c64.CHRIN()
                     total_read += skip_hdr
-                    size = diskio.f_read(&palette0, num_colors*4)
+                    size = diskio.f_read(palette, num_colors*4)
                     if size==num_colors*4 {
                         total_read += size
                         repeat bm_data_offset - total_read
                             void c64.CHRIN()
                         gfx2.clear_screen()
-                        custompalette.set_bgra(&palette0, num_colors)
+                        custompalette.set_bgra(palette, num_colors)
                         decode_bitmap()
                         load_ok = true
                     }

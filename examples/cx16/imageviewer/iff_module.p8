@@ -4,10 +4,7 @@
 %import diskio
 
 iff_module {
-    ; TODO uword cmap = memory("palette", 768)
-    ubyte[256] cmap
-    ubyte[256] cmap1
-    ubyte[256] cmap2
+    uword cmap
     uword num_colors
     uword[16] cycle_rates
     uword[16] cycle_rate_ticks
@@ -33,10 +30,8 @@ iff_module {
         ubyte have_cmap = false
         ubyte cycle_crng = false
         ubyte cycle_ccrt = false
-        cmap[0] = 0
-        cmap1[0] = 0
-        cmap2[0] = 0
         num_cycles = 0
+        cmap = memory("palette", 256*4)       ; only use 768 of these, but this allows re-use of the same block that the bmp module allocates
 
         if diskio.f_open(8, filenameptr) {
             size = diskio.f_read(buffer, 12)
@@ -63,7 +58,7 @@ iff_module {
                         }
                         else if chunk_id == "cmap" {
                             have_cmap = true
-                            diskio.f_read_exact(&cmap, chunk_size_lo)
+                            diskio.f_read_exact(cmap, chunk_size_lo)
                         }
                         else if chunk_id == "crng" {
                             ; DeluxePaint color cycle range
@@ -110,7 +105,7 @@ iff_module {
                                 height /= 2     ; interlaced: just skip every odd scanline later
                             if camg & $0080 and have_cmap
                                 make_ehb_palette()
-                            palette.set_rgb8(&cmap, num_colors)
+                            palette.set_rgb8(cmap, num_colors)
                             if compression
                                 decode_rle()
                             else
@@ -154,7 +149,7 @@ iff_module {
 
         sub make_ehb_palette() {
             ; generate 32 additional Extra-Halfbrite colors in the cmap
-            uword palletteptr = &cmap
+            uword palletteptr = cmap
             uword ehbptr = palletteptr + 32*3
             repeat 32 {
                 @(ehbptr) = @(palletteptr)>>1
@@ -320,7 +315,7 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
         }
 
         if changed
-            palette.set_rgb8(&cmap, num_colors)     ; set the new palette
+            palette.set_rgb8(cmap, num_colors)     ; set the new palette
 
         sub do_cycle(uword low, uword high, ubyte reversed) {
             low *= 3
@@ -332,7 +327,7 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
             ubyte blue
 
             if reversed {
-                cptr = &cmap + low
+                cptr = cmap + low
                 red = @(cptr)
                 green = @(cptr+1)
                 blue = @(cptr+2)
@@ -346,7 +341,7 @@ _masks  .byte 128, 64, 32, 16, 8, 4, 2, 1
                 cptr++
                 @(cptr) = blue
             } else {
-                cptr = &cmap + high
+                cptr = cmap + high
                 red = @(cptr)
                 cptr++
                 green = @(cptr)

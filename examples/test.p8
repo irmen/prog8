@@ -5,38 +5,15 @@
 
 main {
 
+    ;uword cmap = memory("palette", 256*4)       ; only use 768 of these, but this allows re-use of the same block that the bmp module allocates
+    uword num_colors = rnd()
+
     sub start () {
 
-        thing()
-        thing()
-        thing()
-        thing()
-        thing()
+        txt.chrout('\n')
+        txt.chrout('\n')
         test_stack.test()
 
-        sub thing() -> ubyte {
-            uword buffer = memory("buffer", 512)
-            uword buffer2 = memory("buffer", 512)
-            uword buffer3 = memory("cache", 20)
-
-            txt.print_uwhex(buffer, true)
-            txt.chrout('\n')
-            txt.print_uwhex(buffer2, true)
-            txt.chrout('\n')
-            txt.print_uwhex(buffer3, true)
-            txt.chrout('\n')
-            buffer+=$1111
-            buffer2+=$1111
-            buffer3+=$1111
-            txt.print_uwhex(buffer, true)
-            txt.chrout('\n')
-            txt.print_uwhex(buffer2, true)
-            txt.chrout('\n')
-            txt.print_uwhex(buffer3, true)
-            txt.chrout('\n')
-            txt.chrout('\n')
-            return 0
-        }
     }
 
 }

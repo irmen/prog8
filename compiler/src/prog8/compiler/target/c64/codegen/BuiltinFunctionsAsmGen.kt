@@ -35,25 +35,25 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         if(discardResult && resultToStack)
             throw AssemblyError("cannot both discard the result AND put it onto stack")
 
-        val scope = (fcall as Node).definingSubroutine()!!
+        val sscope = (fcall as Node).definingSubroutine()
         when (func.name) {
             "msb" -> funcMsb(fcall, resultToStack)
             "lsb" -> funcLsb(fcall, resultToStack)
             "mkword" -> funcMkword(fcall, resultToStack)
-            "abs" -> funcAbs(fcall, func, resultToStack, scope)
+            "abs" -> funcAbs(fcall, func, resultToStack, sscope)
             "swap" -> funcSwap(fcall)
             "min", "max" -> funcMinMax(fcall, func, resultToStack)
             "sum" -> funcSum(fcall, resultToStack)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack)
             "sin8", "sin8u", "sin16", "sin16u",
-            "cos8", "cos8u", "cos16", "cos16u" -> funcSinCosInt(fcall, func, resultToStack, scope)
-            "sgn" -> funcSgn(fcall, func, resultToStack, scope)
+            "cos8", "cos8u", "cos16", "cos16u" -> funcSinCosInt(fcall, func, resultToStack, sscope)
+            "sgn" -> funcSgn(fcall, func, resultToStack, sscope)
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
-            "rndf" -> funcVariousFloatFuncs(fcall, func, resultToStack, scope)
+            "rndf" -> funcVariousFloatFuncs(fcall, func, resultToStack, sscope)
             "rnd", "rndw" -> funcRnd(func, resultToStack)
-            "sqrt16" -> funcSqrt16(fcall, func, resultToStack, scope)
+            "sqrt16" -> funcSqrt16(fcall, func, resultToStack, sscope)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
@@ -80,21 +80,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "clear_irqd" -> asmgen.out("  cli")
             "set_irqd" -> asmgen.out("  sei")
             "strlen" -> funcStrlen(fcall, resultToStack)
-            "strcmp" -> funcStrcmp(fcall, func, resultToStack, scope)
+            "strcmp" -> funcStrcmp(fcall, func, resultToStack, sscope)
             "strcopy" -> {
-                translateArguments(fcall.args, func, scope)
+                translateArguments(fcall.args, func, sscope)
                 if(resultToStack)
                     asmgen.out("  jsr  prog8_lib.func_strcopy_to_stack")
                 else
                     asmgen.out("  jsr  prog8_lib.func_strcopy")
             }
-            "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func, scope)
+            "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func, sscope)
             "substr", "leftstr", "rightstr" -> {
-                translateArguments(fcall.args, func, scope)
+                translateArguments(fcall.args, func, sscope)
                 asmgen.out("  jsr  prog8_lib.func_${func.name}")
             }
             "exit" -> {
-                translateArguments(fcall.args, func, scope)
+                translateArguments(fcall.args, func, sscope)
                 asmgen.out("  jmp  prog8_lib.func_exit")
             }
             "progend" -> {
@@ -138,14 +138,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         // remove the variable for the name, it's not used as a variable only as a tag for the assembler.
         val nameDecl = scope.statements.single { it is VarDecl && it.name==nameRef.nameInSource.single() }
-        (scope as Subroutine).asmGenInfo.removals.add(nameDecl)
+        asmgen.removals.add(Pair(nameDecl, scope))
         asmgen.slabs[name] = size
     }
 
-    private fun funcMemSetCopy(fcall: IFunctionCall, func: FSignature, scope: Subroutine) {
+    private fun funcMemSetCopy(fcall: IFunctionCall, func: FSignature, scope: Subroutine?) {
         if(CompilationTarget.instance is Cx16Target) {
             when(func.name) {
                 "memset" -> {
+                    if(scope==null)
+                        throw AssemblyError("cannot call memset() outside of a subroutine scope")
                     // use the ROM function of the Cx16
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
@@ -163,6 +165,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         asmgen.out("  jsr  prog8_lib.func_memcopy255")
                         return
                     }
+
+                    if(scope==null)
+                        throw AssemblyError("cannot call memcopy() outside of a subroutine scope")
 
                     // use the ROM function of the Cx16
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
@@ -192,7 +197,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcStrcmp(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine) {
+    private fun funcStrcmp(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_strcmp_stack")
@@ -200,7 +205,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             asmgen.out("  jsr  prog8_lib.func_strcmp")
     }
 
-    private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine) {
+    private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
@@ -208,7 +213,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
     }
 
-    private fun funcSinCosInt(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine) {
+    private fun funcSinCosInt(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_${func.name}_stack")
@@ -474,7 +479,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         asmgen.assignExpressionToVariable(indexerExpr, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
     }
 
-    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine) {
+    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  floats.func_${func.name}_stack")
@@ -482,7 +487,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             asmgen.out("  jsr  floats.func_${func.name}_fac1")
     }
 
-    private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine) {
+    private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
@@ -972,7 +977,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcAbs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine) {
+    private fun funcAbs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         val dt = fcall.args.single().inferType(program).typeOrElse(DataType.STRUCT)
         if(resultToStack) {
@@ -1070,7 +1075,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     """)
     }
 
-    private fun translateArguments(args: MutableList<Expression>, signature: FSignature, scope: Subroutine) {
+    private fun translateArguments(args: MutableList<Expression>, signature: FSignature, scope: Subroutine?) {
         val callConv = signature.callConvention(args.map { it.inferType(program).typeOrElse(DataType.STRUCT) })
 
         fun getSourceForFloat(value: Expression): AsmAssignSource {
@@ -1083,6 +1088,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     throw AssemblyError("float literals should have been converted into autovar")
                 }
                 else -> {
+                    if(scope==null)
+                        throw AssemblyError("cannot use float arguments outside of a subroutine scope")
+
                     scope.asmGenInfo.usedFloatEvalResultVar2 = true
                     val variable = IdentifierReference(listOf(subroutineFloatEvalResultVar2), value.position)
                     val addr = AddressOf(variable, value.position)

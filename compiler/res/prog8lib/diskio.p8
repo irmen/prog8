@@ -73,21 +73,18 @@ io_error:
 
     sub list_files(ubyte drivenumber, uword pattern, ubyte suffixmatch, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
-        ubyte[256] names_buffer
-        ubyte[256] names_buffer1        ; to store a bit more names
-        ; TODO  names_buffer = memory("filenames", 512)
-        uword buf_ptr = &names_buffer
-        names_buffer1[0] = 0  ; TODO force array to exist
+        uword names_buffer = memory("filenames", 512)
+        uword buffer_start = names_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern, suffixmatch) {
             while lf_next_entry() {
-                @(name_ptrs) = lsb(buf_ptr)
+                @(name_ptrs) = lsb(names_buffer)
                 name_ptrs++
-                @(name_ptrs) = msb(buf_ptr)
+                @(name_ptrs) = msb(names_buffer)
                 name_ptrs++
-                buf_ptr += strcopy(diskio.list_filename, buf_ptr) + 1
+                names_buffer += strcopy(diskio.list_filename, names_buffer) + 1
                 files_found++
-                if buf_ptr - &names_buffer > (len(names_buffer) + len(names_buffer1) - 18)
+                if names_buffer - buffer_start > 512-18
                     break
                 if files_found == max_names
                     break
