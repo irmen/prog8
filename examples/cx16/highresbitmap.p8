@@ -76,11 +76,8 @@ main {
 
         cx16.wait(2*60)
 
-        repeat 255 {
-            xx=rndw() % 640     ; TODO doesn't work correctly, truncates
-            yy=rndw() % 480     ; TODO doesn't work correctly, truncates
-            gfx2.line(xx, yy, rndw() % 640, rndw() % 480, 1)
-        }
+        repeat 255
+            gfx2.line(rndw() % 640, rndw() % 480, rndw() % 640, rndw() % 480, 1)
 
         cx16.wait(1*60)
     }

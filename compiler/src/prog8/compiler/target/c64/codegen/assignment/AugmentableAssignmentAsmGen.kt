@@ -850,8 +850,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     ldy  #>$value
                     jsr  math.divmod_uw_asm
                     lda  P8ZP_SCRATCH_W2
+                    ldy  P8ZP_SCRATCH_W2+1
                     sta  $name
-                    lda  P8ZP_SCRATCH_W2+2
                     sty  $name+1
                 """)
             }
