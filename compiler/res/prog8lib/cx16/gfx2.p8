@@ -101,7 +101,7 @@ gfx2 {
     }
 
     sub monochrome_stipple(ubyte enable) {
-        monochrome_dont_stipple_flag = ~enable
+        monochrome_dont_stipple_flag = not enable
     }
 
     sub rect(uword x, uword y, uword width, uword height, ubyte color) {
@@ -132,23 +132,95 @@ gfx2 {
         when active_mode {
             1 -> {
                 ; 8bpp mode
-                gfx2.plot(x, y, color)
-                repeat length-1
-                    gfx2.next_pixel(color)
+                position(x, y)
+                %asm {{
+                    lda  color
+                    phx
+                    ldx  length+1
+                    beq  +
+                    ldy  #0
+-                   sta  cx16.VERA_DATA0
+                    iny
+                    bne  -
+                    dex
+                    bne  -
++                   ldy  length     ; remaining
+                    beq  +
+-                   sta  cx16.VERA_DATA0
+                    dey
+                    bne  -
++                   plx
+                }}
             }
             0, 128 -> {
                 ; 1 bpp mode
-                ; TODO optimize this to plot 8 pixels at once while possible, note: do mind the stipple setting and color 0 black
-                repeat length {
-                    gfx2.plot(x, y, color)
+                ubyte separate_pixels = (8-lsb(x)) & 7
+                if separate_pixels as uword > length
+                    separate_pixels = lsb(length)
+                repeat separate_pixels {
+                    ; this could be  optimized by setting this byte in 1 go but probably not worth it due to code size
+                    plot(x, y, color)
                     x++
                 }
+                length -= separate_pixels
+                if length {
+                    position(x, y)
+                    separate_pixels = lsb(length) & 7
+                    x += length & $fff8
+                    %asm {{
+                        lsr  length+1
+                        ror  length
+                        lsr  length+1
+                        ror  length
+                        lsr  length+1
+                        ror  length
+                        lda  color
+                        bne  +
+                        ldy  #0     ; black
+                        bra  _loop
++                       lda  monochrome_dont_stipple_flag
+                        beq  _stipple
+                        ldy  #255       ; don't stipple
+                        bra  _loop
+_stipple                lda  y
+                        and  #1         ; determine stipple pattern to use
+                        bne  +
+                        ldy  #%01010101
+                        bra  _loop
++                       ldy  #%10101010
+_loop                   lda  length
+                        ora  length+1
+                        beq  _done
+                        sty  cx16.VERA_DATA0
+                        lda  length
+                        bne  +
+                        dec  length+1
++                       dec  length
+                        bra  _loop
+_done
+                    }}
+                    repeat separate_pixels {
+                        ; this could be  optimized by setting this byte in 1 go but probably not worth it due to code size
+                        plot(x, y, color)
+                        x++
+                    }
+                }
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; vera auto-increment off again
             }
         }
     }
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
-        ; TODO optimize this to use vera special increment mode, note: do mind the stipple setting and color 0 black
+        if active_mode==1 {
+            ; TODO for the 320x256 8bbp mode use vera auto increment
+            repeat lsb(height) {
+                plot(x, y, color)
+                y++
+            }
+            return
+        }
+
+        ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
         repeat height {
             plot(x, y, color)
             y++
@@ -297,8 +369,8 @@ gfx2 {
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
             horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1, color)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1, color)
+            horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, color)
+            horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, color)
             yy++
             if decisionOver2<=0
                 decisionOver2 += (yy as word)*2+1
@@ -382,26 +454,42 @@ gfx2 {
 
     inline asmsub next_pixel(ubyte color @A) {
         ; -- sets the next pixel byte to the graphics chip.
-        ;    for 8 bpp screens this will plot 1 pixel. for 1 bpp screens it will actually plot 8 pixels at once (bitmask).
-        ;    For super fast pixel plotting, don't call this subroutine but instead just use the assignment:  cx16.VERA_DATA0 = color
+        ;    for 8 bpp screens this will plot 1 pixel.
+        ;    for 1 bpp screens it will plot 8 pixels at once (color = bit pattern).
         %asm {{
             sta  cx16.VERA_DATA0
         }}
     }
 
-    sub next_pixels(uword pixels, uword amount) {
+    asmsub next_pixels(uword pixels @AY, uword amount @R0) {
         ; -- sets the next bunch of pixels from a prepared array of bytes.
-        ;    for 8 bpp screens this will plot 1 pixel per byte, but for 1 bpp screens the bytes contain 8 pixels each.
-        repeat msb(amount) {
-            repeat 256 {
-                cx16.VERA_DATA0 = @(pixels)
-                pixels++
-            }
-        }
-        repeat lsb(amount) {
-            cx16.VERA_DATA0 = @(pixels)
-            pixels++
-        }
+        ;    for 8 bpp screens this will plot 1 pixel per byte.
+        ;    for 1 bpp screens it will plot 8 pixels at once (colors are the bit patterns per byte).
+        %asm {{
+            phx
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldx  cx16.r0+1
+            beq  +
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            sta  cx16.VERA_DATA0
+            iny
+            bne  -
+            inc  P8ZP_SCRATCH_W1+1       ; next page of 256 pixels
+            dex
+            bne  -
+
++           ldx  cx16.r0           ; remaining pixels
+            beq  +
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            sta  cx16.VERA_DATA0
+            iny
+            dex
+            bne  -
++           plx
+        }}
     }
 
     asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) {

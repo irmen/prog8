@@ -1,11 +1,133 @@
 %target cx16
 %import gfx2
 %import textio
-%zeropage basicsafe
+%import test_stack
+%zeropage dontuse
 
 main {
 
-    sub start () {
+    sub start() {
+        gfx2.screen_mode(1)
+
+        uword pixels = memory("pixels", 320)
+        uword yy = 10
+        uword xx = gfx2.width/2
+        uword pp
+        uword cnt
+        pp=pixels
+
+        for xx in 10 to 300 {
+            gfx2.vertical_line(xx, 10, 220, 1)
+        }
+        gfx2.screen_mode(255)
+        txt.print("done!\n")
+        return
+
+
+        for cnt in 0 to 319 {
+            @(pp) = 255
+            pp++
+        }
+
+        gfx2.monochrome_stipple(false)
+        linesy()
+        linesx()
+        gfx2.monochrome_stipple(true)
+        linesy()
+        linesx()
+
+        sub linesx() {
+            repeat 8 {
+                gfx2.horizontal_line(10,yy,300,3)
+                yy++
+            }
+            yy+=4
+
+            repeat 8 {
+                gfx2.line(10,yy,309,yy,4)
+                yy++
+            }
+            yy+=4
+
+            repeat 8 {
+                for cnt in 10 to 309 {
+                    gfx2.plot(cnt, yy, 1)
+                }
+                yy+=1
+            }
+            yy += 4
+
+            repeat 8 {
+                gfx2.horizontal_line(10,yy,100,3)
+                yy++
+            }
+            yy+=4
+
+            repeat 8 {
+                gfx2.line(10,yy,109,yy,4)
+                yy++
+            }
+            yy+=4
+
+            repeat 8 {
+                for cnt in 10 to 109 {
+                    gfx2.plot(cnt, yy, 1)
+                }
+                yy++
+            }
+            yy+=4
+        }
+
+        sub linesy() {
+            repeat 8 {
+                gfx2.vertical_line(xx,10,300,3)
+                xx++
+            }
+            xx+=4
+
+            repeat 8 {
+                gfx2.line(xx,10, xx, 309, 4)
+                xx++
+            }
+            xx+=4
+
+            repeat 8 {
+                for cnt in 10 to 309 {
+                    gfx2.plot(xx, cnt, 1)
+                }
+                xx+=1
+            }
+            xx += 4
+
+            repeat 8 {
+                gfx2.vertical_line(xx,10,100,3)
+                xx++
+            }
+            xx+=4
+
+            repeat 8 {
+                gfx2.line(xx,10,xx,109,4)
+                xx++
+            }
+            xx+=4
+
+            repeat 8 {
+                for cnt in 10 to 109 {
+                    gfx2.plot(xx, cnt, 1)
+                }
+                xx++
+            }
+            xx+=4
+        }
+
+        ; cx16.wait(3*60)
+        gfx2.screen_mode(255)
+        txt.print("done!\n")
+
+        test_stack.test()
+    }
+
+    sub start2 () {
         gfx2.text_charset(3)
 
         ubyte[] modes = [1, 0, 128]
@@ -18,6 +140,7 @@ main {
 
         gfx2.screen_mode(255)
         txt.print("done!\n")
+        test_stack.test()
     }
 
     sub draw() {
