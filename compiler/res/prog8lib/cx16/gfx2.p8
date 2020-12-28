@@ -6,6 +6,7 @@
 ; Note: for compatible graphics code that words on C64 too, use the "graphics" module instead.
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 
+; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
 gfx2 {
 
@@ -137,7 +138,7 @@ gfx2 {
             }
             0, 128 -> {
                 ; 1 bpp mode
-                ; TODO optimize this to plot 8 pixels at once while possible, note: do mind the stipple setting
+                ; TODO optimize this to plot 8 pixels at once while possible, note: do mind the stipple setting and color 0 black
                 repeat length {
                     gfx2.plot(x, y, color)
                     x++
@@ -147,7 +148,7 @@ gfx2 {
     }
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
-        ; TODO optimize this to use vera special increment mode, note: do mind the stipple setting
+        ; TODO optimize this to use vera special increment mode, note: do mind the stipple setting and color 0 black
         repeat height {
             plot(x, y, color)
             y++
@@ -167,13 +168,13 @@ gfx2 {
         word @zp dy = y2-y1 as word
 
         if dx==0 {
-            vertical_line(x1, y1, abs(dy)+1 as uword, 255)
+            vertical_line(x1, y1, abs(dy)+1 as uword, color)
             return
         }
         if dy==0 {
             if x1>x2
                 x1=x2
-            horizontal_line(x1, y1, abs(dx)+1 as uword, 255)
+            horizontal_line(x1, y1, abs(dx)+1 as uword, color)
             return
         }
 
