@@ -217,10 +217,12 @@ _done
             cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
             %asm {{
                 ldy  height
+                beq  +
                 lda  color
 -               sta  cx16.VERA_DATA0
                 dey
                 bne  -
++
             }}
             return
         }
@@ -228,6 +230,10 @@ _done
         ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
         cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
         cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
+        if active_mode>=128
+            cx16.r14 = 640/8
+        else
+            cx16.r14 = 320/8
         if color {
             if monochrome_dont_stipple_flag {
                 repeat height {
@@ -237,7 +243,7 @@ _done
                         sta  cx16.VERA_DATA0
                         lda  cx16.VERA_ADDR_L
                         clc
-                        adc  #640/8                 ; advance vera data ptr to go to the next line
+                        adc  cx16.r14                 ; advance vera ptr to go to the next line
                         sta  cx16.VERA_ADDR_L
                         lda  cx16.VERA_ADDR_M
                         adc  #0
@@ -248,7 +254,8 @@ _done
                     }}
                 }
             } else {
-                ; stippling
+                ; stippling.
+                height = (height+1)/2
                 %asm {{
                     lda x
                     eor y
@@ -256,21 +263,21 @@ _done
                     bne +
                     lda  cx16.VERA_ADDR_L
                     clc
-                    adc  #<640/8*1             ; advance vera data ptr to go to the next line, for correct stipple pattern
+                    adc  cx16.r14                ; advance vera ptr to go to the next line for correct stipple pattern
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.VERA_ADDR_M
                     adc  #0
                     sta  cx16.VERA_ADDR_M
 +
-                    lsr  height+1
-                    ror  height
+                    asl  cx16.r14
                     ldy  height
+                    beq  +
 -                   lda  cx16.VERA_DATA0
                     ora  cx16.r15
                     sta  cx16.VERA_DATA0
                     lda  cx16.VERA_ADDR_L
                     clc
-                    adc  #<640/8*2             ; advance vera data ptr to go to the next-next line
+                    adc  cx16.r14               ; advance vera data ptr to go to the next-next line
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.VERA_ADDR_M
                     adc  #0
@@ -280,6 +287,7 @@ _done
                     ; sta  cx16.VERA_ADDR_H
                     dey
                     bne  -
++
                 }}
             }
         } else {
@@ -291,7 +299,7 @@ _done
                     sta  cx16.VERA_DATA0
                     lda  cx16.VERA_ADDR_L
                     clc
-                    adc  #640/8             ; advance vera data ptr to go to the next line
+                    adc  cx16.r14             ; advance vera data ptr to go to the next line
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.VERA_ADDR_M
                     adc  #0

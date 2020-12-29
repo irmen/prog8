@@ -11,7 +11,7 @@ main {
 
         uword pixels = memory("pixels", 320)
         uword yy = 10
-        uword xx = gfx2.width/2
+        uword xx
         uword pp
         uword cnt
         pp=pixels
@@ -24,23 +24,22 @@ main {
         for xx in 0 to 639 {
             gfx2.vertical_line(xx, 0, 480, 0)
         }
-        cx16.wait(200)
-        gfx2.screen_mode(255)
-        txt.print("done!\n")
-        return
-
 
         for cnt in 0 to 319 {
             @(pp) = 255
             pp++
         }
 
+        xx=gfx2.width/2
+        yy=10
         gfx2.monochrome_stipple(false)
         linesy()
         linesx()
         gfx2.monochrome_stipple(true)
         linesy()
         linesx()
+
+
 
         sub linesx() {
             repeat 8 {
@@ -126,7 +125,7 @@ main {
             xx+=4
         }
 
-        ; cx16.wait(3*60)
+         cx16.wait(3*60)
         gfx2.screen_mode(255)
         txt.print("done!\n")
 

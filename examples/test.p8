@@ -9,18 +9,34 @@ main {
 
     sub start () {
 
-        ; differences between:
-;            @(pp) = cnt as ubyte
-;            @(pp) = lsb(cnt)
-;            @(pp) = msb(cnt)
-;       repeat w as ubyte  /   repeat lsb(w)
+        uword cnt
+        ubyte ub
 
-; stack based evaluation for this function call even when it's inlined:
-;            gfx2.next_pixel((cnt as ubyte) + 30)
+
+        ; TODO differences between:
+
+        repeat cnt as ubyte {           ; TODO this goes via stack
+            ub++
+        }
+
+        repeat lsb(cnt) {           ; TODO this doesnt
+            ub++
+        }
+
+
+        ; TODO stack based evaluation for this function call even when it's inlined:
+        next_pixel((cnt as ubyte) + 30)
 
 
         test_stack.test()
 
+    }
+
+
+    inline asmsub next_pixel(ubyte color @A) {
+        %asm {{
+            nop
+        }}
     }
 
 
