@@ -7,7 +7,7 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(1)
+        gfx2.screen_mode(128)
 
         uword pixels = memory("pixels", 320)
         uword yy = 10
@@ -16,8 +16,8 @@ main {
         uword cnt
         pp=pixels
 
-        for xx in 10 to 300 {
-            gfx2.vertical_line(xx, 10, 220, 1)
+        for xx in 0 to 639 {
+            gfx2.vertical_line(xx, 0, 480, 1)
         }
         gfx2.screen_mode(255)
         txt.print("done!\n")

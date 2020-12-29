@@ -212,15 +212,21 @@ _done
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
         if active_mode==1 {
-            ; TODO for the 320x256 8bbp mode use vera auto increment
-            repeat lsb(height) {
-                plot(x, y, color)
-                y++
-            }
+            position(x,y)
+            ; set vera auto-increment to 320 pixel increment (=next line)
+            cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
+            %asm {{
+                ldy  height
+                lda  color
+-               sta  cx16.VERA_DATA0
+                dey
+                bne  -
+            }}
             return
         }
 
         ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
+        ; TODO optimize by manually advancing the vera's data pointer (note stipple and black color!)
         repeat height {
             plot(x, y, color)
             y++
