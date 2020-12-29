@@ -31,7 +31,6 @@ graphics {
         txt.fill_screen(pixelcolor << 4 | bgcolor, 0)
     }
 
-    ; TODO optimize if horizontal or vertical:
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
@@ -41,10 +40,22 @@ graphics {
             swap(x1, x2)
             swap(y1, y2)
         }
-        word @zp d = 0
-        ubyte positive_ix = true
         word @zp dx = x2-x1 as word
         word @zp dy = y2-y1
+
+        if dx==0 {
+            vertical_line(x1, y1, abs(dy)+1 as ubyte)
+            return
+        }
+        if dy==0 {
+            if x1>x2
+                x1=x2
+            horizontal_line(x1, y1, abs(dx)+1 as uword)
+            return
+        }
+
+        word @zp d = 0
+        ubyte positive_ix = true
         if dx < 0 {
             dx = -dx
             positive_ix = false
@@ -109,18 +120,33 @@ graphics {
         }
     }
 
-    sub fillrect(uword x, uword y, uword width, uword height) {
-        ; TODO cx16.GRAPH_draw_rect(x, y, width, height, 0, 1)
+    sub rect(uword x, ubyte y, uword width, ubyte height) {
+        if width==0 or height==0
+            return
+        horizontal_line(x, y, width)
+        if height==1
+            return
+        horizontal_line(x, y+height-1, width)
+        vertical_line(x, y+1, height-2)
+        if width==1
+            return
+        vertical_line(x+width-1, y+1, height-2)
     }
 
-    sub rect(uword x, uword y, uword width, uword height) {
-        ; TODO cx16.GRAPH_draw_rect(x, y, width, height, 0, 0)
+    sub fillrect(uword x, ubyte y, uword width, ubyte height) {
+        if width==0
+            return
+        repeat height {
+            horizontal_line(x, y, width)
+            y++
+        }
     }
 
     sub horizontal_line(uword x, ubyte y, uword length) {
         if not length
             return
 
+        ; TODO optimized drawing 8 pixels at a time (+edges) should use  get_y_lookup(y) in this
         internal_plotx = x
         repeat length {
             internal_plot(y)
@@ -129,9 +155,6 @@ graphics {
     }
 
     sub vertical_line(uword x, ubyte y, ubyte height) {
-        if not height
-            return
-
         internal_plotx = x
         repeat height {
             internal_plot(y)
@@ -186,23 +209,10 @@ graphics {
         word decisionOver2 = (1 as word)-radius
 
         while radius>=yy {
-            ubyte ycenter_plus_yy = ycenter + yy
-            ubyte ycenter_min_yy = ycenter - yy
-            ubyte ycenter_plus_radius = ycenter + radius
-            ubyte ycenter_min_radius = ycenter - radius
-
-            internal_plotx = xcenter-radius
-            repeat radius*2+1 {
-                internal_plot(ycenter_plus_yy)
-                internal_plot(ycenter_min_yy)
-                internal_plotx++
-            }
-            internal_plotx = xcenter-yy
-            repeat yy*2+1 {
-                internal_plot(ycenter_plus_radius)
-                internal_plot(ycenter_min_radius)
-                internal_plotx++
-            }
+            horizontal_line(xcenter-radius, ycenter+yy, radius*2+1)
+            horizontal_line(xcenter-radius, ycenter-yy, radius*2+1)
+            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
+            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
             yy++
             if decisionOver2<=0
                 decisionOver2 += (yy as word)*2+1
@@ -274,6 +284,17 @@ _plot_y_values := $2000 + 320*(range(200)>>3) + (range(200) & 7)
 _y_lookup_lo    .byte  <_plot_y_values
 _y_lookup_hi    .byte  >_plot_y_values
 
+        }}
+    }
+
+    asmsub get_y_lookup(ubyte y @Y) -> uword @AY {
+        %asm {{
+            lda  _y_lookup_lo,y
+            pha
+            lda  _y_lookup_hi,y
+            tay
+            pla
+            rts
         }}
     }
 
