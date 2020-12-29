@@ -211,8 +211,8 @@ _done
     }
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
+        position(x,y)
         if active_mode==1 {
-            position(x,y)
             ; set vera auto-increment to 320 pixel increment (=next line)
             cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
             %asm {{
@@ -226,10 +226,81 @@ _done
         }
 
         ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
-        ; TODO optimize by manually advancing the vera's data pointer (note stipple and black color!)
-        repeat height {
-            plot(x, y, color)
-            y++
+        cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
+        cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
+        if color {
+            if monochrome_dont_stipple_flag {
+                repeat height {
+                    %asm {{
+                        lda  cx16.VERA_DATA0
+                        ora  cx16.r15
+                        sta  cx16.VERA_DATA0
+                        lda  cx16.VERA_ADDR_L
+                        clc
+                        adc  #640/8                 ; advance vera data ptr to go to the next line
+                        sta  cx16.VERA_ADDR_L
+                        lda  cx16.VERA_ADDR_M
+                        adc  #0
+                        sta  cx16.VERA_ADDR_M
+                        ; lda  cx16.VERA_ADDR_H     ; the bitmap size is small enough to not have to deal with the _H part.
+                        ; adc  #0
+                        ; sta  cx16.VERA_ADDR_H
+                    }}
+                }
+            } else {
+                ; stippling
+                %asm {{
+                    lda x
+                    eor y
+                    and #1
+                    bne +
+                    lda  cx16.VERA_ADDR_L
+                    clc
+                    adc  #<640/8*1             ; advance vera data ptr to go to the next line, for correct stipple pattern
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.VERA_ADDR_M
+                    adc  #0
+                    sta  cx16.VERA_ADDR_M
++
+                    lsr  height+1
+                    ror  height
+                    ldy  height
+-                   lda  cx16.VERA_DATA0
+                    ora  cx16.r15
+                    sta  cx16.VERA_DATA0
+                    lda  cx16.VERA_ADDR_L
+                    clc
+                    adc  #<640/8*2             ; advance vera data ptr to go to the next-next line
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.VERA_ADDR_M
+                    adc  #0
+                    sta  cx16.VERA_ADDR_M
+                    ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
+                    ; adc  #0
+                    ; sta  cx16.VERA_ADDR_H
+                    dey
+                    bne  -
+                }}
+            }
+        } else {
+            cx16.r15 = ~cx16.r15
+            repeat height {
+                %asm {{
+                    lda  cx16.VERA_DATA0
+                    and  cx16.r15
+                    sta  cx16.VERA_DATA0
+                    lda  cx16.VERA_ADDR_L
+                    clc
+                    adc  #640/8             ; advance vera data ptr to go to the next line
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.VERA_ADDR_M
+                    adc  #0
+                    sta  cx16.VERA_ADDR_M
+                    ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
+                    ; adc  #0
+                    ; sta  cx16.VERA_ADDR_H
+                }}
+            }
         }
     }
 

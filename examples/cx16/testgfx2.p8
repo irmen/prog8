@@ -16,9 +16,15 @@ main {
         uword cnt
         pp=pixels
 
+        gfx2.monochrome_stipple(true)
+        gfx2.disc(320,240,200,1)
         for xx in 0 to 639 {
             gfx2.vertical_line(xx, 0, 480, 1)
         }
+        for xx in 0 to 639 {
+            gfx2.vertical_line(xx, 0, 480, 0)
+        }
+        cx16.wait(200)
         gfx2.screen_mode(255)
         txt.print("done!\n")
         return
