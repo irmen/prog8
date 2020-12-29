@@ -31,6 +31,7 @@ graphics {
         txt.fill_screen(pixelcolor << 4 | bgcolor, 0)
     }
 
+    ; TODO optimize if horizontal or vertical:
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
@@ -108,42 +109,71 @@ graphics {
         }
     }
 
+    sub fillrect(uword x, uword y, uword width, uword height) {
+        ; TODO cx16.GRAPH_draw_rect(x, y, width, height, 0, 1)
+    }
+
+    sub rect(uword x, uword y, uword width, uword height) {
+        ; TODO cx16.GRAPH_draw_rect(x, y, width, height, 0, 0)
+    }
+
+    sub horizontal_line(uword x, ubyte y, uword length) {
+        if not length
+            return
+
+        internal_plotx = x
+        repeat length {
+            internal_plot(y)
+            internal_plotx++
+        }
+    }
+
+    sub vertical_line(uword x, ubyte y, ubyte height) {
+        if not height
+            return
+
+        internal_plotx = x
+        repeat height {
+            internal_plot(y)
+            y++
+        }
+    }
+
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Midpoint algorithm
         if radius==0
             return
         ubyte @zp ploty
-        ubyte @zp xx = radius
         ubyte @zp yy = 0
-        byte @zp decisionOver2 = 1-xx as byte
+        word @zp decisionOver2 = (1 as word)-radius
 
-        while xx>=yy {
-            internal_plotx = xcenter + xx
+        while radius>=yy {
+            internal_plotx = xcenter + radius
             ploty = ycenter + yy
             internal_plot(ploty)
-            internal_plotx = xcenter - xx
+            internal_plotx = xcenter - radius
             internal_plot(ploty)
-            internal_plotx = xcenter + xx
+            internal_plotx = xcenter + radius
             ploty = ycenter - yy
             internal_plot(ploty)
-            internal_plotx = xcenter - xx
+            internal_plotx = xcenter - radius
             internal_plot(ploty)
             internal_plotx = xcenter + yy
-            ploty = ycenter + xx
+            ploty = ycenter + radius
             internal_plot(ploty)
             internal_plotx = xcenter - yy
             internal_plot(ploty)
             internal_plotx = xcenter + yy
-            ploty = ycenter - xx
+            ploty = ycenter - radius
             internal_plot(ploty)
             internal_plotx = xcenter - yy
             internal_plot(ploty)
             yy++
             if decisionOver2<=0
-                decisionOver2 += 2*yy+1
+                decisionOver2 += (yy as word)*2+1
             else {
-                xx--
-                decisionOver2 += 2*(yy-xx)+1
+                radius--
+                decisionOver2 += (yy as word -radius)*2+1
             }
         }
     }
@@ -152,34 +182,33 @@ graphics {
         ; Midpoint algorithm, filled
         if radius==0
             return
-        ubyte @zp xx = radius
         ubyte @zp yy = 0
-        byte decisionOver2 = 1-xx as byte
+        word decisionOver2 = (1 as word)-radius
 
-        while xx>=yy {
+        while radius>=yy {
             ubyte ycenter_plus_yy = ycenter + yy
             ubyte ycenter_min_yy = ycenter - yy
-            ubyte ycenter_plus_xx = ycenter + xx
-            ubyte ycenter_min_xx = ycenter - xx
+            ubyte ycenter_plus_radius = ycenter + radius
+            ubyte ycenter_min_radius = ycenter - radius
 
-            internal_plotx = xcenter-xx
-            repeat xx*2+1 {
+            internal_plotx = xcenter-radius
+            repeat radius*2+1 {
                 internal_plot(ycenter_plus_yy)
                 internal_plot(ycenter_min_yy)
                 internal_plotx++
             }
             internal_plotx = xcenter-yy
             repeat yy*2+1 {
-                internal_plot(ycenter_plus_xx)
-                internal_plot(ycenter_min_xx)
+                internal_plot(ycenter_plus_radius)
+                internal_plot(ycenter_min_radius)
                 internal_plotx++
             }
             yy++
             if decisionOver2<=0
-                decisionOver2 += 2*yy+1
+                decisionOver2 += (yy as word)*2+1
             else {
-                xx--
-                decisionOver2 += 2*(yy-xx)+1
+                radius--
+                decisionOver2 += (yy as word -radius)*2+1
             }
         }
     }
