@@ -114,29 +114,10 @@ graphics {
         word decisionOver2 = (1 as word)-radius
 
         while radius>=yy {
-            ubyte ycenter_plus_yy = ycenter + yy
-            ubyte ycenter_min_yy = ycenter - yy
-            ubyte ycenter_plus_radius = ycenter + radius
-            ubyte ycenter_min_radius = ycenter - radius
-            uword @zp plotx
-
-            ; cx16.GRAPH_draw_line(xcenter-radius, )
-            cx16.FB_cursor_position(xcenter-radius, ycenter_plus_yy)
-            repeat radius*2+1
-                cx16.FB_set_pixel(1)
-
-            cx16.FB_cursor_position(xcenter-radius, ycenter_min_yy)
-            repeat radius*2+1
-                cx16.FB_set_pixel(1)
-
-            cx16.FB_cursor_position(xcenter-yy, ycenter_plus_radius)
-            repeat yy*2+1
-                cx16.FB_set_pixel(1)
-
-            cx16.FB_cursor_position(xcenter-yy, ycenter_min_radius)
-            repeat yy*2+1
-                cx16.FB_set_pixel(1)
-
+            horizontal_line(xcenter-radius, ycenter+yy, radius*2+1)
+            horizontal_line(xcenter-radius, ycenter-yy, radius*2+1)
+            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
+            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
             yy++
             if decisionOver2<=0
                 decisionOver2 += (yy as word)*2+1
