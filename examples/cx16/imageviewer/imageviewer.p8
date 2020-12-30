@@ -38,7 +38,7 @@ main {
         ; this only works in the emulator V38 with an sd-card image with the files on it.
 
         str[40] filename_ptrs
-        ubyte num_files = diskio.list_files(8, 0, false, &filename_ptrs, len(filename_ptrs))
+        ubyte num_files = diskio.list_files(8, 0, &filename_ptrs, len(filename_ptrs))
         if num_files {
             while num_files {
                 num_files--

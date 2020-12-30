@@ -10,6 +10,7 @@ main {
 
         draw_lines()
         draw_circles()
+        draw_rects()
 
         ; graphics.disable_bitmap_mode()
         ; test_stack.test()
@@ -17,6 +18,14 @@ main {
         repeat {
         }
     }
+
+    sub draw_rects() {
+        graphics.rect(220,10,80,10)
+        graphics.rect(20,180,80,10)
+        graphics.fillrect(220,30,80,10)
+        graphics.fillrect(20,160,80,10)
+    }
+
 
     sub draw_circles() {
         ubyte xx

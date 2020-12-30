@@ -60,8 +60,6 @@ io_error:
 
 
     ; internal variables for the iterative file lister / loader
-    ubyte list_suffixmatch
-    ubyte list_pattern_size
     ubyte list_skip_disk_name
     uword list_pattern
     uword list_blocks
@@ -71,12 +69,12 @@ io_error:
 
     ; ----- get a list of files (uses iteration functions internally -----
 
-    sub list_files(ubyte drivenumber, uword pattern, ubyte suffixmatch, uword name_ptrs, ubyte max_names) -> ubyte {
+    sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
         uword names_buffer = memory("filenames", 512)
         uword buffer_start = names_buffer
         ubyte files_found = 0
-        if lf_start_list(drivenumber, pattern, suffixmatch) {
+        if lf_start_list(drivenumber, pattern_ptr) {
             while lf_next_entry() {
                 @(name_ptrs) = lsb(names_buffer)
                 name_ptrs++
@@ -96,18 +94,13 @@ io_error:
 
     ; ----- iterative file lister functions -----
 
-    sub lf_start_list(ubyte drivenumber, uword pattern, ubyte suffixmatch) -> ubyte {
-        ; -- start an iterative file listing with optional prefix or suffix name matching.
+    sub lf_start_list(ubyte drivenumber, uword pattern_ptr) -> ubyte {
+        ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
         lf_end_list()
-        list_pattern = pattern
-        list_suffixmatch = suffixmatch
+        list_pattern = pattern_ptr
         list_skip_disk_name = true
         iteration_in_progress = true
-        if pattern==0
-            list_pattern_size = 0
-        else
-            list_pattern_size = strlen(pattern)
 
         c64.SETNAM(1, "$")
         c64.SETLFS(12, drivenumber, 0)
@@ -177,15 +170,9 @@ io_error:
             void c64.CHRIN()
 
             if not list_skip_disk_name {
-                if list_pattern_size {
-                    ; do filename matching
-                    if list_suffixmatch
-                        rightstr(list_filename, filename, list_pattern_size)
-                    else
-                        leftstr(list_filename, filename, list_pattern_size)
-                    if strcmp(filename, list_pattern)==0
-                        return true
-                } else
+                if not list_pattern
+                    return true
+                if prog8_lib.pattern_match(list_filename, list_pattern)
                     return true
             }
             list_skip_disk_name = false
