@@ -34,7 +34,6 @@ graphics {
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
-        ; TODO rewrite this in optimized assembly
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
@@ -53,6 +52,8 @@ graphics {
             horizontal_line(x1, y1, abs(dx)+1 as uword)
             return
         }
+
+        ; TODO rewrite the rest in optimized assembly
 
         word @zp d = 0
         ubyte positive_ix = true
@@ -143,14 +144,82 @@ graphics {
     }
 
     sub horizontal_line(uword x, ubyte y, uword length) {
-        if not length
+        if length<8 {
+            internal_plotx=x
+            repeat lsb(length) {
+                internal_plot(y)
+                internal_plotx++
+            }
             return
+        }
 
-        ; TODO optimized drawing 8 pixels at a time (+edges) should use  get_y_lookup(y) in this
-        internal_plotx = x
-        repeat length {
-            internal_plot(y)
-            internal_plotx++
+        ubyte separate_pixels = lsb(x) & 7
+        uword addr = get_y_lookup(y) + (x&$fff8)
+
+        if separate_pixels {
+            %asm {{
+                lda  addr
+                sta  P8ZP_SCRATCH_W1
+                lda  addr+1
+                sta  P8ZP_SCRATCH_W1+1
+                ldy  separate_pixels
+                lda  _filled_right,y
+                eor  #255
+                ldy  #0
+                ora  (P8ZP_SCRATCH_W1),y
+                sta  (P8ZP_SCRATCH_W1),y
+            }}
+            addr += 8
+            length += separate_pixels
+            length -= 8
+        }
+
+        if length {
+            %asm {{
+                lda  length
+                and  #7
+                sta  separate_pixels
+                stx  P8ZP_SCRATCH_REG
+                lsr  length+1
+                ror  length
+                lsr  length+1
+                ror  length
+                lsr  length+1
+                ror  length
+                lda  addr
+                sta  _modified+1
+                lda  addr+1
+                sta  _modified+2
+                lda  length
+                ora  length+1
+                beq  _zero
+                ldy  length
+                ldx  #$ff
+_modified       stx  $ffff      ; modified
+                lda  _modified+1
+                clc
+                adc  #8
+                sta  _modified+1
+                bcc  +
+                inc  _modified+2
++               dey
+                bne  _modified
+_zero           ldx  P8ZP_SCRATCH_REG
+
+                ldy  separate_pixels
+                beq  _zero2
+                lda  _modified+1
+                sta  P8ZP_SCRATCH_W1
+                lda  _modified+2
+                sta  P8ZP_SCRATCH_W1+1
+                lda  _filled_right,y
+                ldy  #0
+                ora  (P8ZP_SCRATCH_W1),y
+                sta  (P8ZP_SCRATCH_W1),y
+                jmp  _zero2
+_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110
+_zero2
+            }}
         }
     }
 
@@ -289,9 +358,9 @@ _y_lookup_hi    .byte  >_plot_y_values
 
     asmsub get_y_lookup(ubyte y @Y) -> uword @AY {
         %asm {{
-            lda  _y_lookup_lo,y
+            lda  internal_plot._y_lookup_lo,y
             pha
-            lda  _y_lookup_hi,y
+            lda  internal_plot._y_lookup_hi,y
             tay
             pla
             rts

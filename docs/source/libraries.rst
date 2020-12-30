@@ -76,9 +76,8 @@ graphics
 Monochrome bitmap graphics routines, fixed 320*200 resolution:
 
 - clearing the screen
-- drawing lines
-- drawing circles and discs (filled circles)
-- plotting individual pixels
+- drawing individual pixels
+- drawing lines, rectangles, filled rectangles, circles, discs
 
 This library is available both on the C64 and the Cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
