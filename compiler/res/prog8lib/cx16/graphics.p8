@@ -128,8 +128,7 @@ graphics {
         }
     }
 
-    ; TODO CLOBBERS
-    inline asmsub  plot(uword plotx @R0, uword ploty @R1) {
+    inline asmsub  plot(uword plotx @R0, uword ploty @R1) clobbers(A, X, Y) {
         %asm {{
             jsr  cx16.FB_cursor_position
             lda  #1

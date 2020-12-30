@@ -546,8 +546,7 @@ _done
         }}
     }
 
-    ; TODO CLOBBERS
-    asmsub next_pixels(uword pixels @AY, uword amount @R0) {
+    asmsub next_pixels(uword pixels @AY, uword amount @R0) clobbers(A, Y)  {
         ; -- sets the next bunch of pixels from a prepared array of bytes.
         ;    for 8 bpp screens this will plot 1 pixel per byte.
         ;    for 1 bpp screens it will plot 8 pixels at once (colors are the bit patterns per byte).
@@ -578,7 +577,6 @@ _done
         }}
     }
 
-    ; TODO CLOBBERS
     asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) {
         ; this is only useful in 256 color mode where one pixel equals one byte value.
         %asm {{
@@ -694,8 +692,7 @@ _done
         }
     }
 
-    ; TODO CLOBBERS
-    asmsub cs_innerloop640() {
+    asmsub cs_innerloop640() clobbers(Y) {
         %asm {{
             ldy  #80
 -           stz  cx16.VERA_DATA0
@@ -712,8 +709,7 @@ _done
         }}
     }
 
-    ; TODO CLOBBERS
-    asmsub addr_mul_320_add_24(uword address @R0, uword value @AY) -> uword @R0, ubyte @R1  {
+    asmsub addr_mul_320_add_24(uword address @R0, uword value @AY) clobbers(A) -> uword @R0, ubyte @R1  {
             %asm {{
                 sta  P8ZP_SCRATCH_W1
                 sty  P8ZP_SCRATCH_W1+1

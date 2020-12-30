@@ -282,7 +282,7 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
 }
 
 
-asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) {
+asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) clobbers(A) {
         ; -- setup the VERA's data address register 0 or 1
         %asm {{
             and  #1
@@ -308,7 +308,7 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
 }
 
 
-asmsub vpoke(ubyte bank @A, uword address @R0, ubyte value @Y) {
+asmsub vpoke(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
         ; -- write a single byte to VERA's video memory
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
@@ -324,7 +324,7 @@ asmsub vpoke(ubyte bank @A, uword address @R0, ubyte value @Y) {
         }}
 }
 
-asmsub vpoke_or(ubyte bank @A, uword address @R0, ubyte value @Y) {
+asmsub vpoke_or(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) {
         ; -- or a single byte to the value already in the VERA's video memory at that location
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
@@ -342,7 +342,7 @@ asmsub vpoke_or(ubyte bank @A, uword address @R0, ubyte value @Y) {
         }}
 }
 
-asmsub vpoke_and(ubyte bank @A, uword address @R0, ubyte value @Y) {
+asmsub vpoke_and(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
         ; -- and a single byte to the value already in the VERA's video memory at that location
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{
@@ -360,7 +360,7 @@ asmsub vpoke_and(ubyte bank @A, uword address @R0, ubyte value @Y) {
         }}
 }
 
-asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) {
+asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) {
         ; -- xor a single byte to the value already in the VERA's video memory at that location
         ;    note: inefficient when writing multiple sequential bytes!
         %asm {{

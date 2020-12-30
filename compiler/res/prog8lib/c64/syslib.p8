@@ -306,7 +306,7 @@ sub wait(uword jiffies) {
     }
 }
 
-asmsub  disable_runstop_and_charsetswitch() {
+asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
         lda  #$80
         sta  657    ; disable charset switching
@@ -400,7 +400,7 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 		}}
 }
 
-asmsub  restore_irqvec() {
+asmsub  restore_irqvec() clobbers(A) {
 	%asm {{
 		sei
 		lda  #<c64.IRQDFRT
