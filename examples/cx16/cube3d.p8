@@ -18,7 +18,6 @@ main {
         uword anglex
         uword angley
         uword anglez
-        ubyte timer_jiffies
 
         repeat {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))

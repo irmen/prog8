@@ -14,7 +14,7 @@ main {
         repeat {
             c64.CHROUT(19)      ; HOME
             txt.print("\n yyyy-mm-dd HH:MM:SS.jj\n\n")
-            cx16.clock_get_date_time()
+            void cx16.clock_get_date_time()
             c64.CHROUT(' ')
             print_date()
             c64.CHROUT(' ')

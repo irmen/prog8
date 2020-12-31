@@ -319,6 +319,52 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             return
         }
 
+        if(origTypeCastExpression.type == DataType.UBYTE) {
+            val parentTc = origTypeCastExpression.parent as? TypecastExpression
+            if(parentTc!=null && parentTc.type==DataType.UWORD) {
+                // typecast something to ubyte and directly back to uword
+                // generate code for lsb(value) here instead of the ubyte typecast
+                return assignCastViaLsbFunc(value, target)
+            }
+        }
+
+        if(valueDt==DataType.UBYTE) {
+            when(target.register) {
+                RegisterOrPair.A,
+                RegisterOrPair.X,
+                RegisterOrPair.Y -> {
+                    // 'cast' a ubyte value to a byte register; no cast needed at all
+                    return assignExpressionToRegister(value, target.register)
+                }
+                RegisterOrPair.AX,
+                RegisterOrPair.AY,
+                RegisterOrPair.XY,
+                in Cx16VirtualRegisters -> {
+                    // cast an ubyte value to a 16 bits register, just assign it and make use of the value extension
+                    return assignExpressionToRegister(value, target.register!!)
+                }
+                else -> {}
+            }
+        } else if(valueDt==DataType.UWORD) {
+            when(target.register) {
+                RegisterOrPair.A,
+                RegisterOrPair.X,
+                RegisterOrPair.Y -> {
+                    // cast an uword to a byte register, do this via lsb(value)
+                    // generate code for lsb(value) here instead of the ubyte typecast
+                    return assignCastViaLsbFunc(value, target)
+                }
+                RegisterOrPair.AX,
+                RegisterOrPair.AY,
+                RegisterOrPair.XY,
+                in Cx16VirtualRegisters -> {
+                    // 'cast' uword into a 16 bits register, just assign it
+                    return assignExpressionToRegister(value, target.register!!)
+                }
+                else -> {}
+            }
+        }
+
         // give up, do it via eval stack
         // TODO optimize typecasts for more special cases?
         // note: cannot use assignTypeCastedValue because that is ourselves :P
@@ -326,6 +372,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             println("warning: slow stack evaluation used for typecast: $value into $targetDt (target=${target.kind} at ${value.position}")
         asmgen.translateExpression(origTypeCastExpression)      // this performs the actual type cast in translateExpression(Typecast)
         assignStackValue(target)
+    }
+
+    private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {
+        val lsb = FunctionCall(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
+        lsb.linkParents(value.parent)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
+        val assign = AsmAssignment(src, target, false, value.position)
+        translateNormalAssignment(assign)
     }
 
     private fun assignTypecastedFloatFAC1(targetAsmVarName: String, targetDt: DataType) {
