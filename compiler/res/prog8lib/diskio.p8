@@ -201,7 +201,7 @@ close_end:
         f_close()
 
         c64.SETNAM(strlen(filenameptr), filenameptr)
-        c64.SETLFS(11, drivenumber, 0)
+        c64.SETLFS(11, drivenumber, 3)
         void c64.OPEN()          ; open 11,8,0,"filename"
         if_cc {
             iteration_in_progress = true
@@ -221,15 +221,28 @@ close_end:
 
         uword actual = 0
         void c64.CHKIN(11)        ; use #11 as input channel again
+        %asm {{
+            lda  bufferpointer
+            sta  _in_buffer+1
+            lda  bufferpointer+1
+            sta  _in_buffer+2
+        }}
         repeat num_bytes {
-            ubyte data = c64.CHRIN()
-            @(bufferpointer) = data
-            bufferpointer++
-            actual++
-            ubyte status = c64.READST()
-            if status==64
+            %asm {{
+                jsr  c64.CHRIN
+_in_buffer      sta  $ffff
+                inc  _in_buffer+1
+                bne  +
+                inc  _in_buffer+2
++               inc  actual
+                bne  +
+                inc  actual+1
++
+            }}
+            ubyte data = c64.READST()
+            if data==64
                 f_close()       ; end of file, close it
-            if status
+            if data
                 return actual
         }
         return actual
@@ -242,11 +255,56 @@ close_end:
             return
 
         void c64.CHKIN(11)        ; use #11 as input channel again
-        repeat num_bytes {
-            @(bufferpointer) = c64.CHRIN()
-            bufferpointer++
-        }
+        ; repeat num_bytes {
+        ;     @(bufferpointer) = c64.CHRIN()
+        ;     bufferpointer++
+        ; }
+        %asm {{
+            lda  bufferpointer
+            sta  P8ZP_SCRATCH_W1
+            lda  bufferpointer+1
+            sta  P8ZP_SCRATCH_W1+1
+            lda  #0
+            sta  P8ZP_SCRATCH_B1
+            lda  num_bytes+1
+            sta  P8ZP_SCRATCH_W2
+            beq  _no_msb
+-           jsr  c64.CHRIN
+            ldy  P8ZP_SCRATCH_B1
+            sta  (P8ZP_SCRATCH_W1),y
+            inc  P8ZP_SCRATCH_B1
+            bne  -
+            inc  P8ZP_SCRATCH_W1+1
+            dec  P8ZP_SCRATCH_W2
+            bne  -
+_no_msb
+            lda  num_bytes
+            beq  _done
+-           jsr  c64.CHRIN
+            ldy  P8ZP_SCRATCH_B1
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            sty  P8ZP_SCRATCH_B1
+            cpy  num_bytes
+            bne  -
+_done
+        }}
     }
+
+    sub f_read_all(uword bufferpointer) -> uword {
+        ; -- read the full contents of the file, returns number of bytes read.
+        if not iteration_in_progress
+            return 0
+
+        uword total = 0
+        while not c64.READST() {
+            total += f_read(bufferpointer, 256)
+            txt.chrout('.')
+            bufferpointer += 256
+        }
+        return total
+    }
+
 
     sub f_close() {
         ; -- end an iterative file loading session (close channels).

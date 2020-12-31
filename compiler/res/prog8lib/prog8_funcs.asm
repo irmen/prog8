@@ -1080,6 +1080,7 @@ _loop_hi	ldy  _index_first
 
 func_exit	.proc
 		; -- immediately exit the program with a return code in the A register
+		jsr  c64.CLRCHN		; reset i/o channels
 		ldx  orig_stackpointer
 		txs
 		rts		; return to original caller
