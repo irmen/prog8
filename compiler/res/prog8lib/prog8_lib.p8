@@ -8,6 +8,8 @@ prog8_lib {
 	%asminclude "library:prog8_lib.asm", ""
 	%asminclude "library:prog8_funcs.asm", ""
 
+    uword @zp retval_interm_w      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
+    ubyte @zp retval_interm_b      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
 
     asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> ubyte @A {
         %asm {{

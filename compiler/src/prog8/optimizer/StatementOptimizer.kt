@@ -441,6 +441,44 @@ internal class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
+    override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
+        fun returnViaIntermediary(value: Expression): Iterable<IAstModification>? {
+            val returnDt = returnStmt.definingSubroutine()!!.returntypes.single()
+            if (returnDt in IntegerDatatypes) {
+                // first assign to intermediary, then return that register
+                val returnValueIntermediary =
+                    if (returnDt in ByteDatatypes)
+                        IdentifierReference(listOf("prog8_lib", "retval_interm_b"), returnStmt.position)
+                    else
+                        IdentifierReference(listOf("prog8_lib", "retval_interm_w"), returnStmt.position)
+                val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
+                val assign = Assignment(tgt, value, returnStmt.position)
+                val returnReplacement = Return(returnValueIntermediary, returnStmt.position)
+                return listOf(
+                    IAstModification.InsertBefore(returnStmt, assign, parent as INameScope),
+                    IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
+                )
+            }
+            return null
+        }
+
+        when(returnStmt.value) {
+            is PrefixExpression -> {
+                val mod = returnViaIntermediary(returnStmt.value!!)
+                if(mod!=null)
+                    return mod
+            }
+            is BinaryExpression -> {
+                val mod = returnViaIntermediary(returnStmt.value!!)
+                if(mod!=null)
+                    return mod
+            }
+            else -> {}
+        }
+
+        return super.after(returnStmt, parent)
+    }
+
     private fun hasBreak(scope: INameScope): Boolean {
 
         class Searcher: IAstVisitor

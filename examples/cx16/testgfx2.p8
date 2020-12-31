@@ -125,14 +125,17 @@ main {
             xx+=4
         }
 
-         cx16.wait(3*60)
+        cx16.wait(3*60)
+
+        demo2()
+
         gfx2.screen_mode(255)
         txt.print("done!\n")
 
         test_stack.test()
     }
 
-    sub start2 () {
+    sub demo2 () {
         gfx2.text_charset(3)
 
         ubyte[] modes = [1, 0, 128]
@@ -143,9 +146,6 @@ main {
             cx16.wait(200)
         }
 
-        gfx2.screen_mode(255)
-        txt.print("done!\n")
-        test_stack.test()
     }
 
     sub draw() {
