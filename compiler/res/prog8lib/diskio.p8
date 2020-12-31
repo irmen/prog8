@@ -64,6 +64,8 @@ io_error:
     uword list_pattern
     uword list_blocks
     ubyte iteration_in_progress = false
+    ubyte @zp first_byte
+    ubyte have_first_byte
     str   list_filename = "?" * 32
 
 
@@ -205,9 +207,15 @@ close_end:
         void c64.OPEN()          ; open 11,8,0,"filename"
         if_cc {
             iteration_in_progress = true
+            have_first_byte = false
             void c64.CHKIN(11)        ; use #11 as input channel
-            if_cc
-                return true
+            if_cc {
+                first_byte = c64.CHRIN()   ; read first byte to test for file not found
+                if not c64.READST() {
+                    have_first_byte = true
+                    return true
+                }
+            }
         }
         f_close()
         return false
@@ -216,10 +224,18 @@ close_end:
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
-        if not iteration_in_progress
+        if not iteration_in_progress or not num_bytes
             return 0
 
-        uword actual = 0
+        list_blocks = 0     ; we reuse this variable for the total number of bytes read
+        if have_first_byte {
+            have_first_byte=false
+            @(bufferpointer) = first_byte
+            bufferpointer++
+            list_blocks++
+            num_bytes--
+        }
+
         void c64.CHKIN(11)        ; use #11 as input channel again
         %asm {{
             lda  bufferpointer
@@ -234,25 +250,32 @@ _in_buffer      sta  $ffff
                 inc  _in_buffer+1
                 bne  +
                 inc  _in_buffer+2
-+               inc  actual
++               inc  list_blocks
                 bne  +
-                inc  actual+1
+                inc  list_blocks+1
 +
             }}
-            ubyte data = c64.READST()
-            if data==64
+            first_byte = c64.READST()
+            if first_byte==64
                 f_close()       ; end of file, close it
-            if data
-                return actual
+            if first_byte
+                return list_blocks
         }
-        return actual
+        return list_blocks
     }
 
     sub f_read_exact(uword bufferpointer, uword num_bytes) {
         ; -- read from the currently open file, the given number of bytes. File must contain enough data!
         ;    doesn't check for error conditions or end of file, to make the read as fast as possible.
-        if not iteration_in_progress
+        if not iteration_in_progress or not num_bytes
             return
+
+        if have_first_byte {
+            have_first_byte=false
+            @(bufferpointer) = first_byte
+            bufferpointer++
+            num_bytes--
+        }
 
         void c64.CHKIN(11)        ; use #11 as input channel again
         ; repeat num_bytes {
@@ -296,13 +319,19 @@ _done
         if not iteration_in_progress
             return 0
 
-        uword total = 0
+        list_blocks = 0     ; we reuse this variable for the total number of bytes read
+        if have_first_byte {
+            have_first_byte=false
+            @(bufferpointer) = first_byte
+            bufferpointer++
+            list_blocks++
+        }
+
         while not c64.READST() {
-            total += f_read(bufferpointer, 256)
-            txt.chrout('.')
+            list_blocks += f_read(bufferpointer, 256)
             bufferpointer += 256
         }
-        return total
+        return list_blocks
     }
 
 
@@ -361,14 +390,14 @@ io_error:
             plp
         }}
 
-        ubyte result=0
+        first_byte = 0      ; result var reuse
         if_cc
-            result = c64.READST()==0
+            first_byte = c64.READST()==0
 
         c64.CLRCHN()
         c64.CLOSE(1)
 
-        return result
+        return first_byte
     }
 
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {

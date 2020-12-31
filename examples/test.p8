@@ -12,7 +12,7 @@ main {
         ubyte[256] buffer
         uword size
 
-        if diskio.f_open(8, "rom.asm2") {
+        if diskio.f_open(8, "rom.asm") {
             txt.print("read-exact\n")
             c64.SETTIM(0,0,0)
             size = 0
@@ -32,7 +32,7 @@ main {
         txt.chrout('\n')
 
 
-        if diskio.f_open(8, "rom.asm2") {
+        if diskio.f_open(8, "rom.asm") {
             txt.print("read-all\n")
             c64.SETTIM(0,0,0)
             size = 0
