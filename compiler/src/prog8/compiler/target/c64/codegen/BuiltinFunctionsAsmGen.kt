@@ -80,6 +80,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "clear_irqd" -> asmgen.out("  cli")
             "set_irqd" -> asmgen.out("  sei")
             "strlen" -> funcStrlen(fcall, resultToStack)
+            "strfind" -> funcStrfind(fcall, func, resultToStack, sscope)
             "strcmp" -> funcStrcmp(fcall, func, resultToStack, sscope)
             "strcopy" -> {
                 translateArguments(fcall.args, func, sscope)
@@ -195,6 +196,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             translateArguments(fcall.args, func, scope)
             asmgen.out("  jsr  prog8_lib.func_${func.name}")
         }
+    }
+
+    private fun funcStrfind(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
+        translateArguments(fcall.args, func, scope)
+        if(resultToStack)
+            asmgen.out("  jsr  prog8_lib.func_strfind_stack")
+        else
+            asmgen.out("  jsr  prog8_lib.func_strfind")
     }
 
     private fun funcStrcmp(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {

@@ -198,7 +198,22 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 when(returntype.typeOrElse(DataType.STRUCT)) {
                                     in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                     in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
-                                    DataType.STR -> throw AssemblyError("missing code for assign string from builtin func => copy string or assign string address")
+                                    DataType.STR -> {
+                                        when (assign.target.datatype) {
+                                            DataType.STR -> {
+                                                asmgen.out("""
+                                                    pha
+                                                    lda  #<${assign.target.asmVarname}
+                                                    sta  P8ZP_SCRATCH_W1
+                                                    lda  #>${assign.target.asmVarname}
+                                                    sta  P8ZP_SCRATCH_W1+1
+                                                    pla
+                                                    jsr  prog8_lib.strcpy""")
+                                            }
+                                            DataType.UWORD -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                            else -> throw AssemblyError("str return value type mismatch with target")
+                                        }
+                                    }
                                     DataType.FLOAT -> {
                                         // float result from function sits in FAC1
                                         assignFAC1float(assign.target)

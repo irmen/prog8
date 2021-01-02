@@ -160,22 +160,23 @@ private val functionSignatures: List<FSignature> = listOf(
                             FParam("address", IterableDatatypes + DataType.UWORD),
                             FParam("numwords", setOf(DataType.UWORD)),
                             FParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
-    FSignature("strlen"      , true, listOf(FParam("string", setOf(DataType.STR))), DataType.UBYTE, ::builtinStrlen),
-    FSignature("strcopy"     , false, listOf(FParam("from", IterableDatatypes + DataType.UWORD), FParam("to", IterableDatatypes + DataType.UWORD)), DataType.UBYTE),
+    FSignature("strlen"      , true, listOf(FParam("string", StringlyDatatypes)), DataType.UBYTE, ::builtinStrlen),
+    FSignature("strcopy"     , false, listOf(FParam("from", StringlyDatatypes), FParam("to", StringlyDatatypes)), DataType.UBYTE),
     FSignature("substr"      , false, listOf(
-            FParam("source", IterableDatatypes + DataType.UWORD),
-            FParam("target", IterableDatatypes + DataType.UWORD),
+            FParam("source", StringlyDatatypes),
+            FParam("target", StringlyDatatypes),
             FParam("start", setOf(DataType.UBYTE)),
             FParam("length", setOf(DataType.UBYTE))), null),
     FSignature("leftstr"     , false, listOf(
-            FParam("source", IterableDatatypes + DataType.UWORD),
-            FParam("target", IterableDatatypes + DataType.UWORD),
+            FParam("source", StringlyDatatypes),
+            FParam("target", StringlyDatatypes),
             FParam("length", setOf(DataType.UBYTE))), null),
     FSignature("rightstr"    , false, listOf(
-            FParam("source", IterableDatatypes + DataType.UWORD),
-            FParam("target", IterableDatatypes + DataType.UWORD),
+            FParam("source", StringlyDatatypes),
+            FParam("target", StringlyDatatypes),
             FParam("length", setOf(DataType.UBYTE))), null),
-    FSignature("strcmp"      , false, listOf(FParam("s1", IterableDatatypes + DataType.UWORD), FParam("s2", IterableDatatypes + DataType.UWORD)), DataType.BYTE, null)
+    FSignature("strcmp"      , true, listOf(FParam("s1", StringlyDatatypes), FParam("s2", StringlyDatatypes)), DataType.BYTE, null),
+    FSignature("strfind"     , true, listOf(FParam("string", StringlyDatatypes), FParam("char", setOf(DataType.UBYTE))), DataType.STR, null)
 )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }

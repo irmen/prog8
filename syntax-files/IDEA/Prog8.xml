@@ -14,7 +14,7 @@
     <keywords keywords="&amp;;-&gt;;@;\$;and;as;asmsub;break;clobbers;continue;do;downto;else;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;romsub;step;sub;to;true;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%asm;%asmbinary;%asminclude;%breakpoint;%import;%launcher;%option;%output;%target;%zeropage;%zpreserved" />
     <keywords3 keywords="byte;const;float;str;struct;ubyte;uword;void;word;zp" />
-    <keywords4 keywords="abs;acos;all;any;asin;atan;avg;ceil;clear_carry;clear_irqd;cos;cos16;cos16u;cos8;cos8u;deg;exit;floor;leftstr;len;ln;log2;lsb;lsl;lsr;max;memcopy;memory;memset;memsetw;min;mkword;msb;progend;rad;read_flags;reverse;rightstr;rnd;rndf;rndw;rol;rol2;ror;ror2;round;rrestore;rsave;set_carry;set_irqd;sgn;sin;sin16;sin16u;sin8;sin8u;sizeof;sort;sqrt;sqrt16;strcmp;strcopy;strlen;substr;sum;swap;tan;target" />
+    <keywords4 keywords="abs;acos;all;any;asin;atan;avg;ceil;clear_carry;clear_irqd;cos;cos16;cos16u;cos8;cos8u;deg;exit;floor;leftstr;len;ln;log2;lsb;lsl;lsr;max;memcopy;memory;memset;memsetw;min;mkword;msb;progend;rad;read_flags;reverse;rightstr;rnd;rndf;rndw;rol;rol2;ror;ror2;round;rrestore;rsave;set_carry;set_irqd;sgn;sin;sin16;sin16u;sin8;sin8u;sizeof;sort;sqrt;sqrt16;strcmp;strcopy;strfind;strlen;substr;sum;swap;tan;target" />
   </highlighting>
   <extensionMap>
     <mapping ext="p8" />

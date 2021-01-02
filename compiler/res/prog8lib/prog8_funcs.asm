@@ -1368,3 +1368,41 @@ func_strcopy_to_stack	.proc
 		dex
 		rts
 		.pend
+
+
+func_strfind	.proc
+		lda  _arg_string
+		ldy  _arg_string+1
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+-		lda  (P8ZP_SCRATCH_W1),y
+		beq  _notfound
+		cmp  _arg_char
+		beq  _found
+		iny
+		bne  -
+_notfound	lda  #0
+		ldy  #0
+		rts
+_found		sty  P8ZP_SCRATCH_B1
+		lda  P8ZP_SCRATCH_W1
+		clc
+		adc  P8ZP_SCRATCH_B1
+		sta  P8ZP_SCRATCH_W1
+		bcc  +
+		inc  P8ZP_SCRATCH_W1+1
++		ldy  P8ZP_SCRATCH_W1+1
+		rts
+
+_arg_string	.word  0
+_arg_char	.byte  0
+		.pend
+
+func_strfind_stack	.proc
+		jsr  func_strfind
+		sta  P8ESTACK_LO,x
+		sty  P8ESTACK_HI,x
+		dex
+		rts
+		.pend

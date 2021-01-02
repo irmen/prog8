@@ -130,6 +130,7 @@ val WordDatatypes = setOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
 val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
 val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
+val StringlyDatatypes = setOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
 val IterableDatatypes = setOf(
         DataType.STR,
         DataType.ARRAY_UB, DataType.ARRAY_B,

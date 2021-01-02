@@ -833,6 +833,10 @@ strcopy(from, to)
     Often you don't have to call this explicitly and can just write ``string1 = string2``
     but this function is useful if you're dealing with addresses for instance.
 
+strfind(string, char)
+    Locates the first position of the given character in the string, returns the string starting
+    with this character or $0000 if the character is not found.
+
 
 Miscellaneous
 ^^^^^^^^^^^^^
