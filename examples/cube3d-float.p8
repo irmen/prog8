@@ -19,9 +19,10 @@ main {
 
     sub start()  {
         float time=0.0
-        ubyte timer_jiffies
 
         repeat {
+            c64.SETTIM(0,0,0)
+
             rotate_vertices(time)
             txt.clear_screenchars(' ')
             draw_edges()
@@ -30,17 +31,11 @@ main {
             txt.plot(0,0)
             txt.print("3d cube! floats. ")
 
-            %asm {{
-                stx  P8ZP_SCRATCH_REG
-                jsr  c64.RDTIM      ; A/X/Y
-                sta  timer_jiffies
-                lda  #0
-                jsr  c64.SETTIM
-                ldx  P8ZP_SCRATCH_REG
-            }}
-            txt.print_ub(timer_jiffies)
+
+            ubyte jiffies = lsb(c64.RDTIM16())
+            txt.print_ub(jiffies)
             txt.print(" jiffies/fr = ")
-            txt.print_ub(60/timer_jiffies)
+            txt.print_ub(60/jiffies)
             txt.print(" fps")
 
             ;test_stack.test()

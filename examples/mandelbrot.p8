@@ -40,20 +40,7 @@ main {
             }
         }
 
-        ubyte time_lo
-        ubyte time_mid
-        ubyte time_hi
-
-        %asm {{
-            stx  P8ZP_SCRATCH_REG
-            jsr  c64.RDTIM      ; A/X/Y
-            sta  time_lo
-            stx  time_mid
-            sty  time_hi
-            ldx  P8ZP_SCRATCH_REG
-        }}
-
-        float duration = ((mkword(time_mid, time_lo) as float) + (time_hi as float)*65536.0) / 60
+        float duration = (c64.RDTIM16() as float) / 60
         txt.plot(0, 21)
         txt.print("finished in ")
         floats.print_f(duration)

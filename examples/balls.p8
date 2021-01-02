@@ -85,15 +85,7 @@ main {
             ;txt.print_uw(frame)
         }
 
-        ; read clock
-        uword jiffies
-        %asm {{
-            stx  P8ZP_SCRATCH_REG
-            jsr  c64.RDTIM
-            sta  jiffies
-            stx  jiffies+1
-            ldx  P8ZP_SCRATCH_REG
-        }}
+        uword jiffies = c64.RDTIM16()
         txt.print("\nbenchmark: ")
         txt.print_uw(jiffies)
         txt.print(" jiffies for 1000 frames.\n")

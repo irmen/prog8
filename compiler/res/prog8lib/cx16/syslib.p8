@@ -73,6 +73,22 @@ asmsub STOP2() -> ubyte @A  {
     }}
 }
 
+
+asmsub RDTIM16() -> uword @AY {
+    ; --  like RDTIM() but only returning the lower 16 bits for convenience
+    %asm {{
+        phx
+        jsr  c64.RDTIM
+        pha
+        txa
+        tay
+        pla
+        plx
+        rts
+    }}
+}
+
+
 }
 
 cx16 {
@@ -415,18 +431,9 @@ _loop       ldy  #0
 
 
 sub wait(uword jiffies) {
-    uword current_time = 0
-    c64.SETTIM(0,0,0)
-
-    while current_time < jiffies {
-        ; read clock
-        %asm {{
-            phx
-            jsr  c64.RDTIM
-            sta  current_time
-            stx  current_time+1
-            plx
-        }}
+    c64.SETTIM(0,0,0)           ; TODO do the wait without resetting the jiffy clock
+    while c64.RDTIM16() < jiffies {
+        ; wait till the time catches up
     }
 }
 

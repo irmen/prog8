@@ -37,23 +37,10 @@ main {
             angley+=217
             anglez+=452
 
-            wait_a_little_bit()
+            c64.wait(2)
 
             ; test_stack.test()
         }
-    }
-
-    sub wait_a_little_bit() {
-        %asm {{
-            stx  P8ZP_SCRATCH_REG
-            lda  #0
-            jsr  c64.SETTIM
--           jsr  c64.RDTIM
-            cmp  #1
-            bne  -
-            ldx  P8ZP_SCRATCH_REG
-            rts
-        }}
     }
 
     sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {

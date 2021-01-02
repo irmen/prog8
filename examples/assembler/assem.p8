@@ -42,7 +42,6 @@ main {
         txt.print_uw(amount)
         txt.print(" mnemonics")
 
-        uword current_time = 0
         c64.SETTIM(0,0,0)
 
         uword total = 0
@@ -58,16 +57,7 @@ main {
             }
         }
 
-        ; read clock back
-        %asm {{
-            phx
-            jsr  c64.RDTIM
-            sta  current_time
-            stx  current_time+1
-            plx
-        }}
-
-
+        uword current_time = c64.RDTIM16()
         txt.print("\nDone.\nValid: ")
         txt.print_uw(valid)
         txt.print("\ninvalid: ")
