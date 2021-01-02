@@ -136,21 +136,25 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
             }
         }
 
-        val subExpr: BinaryExpression? = when {
-            leftconst!=null -> expr.right as? BinaryExpression
-            rightconst!=null -> expr.left as? BinaryExpression
-            else -> null
-        }
-        if(subExpr!=null) {
-            val subleftconst = subExpr.left.constValue(program)
-            val subrightconst = subExpr.right.constValue(program)
-            if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
-                // try reordering.
-                val change = groupTwoConstsTogether(expr, subExpr,
+        if(expr.inferType(program).istype(DataType.FLOAT)) {
+            val subExpr: BinaryExpression? = when {
+                leftconst != null -> expr.right as? BinaryExpression
+                rightconst != null -> expr.left as? BinaryExpression
+                else -> null
+            }
+            if (subExpr != null) {
+                val subleftconst = subExpr.left.constValue(program)
+                val subrightconst = subExpr.right.constValue(program)
+                if ((subleftconst != null && subrightconst == null) || (subleftconst == null && subrightconst != null)) {
+                    // try reordering.
+                    val change = groupTwoFloatConstsTogether(
+                        expr, subExpr,
                         leftconst != null, rightconst != null,
-                        subleftconst != null, subrightconst != null)
-                if(change!=null)
-                    modifications += change
+                        subleftconst != null, subrightconst != null
+                    )
+                    if (change != null)
+                        modifications += change
+                }
             }
         }
 
@@ -298,13 +302,15 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         }
     }
 
-    private fun groupTwoConstsTogether(expr: BinaryExpression,
-                                       subExpr: BinaryExpression,
-                                       leftIsConst: Boolean,
-                                       rightIsConst: Boolean,
-                                       subleftIsConst: Boolean,
-                                       subrightIsConst: Boolean): IAstModification?
+    private fun groupTwoFloatConstsTogether(expr: BinaryExpression,
+       subExpr: BinaryExpression,
+       leftIsConst: Boolean,
+       rightIsConst: Boolean,
+       subleftIsConst: Boolean,
+       subrightIsConst: Boolean): IAstModification?
     {
+        // NOTE: THIS IS ONLY VALID ON FLOATING POINT CONSTANTS
+
         // todo: this implements only a small set of possible reorderings at this time
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
