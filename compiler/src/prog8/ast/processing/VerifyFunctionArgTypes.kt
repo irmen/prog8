@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.compiler.CompilerException
 import prog8.functions.BuiltinFunctions
@@ -60,8 +61,15 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                         // multiple return values will NOT work inside an expression.
                         // they MIGHT work in a regular assignment or just a function call statement.
                         val parent = if(call is Statement) call.parent else if(call is Expression) call.parent else null
-                        if(call !is FunctionCallStatement && parent !is Assignment && parent !is VarDecl) {
-                            return "can't use subroutine call that returns multiple return values here (try moving it into a separate assignment)"
+                        if (call !is FunctionCallStatement) {
+                            val checkParent =
+                                if(parent is TypecastExpression)
+                                    parent.parent
+                                else
+                                    parent
+                            if (checkParent !is Assignment && checkParent !is VarDecl) {
+                                return "can't use subroutine call that returns multiple return values here"
+                            }
                         }
                     }
                 }

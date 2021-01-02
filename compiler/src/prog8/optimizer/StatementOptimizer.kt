@@ -39,7 +39,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val forceOutput = "force_output" in subroutine.definingBlock().options()
         if(subroutine.asmAddress==null && !forceOutput) {
-            if(subroutine.containsNoCodeNorVars()) {
+            if(subroutine.containsNoCodeNorVars() && !subroutine.inline) {
                 errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
                 val removals = callgraph.calledBy.getValue(subroutine).map {
                     IAstModification.Remove(it, it.definingScope())
