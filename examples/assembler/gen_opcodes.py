@@ -1,3 +1,4 @@
+from collections import Counter
 from enum import IntEnum
 
 
@@ -20,7 +21,7 @@ class AddrMode(IntEnum):
     IaX = 16
 
 
-Instructions = (
+AllInstructions = [
     (0x00, "brk", AddrMode.Imp),
     (0x01, "ora", AddrMode.IzX),
     (0x02, "nop", AddrMode.Imm),
@@ -277,7 +278,12 @@ Instructions = (
     (0xfd, "sbc", AddrMode.AbsX),
     (0xfe, "inc", AddrMode.AbsX),
     (0xff, "bbs7", AddrMode.Zpr)
-)
+]
+
+# NOP is weird, it is all over the place.
+# For the 'common' immediate NOP, keep only the $EA opcode (this was the original NOP on the 6502)
+Instructions = [ins for ins in AllInstructions if ins[1] != "nop"] + [(0xea, "nop", AddrMode.Imp)]
+
 
 InstructionsByName = {}
 for ins in Instructions:
@@ -329,30 +335,82 @@ for instr in sorted(InstructionsByName.items()):
         print()
 
 
-mnemonics = list(sorted(set(ins[1] for ins in Instructions)))
+def determine_mnemonics():
+    mnemonics = list(sorted(set(ins[1] for ins in Instructions)))
+
+    # opcodes histogram (ordered by occurrence)  (in kernal + basic roms of the c64):
+    opcode_occurrences = [
+        (32, 839), (133, 502), (165, 488), (0, 429), (208, 426), (169, 390), (76, 324), (240, 322), (2, 314), (160, 245),
+        (96, 228), (3, 201), (1, 191), (255, 186), (144, 182), (170, 175), (162, 169), (177, 165), (104, 159), (164, 158),
+        (132, 157), (201, 156), (72, 151), (141, 150), (200, 146), (173, 144), (166, 139), (176, 139), (16, 138),
+        (134, 138), (73, 127), (24, 119), (101, 113), (69, 109), (13, 107), (34, 104), (145, 103), (4, 102), (168, 101),
+        (221, 98), (230, 93), (48, 91), (189, 87), (41, 86), (6, 86), (9, 86), (8, 85), (79, 85), (138, 80), (10, 80),
+        (7, 79), (185, 77), (56, 75), (44, 75), (78, 74), (105, 73), (5, 73), (174, 73), (220, 71), (198, 69), (232, 69),
+        (36, 69), (202, 67), (152, 67), (95, 67), (100, 65), (102, 65), (247, 65), (188, 64), (136, 64), (84, 64),
+        (122, 62), (128, 61), (80, 61), (186, 60), (82, 59), (97, 58), (15, 57), (70, 57), (229, 56), (19, 55), (40, 54),
+        (183, 54), (65, 54), (233, 53), (180, 53), (12, 53), (171, 53), (197, 53), (83, 52), (248, 52), (112, 51),
+        (237, 51), (89, 50), (11, 50), (158, 50), (74, 49), (224, 48), (20, 47), (238, 47), (108, 46), (234, 46),
+        (251, 46), (254, 46), (184, 45), (14, 44), (163, 44), (226, 43), (211, 43), (88, 43), (98, 42), (17, 42),
+        (153, 42), (243, 41), (228, 41), (99, 41), (253, 41), (209, 41), (187, 39), (123, 39), (67, 39), (196, 38),
+        (68, 38), (35, 38), (172, 38), (175, 38), (161, 38), (85, 38), (191, 37), (113, 37), (182, 37), (151, 37),
+        (71, 36), (181, 35), (214, 35), (121, 35), (157, 35), (178, 35), (77, 35), (42, 34), (212, 33), (18, 33),
+        (127, 33), (241, 33), (21, 33), (249, 32), (23, 31), (245, 30), (142, 30), (55, 29), (140, 29), (46, 29),
+        (192, 29), (179, 29), (252, 29), (115, 29), (22, 29), (43, 28), (215, 28), (45, 28), (246, 28), (38, 28),
+        (86, 27), (225, 27), (25, 26), (239, 26), (58, 26), (167, 26), (147, 26), (217, 26), (149, 25), (30, 25),
+        (206, 25), (28, 24), (47, 24), (37, 24), (155, 24), (129, 23), (148, 23), (111, 23), (29, 23), (39, 23),
+        (51, 22), (193, 22), (236, 22), (120, 22), (64, 22), (204, 21), (210, 21), (244, 21), (52, 21), (66, 21),
+        (114, 20), (250, 20), (106, 20), (93, 19), (199, 19), (218, 19), (154, 19), (205, 19), (50, 19), (159, 19),
+        (194, 19), (49, 19), (190, 19), (103, 18), (216, 18), (213, 18), (107, 18), (131, 18), (63, 18), (94, 18),
+        (91, 17), (242, 17), (109, 17), (53, 16), (227, 16), (139, 16), (31, 16), (75, 16), (60, 16), (195, 15),
+        (231, 15), (62, 15), (59, 15), (87, 14), (207, 14), (27, 14), (90, 14), (110, 13), (223, 13), (57, 13),
+        (118, 12), (26, 12), (203, 12), (81, 12), (156, 12), (54, 12), (235, 12), (146, 11), (135, 11), (126, 11),
+        (150, 11), (130, 11), (143, 10), (61, 10), (219, 10), (124, 9), (222, 9), (125, 9), (119, 7), (137, 7),
+        (33, 7), (117, 5), (92, 4), (116, 3)
+    ]
+
+    cnt = Counter()
+    for opcode, amount in opcode_occurrences:
+        cnt[AllInstructions[opcode][1]] += amount
+    cnt["nop"] = 13
+    cnt["tsb"] = 13
+
+    four_letter_mnemonics = list(sorted([ins[1] for ins in AllInstructions if len(ins[1])>3]))
+    for ins4 in four_letter_mnemonics:
+        del cnt[ins4]
+        cnt[ins4] = 1
+    mnem2 = [c[0] for c in cnt.most_common()]
+    if len(mnem2)!=len(mnemonics):
+        raise ValueError("mnem count mismatch")
+    return mnem2
 
 
-def first_letters(mnem):
-    return list(sorted(set(m[0] for m in mnemonics)))
+mnemonics = determine_mnemonics()
+
+
+def first_letters():
+    firstletters = {m[0]: 0 for m in mnemonics}
+    return firstletters.keys()
 
 
 def second_letters(firstletter):
-    return list(sorted(set(m[1] for m in mnemonics if m[0] == firstletter)))
+    secondletters = {m[1]: 0 for m in mnemonics if m[0] == firstletter}
+    return secondletters.keys()
 
 
 def third_letters(firstletter, secondletter):
-    return list(sorted(set(m[2] for m in mnemonics if m[0] == firstletter and m[1] == secondletter)))
+    thirdletters = {m[2]: 0 for m in mnemonics if m[0] == firstletter and m[1] == secondletter}
+    return thirdletters.keys()
 
 
 def fourth_letters(firstletter, secondletter, thirdletter):
     longmnem = [m for m in mnemonics if len(m) > 3]
-    return list(
-        sorted(set(m[3] for m in longmnem if m[0] == firstletter and m[1] == secondletter and m[2] == thirdletter)))
+    fourthletters = {m[3]: 0 for m in longmnem if m[0] == firstletter and m[1] == secondletter and m[2] == thirdletter}
+    return fourthletters.keys()
 
 
 def make_tree():
     tree = {}
-    for first in first_letters(mnemonics):
+    for first in first_letters():
         tree[first] = {
             secondletter: {
                 thirdletter: {
@@ -379,15 +437,19 @@ parse_mnemonic_asm  .proc
             sty  P8ZP_SCRATCH_W1+1
             ldy  #0
             lda  (P8ZP_SCRATCH_W1),y
+            and  #$7f   ; lowercase
             pha
             iny
             lda  (P8ZP_SCRATCH_W1),y
+            and  #$7f   ; lowercase
             pha
             iny
             lda  (P8ZP_SCRATCH_W1),y
+            and  #$7f   ; lowercase
             pha
             iny
             lda  (P8ZP_SCRATCH_W1),y
+            and  #$7f   ; lowercase
             sta  cx16.r4
             pla
             tay
@@ -415,11 +477,27 @@ parse_mnemonic_asm  .proc
             bne  _not_found
             iny
             lda  (P8ZP_SCRATCH_W2),y
-            bra  _valid
+            bra  _checkvalid
 
 _found_multi
             ldy  cx16.r15       ; addressing mode index
             lda  (P8ZP_SCRATCH_W2),y
+_checkvalid
+            bne  _valid
+            ; check if it is valid BRK $00
+            ldy  #0
+            lda  (P8ZP_SCRATCH_W1),y
+            cmp  #'b'
+            bne  _not_found
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            cmp  #'r'
+            bne  _not_found
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            cmp  #'k'
+            bne  _not_found
+            lda  #0
 _valid      sec
             rts
 
@@ -442,6 +520,7 @@ for first in tree:
             print("    cpy  #'%s'" % third)
             print("    bne  _not_%s%s%s" % (first, second, third))
             if tree[first][second][third]:
+                # TODO OPTIMIZE CODE FOR THE FOUR LETTER MNEMONICS (the fourth letter is always a digit 0-9)
                 for fourth in tree[first][second][third]:
                     print("    pha")
                     print("    lda  _opcode_fourth_letter")
