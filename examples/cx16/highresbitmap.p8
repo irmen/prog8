@@ -62,7 +62,7 @@ main {
         }
         gfx2.text(80, 420, 1, @"cos(x)+x")
 
-        cx16.wait(3*60)
+        sys.wait(3*60)
 
         gfx2.circle(320, 240, 220, 1)
         gfx2.circle(320, 240, 210, 1)
@@ -74,11 +74,11 @@ main {
         gfx2.disc(320, 240, 90, 1)
         gfx2.disc(320, 240, 40, 0)
 
-        cx16.wait(2*60)
+        sys.wait(2*60)
 
         repeat 255
             gfx2.line(rndw() % 640, rndw() % 480, rndw() % 640, rndw() % 480, 1)
 
-        cx16.wait(1*60)
+        sys.wait(1*60)
     }
 }

@@ -73,7 +73,6 @@ asmsub STOP2() -> ubyte @A  {
     }}
 }
 
-
 asmsub RDTIM16() -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits for convenience
     %asm {{
@@ -87,7 +86,6 @@ asmsub RDTIM16() -> uword @AY {
         rts
     }}
 }
-
 
 }
 
@@ -276,8 +274,8 @@ romsub $fed2 = kbdbuf_put(ubyte key @A)  clobbers(A,X,Y)
 romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)
 
-
 ; ---- end of kernal routines ----
+
 
 ; ---- utilities -----
 asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
@@ -296,7 +294,6 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
                 rts
             }}
 }
-
 
 asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) clobbers(A) {
         ; -- setup the VERA's data address register 0 or 1
@@ -322,7 +319,6 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
             rts
         }}
 }
-
 
 asmsub vpoke(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
         ; -- write a single byte to VERA's video memory
@@ -428,18 +424,7 @@ _loop       ldy  #0
         }}
 }
 
-
-
-sub wait(uword jiffies) {
-    c64.SETTIM(0,0,0)           ; TODO do the wait without resetting the jiffy clock
-    while c64.RDTIM16() < jiffies {
-        ; wait till the time catches up
-    }
-}
-
-
 ; ---- system stuff -----
-
 asmsub init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.
@@ -472,15 +457,27 @@ asmsub init_system()  {
     }}
 }
 
-asmsub  reset_system()  {
-    ; Soft-reset the system back to Basic prompt.
-    %asm {{
-        sei
-        lda  #14
-        sta  $01
-        stz  cx16.d1prb         ; bank the kernal in
-        jmp  (cx16.RESET_VEC)
-    }}
 }
+
+sys {
+    ; ------- lowlevel system routines --------
+
+    asmsub reset_system() {
+        ; Soft-reset the system back to Basic prompt.
+        %asm {{
+            sei
+            lda  #14
+            sta  $01
+            stz  cx16.d1prb         ; bank the kernal in
+            jmp  (cx16.RESET_VEC)
+        }}
+    }
+
+    sub wait(uword jiffies) {
+        c64.SETTIM(0,0,0)           ; TODO do the wait without resetting the jiffy clock
+        while c64.RDTIM16() < jiffies {
+            ; wait till the time catches up
+        }
+    }
 
 }

@@ -294,23 +294,6 @@ asmsub  init_system()  {
     }}
 }
 
-asmsub  reset_system()  {
-    ; Soft-reset the system back to Basic prompt.
-    %asm {{
-        sei
-        lda  #14
-        sta  $01        ; bank the kernal in
-        jmp  (c64.RESET_VEC)
-    }}
-}
-
-sub wait(uword jiffies) {
-    c64.SETTIM(0,0,0)           ; TODO do the wait without resetting the jiffy clock
-    while c64.RDTIM16() < jiffies {
-        ; wait till the time catches up
-    }
-}
-
 asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
         lda  #$80
@@ -486,9 +469,28 @@ _raster_irq_handler
 
 ; ---- end of C64 specific system utility routines ----
 
-
 }
 
+sys {
+    ; ------- lowlevel system routines --------
+
+    asmsub  reset_system()  {
+        ; Soft-reset the system back to Basic prompt.
+        %asm {{
+            sei
+            lda  #14
+            sta  $01        ; bank the kernal in
+            jmp  (c64.RESET_VEC)
+        }}
+    }
+
+    sub wait(uword jiffies) {
+        c64.SETTIM(0,0,0)           ; TODO do the wait without resetting the jiffy clock
+        while c64.RDTIM16() < jiffies {
+            ; wait till the time catches up
+        }
+    }
+}
 
 cx16 {
 

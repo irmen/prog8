@@ -37,7 +37,7 @@ main {
             angley+=217
             anglez+=452
 
-            c64.wait(2)
+            sys.wait(2)
 
             ; test_stack.test()
         }

@@ -125,7 +125,7 @@ main {
             xx+=4
         }
 
-        cx16.wait(3*60)
+        sys.wait(3*60)
 
         demo2()
 
@@ -143,7 +143,7 @@ main {
         for mode in modes {
             gfx2.screen_mode(mode)
             draw()
-            cx16.wait(200)
+            sys.wait(200)
         }
 
     }
@@ -185,7 +185,7 @@ main {
             gfx2.line(x1, y1, x2, y2, i+1)
         }
 
-        cx16.wait(60)
+        sys.wait(60)
         gfx2.clear_screen()
 
         ubyte radius

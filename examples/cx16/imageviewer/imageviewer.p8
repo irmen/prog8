@@ -60,12 +60,12 @@ main {
             if iff_module.show_image(filenameptr) {
                 if iff_module.num_cycles {
                     repeat 500 {
-                        cx16.wait(1)
+                        sys.wait(1)
                         iff_module.cycle_colors_each_jiffy()
                     }
                 }
                 else
-                    cx16.wait(180)
+                    sys.wait(180)
             } else {
                 load_error(filenameptr)
             }
@@ -74,7 +74,7 @@ main {
             ;txt.print("loading ")
             ;txt.print("pcx\n")
             if pcx_module.show_image(filenameptr) {
-                cx16.wait(180)
+                sys.wait(180)
             } else {
                 load_error(filenameptr)
             }
@@ -83,7 +83,7 @@ main {
             ;txt.print("loading ")
             ;txt.print("koala\n")
             if koala_module.show_image(filenameptr) {
-                cx16.wait(180)
+                sys.wait(180)
             } else {
                 load_error(filenameptr)
             }
@@ -92,7 +92,7 @@ main {
             ;txt.print("loading ")
             ;txt.print("bmp\n")
             if bmp_module.show_image(filenameptr) {
-                cx16.wait(180)
+                sys.wait(180)
             } else {
                 load_error(filenameptr)
             }
@@ -101,7 +101,7 @@ main {
 ;;            txt.print("loading ")
 ;;            txt.print("ci\n")
 ;            if ci_module.show_image(filenameptr) {
-;                cx16.wait(180)
+;                sys.wait(180)
 ;            } else {
 ;                load_error(filenameptr)
 ;            }

@@ -152,9 +152,9 @@ internal class AsmGen(private val program: Program,
         if(options.zeropage !in setOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
             out("""
                 ; zeropage is clobbered so we need to reset the machine at exit
-                lda  #>${CompilationTarget.instance.name}.reset_system
+                lda  #>sys.reset_system
                 pha
-                lda  #<${CompilationTarget.instance.name}.reset_system
+                lda  #<sys.reset_system
                 pha""")
         }
 
