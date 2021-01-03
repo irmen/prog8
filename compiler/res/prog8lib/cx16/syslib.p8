@@ -474,9 +474,12 @@ sys {
     }
 
     sub wait(uword jiffies) {
-        c64.SETTIM(0,0,0)           ; TODO do the wait without resetting the jiffy clock
-        while c64.RDTIM16() < jiffies {
-            ; wait till the time catches up
+        ; --- wait approximately the given number of jiffies (1/60th seconds)
+        repeat jiffies {
+            ubyte jiff = lsb(c64.RDTIM16())
+            while jiff==lsb(c64.RDTIM16()) {
+                ; wait until 1 jiffy has passed
+            }
         }
     }
 

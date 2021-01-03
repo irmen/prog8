@@ -1,6 +1,6 @@
 %import test_stack
 %import textio
-%zeropage full
+%zeropage basicsafe
 %option no_sysinit
 
 main {
@@ -8,13 +8,11 @@ main {
     sub start () {
         uword current_time
 
-        repeat 5 {
+        repeat 6 {
             current_time = c64.RDTIM16()
             txt.print_uw(current_time)
             txt.chrout('\n')
-            repeat 60000 {
-                current_time++
-            }
+            sys.wait(30)
         }
 
 
