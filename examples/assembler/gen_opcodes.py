@@ -426,90 +426,10 @@ def make_tree():
 
 tree = make_tree()
 
-print("""
-
-parse_mnemonic_asm  .proc
-    ; -- input: mnemonic_ptr @AY,  addr_mode @X
-    ;    output: opcode @A,   valid @carrybit
-        
-            stx  cx16.r15
-            sta  P8ZP_SCRATCH_W1
-            sty  P8ZP_SCRATCH_W1+1
-            ldy  #0
-            lda  (P8ZP_SCRATCH_W1),y
-            and  #$7f   ; lowercase
-            pha
-            iny
-            lda  (P8ZP_SCRATCH_W1),y
-            and  #$7f   ; lowercase
-            pha
-            iny
-            lda  (P8ZP_SCRATCH_W1),y
-            and  #$7f   ; lowercase
-            pha
-            iny
-            lda  (P8ZP_SCRATCH_W1),y
-            and  #$7f   ; lowercase
-            sta  cx16.r4
-            pla
-            tay
-            pla
-            tax
-            pla
-            jsr  get_opcode_info
-            cpy  #0
-            beq  _not_found
-            sta  P8ZP_SCRATCH_W2
-            sty  P8ZP_SCRATCH_W2+1
-
-            ; debug result address
-            ;sec
-            ;jsr  txt.print_uwhex
-            ;lda  #13
-            ;jsr  c64.CHROUT
-
-            ldy  #0
-            lda  (P8ZP_SCRATCH_W2),y
-            beq  _found_multi
-            iny
-            lda  (P8ZP_SCRATCH_W2),y
-            cmp  cx16.r15
-            bne  _not_found
-            iny
-            lda  (P8ZP_SCRATCH_W2),y
-            bra  _checkvalid
-
-_found_multi
-            ldy  cx16.r15       ; addressing mode index
-            lda  (P8ZP_SCRATCH_W2),y
-_checkvalid
-            bne  _valid
-            ; check if it is valid BRK $00
-            ldy  #0
-            lda  (P8ZP_SCRATCH_W1),y
-            cmp  #'b'
-            bne  _not_found
-            iny
-            lda  (P8ZP_SCRATCH_W1),y
-            cmp  #'r'
-            bne  _not_found
-            iny
-            lda  (P8ZP_SCRATCH_W1),y
-            cmp  #'k'
-            bne  _not_found
-            lda  #0
-_valid      sec
-            rts
-
-_not_found  lda  #0
-            clc
-            rts
-
-        .pend
-""")
 
 print("get_opcode_info    .proc")
-print("_opcode_fourth_letter = cx16.r4")
+print("_mnem_fourth_letter = cx16.r4")
+print("_mnem_fifth_letter = cx16.r5")
 for first in tree:
     print("    cmp  #'%s'" % first)
     print("    bne  _not_%s" % first)
@@ -525,6 +445,8 @@ for first in tree:
                     raise ValueError("fourth", fourth.keys())
                 print("    bra  _check_%s%s%s" % (first, second, third))
             else:
+                print("    lda  _mnem_fourth_letter")   # check that the fourth letter is not present
+                print("    bne  _invalid")
                 print("    lda  #<i_%s%s%s" % (first, second, third))
                 print("    ldy  #>i_%s%s%s" % (first, second, third))
                 print("    rts")
@@ -550,12 +472,14 @@ for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
     bra  _check4""")
 
 print("""_check4
-    lda  _opcode_fourth_letter
+    lda  _mnem_fourth_letter
     cmp  #'0'
     bcc  _invalid
     cmp  #'8'
     bcs  _invalid
-    ldy  #0
+    lda  _mnem_fifth_letter     ; must have no fifth letter
+    bne  _invalid
+    tay
     lda  (P8ZP_SCRATCH_W2),y
     pha
     iny
