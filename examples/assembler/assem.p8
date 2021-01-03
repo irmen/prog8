@@ -24,8 +24,8 @@ main {
         }
         txt.chrout('\n')
 
-        ;user_input()
-        benchmark()
+        user_input()
+        ;benchmark()
 
         ; test_stack.test()
     }

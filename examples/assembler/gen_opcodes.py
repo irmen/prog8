@@ -519,19 +519,11 @@ for first in tree:
         for third in tree[first][second]:
             print("    cpy  #'%s'" % third)
             print("    bne  _not_%s%s%s" % (first, second, third))
-            if tree[first][second][third]:
-                # TODO OPTIMIZE CODE FOR THE FOUR LETTER MNEMONICS (the fourth letter is always a digit 0-9)
-                for fourth in tree[first][second][third]:
-                    print("    pha")
-                    print("    lda  _opcode_fourth_letter")
-                    print("    cmp  #'%s'" % fourth)
-                    print("    bne  _not_%s%s%s%s" % (first, second, third, fourth))
-                    print("    pla")
-                    print("    lda  #<i_%s%s%s%s" % (first, second, third, fourth))
-                    print("    ldy  #>i_%s%s%s%s" % (first, second, third, fourth))
-                    print("    rts")
-                    print("_not_%s%s%s%s:" % (first, second, third, fourth))
-                    print("    pla")
+            fourth = tree[first][second][third]
+            if fourth:
+                if "".join(fourth.keys()) != "01234567":
+                    raise ValueError("fourth", fourth.keys())
+                print("    bra  _check_%s%s%s" % (first, second, third))
             else:
                 print("    lda  #<i_%s%s%s" % (first, second, third))
                 print("    ldy  #>i_%s%s%s" % (first, second, third))
@@ -539,7 +531,42 @@ for first in tree:
             print("_not_%s%s%s:" % (first, second, third))
         print("_not_%s%s:" % (first, second))
     print("_not_%s:" % first)
+print("_invalid:")
 print("    lda  #0")
 print("    ldy  #0")
 print("    rts")
+
+# the 4-letter mnemonics are:
+# smb[0-7]
+# bbr[0-7]
+# rmb[0-7]
+# bbs[0-7]
+for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
+    print("_check_%s" % fourlettermnemonic)
+    print("    lda  #<_tab_%s" % fourlettermnemonic)
+    print("    ldy  #>_tab_%s" % fourlettermnemonic)
+    print("""    sta  P8ZP_SCRATCH_W2
+    sty  P8ZP_SCRATCH_W2+1    
+    bra  _check4""")
+
+print("""_check4
+    lda  _opcode_fourth_letter
+    cmp  #'0'
+    bcc  _invalid
+    cmp  #'8'
+    bcs  _invalid
+    ldy  #0
+    lda  (P8ZP_SCRATCH_W2),y
+    pha
+    iny
+    lda  (P8ZP_SCRATCH_W2),y
+    tay
+    pla
+    rts""")
+
+for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
+    print("_tab_%s" % fourlettermnemonic)
+    for ii in "01234567":
+        print("    .word   i_%s%s" % (fourlettermnemonic, ii))
+
 print("    .pend")
