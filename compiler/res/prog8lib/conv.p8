@@ -7,9 +7,9 @@
 
 conv {
 
-; ----- number conversions to decimal strings
+; ----- number conversions to decimal strings ----
 
-asmsub  ubyte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
+asmsub  ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @A, ubyte @X  {
 	; ---- A to decimal string in Y/A/X  (100s in Y, 10s in A, 1s in X)
     %asm {{
         ldy  #uword2decimal.ASCII_0_OFFSET
@@ -18,7 +18,7 @@ asmsub  ubyte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
 	}}
 }
 
-asmsub  uword2decimal  (uword value @ AY) -> ubyte @Y, ubyte @A, ubyte @X  {
+asmsub  uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @X  {
     ;  ---- convert 16 bit uword in A/Y to decimal
     ;  output in uword2decimal.decTenThousands, decThousands, decHundreds, decTens, decOnes
     ;  (these are terminated by a zero byte so they can be easily printed)
@@ -193,11 +193,7 @@ decOnes   		.byte  0
     }}
 }
 
-
-; ----- utility functions ----
-
-
-asmsub  byte2decimal  (byte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
+asmsub  byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X  {
 	; ---- A (signed byte) to decimal string in Y/A/X  (100s in Y, 10s in A, 1s in X)
 	;      note: if the number is negative, you have to deal with the '-' yourself!
 	%asm {{
@@ -210,7 +206,7 @@ asmsub  byte2decimal  (byte value @ A) -> ubyte @ Y, ubyte @ A, ubyte @ X  {
 	}}
 }
 
-asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
+asmsub  ubyte2hex  (ubyte value @A) -> ubyte @A, ubyte @Y  {
 	; ---- A to hex petscii string in AY (first hex char in A, second hex char in Y)
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
@@ -232,7 +228,7 @@ _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as
 	}}
 }
 
-asmsub  uword2hex  (uword value @ AY) clobbers(A,Y)  {
+asmsub  uword2hex  (uword value @AY) clobbers(A,Y)  {
 	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string 'uword2hex.output' (0-terminated)
 	%asm {{
 		sta  P8ZP_SCRATCH_REG
@@ -250,10 +246,14 @@ output	.text  "0000", $00      ; 0-terminated output buffer (to make printing ea
 }
 
 
+; ---- string conversion to numbers -----
+
 asmsub  any2uword(str string @AY) -> uword @AY {
     ; -- returns the number value of the given string
     ;    the string may be in decimal, hex or binary format
     ;    (the latter two require a $ or % prefix to be recognised)
+	;    (any non-digit character will terminate the number string that is parsed)
+    ;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
     %asm {{
         pha
         sta  P8ZP_SCRATCH_W1
@@ -274,45 +274,51 @@ _bin    pla
     }}
 }
 
-
-inline asmsub  str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
-	; -- returns the unsigned byte value of the string number argument in AY
+inline asmsub  str2ubyte(str string @AY) clobbers(Y) -> ubyte @A {
+	; -- returns in A the unsigned byte value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
+    ;    result in A,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
 	%asm {{
     	jsr  conv.str2uword
 	}}
 }
 
-inline asmsub  str2byte(str string @ AY) clobbers(Y) -> ubyte @A {
-	; -- returns the signed byte value of the string number argument in AY
+inline asmsub  str2byte(str string @AY) clobbers(Y) -> ubyte @A {
+	; -- returns in A the signed byte value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
+    ;    result in A,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
 	%asm {{
     	jsr  conv.str2word
 	}}
 }
 
-asmsub  str2uword(str string @ AY) -> uword @ AY {
+asmsub  str2uword(str string @AY) -> uword @AY {
 	; -- returns the unsigned word value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
+    ;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
 	%asm {{
-_result = P8ZP_SCRATCH_W2
-		sta  _mod+1
-		sty  _mod+2
+_result = P8ZP_SCRATCH_W1
+        sta  P8ZP_SCRATCH_W2
+        sty  P8ZP_SCRATCH_W2+1
 		ldy  #0
 		sty  _result
 		sty  _result+1
-_mod		lda  $ffff,y		; modified
+		sty  cx16.r15+1
+_loop
+		lda  (P8ZP_SCRATCH_W2),y
 		sec
 		sbc  #48
-		bpl  +
-_done		; return result
+		bpl  _digit
+_done
+        sty  cx16.r15
 		lda  _result
 		ldy  _result+1
 		rts
-+		cmp  #10
+_digit
+		cmp  #10
 		bcs  _done
 		; add digit to result
 		pha
@@ -324,7 +330,7 @@ _done		; return result
 		bcc  +
 		inc  _result+1
 +		iny
-		bne  _mod
+		bne  _loop
 		; never reached
 
 _result_times_10     ; (W*4 + W)*2
@@ -347,19 +353,21 @@ _result_times_10     ; (W*4 + W)*2
 	}}
 }
 
-asmsub  str2word(str string @ AY) -> word @ AY {
+asmsub  str2word(str string @AY) -> word @AY {
 	; -- returns the signed word value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
+    ;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
 	%asm {{
-_result = P8ZP_SCRATCH_W2
-		sta  P8ZP_SCRATCH_W1
-		sty  P8ZP_SCRATCH_W1+1
+_result = P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
 		ldy  #0
 		sty  _result
 		sty  _result+1
 		sty  _negative
-		lda  (P8ZP_SCRATCH_W1),y
+		sty  cx16.r15+1
+		lda  (P8ZP_SCRATCH_W2),y
 		cmp  #'+'
 		bne  +
 		iny
@@ -367,11 +375,12 @@ _result = P8ZP_SCRATCH_W2
 		bne  _parse
 		inc  _negative
 		iny
-_parse		lda  (P8ZP_SCRATCH_W1),y
+_parse		lda  (P8ZP_SCRATCH_W2),y
 		sec
 		sbc  #48
 		bpl  _digit
-_done		; return result
+_done
+        sty  cx16.r15
 		lda  _negative
 		beq  +
 		sec
@@ -384,7 +393,8 @@ _done		; return result
 +		lda  _result
 		ldy  _result+1
 		rts
-_digit		cmp  #10
+_digit
+        cmp  #10
 		bcs  _done
 		; add digit to result
 		pha
@@ -402,27 +412,40 @@ _negative	.byte  0
 	}}
 }
 
-asmsub  hex2uword(str string @ AY) -> uword @AY {
-    ; -- hexadecimal string with or without '$' to uword.
+asmsub  hex2uword(str string @AY) -> uword @AY {
+    ; -- hexadecimal string (with or without '$') to uword.
     ;    string may be in petscii or c64-screencode encoding.
+    ;    stops parsing at the first character that's not a hex digit (except leading $)
+    ;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
     %asm {{
         sta  P8ZP_SCRATCH_W2
         sty  P8ZP_SCRATCH_W2+1
         ldy  #0
         sty  P8ZP_SCRATCH_W1
         sty  P8ZP_SCRATCH_W1+1
-_loop       ldy  #0
-        sty  P8ZP_SCRATCH_B1
+        sty  cx16.r15+1
         lda  (P8ZP_SCRATCH_W2),y
         beq  _stop
         cmp  #'$'
-        beq  _skip
-        cmp  #7
-        bcc  _add_nine
-        cmp  #'9'
-        beq  _calc
-        bcs  _add_nine
-_calc       asl  P8ZP_SCRATCH_W1
+        bne  _loop
+        iny
+_loop
+        lda  #0
+        sta  P8ZP_SCRATCH_B1
+        lda  (P8ZP_SCRATCH_W2),y
+        beq  _stop
+        cmp  #7                 ; screencode letters A-F are 1-6
+        bcc  _add_letter
+        cmp  #'g'
+        bcs  _stop
+        cmp  #'a'
+        bcs  _add_letter
+        cmp  #'0'
+        bcc  _stop
+        cmp  #'9'+1
+        bcs  _stop
+_calc
+        asl  P8ZP_SCRATCH_W1
         rol  P8ZP_SCRATCH_W1+1
         asl  P8ZP_SCRATCH_W1
         rol  P8ZP_SCRATCH_W1+1
@@ -435,41 +458,54 @@ _calc       asl  P8ZP_SCRATCH_W1
         adc  P8ZP_SCRATCH_B1
         ora  P8ZP_SCRATCH_W1
         sta  P8ZP_SCRATCH_W1
-_skip       inc  P8ZP_SCRATCH_W2
+        iny
         bne  _loop
-        inc  P8ZP_SCRATCH_W2+1
-        bne  _loop
-_stop       lda  P8ZP_SCRATCH_W1
+_stop
+        sty  cx16.r15
+        lda  P8ZP_SCRATCH_W1
         ldy  P8ZP_SCRATCH_W1+1
         rts
-_add_nine   ldy  #9
-        sty  P8ZP_SCRATCH_B1
-        bne  _calc
+_add_letter
+        pha
+        lda  #9
+        sta  P8ZP_SCRATCH_B1
+        pla
+        jmp  _calc
     }}
 }
 
-asmsub  bin2uword(str string @ AY) -> uword @AY {
-    ; -- binary string with or without '%' to uword.
+asmsub  bin2uword(str string @AY) -> uword @AY {
+    ; -- binary string (with or without '%') to uword.
+    ;    stops parsing at the first character that's not a 0 or 1. (except leading %)
+    ;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
     %asm {{
         sta  P8ZP_SCRATCH_W2
         sty  P8ZP_SCRATCH_W2+1
         ldy  #0
         sty  P8ZP_SCRATCH_W1
         sty  P8ZP_SCRATCH_W1+1
-_loop       lda  (P8ZP_SCRATCH_W2),y
+        sty  cx16.r15+1
+        lda  (P8ZP_SCRATCH_W2),y
         beq  _stop
         cmp  #'%'
-        beq  +
-        asl  P8ZP_SCRATCH_W1
+        bne  _loop
+        iny
+_loop
+        lda  (P8ZP_SCRATCH_W2),y
+        cmp  #'0'
+        bcc  _stop
+        cmp  #'2'
+        bcs  _stop
+_first  asl  P8ZP_SCRATCH_W1
         rol  P8ZP_SCRATCH_W1+1
         and  #1
         ora  P8ZP_SCRATCH_W1
         sta  P8ZP_SCRATCH_W1
-+           inc  P8ZP_SCRATCH_W2
+        iny
         bne  _loop
-        inc  P8ZP_SCRATCH_W2+1
-        bne  _loop
-_stop       lda  P8ZP_SCRATCH_W1
+_stop
+        sty  cx16.r15
+        lda  P8ZP_SCRATCH_W1
         ldy  P8ZP_SCRATCH_W1+1
         rts
     }}
