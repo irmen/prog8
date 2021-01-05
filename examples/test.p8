@@ -6,12 +6,6 @@
 main {
 
     sub start () {
-        uword mem
-        ubyte num_banks
-
-        num_banks = c64.MEMTOP2()
-        txt.print_ub(num_banks)
-
         test_stack.test()
 
 
