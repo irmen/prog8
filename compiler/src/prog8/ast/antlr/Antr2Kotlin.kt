@@ -627,7 +627,7 @@ private fun prog8Parser.When_choiceContext.toAst(): WhenChoice {
     if(stmt!=null)
         stmtBlock.add(stmt)
     val scope = AnonymousScope(stmtBlock, toPosition())
-    return WhenChoice(values, scope, toPosition())
+    return WhenChoice(values?.toMutableList(), scope, toPosition())
 }
 
 private fun prog8Parser.VardeclContext.toAst(): VarDecl {

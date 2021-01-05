@@ -991,7 +991,7 @@ class WhenStatement(var condition: Expression,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class WhenChoice(var values: List<Expression>?,           // if null,  this is the 'else' part
+class WhenChoice(var values: MutableList<Expression>?,           // if null,  this is the 'else' part
                  var statements: AnonymousScope,
                  override val position: Position) : Node {
     override lateinit var parent: Node
@@ -1008,7 +1008,9 @@ class WhenChoice(var values: List<Expression>?,           // if null,  this is t
             statements = replacement
             replacement.parent = this
         } else if(choiceValues!=null && node in choiceValues) {
-            throw FatalAstException("cannot replace choice values")
+            val idx = choiceValues.indexOf(node)
+            choiceValues[idx] = replacement as Expression
+            replacement.parent = this
         } else {
             throw FatalAstException("invalid replacement")
         }
