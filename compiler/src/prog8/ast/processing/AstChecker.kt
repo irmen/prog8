@@ -1029,8 +1029,6 @@ internal class AstChecker(private val program: Program,
                 }
             }
         } else if(target is Subroutine) {
-            if(target.regXasResult())
-                errors.warn("subroutine call return value in X register is discarded and replaced by 0", position)
             if(target.isAsmSubroutine) {
                 for (arg in args.zip(target.parameters)) {
                     val argIDt = arg.first.inferType(program)

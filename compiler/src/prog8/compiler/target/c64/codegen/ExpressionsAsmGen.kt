@@ -1324,49 +1324,34 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 +""")
     }
 
-    private fun translateFunctionCallResultOntoStack(expression: FunctionCall) {
+    private fun translateFunctionCallResultOntoStack(call: FunctionCall) {
         // only for use in nested expression evaluation
 
-        val sub = expression.target.targetStatement(program.namespace)
+        val sub = call.target.targetStatement(program.namespace)
         if(sub is BuiltinFunctionStatementPlaceholder) {
             val builtinFunc = BuiltinFunctions.getValue(sub.name)
-            asmgen.translateBuiltinFunctionCallExpression(expression, builtinFunc, true)
+            asmgen.translateBuiltinFunctionCallExpression(call, builtinFunc, true)
         } else {
             sub as Subroutine
-            asmgen.translateFunctionCall(expression)
+            asmgen.saveXbeforeCall(call)
+            asmgen.translateFunctionCall(call)
+            if(sub.regXasResult()) {
+                // store the return value in X somewhere that we can acces again below
+                asmgen.out("  stx  P8ZP_SCRATCH_REG")
+            }
+            asmgen.restoreXafterCall(call)
+
             val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
             for ((_, reg) in returns) {
-                // result value in cpu or status registers, put it on the stack
+                // result value is in cpu or status registers, put it on the stack instead (as we're evaluating an expression tree)
                 if (reg.registerOrPair != null) {
                     when (reg.registerOrPair) {
                         RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
                         RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
                         RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
-                        RegisterOrPair.X -> {
-                            // return value in X register has been discarded, just push a zero
-                            if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
-                                asmgen.out("  stz  P8ESTACK_LO,x")
-                            else
-                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
-                            asmgen.out("  dex")
-                        }
-                        RegisterOrPair.AX -> {
-                            // return value in X register has been discarded, just push a zero in this place
-                            asmgen.out("  sta  P8ESTACK_LO,x")
-                            if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
-                                asmgen.out("  stz  P8ESTACK_HI,x")
-                            else
-                                asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x")
-                            asmgen.out("  dex")
-                        }
-                        RegisterOrPair.XY -> {
-                            // return value in X register has been discarded, just push a zero in this place
-                            if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
-                                asmgen.out("  stz  P8ESTACK_LO,x")
-                            else
-                                asmgen.out("  lda  #0 |  sta  P8ESTACK_LO,x")
-                            asmgen.out("  tya |  sta  P8ESTACK_HI,x |  dex")
-                        }
+                        RegisterOrPair.X -> asmgen.out("  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_LO,x |  dex")
+                        RegisterOrPair.AX -> asmgen.out("  sta  P8ESTACK_LO,x |  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_HI,x |  dex")
+                        RegisterOrPair.XY -> asmgen.out("  tya |  sta  P8ESTACK_HI,x |  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_LO,x |  dex")
                         RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.push_fac1")
                         RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.push_fac2")
                         RegisterOrPair.R0,

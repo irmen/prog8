@@ -6,14 +6,16 @@
 main {
 
     sub start () {
-        uword current_time
+        uword mem
 
-        repeat 6 {
-            current_time = c64.RDTIM16()
-            txt.print_uw(current_time)
-            txt.chrout('\n')
-            sys.wait(30)
-        }
+        mem = 5*mem*c64.MEMTOP(0,1)
+        txt.print_uwhex(mem, 1)
+
+        mem = 5*mem*c64.CHRIN()
+        txt.print_uwhex(mem,1)
+
+        test_stack.test()
+
 
 
 ;        found = strfind("irmen de jong", ' ')

@@ -7,7 +7,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.CompilationOptions
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.assignment.*
@@ -16,25 +15,44 @@ import prog8.compiler.target.c64.codegen.assignment.*
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
+        saveXbeforeCall(stmt)
         translateFunctionCall(stmt)
-        // functioncalls no longer return results on the stack, so simply ignore the results in the registers
+        restoreXafterCall(stmt)
+        // just ignore any result values from the function call.
     }
 
-
-    internal fun translateFunctionCall(stmt: IFunctionCall) {
-        // output the code to setup the parameters and perform the actual call
-        // does NOT output the code to deal with the result values!
+    internal fun saveXbeforeCall(stmt: IFunctionCall) {
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
-        val saveX = sub.shouldSaveX()
-        val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-        val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
-        if(saveX) {
+        if(sub.shouldSaveX()) {
+            val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
+            val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
             if(regSaveOnStack)
                 asmgen.saveRegisterStack(CpuRegister.X, keepAonEntry)
             else
                 asmgen.saveRegisterLocal(CpuRegister.X, (stmt as Node).definingSubroutine()!!)
         }
+    }
 
+    internal fun restoreXafterCall(stmt: IFunctionCall) {
+        val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
+        if(sub.shouldSaveX()) {
+            val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
+            val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
+
+            if(regSaveOnStack)
+                asmgen.restoreRegisterStack(CpuRegister.X, keepAonReturn)
+            else
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+        }
+    }
+
+    internal fun translateFunctionCall(stmt: IFunctionCall) {
+        // Output only the code to setup the parameters and perform the actual call
+        // NOTE: does NOT output the code to deal with the result values!
+        // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
+        //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
+
+        val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
             if(sub.asmParameterRegisters.isEmpty()) {
@@ -84,12 +102,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             asmgen.out("  jsr  $subName")
         }
 
-        if(saveX) {
-            if(regSaveOnStack)
-                asmgen.restoreRegisterStack(CpuRegister.X, keepAonReturn)
-            else
-                asmgen.restoreRegisterLocal(CpuRegister.X)
-        }
+        // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
     }
 
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {

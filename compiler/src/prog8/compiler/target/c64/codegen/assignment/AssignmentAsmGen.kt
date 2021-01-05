@@ -142,7 +142,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is FunctionCall -> {
                         when (val sub = value.target.targetStatement(program.namespace)) {
                             is Subroutine -> {
+                                asmgen.saveXbeforeCall(value)
                                 asmgen.translateFunctionCall(value)
+                                if(!sub.regXasResult())
+                                    asmgen.restoreXafterCall(value)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
                                     sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.statusflag!=null }
                                 when (returnValue.first) {
@@ -186,6 +189,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                                     throw AssemblyError("should be just one register byte result value")
                                             }
                                         }
+                                        // we've processed the result value in the X register by now, so it's now safe to restore it:
+                                        asmgen.restoreXafterCall(value)
                                     }
                                 }
                             }

@@ -1,5 +1,6 @@
 package prog8.compiler.target.c64.codegen
 
+import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
@@ -791,6 +792,12 @@ internal class AsmGen(private val program: Program,
 
     internal fun translateFunctionCall(functionCall: FunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCall)
+
+    internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
+            functioncallAsmGen.saveXbeforeCall(functionCall)
+
+    internal fun restoreXafterCall(functionCall: IFunctionCall) =
+            functioncallAsmGen.restoreXafterCall(functionCall)
 
     internal fun translateNormalAssignment(assign: AsmAssignment) =
             assignmentAsmGen.translateNormalAssignment(assign)
