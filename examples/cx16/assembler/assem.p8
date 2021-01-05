@@ -61,12 +61,8 @@ textparse {
             return
         }
 
-        uword value = parse_number(word_addrs[2])
+        uword value = conv.any2uword(word_addrs[2])
         if strcmp("*", word_addrs[0])==0 {
-            if value == $ffff {
-                txt.print("?invalid address\n")
-                return
-            }
             program_counter = value
         } else {
             set_symbol(word_addrs[0], value)
@@ -151,19 +147,6 @@ textparse {
                     emit(lsb(cx16.r0))
                     emit(msb(cx16.r0))
                 }
-                repeat 2-num_operand_bytes {
-                    txt.print("   ")
-                }
-                txt.chrout(' ')
-                txt.print(word_addrs[0])
-                if word_addrs[1] {
-                    txt.chrout(' ')
-                    txt.print(word_addrs[1])
-                }
-                if word_addrs[2] {
-                    txt.chrout(' ')
-                    txt.print(word_addrs[2])
-                }
                 txt.chrout('\n')
             }
         } else {
@@ -207,7 +190,6 @@ textparse {
         ; -- returns true/false success status,  the value is in cx16.r0 if succesful
         ; TODO number parsing error detection
         ; TODO optimize this (coalesce various parsing options)
-        ; TODO fix number parsing by ending the number with \0 after the last digit
 
         when addr_mode {
             instructions.am_Imp, instructions.am_Acc -> {
@@ -216,49 +198,76 @@ textparse {
             }
             instructions.am_Imm -> {
                 ; lda #$12
-                cx16.r0 = parse_number(operand_ptr+1)
+                terminate_number(operand_ptr+1)
+                cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
             }
-            instructions.am_Zp, instructions.am_Zpr -> {
-                ; lda  $02 / brr0 $12,label
-                cx16.r0 = parse_number(operand_ptr)
+            instructions.am_Zp -> {
+                ; lda  $02
+                terminate_number(operand_ptr)
+                cx16.r0 = conv.any2uword(operand_ptr)
+                debug_print_value(operand_ptr)
+                return true
+            }
+            instructions.am_Zpr -> {
+                ; brr0 $12,label
+                ; TODO parse the label, relative offset
+                terminate_number(operand_ptr)
+                cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_ZpX, instructions.am_ZpY -> {
                 ; lda $02,x / lda $02,y
-                cx16.r0 = parse_number(operand_ptr)
+                ; TODO parse the ,x/y
+                terminate_number(operand_ptr)
+                cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_Rel -> {
-                cx16.r0 = parse_number(operand_ptr)
+                ; bcc  $c000
+                terminate_number(operand_ptr)
+                cx16.r0 = conv.any2uword(operand_ptr)
                 ; TODO calcualate relative offset to current programcounter
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_Abs -> {
                 ; jmp $1234
-                cx16.r0 = parse_number(operand_ptr)
+                terminate_number(operand_ptr)
+                cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_AbsX, instructions.am_AbsY -> {
                 ; sta $3000,x / sta $3000,y
-                cx16.r0 = parse_number(operand_ptr)
+                ; TODO parse the ,x/,y
+                terminate_number(operand_ptr)
+                cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_Ind  -> {
                 ; jmp ($fffc)
-                cx16.r0 = parse_number(operand_ptr+1)
+                terminate_number(operand_ptr+1)
+                cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
             }
-            instructions.am_IzX, instructions.am_IzY, instructions.am_Izp, instructions.am_IaX  -> {
-                ; lda ($02,x) / lda ($02),y / lda ($02) / jmp ($a000,x)
-                cx16.r0 = parse_number(operand_ptr+1)
+            instructions.am_IzX, instructions.am_IzY, instructions.am_IaX  -> {
+                ; lda ($02,x) / lda ($02),y / jmp ($a000,x)
+                ; TODO parse the ,x/,y
+                terminate_number(operand_ptr+1)
+                cx16.r0 = conv.any2uword(operand_ptr+1)
+                debug_print_value(operand_ptr+1)
+                return true
+            }
+            instructions.am_Izp  -> {
+                ; lda ($02)
+                terminate_number(operand_ptr+1)
+                cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
             }
@@ -275,14 +284,20 @@ textparse {
         }
     }
 
-
-    sub parse_number(uword strptr) -> uword {
-        ; TODO move to conv module and optimize
-        if @(strptr)=='$'
-            return conv.hex2uword(strptr)
-        if @(strptr)=='%'
-            return conv.bin2uword(strptr)
-        return conv.str2uword(strptr)
+    sub terminate_number(uword strptr) {
+        ; replace the first terminating character after a number (such as a , or close parens)
+        ;  with a 0 to terminate the number and make the parse routine happy.
+        ; TODO remove this once the various conv routines are more robust and stop at a non-digit
+        repeat {
+            when @(strptr) {
+                0 -> return
+                ',', ')', ' ', 9, '\n' -> {
+                    @(strptr) = 0
+                    return
+                }
+            }
+            strptr++
+        }
     }
 
     sub split_input() {
@@ -442,8 +457,9 @@ instructions {
             'a' -> {
                 if @(operand_ptr+1) == 0
                     return am_Acc
-                ; some expression TODO
-                return am_Invalid
+                ; some expression
+                ; zp or absolute depends on the value of the symbol referenced
+                return am_Invalid       ; TODO
             }
             '#' -> {
                 if @(operand_ptr+1)
@@ -452,24 +468,28 @@ instructions {
             }
             '(' -> {
                 ; some indirect TODO
+                ; can be (zp), (zp,x), (zp),y, (abs), (abs,x)
                 if @(operand_ptr+1)
                     return am_Ind
                 return am_Invalid
             }
             '$' -> {
                 ; hex address TODO
+                ; can be followed by ,x or ,y
                 if @(operand_ptr+1)
                     return am_Abs
                 return am_Invalid
             }
             '%' -> {
                 ; bin address TODO
+                ; can be followed by ,x or ,y
                 if @(operand_ptr+1)
                     return am_Abs
                 return am_Invalid
             }
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
                 ; absolute or indexed address TODO
+                ; can be followed by ,x or ,y
                 return am_Abs
             }
         }
