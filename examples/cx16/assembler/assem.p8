@@ -1,3 +1,4 @@
+%target cx16
 %import test_stack
 %import textio
 %zeropage basicsafe
@@ -271,7 +272,7 @@ textparse {
         }
         if changed {
             @(dest)=0
-            strcopy(input_line2, src)
+            void strcopy(input_line2, src)
         }
     }
 }
