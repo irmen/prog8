@@ -25,7 +25,7 @@ textparse {
 
     str input_line = "?" * 40
     uword[3] word_addrs
-    uword program_counter = $1000
+    uword program_counter = $4000
 
     sub user_input() {
         repeat {
@@ -134,6 +134,10 @@ textparse {
                 txt.print("?invalid operand\n")
             } else {
                 ubyte num_operand_bytes = operand_size[addr_mode-1]
+                if not parse_operand_value(operand_ptr, addr_mode) {
+                    txt.print("?invalid operand")
+                    return
+                }
 ;                txt.print("(debug:) addr.mode: ")
 ;                txt.print_ub(addr_mode)
 ;                txt.chrout('\n')
@@ -141,8 +145,11 @@ textparse {
                 txt.print_uwhex(program_counter, 1)
                 txt.print("   ")
                 emit(opcode)
-                repeat num_operand_bytes {
-                    emit($00)   ; TODO determine correct bytes
+                if num_operand_bytes==1 {
+                    emit(lsb(cx16.r0))
+                } else if num_operand_bytes == 2 {
+                    emit(lsb(cx16.r0))
+                    emit(msb(cx16.r0))
                 }
                 repeat 2-num_operand_bytes {
                     txt.print("   ")
@@ -189,6 +196,85 @@ textparse {
             char = @(string)
         }
     }
+
+    sub dummy(uword operand_ptr) -> uword {
+        uword a1=rndw()
+        uword a6=a1+operand_ptr
+        return a6
+    }
+
+    sub parse_operand_value(uword operand_ptr, ubyte addr_mode) -> ubyte {
+        ; -- returns true/false success status,  the value is in cx16.r0 if succesful
+        ; TODO number parsing error detection
+        ; TODO optimize this (coalesce various parsing options)
+        ; TODO fix number parsing by ending the number with \0 after the last digit
+
+        when addr_mode {
+            instructions.am_Imp, instructions.am_Acc -> {
+                ; nop / asl a  (no operands)
+                return true
+            }
+            instructions.am_Imm -> {
+                ; lda #$12
+                cx16.r0 = parse_number(operand_ptr+1)
+                debug_print_value(operand_ptr+1)
+                return true
+            }
+            instructions.am_Zp, instructions.am_Zpr -> {
+                ; lda  $02 / brr0 $12,label
+                cx16.r0 = parse_number(operand_ptr)
+                debug_print_value(operand_ptr)
+                return true
+            }
+            instructions.am_ZpX, instructions.am_ZpY -> {
+                ; lda $02,x / lda $02,y
+                cx16.r0 = parse_number(operand_ptr)
+                debug_print_value(operand_ptr)
+                return true
+            }
+            instructions.am_Rel -> {
+                cx16.r0 = parse_number(operand_ptr)
+                ; TODO calcualate relative offset to current programcounter
+                debug_print_value(operand_ptr)
+                return true
+            }
+            instructions.am_Abs -> {
+                ; jmp $1234
+                cx16.r0 = parse_number(operand_ptr)
+                debug_print_value(operand_ptr)
+                return true
+            }
+            instructions.am_AbsX, instructions.am_AbsY -> {
+                ; sta $3000,x / sta $3000,y
+                cx16.r0 = parse_number(operand_ptr)
+                debug_print_value(operand_ptr)
+                return true
+            }
+            instructions.am_Ind  -> {
+                ; jmp ($fffc)
+                cx16.r0 = parse_number(operand_ptr+1)
+                debug_print_value(operand_ptr+1)
+                return true
+            }
+            instructions.am_IzX, instructions.am_IzY, instructions.am_Izp, instructions.am_IaX  -> {
+                ; lda ($02,x) / lda ($02),y / lda ($02) / jmp ($a000,x)
+                cx16.r0 = parse_number(operand_ptr+1)
+                debug_print_value(operand_ptr+1)
+                return true
+            }
+        }
+
+        return false
+
+        sub debug_print_value(uword optr) {
+            txt.print("(debug:) operand=")
+            txt.print(optr)
+            txt.print("  -> value: ")
+            txt.print_uwhex(cx16.r0, true)
+            txt.chrout('\n')
+        }
+    }
+
 
     sub parse_number(uword strptr) -> uword {
         ; TODO move to conv module and optimize
@@ -239,8 +325,8 @@ textparse {
             input_line[char_idx] = 0
     }
 
-    sub debug_print_words() {
-        txt.print("(debug:) words: ")   ; TODO remove
+    sub debug_print_words() {        ; TODO remove
+        txt.print("(debug:) words: ")
         uword word_ptr
         for word_ptr in word_addrs {
             txt.chrout('[')
@@ -328,66 +414,67 @@ benchmark {
 }
 
 instructions {
+    const ubyte am_Invalid = 0
+    const ubyte am_Imp = 1
+    const ubyte am_Acc = 2
+    const ubyte am_Imm = 3
+    const ubyte am_Zp = 4
+    const ubyte am_ZpX = 5
+    const ubyte am_ZpY = 6
+    const ubyte am_Rel = 7
+    const ubyte am_Abs = 8
+    const ubyte am_AbsX = 9
+    const ubyte am_AbsY = 10
+    const ubyte am_Ind = 11
+    const ubyte am_IzX = 12
+    const ubyte am_IzY = 13
+    const ubyte am_Zpr = 14
+    const ubyte am_Izp = 15
+    const ubyte am_IaX = 16
+
     sub determine_addrmode(uword operand_ptr) -> ubyte {
-        ;    Imp = 1,
-        ;    Acc = 2,
-        ;    Imm = 3,
-        ;    Zp = 4,
-        ;    ZpX = 5,
-        ;    ZpY = 6,
-        ;    Rel = 7,
-        ;    Abs = 8,
-        ;    AbsX = 9,
-        ;    AbsY = 10,
-        ;    Ind = 11,
-        ;    IzX = 12,
-        ;    IzY = 13,
-        ;    Zpr = 14,
-        ;    Izp = 15,
-        ;    IaX = 16
 
         if not operand_ptr
-            return 1        ; implied
+            return am_Imp
 
         when @(operand_ptr) {
-            0 -> return 1       ; implied
+            0 -> return am_Imp
             'a' -> {
                 if @(operand_ptr+1) == 0
-                    return 2     ; accumulator
+                    return am_Acc
                 ; some expression TODO
-                return 0
+                return am_Invalid
             }
             '#' -> {
                 if @(operand_ptr+1)
-                    return 3     ; immediate
-                return 0
+                    return am_Imm
+                return am_Invalid
             }
             '(' -> {
                 ; some indirect TODO
                 if @(operand_ptr+1)
-                    return 13
-                return 0
+                    return am_Ind
+                return am_Invalid
             }
             '$' -> {
                 ; hex address TODO
                 if @(operand_ptr+1)
-                    return 8
-                return 0
+                    return am_Abs
+                return am_Invalid
             }
             '%' -> {
                 ; bin address TODO
                 if @(operand_ptr+1)
-                    return 8
-                return 0
+                    return am_Abs
+                return am_Invalid
             }
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
                 ; absolute or indexed address TODO
-                return 8
+                return am_Abs
             }
-            else -> return 0    ; unknown
         }
 
-        return 0    ; unknown
+        return am_Invalid
     }
 
     asmsub  match(uword mnemonic_ptr @AY) -> uword @AY {
