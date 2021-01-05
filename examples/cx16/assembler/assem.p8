@@ -12,7 +12,6 @@ main {
         txt.print("\nAssembler.\nEmpty line to stop.\n")
 
         textparse.user_input()
-        ; benchmark.benchmark()
 
         ; test_stack.test()
     }
@@ -198,14 +197,12 @@ textparse {
             }
             instructions.am_Imm -> {
                 ; lda #$12
-                terminate_number(operand_ptr+1)
                 cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
             }
             instructions.am_Zp -> {
                 ; lda  $02
-                terminate_number(operand_ptr)
                 cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
@@ -213,7 +210,6 @@ textparse {
             instructions.am_Zpr -> {
                 ; brr0 $12,label
                 ; TODO parse the label, relative offset
-                terminate_number(operand_ptr)
                 cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
@@ -221,14 +217,12 @@ textparse {
             instructions.am_ZpX, instructions.am_ZpY -> {
                 ; lda $02,x / lda $02,y
                 ; TODO parse the ,x/y
-                terminate_number(operand_ptr)
                 cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_Rel -> {
                 ; bcc  $c000
-                terminate_number(operand_ptr)
                 cx16.r0 = conv.any2uword(operand_ptr)
                 ; TODO calcualate relative offset to current programcounter
                 debug_print_value(operand_ptr)
@@ -236,7 +230,6 @@ textparse {
             }
             instructions.am_Abs -> {
                 ; jmp $1234
-                terminate_number(operand_ptr)
                 cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
@@ -244,14 +237,12 @@ textparse {
             instructions.am_AbsX, instructions.am_AbsY -> {
                 ; sta $3000,x / sta $3000,y
                 ; TODO parse the ,x/,y
-                terminate_number(operand_ptr)
                 cx16.r0 = conv.any2uword(operand_ptr)
                 debug_print_value(operand_ptr)
                 return true
             }
             instructions.am_Ind  -> {
                 ; jmp ($fffc)
-                terminate_number(operand_ptr+1)
                 cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
@@ -259,14 +250,12 @@ textparse {
             instructions.am_IzX, instructions.am_IzY, instructions.am_IaX  -> {
                 ; lda ($02,x) / lda ($02),y / jmp ($a000,x)
                 ; TODO parse the ,x/,y
-                terminate_number(operand_ptr+1)
                 cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
             }
             instructions.am_Izp  -> {
                 ; lda ($02)
-                terminate_number(operand_ptr+1)
                 cx16.r0 = conv.any2uword(operand_ptr+1)
                 debug_print_value(operand_ptr+1)
                 return true
@@ -281,22 +270,6 @@ textparse {
             txt.print("  -> value: ")
             txt.print_uwhex(cx16.r0, true)
             txt.chrout('\n')
-        }
-    }
-
-    sub terminate_number(uword strptr) {
-        ; replace the first terminating character after a number (such as a , or close parens)
-        ;  with a 0 to terminate the number and make the parse routine happy.
-        ; TODO remove this once the various conv routines are more robust and stop at a non-digit
-        repeat {
-            when @(strptr) {
-                0 -> return
-                ',', ')', ' ', 9, '\n' -> {
-                    @(strptr) = 0
-                    return
-                }
-            }
-            strptr++
         }
     }
 
@@ -375,56 +348,6 @@ textparse {
             @(dest)=0
             void strcopy(input_line2, src)
         }
-    }
-}
-
-benchmark {
-    sub benchmark() {
-        str[20] mnemonics = ["lda", "ldx", "ldy", "jsr", "bcs", "rts", "lda", "ora", "and", "eor", "wai", "nop", "wai", "nop", "wai", "nop", "wai", "nop", "wai", "nop"]
-        ubyte[20] modes =   [3,     4,     8,     8,     7,     1,     12,    13,     5,     4,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1]
-        uword valid = 0
-
-        const uword iterations = 40000 / len(mnemonics)
-        const uword amount = iterations * len(mnemonics)
-
-        txt.print("Benchmark.\nMatching ")
-        txt.print_uw(amount)
-        txt.print(" mnemonics")
-
-        c64.SETTIM(0,0,0)
-
-        uword total = 0
-        repeat iterations {
-            if lsb(total)==0
-                txt.chrout('.')
-            ubyte idx
-            for idx in 0 to len(mnemonics)-1 {
-                uword instr_info = instructions.match(mnemonics[idx])
-                ubyte opcode = instructions.opcode(instr_info, modes[idx])
-                if_cs
-                    valid++
-                total++
-            }
-        }
-
-        uword current_time = c64.RDTIM16()
-        txt.print("\nDone.\nValid: ")
-        txt.print_uw(valid)
-        txt.print("\ninvalid: ")
-        txt.print_uw(amount-valid)
-        txt.print("\ntotal: ")
-        txt.print_uw(total)
-        txt.print("\nSeconds:")
-        uword secs = current_time / 60
-        current_time = (current_time - secs*60)*1000/60
-        txt.print_uw(secs)
-        txt.chrout('.')
-        if current_time<10
-            txt.chrout('0')
-        if current_time<100
-            txt.chrout('0')
-        txt.print_uw(current_time)
-        txt.chrout('\n')
     }
 }
 
