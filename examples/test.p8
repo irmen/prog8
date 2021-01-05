@@ -7,12 +7,10 @@ main {
 
     sub start () {
         uword mem
+        ubyte num_banks
 
-        mem = 5*mem*c64.MEMTOP(0,1)
-        txt.print_uwhex(mem, 1)
-
-        mem = 5*mem*c64.CHRIN()
-        txt.print_uwhex(mem,1)
+        num_banks = c64.MEMTOP2()
+        txt.print_ub(num_banks)
 
         test_stack.test()
 
