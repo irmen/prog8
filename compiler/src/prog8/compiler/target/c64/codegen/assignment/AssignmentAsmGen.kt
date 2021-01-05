@@ -144,12 +144,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             is Subroutine -> {
                                 asmgen.saveXbeforeCall(value)
                                 asmgen.translateFunctionCall(value)
-                                if(!sub.regXasResult())
-                                    asmgen.restoreXafterCall(value)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
                                     sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.statusflag!=null }
                                 when (returnValue.first) {
                                     DataType.STR -> {
+                                        asmgen.restoreXafterCall(value)
                                         when(assign.target.datatype) {
                                             DataType.UWORD -> {
                                                 // assign the address of the string result value
@@ -171,9 +170,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     }
                                     DataType.FLOAT -> {
                                         // float result from function sits in FAC1
+                                        asmgen.restoreXafterCall(value)
                                         assignFAC1float(assign.target)
                                     }
                                     else -> {
+                                        // do NOT restore X register before assigning the result values first
                                         when (returnValue.second.registerOrPair) {
                                             RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
                                             RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
@@ -189,7 +190,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                                     throw AssemblyError("should be just one register byte result value")
                                             }
                                         }
-                                        // we've processed the result value in the X register by now, so it's now safe to restore it:
+                                        // we've processed the result value in the X register by now, so it's now finally safe to restore it
                                         asmgen.restoreXafterCall(value)
                                     }
                                 }

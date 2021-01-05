@@ -5,7 +5,14 @@
 
 main {
 
+    asmsub  opcode(uword instr_info_ptr @AY, ubyte addr_mode @X) clobbers(X) -> ubyte @A, ubyte @Pc {
+        %asm {{
+            rts
+        }}
+    }
+
     sub start () {
+        ubyte xx = opcode(0, 1)
         test_stack.test()
 
 
