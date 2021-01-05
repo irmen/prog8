@@ -250,6 +250,31 @@ output	.text  "0000", $00      ; 0-terminated output buffer (to make printing ea
 }
 
 
+asmsub  any2uword(str string @AY) -> uword @AY {
+    ; -- returns the number value of the given string
+    ;    the string may be in decimal, hex or binary format
+    ;    (the latter two require a $ or % prefix to be recognised)
+    %asm {{
+        pha
+        sta  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
+        ldy  #0
+        lda  (P8ZP_SCRATCH_W1)
+        ldy  P8ZP_SCRATCH_W1+1
+        cmp  #'$'
+        beq  _hex
+        cmp  #'%'
+        beq  _bin
+        pla
+        jmp  str2uword
+_hex    pla
+        jmp  hex2uword
+_bin    pla
+        jmp  bin2uword
+    }}
+}
+
+
 inline asmsub  str2ubyte(str string @ AY) clobbers(Y) -> ubyte @A {
 	; -- returns the unsigned byte value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
