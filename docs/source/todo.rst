@@ -2,8 +2,7 @@
 TODO
 ====
 
-- move all str* builtin functions to a strings library module, mem* to the sys module. update docs.
-- move target() builtin to sys.target constant
+- move all mem* builtins to the sys module. update docs.
 - use (zp) addressing mode on 65c02 specific code rather than ldy#0 / lda (zp),y
 - optimize pointer access code @(pointer)? use a subroutine? macro?  65c02 vs 6502?
 - allow byte return type with single register for asmsubs, for instance string.compare

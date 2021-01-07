@@ -474,6 +474,9 @@ _raster_irq_handler
 sys {
     ; ------- lowlevel system routines --------
 
+    const ubyte target = 64         ;  compilation target specifier.  64 = C64,  16 = CommanderX16.
+
+
     asmsub  reset_system()  {
         ; Soft-reset the system back to Basic prompt.
         %asm {{

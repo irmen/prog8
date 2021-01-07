@@ -888,15 +888,6 @@ set_irqd()  /  clear_irqd()
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
-target()
-    Returns byte value designating the target machine that the program was compiled for.
-    Notice that this is a compile-time constant value and is not determined on the
-    system when the program is running.
-    The following return values are currently defined:
-
-    - 16 = compiled for CommanderX16 with 65C02 CPU
-    - 64 = compiled for Commodore-64 with 6502/6510 CPU
-
 memory(name, size)
     Statically allocates a fixed portion of memory of the given size in bytes, and returns its address.
     Slabs are considered identical if their name and size are the same.

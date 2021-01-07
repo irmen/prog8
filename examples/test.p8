@@ -7,6 +7,7 @@
 main {
 
     sub start() {
+        txt.print_ub(sys.target)
     }
 
     sub start2 () {
