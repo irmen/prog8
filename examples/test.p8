@@ -6,10 +6,7 @@
 
 main {
 
-    ; TODO: error when a parameter has the same name as an existing module/block/subroutine:  sub print_right(ubyte width, uword string) {
-
     sub start() {
-        test_stack.test()
     }
 
     sub start2 () {

@@ -119,9 +119,12 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
                 val labelOrVar = subroutine.getLabelOrVariable(name)
                 if(labelOrVar!=null && labelOrVar.position != subroutine.position)
                     nameError(name, labelOrVar.position, subroutine)
-                val sub = subroutine.statements.singleOrNull { it is Subroutine && it.name==name}
+                val sub = subroutine.statements.firstOrNull { it is Subroutine && it.name==name}
                 if(sub!=null)
-                    nameError(name, sub.position, subroutine)
+                    nameError(name, subroutine.position, sub)
+                val block = program.allBlocks().firstOrNull { it.name==name }
+                if(block!=null)
+                    nameError(name, subroutine.position, block)
             }
 
             if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {
