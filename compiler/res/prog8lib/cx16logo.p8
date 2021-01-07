@@ -1,3 +1,5 @@
+; routine to draw the Commander X16's log in petscii.
+
 %import textio
 
 cx16logo {

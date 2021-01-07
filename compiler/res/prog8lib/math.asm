@@ -1,11 +1,8 @@
-; Prog8 internal Math library routines - always included by the compiler
+; Internal Math library routines - always included by the compiler
 ; Generic machine independent 6502 code.
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 ;
-; indent format: TABS, size=8
-
-
 ;  some more interesting routines can be found here:
 ;	http://6502org.wikidot.com/software-math
 ;	http://codebase64.org/doku.php?id=base:6502_6510_maths

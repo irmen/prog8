@@ -1,0 +1,22 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+max_line_length = 120
+tab_width = 4
+trim_trailing_whitespace = true
+ij_smart_tabs = true
+
+[*.p8]
+tab_width = 4
+indent_size = 4
+indent_style = space
+
+[*.asm]
+tab_width = 8
+indent_size = 8
+indent_style = tab
