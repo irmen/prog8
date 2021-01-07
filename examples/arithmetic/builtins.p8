@@ -1,5 +1,6 @@
 %import textio
 %import floats
+%import string
 %import syslib
 %import test_stack
 %zeropage basicsafe
@@ -8,7 +9,6 @@ main {
 
     sub start() {
         rotations()
-        strings()
         integers()
         floatingpoint()
 
@@ -250,82 +250,6 @@ main {
         ror2(@(addr))
         txt.print_ubbin(@(addr), true)
         txt.chrout('\n')
-        txt.chrout('\n')
-
-        test_stack.test()
-
-    }
-
-    sub strings() {
-        const uword ADDR = $8400
-        const uword ADDR2 = $8000
-
-        memset(ADDR2, 40*25, '*')
-        memset(ADDR2, 40, '1')
-        memset(ADDR2+24*40, 39, '2')
-        memsetw(ADDR2, 40*25/2, $3132)
-        memsetw(ADDR2, 20, $4142)
-        memsetw(ADDR2+24*40, 19, $4241)
-        memcopy(ADDR2, ADDR, 200)
-
-        str result = "?" *10
-        str s1 = "irmen"
-        str s2 = "hello"
-        str dots = "....."
-
-        ubyte ub
-        byte bb
-        ubyte zero=0
-
-        bb = strcmp(s1, s2)
-        txt.print_b(bb)
-        txt.chrout('\n')
-        bb = strcmp(s2, s1)
-        txt.print_b(bb)
-        txt.chrout('\n')
-        txt.print_ub(s1==s2)
-        txt.chrout('\n')
-        txt.print_ub(s1<s2)
-        txt.chrout('\n')
-        txt.print_ub(s1>s2)
-        txt.chrout('\n')
-        bb = zero+strcmp(s1,s2)*1+zero
-        txt.print_b(bb)
-        txt.chrout('\n')
-        bb = zero+strcmp(s2,s1)*1+zero
-        txt.print_b(bb)
-        txt.chrout('\n')
-
-        ub = strlen(s1)
-        txt.print_ub(ub)
-        txt.chrout('\n')
-        ub = zero+strlen(s1)*1+zero
-        txt.print_ub(ub)
-        txt.chrout('\n')
-
-        leftstr(s1, result, 3)
-        txt.print(result)
-        txt.chrout('\n')
-        leftstr(s1, result, len(s1))
-        txt.print(result)
-        txt.chrout('\n')
-        txt.chrout('\n')
-
-        result = "x"*8
-        rightstr(s2, result, 3)
-        txt.print(result)
-        txt.chrout('\n')
-        rightstr(s2, result, len(s1))
-        txt.print(result)
-        txt.chrout('\n')
-
-        result = "y"*10
-        substr(s2, result, 1, 3)
-        txt.print(result)
-        txt.chrout('\n')
-
-        void strcopy(s2, s1)
-        txt.print_ub(99+strcopy(s2,s1))
         txt.chrout('\n')
 
         test_stack.test()

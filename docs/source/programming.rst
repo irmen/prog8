@@ -799,44 +799,6 @@ memsetw(address, numwords, wordvalue)
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
 
-leftstr(source, target, length)
-    Copies the left side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-rightstr(source, target, length)
-    Copies the right side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-strlen(str)
-    Number of bytes in the string. This value is determined during runtime and counts upto
-    the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
-    Don't confuse this with ``len`` and ``sizeof``
-
-strcmp(string1, string2)
-    Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
-    Note that you can also directly compare strings and string values with eachother
-    using ``==``, ``<`` etcetera (it will use strcmp for you under water automatically).
-
-substr(source, target, start, length)
-    Copies a segment from the source string, starting at the given index,
-    and of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that start and length are within bounds of the strings.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-strcopy(from, to)
-    Copy a string to another, overwriting that one. Returns the length of the string that was copied.
-    Often you don't have to call this explicitly and can just write ``string1 = string2``
-    but this function is useful if you're dealing with addresses for instance.
-
-strfind(string, char)
-    Locates the first position of the given character in the string, returns the string starting
-    with this character or $0000 if the character is not found.
-
 
 Miscellaneous
 ^^^^^^^^^^^^^

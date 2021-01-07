@@ -1,6 +1,7 @@
 %import textio
 %import conv
 %import diskio
+%import string
 %import test_stack
 %option no_sysinit
 %zeropage basicsafe
@@ -943,11 +944,11 @@ util {
         return false
     }
 
-    sub print_right(ubyte width, uword string) {
-        repeat width - strlen(string) {
+    sub print_right(ubyte width, uword s) {
+        repeat width - string.length(s) {
             txt.chrout(' ')
         }
-        txt.print(string)
+        txt.print(s)
     }
 
     asmsub print_10s(uword value @AY) clobbers(A, X, Y) {

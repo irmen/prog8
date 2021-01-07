@@ -1,6 +1,7 @@
 %import textio
 %import conv
 %import diskio
+%import string
 %import test_stack
 %option no_sysinit
 %zeropage basicsafe
@@ -944,7 +945,7 @@ util10 {
     }
 
     sub print_right(ubyte width, uword string) {
-        repeat width - strlen(string) {
+        repeat width - string.length(string) {
             txt.chrout(' ')
         }
         txt.print(string)

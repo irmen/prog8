@@ -477,6 +477,7 @@ main {
 
 
 
+    ; @TODO fix type errors
 
     sub shiftrsw0() -> word {
         word q = -12345

@@ -6,6 +6,7 @@
 %import textio
 %import conv
 %import diskio
+%import string
 %import test_stack
 %import perf2
 %import perf3
@@ -954,7 +955,7 @@ util {
     }
 
     sub print_right(ubyte width, uword string) {
-        repeat width - strlen(string) {
+        repeat width - string.length(string) {
             txt.chrout(' ')
         }
         txt.print(string)

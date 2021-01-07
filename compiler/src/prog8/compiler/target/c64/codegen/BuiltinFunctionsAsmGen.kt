@@ -79,21 +79,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "set_carry" -> asmgen.out("  sec")
             "clear_irqd" -> asmgen.out("  cli")
             "set_irqd" -> asmgen.out("  sei")
-            "strlen" -> funcStrlen(fcall, resultToStack)
-            "strfind" -> funcStrfind(fcall, func, resultToStack, sscope)
-            "strcmp" -> funcStrcmp(fcall, func, resultToStack, sscope)
-            "strcopy" -> {
-                translateArguments(fcall.args, func, sscope)
-                if(resultToStack)
-                    asmgen.out("  jsr  prog8_lib.func_strcopy_to_stack")
-                else
-                    asmgen.out("  jsr  prog8_lib.func_strcopy")
-            }
             "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func, sscope)
-            "substr", "leftstr", "rightstr" -> {
-                translateArguments(fcall.args, func, sscope)
-                asmgen.out("  jsr  prog8_lib.func_${func.name}")
-            }
             "exit" -> {
                 translateArguments(fcall.args, func, sscope)
                 asmgen.out("  jmp  prog8_lib.func_exit")
@@ -196,22 +182,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             translateArguments(fcall.args, func, scope)
             asmgen.out("  jsr  prog8_lib.func_${func.name}")
         }
-    }
-
-    private fun funcStrfind(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
-        translateArguments(fcall.args, func, scope)
-        if(resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_strfind_stack")
-        else
-            asmgen.out("  jsr  prog8_lib.func_strfind")
-    }
-
-    private fun funcStrcmp(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
-        translateArguments(fcall.args, func, scope)
-        if(resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_strcmp_stack")
-        else
-            asmgen.out("  jsr  prog8_lib.func_strcmp")
     }
 
     private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
@@ -586,27 +556,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else -> throw AssemblyError("weird type $dt")
             }
         }
-    }
-
-    private fun funcStrlen(fcall: IFunctionCall, resultToStack: Boolean) {
-        if (fcall.args[0] is IdentifierReference) {
-            // use the address of the variable
-            val name = asmgen.asmVariableName(fcall.args[0] as IdentifierReference)
-            val type = fcall.args[0].inferType(program)
-            when {
-                type.istype(DataType.STR) -> asmgen.out("  lda  #<$name |  ldy  #>$name")
-                type.istype(DataType.UWORD) -> asmgen.out("  lda  $name |  ldy  $name+1")
-                else -> throw AssemblyError("strlen requires str or uword arg")
-            }
-        }
-        else {
-            // use the expression value as address of the string
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-        }
-        if (resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_strlen_stack")
-        else
-            asmgen.out("  jsr  prog8_lib.func_strlen_into_A")
     }
 
     private fun funcSwap(fcall: IFunctionCall) {

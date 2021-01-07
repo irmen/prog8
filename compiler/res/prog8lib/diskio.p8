@@ -3,6 +3,7 @@
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 %import textio
+%import string
 %import syslib
 
 diskio {
@@ -84,7 +85,7 @@ io_error:
                 name_ptrs++
                 @(name_ptrs) = msb(names_buffer)
                 name_ptrs++
-                names_buffer += strcopy(diskio.list_filename, names_buffer) + 1
+                names_buffer += string.copy(diskio.list_filename, names_buffer) + 1
                 files_found++
                 if names_buffer - buffer_start > 512-18
                     break
@@ -204,7 +205,7 @@ close_end:
         ;    note: only a single iteration loop can be active at a time!
         f_close()
 
-        c64.SETNAM(strlen(filenameptr), filenameptr)
+        c64.SETNAM(string.length(filenameptr), filenameptr)
         c64.SETLFS(11, drivenumber, 3)
         void c64.OPEN()          ; open 11,8,0,"filename"
         if_cc {
@@ -373,7 +374,7 @@ io_error:
 
 
     sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> ubyte {
-        c64.SETNAM(strlen(filenameptr), filenameptr)
+        c64.SETNAM(string.length(filenameptr), filenameptr)
         c64.SETLFS(1, drivenumber, 0)
         uword end_address = address + size
 
@@ -403,7 +404,7 @@ io_error:
     }
 
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
-        c64.SETNAM(strlen(filenameptr), filenameptr)
+        c64.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         uword end_of_load = 0
         if address_override
@@ -435,7 +436,7 @@ io_error:
 
     sub delete(ubyte drivenumber, uword filenameptr) {
         ; -- delete a file on the drive
-        ubyte flen = strlen(filenameptr)
+        ubyte flen = string.length(filenameptr)
         filename[0] = 's'
         filename[1] = ':'
         memcopy(filenameptr, &filename+2, flen+1)
@@ -448,8 +449,8 @@ io_error:
 
     sub rename(ubyte drivenumber, uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
-        ubyte flen_old = strlen(oldfileptr)
-        ubyte flen_new = strlen(newfileptr)
+        ubyte flen_old = string.length(oldfileptr)
+        ubyte flen_new = string.length(newfileptr)
         filename[0] = 'r'
         filename[1] = ':'
         memcopy(newfileptr, &filename+2, flen_new)

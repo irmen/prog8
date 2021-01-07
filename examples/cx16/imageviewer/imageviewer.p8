@@ -2,6 +2,7 @@
 %import gfx2
 %import textio
 %import diskio
+%import string
 %import koala_module
 %import iff_module
 %import pcx_module
@@ -14,7 +15,7 @@ main {
     sub start() {
         ; trick to check if we're running on sdcard or host system shared folder
         txt.print("\nimage viewer for commander x16\nformats supported: .iff, .pcx, .bmp, .koa (c64 koala)\n\n")
-        if strlen(diskio.status(8)) {
+        if string.length(diskio.status(8)) {
             txt.print("enter image file name or just enter for all on disk: ")
             ubyte i = txt.input_chars(diskio.filename)
             gfx2.screen_mode(1)    ; 320*240, 256c
@@ -54,7 +55,7 @@ main {
         ;txt.print(filenameptr)
         ;txt.chrout('\n')
         uword extension = filenameptr + rfind(filenameptr, '.')
-        if strcmp(extension, ".iff")==0 {
+        if extension == ".iff" {        ; TODO does this compare work?
             ;txt.print("loading ")
             ;txt.print("iff\n")
             if iff_module.show_image(filenameptr) {
@@ -70,7 +71,7 @@ main {
                 load_error(filenameptr)
             }
         }
-        else if strcmp(extension, ".pcx")==0 {
+        else if extension == ".pcx" {       ; TODO works?
             ;txt.print("loading ")
             ;txt.print("pcx\n")
             if pcx_module.show_image(filenameptr) {
@@ -79,7 +80,7 @@ main {
                 load_error(filenameptr)
             }
         }
-        else if strcmp(extension, ".koa")==0 {
+        else if extension == ".koa" {    ; TODO works?
             ;txt.print("loading ")
             ;txt.print("koala\n")
             if koala_module.show_image(filenameptr) {
@@ -88,7 +89,7 @@ main {
                 load_error(filenameptr)
             }
         }
-        else if strcmp(extension, ".bmp")==0 {
+        else if extension == ".bmp"  {   ; TODO works?
             ;txt.print("loading ")
             ;txt.print("bmp\n")
             if bmp_module.show_image(filenameptr) {
@@ -97,7 +98,7 @@ main {
                 load_error(filenameptr)
             }
         }
-;        else if strcmp(extension, ".ci")==0 {
+;        else if extension == ".ci" {
 ;;            txt.print("loading ")
 ;;            txt.print("ci\n")
 ;            if ci_module.show_image(filenameptr) {
@@ -117,12 +118,12 @@ main {
 
     sub extension_equals(uword stringptr, uword extensionptr) -> ubyte {
         ubyte ix = rfind(stringptr, '.')
-        return ix<255 and strcmp(stringptr+ix, extensionptr)==0
+        return ix<255 and string.compare(stringptr+ix, extensionptr)==0
     }
 
     sub rfind(uword stringptr, ubyte char) -> ubyte {
         ubyte i
-        for i in strlen(stringptr)-1 downto 0 {
+        for i in string.length(stringptr)-1 downto 0 {
             if @(stringptr+i)==char
                 return i
         }

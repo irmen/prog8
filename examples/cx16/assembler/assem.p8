@@ -1,6 +1,7 @@
 %target cx16
 %import test_stack
 %import textio
+%import string
 %zeropage basicsafe
 %option no_sysinit
 
@@ -61,7 +62,7 @@ textparse {
         }
 
         uword value = conv.any2uword(word_addrs[2])
-        if strcmp("*", word_addrs[0])==0 {
+        if word_addrs[0] == "*" {       ; TODO does this string compare work?
             program_counter = value
         } else {
             set_symbol(word_addrs[0], value)
@@ -96,7 +97,7 @@ textparse {
         }
 
         if label_ptr {
-            uword lastlabelchar = label_ptr + strlen(label_ptr)-1
+            uword lastlabelchar = label_ptr + string.length(label_ptr)-1
             if @(lastlabelchar) == ':'
                 @(lastlabelchar) = 0
             if instructions.match(label_ptr) {
@@ -346,7 +347,7 @@ textparse {
         }
         if changed {
             @(dest)=0
-            void strcopy(input_line2, src)
+            string.copy(input_line2, src)
         }
     }
 }
