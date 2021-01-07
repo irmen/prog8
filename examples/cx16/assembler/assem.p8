@@ -420,6 +420,8 @@ instructions {
         return am_Invalid
     }
 
+    ; TODO: explore (benchmark) hash based matchers
+
     asmsub  match(uword mnemonic_ptr @AY) -> uword @AY {
         ; -- input: mnemonic_ptr in AY,   output:  pointer to instruction info structure or $0000 in AY
         %asm {{

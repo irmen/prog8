@@ -100,7 +100,51 @@ internal class ModuleImporter {
         return moduleAst
     }
 
-    private fun discoverImportedModuleFile(name: String, source: Path, position: Position?): Path {
+    private fun executeImportDirective(program: Program, import: Directive, source: Path): Module? {
+        if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
+            throw SyntaxError("invalid import directive", import.position)
+        val moduleName = import.args[0].name!!
+        if("$moduleName.p8" == import.position.file)
+            throw SyntaxError("cannot import self", import.position)
+
+        val existing = program.modules.singleOrNull { it.name == moduleName }
+        if(existing!=null)
+            return null
+
+        val rsc = tryGetModuleFromResource("$moduleName.p8")
+        val importedModule =
+                if(rsc!=null) {
+                    // load the module from the embedded resource
+                    val (resource, resourcePath) = rsc
+                    resource.use {
+                        println("importing '$moduleName' (library)")
+                        importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$resourcePath"), true)
+                    }
+                } else {
+                    val modulePath = tryGetModuleFromFile(moduleName, source, import.position)
+                    importModule(program, modulePath)
+                }
+
+        importedModule.checkImportedValid()
+        return importedModule
+    }
+
+    private fun tryGetModuleFromResource(name: String): Pair<InputStream, String>? {
+        val target = CompilationTarget.instance.name
+        val targetSpecificPath = "/prog8lib/$target/$name"
+        val targetSpecificResource = object{}.javaClass.getResourceAsStream(targetSpecificPath)
+        if(targetSpecificResource!=null)
+            return Pair(targetSpecificResource, targetSpecificPath)
+
+        val generalPath = "/prog8lib/$name"
+        val generalResource = object{}.javaClass.getResourceAsStream(generalPath)
+        if(generalResource!=null)
+            return Pair(generalResource, generalPath)
+
+        return null
+    }
+
+    private fun tryGetModuleFromFile(name: String, source: Path, position: Position?): Path {
         val fileName = "$name.p8"
         val locations = if(source.toString().isEmpty()) mutableListOf<Path>() else mutableListOf(source.parent ?: Path.of("."))
 
@@ -118,49 +162,5 @@ internal class ModuleImporter {
         }
 
         throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: embedded libs and $locations)")
-    }
-
-    private fun executeImportDirective(program: Program, import: Directive, source: Path): Module? {
-        if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
-            throw SyntaxError("invalid import directive", import.position)
-        val moduleName = import.args[0].name!!
-        if("$moduleName.p8" == import.position.file)
-            throw SyntaxError("cannot import self", import.position)
-
-        val existing = program.modules.singleOrNull { it.name == moduleName }
-        if(existing!=null)
-            return null
-
-        val rsc = tryGetEmbeddedResource("$moduleName.p8")
-        val importedModule =
-                if(rsc!=null) {
-                    // load the module from the embedded resource
-                    val (resource, resourcePath) = rsc
-                    resource.use {
-                        println("importing '$moduleName' (library)")
-                        importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$resourcePath"), true)
-                    }
-                } else {
-                    val modulePath = discoverImportedModuleFile(moduleName, source, import.position)
-                    importModule(program, modulePath)
-                }
-
-        importedModule.checkImportedValid()
-        return importedModule
-    }
-
-    private fun tryGetEmbeddedResource(name: String): Pair<InputStream, String>? {
-        val target = CompilationTarget.instance.name
-        val targetSpecificPath = "/prog8lib/$target/$name"
-        val targetSpecificResource = object{}.javaClass.getResourceAsStream(targetSpecificPath)
-        if(targetSpecificResource!=null)
-            return Pair(targetSpecificResource, targetSpecificPath)
-
-        val generalPath = "/prog8lib/$name"
-        val generalResource = object{}.javaClass.getResourceAsStream(generalPath)
-        if(generalResource!=null)
-            return Pair(generalResource, generalPath)
-
-        return null
     }
 }

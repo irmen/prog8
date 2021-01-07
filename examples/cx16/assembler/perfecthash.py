@@ -150,24 +150,3 @@ def in_word_set(string: str) -> bool:
                 word = wordlist[index]
                 return word==string
     return False
-
-
-#   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
-#     {
-#       register unsigned int key = hash (str, len);
-#
-#       if (key <= MAX_HASH_VALUE)
-#         {
-#           register int index = lookup[key];
-#
-#           if (index >= 0)
-#             {
-#               register const char *s = wordlist[index];
-#
-#               if (*str == *s && !strcmp (str + 1, s + 1))
-#                 return s;
-#             }
-#         }
-#     }
-#   return 0;
-# }
