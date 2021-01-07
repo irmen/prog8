@@ -474,11 +474,6 @@ main {
         return (q >> 17)
     }
 
-
-
-
-    ; @TODO fix type errors
-
     sub shiftrsw0() -> word {
         word q = -12345
         return q >> 0

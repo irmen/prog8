@@ -447,10 +447,13 @@ internal class StatementOptimizer(private val program: Program,
             if (returnDt in IntegerDatatypes) {
                 // first assign to intermediary, then return that register
                 val returnValueIntermediary =
-                    if (returnDt in ByteDatatypes)
-                        IdentifierReference(listOf("prog8_lib", "retval_interm_b"), returnStmt.position)
-                    else
-                        IdentifierReference(listOf("prog8_lib", "retval_interm_w"), returnStmt.position)
+                    when(returnDt) {
+                        DataType.UBYTE -> IdentifierReference(listOf("prog8_lib", "retval_interm_ub"), returnStmt.position)
+                        DataType.BYTE -> IdentifierReference(listOf("prog8_lib", "retval_interm_b"), returnStmt.position)
+                        DataType.UWORD -> IdentifierReference(listOf("prog8_lib", "retval_interm_uw"), returnStmt.position)
+                        DataType.WORD -> IdentifierReference(listOf("prog8_lib", "retval_interm_w"), returnStmt.position)
+                        else -> throw FatalAstException("weird return dt")
+                    }
                 val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
                 val assign = Assignment(tgt, value, returnStmt.position)
                 val returnReplacement = Return(returnValueIntermediary, returnStmt.position)
