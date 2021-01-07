@@ -55,7 +55,7 @@ main {
         ;txt.print(filenameptr)
         ;txt.chrout('\n')
         uword extension = filenameptr + rfind(filenameptr, '.')
-        if extension == ".iff" {        ; TODO does this compare work?
+        if string.compare(extension, ".iff")==0 {
             ;txt.print("loading ")
             ;txt.print("iff\n")
             if iff_module.show_image(filenameptr) {
@@ -71,7 +71,7 @@ main {
                 load_error(filenameptr)
             }
         }
-        else if extension == ".pcx" {       ; TODO works?
+        else if string.compare(extension, ".pcx")==0 {
             ;txt.print("loading ")
             ;txt.print("pcx\n")
             if pcx_module.show_image(filenameptr) {
@@ -80,7 +80,7 @@ main {
                 load_error(filenameptr)
             }
         }
-        else if extension == ".koa" {    ; TODO works?
+        else if string.compare(extension,".koa")==0 {
             ;txt.print("loading ")
             ;txt.print("koala\n")
             if koala_module.show_image(filenameptr) {
@@ -89,7 +89,7 @@ main {
                 load_error(filenameptr)
             }
         }
-        else if extension == ".bmp"  {   ; TODO works?
+        else if string.compare(extension, ".bmp")==0  {
             ;txt.print("loading ")
             ;txt.print("bmp\n")
             if bmp_module.show_image(filenameptr) {

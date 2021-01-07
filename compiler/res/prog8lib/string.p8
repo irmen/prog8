@@ -176,7 +176,7 @@ _found		sty  P8ZP_SCRATCH_B1
         }}
     }
 
-    asmsub compare(uword string1 @R0, uword string2 @AY) clobbers(Y) -> ubyte @A {
+    asmsub compare(uword string1 @R0, uword string2 @AY) clobbers(Y) -> byte @A {
         ; Compares two strings for sorting.
         ; Returns -1 (255), 0 or 1 depeding on wether string1 sorts before, equal or after string2.
         ; Note that you can also directly compare strings and string values with eachother using

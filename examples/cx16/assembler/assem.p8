@@ -62,7 +62,7 @@ textparse {
         }
 
         uword value = conv.any2uword(word_addrs[2])
-        if word_addrs[0] == "*" {       ; TODO does this string compare work?
+        if string.compare(word_addrs[0], "*")==0 {
             program_counter = value
         } else {
             set_symbol(word_addrs[0], value)
