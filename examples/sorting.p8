@@ -45,26 +45,26 @@ main {
                 txt.print_ub(ub)
                 txt.chrout(',')
             }
-            txt.chrout('\n')
+            txt.nl()
 
             for uw in uwa {
                 txt.print_uw(uw)
                 txt.chrout(',')
             }
-            txt.chrout('\n')
+            txt.nl()
 
             for bb in ba {
                 txt.print_b(bb)
                 txt.chrout(',')
             }
-            txt.chrout('\n')
+            txt.nl()
 
             for ww in wa {
                 txt.print_w(ww)
                 txt.chrout(',')
             }
-            txt.chrout('\n')
-            txt.chrout('\n')
+            txt.nl()
+            txt.nl()
         }
     }
 }

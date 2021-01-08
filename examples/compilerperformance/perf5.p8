@@ -35,7 +35,7 @@ perf5 {
             util5.print_10s(ship5.cash)
             txt.print("\nCommand (?=help): ")
             ubyte num_chars = txt.input_chars(input)
-            txt.chrout('\n')
+            txt.nl()
             if num_chars {
                 when input[0] {
                     '?' -> {
@@ -102,7 +102,7 @@ trader5 {
         } else {
             txt.print("\ni/o error: ")
             txt.print(diskio.status(8))
-            txt.chrout('\n')
+            txt.nl()
             return
         }
 
@@ -130,7 +130,7 @@ trader5 {
         } else {
             txt.print("\ni/o error: ")
             txt.print(diskio.status(8))
-            txt.chrout('\n')
+            txt.nl()
         }
     }
 
@@ -351,7 +351,7 @@ market5 {
 
     sub display() {
         ubyte ci
-        txt.chrout('\n')
+        txt.nl()
         planet5.print_name_uppercase()
         txt.print(" trade market5:\n    COMMODITY / PRICE / AVAIL / IN HOLD\n")
         for ci in 0 to len(names)-1 {
@@ -367,7 +367,7 @@ market5 {
             }
             txt.print("   ")
             txt.print_ub(ship5.cargohold[ci])
-            txt.chrout('\n')
+            txt.nl()
         }
     }
 
@@ -604,7 +604,7 @@ galaxy5 {
         txt.print_uwhex(galaxy5.seed[1], true)
         txt.print("\ngalaxy5 seed2=")
         txt.print_uwhex(galaxy5.seed[2], true)
-        txt.chrout('\n')
+        txt.nl()
     }
 }
 
@@ -889,9 +889,9 @@ planet5 {
             } else {
                 txt.print("Human Colonials")
             }
-            txt.chrout('\n')
+            txt.nl()
             txt.print(soup())
-            txt.chrout('\n')
+            txt.nl()
         }
     }
 

@@ -20,57 +20,57 @@ main {
         txt.print("uword <=\n")
 
         txt.print_uw(65535)
-        txt.chrout('\n')
+        txt.nl()
         check_lesseq_uw(0, 65535)
         txt.print_uw(0)
-        txt.chrout('\n')
+        txt.nl()
         check_not_lesseq_uw(65535, 0)
 
         comparevar = 65535
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 65535-2
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 65535-254
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 65535-255
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 65535-256
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 65535-5000
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 32769
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto 0  {
             check_lesseq_uw(lessvar, comparevar)
         }
@@ -78,42 +78,42 @@ main {
 
         comparevar = 32768
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 65535 downto comparevar+1  {
             check_not_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 1
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 65535 downto comparevar+1  {
             check_not_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 0
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 65535 downto comparevar+1  {
             check_not_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 11111
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 65535 downto comparevar+1  {
             check_not_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 255
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 65535 downto comparevar+1  {
             check_not_lesseq_uw(lessvar, comparevar)
         }
 
         comparevar = 256
         txt.print_uw(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 65535 downto comparevar+1  {
             check_not_lesseq_uw(lessvar, comparevar)
         }
@@ -144,7 +144,7 @@ main {
                 txt.print_uw(w1)
                 txt.print(" <= ")
                 txt.print_uw(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -171,7 +171,7 @@ main {
                 txt.print_uw(w1)
                 txt.print(" not <= ")
                 txt.print_uw(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -184,113 +184,113 @@ main {
         txt.print("word >\n")
 
         txt.print_w(-32767)
-        txt.chrout('\n')
+        txt.nl()
         check_greater_w(32767, -32767)
         txt.print_w(32766)
-        txt.chrout('\n')
+        txt.nl()
         check_not_greater_w(-32766, 32766)
 
         comparevar = 32765
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar downto -32768  {
             check_not_greater_w(biggervar, comparevar)
         }
 
         comparevar = -1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar downto -32768  {
             check_not_greater_w(biggervar, comparevar)
         }
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar downto -32768  {
             check_not_greater_w(biggervar, comparevar)
         }
 
         comparevar = 11111
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar downto -32768  {
             check_not_greater_w(biggervar, comparevar)
         }
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = -2
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = -254
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = -255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = -256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = -5000
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = 1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = 255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = 256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = 257
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
 
         comparevar = 32760
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar+1  {
             check_greater_w(biggervar, comparevar)
         }
@@ -327,7 +327,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" > ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -361,7 +361,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" not > ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -374,113 +374,113 @@ main {
         txt.print("word >=\n")
 
         txt.print_w(-32767)
-        txt.chrout('\n')
+        txt.nl()
         check_greatereq_w(32767, -32767)
         txt.print_w(32766)
-        txt.chrout('\n')
+        txt.nl()
         check_not_greatereq_w(-32766, 32766)
 
         comparevar = 32765
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar-1 downto -32768  {
             check_not_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = -1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar-1 downto -32768  {
             check_not_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar-1 downto -32768  {
             check_not_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 11111
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in comparevar-1 downto -32768  {
             check_not_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = -2
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = -254
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = -255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = -256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = -5000
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 257
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
 
         comparevar = 32767
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for biggervar in 32767 downto comparevar  {
             check_greatereq_w(biggervar, comparevar)
         }
@@ -517,7 +517,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" >= ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -551,7 +551,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" not >= ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -564,85 +564,85 @@ main {
         txt.print("word <=\n")
 
         txt.print_w(32767)
-        txt.chrout('\n')
+        txt.nl()
         check_lesseq_w(-32767, 32767)
         txt.print_w(-32767)
-        txt.chrout('\n')
+        txt.nl()
         check_not_lesseq_w(32767, -32767)
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = -2
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = -254
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = -255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = -256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = -5000
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 257
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 32767
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in comparevar downto -32768  {
             check_lesseq_w(lessvar, comparevar)
         }
@@ -650,28 +650,28 @@ main {
 
         comparevar = -32768
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto comparevar+1  {
             check_not_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = -1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto comparevar+1  {
             check_not_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto comparevar+1  {
             check_not_lesseq_w(lessvar, comparevar)
         }
 
         comparevar = 11111
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto comparevar+1  {
             check_not_lesseq_w(lessvar, comparevar)
         }
@@ -701,7 +701,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" <= ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -728,7 +728,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" not <= ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -741,113 +741,113 @@ main {
         txt.print("word <\n")
 
         txt.print_w(32767)
-        txt.chrout('\n')
+        txt.nl()
         check_less_w(-32767, 32767)
         txt.print_w(-32767)
-        txt.chrout('\n')
+        txt.nl()
         check_not_less_w(32767, -32767)
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in -1 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = -2
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in -3 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = -254
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in -255 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = -255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in -256 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = -256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in -257 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = -5000
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in -5001 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = 1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 0 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = 255
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 254 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = 256
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 255 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = 257
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 256 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = 32767
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto -32768  {
             check_less_w(lessvar, comparevar)
         }
 
         comparevar = -32768
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto -32768  {
             check_not_less_w(lessvar, comparevar)
         }
 
         comparevar = -1
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto -1  {
             check_not_less_w(lessvar, comparevar)
         }
 
         comparevar = 0
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto 0  {
             check_not_less_w(lessvar, comparevar)
         }
 
         comparevar = 11111
         txt.print_w(comparevar)
-        txt.chrout('\n')
+        txt.nl()
         for lessvar in 32766 downto 11111  {
             check_not_less_w(lessvar, comparevar)
         }
@@ -877,7 +877,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" < ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }
@@ -904,7 +904,7 @@ main {
                 txt.print_w(w1)
                 txt.print(" not < ")
                 txt.print_w(w2)
-                txt.chrout('\n')
+                txt.nl()
                 sys.exit(1)
             }
         }

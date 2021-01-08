@@ -23,10 +23,10 @@ main {
             txt.print(", ")
             amount++
         }
-        txt.chrout('\n')
+        txt.nl()
         txt.print("number of primes (expected 54): ")
         txt.print_ub(amount)
-        txt.chrout('\n')
+        txt.nl()
 
         ; test_stack.test()
     }

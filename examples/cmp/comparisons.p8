@@ -13,20 +13,20 @@ main {
     sub start()  {
 
         repeat(25)
-            txt.chrout('\n')
+            txt.nl()
 
         equal()
-        txt.chrout('\n')
+        txt.nl()
         notequal()
-        txt.chrout('\n')
+        txt.nl()
         less()
-        txt.chrout('\n')
+        txt.nl()
         greater()
-        txt.chrout('\n')
+        txt.nl()
         lessequal()
-        txt.chrout('\n')
+        txt.nl()
         greaterequal()
-        txt.chrout('\n')
+        txt.nl()
     }
 
     sub equal() {

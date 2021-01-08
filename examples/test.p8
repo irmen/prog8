@@ -7,27 +7,8 @@
 main {
 
     sub start() {
-        ubyte zero=0
-        ubyte ub
-
-        sys.clear_carry()
-        sys.clear_irqd()
-        ub = sys.read_flags()
-        txt.print_ubbin(ub,1)
-        txt.chrout('\n')
-        sys.clear_carry()
-        ub = zero+sys.read_flags()+zero
-        txt.print_ubbin(ub,1)
-        txt.chrout('\n')
-        sys.set_carry()
-        sys.set_irqd()
-        ub = sys.read_flags()
-        txt.print_ubbin(ub,1)
-        txt.chrout('\n')
-        sys.set_carry()
-        ub = zero+sys.read_flags()+zero
-        txt.print_ubbin(ub,1)
-        txt.chrout('\n')
+        txt.print("yo")
+        txt.nl()
 
         test_stack.test()
 
@@ -140,10 +121,10 @@ main {
             txt.print_uwbin(value, true)
             txt.print("  #")
             txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.chrout('\n')
+            txt.nl()
         }
 
-        txt.chrout('\n')
+        txt.nl()
         for strptr in hexstrings {
             value = conv.hex2uword(strptr)
             txt.print(strptr)
@@ -153,10 +134,10 @@ main {
             txt.print_uwhex(value, true)
             txt.print("  #")
             txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.chrout('\n')
+            txt.nl()
         }
 
-        txt.chrout('\n')
+        txt.nl()
         for strptr in posdecstrings {
             value = conv.str2uword(strptr)
             txt.print(strptr)
@@ -164,10 +145,10 @@ main {
             txt.print_uw(value)
             txt.print("  #")
             txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.chrout('\n')
+            txt.nl()
         }
 
-        txt.chrout('\n')
+        txt.nl()
         for strptr in worddecstrings {
             wvalue = conv.str2word(strptr)
             txt.print(strptr)
@@ -175,34 +156,34 @@ main {
             txt.print_w(wvalue)
             txt.print("  #")
             txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.chrout('\n')
+            txt.nl()
         }
 
 
 ;        found = string.find("irmen de jong", ' ')
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 ;        found = string.find(" irmen-de-jong", ' ')
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 ;        found = string.find("irmen-de-jong ", ' ')
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 ;        found = string.find("irmen-de-jong", ' ')
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 
 ;        found = strfinds("irmen de jong", "de")
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 ;        found = strfinds("irmen de jong", "irmen")
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 ;        found = strfinds("irmen de jong", "jong")
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
 ;        found = strfinds("irmen de jong", "de456")
 ;        txt.print_uwhex(found, 1)
-;        txt.chrout('\n')
+;        txt.nl()
     }
 }

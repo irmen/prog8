@@ -53,7 +53,7 @@ main {
     sub attempt_load(uword filenameptr) {
         ;txt.print(">> ")
         ;txt.print(filenameptr)
-        ;txt.chrout('\n')
+        ;txt.nl()
         uword extension = filenameptr + rfind(filenameptr, '.')
         if string.compare(extension, ".iff")==0 {
             ;txt.print("loading ")

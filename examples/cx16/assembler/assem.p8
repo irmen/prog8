@@ -36,7 +36,7 @@ textparse {
             ; simulate user always having at least one space at the start
             input_line[0] = ' '
             input_length = txt.input_chars(&input_line+1)
-            txt.chrout('\n')
+            txt.nl()
 
             if not input_length {
                 txt.print("exit\n")
@@ -109,12 +109,12 @@ textparse {
         if instr_ptr {
 ;                txt.print("instr: ")
 ;                txt.print(instr_ptr)
-;                txt.chrout('\n')
+;                txt.nl()
 
 ;                if operand_ptr {
 ;                    txt.print("operand: ")
 ;                    txt.print(operand_ptr)
-;                    txt.chrout('\n')
+;                    txt.nl()
 ;                }
 
             assemble_instruction(instr_ptr, operand_ptr)
@@ -136,7 +136,7 @@ textparse {
                 }
 ;                txt.print("(debug:) addr.mode: ")
 ;                txt.print_ub(addr_mode)
-;                txt.chrout('\n')
+;                txt.nl()
                 txt.chrout(' ')
                 txt.print_uwhex(program_counter, 1)
                 txt.print("   ")
@@ -147,7 +147,7 @@ textparse {
                     emit(lsb(cx16.r0))
                     emit(msb(cx16.r0))
                 }
-                txt.chrout('\n')
+                txt.nl()
             }
         } else {
             txt.print("?instruction error\n")
@@ -167,7 +167,7 @@ textparse {
         txt.print(symbolname_ptr)
         txt.chrout('=')
         txt.print_uwhex(value, true)
-        txt.chrout('\n')
+        txt.nl()
     }
 
     sub lowercase(uword st) {
@@ -270,7 +270,7 @@ textparse {
             txt.print(optr)
             txt.print("  -> value: ")
             txt.print_uwhex(cx16.r0, true)
-            txt.chrout('\n')
+            txt.nl()
         }
     }
 
@@ -322,7 +322,7 @@ textparse {
             txt.print(word_ptr)
             txt.print("] ")
         }
-        txt.chrout('\n')
+        txt.nl()
     }
 
     sub preprocess_assignment_spacing() {

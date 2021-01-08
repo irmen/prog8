@@ -6,7 +6,7 @@
 main {
     sub start() {
         repeat 25 {
-            txt.chrout('\n')
+            txt.nl()
         }
 
         ubyte ub
@@ -25,7 +25,7 @@ main {
         else {
             txt.print("1 fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -39,7 +39,7 @@ main {
         else {
             txt.print("2 fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         uwsum = 50000
@@ -53,7 +53,7 @@ main {
         else {
             txt.print("3 fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
         wsum  = -30000
         bb = 100
@@ -90,7 +90,7 @@ main {
         else {
             txt.print("6 fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -104,7 +104,7 @@ main {
         else {
             txt.print("7 fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -118,10 +118,10 @@ main {
         else {
             txt.print("8 fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
-        txt.chrout('\n')
+        txt.nl()
 
 
 
@@ -135,7 +135,7 @@ main {
         else {
             txt.print("1b fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         bb = 0
@@ -148,7 +148,7 @@ main {
         else {
             txt.print("2b fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         uwsum = 50000
@@ -160,7 +160,7 @@ main {
         else {
             txt.print("3b fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
         wsum  = -30000
         wsum -= (100+bb)
@@ -190,7 +190,7 @@ main {
         else {
             txt.print("6b fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -202,7 +202,7 @@ main {
         else {
             txt.print("7b fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -214,10 +214,10 @@ main {
         else {
             txt.print("8b fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
-        txt.chrout('\n')
+        txt.nl()
 
 
 
@@ -230,7 +230,7 @@ main {
         else {
             txt.print("1c fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -242,7 +242,7 @@ main {
         else {
             txt.print("2c fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         uwsum = 50000
@@ -254,7 +254,7 @@ main {
         else {
             txt.print("3c fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
         wsum  = -30000
         wsum -= 100
@@ -284,7 +284,7 @@ main {
         else {
             txt.print("6c fail:")
             txt.print_uw(uwsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -296,7 +296,7 @@ main {
         else {
             txt.print("7c fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         wsum  = -30000
@@ -308,7 +308,7 @@ main {
         else {
             txt.print("8c fail:")
             txt.print_w(wsum)
-            txt.chrout('\n')
+            txt.nl()
         }
     }
 

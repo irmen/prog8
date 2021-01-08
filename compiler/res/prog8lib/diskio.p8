@@ -38,7 +38,7 @@ diskio {
                     break
                 txt.chrout(char)
             }
-            txt.chrout('\n')
+            txt.nl()
             void c64.CHRIN()     ; skip 2 bytes
             void c64.CHRIN()
             status = c64.READST()
@@ -54,7 +54,7 @@ io_error:
         if status and status != 64 {            ; 64=end of file
             txt.print("\ni/o error, status: ")
             txt.print_ub(status)
-            txt.chrout('\n')
+            txt.nl()
             return false
         }
 

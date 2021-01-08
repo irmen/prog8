@@ -16,7 +16,7 @@ cx16logo {
         uword strptr
         for strptr in logo_lines
             txt.print(strptr)
-        txt.chrout('\n')
+        txt.nl()
     }
 
     str[] logo_lines = [

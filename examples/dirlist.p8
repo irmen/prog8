@@ -8,7 +8,7 @@ main {
     sub start() {
         txt.print("showing the full directory of drive 8:\n")
         void diskio.directory(8)
-        txt.chrout('\n')
+        txt.nl()
 
         if diskio.lf_start_list(8, "cub*") {
             txt.print("\nfiles starting with 'cub':\n")

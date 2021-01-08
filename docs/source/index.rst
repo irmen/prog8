@@ -86,10 +86,10 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
                 txt.print(", ")
                 amount++
             }
-            txt.chrout('\n')
+            txt.nl()
             txt.print("number of primes (expected 54): ")
             txt.print_ub(amount)
-            txt.chrout('\n')
+            txt.nl()
         }
 
         sub find_next_prime() -> ubyte {

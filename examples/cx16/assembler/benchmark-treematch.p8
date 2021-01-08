@@ -63,7 +63,7 @@ benchmark {
         if current_time<100
             txt.chrout('0')
         txt.print_uw(current_time)
-        txt.chrout('\n')
+        txt.nl()
     }
 }
 

@@ -36,7 +36,7 @@ main {
                 txt.color2(1, max_iter-iter)
                 txt.chrout(' ')
             }
-            txt.chrout('\n')
+            txt.nl()
         }
     }
 }
