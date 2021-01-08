@@ -66,7 +66,7 @@ Code example
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
     %import textio
-    %zeropage basicsafe1
+    %zeropage basicsafe
 
     main {
         ubyte[256] sieve
