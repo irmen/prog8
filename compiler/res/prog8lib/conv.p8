@@ -246,12 +246,12 @@ output		.text  "0000", $00      ; 0-terminated output buffer (to make printing e
 
 ; ---- string conversion to numbers -----
 
-asmsub  any2uword(str string @AY) -> uword @AY {
-	; -- returns the number value of the given string
-	;    the string may be in decimal, hex or binary format
+asmsub  any2uword(str string @AY) clobbers(Y) -> ubyte @A {
+	; -- parses a string into a 16 bit unsigned number. String may be in decimal, hex or binary format.
 	;    (the latter two require a $ or % prefix to be recognised)
 	;    (any non-digit character will terminate the number string that is parsed)
-	;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
+	;    returns amount of processed characters in A, and the parsed number will be in cx16.r15.
+	;    if the string was invalid, 0 will be returned in A.
 	%asm {{
 	pha
 	sta  P8ZP_SCRATCH_W1
@@ -264,11 +264,22 @@ asmsub  any2uword(str string @AY) -> uword @AY {
 	cmp  #'%'
 	beq  _bin
 	pla
-	jmp  str2uword
+	jsr  str2uword
+	jmp  _result
 _hex	pla
-	jmp  hex2uword
+	jsr  hex2uword
+	jmp  _result
 _bin	pla
-	jmp  bin2uword
+	jsr  bin2uword
+_result
+        pha
+        lda  cx16.r15
+        sta  P8ZP_SCRATCH_B1        ; result value
+        pla
+        sta  cx16.r15
+        sty  cx16.r15+1
+        lda  P8ZP_SCRATCH_B1
+        rts
 	}}
 }
 

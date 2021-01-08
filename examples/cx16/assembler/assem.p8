@@ -20,8 +20,8 @@ main {
 }
 
 textparse {
-    str[16] addr_modes =     ["Imp", "Acc", "Imm", "Zp", "ZpX", "ZpY", "Rel", "Abs", "AbsX", "AbsY", "Ind", "IzX", "IzY", "Zpr", "Izp", "IaX" ]
-    ubyte[16] operand_size = [0,     0,     1,     1,    1,     1,     1,     2,     2,      2,      2,     1,     1,     1,     1,     1]
+    ; byte counts per address mode id:
+    ubyte[16] operand_size = [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1]
 
     str input_line = "?" * 40
     uword[3] word_addrs
@@ -61,12 +61,16 @@ textparse {
             return
         }
 
-        uword value = conv.any2uword(word_addrs[2])
-        if string.compare(word_addrs[0], "*")==0 {
-            program_counter = value
-        } else {
-            set_symbol(word_addrs[0], value)
+        ubyte nlen = conv.any2uword(word_addrs[2])
+        if nlen and @(word_addrs[2]+nlen)==0 {
+            if string.compare(word_addrs[0], "*")==0 {
+                program_counter = cx16.r15
+            } else {
+                set_symbol(word_addrs[0], cx16.r15)
+            }
+            return
         }
+        txt.print("?invalid operand\n")
     }
 
     sub do_label_or_instr() {
@@ -124,34 +128,76 @@ textparse {
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) {
         uword instruction_info_ptr = instructions.match(instr_ptr)
         if instruction_info_ptr {
-            ubyte addr_mode = instructions.determine_addrmode(operand_ptr)
-            ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
-            if_cc {
-                txt.print("?invalid operand\n")
-            } else {
-                ubyte num_operand_bytes = operand_size[addr_mode-1]
-                if not parse_operand_value(operand_ptr, addr_mode) {
-                    txt.print("?invalid operand")
-                    return
-                }
-;                txt.print("(debug:) addr.mode: ")
-;                txt.print_ub(addr_mode)
-;                txt.nl()
-                txt.chrout(' ')
-                txt.print_uwhex(program_counter, 1)
-                txt.print("   ")
-                emit(opcode)
-                if num_operand_bytes==1 {
-                    emit(lsb(cx16.r0))
-                } else if num_operand_bytes == 2 {
-                    emit(lsb(cx16.r0))
-                    emit(msb(cx16.r0))
-                }
+            ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
+            ubyte addr_mode = parse_operand(operand_ptr)
+            if addr_mode {
+                txt.print("operand ok, addr-mode=")
+                txt.print_ub(addr_mode)
                 txt.nl()
+                ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
+                if_cc {
+                    txt.print("?invalid instruction\n")
+                } else {
+                    ubyte num_operand_bytes = operand_size[addr_mode-1]
+                    txt.chrout(' ')
+                    txt.print_uwhex(program_counter, 1)
+                    txt.print("   ")
+                    emit(opcode)
+                    if num_operand_bytes==1 {
+                        emit(lsb(cx16.r15))
+                    } else if num_operand_bytes == 2 {
+                        emit(lsb(cx16.r15))
+                        emit(msb(cx16.r15))
+                    }
+                    txt.nl()
+                }
+                return
             }
-        } else {
-            txt.print("?instruction error\n")
+            txt.print("?invalid operand\n")
+            return
         }
+        txt.print("?invalid instruction\n")
+    }
+
+    sub parse_operand(uword operand_ptr) -> ubyte {
+        ; parses the operand. Returns 2 things:
+        ; - addressing mode id as result value or 0 when error
+        ; - operand numeric value in cx16.r15 (if applicable)
+        ; TODO
+
+        ubyte firstchr = @(operand_ptr)
+        ubyte parsed_len
+        when firstchr {
+            0 -> return instructions.am_Imp
+            '#' -> {
+                ; lda #$99   Immediate
+                operand_ptr++
+                parsed_len = conv.any2uword(operand_ptr)
+                if parsed_len {
+                    operand_ptr += parsed_len
+                    if @(operand_ptr)==0
+                        return instructions.am_Imm
+                }
+            }
+            'a' -> {
+                ; possibly Accumulator operand
+                ; TODO parse
+                return instructions.am_Acc
+            }
+            '(' -> {
+                ; various forms of indirect
+                ; TODO parse number and other stuff
+                cx16.r15 = $98ab
+                return instructions.am_Ind
+            }
+            '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
+                ; address optionally followed by ,x or ,y
+                ; TODO Parse
+                cx16.r0 = $9988
+                return instructions.am_Abs
+            }
+        }
+        return 0
     }
 
     sub emit(ubyte value) {
@@ -184,94 +230,6 @@ textparse {
         uword a1=rndw()
         uword a6=a1+operand_ptr
         return a6
-    }
-
-    sub parse_operand_value(uword operand_ptr, ubyte addr_mode) -> ubyte {
-        ; -- returns true/false success status,  the value is in cx16.r0 if succesful
-        ; TODO number parsing error detection
-        ; TODO optimize this (coalesce various parsing options)
-
-        when addr_mode {
-            instructions.am_Imp, instructions.am_Acc -> {
-                ; nop / asl a  (no operands)
-                return true
-            }
-            instructions.am_Imm -> {
-                ; lda #$12
-                cx16.r0 = conv.any2uword(operand_ptr+1)
-                debug_print_value(operand_ptr+1)
-                return true
-            }
-            instructions.am_Zp -> {
-                ; lda  $02
-                cx16.r0 = conv.any2uword(operand_ptr)
-                debug_print_value(operand_ptr)
-                return true
-            }
-            instructions.am_Zpr -> {
-                ; brr0 $12,label
-                ; TODO parse the label, relative offset
-                cx16.r0 = conv.any2uword(operand_ptr)
-                debug_print_value(operand_ptr)
-                return true
-            }
-            instructions.am_ZpX, instructions.am_ZpY -> {
-                ; lda $02,x / lda $02,y
-                ; TODO parse the ,x/y
-                cx16.r0 = conv.any2uword(operand_ptr)
-                debug_print_value(operand_ptr)
-                return true
-            }
-            instructions.am_Rel -> {
-                ; bcc  $c000
-                cx16.r0 = conv.any2uword(operand_ptr)
-                ; TODO calcualate relative offset to current programcounter
-                debug_print_value(operand_ptr)
-                return true
-            }
-            instructions.am_Abs -> {
-                ; jmp $1234
-                cx16.r0 = conv.any2uword(operand_ptr)
-                debug_print_value(operand_ptr)
-                return true
-            }
-            instructions.am_AbsX, instructions.am_AbsY -> {
-                ; sta $3000,x / sta $3000,y
-                ; TODO parse the ,x/,y
-                cx16.r0 = conv.any2uword(operand_ptr)
-                debug_print_value(operand_ptr)
-                return true
-            }
-            instructions.am_Ind  -> {
-                ; jmp ($fffc)
-                cx16.r0 = conv.any2uword(operand_ptr+1)
-                debug_print_value(operand_ptr+1)
-                return true
-            }
-            instructions.am_IzX, instructions.am_IzY, instructions.am_IaX  -> {
-                ; lda ($02,x) / lda ($02),y / jmp ($a000,x)
-                ; TODO parse the ,x/,y
-                cx16.r0 = conv.any2uword(operand_ptr+1)
-                debug_print_value(operand_ptr+1)
-                return true
-            }
-            instructions.am_Izp  -> {
-                ; lda ($02)
-                cx16.r0 = conv.any2uword(operand_ptr+1)
-                debug_print_value(operand_ptr+1)
-                return true
-            }
-        }
-
-        return false
-
-        sub debug_print_value(uword optr) {
-            txt.print("(debug:) operand=")
-            txt.print(optr)
-            txt.print("  -> value: ")
-            txt.print_uwhex(cx16.r0, true)
-            txt.nl()
-        }
     }
 
     sub split_input() {
@@ -371,56 +329,6 @@ instructions {
     const ubyte am_Izp = 15
     const ubyte am_IaX = 16
 
-    sub determine_addrmode(uword operand_ptr) -> ubyte {
-
-        if not operand_ptr
-            return am_Imp
-
-        when @(operand_ptr) {
-            0 -> return am_Imp
-            'a' -> {
-                if @(operand_ptr+1) == 0
-                    return am_Acc
-                ; some expression
-                ; zp or absolute depends on the value of the symbol referenced
-                return am_Invalid       ; TODO
-            }
-            '#' -> {
-                if @(operand_ptr+1)
-                    return am_Imm
-                return am_Invalid
-            }
-            '(' -> {
-                ; some indirect TODO
-                ; can be (zp), (zp,x), (zp),y, (abs), (abs,x)
-                if @(operand_ptr+1)
-                    return am_Ind
-                return am_Invalid
-            }
-            '$' -> {
-                ; hex address TODO
-                ; can be followed by ,x or ,y
-                if @(operand_ptr+1)
-                    return am_Abs
-                return am_Invalid
-            }
-            '%' -> {
-                ; bin address TODO
-                ; can be followed by ,x or ,y
-                if @(operand_ptr+1)
-                    return am_Abs
-                return am_Invalid
-            }
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
-                ; absolute or indexed address TODO
-                ; can be followed by ,x or ,y
-                return am_Abs
-            }
-        }
-
-        return am_Invalid
-    }
-
     ; TODO: explore (benchmark) hash based matchers
 
     asmsub  match(uword mnemonic_ptr @AY) -> uword @AY {
@@ -468,7 +376,7 @@ instructions {
             beq  _not_found
             sta  P8ZP_SCRATCH_W2
             sty  P8ZP_SCRATCH_W2+1
-            stx  cx16.r15
+            stx  cx16.r5
 
             ; debug result address
             ;sec
@@ -481,7 +389,7 @@ instructions {
             beq  _multi_addrmodes
             iny
             lda  (P8ZP_SCRATCH_W2),y
-            cmp  cx16.r15               ; check single possible addr.mode
+            cmp  cx16.r5               ; check single possible addr.mode
             bne  _not_found
             iny
             lda  (P8ZP_SCRATCH_W2),y    ; get opcode
@@ -493,7 +401,7 @@ _not_found  lda  #0
             rts
 
 _multi_addrmodes
-            ldy  cx16.r15
+            ldy  cx16.r5
             lda  (P8ZP_SCRATCH_W2),y    ; check opcode for addr.mode
             bne  _valid
             ; opcode $00 usually means 'invalid' but for "brk" it is actually valid so check for "brk"

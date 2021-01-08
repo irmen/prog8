@@ -7,183 +7,70 @@
 main {
 
     sub start() {
-        txt.print("yo")
+        txt.print_ub(conv.any2uword("1"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
         txt.nl()
 
+        txt.print_ub(conv.any2uword("11"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("12345"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("65501"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("999999999"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("%10101010"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("$ff"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("$ff99aa"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("%ff"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("abc"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword("$zzzz"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword(" 1234"))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
+
+        txt.print_ub(conv.any2uword(""))
+        txt.chrout(':')
+        txt.print_uw(cx16.r0)
+        txt.nl()
         test_stack.test()
-
-    }
-
-    sub start2 () {
-        str[] binstrings = [
-            "",
-            "%",
-            "%0",
-            "$0",
-            "%1",
-            "101",
-            "%11111111",
-            "%1111    ",
-            "%  1111    ",
-            "%1111%",
-            "%1111)",
-            "%1111,",
-            "%1111.",
-            "%1111foo",
-            "%1111000010101010",
-            "%1111000010101010111"
-        ]
-        str[] hexstrings = [
-            "",
-            "$",
-            "$0",
-            "%0",
-            "$1",
-            "$9",
-            "9934",
-            "$91",
-            "$91    ",
-            "$  91    ",
-            "$12ae$",
-            "$12ae)",
-            "$12ae,",
-            "$12ae.",
-            "$12aez00",
-            "$12345"
-        ]
-        str[] posdecstrings = [
-            "",
-            "0",
-            "1",
-            "9",
-            "$9",
-            "10",
-            "11",
-            "123",
-            "255",
-            "62221",
-            "42    ",
-            "  42    ",
-            "42$",
-            "42)",
-            "42,",
-            "42.",
-            "42aaaa"
-        ]
-        str[] worddecstrings = [
-            "",
-            "0",
-            "1",
-            "9",
-            "$9",
-            "10",
-            "11",
-            "123",
-            "255",
-            "62221",
-            "42    ",
-            "  42    ",
-            "42$",
-            "42)",
-            "42,",
-            "42.",
-            "42aaaa",
-            "-",
-            "-0",
-            "-1",
-            "-9",
-            "$9",
-            "-10",
-            "-11",
-            "-123",
-            "-255",
-            "-62221",
-            "-32221",
-            "-42    ",
-            "-  42    ",
-            "-42-",
-            "-42$",
-            "-42)",
-            "-42,",
-            "-42.",
-            "-42aaaa"
-        ]
-
-        uword value
-        word wvalue
-        uword strptr
-        for strptr in binstrings {
-            value = conv.bin2uword(strptr)
-            txt.print(strptr)
-            txt.print(" = ")
-            txt.print_uw(value)
-            txt.print(" = ")
-            txt.print_uwbin(value, true)
-            txt.print("  #")
-            txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.nl()
-        }
-
-        txt.nl()
-        for strptr in hexstrings {
-            value = conv.hex2uword(strptr)
-            txt.print(strptr)
-            txt.print(" = ")
-            txt.print_uw(value)
-            txt.print(" = ")
-            txt.print_uwhex(value, true)
-            txt.print("  #")
-            txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.nl()
-        }
-
-        txt.nl()
-        for strptr in posdecstrings {
-            value = conv.str2uword(strptr)
-            txt.print(strptr)
-            txt.print(" = ")
-            txt.print_uw(value)
-            txt.print("  #")
-            txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.nl()
-        }
-
-        txt.nl()
-        for strptr in worddecstrings {
-            wvalue = conv.str2word(strptr)
-            txt.print(strptr)
-            txt.print(" = ")
-            txt.print_w(wvalue)
-            txt.print("  #")
-            txt.print_uw(cx16.r15)  ; number of chars processedc
-            txt.nl()
-        }
-
-
-;        found = string.find("irmen de jong", ' ')
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-;        found = string.find(" irmen-de-jong", ' ')
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-;        found = string.find("irmen-de-jong ", ' ')
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-;        found = string.find("irmen-de-jong", ' ')
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-
-;        found = strfinds("irmen de jong", "de")
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-;        found = strfinds("irmen de jong", "irmen")
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-;        found = strfinds("irmen de jong", "jong")
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
-;        found = strfinds("irmen de jong", "de456")
-;        txt.print_uwhex(found, 1)
-;        txt.nl()
     }
 }
