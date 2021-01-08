@@ -27,7 +27,7 @@ graphics {
     }
 
     sub clear_screen(ubyte pixelcolor, ubyte bgcolor) {
-        memset(BITMAP_ADDRESS, 320*200/8, 0)
+        sys.memset(BITMAP_ADDRESS, 320*200/8, 0)
         txt.fill_screen(pixelcolor << 4 | bgcolor, 0)
     }
 

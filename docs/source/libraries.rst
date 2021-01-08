@@ -34,7 +34,9 @@ as ROM/kernal subroutine definitions, memory location constants, and utility sub
 Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
 to write programs that work on both targets without modifications.
 
-``sys.target``
+sys (part of syslib)
+--------------------
+``target``
     A constant ubyte value designating the target machine that the program is compiled for.
     Notice that this is a compile-time constant value and is not determined on the
     system when the program is running.
@@ -43,6 +45,23 @@ to write programs that work on both targets without modifications.
     - 16 = compiled for CommanderX16 with 65C02 CPU
     - 64 = compiled for Commodore-64 with 6502/6510 CPU
 
+``memcopy(from, to, numbytes)``
+    Efficiently copy a number of bytes from a memory location to another.
+    NOTE: 'to' must NOT overlap with 'from', unless it is *before* 'from'.
+    Because this function imposes some overhead to handle the parameters,
+    it is only faster if the number of bytes is larger than a certain threshold.
+    Compare the generated code to see if it was beneficial or not.
+    The most efficient will often be to write a specialized copy routine in assembly yourself!
+
+``memset(address, numbytes, bytevalue)``
+    Efficiently set a part of memory to the given (u)byte value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note that for clearing the screen, very fast specialized subroutines are
+    available in the ``textio`` and ``graphics`` library modules.
+
+``memsetw(address, numwords, wordvalue)``
+    Efficiently set a part of memory to the given (u)word value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
 
 
 conv

@@ -439,7 +439,7 @@ io_error:
         ubyte flen = string.length(filenameptr)
         filename[0] = 's'
         filename[1] = ':'
-        memcopy(filenameptr, &filename+2, flen+1)
+        sys.memcopy(filenameptr, &filename+2, flen+1)
         c64.SETNAM(flen+2, filename)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
@@ -453,9 +453,9 @@ io_error:
         ubyte flen_new = string.length(newfileptr)
         filename[0] = 'r'
         filename[1] = ':'
-        memcopy(newfileptr, &filename+2, flen_new)
+        sys.memcopy(newfileptr, &filename+2, flen_new)
         filename[flen_new+2] = '='
-        memcopy(oldfileptr, &filename+3+flen_new, flen_old+1)
+        sys.memcopy(oldfileptr, &filename+3+flen_new, flen_old+1)
         c64.SETNAM(3+flen_new+flen_old, filename)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()

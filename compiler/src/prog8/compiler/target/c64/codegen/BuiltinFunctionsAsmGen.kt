@@ -7,8 +7,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.CompilationTarget
-import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
@@ -60,6 +58,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "ror2" -> funcRor2(fcall)
             "sort" -> funcSort(fcall)
             "reverse" -> funcReverse(fcall)
+            "memory" -> funcMemory(fcall, discardResult, resultToStack)
+            // TODO move all of the functions below to the sys module as well:
             "rsave" -> {
                 // save cpu status flag and all registers A, X, Y.
                 // see http://6502.org/tutorials/register_preservation.html
@@ -79,7 +79,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "set_carry" -> asmgen.out("  sec")
             "clear_irqd" -> asmgen.out("  cli")
             "set_irqd" -> asmgen.out("  sei")
-            "memcopy", "memset", "memsetw" -> funcMemSetCopy(fcall, func, sscope)
             "exit" -> {
                 translateArguments(fcall.args, func, sscope)
                 asmgen.out("  jmp  prog8_lib.func_exit")
@@ -95,7 +94,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else
                     asmgen.out("  lda  #<prog8_program_end |  ldy  #>prog8_program_end")
             }
-            "memory" -> funcMemory(fcall, discardResult, resultToStack)
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }
     }
@@ -127,61 +125,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val nameDecl = scope.statements.single { it is VarDecl && it.name==nameRef.nameInSource.single() }
         asmgen.removals.add(Pair(nameDecl, scope))
         asmgen.slabs[name] = size
-    }
-
-    private fun funcMemSetCopy(fcall: IFunctionCall, func: FSignature, scope: Subroutine?) {
-        if(CompilationTarget.instance is Cx16Target) {
-            when(func.name) {
-                "memset" -> {
-                    if(scope==null)
-                        throw AssemblyError("cannot call memset() outside of a subroutine scope")
-                    // use the ROM function of the Cx16
-                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
-                    asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.A)
-                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
-                    asmgen.out("  jsr  cx16.memory_fill")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
-                }
-                "memcopy" -> {
-                    val count = fcall.args[2].constValue(program)?.number?.toInt()
-                    val countDt = fcall.args[2].inferType(program)
-                    if((count!=null && count <= 255) || countDt.istype(DataType.UBYTE) || countDt.istype(DataType.BYTE)) {
-                        // fast memcopy of up to 255
-                        translateArguments(fcall.args, func, scope)
-                        asmgen.out("  jsr  prog8_lib.func_memcopy255")
-                        return
-                    }
-
-                    if(scope==null)
-                        throw AssemblyError("cannot call memcopy() outside of a subroutine scope")
-
-                    // use the ROM function of the Cx16
-                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R0)
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R1)
-                    asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R2)
-                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
-                    asmgen.out("  jsr  cx16.memory_copy")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
-                }
-                "memsetw" -> {
-                    translateArguments(fcall.args, func, scope)
-                    asmgen.out("  jsr  prog8_lib.func_memsetw")
-                }
-            }
-        } else {
-            if(func.name=="memcopy") {
-                val count = fcall.args[2].constValue(program)?.number?.toInt()
-                val countDt = fcall.args[2].inferType(program)
-                if((count!=null && count <= 255) || countDt.istype(DataType.UBYTE) || countDt.istype(DataType.BYTE)) {
-                    translateArguments(fcall.args, func, scope)
-                    asmgen.out("  jsr  prog8_lib.func_memcopy255")
-                    return
-                }
-            }
-            translateArguments(fcall.args, func, scope)
-            asmgen.out("  jsr  prog8_lib.func_${func.name}")
-        }
     }
 
     private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {

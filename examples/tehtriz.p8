@@ -199,7 +199,7 @@ waitkey:
         ubyte[boardHeight] complete_lines
         ubyte num_lines=0
         ubyte linepos
-        memset(complete_lines, len(complete_lines), 0)
+        sys.memset(complete_lines, len(complete_lines), 0)
         for linepos in boardOffsetY to boardOffsetY+boardHeight-1 {
             if blocklogic.isLineFull(linepos) {
                 complete_lines[num_lines]=linepos
@@ -444,7 +444,7 @@ blocklogic {
 
     sub newCurrentBlock(ubyte block) {
         currentBlockNum = block
-        memcopy(blocks[block], currentBlock, len(currentBlock))
+        sys.memcopy(blocks[block], currentBlock, len(currentBlock))
     }
 
     sub rotateCW() {
@@ -467,11 +467,11 @@ blocklogic {
             rotated[13] = currentBlock[11]
             rotated[14] = currentBlock[7]
             rotated[15] = currentBlock[3]
-            memcopy(rotated, currentBlock, len(currentBlock))
+            sys.memcopy(rotated, currentBlock, len(currentBlock))
         }
         else if currentBlockNum!=3 {
             ; rotate all blocks (except 3, the square) around their center square in a 3x3 matrix
-            memset(rotated, len(rotated), 0)
+            sys.memset(rotated, len(rotated), 0)
             rotated[0] = currentBlock[8]
             rotated[1] = currentBlock[4]
             rotated[2] = currentBlock[0]
@@ -481,7 +481,7 @@ blocklogic {
             rotated[8] = currentBlock[10]
             rotated[9] = currentBlock[6]
             rotated[10] = currentBlock[2]
-            memcopy(rotated, currentBlock, len(currentBlock))
+            sys.memcopy(rotated, currentBlock, len(currentBlock))
         }
     }
 
@@ -505,11 +505,11 @@ blocklogic {
             rotated[13] = currentBlock[4]
             rotated[14] = currentBlock[8]
             rotated[15] = currentBlock[12]
-            memcopy(rotated, currentBlock, len(currentBlock))
+            sys.memcopy(rotated, currentBlock, len(currentBlock))
         }
         else if currentBlockNum!=3 {
             ; rotate all blocks (except 3, the square) around their center square in a 3x3 matrix
-            memset(rotated, len(rotated), 0)
+            sys.memset(rotated, len(rotated), 0)
             rotated[0] = currentBlock[2]
             rotated[1] = currentBlock[6]
             rotated[2] = currentBlock[10]
@@ -519,7 +519,7 @@ blocklogic {
             rotated[8] = currentBlock[0]
             rotated[9] = currentBlock[4]
             rotated[10] = currentBlock[8]
-            memcopy(rotated, currentBlock, len(currentBlock))
+            sys.memcopy(rotated, currentBlock, len(currentBlock))
         }
     }
 

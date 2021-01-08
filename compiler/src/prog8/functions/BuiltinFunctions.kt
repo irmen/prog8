@@ -144,18 +144,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("progend"     , true, emptyList(), DataType.UWORD),
     FSignature("memory"      , true, listOf(FParam("name", setOf(DataType.STR)), FParam("size", setOf(DataType.UWORD))), DataType.UWORD),
     FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
-    FSignature("memcopy"     , false, listOf(
-                            FParam("from", IterableDatatypes + DataType.UWORD),
-                            FParam("to", IterableDatatypes + DataType.UWORD),
-                            FParam("numbytes", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("memset"      , false, listOf(
-                            FParam("address", IterableDatatypes + DataType.UWORD),
-                            FParam("numbytes", setOf(DataType.UWORD)),
-                            FParam("bytevalue", ByteDatatypes)), null),
-    FSignature("memsetw"     , false, listOf(
-                            FParam("address", IterableDatatypes + DataType.UWORD),
-                            FParam("numwords", setOf(DataType.UWORD)),
-                            FParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null)
+
 )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }

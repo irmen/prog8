@@ -140,7 +140,7 @@ main {
     sub draw_lines_hiddenremoval() {
         ; complex drawing routine that draws the ship model based on its faces,
         ; where it uses the surface normals to determine visibility.
-        memset(edgestodraw, shipdata.totalNumberOfEdges, true)
+        sys.memset(edgestodraw, shipdata.totalNumberOfEdges, true)
         ubyte @zp edgeIdx = 0
         ubyte @zp pointIdx = 0
         ubyte faceNumber

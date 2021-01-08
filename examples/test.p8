@@ -7,7 +7,11 @@
 main {
 
     sub start() {
-        txt.print_ub(sys.target)
+        sys.memset($0400+5*40, 40*20-1, '*')
+        sys.memsetw($0400+40*10, 40*10/2, $2299)
+        sys.memcopy($a000, $0400, 1000-3)
+        sys.memset($0400+10*40, 14*40, 'a')
+        sys.memcopy($0400+10*40, $0400, 3*40)
     }
 
     sub start2 () {

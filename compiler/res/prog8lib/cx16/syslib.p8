@@ -497,4 +497,32 @@ sys {
         }
     }
 
+    inline asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
+        %asm {{
+            sta  cx16.r2
+            sty  cx16.r2+1
+            jsr  cx16.memory_copy
+        }}
+    }
+
+    inline asmsub memset(uword mem @R0, uword numbytes @R1, ubyte value @A) clobbers(A,X,Y) {
+        %asm {{
+            jsr  cx16.memory_fill
+        }}
+    }
+
+    asmsub memsetw(uword mem @R0, uword numwords @R1, uword value @AY) clobbers (A,X,Y) {
+        %asm {{
+            ldx  cx16.r0
+            stx  P8ZP_SCRATCH_W1
+            ldx  cx16.r0+1
+            stx  P8ZP_SCRATCH_W1+1
+            ldx  cx16.r1
+            stx  P8ZP_SCRATCH_W2
+            ldx  cx16.r1+1
+            stx  P8ZP_SCRATCH_W2+1
+            jmp  prog8_lib.memsetw
+        }}
+    }
+
 }

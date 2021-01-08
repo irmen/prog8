@@ -119,7 +119,7 @@ trader {
         ship.cash = savedata.cash
         ship.Max_cargo = savedata.max_cargo
         ship.fuel = savedata.fuel
-        memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))
+        sys.memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))
         galaxy.travel_to(savedata.galaxy, savedata.planet)
 
         planet.display(false)
@@ -131,7 +131,7 @@ trader {
         savedata.cash = ship.cash
         savedata.max_cargo = ship.Max_cargo
         savedata.fuel = ship.fuel
-        memcopy(ship.cargohold, &savedata.cargo0, len(ship.cargohold))
+        sys.memcopy(ship.cargohold, &savedata.cargo0, len(ship.cargohold))
 
         txt.print("\nSaving universe...")
         diskio.delete(8, Savegame)
@@ -303,7 +303,7 @@ ship {
     ubyte[17] cargohold = 0
 
     sub init() {
-        memset(cargohold, len(cargohold), 0)
+        sys.memset(cargohold, len(cargohold), 0)
     }
 
     sub cargo_free() -> ubyte {
@@ -954,11 +954,11 @@ util {
         return false
     }
 
-    sub print_right(ubyte width, uword string) {
-        repeat width - string.length(string) {
+    sub print_right(ubyte width, uword st) {
+        repeat width - string.length(st) {
             txt.chrout(' ')
         }
-        txt.print(string)
+        txt.print(st)
     }
 
     asmsub print_10s(uword value @AY) clobbers(A, X, Y) {

@@ -2,7 +2,7 @@
 TODO
 ====
 
-- move all mem* builtins to the sys module. update docs.
+- move the other marked functions in  builtinfunctionsasmgen to the sys module as well. update docs.
 - use (zp) addressing mode on 65c02 specific code rather than ldy#0 / lda (zp),y
 - optimize pointer access code @(pointer)? use a subroutine? macro?  65c02 vs 6502?
 - allow byte return type with single register for asmsubs, for instance string.compare

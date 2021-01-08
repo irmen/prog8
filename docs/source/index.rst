@@ -55,7 +55,7 @@ Language features
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
 - Variable data types include signed and unsigned bytes and words, arrays, strings and floats.
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
-- Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``substr``, ``sort`` and ``reverse`` (and others)
+- Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the C64.
 - If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
@@ -66,7 +66,7 @@ Code example
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
     %import textio
-    %zeropage basicsafe
+    %zeropage basicsafe1
 
     main {
         ubyte[256] sieve
@@ -74,7 +74,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
         sub start() {
             ; clear the sieve, to reset starting situation on subsequent runs
-            memset(sieve, 256, false)
+            sys.memset(sieve, 256, false)
             ; calculate primes
             txt.print("prime numbers up to 255:\n\n")
             ubyte amount=0

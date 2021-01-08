@@ -33,7 +33,7 @@ charset {
         set_irqd()
         ubyte bank = @($0001)
         @($0001) = bank & %11111011     ; enable CHAREN, so the character rom accessible at $d000
-        memcopy($d000, CHARSET, 256*8*2)  ; copy the charset to RAM
+        sys.memcopy($d000, CHARSET, 256*8*2)  ; copy the charset to RAM
 
         @($0001) = bank         ; reset previous memory banking
         clear_irqd()
@@ -79,7 +79,7 @@ charset {
             %00111100
         ]
 
-        memcopy(smiley, CHARSET, len(smiley))
+        sys.memcopy(smiley, CHARSET, len(smiley))
 
     }
 }
