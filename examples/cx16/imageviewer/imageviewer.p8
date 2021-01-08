@@ -113,7 +113,7 @@ main {
         gfx2.screen_mode(255)      ; back to default text mode and palette
         txt.print(filenameptr)
         txt.print(": load error\n")
-        exit(1)
+        sys.exit(1)
     }
 
     sub extension_equals(uword stringptr, uword extensionptr) -> ubyte {

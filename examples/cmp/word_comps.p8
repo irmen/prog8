@@ -145,7 +145,7 @@ main {
                 txt.print(" <= ")
                 txt.print_uw(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
 
@@ -172,7 +172,7 @@ main {
                 txt.print(" not <= ")
                 txt.print_uw(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
     }
@@ -328,7 +328,7 @@ main {
                 txt.print(" > ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
 
@@ -362,7 +362,7 @@ main {
                 txt.print(" not > ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
     }
@@ -518,7 +518,7 @@ main {
                 txt.print(" >= ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
 
@@ -552,7 +552,7 @@ main {
                 txt.print(" not >= ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
     }
@@ -702,7 +702,7 @@ main {
                 txt.print(" <= ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
 
@@ -729,7 +729,7 @@ main {
                 txt.print(" not <= ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
     }
@@ -878,7 +878,7 @@ main {
                 txt.print(" < ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
 
@@ -905,7 +905,7 @@ main {
                 txt.print(" not < ")
                 txt.print_w(w2)
                 txt.chrout('\n')
-                exit(1)
+                sys.exit(1)
             }
         }
     }

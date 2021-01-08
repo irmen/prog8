@@ -30,13 +30,13 @@ charset {
     sub copy_rom_charset() {
         ; copies the charset from ROM to RAM so we can modify it
 
-        set_irqd()
+        sys.set_irqd()
         ubyte bank = @($0001)
         @($0001) = bank & %11111011     ; enable CHAREN, so the character rom accessible at $d000
         sys.memcopy($d000, CHARSET, 256*8*2)  ; copy the charset to RAM
 
         @($0001) = bank         ; reset previous memory banking
-        clear_irqd()
+        sys.clear_irqd()
     }
 
     sub make_custom_charset() {

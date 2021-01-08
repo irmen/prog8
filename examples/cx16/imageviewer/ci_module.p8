@@ -51,7 +51,7 @@ ci_module {
     sub show_image(uword filename) -> ubyte {
         uword buffer = memory("buffer", 620*2)        ; enough to store two scanlines of 640 bytes
         ubyte read_success = false
-        uword bitmap_load_address = progend()
+        uword bitmap_load_address = sys.progend()
         ; uword max_bitmap_size = $9eff - bitmap_load_address
 
         if(diskio.f_open(8, filename)) {

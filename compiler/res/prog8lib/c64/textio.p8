@@ -19,6 +19,14 @@ sub  clear_screen() {
     txt.chrout(147)
 }
 
+sub nl() {
+    txt.chrout('\n')
+}
+
+sub home() {
+    txt.chrout(19)
+}
+
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
 	;      (assumes screen and color matrix are at their default addresses)

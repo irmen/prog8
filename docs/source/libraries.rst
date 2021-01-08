@@ -45,6 +45,10 @@ sys (part of syslib)
     - 16 = compiled for CommanderX16 with 65C02 CPU
     - 64 = compiled for Commodore-64 with 6502/6510 CPU
 
+``exit(returncode)``
+    Immediately stops the program and exits it, with the returncode in the A register.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
 ``memcopy(from, to, numbytes)``
     Efficiently copy a number of bytes from a memory location to another.
     NOTE: 'to' must NOT overlap with 'from', unless it is *before* 'from'.
@@ -62,6 +66,38 @@ sys (part of syslib)
 ``memsetw(address, numwords, wordvalue)``
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
+
+``rsave()``
+    Saves the CPU registers and the status flags.
+    You can now more or less 'safely' use the registers directly, until you
+    restore them again so the generated code can carry on normally.
+    Note: it's not needed to rsave() before an asm subroutine that clobbers the X register
+    (which is used as the internal evaluation stack pointer).
+    The compiler will take care of this situation automatically.
+    Note: the 16 bit 'virtual' registers of the Commander X16 are *not* saved.
+
+``rrestore()``
+    Restores the CPU registers and the status flags from previously saved values.
+    Note: the 16 bit 'virtual' registers of the Commander X16 are *not* restored.
+
+``read_flags() -> ubyte``
+    Returns the current value of the CPU status register.
+
+``set_carry()``
+    Sets the CPU status register Carry flag.
+
+``clear_carry()``
+    Clears the CPU status register Carry flag.
+
+``set_irqd()``
+    Sets the CPU status register Interrupt Disable flag.
+
+``clear_irqd()``
+    Clears the CPU status register Interrupt Disable flag.
+
+``progend()``
+    Returns the last address of the program in memory + 1.
+    Can be used to load dynamic data after the program, instead of hardcoding something.
 
 
 conv

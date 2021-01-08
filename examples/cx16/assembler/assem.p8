@@ -170,13 +170,13 @@ textparse {
         txt.chrout('\n')
     }
 
-    sub lowercase(uword string) {
+    sub lowercase(uword st) {
         ; TODO optimize in asm
-        ubyte char = @(string)
+        ubyte char = @(st)
         while char {
-            @(string) = char & 127
-            string++
-            char = @(string)
+            @(st) = char & 127
+            st++
+            char = @(st)
         }
     }
 

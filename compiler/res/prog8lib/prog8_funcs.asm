@@ -1078,21 +1078,3 @@ _loop_hi	ldy  _index_first
 		.pend
 
 
-func_exit	.proc
-		; -- immediately exit the program with a return code in the A register
-		jsr  c64.CLRCHN		; reset i/o channels
-		ldx  orig_stackpointer
-		txs
-		rts		; return to original caller
-		.pend
-
-
-func_read_flags_stack	.proc
-		; -- put the processor status register on the stack
-		php
-		pla
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-

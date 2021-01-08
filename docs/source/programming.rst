@@ -781,10 +781,6 @@ sort(array)
 
 Miscellaneous
 ^^^^^^^^^^^^^
-exit(returncode)
-    Immediately stops the program and exits it, with the returncode in the A register.
-    Note: custom interrupt handlers remain active unless manually cleared first!
-
 lsb(x)
     Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".
 
@@ -834,35 +830,11 @@ ror2(x)
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-rsave()
-    Saves the CPU registers and the status flags.
-    You can now more or less 'safely' use the registers directly, until you
-    restore them again so the generated code can carry on normally.
-    Note: it's not needed to rsave() before an asm subroutine that clobbers the X register
-    (which is used as the internal evaluation stack pointer).
-    The compiler will take care of this situation automatically.
-    Note: the 16 bit 'virtual' registers of the Commander X16 are not saved.
-
-rrestore()
-    Restores the CPU registers and the status flags from previously saved values.
-    Note: the 16 bit 'virtual' registers of the Commander X16 are not restored.
-
-read_flags()
-    Returns the current value of the CPU status register.
-
 sizeof(name)
     Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
     the object. For instance, for a variable of type uword, the sizeof is 2.
     For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
-
-set_carry()  /  clear_carry()
-    Set (or clear) the CPU status register Carry flag. No result value.
-    (translated into ``SEC`` or ``CLC`` cpu instruction)
-
-set_irqd()  /  clear_irqd()
-    Set (or clear) the CPU status register Interrupt Disable flag. No result value.
-    (translated into ``SEI`` or ``CLI`` cpu instruction)
 
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
@@ -874,10 +846,6 @@ memory(name, size)
     not suffice for instance if you need more than 256 bytes, and/or don't want to work
     with fixed memory addresses for buffers.
     The portion of memory cannot be used as an array, you only have the address of the first byte.
-
-progend()
-    Returns the last address of the program in memory + 1.
-    Can be used to load dynamic data after the program, instead of hardcoding something.
 
 
 Library routines

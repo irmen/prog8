@@ -21,7 +21,7 @@ iff_module {
         str chunk_id = "????"
         uword chunk_size_hi
         uword chunk_size_lo
-        uword scanline_data_ptr = progend()
+        uword scanline_data_ptr = sys.progend()
 
         uword width
         uword height

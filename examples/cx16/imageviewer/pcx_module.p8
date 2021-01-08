@@ -38,7 +38,7 @@ pcx_module {
                                     load_ok = c64.CHRIN()
                                     if load_ok == 12 {
                                         ; there is 256 colors of palette data at the end
-                                        uword palette_mem = progend()
+                                        uword palette_mem = sys.progend()
                                         load_ok = false
                                         size = diskio.f_read(palette_mem, 3*256)
                                         if size==3*256 {

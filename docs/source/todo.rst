@@ -2,10 +2,8 @@
 TODO
 ====
 
-- move the other marked functions in  builtinfunctionsasmgen to the sys module as well. update docs.
 - use (zp) addressing mode on 65c02 specific code rather than ldy#0 / lda (zp),y
 - optimize pointer access code @(pointer)? use a subroutine? macro?  65c02 vs 6502?
-- allow byte return type with single register for asmsubs, for instance string.compare
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)

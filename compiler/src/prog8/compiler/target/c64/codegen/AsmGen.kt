@@ -850,7 +850,7 @@ internal class AsmGen(private val program: Program,
                 }
                 out("""
                     tsx
-                    stx  prog8_lib.orig_stackpointer    ; required for func_exit                    
+                    stx  prog8_lib.orig_stackpointer    ; required for sys.exit()                    
                     ldx  #255       ; init estack ptr
                     clv
                     clc""")

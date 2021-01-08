@@ -15,8 +15,16 @@ const ubyte DEFAULT_WIDTH = 80
 const ubyte DEFAULT_HEIGHT = 60
 
 
-sub  clear_screen() {
+sub clear_screen() {
     txt.chrout(147)
+}
+
+sub nl() {
+    txt.chrout('\n')
+}
+
+sub home() {
+    txt.chrout(19)
 }
 
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {

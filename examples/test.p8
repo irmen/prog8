@@ -7,11 +7,30 @@
 main {
 
     sub start() {
-        sys.memset($0400+5*40, 40*20-1, '*')
-        sys.memsetw($0400+40*10, 40*10/2, $2299)
-        sys.memcopy($a000, $0400, 1000-3)
-        sys.memset($0400+10*40, 14*40, 'a')
-        sys.memcopy($0400+10*40, $0400, 3*40)
+        ubyte zero=0
+        ubyte ub
+
+        sys.clear_carry()
+        sys.clear_irqd()
+        ub = sys.read_flags()
+        txt.print_ubbin(ub,1)
+        txt.chrout('\n')
+        sys.clear_carry()
+        ub = zero+sys.read_flags()+zero
+        txt.print_ubbin(ub,1)
+        txt.chrout('\n')
+        sys.set_carry()
+        sys.set_irqd()
+        ub = sys.read_flags()
+        txt.print_ubbin(ub,1)
+        txt.chrout('\n')
+        sys.set_carry()
+        ub = zero+sys.read_flags()+zero
+        txt.print_ubbin(ub,1)
+        txt.chrout('\n')
+
+        test_stack.test()
+
     }
 
     sub start2 () {

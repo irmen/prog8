@@ -59,41 +59,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "sort" -> funcSort(fcall)
             "reverse" -> funcReverse(fcall)
             "memory" -> funcMemory(fcall, discardResult, resultToStack)
-            // TODO move all of the functions below to the sys module as well:
-            "rsave" -> {
-                // save cpu status flag and all registers A, X, Y.
-                // see http://6502.org/tutorials/register_preservation.html
-                asmgen.out(" php |  sta  P8ZP_SCRATCH_REG | pha  | txa  | pha  | tya  | pha  | lda  P8ZP_SCRATCH_REG")
-            }
-            "rrestore" -> {
-                // restore all registers and cpu status flag
-                asmgen.out(" pla |  tay |  pla |  tax |  pla |  plp")
-            }
-            "read_flags" -> {
-                if(resultToStack)
-                    asmgen.out("  jsr  prog8_lib.func_read_flags_stack")
-                else
-                    asmgen.out("  php |  pla")
-            }
-            "clear_carry" -> asmgen.out("  clc")
-            "set_carry" -> asmgen.out("  sec")
-            "clear_irqd" -> asmgen.out("  cli")
-            "set_irqd" -> asmgen.out("  sei")
-            "exit" -> {
-                translateArguments(fcall.args, func, sscope)
-                asmgen.out("  jmp  prog8_lib.func_exit")
-            }
-            "progend" -> {
-                if(resultToStack)
-                    asmgen.out("""
-                        lda  #<prog8_program_end
-                        sta  P8ESTACK_LO,x
-                        lda  #>prog8_program_end
-                        sta  P8ESTACK_HI,x
-                        dex""")
-                else
-                    asmgen.out("  lda  #<prog8_program_end |  ldy  #>prog8_program_end")
-            }
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }
     }

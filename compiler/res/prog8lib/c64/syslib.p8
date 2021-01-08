@@ -571,6 +571,82 @@ _longcopy
         }}
     }
 
+
+    inline asmsub rsave() {
+        ; save cpu status flag and all registers A, X, Y.
+        ; see http://6502.org/tutorials/register_preservation.html
+        %asm {{
+            php
+            sta  P8ZP_SCRATCH_REG
+            pha
+            txa
+            pha
+            tya
+            pha
+            lda  P8ZP_SCRATCH_REG
+        }}
+    }
+
+    inline asmsub rrestore() {
+        ; restore all registers and cpu status flag
+        %asm {{
+            pla
+            tay
+            pla
+            tax
+            pla
+            plp
+        }}
+    }
+
+    inline asmsub read_flags() -> ubyte @A {
+        %asm {{
+            php
+            pla
+        }}
+    }
+
+    inline asmsub clear_carry() {
+        %asm {{
+            clc
+        }}
+    }
+
+    inline asmsub set_carry() {
+        %asm {{
+            sec
+        }}
+    }
+
+    inline asmsub clear_irqd() {
+        %asm {{
+            cli
+        }}
+    }
+
+    inline asmsub set_irqd() {
+        %asm {{
+            sei
+        }}
+    }
+
+    inline asmsub exit(ubyte returnvalue @A) {
+        ; -- immediately exit the program with a return code in the A register
+        %asm {{
+            jsr  c64.CLRCHN		; reset i/o channels
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            rts		; return to original caller
+        }}
+    }
+
+    inline asmsub progend() -> uword @AY {
+        %asm {{
+            lda  #<prog8_program_end
+            ldy  #>prog8_program_end
+        }}
+    }
+
 }
 
 cx16 {
