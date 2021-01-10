@@ -293,23 +293,32 @@ _in_buffer      sta  $ffff
 
     asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
-        ; Reads characters from the input file until (and including) a newline or return character (or EOF).
-        ; The line read will be 0-terminated in the buffer. The length of the line is returned in Y.
+        ; Reads characters from the input file UNTIL a newline or return character (or EOF).
+        ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
+        ; The length of the line is returned in Y.
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
             ldx  #11
             jsr  c64.CHKIN              ; use channel 11 again for input
             ldy  #0
+            lda  have_first_byte
+            beq  _loop
+            lda  #0
+            sta  have_first_byte
+            lda  first_byte
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
 _loop       jsr  c64.CHRIN
             sta  (P8ZP_SCRATCH_W1),y
             beq  _end
             iny
             cmp  #$0a
-            beq  _zero_end
+            beq  _line_end
             cmp  #$0d
             bne  _loop
-_zero_end   lda  #0
+_line_end   dey     ; get rid of the trailing end-of-line char
+            lda  #0
             sta  (P8ZP_SCRATCH_W1),y
 _end        rts
         }}

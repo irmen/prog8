@@ -1,11 +1,10 @@
 %target cx16
 %import test_stack
 %import textio
+%import diskio
 %import string
 %zeropage basicsafe
 %option no_sysinit
-
-; TODO : NOTE: treat $0a (10 - line feed) and $0c (13 - normal petscii Return) both as line separators
 
 main {
 
@@ -13,11 +12,51 @@ main {
         txt.lowercase()
         txt.print("\nAssembler.\nEmpty line to stop.\n")
 
-        textparse.user_input()
+        ; user_input()
+        file_input()
 
         ; test_stack.test()
     }
 
+    sub user_input() {
+        repeat {
+            ubyte input_length = 0
+            txt.chrout('A')
+            txt.print_uwhex(textparse.program_counter, 1)
+            txt.print(": ")
+            ; simulate user always having at least one space at the start
+            textparse.input_line[0] = ' '
+            input_length = txt.input_chars(&textparse.input_line+1)
+            txt.nl()
+
+            if not input_length {
+                txt.print("exit\n")
+                return
+            }
+
+            textparse.process_line()
+        }
+    }
+
+    sub file_input() {
+        if diskio.f_open(8, "romdis.asm") {
+            uword line=0
+            repeat 5 {
+                if diskio.f_readline(textparse.input_line) {
+                    line++
+                    txt.print_uw(line)
+                    txt.chrout(':')
+                    txt.print(textparse.input_line)
+                    txt.nl()
+                    textparse.process_line()
+                    if c64.READST()         ; TODO also check STOP key
+                        break
+                } else
+                    break
+            }
+            diskio.f_close()
+        }
+    }
 }
 
 textparse {
@@ -28,31 +67,16 @@ textparse {
     uword[3] word_addrs
     uword program_counter = $4000
 
-    sub user_input() {
-        repeat {
-            ubyte input_length = 0
-            txt.chrout('A')
-            txt.print_uwhex(program_counter, 1)
-            txt.print(": ")
-            ; simulate user always having at least one space at the start
-            input_line[0] = ' '
-            input_length = txt.input_chars(&input_line+1)
-            txt.nl()
-
-            if not input_length {
-                txt.print("exit\n")
-                return
-            }
-
+    sub process_line() {
+            string.lower(input_line)
             preprocess_assignment_spacing()
             split_input()
-            ; debug_print_words()
+            debug_print_words()
 
             if word_addrs[1] and @(word_addrs[1])=='='
                 do_assign()
             else
                 do_label_or_instr()
-        }
     }
 
     sub do_assign() {
@@ -71,7 +95,12 @@ textparse {
             }
             return
         }
-        txt.print("?invalid operand\n")
+        txt.print("?invalid operand (assign)\n")
+        txt.print("   nlen=")
+        txt.print_ub(nlen)
+        txt.print("  word=")
+        txt.print(word_addrs[2])
+        txt.nl()
     }
 
     sub do_label_or_instr() {
@@ -84,12 +113,10 @@ textparse {
             label_ptr = word_addrs[0]
             instr_ptr = word_addrs[1]
             operand_ptr = word_addrs[2]
-            lowercase(operand_ptr)
         } else if word_addrs[1] {
             if starts_with_whitespace {
                 instr_ptr = word_addrs[0]
                 operand_ptr = word_addrs[1]
-                lowercase(operand_ptr)
             } else {
                 label_ptr = word_addrs[0]
                 instr_ptr = word_addrs[1]
@@ -154,7 +181,7 @@ textparse {
                 }
                 return
             }
-            txt.print("?invalid operand\n")
+            txt.print("?invalid operand (instr)\n")
             return
         }
         txt.print("?invalid instruction\n")
@@ -216,9 +243,6 @@ textparse {
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
                     operand_ptr += parsed_len
-                    txt.print("abs-restoperand=")
-                    txt.print(operand_ptr)
-                    txt.nl()
                     if msb(cx16.r15) {
                         ; absolute or abs indirects
                         if @(operand_ptr)==0
@@ -307,16 +331,6 @@ _is_2_entry
         txt.nl()
     }
 
-    sub lowercase(uword st) {
-        ; TODO optimize in asm
-        ubyte char = @(st)
-        while char {
-            @(st) = char & 127
-            st++
-            char = @(st)
-        }
-    }
-
     sub dummy(uword operand_ptr) -> uword {
         uword a1=rndw()
         uword a6=a1+operand_ptr
@@ -396,7 +410,7 @@ _is_2_entry
         }
         if changed {
             @(dest)=0
-            string.copy(input_line2, src)
+            void string.copy(input_line2, src)
         }
     }
 }

@@ -8,32 +8,33 @@
 main {
 
     sub start() {
-        str s1 = "12345 abcdef..uvwxyz ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
-        str s2 = "12345 ABCDEF..UVWXYZ ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
-        str s3 = "12345 \x61\x62\x63\x64\x65\x66..\x75\x76\x77\x78\x79\x7a ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
+        ubyte[40] input_line
 
-        txt.lowercase()
-
-        txt.print(s1)
-        txt.print(s2)
-        txt.print(s3)
-
-        string.lower(s1)
-        string.lower(s2)
-        string.lower(s3)
-        txt.print(s1)
-        txt.print(s2)
-        txt.print(s3)
-
-        string.upper(s1)
-        string.upper(s2)
-        string.upper(s3)
-
-        txt.print(s1)
-        txt.print(s2)
-        txt.print(s3)
-
-        txt.nl()
+        if diskio.f_open(8, "romdis.asm") {
+            uword line=0
+            repeat 5 {
+                ubyte length = diskio.f_readline(input_line)
+                if length {
+                    line++
+                    txt.print_uw(line)
+                    txt.chrout(':')
+                    txt.print_ub(length)
+                    txt.print(":[")
+                    ubyte xx
+                    for xx in 0 to length-1 {
+                        txt.print_ubhex(input_line[xx], 1)
+                        txt.chrout(' ')
+                    }
+                    ; txt.print(&input_line)
+                    txt.print("]\n")
+                    ; textparse.process_line()
+                    if c64.READST()         ; TODO also check STOP key
+                        break
+                } else
+                    break
+            }
+            diskio.f_close()
+        }
     }
 
 
