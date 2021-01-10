@@ -12,11 +12,23 @@ main {
         str s2 = "12345 ABCDEF..UVWXYZ ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
         str s3 = "12345 \x61\x62\x63\x64\x65\x66..\x75\x76\x77\x78\x79\x7a ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
 
-        lower(s1)
-        lower(s2)
-        lower(s3)
-
         txt.lowercase()
+
+        txt.print(s1)
+        txt.print(s2)
+        txt.print(s3)
+
+        string.lower(s1)
+        string.lower(s2)
+        string.lower(s3)
+        txt.print(s1)
+        txt.print(s2)
+        txt.print(s3)
+
+        string.upper(s1)
+        string.upper(s2)
+        string.upper(s3)
+
         txt.print(s1)
         txt.print(s2)
         txt.print(s3)
@@ -24,49 +36,5 @@ main {
         txt.nl()
     }
 
-    asmsub lower(uword st @AY) clobbers(X) {
-        %asm {{
-            sta  P8ZP_SCRATCH_W1
-            sty  P8ZP_SCRATCH_W1+1
-            ldy  #0
--           lda  (P8ZP_SCRATCH_W1),y
-            beq  _done
-            and  #$7f
-            tax
-            and  #%11100000
-            cmp  #%01100000
-            bne  +
-            txa
-            and  #%11011111
-            tax
-+           txa
-            sta  (P8ZP_SCRATCH_W1),y
-            iny
-            bne  -
-_done       rts
-        }}
-    }
 
-    asmsub upper(uword st @AY) clobbers(X) {
-        %asm {{
-            sta  P8ZP_SCRATCH_W1
-            sty  P8ZP_SCRATCH_W1+1
-            ldy  #0
--           lda  (P8ZP_SCRATCH_W1),y
-            beq  _done
-            and  #$7f
-            tax
-            and  #%11100000
-            cmp  #%01100000
-            bne  +
-            txa
-            and  #%11011111
-            tax
-+           txa
-            sta  (P8ZP_SCRATCH_W1),y
-            iny
-            bne  -
-_done       rts
-        }}
-    }
 }

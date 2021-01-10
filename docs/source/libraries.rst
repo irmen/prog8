@@ -173,6 +173,12 @@ Provides string manipulation routines.
     Often you don't have to call this explicitly and can just write ``string1 = string2``
     but this function is useful if you're dealing with addresses for instance.
 
+``lower(string)``
+    Lowercases the petscii-string in place.
+
+``upper(string)``
+    Uppercases the petscii-string in place.
+
 
 floats
 ------

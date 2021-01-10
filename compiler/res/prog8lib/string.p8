@@ -190,4 +190,46 @@ _found		sty  P8ZP_SCRATCH_B1
         }}
     }
 
+    asmsub lower(uword st @AY) {
+        ; Lowercases the petscii string in-place.
+        ; (for efficiency, non-letter characters > 128 will also not be left intact,
+        ;  but regular text doesn't usually contain those characters anyway.)
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            beq  _done
+            and  #$7f
+            cmp  #97
+            bcc  +
+            cmp  #123
+            bcs  +
+            and  #%11011111
++           sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bne  -
+_done       rts
+        }}
+    }
+
+    asmsub upper(uword st @AY) {
+        ; Uppercases the petscii string in-place.
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            beq  _done
+            cmp  #65
+            bcc  +
+            cmp  #91
+            bcs  +
+            ora  #%00100000
++           sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bne  -
+_done       rts
+        }}
+    }
 }
