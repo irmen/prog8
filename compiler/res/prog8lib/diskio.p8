@@ -51,7 +51,7 @@ io_error:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(13)
 
-        if status and status != 64 {            ; 64=end of file
+        if status and status != 64 {            ; 64=end of file            TODO only check bit 6 instead of value
             txt.print("\ni/o error, status: ")
             txt.print_ub(status)
             txt.nl()
@@ -97,7 +97,7 @@ io_error:
         return files_found
     }
 
-    ; ----- iterative file lister functions -----
+    ; ----- iterative file lister functions (uses io channel 12) -----
 
     sub lf_start_list(ubyte drivenumber, uword pattern_ptr) -> ubyte {
         ; -- start an iterative file listing with optional pattern matching.
@@ -198,7 +198,7 @@ close_end:
     }
 
 
-    ; ----- iterative file loader functions -----
+    ; ----- iterative file loader functions (uses io channel 11) -----
 
     sub f_open(ubyte drivenumber, uword filenameptr) -> ubyte {
         ; -- open a file for iterative reading with f_read
@@ -258,8 +258,8 @@ _in_buffer      sta  $ffff
                 inc  list_blocks+1
 +
             }}
-            first_byte = c64.READST()
-            if first_byte==64
+            first_byte = c64.READST()       ; TODO optimize: only check status when char was read as $0d
+            if first_byte==64               ; TODO only check bit 6 rather than value
                 f_close()       ; end of file, close it
             if first_byte
                 return list_blocks
@@ -270,6 +270,7 @@ _in_buffer      sta  $ffff
     sub f_read_exact(uword bufferpointer, uword num_bytes) {
         ; -- read from the currently open file, the given number of bytes. File must contain enough data!
         ;    doesn't check for error conditions or end of file, to make the read as fast as possible.
+        ; TODO get rid of this once f_read has been optimized
         if not iteration_in_progress or not num_bytes
             return
 
@@ -335,6 +336,30 @@ _done
             bufferpointer += 256
         }
         return list_blocks
+    }
+
+    asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y {
+        ; Routine to read text lines from a text file. Lines must be less than 255 characters.
+        ; Reads characters from the input file until (and including) a newline or return character (or EOF).
+        ; The line read will be 0-terminated in the buffer. The length of the line is returned in Y.
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldx  #11
+            jsr  c64.CHKIN              ; use channel 11 again for input
+            ldy  #0
+_loop       jsr  c64.CHRIN
+            sta  (P8ZP_SCRATCH_W1),y
+            beq  _end
+            iny
+            cmp  #$0a
+            beq  _zero_end
+            cmp  #$0d
+            bne  _loop
+_zero_end   lda  #0
+            sta  (P8ZP_SCRATCH_W1),y
+_end        rts
+        }}
     }
 
 
