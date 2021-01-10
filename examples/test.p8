@@ -8,35 +8,65 @@
 main {
 
     sub start() {
-        if diskio.f_open(8, "romdis.asm") {
-            uword buffer = memory("diskbuffer", $1000)
+        str s1 = "12345 abcdef..uvwxyz ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
+        str s2 = "12345 ABCDEF..UVWXYZ ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
+        str s3 = "12345 \x61\x62\x63\x64\x65\x66..\x75\x76\x77\x78\x79\x7a ()!@#$%;:&*()-=[]<>\xff\xfa\xeb\xc0\n"
 
-            uword linenr = 0
-            c64.SETTIM(0,0,0)
+        lower(s1)
+        lower(s2)
+        lower(s3)
 
-            while not c64.READST() {
-                ubyte length = diskio.f_readline(buffer)
-                if length {
-                    linenr++
-                    if not lsb(linenr)
-                        txt.chrout('.')
-                } else
-                    goto io_error
-            }
+        txt.lowercase()
+        txt.print(s1)
+        txt.print(s2)
+        txt.print(s3)
 
-io_error:
-            txt.print("\n\n\n\n\n\n\nnumber of lines: ")
-            txt.print_uw(linenr)
-            txt.nl()
-            diskio.f_close()
-        }
-
-        txt.print(diskio.status(8))
-        txt.nl()
-
-        txt.print("\ntime: ")
-        txt.print_uw(c64.RDTIM16())
         txt.nl()
     }
 
+    asmsub lower(uword st @AY) clobbers(X) {
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            beq  _done
+            and  #$7f
+            tax
+            and  #%11100000
+            cmp  #%01100000
+            bne  +
+            txa
+            and  #%11011111
+            tax
++           txa
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bne  -
+_done       rts
+        }}
+    }
+
+    asmsub upper(uword st @AY) clobbers(X) {
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            beq  _done
+            and  #$7f
+            tax
+            and  #%11100000
+            cmp  #%01100000
+            bne  +
+            txa
+            and  #%11011111
+            tax
++           txa
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bne  -
+_done       rts
+        }}
+    }
 }
