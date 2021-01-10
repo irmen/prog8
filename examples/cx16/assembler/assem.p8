@@ -5,6 +5,7 @@
 %zeropage basicsafe
 %option no_sysinit
 
+; TODO : NOTE: treat $0a (10 - line feed) and $0c (13 - normal petscii Return) both as line separators
 
 main {
 
@@ -21,7 +22,7 @@ main {
 
 textparse {
     ; byte counts per address mode id:
-    ubyte[16] operand_size = [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1]
+    ubyte[16] operand_size = [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2]
 
     str input_line = "?" * 40
     uword[3] word_addrs
@@ -161,9 +162,8 @@ textparse {
 
     sub parse_operand(uword operand_ptr) -> ubyte {
         ; parses the operand. Returns 2 things:
-        ; - addressing mode id as result value or 0 when error
+        ; - addressing mode id as result value or 0 (am_Invalid) when error
         ; - operand numeric value in cx16.r15 (if applicable)
-        ; TODO
 
         ubyte firstchr = @(operand_ptr)
         ubyte parsed_len
@@ -180,24 +180,115 @@ textparse {
                 }
             }
             'a' -> {
-                ; possibly Accumulator operand
-                ; TODO parse
-                return instructions.am_Acc
+                if not @(operand_ptr+1)
+                    return instructions.am_Acc      ; Accumulator - no value.
+
+                ; TODO its a symbol/label, immediate or indexed addressing
+                txt.print("TODO symbol: ")
+                txt.print(operand_ptr)
+                txt.nl()
             }
             '(' -> {
                 ; various forms of indirect
-                ; TODO parse number and other stuff
-                cx16.r15 = $98ab
-                return instructions.am_Ind
+                operand_ptr++
+                parsed_len = conv.any2uword(operand_ptr)
+                if parsed_len {
+                    operand_ptr+=parsed_len
+                    if msb(cx16.r15) {
+                        ; absolute indirects
+                        if str_is1(operand_ptr, ')')
+                            return instructions.am_Ind
+                        if str_is3(operand_ptr, ",x)")
+                            return instructions.am_IaX
+                    } else {
+                        ; zero page indirects
+                        if str_is1(operand_ptr, ')')
+                            return instructions.am_Izp
+                        if str_is3(operand_ptr, ",x)")
+                            return instructions.am_IzX
+                        if str_is3(operand_ptr, "),y")
+                            return instructions.am_IzY
+                    }
+                }
             }
             '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
                 ; address optionally followed by ,x or ,y
-                ; TODO Parse
-                cx16.r0 = $9988
-                return instructions.am_Abs
+                parsed_len = conv.any2uword(operand_ptr)
+                if parsed_len {
+                    operand_ptr += parsed_len
+                    txt.print("abs-restoperand=")
+                    txt.print(operand_ptr)
+                    txt.nl()
+                    if msb(cx16.r15) {
+                        ; absolute or abs indirects
+                        if @(operand_ptr)==0
+                            return instructions.am_Abs
+                        if str_is2(operand_ptr, ",x")
+                            return instructions.am_AbsX
+                        if str_is2(operand_ptr, ",y")
+                            return instructions.am_AbsY
+                    } else {
+                        ; zero page or zp indirects
+                        if @(operand_ptr)==0
+                            return instructions.am_Zp
+                        if str_is2(operand_ptr, ",x")
+                            return instructions.am_ZpX
+                        if str_is2(operand_ptr, ",y")
+                            return instructions.am_ZpY
+                    }
+                }
             }
         }
-        return 0
+        return instructions.am_Invalid
+    }
+
+    asmsub str_is1(uword st @R0, ubyte char @A) clobbers(Y) -> ubyte @A {
+        %asm {{
+            cmp  (cx16.r0)
+            bne  +
+            ldy  #1
+            lda  (cx16.r0),y
+            bne  +
+            lda  #1
+            rts
++           lda  #0
+            rts
+        }}
+    }
+
+    asmsub str_is2(uword st @R0, uword compare @AY) clobbers(Y) -> ubyte @A {
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+            jmp  str_is3._is_2_entry
+        }}
+    }
+
+    asmsub str_is3(uword st @R0, uword compare @AY) clobbers(Y) -> ubyte @A {
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  (cx16.r0)
+            cmp  (P8ZP_SCRATCH_W1)
+            bne  +
+            ldy  #1
+_is_2_entry
+            lda  (cx16.r0),y
+            cmp  (P8ZP_SCRATCH_W1),y
+            bne  +
+            iny
+            lda  (cx16.r0),y
+            cmp  (P8ZP_SCRATCH_W1),y
+            bne  +
+            iny
+            lda  (cx16.r0),y
+            bne  +
+            lda  #1
+            rts
++           lda  #0
+            rts
+        }}
     }
 
     sub emit(ubyte value) {
