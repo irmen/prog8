@@ -11,11 +11,12 @@ koala_module {
         if diskio.f_open(8, filenameptr) {
             uword size = diskio.f_read(load_location, 2)    ; skip the first 2 bytes (load address)
             if size==2 {
-                diskio.f_read_exact(load_location, 10001)
-                ; set a better C64 color palette, the Cx16's default is too saturated
-                palette.set_c64pepto()
-                convert_koalapic()
-                load_ok = true
+                if diskio.f_read(load_location, 10001)==10001 {
+                    ; set a better C64 color palette, the Cx16's default is too saturated
+                    palette.set_c64pepto()
+                    convert_koalapic()
+                    load_ok = true
+                }
             }
             diskio.f_close()
         }

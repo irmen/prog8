@@ -41,7 +41,7 @@ iff_module {
 
                     while read_chunk_header() {
                         if chunk_id == "bmhd" {
-                            diskio.f_read_exact(buffer, chunk_size_lo)
+                            void diskio.f_read(buffer, chunk_size_lo)
                             width = mkword(buffer[0], buffer[1])
                             height = mkword(buffer[2], buffer[3])
                             num_planes = buffer[8]
@@ -49,7 +49,7 @@ iff_module {
                             compression = buffer[10]
                         }
                         else if chunk_id == "camg" {
-                            diskio.f_read_exact(buffer, chunk_size_lo)
+                            void diskio.f_read(buffer, chunk_size_lo)
                             camg = mkword(buffer[2], buffer[3])
                             if camg & $0800 {
                                 txt.print("ham mode not supported!\n")
@@ -58,13 +58,13 @@ iff_module {
                         }
                         else if chunk_id == "cmap" {
                             have_cmap = true
-                            diskio.f_read_exact(cmap, chunk_size_lo)
+                            void diskio.f_read(cmap, chunk_size_lo)
                         }
                         else if chunk_id == "crng" {
                             ; DeluxePaint color cycle range
                             if not cycle_ccrt {
                                 cycle_crng = true
-                                diskio.f_read_exact(buffer, chunk_size_lo)
+                                void diskio.f_read(buffer, chunk_size_lo)
                                 ubyte flags = buffer[5]
                                 if flags & 1 {
                                     cycle_rates[num_cycles] = mkword(buffer[2], buffer[3])
@@ -81,7 +81,7 @@ iff_module {
                             ; Graphicraft color cycle range
                             if not cycle_crng {
                                 cycle_ccrt = true
-                                diskio.f_read_exact(buffer, chunk_size_lo)
+                                void diskio.f_read(buffer, chunk_size_lo)
                                 ubyte direction = buffer[1]
                                 if direction {
                                     ; delay_sec = buffer[4] * 256 * 256 * 256 + buffer[5] * 256 * 256 + buffer[6] * 256 + buffer[7]
@@ -142,9 +142,9 @@ iff_module {
 
         sub skip_chunk() {
             repeat lsb(chunk_size_hi)*8 + (chunk_size_lo >> 13)
-                diskio.f_read_exact(scanline_data_ptr, $2000)
+                void diskio.f_read(scanline_data_ptr, $2000)
 
-            diskio.f_read_exact(scanline_data_ptr, chunk_size_lo & $1fff)
+            void diskio.f_read(scanline_data_ptr, chunk_size_lo & $1fff)
         }
 
         sub make_ehb_palette() {
@@ -189,9 +189,9 @@ iff_module {
             ubyte interlaced = (camg & $0004) != 0
             uword y
             for y in 0 to height-1 {
-                diskio.f_read_exact(scanline_data_ptr, interleave_stride)
+                void diskio.f_read(scanline_data_ptr, interleave_stride)
                 if interlaced
-                    diskio.f_read_exact(scanline_data_ptr, interleave_stride)
+                    void diskio.f_read(scanline_data_ptr, interleave_stride)
                 gfx2.position(offsetx, offsety+y)
                 planar_to_chunky_scanline()
             }

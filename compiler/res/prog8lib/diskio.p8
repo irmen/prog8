@@ -51,7 +51,7 @@ io_error:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(13)
 
-        if status and status != 64 {            ; 64=end of file            TODO only check bit 6 instead of value
+        if status and status & $40 == 0 {            ; bit 6=end of file
             txt.print("\ni/o error, status: ")
             txt.print_ub(status)
             txt.nl()
@@ -249,6 +249,7 @@ close_end:
         repeat num_bytes {
             %asm {{
                 jsr  c64.CHRIN
+                sta  cx16.r5
 _in_buffer      sta  $ffff
                 inc  _in_buffer+1
                 bne  +
@@ -258,64 +259,16 @@ _in_buffer      sta  $ffff
                 inc  list_blocks+1
 +
             }}
-            first_byte = c64.READST()       ; TODO optimize: only check status when char was read as $0d
-            if first_byte==64               ; TODO only check bit 6 rather than value
-                f_close()       ; end of file, close it
-            if first_byte
-                return list_blocks
+
+            if cx16.r5==$0d {   ; chance on I/o error status?
+                first_byte = c64.READST()
+                if first_byte & $40
+                    f_close()       ; end of file, close it
+                if first_byte
+                    return list_blocks
+            }
         }
         return list_blocks
-    }
-
-    sub f_read_exact(uword bufferpointer, uword num_bytes) {
-        ; -- read from the currently open file, the given number of bytes. File must contain enough data!
-        ;    doesn't check for error conditions or end of file, to make the read as fast as possible.
-        ; TODO get rid of this once f_read has been optimized
-        if not iteration_in_progress or not num_bytes
-            return
-
-        if have_first_byte {
-            have_first_byte=false
-            @(bufferpointer) = first_byte
-            bufferpointer++
-            num_bytes--
-        }
-
-        void c64.CHKIN(11)        ; use #11 as input channel again
-        ; repeat num_bytes {
-        ;     @(bufferpointer) = c64.CHRIN()
-        ;     bufferpointer++
-        ; }
-        %asm {{
-            lda  bufferpointer
-            sta  P8ZP_SCRATCH_W1
-            lda  bufferpointer+1
-            sta  P8ZP_SCRATCH_W1+1
-            lda  #0
-            sta  P8ZP_SCRATCH_B1
-            lda  num_bytes+1
-            sta  P8ZP_SCRATCH_W2
-            beq  _no_msb
--           jsr  c64.CHRIN
-            ldy  P8ZP_SCRATCH_B1
-            sta  (P8ZP_SCRATCH_W1),y
-            inc  P8ZP_SCRATCH_B1
-            bne  -
-            inc  P8ZP_SCRATCH_W1+1
-            dec  P8ZP_SCRATCH_W2
-            bne  -
-_no_msb
-            lda  num_bytes
-            beq  _done
--           jsr  c64.CHRIN
-            ldy  P8ZP_SCRATCH_B1
-            sta  (P8ZP_SCRATCH_W1),y
-            iny
-            sty  P8ZP_SCRATCH_B1
-            cpy  num_bytes
-            bne  -
-_done
-        }}
     }
 
     sub f_read_all(uword bufferpointer) -> uword {
