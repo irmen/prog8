@@ -879,6 +879,10 @@ internal class AstChecker(private val program: Program,
     override fun visit(typecast: TypecastExpression) {
         if(typecast.type in IterableDatatypes)
             errors.err("cannot type cast to string or array type", typecast.position)
+
+        if(!typecast.expression.inferType(program).isKnown)
+            errors.err("this expression doesn't return a value", typecast.expression.position)
+
         super.visit(typecast)
     }
 
