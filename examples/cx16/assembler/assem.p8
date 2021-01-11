@@ -6,19 +6,48 @@
 %zeropage basicsafe
 %option no_sysinit
 
+; raw file loading of the large assembly file $c000-$ffff: 372 jiffies
+; time loading and actually processing it: 700 jiffies
+
 main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\nAssembler.\nEmpty line to stop.\n")
+        txt.print("\n65c02 file based assembler.\n")
 
+        ; benchmar_raw_read()
         ; user_input()
         file_input()
 
         ; test_stack.test()
     }
 
+    sub benchmar_raw_read() {
+        str filename = "romdis.asm"
+        ubyte[256] buffer
+
+        if diskio.f_open(8, filename) {
+            c64.SETTIM(0,0,0)
+            txt.print(filename)
+            txt.print("\ntiming raw file loading..")
+            repeat {
+                uword siz= diskio.f_read(buffer, 256)
+                txt.chrout('.')
+                if not siz
+                    break
+            }
+            diskio.f_close()
+
+            txt.print("\ntime (jiffies): ")
+            txt.print_uw(c64.RDTIM16())
+            txt.nl()
+        }
+    }
+
+
     sub user_input() {
+        textparse.print_emit_bytes = true
+        txt.print("Empty line to stop.\n")
         repeat {
             ubyte input_length = 0
             txt.chrout('A')
@@ -34,76 +63,113 @@ main {
                 return
             }
 
-            textparse.process_line()
+            if not textparse.process_line()
+                break
         }
     }
 
     sub file_input() {
-        if diskio.f_open(8, "romdis.asm") {
+        textparse.print_emit_bytes = false
+        str filename = "hello.asm"
+
+        if diskio.f_open(8, filename) {
+            c64.SETTIM(0,0,0)
             uword line=0
-            repeat 5 {
+            txt.print(filename)
+            txt.print("\nassembling..")
+            repeat {
                 if diskio.f_readline(textparse.input_line) {
                     line++
-                    txt.print_uw(line)
-                    txt.chrout(':')
-                    txt.print(textparse.input_line)
-                    txt.nl()
-                    textparse.process_line()
-                    if c64.READST()         ; TODO also check STOP key
+                    if not lsb(line)
+                        txt.chrout('.')
+
+                    if not textparse.process_line() {
+                        txt.print("\nerror. last line was ")
+                        txt.print_uw(line)
+                        txt.chrout(':')
+                        txt.print(textparse.word_addrs[0])
+                        txt.chrout(' ')
+                        txt.print(textparse.word_addrs[1])
+                        txt.chrout(' ')
+                        txt.print(textparse.word_addrs[2])
+                        txt.nl()
                         break
+                    }
+                    if c64.READST()
+                        break
+                    if c64.STOP2() {
+                        txt.print("?break\n")
+                        break
+                    }
                 } else
                     break
             }
             diskio.f_close()
+
+            txt.print("\nlast pc: ")
+            txt.print_uwhex(textparse.program_counter, 1)
+            txt.print("\nlines: ")
+            txt.print_uw(line)
+            txt.print("\ntime (jiffies): ")
+            txt.print_uw(c64.RDTIM16())
+            txt.nl()
         }
     }
 }
 
 textparse {
     ; byte counts per address mode id:
-    ubyte[16] operand_size = [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2]
+    ubyte[17] operand_size = [$ff, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 2]
 
     str input_line = "?" * 40
     uword[3] word_addrs
     uword program_counter = $4000
+    ubyte print_emit_bytes = true
 
-    sub process_line() {
-            string.lower(input_line)
-            preprocess_assignment_spacing()
-            split_input()
-            debug_print_words()
+    sub process_line() -> ubyte {
+        string.lower(input_line)
+        preprocess_assignment_spacing()
+        split_input()
 
-            if word_addrs[1] and @(word_addrs[1])=='='
-                do_assign()
-            else
-                do_label_or_instr()
+        if word_addrs[1] and @(word_addrs[1])=='='
+            return do_assign()
+        else
+            return do_label_andor_instr()
+
+        return false
     }
 
-    sub do_assign() {
+    sub do_assign() -> ubyte {
         ; target is in word_addrs[0], value is in word_addrs[2]   ('=' is in word_addrs[1])
         if not word_addrs[2] {
             txt.print("?syntax error\n")
-            return
+            return false
+        }
+        ubyte valid_operand=false
+        if @(word_addrs[2])=='*' {
+            cx16.r15 = program_counter
+            valid_operand = true
+        } else {
+            ubyte nlen = conv.any2uword(word_addrs[2])
+            valid_operand = nlen and @(word_addrs[2]+nlen)==0
         }
 
-        ubyte nlen = conv.any2uword(word_addrs[2])
-        if nlen and @(word_addrs[2]+nlen)==0 {
+        if valid_operand {
             if string.compare(word_addrs[0], "*")==0 {
                 program_counter = cx16.r15
+                txt.print("\npc set to: ")
+                txt.print_uwhex(program_counter, true)
+                txt.nl()
             } else {
                 set_symbol(word_addrs[0], cx16.r15)
             }
-            return
+            return true
         }
-        txt.print("?invalid operand (assign)\n")
-        txt.print("   nlen=")
-        txt.print_ub(nlen)
-        txt.print("  word=")
-        txt.print(word_addrs[2])
-        txt.nl()
+        txt.print("?invalid operand\n")
+        return false
     }
 
-    sub do_label_or_instr() {
+    sub do_label_andor_instr() -> ubyte {
         uword label_ptr = 0
         uword instr_ptr = 0
         uword operand_ptr = 0
@@ -134,57 +200,117 @@ textparse {
                 @(lastlabelchar) = 0
             if instructions.match(label_ptr) {
                 txt.print("?label cannot be a mnemonic\n")
-                return
+                return false
             }
             set_symbol(label_ptr, program_counter)
         }
         if instr_ptr {
-;                txt.print("instr: ")
-;                txt.print(instr_ptr)
-;                txt.nl()
+            if @(instr_ptr)=='.'
+                return process_assembler_directive(instr_ptr, operand_ptr)
 
-;                if operand_ptr {
-;                    txt.print("operand: ")
-;                    txt.print(operand_ptr)
-;                    txt.nl()
-;                }
-
-            assemble_instruction(instr_ptr, operand_ptr)
+            return assemble_instruction(instr_ptr, operand_ptr)
         }
+
+        return true     ; empty line
     }
 
-    sub assemble_instruction(uword instr_ptr, uword operand_ptr) {
+    sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> ubyte {
         uword instruction_info_ptr = instructions.match(instr_ptr)
         if instruction_info_ptr {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
             ubyte addr_mode = parse_operand(operand_ptr)
+
             if addr_mode {
-                txt.print("operand ok, addr-mode=")
-                txt.print_ub(addr_mode)
-                txt.nl()
                 ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
                 if_cc {
-                    txt.print("?invalid instruction\n")
-                } else {
-                    ubyte num_operand_bytes = operand_size[addr_mode-1]
+                    ; most likely an invalid instruction BUT could also be a branchin instruction
+                    ; that needs its "absolute" operand recalculated as relative.
+                    ubyte retry = false
+                    when addr_mode {
+                        instructions.am_Abs -> {
+                            if @(instr_ptr)=='b' {
+                                addr_mode = instructions.am_Rel
+                                if not calc_relative_branch_into_r14()
+                                    return false
+                                cx16.r15 = cx16.r14
+                                retry = true
+                            }
+                        }
+                        instructions.am_Imp -> {
+                            addr_mode = instructions.am_Acc
+                            retry = true
+                        }
+                        instructions.am_Izp -> {
+                            addr_mode = instructions.am_Ind
+                            retry = true
+                        }
+                        instructions.am_Zp -> {
+                            addr_mode = instructions.am_Abs
+                            retry = true
+                        }
+                    }
+
+                    if retry
+                        opcode = instructions.opcode(instruction_info_ptr, addr_mode)
+
+                    if not opcode {
+                        txt.print("?invalid instruction\n")
+                        return false
+                    }
+                }
+
+                if addr_mode==instructions.am_Zpr {
+                    ; instructions like BBR4 $zp,$aaaa
+                    ; TODO parse second part of the operand
+;                    if not calc_relative_branch_into_r14()
+;                        return false
+;                    cx16.r15 |= (cx16.r14 << 8)
+;                    txt.print("TODO ZPR addrmode\n")
+;                    txt.print("opcode=")
+;                    txt.print_ubhex(opcode,1)
+;                    txt.print("  op1=")
+;                    txt.print_ubhex(lsb(cx16.r15),1)
+;                    txt.print("  op2=")
+;                    txt.print_ubhex(msb(cx16.r15),1)
+;                    return false
+                }
+
+                ubyte num_operand_bytes = operand_size[addr_mode]
+                if print_emit_bytes {
                     txt.chrout(' ')
                     txt.print_uwhex(program_counter, 1)
                     txt.print("   ")
-                    emit(opcode)
-                    if num_operand_bytes==1 {
-                        emit(lsb(cx16.r15))
-                    } else if num_operand_bytes == 2 {
-                        emit(lsb(cx16.r15))
-                        emit(msb(cx16.r15))
-                    }
-                    txt.nl()
                 }
-                return
+                emit(opcode)
+                if num_operand_bytes==1 {
+                    emit(lsb(cx16.r15))
+                } else if num_operand_bytes == 2 {
+                    emit(lsb(cx16.r15))
+                    emit(msb(cx16.r15))
+                }
+                if print_emit_bytes
+                    txt.nl()
+                return true
             }
-            txt.print("?invalid operand (instr)\n")
-            return
+            txt.print("?invalid operand\n")
+            return false
         }
         txt.print("?invalid instruction\n")
+        return false
+    }
+
+    sub calc_relative_branch_into_r14() -> ubyte {
+        cx16.r14 = cx16.r15 - program_counter - 2
+        if msb(cx16.r14)  {
+            if cx16.r14 < $ff80 {
+                txt.print("?branch out of range\n")
+                return false
+            }
+        } else if cx16.r14 > $007f {
+            txt.print("?branch out of range\n")
+            return false
+        }
+        return true
     }
 
     sub parse_operand(uword operand_ptr) -> ubyte {
@@ -192,7 +318,7 @@ textparse {
         ; - addressing mode id as result value or 0 (am_Invalid) when error
         ; - operand numeric value in cx16.r15 (if applicable)
 
-        ubyte firstchr = @(operand_ptr)
+        ubyte @zp firstchr = @(operand_ptr)
         ubyte parsed_len
         when firstchr {
             0 -> return instructions.am_Imp
@@ -239,7 +365,7 @@ textparse {
                 }
             }
             '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
-                ; address optionally followed by ,x or ,y
+                ; address optionally followed by ,x or ,y or ,address
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
                     operand_ptr += parsed_len
@@ -259,11 +385,55 @@ textparse {
                             return instructions.am_ZpX
                         if str_is2(operand_ptr, ",y")
                             return instructions.am_ZpY
+                        if @(operand_ptr)==',' {
+                            ; assume BBR $zp,$aaaa or BBS $zp,$aaaa
+                            return instructions.am_Zpr
+                        }
                     }
                 }
             }
         }
         return instructions.am_Invalid
+    }
+
+    sub process_assembler_directive(uword directive, uword operand) -> ubyte {
+        ; we only recognise .byte right now
+        if string.compare(directive, ".byte")==0 {
+            if operand {
+                ubyte length
+                length = conv.any2uword(operand)
+                if length {
+                    if msb(cx16.r15) {
+                        txt.print("?byte value too large\n")
+                        return false
+                    }
+                    if print_emit_bytes {
+                        txt.chrout(' ')
+                        txt.print_uwhex(program_counter, 1)
+                        txt.print("   ")
+                    }
+                    emit(lsb(cx16.r15))
+                    operand += length
+                    while @(operand)==',' {
+                        operand++
+                        length = conv.any2uword(operand)
+                        if not length
+                            break
+                        if msb(cx16.r15) {
+                            txt.print("?byte value too large\n")
+                            return false
+                        }
+                        emit(lsb(cx16.r15))
+                        operand += length
+                    }
+                    if print_emit_bytes
+                        txt.nl()
+                    return true
+                }
+            }
+        }
+        txt.print("?syntax error\n")
+        return false
     }
 
     asmsub str_is1(uword st @R0, ubyte char @A) clobbers(Y) -> ubyte @A {
@@ -319,8 +489,10 @@ _is_2_entry
         @(program_counter) = value
         program_counter++
 
-        txt.print_ubhex(value, 0)
-        txt.chrout(' ')
+        if print_emit_bytes {
+            txt.print_ubhex(value, 0)
+            txt.chrout(' ')
+        }
     }
 
     sub set_symbol(uword symbolname_ptr, uword value) {
@@ -341,13 +513,13 @@ _is_2_entry
         ; first strip the input string of extra whitespace and comments
         ubyte copying_word = false
         ubyte word_count
-        ubyte char_idx = 0
+        ubyte @zp char_idx = 0
 
         word_addrs[0] = 0
         word_addrs[1] = 0
         word_addrs[2] = 0
 
-        ubyte char
+        ubyte @zp char
         for char in input_line {
             when char {
                 ' ', 9, 160 -> {
@@ -389,13 +561,14 @@ _is_2_entry
     }
 
     sub preprocess_assignment_spacing() {
-        ; TODO optimize this... only do this if a valid instruction couldn't be parsed?
+        if not string.find(input_line, '=')
+            return
+
+        ; split the line around the '='
         str input_line2 = "?" * 40
         uword src = &input_line
         uword dest = &input_line2
-        ubyte changed = 0
-
-        ubyte cc
+        ubyte @zp cc
         for cc in input_line {
             if cc=='=' {
                 @(dest) = ' '
@@ -403,15 +576,12 @@ _is_2_entry
                 @(dest) = '='
                 dest++
                 cc = ' '
-                changed++
             }
             @(dest) = cc
             dest++
         }
-        if changed {
-            @(dest)=0
-            void string.copy(input_line2, src)
-        }
+        @(dest)=0
+        void string.copy(input_line2, src)
     }
 }
 
@@ -434,7 +604,7 @@ instructions {
     const ubyte am_Izp = 15
     const ubyte am_IaX = 16
 
-    ; TODO: explore (benchmark) hash based matchers
+    ; TODO: explore (benchmark) hash based matchers.   Faster (although the bulk of the time is not in the mnemonic matching)? Less memory?
 
     asmsub  match(uword mnemonic_ptr @AY) -> uword @AY {
         ; -- input: mnemonic_ptr in AY,   output:  pointer to instruction info structure or $0000 in AY
