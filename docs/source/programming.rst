@@ -840,12 +840,15 @@ swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
 memory(name, size)
-    Statically allocates a fixed portion of memory of the given size in bytes, and returns its address.
-    Slabs are considered identical if their name and size are the same.
-    This can be used to allocate parts of the memory where a normal byte array would
-    not suffice for instance if you need more than 256 bytes, and/or don't want to work
-    with fixed memory addresses for buffers.
-    The portion of memory cannot be used as an array, you only have the address of the first byte.
+    Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
+    with the given name. Requesting the address of such a named memory block again later with
+    the same name, will result in the same address as before.
+    When reusing blocks in that way, it is required that the size argument is the same,
+    otherwise you'll get a compilation error.
+    This routine can be used to "reserve" parts of the memory where a normal byte array variable would
+    not suffice; for instance if you need more than 256 consecutive bytes.
+    The return value is just a simple uword address so it cannot be used as an array in your program.
+    You can only treat it as a pointer or use it in inline assembly.
 
 
 Library routines

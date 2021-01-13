@@ -2,7 +2,6 @@
 TODO
 ====
 
-- (github issue:) replace memory() function by some sort of declaration?
 - use (zp) addressing mode on 65c02 specific code rather than ldy#0 / lda (zp),y
 - optimize pointer access code @(pointer)? use a subroutine? macro?  65c02 vs 6502?
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50

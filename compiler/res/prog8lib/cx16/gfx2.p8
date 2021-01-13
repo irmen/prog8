@@ -334,7 +334,7 @@ _done
             return
         }
 
-        ; TODO rewrite the rest in optimized assembly
+        ; TODO rewrite the rest in optimized assembly (or reuse GRAPH_draw_line if we can get the FB replacement vector layer working)
         word @zp d = 0
         ubyte positive_ix = true
         if dx < 0 {
