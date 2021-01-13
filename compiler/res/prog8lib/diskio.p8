@@ -206,7 +206,7 @@ close_end:
         f_close()
 
         c64.SETNAM(string.length(filenameptr), filenameptr)
-        c64.SETLFS(11, drivenumber, 3)
+        c64.SETLFS(11, drivenumber, 0)
         void c64.OPEN()          ; open 11,8,0,"filename"
         if_cc {
             iteration_in_progress = true

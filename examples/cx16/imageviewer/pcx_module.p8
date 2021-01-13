@@ -80,7 +80,7 @@ bitmap {
             offsetx = (gfx2.width - width) / 2
         if height < gfx2.height
             offsety = (gfx2.height - height) / 2
-        status = (not c64.READST()) or c64.READST()==64   ; TODO only check bit 6 rather than value
+        status = (not c64.READST()) or (c64.READST()&64==64)
     }
 
     sub next_scanline() {
@@ -88,7 +88,7 @@ bitmap {
         py++
         y_ok = py < gfx2.height
         gfx2.position(offsetx, offsety+py)
-        status = (not c64.READST()) or c64.READST()==64    ; TODO only check bit 6 rather than value
+        status = (not c64.READST()) or (c64.READST()&64==64)
     }
 
     sub do1bpp(uword width, uword height) -> ubyte {
