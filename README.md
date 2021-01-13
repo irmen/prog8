@@ -33,12 +33,13 @@ What does Prog8 provide?
 - conditional branches
 - floating point operations  (requires the C64 Basic ROM routines for this)
 - 'when' statement to provide a concise jump table alternative to if/elseif chains
-- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``memset``, ``memcopy``, ``sort`` and ``reverse``
 - structs to group together sets of variables and manipulate them at once
+- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
+- various powerful built-in libraries to do I/O, number conversions, graphics and more  
 - convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - fast execution speed due to compilation to native assembly code
 - inline assembly allows you to have full control when every cycle or byte matters
-- supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the C64.
+- supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, and provides them also on the C64.
 
 *Rapid edit-compile-run-debug cycle:*
 
@@ -49,8 +50,8 @@ What does Prog8 provide?
 
 *Two supported compiler targets* (contributions to improve these or to add support for other machines are welcome!):
 
-- "c64": Commodore-64  (6510 CPU = almost a 6502), the main target.
-- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU) .
+- "c64": Commodore-64  (6510 CPU = almost a 6502)
+- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)
 - If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
@@ -85,9 +86,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
         ubyte candidate_prime = 2       ; is increased in the loop
     
         sub start() {
-            ; clear the sieve, to reset starting situation on subsequent runs
-            memset(sieve, 256, false)   
-            ; calculate primes
+            sys.memset(sieve, 256, false)   ; clear the sieve
             txt.print("prime numbers up to 255:\n\n")
             ubyte amount=0
             repeat {
@@ -98,17 +97,17 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
                 txt.print(", ")
                 amount++
             }
-            txt.chrout('\n')
+            txt.nl()
             txt.print("number of primes (expected 54): ")
             txt.print_ub(amount)
-            txt.chrout('\n')
+            txt.nl()
         }
     
         sub find_next_prime() -> ubyte {
             while sieve[candidate_prime] {
                 candidate_prime++
                 if candidate_prime==0
-                    return 0        ; we wrapped; no more primes available in the sieve
+                    return 0        ; we wrapped; no more primes
             }
     
             ; found next one, mark the multiples and return it.
@@ -122,6 +121,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
             return candidate_prime
         }
     }
+
 
 
 
@@ -141,7 +141,8 @@ If you want to play a video game, a fully working Tetris clone is included in th
 
 ![tehtriz_screen](docs/source/_static/tehtriz.png)
 
-The CommanderX16 compiler target is quite capable already too, here's a well known space ship 
-animated in 3D with hidden line removal, in the CommanderX16 emulator:
+There are a couple of examples specially made for the CommanderX16 compiler target.
+For instance here's a well known space ship animated in 3D with hidden line removal,
+in the CommanderX16 emulator:
 
 ![cobra3d](docs/source/_static/cobra3d.png)
