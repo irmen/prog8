@@ -12,18 +12,22 @@
 main {
 
     sub start() {
-        txt.print("\n65c02 file based assembler.\n")
+        txt.print("\n65c02 file based assembler.\n\nfilename or enter for interactive: ")
 
-        ; user_input()
-        file_input()
+        str filename = "?" * 20
+        if txt.input_chars(filename)
+            file_input(filename)
+        else
+            user_input()
 
-        ; test_stack.test()
+        test_stack.test()
     }
 
     sub user_input() {
         txt.lowercase()
         parser.print_emit_bytes = true
-        txt.print("Empty line to stop.\n")
+        parser.program_counter = $4000
+        txt.print("\nEmpty line to stop.\n")
         repeat {
             ubyte input_length = 0
             txt.chrout('A')
@@ -42,55 +46,67 @@ main {
             if not parser.process_line()
                 break
         }
+        parser.done()
     }
 
-    sub file_input() {
+    sub file_input(uword filename) {
         parser.print_emit_bytes = false
-        str filename = "romdis.asm"
+        ubyte success = false
 
-        txt.print("\nread file: ")
+        txt.print("\nreading ")
         txt.print(filename)
-        txt.nl()
+        txt.spc()
 
         if diskio.f_open(8, filename) {
             c64.SETTIM(0,0,0)
             uword line=0
             repeat {
-                if diskio.f_readline(parser.input_line) {
-                    line++
-                    if not lsb(line)
-                        txt.chrout('.')
+                void diskio.f_readline(parser.input_line)
+                line++
 
-                    if not parser.process_line() {
-                        txt.print("\nerror. last line was ")
-                        txt.print_uw(line)
-                        txt.chrout(':')
-                        txt.print(parser.word_addrs[0])
-                        txt.chrout(' ')
+                if not lsb(line)
+                    txt.chrout('.')
+
+                if not parser.process_line() {
+                    txt.print("\nerror. last line was ")
+                    txt.print_uw(line)
+                    txt.print(": ")
+                    txt.print(parser.word_addrs[0])
+                    if parser.word_addrs[1] {
+                        txt.spc()
                         txt.print(parser.word_addrs[1])
-                        txt.chrout(' ')
+                    }
+                    if parser.word_addrs[2] {
+                        txt.spc()
                         txt.print(parser.word_addrs[2])
-                        txt.nl()
-                        break
                     }
-                    if c64.READST()
-                        break
-                    if c64.STOP2() {
-                        txt.print("?break\n")
-                        break
-                    }
-                } else
+                    txt.nl()
                     break
+                }
+                if c64.READST() {
+                    success = c64.READST()&64==64       ; end of file?
+                    break
+                }
+                if c64.STOP2() {
+                    txt.print("?break\n")
+                    break
+                }
             }
             diskio.f_close()
+            parser.done()
 
-            print_summary(line)
+            if success
+                print_summary(line, parser.pc_min, parser.pc_max)
+        } else {
+            txt.print(diskio.status(8))
         }
     }
 
-    sub print_summary(uword lines) {
-        txt.print("\n\nfinal address: ")
-        txt.print_uwhex(parser.program_counter, 1)
+    sub print_summary(uword lines, uword start_address, uword end_address) {
+        txt.print("\n\nstart address: ")
+        txt.print_uwhex(start_address, 1)
+        txt.print("\n  end address: ")
+        txt.print_uwhex(end_address, 1)
         txt.print("\n        lines: ")
         txt.print_uw(lines)
 
@@ -115,8 +131,10 @@ parser {
 
     str input_line = "?" * 160
     uword[3] word_addrs
-    uword program_counter = $4000
-    ubyte print_emit_bytes = true
+    uword program_counter = $ffff
+    ubyte print_emit_bytes
+    uword pc_min = $ffff
+    uword pc_max = $0000
 
     sub process_line() -> ubyte {
         string.lower(input_line)
@@ -129,6 +147,11 @@ parser {
             return do_label_andor_instr()
 
         return false
+    }
+
+    sub done() {
+        if program_counter>pc_max
+            pc_max = program_counter
     }
 
     sub do_assign() -> ubyte {
@@ -152,6 +175,10 @@ parser {
                 txt.print("\n* = ")
                 txt.print_uwhex(program_counter, true)
                 txt.nl()
+                if program_counter<pc_min
+                    pc_min = program_counter
+                if program_counter>pc_max
+                    pc_max = program_counter
             } else {
                 symbols.setvalue(word_addrs[0], cx16.r15)
             }
@@ -275,7 +302,7 @@ parser {
 
                 ubyte num_operand_bytes = operand_size[addr_mode]
                 if print_emit_bytes {
-                    txt.chrout(' ')
+                    txt.spc()
                     txt.print_uwhex(program_counter, 1)
                     txt.print("   ")
                 }
@@ -406,7 +433,7 @@ parser {
                         return false
                     }
                     if print_emit_bytes {
-                        txt.chrout(' ')
+                        txt.spc()
                         txt.print_uwhex(program_counter, 1)
                         txt.print("   ")
                     }
@@ -489,7 +516,7 @@ _is_2_entry
 
         if print_emit_bytes {
             txt.print_ubhex(value, 0)
-            txt.chrout(' ')
+            txt.spc()
         }
     }
 

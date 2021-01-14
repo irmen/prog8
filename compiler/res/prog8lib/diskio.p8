@@ -30,7 +30,7 @@ diskio {
             ubyte low = c64.CHRIN()
             ubyte high = c64.CHRIN()
             txt.print_uw(mkword(high, low))
-            txt.chrout(' ')
+            txt.spc()
             ubyte @zp char
             repeat {
                 char = c64.CHRIN()
@@ -295,7 +295,8 @@ _in_buffer      sta  $ffff
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
         ; Reads characters from the input file UNTIL a newline or return character (or EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
-        ; The length of the line is returned in Y.
+        ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
+        ; I/O error status should be checked by the caller itself via READST() routine.
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1

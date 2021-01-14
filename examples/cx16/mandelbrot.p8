@@ -34,7 +34,7 @@ main {
                     iter++
                 }
                 txt.color2(1, max_iter-iter)
-                txt.chrout(' ')
+                txt.spc()
             }
             txt.nl()
         }

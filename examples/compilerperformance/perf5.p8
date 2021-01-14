@@ -472,7 +472,7 @@ galaxy5 {
                     txt.chrout('*')
                 else
                     txt.chrout('-')
-                txt.chrout(' ')
+                txt.spc()
                 planet5.name = make_current_planet5_name()
                 planet5.display(true)
                 txt.print(" (")
@@ -843,9 +843,9 @@ planet5 {
             print_name_uppercase()
             txt.print(" TL:")
             txt.print_ub(techlevel+1)
-            txt.chrout(' ')
+            txt.spc()
             txt.print(econnames[economy])
-            txt.chrout(' ')
+            txt.spc()
             txt.print(govnames[govtype])
         } else {
             txt.print("\n\nSystem: ")
@@ -854,7 +854,7 @@ planet5 {
             txt.print_ub(x)
             txt.chrout('\'')
             txt.print_ub(y)
-            txt.chrout(' ')
+            txt.spc()
             txt.chrout('#')
             txt.print_ub(number)
             txt.print("\nEconomy: ")
@@ -873,15 +873,15 @@ planet5 {
             if species_is_alien {
                 if species_size < len(species_sizes) {
                     txt.print(species_sizes[species_size])
-                    txt.chrout(' ')
+                    txt.spc()
                 }
                 if species_color < len(species_colors) {
                     txt.print(species_colors[species_color])
-                    txt.chrout(' ')
+                    txt.spc()
                 }
                 if species_look < len(species_looks) {
                     txt.print(species_looks[species_look])
-                    txt.chrout(' ')
+                    txt.spc()
                 }
                 if species_kind < len(species_kinds) {
                     txt.print(species_kinds[species_kind])
@@ -946,7 +946,7 @@ util5 {
 
     sub print_right(ubyte width, uword st) {
         repeat width - string.length(st) {
-            txt.chrout(' ')
+            txt.spc()
         }
         txt.print(st)
     }
