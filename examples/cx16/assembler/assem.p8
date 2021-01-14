@@ -1,8 +1,8 @@
 %target cx16
-%import test_stack
 %import textio
 %import diskio
 %import string
+%import test_stack
 %zeropage basicsafe
 %option no_sysinit
 
@@ -15,35 +15,11 @@ main {
         txt.lowercase()
         txt.print("\n65c02 file based assembler.\n")
 
-        ; benchmar_raw_read()
         ; user_input()
         file_input()
 
-        ; test_stack.test()
+        test_stack.test()
     }
-
-    sub benchmar_raw_read() {
-        str filename = "romdis.asm"
-        ubyte[256] buffer
-
-        if diskio.f_open(8, filename) {
-            c64.SETTIM(0,0,0)
-            txt.print(filename)
-            txt.print("\ntiming raw file loading..")
-            repeat {
-                uword siz= diskio.f_read(buffer, 256)
-                txt.chrout('.')
-                if not siz
-                    break
-            }
-            diskio.f_close()
-
-            txt.print("\ntime (jiffies): ")
-            txt.print_uw(c64.RDTIM16())
-            txt.nl()
-        }
-    }
-
 
     sub user_input() {
         textparse.print_emit_bytes = true
@@ -70,7 +46,7 @@ main {
 
     sub file_input() {
         textparse.print_emit_bytes = false
-        str filename = "hello.asm"
+        str filename = "romdis.asm"
 
         if diskio.f_open(8, filename) {
             c64.SETTIM(0,0,0)
@@ -121,7 +97,7 @@ textparse {
     ; byte counts per address mode id:
     ubyte[17] operand_size = [$ff, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 2]
 
-    str input_line = "?" * 40
+    str input_line = "?" * 160
     uword[3] word_addrs
     uword program_counter = $4000
     ubyte print_emit_bytes = true
@@ -260,19 +236,25 @@ textparse {
                 }
 
                 if addr_mode==instructions.am_Zpr {
-                    ; instructions like BBR4 $zp,$aaaa
-                    ; TODO parse second part of the operand
-;                    if not calc_relative_branch_into_r14()
-;                        return false
-;                    cx16.r15 |= (cx16.r14 << 8)
-;                    txt.print("TODO ZPR addrmode\n")
-;                    txt.print("opcode=")
-;                    txt.print_ubhex(opcode,1)
-;                    txt.print("  op1=")
-;                    txt.print_ubhex(lsb(cx16.r15),1)
-;                    txt.print("  op2=")
-;                    txt.print_ubhex(msb(cx16.r15),1)
-;                    return false
+                    ; instructions like BBR4 $zp,$aaaa   (dual-operand)
+                    uword comma = string.find(operand_ptr,',')
+                    if comma {
+                        comma++
+                        cx16.r13 = cx16.r15
+                        if parse_operand(comma) {
+                            program_counter++
+                            if not calc_relative_branch_into_r14()
+                                return false
+                            program_counter--
+                            cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
+                        } else {
+                            txt.print("?invalid operand\n")
+                            return false
+                        }
+                    } else {
+                        txt.print("?invalid operand\n")
+                        return false
+                    }
                 }
 
                 ubyte num_operand_bytes = operand_size[addr_mode]

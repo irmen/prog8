@@ -460,7 +460,7 @@ def generate_mnemonics_parser():
         print("    lda  #<_tab_%s" % fourlettermnemonic)
         print("    ldy  #>_tab_%s" % fourlettermnemonic)
         print("""    sta  P8ZP_SCRATCH_W2
-        sty  P8ZP_SCRATCH_W2+1    
+        sty  P8ZP_SCRATCH_W2+1
         bra  _check4""")
 
     print("""_check4
@@ -471,6 +471,10 @@ def generate_mnemonics_parser():
         bcs  _invalid
         lda  _mnem_fifth_letter     ; must have no fifth letter
         bne  _invalid
+        lda  _mnem_fourth_letter
+        sec
+        sbc  #'0'
+        asl  a
         tay
         lda  (P8ZP_SCRATCH_W2),y
         pha
