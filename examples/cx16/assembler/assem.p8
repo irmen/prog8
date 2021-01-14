@@ -12,26 +12,26 @@
 main {
 
     sub start() {
-        txt.lowercase()
         txt.print("\n65c02 file based assembler.\n")
 
         ; user_input()
         file_input()
 
-        test_stack.test()
+        ; test_stack.test()
     }
 
     sub user_input() {
-        textparse.print_emit_bytes = true
+        txt.lowercase()
+        parser.print_emit_bytes = true
         txt.print("Empty line to stop.\n")
         repeat {
             ubyte input_length = 0
             txt.chrout('A')
-            txt.print_uwhex(textparse.program_counter, 1)
+            txt.print_uwhex(parser.program_counter, 1)
             txt.print(": ")
             ; simulate user always having at least one space at the start
-            textparse.input_line[0] = ' '
-            input_length = txt.input_chars(&textparse.input_line+1)
+            parser.input_line[0] = ' '
+            input_length = txt.input_chars(&parser.input_line+1)
             txt.nl()
 
             if not input_length {
@@ -39,35 +39,37 @@ main {
                 return
             }
 
-            if not textparse.process_line()
+            if not parser.process_line()
                 break
         }
     }
 
     sub file_input() {
-        textparse.print_emit_bytes = false
+        parser.print_emit_bytes = false
         str filename = "romdis.asm"
+
+        txt.print("\nread file: ")
+        txt.print(filename)
+        txt.nl()
 
         if diskio.f_open(8, filename) {
             c64.SETTIM(0,0,0)
             uword line=0
-            txt.print(filename)
-            txt.print("\nassembling..")
             repeat {
-                if diskio.f_readline(textparse.input_line) {
+                if diskio.f_readline(parser.input_line) {
                     line++
                     if not lsb(line)
                         txt.chrout('.')
 
-                    if not textparse.process_line() {
+                    if not parser.process_line() {
                         txt.print("\nerror. last line was ")
                         txt.print_uw(line)
                         txt.chrout(':')
-                        txt.print(textparse.word_addrs[0])
+                        txt.print(parser.word_addrs[0])
                         txt.chrout(' ')
-                        txt.print(textparse.word_addrs[1])
+                        txt.print(parser.word_addrs[1])
                         txt.chrout(' ')
-                        txt.print(textparse.word_addrs[2])
+                        txt.print(parser.word_addrs[2])
                         txt.nl()
                         break
                     }
@@ -82,18 +84,32 @@ main {
             }
             diskio.f_close()
 
-            txt.print("\nlast pc: ")
-            txt.print_uwhex(textparse.program_counter, 1)
-            txt.print("\nlines: ")
-            txt.print_uw(line)
-            txt.print("\ntime (jiffies): ")
-            txt.print_uw(c64.RDTIM16())
-            txt.nl()
+            print_summary(line)
         }
+    }
+
+    sub print_summary(uword lines) {
+        txt.print("\n\nfinal address: ")
+        txt.print_uwhex(parser.program_counter, 1)
+        txt.print("\n        lines: ")
+        txt.print_uw(lines)
+
+        txt.print("\n   time (sec): ")
+        uword current_time = c64.RDTIM16()
+        uword secs = current_time / 60
+        current_time = (current_time - secs*60)*1000/60
+        txt.print_uw(secs)
+        txt.chrout('.')
+        if current_time<10
+            txt.chrout('0')
+        if current_time<100
+            txt.chrout('0')
+        txt.print_uw(current_time)
+        txt.nl()
     }
 }
 
-textparse {
+parser {
     ; byte counts per address mode id:
     ubyte[17] operand_size = [$ff, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 2]
 
@@ -133,11 +149,11 @@ textparse {
         if valid_operand {
             if string.compare(word_addrs[0], "*")==0 {
                 program_counter = cx16.r15
-                txt.print("\npc set to: ")
+                txt.print("\n* = ")
                 txt.print_uwhex(program_counter, true)
                 txt.nl()
             } else {
-                set_symbol(word_addrs[0], cx16.r15)
+                symbols.setvalue(word_addrs[0], cx16.r15)
             }
             return true
         }
@@ -178,7 +194,7 @@ textparse {
                 txt.print("?label cannot be a mnemonic\n")
                 return false
             }
-            set_symbol(label_ptr, program_counter)
+            symbols.setvalue(label_ptr, program_counter)
         }
         if instr_ptr {
             if @(instr_ptr)=='.'
@@ -477,14 +493,6 @@ _is_2_entry
         }
     }
 
-    sub set_symbol(uword symbolname_ptr, uword value) {
-        txt.print("symbol: ")
-        txt.print(symbolname_ptr)
-        txt.chrout('=')
-        txt.print_uwhex(value, true)
-        txt.nl()
-    }
-
     sub dummy(uword operand_ptr) -> uword {
         uword a1=rndw()
         uword a6=a1+operand_ptr
@@ -564,6 +572,16 @@ _is_2_entry
         }
         @(dest)=0
         void string.copy(input_line2, src)
+    }
+}
+
+symbols {
+    sub setvalue(uword symbolname_ptr, uword value) {
+        txt.print("symbol: ")
+        txt.print(symbolname_ptr)
+        txt.chrout('=')
+        txt.print_uwhex(value, true)
+        txt.nl()
     }
 }
 
