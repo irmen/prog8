@@ -112,6 +112,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             SourceStorageKind.MEMORY -> {
+                fun assignViaExprEval(expression: Expression) {
+                    assignExpressionToVariable(expression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
+                    else
+                        asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                }
+
                 val value = assign.source.memory!!
                 when (value.addressExpression) {
                     is NumericLiteralValue -> {
@@ -121,14 +130,28 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is IdentifierReference -> {
                         assignMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
                     }
-                    else -> {
-                        assignExpressionToVariable(value.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
-                        if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                            asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
-                        else
-                            asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                    is BinaryExpression -> {
+                        // try to optimize simple cases like assignment from ptr+1, ptr+2...
+                        var optimized = false
+                        val expr = value.addressExpression as BinaryExpression
+                        if(expr.operator=="+") {
+                            // we can assume const operand has been moved to the right.
+                            val constOperand = expr.right.constValue(program)
+                            if(constOperand!=null) {
+                                val intIndex = constOperand.number.toInt()
+                                if(intIndex in 1..255) {
+                                    assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
+                                    asmgen.out("  ldy  #${intIndex} |  lda  (P8ZP_SCRATCH_W2),y")
+                                    assignRegisterByte(assign.target, CpuRegister.A)
+                                    optimized = true
+                                }
+                            }
+                        }
+
+                        if(!optimized)
+                            assignViaExprEval(expr)
                     }
+                    else -> assignViaExprEval(value.addressExpression)
                 }
             }
             SourceStorageKind.EXPRESSION -> {

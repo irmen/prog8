@@ -23,6 +23,7 @@ main {
         txt.nl()
         txt.nl()
 
+
         txt.chrout(@(ptr))
         txt.chrout(@(ptr+1))
         txt.chrout(@(ptr+2))
