@@ -12,7 +12,7 @@
 main {
 
     sub start() {
-        txt.print("\n65c02 file based assembler.\n\nfilename or enter for interactive: ")
+        txt.print("\nCommanderX16 65c02 file based assembler.\n\nfilename or enter for interactive: ")
 
         str filename = "?" * 20
         if txt.input_chars(filename)
@@ -639,11 +639,10 @@ instructions {
             phx
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
-            ldy  #0
-            lda  (P8ZP_SCRATCH_W1),y
+            lda  (P8ZP_SCRATCH_W1)
             and  #$7f   ; lowercase
             pha
-            iny
+            ldy  #1
             lda  (P8ZP_SCRATCH_W1),y
             and  #$7f   ; lowercase
             pha
@@ -686,10 +685,9 @@ instructions {
             ;lda  #13
             ;jsr  c64.CHROUT
 
-            ldy  #0
-            lda  (P8ZP_SCRATCH_W2),y
+            lda  (P8ZP_SCRATCH_W2)
             beq  _multi_addrmodes
-            iny
+            ldy  #1
             lda  (P8ZP_SCRATCH_W2),y
             cmp  cx16.r5               ; check single possible addr.mode
             bne  _not_found
@@ -707,12 +705,11 @@ _multi_addrmodes
             lda  (P8ZP_SCRATCH_W2),y    ; check opcode for addr.mode
             bne  _valid
             ; opcode $00 usually means 'invalid' but for "brk" it is actually valid so check for "brk"
-            ldy  #0
-            lda  (P8ZP_SCRATCH_W1),y
+            lda  (P8ZP_SCRATCH_W1)
             and  #$7f       ; lowercase
             cmp  #'b'
             bne  _not_found
-            iny
+            ldy  #1
             lda  (P8ZP_SCRATCH_W1),y
             and  #$7f       ; lowercase
             cmp  #'r'

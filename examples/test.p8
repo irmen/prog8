@@ -7,27 +7,38 @@ main {
 
 
     sub start() {
-        str filename="?"*40
-        txt.print("> ")
-        ubyte il = txt.input_chars(filename)
-        txt.print_ub(il)
+        str name = "abcdef"
+
+        uword ptr = &name
+        ubyte cc
+
+        cc = @(ptr)
+        txt.chrout(cc)
         txt.nl()
-        txt.print_ubhex(filename[0],1)
-        txt.print_ubhex(filename[1],1)
-        txt.print_ubhex(filename[2],1)
+        cc = @(ptr+1)
+        txt.chrout(cc)
         txt.nl()
-        txt.print(filename)
+        cc = @(ptr+2)
+        txt.chrout(cc)
+        txt.nl()
         txt.nl()
 
-        txt.print("> ")
-        il = txt.input_chars(filename)
-        txt.print_ub(il)
+        txt.chrout(@(ptr))
+        txt.chrout(@(ptr+1))
+        txt.chrout(@(ptr+2))
         txt.nl()
-        txt.print_ubhex(filename[0],1)
-        txt.print_ubhex(filename[1],1)
-        txt.print_ubhex(filename[2],1)
+
+        @(ptr) = '1'
+        @(ptr+1) = '2'
+        @(ptr+2) = '3'
+        txt.print(name)
         txt.nl()
-        txt.print(filename)
+
+        cc=0
+        @(ptr+cc) = 'a'
+        @(ptr+cc+1) = 'b'
+        @(ptr+cc+2) = 'c'
+        txt.print(name)
         txt.nl()
     }
 

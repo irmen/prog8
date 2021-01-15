@@ -2,7 +2,6 @@
 TODO
 ====
 
-- use (zp) addressing mode on 65c02 specific code rather than ldy#0 / lda (zp),y
 - optimize pointer access code @(pointer)? use a subroutine? macro?  65c02 vs 6502?
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a compiler option to generate a symbol listing at the end

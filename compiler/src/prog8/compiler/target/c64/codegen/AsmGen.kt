@@ -526,19 +526,35 @@ internal class AsmGen(private val program: Program,
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
-        return if(scopedName in allocatedZeropageVariables) {
-            // pointervar is already in the zero page, no need to copy
-            out(" ldy  #0 |  lda  ($sourceName),y")
-            Pair(true, sourceName)
+        if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+            return if (scopedName in allocatedZeropageVariables) {
+                // pointervar is already in the zero page, no need to copy
+                out("  lda  ($sourceName)")
+                Pair(true, sourceName)
+            } else {
+                out("""
+                    lda  $sourceName
+                    ldy  $sourceName+1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  (P8ZP_SCRATCH_W1)""")
+                Pair(false, sourceName)
+            }
         } else {
-            out("""
-                lda  $sourceName
-                ldy  $sourceName+1
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                ldy  #0
-                lda  (P8ZP_SCRATCH_W1),y""")
-            Pair(false, sourceName)
+            return if (scopedName in allocatedZeropageVariables) {
+                // pointervar is already in the zero page, no need to copy
+                out("  ldy  #0 |  lda  ($sourceName),y")
+                Pair(true, sourceName)
+            } else {
+                out("""
+                    lda  $sourceName
+                    ldy  $sourceName+1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    ldy  #0
+                    lda  (P8ZP_SCRATCH_W1),y""")
+                Pair(false, sourceName)
+            }
         }
     }
 
@@ -546,20 +562,37 @@ internal class AsmGen(private val program: Program,
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
-        if(scopedName in allocatedZeropageVariables) {
-            // pointervar is already in the zero page, no need to copy
-            if(ldaInstructionArg!=null)
-                out("  lda  $ldaInstructionArg")
-            out(" ldy  #0 |  sta  ($sourceName),y")
+        if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+            if (scopedName in allocatedZeropageVariables) {
+                // pointervar is already in the zero page, no need to copy
+                if (ldaInstructionArg != null)
+                    out("  lda  $ldaInstructionArg")
+                out("  sta  ($sourceName)")
+            } else {
+                out("""
+                    ldy  $sourceName
+                    sty  P8ZP_SCRATCH_W2
+                    ldy  $sourceName+1
+                    sty  P8ZP_SCRATCH_W2+1
+                    ${if (ldaInstructionArg == null) "" else "lda  $ldaInstructionArg"}
+                    sta  (P8ZP_SCRATCH_W2)""")
+            }
         } else {
-            out("""
-                ldy  $sourceName
-                sty  P8ZP_SCRATCH_W2
-                ldy  $sourceName+1
-                sty  P8ZP_SCRATCH_W2+1
-                ${if(ldaInstructionArg==null) "" else "lda  $ldaInstructionArg"}
-                ldy  #0
-                sta  (P8ZP_SCRATCH_W2),y""")
+            if (scopedName in allocatedZeropageVariables) {
+                // pointervar is already in the zero page, no need to copy
+                if (ldaInstructionArg != null)
+                    out("  lda  $ldaInstructionArg")
+                out(" ldy  #0 |  sta  ($sourceName),y")
+            } else {
+                out("""
+                    ldy  $sourceName
+                    sty  P8ZP_SCRATCH_W2
+                    ldy  $sourceName+1
+                    sty  P8ZP_SCRATCH_W2+1
+                    ${if (ldaInstructionArg == null) "" else "lda  $ldaInstructionArg"}
+                    ldy  #0
+                    sta  (P8ZP_SCRATCH_W2),y""")
+            }
         }
     }
 

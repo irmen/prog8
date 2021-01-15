@@ -123,7 +123,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     else -> {
                         assignExpressionToVariable(value.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
-                        asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                        if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
+                        else
+                            asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
                         assignRegisterByte(assign.target, CpuRegister.A)
                     }
                 }
@@ -1943,7 +1946,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             else -> {
                 assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                asmgen.out("  ldy  #0 |  lda  $ldaInstructionArg |  sta  (P8ZP_SCRATCH_W2),y")
+                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    asmgen.out("  lda  $ldaInstructionArg |  sta  (P8ZP_SCRATCH_W2)")
+                else
+                    asmgen.out("  lda  $ldaInstructionArg |  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
             }
         }
     }
@@ -1969,7 +1975,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.saveRegisterStack(register, false)
                 assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
-                asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
+                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
+                else
+                    asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
             }
         }
     }

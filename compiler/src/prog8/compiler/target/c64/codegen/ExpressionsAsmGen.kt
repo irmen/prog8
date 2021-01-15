@@ -1472,10 +1472,18 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             else -> {
                 asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                if(pushResultOnEstack) {
-                    asmgen.out("  dex |  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO+1,x")
+                if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+                    if (pushResultOnEstack) {
+                        asmgen.out("  dex |  lda  (P8ZP_SCRATCH_W2) |  sta  P8ESTACK_LO+1,x")
+                    } else {
+                        asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
+                    }
                 } else {
-                    asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                    if (pushResultOnEstack) {
+                        asmgen.out("  dex |  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO+1,x")
+                    } else {
+                        asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                    }
                 }
             }
         }
