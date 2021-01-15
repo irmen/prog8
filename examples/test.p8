@@ -23,10 +23,11 @@ main {
         txt.nl()
         txt.nl()
 
+        cc=0
 
-        txt.chrout(@(ptr))
-        txt.chrout(@(ptr+1))
-        txt.chrout(@(ptr+2))
+        txt.chrout(@(ptr)+cc)
+        txt.chrout(@(ptr+1)+cc)
+        txt.chrout(@(ptr+2)+cc)
         txt.nl()
 
         @(ptr) = '1'

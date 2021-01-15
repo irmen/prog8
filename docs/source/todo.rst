@@ -2,7 +2,8 @@
 TODO
 ====
 
-- optimize pointer access code @(pointer)? use a subroutine? macro?  65c02 vs 6502?
+- optimize pointer access if it's via a var that's already in ZP. in AssignmentAsmGen 3 times,
+    and in translateDirectMemReadExpression.  like loadByteFromPointerIntoA() is doing.
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a compiler option to generate a symbol listing at the end
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation

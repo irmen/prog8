@@ -121,6 +121,24 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     assignRegisterByte(assign.target, CpuRegister.A)
                 }
 
+                fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
+                    // try to optimize simple cases like assignment from ptr+1, ptr+2...
+                    if(expr.operator=="+") {
+                        // we can assume const operand has been moved to the right.
+                        val constOperand = expr.right.constValue(program)
+                        if(constOperand!=null) {
+                            val intIndex = constOperand.number.toInt()
+                            if(intIndex in 1..255) {
+                                assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
+                                asmgen.out("  ldy  #${intIndex} |  lda  (P8ZP_SCRATCH_W2),y")
+                                assignRegisterByte(assign.target, CpuRegister.A)
+                                return true
+                            }
+                        }
+                    }
+                    return false
+                }
+
                 val value = assign.source.memory!!
                 when (value.addressExpression) {
                     is NumericLiteralValue -> {
@@ -131,25 +149,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
                     }
                     is BinaryExpression -> {
-                        // try to optimize simple cases like assignment from ptr+1, ptr+2...
-                        var optimized = false
-                        val expr = value.addressExpression as BinaryExpression
-                        if(expr.operator=="+") {
-                            // we can assume const operand has been moved to the right.
-                            val constOperand = expr.right.constValue(program)
-                            if(constOperand!=null) {
-                                val intIndex = constOperand.number.toInt()
-                                if(intIndex in 1..255) {
-                                    assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
-                                    asmgen.out("  ldy  #${intIndex} |  lda  (P8ZP_SCRATCH_W2),y")
-                                    assignRegisterByte(assign.target, CpuRegister.A)
-                                    optimized = true
-                                }
-                            }
-                        }
-
-                        if(!optimized)
-                            assignViaExprEval(expr)
+                        if(!tryOptimizedPointerAccess(value.addressExpression as BinaryExpression))
+                            assignViaExprEval(value.addressExpression)
                     }
                     else -> assignViaExprEval(value.addressExpression)
                 }
@@ -1961,13 +1962,29 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val addressExpr = memoryAddress.addressExpression
         val addressLv = addressExpr as? NumericLiteralValue
 
-        fun storeViaExprEval()
-        {
+        fun storeViaExprEval() {
             assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
             if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                 asmgen.out("  lda  $ldaInstructionArg |  sta  (P8ZP_SCRATCH_W2)")
             else
                 asmgen.out("  lda  $ldaInstructionArg |  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
+        }
+
+        fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
+            // try to optimize simple cases like storing value to ptr+1, ptr+2...
+            if(expr.operator=="+") {
+                // we can assume const operand has been moved to the right.
+                val constOperand = expr.right.constValue(program)
+                if(constOperand!=null) {
+                    val intIndex = constOperand.number.toInt()
+                    if(intIndex in 1..255) {
+                        assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        asmgen.out("  lda  $ldaInstructionArg |  ldy  #${intIndex} |  sta  (P8ZP_SCRATCH_W2),y")
+                        return true
+                    }
+                }
+            }
+            return false
         }
 
         when {
@@ -1978,22 +1995,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, ldaInstructionArg)
             }
             addressExpr is BinaryExpression -> {
-                // try to optimize simple cases like storing value to ptr+1, ptr+2...
-                var optimized = false
-                if(addressExpr.operator=="+") {
-                    // we can assume const operand has been moved to the right.
-                    val constOperand = addressExpr.right.constValue(program)
-                    if(constOperand!=null) {
-                        val intIndex = constOperand.number.toInt()
-                        if(intIndex in 1..255) {
-                            assignExpressionToVariable(addressExpr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                            asmgen.out("  lda  $ldaInstructionArg |  ldy  #${intIndex} |  sta  (P8ZP_SCRATCH_W2),y")
-                            optimized = true
-                        }
-                    }
-                }
-
-                if(!optimized)
+                if(!tryOptimizedPointerAccess(addressExpr))
                     storeViaExprEval()
             }
             else -> storeViaExprEval()
@@ -2006,8 +2008,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val addressLv = addressExpr as? NumericLiteralValue
         val registerName = register.name.toLowerCase()
 
-        fun storeViaExprEval()
-        {
+        fun storeViaExprEval() {
             asmgen.saveRegisterStack(register, false)
             assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
@@ -2015,6 +2016,25 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
             else
                 asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
+        }
+
+        fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
+            // try to optimize simple cases like storing value to ptr+1, ptr+2...
+            if(expr.operator=="+") {
+                // we can assume const operand has been moved to the right.
+                val constOperand = expr.right.constValue(program)
+                if(constOperand!=null) {
+                    val intIndex = constOperand.number.toInt()
+                    if(intIndex in 1..255) {
+                        asmgen.saveRegisterStack(register, false)
+                        assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        asmgen.restoreRegisterStack(CpuRegister.A, false)
+                        asmgen.out("  ldy  #${intIndex} |  sta  (P8ZP_SCRATCH_W2),y")
+                        return true
+                    }
+                }
+            }
+            return false
         }
 
         when {
@@ -2030,24 +2050,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.storeByteIntoPointer(addressExpr, null)
             }
             addressExpr is BinaryExpression -> {
-                // try to optimize simple cases like storing value to ptr+1, ptr+2...
-                var optimized = false
-                if(addressExpr.operator=="+") {
-                    // we can assume const operand has been moved to the right.
-                    val constOperand = addressExpr.right.constValue(program)
-                    if(constOperand!=null) {
-                        val intIndex = constOperand.number.toInt()
-                        if(intIndex in 1..255) {
-                            asmgen.saveRegisterStack(register, false)
-                            assignExpressionToVariable(addressExpr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                            asmgen.restoreRegisterStack(CpuRegister.A, false)
-                            asmgen.out("  ldy  #${intIndex} |  sta  (P8ZP_SCRATCH_W2),y")
-                            optimized = true
-                        }
-                    }
-                }
-
-                if(!optimized)
+                if(!tryOptimizedPointerAccess(addressExpr))
                     storeViaExprEval()
             }
             else -> storeViaExprEval()
