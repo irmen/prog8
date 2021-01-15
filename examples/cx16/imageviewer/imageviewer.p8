@@ -7,7 +7,6 @@
 %import iff_module
 %import pcx_module
 %import bmp_module
-;; %import ci_module
 %zeropage basicsafe
 
 
@@ -98,15 +97,6 @@ main {
                 load_error(filenameptr)
             }
         }
-;        else if extension == ".ci" {
-;;            txt.print("loading ")
-;;            txt.print("ci\n")
-;            if ci_module.show_image(filenameptr) {
-;                sys.wait(180)
-;            } else {
-;                load_error(filenameptr)
-;            }
-;        }
     }
 
     sub load_error(uword filenameptr) {
