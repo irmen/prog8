@@ -24,7 +24,6 @@ main {
         txt.nl()
 
         cc=0
-
         txt.chrout(@(ptr)+cc)
         txt.chrout(@(ptr+1)+cc)
         txt.chrout(@(ptr+2)+cc)

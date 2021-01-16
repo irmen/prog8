@@ -2,9 +2,9 @@
 TODO
 ====
 
-- optimize pointer access if it's via a var that's already in ZP. in AssignmentAsmGen 3 times,
-    and in translateDirectMemReadExpression.  like loadByteFromPointerIntoA() is doing.
+- why is fibonacci example (and others) generating larger code now? fix?
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
+- add a f_seek() routine for the Cx16 that uses its seek dos api?
 - add a compiler option to generate a symbol listing at the end
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)

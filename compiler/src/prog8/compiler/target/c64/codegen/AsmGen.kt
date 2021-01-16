@@ -527,7 +527,7 @@ internal class AsmGen(private val program: Program,
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
         if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
-            return if (scopedName in allocatedZeropageVariables) {
+            return if (isZpVar(scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out("  lda  ($sourceName)")
                 Pair(true, sourceName)
@@ -541,7 +541,7 @@ internal class AsmGen(private val program: Program,
                 Pair(false, sourceName)
             }
         } else {
-            return if (scopedName in allocatedZeropageVariables) {
+            return if (isZpVar(scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out("  ldy  #0 |  lda  ($sourceName),y")
                 Pair(true, sourceName)
@@ -563,7 +563,7 @@ internal class AsmGen(private val program: Program,
         val vardecl = pointervar.targetVarDecl(program.namespace)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
         if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
-            if (scopedName in allocatedZeropageVariables) {
+            if (isZpVar(scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 if (ldaInstructionArg != null)
                     out("  lda  $ldaInstructionArg")
@@ -578,7 +578,7 @@ internal class AsmGen(private val program: Program,
                     sta  (P8ZP_SCRATCH_W2)""")
             }
         } else {
-            if (scopedName in allocatedZeropageVariables) {
+            if (isZpVar(scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 if (ldaInstructionArg != null)
                     out("  lda  $ldaInstructionArg")
@@ -1361,5 +1361,12 @@ $label              nop""")
             }
             else -> throw AssemblyError("need byte type")
         }
+    }
+
+    internal fun isZpVar(scopedName: String): Boolean = scopedName in allocatedZeropageVariables
+
+    internal fun isZpVar(variable: IdentifierReference): Boolean {
+        val vardecl = variable.targetVarDecl(program.namespace)!!
+        return vardecl.makeScopedName(vardecl.name) in allocatedZeropageVariables
     }
 }
