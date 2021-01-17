@@ -128,50 +128,50 @@ cx16 {
 
 ; VERA registers
 
-    const uword VERA_BASE = $9F20
-    &ubyte  VERA_ADDR_L   	  = VERA_BASE + $0000
-    &ubyte  VERA_ADDR_M   	  = VERA_BASE + $0001
-    &ubyte  VERA_ADDR_H   	  = VERA_BASE + $0002
-    &ubyte  VERA_DATA0        = VERA_BASE + $0003
-    &ubyte  VERA_DATA1        = VERA_BASE + $0004
-    &ubyte  VERA_CTRL         = VERA_BASE + $0005
-    &ubyte  VERA_IEN          = VERA_BASE + $0006
-    &ubyte  VERA_ISR          = VERA_BASE + $0007
-    &ubyte  VERA_IRQ_LINE_L   = VERA_BASE + $0008
-    &ubyte  VERA_DC_VIDEO     = VERA_BASE + $0009
-    &ubyte  VERA_DC_HSCALE    = VERA_BASE + $000A
-    &ubyte  VERA_DC_VSCALE    = VERA_BASE + $000B
-    &ubyte  VERA_DC_BORDER    = VERA_BASE + $000C
-    &ubyte  VERA_DC_HSTART    = VERA_BASE + $0009
-    &ubyte  VERA_DC_HSTOP     = VERA_BASE + $000A
-    &ubyte  VERA_DC_VSTART    = VERA_BASE + $000B
-    &ubyte  VERA_DC_VSTOP     = VERA_BASE + $000C
-    &ubyte  VERA_L0_CONFIG    = VERA_BASE + $000D
-    &ubyte  VERA_L0_MAPBASE   = VERA_BASE + $000E
-    &ubyte  VERA_L0_TILEBASE  = VERA_BASE + $000F
-    &ubyte  VERA_L0_HSCROLL_L = VERA_BASE + $0010
-    &ubyte  VERA_L0_HSCROLL_H = VERA_BASE + $0011
-    &ubyte  VERA_L0_VSCROLL_L = VERA_BASE + $0012
-    &ubyte  VERA_L0_VSCROLL_H = VERA_BASE + $0013
-    &ubyte  VERA_L1_CONFIG    = VERA_BASE + $0014
-    &ubyte  VERA_L1_MAPBASE   = VERA_BASE + $0015
-    &ubyte  VERA_L1_TILEBASE  = VERA_BASE + $0016
-    &ubyte  VERA_L1_HSCROLL_L = VERA_BASE + $0017
-    &ubyte  VERA_L1_HSCROLL_H = VERA_BASE + $0018
-    &ubyte  VERA_L1_VSCROLL_L = VERA_BASE + $0019
-    &ubyte  VERA_L1_VSCROLL_H = VERA_BASE + $001A
-    &ubyte  VERA_AUDIO_CTRL   = VERA_BASE + $001B
-    &ubyte  VERA_AUDIO_RATE   = VERA_BASE + $001C
-    &ubyte  VERA_AUDIO_DATA   = VERA_BASE + $001D
-    &ubyte  VERA_SPI_DATA     = VERA_BASE + $001E
-    &ubyte  VERA_SPI_CTRL     = VERA_BASE + $001F
+    const uword VERA_BASE       = $9F20
+    &ubyte  VERA_ADDR_L         = VERA_BASE + $0000
+    &ubyte  VERA_ADDR_M         = VERA_BASE + $0001
+    &ubyte  VERA_ADDR_H         = VERA_BASE + $0002
+    &ubyte  VERA_DATA0          = VERA_BASE + $0003
+    &ubyte  VERA_DATA1          = VERA_BASE + $0004
+    &ubyte  VERA_CTRL           = VERA_BASE + $0005
+    &ubyte  VERA_IEN            = VERA_BASE + $0006
+    &ubyte  VERA_ISR            = VERA_BASE + $0007
+    &ubyte  VERA_IRQ_LINE_L     = VERA_BASE + $0008
+    &ubyte  VERA_DC_VIDEO       = VERA_BASE + $0009
+    &ubyte  VERA_DC_HSCALE      = VERA_BASE + $000A
+    &ubyte  VERA_DC_VSCALE      = VERA_BASE + $000B
+    &ubyte  VERA_DC_BORDER      = VERA_BASE + $000C
+    &ubyte  VERA_DC_HSTART      = VERA_BASE + $0009
+    &ubyte  VERA_DC_HSTOP       = VERA_BASE + $000A
+    &ubyte  VERA_DC_VSTART      = VERA_BASE + $000B
+    &ubyte  VERA_DC_VSTOP       = VERA_BASE + $000C
+    &ubyte  VERA_L0_CONFIG      = VERA_BASE + $000D
+    &ubyte  VERA_L0_MAPBASE     = VERA_BASE + $000E
+    &ubyte  VERA_L0_TILEBASE    = VERA_BASE + $000F
+    &ubyte  VERA_L0_HSCROLL_L   = VERA_BASE + $0010
+    &ubyte  VERA_L0_HSCROLL_H   = VERA_BASE + $0011
+    &ubyte  VERA_L0_VSCROLL_L   = VERA_BASE + $0012
+    &ubyte  VERA_L0_VSCROLL_H   = VERA_BASE + $0013
+    &ubyte  VERA_L1_CONFIG      = VERA_BASE + $0014
+    &ubyte  VERA_L1_MAPBASE     = VERA_BASE + $0015
+    &ubyte  VERA_L1_TILEBASE    = VERA_BASE + $0016
+    &ubyte  VERA_L1_HSCROLL_L   = VERA_BASE + $0017
+    &ubyte  VERA_L1_HSCROLL_H   = VERA_BASE + $0018
+    &ubyte  VERA_L1_VSCROLL_L   = VERA_BASE + $0019
+    &ubyte  VERA_L1_VSCROLL_H   = VERA_BASE + $001A
+    &ubyte  VERA_AUDIO_CTRL     = VERA_BASE + $001B
+    &ubyte  VERA_AUDIO_RATE     = VERA_BASE + $001C
+    &ubyte  VERA_AUDIO_DATA     = VERA_BASE + $001D
+    &ubyte  VERA_SPI_DATA       = VERA_BASE + $001E
+    &ubyte  VERA_SPI_CTRL       = VERA_BASE + $001F
 ; VERA_PSG_BASE     = $1F9C0
 ; VERA_PALETTE_BASE = $1FA00
 ; VERA_SPRITES_BASE = $1FC00
 
 ; I/O
 
-    const uword  via1  = $9f60                  ;VIA 6522 #1
+    const uword  via1   = $9f60                  ;VIA 6522 #1
     &ubyte  d1prb	= via1+0
     &ubyte  d1pra	= via1+1
     &ubyte  d1ddrb	= via1+2
@@ -189,7 +189,7 @@ cx16 {
     &ubyte  d1ier	= via1+14
     &ubyte  d1ora	= via1+15
 
-    const uword  via2  = $9f70                  ;VIA 6522 #2
+    const uword  via2   = $9f70                  ;VIA 6522 #2
     &ubyte  d2prb	= via2+0
     &ubyte  d2pra	= via2+1
     &ubyte  d2ddrb	= via2+2
@@ -480,9 +480,8 @@ sys {
         ; Soft-reset the system back to Basic prompt.
         %asm {{
             sei
-            lda  #14
-            sta  $01
-            stz  cx16.d1prb         ; bank the kernal in
+            stz  $01            ; bank the kernal in (new rom bank register)
+            stz  cx16.d1prb     ; bank the kernal in (old rom bank register)
             jmp  (cx16.RESET_VEC)
         }}
     }
