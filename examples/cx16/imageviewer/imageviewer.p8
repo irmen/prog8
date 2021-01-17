@@ -12,6 +12,9 @@
 
 main {
     sub start() {
+
+        cx16.rombank(0)        ; switch to kernal rom (for faster file i/o)
+
         ; trick to check if we're running on sdcard or host system shared folder
         txt.print("\nimage viewer for commander x16\nformats supported: .iff, .pcx, .bmp, .koa (c64 koala)\n\n")
         if string.length(diskio.status(8)) {
@@ -30,6 +33,8 @@ main {
 
         gfx2.screen_mode(255)      ; back to default text mode and palette
         txt.print("that was all folks!\n")
+
+        cx16.rombank(4)        ; switch back to basic rom
     }
 
     sub show_pics_sdcard() {

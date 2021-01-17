@@ -289,6 +289,23 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
 
 
 ; ---- utilities -----
+
+inline asmsub rombank(ubyte rombank @A) {
+    ; -- set the rom banks
+    %asm {{
+        sta  $01            ; rom bank register (new)
+        sta  cx16.d1prb     ; rom bank register (old)
+    }}
+}
+
+inline asmsub rambank(ubyte rambank @A) {
+    ; -- set the ram bank
+    %asm {{
+        sta  $00            ; ram bank register (new)
+        sta  cx16.d1pra     ; ram bank register (old)
+    }}
+}
+
 asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
         ; -- get a byte from VERA's video memory
         ;    note: inefficient when reading multiple sequential bytes!

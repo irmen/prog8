@@ -8,6 +8,7 @@
 
 start
 
+    stz  $9f60          ; switch to kernal bank for faster i/o
     phx
 
     ldx  #<_filename
@@ -47,6 +48,9 @@ _eof
     jsr  $FFCC       ;CLRCHN
     lda  #1
     jsr  $FFC3       ;CLOSE
+
+    lda  #4
+    sta  $9f60
 
     ; print the time taken
     jsr  $FFDE       ; RDTIM -> A,X,Y

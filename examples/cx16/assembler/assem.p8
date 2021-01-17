@@ -12,13 +12,15 @@
 main {
 
     sub start() {
-        txt.print("\nCommanderX16 65c02 file based assembler.\n\nfilename or enter for interactive: ")
+        txt.print("\ncommander-x16 65c02 file based assembler.\n\nfilename or enter for interactive: ")
 
         str filename = "?" * 20
         if txt.input_chars(filename)
             file_input(filename)
         else
             user_input()
+
+        cx16.rombank(4)     ; switch back to basic rom
 
         test_stack.test()
     }
@@ -56,6 +58,8 @@ main {
         txt.print("\nreading ")
         txt.print(filename)
         txt.spc()
+
+        cx16.rombank(0)     ; switch to kernal rom for faster file i/o
 
         if diskio.f_open(8, filename) {
             c64.SETTIM(0,0,0)
