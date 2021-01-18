@@ -72,7 +72,7 @@ io_error:
     str   list_filename = "?" * 32
 
 
-    ; ----- get a list of files (uses iteration functions internally -----
+    ; ----- get a list of files (uses iteration functions internally) -----
 
     sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
