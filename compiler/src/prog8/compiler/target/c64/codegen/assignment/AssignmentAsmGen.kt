@@ -309,6 +309,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             is DirectMemoryRead -> {
                 if(targetDt in WordDatatypes) {
+
+                    fun assignViaExprEval(addressExpression: Expression) {
+                        asmgen.assignExpressionToVariable(addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
+                        else
+                            asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                        assignRegisterByte(target, CpuRegister.A)
+                    }
+
                     when (value.addressExpression) {
                         is NumericLiteralValue -> {
                             val address = (value.addressExpression as NumericLiteralValue).number.toInt()
@@ -319,8 +329,16 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             assignMemoryByteIntoWord(target, null, value.addressExpression as IdentifierReference)
                             return
                         }
+                        is BinaryExpression -> {
+                            if(asmgen.tryOptimizedPointerAccessWithA(value.addressExpression as BinaryExpression, false)) {
+                                asmgen.out("  ldy  #0")
+                                assignRegisterpairWord(target, RegisterOrPair.AY)
+                            } else {
+                                assignViaExprEval(value.addressExpression)
+                            }
+                        }
                         else -> {
-                            TODO("memread from expression ${value.addressExpression}")
+                            assignViaExprEval(value.addressExpression)
                         }
                     }
                 }
@@ -1322,7 +1340,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  st${register.name.toLowerCase()}  ${target.asmVarname}")
             }
             TargetStorageKind.MEMORY -> {
-                TODO("assignRegisterByte via storeByteViaRegisterAInMemoryAddress()")
+                when(register) {
+                    CpuRegister.A -> {}
+                    CpuRegister.X -> asmgen.out(" txa")
+                    CpuRegister.Y -> asmgen.out(" tya")
+                }
+                storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {

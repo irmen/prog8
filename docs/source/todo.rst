@@ -2,14 +2,16 @@
 TODO
 ====
 
-- optimize pointer access @(ptr+ix) if ix<=255 (i.e. if it is of ubyte type) to use indexing register
-- add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
+- [pointer-index-optimize branch] fix imageviewer color cycling on champagne and weathermap iff images
 - allow  uwordpointer[index] syntax -> transform into @(uwordpointer+index)  allow index to be >255!
+- add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions
+- optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
+- add a compiler option to not remove unused subroutines. this allows for building library programs
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)

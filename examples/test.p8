@@ -13,13 +13,15 @@ main {
 
 
         ubyte ix = 0
-        ubyte cc
+        ubyte cc = 0
+
+        @(screen) = 1
+        @(screen+1) = 2
+        swap(@(screen), @(screen+1))
 
 ;        cc = @(screen+2)
 ;        cc++
 ;        @(screen+2) = cc
-
-        @(screen + ix + cc*$0008) = cc
 
 ;        cc = @(screen+ix)
 ;        cc++

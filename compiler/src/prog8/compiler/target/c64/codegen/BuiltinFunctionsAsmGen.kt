@@ -197,13 +197,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             val number = (what.addressExpression as NumericLiteralValue).number
                             asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
                         } else {
-                            val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
-                            if(ptrAndIndex!=null) {
-                                TODO("memread via pointer+indexregister ${ptrAndIndex.first},${ptrAndIndex.second}")
-                            } else {
-                                asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
-                                asmgen.out("  jsr  prog8_lib.ror2_mem_ub")
-                            }
+                            asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
+                            asmgen.out("  jsr  prog8_lib.ror2_mem_ub")
                         }
                     }
                     is IdentifierReference -> {
@@ -247,7 +242,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
                             if(ptrAndIndex!=null) {
-                                TODO("memread via pointer+indexregister ${ptrAndIndex.first},${ptrAndIndex.second}")
+                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
+                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as FunctionCallStatement).definingSubroutine()!!)
+                                asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
+                                asmgen.restoreRegisterLocal(CpuRegister.X)
+                                asmgen.out("""
+                                    sta  (+) + 1
+                                    sty  (+) + 2
++                                   ror  ${'$'}ffff,x           ; modified""")
                             } else {
                                 asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
                                 asmgen.out("""
@@ -296,13 +298,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             val number = (what.addressExpression as NumericLiteralValue).number
                             asmgen.out("  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}")
                         } else {
-                            val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
-                            if(ptrAndIndex!=null) {
-                                TODO("memread via pointer+indexregister ${ptrAndIndex.first},${ptrAndIndex.second}")
-                            } else {
-                                asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
-                                asmgen.out("  jsr  prog8_lib.rol2_mem_ub")
-                            }
+                            asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
+                            asmgen.out("  jsr  prog8_lib.rol2_mem_ub")
                         }
                     }
                     is IdentifierReference -> {
@@ -346,7 +343,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
                             if(ptrAndIndex!=null) {
-                                TODO("memread via pointer+indexregister ${ptrAndIndex.first},${ptrAndIndex.second}")
+                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
+                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as FunctionCallStatement).definingSubroutine()!!)
+                                asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
+                                asmgen.restoreRegisterLocal(CpuRegister.X)
+                                asmgen.out("""
+                                    sta  (+) + 1
+                                    sty  (+) + 2
++                                   rol  ${'$'}ffff,x           ; modified""")
                             } else {
                                 asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
                                 asmgen.out("""
@@ -530,6 +534,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         // optimized simple case: swap two memory locations
         if(first is DirectMemoryRead && second is DirectMemoryRead) {
+            // TODO optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
             val addr1 = (first.addressExpression as? NumericLiteralValue)?.number?.toHex()
             val addr2 = (second.addressExpression as? NumericLiteralValue)?.number?.toHex()
             val name1 = if(first.addressExpression is IdentifierReference) asmgen.asmVariableName(first.addressExpression as IdentifierReference) else null
@@ -584,7 +589,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
 
         // all other types of swap() calls are done via a temporary variable
-        // TODO optimize swapping of pointer+indexregister
 
         fun targetFromExpr(expr: Expression, datatype: DataType): AsmAssignTarget {
             return when (expr) {
