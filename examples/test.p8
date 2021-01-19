@@ -7,40 +7,29 @@ main {
 
 
     sub start() {
-        str name = "abcdef"
+        uword screen=$0400
+        ubyte[256] xbuf = 1
+        ubyte[256] ybuf = 3
 
-        uword ptr = &name
+
+        ubyte ix = 0
         ubyte cc
 
-        cc = @(ptr)
-        txt.chrout(cc)
-        txt.nl()
-        cc = @(ptr+1)
-        txt.chrout(cc)
-        txt.nl()
-        cc = @(ptr+2)
-        txt.chrout(cc)
-        txt.nl()
-        txt.nl()
+;        cc = @(screen+2)
+;        cc++
+;        @(screen+2) = cc
 
-        cc=0
-        txt.chrout(@(ptr)+cc)
-        txt.chrout(@(ptr+1)+cc)
-        txt.chrout(@(ptr+2)+cc)
-        txt.nl()
+        @(screen + ix + cc*$0008) = cc
 
-        @(ptr) = '1'
-        @(ptr+1) = '2'
-        @(ptr+2) = '3'
-        txt.print(name)
-        txt.nl()
-
-        cc=0
-        @(ptr+cc) = 'a'
-        @(ptr+cc+1) = 'b'
-        @(ptr+cc+2) = 'c'
-        txt.print(name)
-        txt.nl()
+;        cc = @(screen+ix)
+;        cc++
+;        @(screen+ix) = cc
+;        for ii in 24 downto 0 {
+;            for i in 39 downto 0 {
+;                @(screen+i) = xbuf[i] + ybuf[ii]
+;            }
+;            screen+=40
+;        }
     }
 
 }
