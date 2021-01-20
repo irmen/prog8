@@ -15,6 +15,10 @@ main {
         ubyte ix = 0
         ubyte cc = 0
 
+        repeat 20 {
+            cc++
+        }
+
         @(screen) = 1
         @(screen+1) = 2
         swap(@(screen), @(screen+1))

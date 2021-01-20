@@ -2,10 +2,11 @@
 TODO
 ====
 
-- [pointer-index-optimize branch] fix imageviewer color cycling on champagne and weathermap iff images
+- [pointer-index-optimize branch] fix imageviewer color cycling on champagne and weathermap iff images - the others are ok. The REVERSE cycling is broken.
 - allow  uwordpointer[index] syntax -> transform into @(uwordpointer+index)  allow index to be >255!
 - add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
-- optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions
+- optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
+- why is there a beq  _prog8_label_2_repeatend  at the end of repeat loops? seems unused
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
