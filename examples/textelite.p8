@@ -11,6 +11,9 @@
 
 ; Note: this program is compatible with C64 and CX16.
 
+; TODO fix save (and load?) crash bug
+
+
 main {
 
     const ubyte numforLave = 7      ;  Lave is 7th generated planet in galaxy one

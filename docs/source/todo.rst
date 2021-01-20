@@ -3,6 +3,7 @@ TODO
 ====
 
 - why is fibonacci example (and others) generating larger code now? fix?
+- fix textelite saving (and loading?)
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
 - add a compiler option to generate a symbol listing at the end
