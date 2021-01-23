@@ -79,7 +79,7 @@ main {
             for x in 39 downto 0 {
                 ; using a temp var here to enable expression optimization that can't be done on a 'problematic' ROM/RAM memory location
                 ubyte cc = xbuf[x] + ybuf[y]
-                @(screen) = cc
+                @(screen+x) = cc
 ; this is the fastest way to do this inner part:
 ;                %asm {{
 ;                     ldy  i
@@ -90,8 +90,8 @@ main {
 ;                     ldy  #0
 ;                     sta  (screen),y
 ;                 }}
-                screen++
-             }
+            }
+            screen += 40
         }
     }
 
