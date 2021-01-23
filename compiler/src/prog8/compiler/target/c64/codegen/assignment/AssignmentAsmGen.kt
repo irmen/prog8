@@ -121,31 +121,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     assignRegisterByte(assign.target, CpuRegister.A)
                 }
 
-                fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
-                    // try to optimize simple cases like assignment from ptr+1, ptr+2...
-                    if(expr.operator=="+") {
-                        // we can assume const operand has been moved to the right.
-                        val constOperand = expr.right.constValue(program)
-                        if(constOperand!=null) {
-                            val intIndex = constOperand.number.toInt()
-                            if(intIndex in 1..255) {
-                                val idref = expr.left as? IdentifierReference
-                                if(idref!=null && asmgen.isZpVar(idref)) {
-                                    // pointer var is already in zp, we can indirect index immediately
-                                    asmgen.out("  ldy  #${intIndex} |  lda  (${asmgen.asmSymbolName(idref)}),y")
-                                } else {
-                                    // copy the pointer var to zp first
-                                    assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
-                                    asmgen.out("  ldy  #${intIndex} |  lda  (P8ZP_SCRATCH_W2),y")
-                                }
-                                assignRegisterByte(assign.target, CpuRegister.A)
-                                return true
-                            }
-                        }
-                    }
-                    return false
-                }
-
                 val value = assign.source.memory!!
                 when (value.addressExpression) {
                     is NumericLiteralValue -> {
@@ -156,8 +131,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
                     }
                     is BinaryExpression -> {
-                        if(!tryOptimizedPointerAccess(value.addressExpression as BinaryExpression))
+                        if(asmgen.tryOptimizedPointerAccessWithA(value.addressExpression as BinaryExpression, false)) {
+                            assignRegisterByte(assign.target, CpuRegister.A)
+                        } else {
                             assignViaExprEval(value.addressExpression)
+                        }
                     }
                     else -> assignViaExprEval(value.addressExpression)
                 }
@@ -331,14 +309,37 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             is DirectMemoryRead -> {
                 if(targetDt in WordDatatypes) {
-                    if (value.addressExpression is NumericLiteralValue) {
-                        val address = (value.addressExpression as NumericLiteralValue).number.toInt()
-                        assignMemoryByteIntoWord(target, address, null)
-                        return
+
+                    fun assignViaExprEval(addressExpression: Expression) {
+                        asmgen.assignExpressionToVariable(addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
+                        else
+                            asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                        assignRegisterByte(target, CpuRegister.A)
                     }
-                    else if (value.addressExpression is IdentifierReference) {
-                        assignMemoryByteIntoWord(target, null, value.addressExpression as IdentifierReference)
-                        return
+
+                    when (value.addressExpression) {
+                        is NumericLiteralValue -> {
+                            val address = (value.addressExpression as NumericLiteralValue).number.toInt()
+                            assignMemoryByteIntoWord(target, address, null)
+                            return
+                        }
+                        is IdentifierReference -> {
+                            assignMemoryByteIntoWord(target, null, value.addressExpression as IdentifierReference)
+                            return
+                        }
+                        is BinaryExpression -> {
+                            if(asmgen.tryOptimizedPointerAccessWithA(value.addressExpression as BinaryExpression, false)) {
+                                asmgen.out("  ldy  #0")
+                                assignRegisterpairWord(target, RegisterOrPair.AY)
+                            } else {
+                                assignViaExprEval(value.addressExpression)
+                            }
+                        }
+                        else -> {
+                            assignViaExprEval(value.addressExpression)
+                        }
                     }
                 }
             }
@@ -749,8 +750,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             TargetStorageKind.MEMORY -> {
-                asmgen.out("  inx")
-                storeByteViaRegisterAInMemoryAddress("P8ESTACK_LO,x", target.memory!!)
+                asmgen.out("  inx |  lda  P8ESTACK_LO,x")
+                storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 if(target.constArrayIndexValue!=null) {
@@ -1178,7 +1179,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     """)
             }
             TargetStorageKind.MEMORY -> {
-                storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
+                asmgen.out("  lda  $sourceName")
+                storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
@@ -1338,7 +1340,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  st${register.name.toLowerCase()}  ${target.asmVarname}")
             }
             TargetStorageKind.MEMORY -> {
-                storeRegisterInMemoryAddress(register, target.memory!!)
+                when(register) {
+                    CpuRegister.A -> {}
+                    CpuRegister.X -> asmgen.out(" txa")
+                    CpuRegister.Y -> asmgen.out(" tya")
+                }
+                storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
@@ -1608,7 +1615,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asmgen.out("  stz  ${target.asmVarname} ")
                 }
                 TargetStorageKind.MEMORY -> {
-                    storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
+                    asmgen.out("  lda  #${byte.toHex()}")
+                    storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
                     if (target.constArrayIndexValue!=null) {
@@ -1647,7 +1655,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname} ")
             }
             TargetStorageKind.MEMORY -> {
-                storeByteViaRegisterAInMemoryAddress("#${byte.toHex()}", target.memory!!)
+                asmgen.out("  lda  #${byte.toHex()}")
+                storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
@@ -1831,7 +1840,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.MEMORY -> {
-                    storeByteViaRegisterAInMemoryAddress(address.toHex(), target.memory!!)
+                    asmgen.out("  lda  ${address.toHex()}")
+                    storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
                     throw AssemblyError("no asm gen for assign memory byte at $address to array ${target.asmVarname}")
@@ -1869,7 +1879,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.MEMORY -> {
                     val sourceName = asmgen.asmVariableName(identifier)
-                    storeByteViaRegisterAInMemoryAddress(sourceName, target.memory!!)
+                    asmgen.out("  lda  $sourceName")
+                    storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
                     throw AssemblyError("no asm gen for assign memory byte $identifier to array ${target.asmVarname} ")
@@ -1965,117 +1976,73 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun storeByteViaRegisterAInMemoryAddress(ldaInstructionArg: String, memoryAddress: DirectMemoryWrite) {
+    private fun storeRegisterAInMemoryAddress(memoryAddress: DirectMemoryWrite) {
         val addressExpr = memoryAddress.addressExpression
         val addressLv = addressExpr as? NumericLiteralValue
 
         fun storeViaExprEval() {
-            assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-            if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                asmgen.out("  lda  $ldaInstructionArg |  sta  (P8ZP_SCRATCH_W2)")
-            else
-                asmgen.out("  lda  $ldaInstructionArg |  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
-        }
-
-        fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
-            // try to optimize simple cases like storing value to ptr+1, ptr+2...
-            if(expr.operator=="+") {
-                // we can assume const operand has been moved to the right.
-                val constOperand = expr.right.constValue(program)
-                if(constOperand!=null) {
-                    val intIndex = constOperand.number.toInt()
-                    if(intIndex in 1..255) {
-                        val idref = expr.left as? IdentifierReference
-                        if(idref!=null && asmgen.isZpVar(idref)) {
-                            // pointer var is already in zp, we can indirect index immediately
-                            asmgen.out("  lda  $ldaInstructionArg |  ldy  #${intIndex} |  sta  (${asmgen.asmSymbolName(idref)}),y")
-                        } else {
-                            // copy the pointer var to zp first
-                            assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                            asmgen.out("  lda  $ldaInstructionArg |  ldy  #${intIndex} |  sta  (P8ZP_SCRATCH_W2),y")
-                        }
-                        return true
-                    }
+            when(addressExpr) {
+                is NumericLiteralValue, is IdentifierReference -> {
+                    assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
+                    else
+                        asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
+                }
+                else -> {
+                    // same as above but we need to save the A register
+                    asmgen.out("  pha")
+                    assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                    asmgen.out("  pla")
+                    if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
+                    else
+                        asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
                 }
             }
-            return false
+        }
+
+        fun storeAIntoPointerVar(pointervar: IdentifierReference) {
+            val sourceName = asmgen.asmVariableName(pointervar)
+            val vardecl = pointervar.targetVarDecl(program.namespace)!!
+            val scopedName = vardecl.makeScopedName(vardecl.name)
+            if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+                if (asmgen.isZpVar(scopedName)) {
+                    // pointervar is already in the zero page, no need to copy
+                    asmgen.out("  sta  ($sourceName)")
+                } else {
+                    asmgen.out("""
+                    ldy  $sourceName
+                    sty  P8ZP_SCRATCH_W2
+                    ldy  $sourceName+1
+                    sty  P8ZP_SCRATCH_W2+1
+                    sta  (P8ZP_SCRATCH_W2)""")
+                }
+            } else {
+                if (asmgen.isZpVar(scopedName)) {
+                    // pointervar is already in the zero page, no need to copy
+                    asmgen.out(" ldy  #0 |  sta  ($sourceName),y")
+                } else {
+                    asmgen.out("""
+                    ldy  $sourceName
+                    sty  P8ZP_SCRATCH_W2
+                    ldy  $sourceName+1
+                    sty  P8ZP_SCRATCH_W2+1
+                    ldy  #0
+                    sta  (P8ZP_SCRATCH_W2),y""")
+                }
+            }
         }
 
         when {
             addressLv != null -> {
-                asmgen.out("  lda  $ldaInstructionArg |  sta  ${addressLv.number.toHex()}")
+                asmgen.out("  sta  ${addressLv.number.toHex()}")
             }
             addressExpr is IdentifierReference -> {
-                asmgen.storeByteIntoPointer(addressExpr, ldaInstructionArg)
+                storeAIntoPointerVar(addressExpr)
             }
             addressExpr is BinaryExpression -> {
-                if(!tryOptimizedPointerAccess(addressExpr))
-                    storeViaExprEval()
-            }
-            else -> storeViaExprEval()
-        }
-    }
-
-    private fun storeRegisterInMemoryAddress(register: CpuRegister, memoryAddress: DirectMemoryWrite) {
-        // this is optimized for register A.
-        val addressExpr = memoryAddress.addressExpression
-        val addressLv = addressExpr as? NumericLiteralValue
-        val registerName = register.name.toLowerCase()
-
-        fun storeViaExprEval() {
-            asmgen.saveRegisterStack(register, false)
-            assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-            asmgen.restoreRegisterStack(CpuRegister.A, false)
-            if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
-                asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
-            else
-                asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
-        }
-
-        fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
-            // try to optimize simple cases like storing value to ptr+1, ptr+2...
-            if(expr.operator=="+") {
-                // we can assume const operand has been moved to the right.
-                val constOperand = expr.right.constValue(program)
-                if(constOperand!=null) {
-                    val intIndex = constOperand.number.toInt()
-                    if(intIndex in 1..255) {
-                        val idref = expr.left as? IdentifierReference
-                        if(idref!=null && asmgen.isZpVar(idref)) {
-                            // pointer var is already in zp, we can indirect index immediately
-                            when(register) {
-                                CpuRegister.A -> asmgen.out("  ldy  #${intIndex} |  sta  (${asmgen.asmSymbolName(idref)}),y")
-                                CpuRegister.X -> asmgen.out("  txa |  ldy  #${intIndex} |  sta  (${asmgen.asmSymbolName(idref)}),y")
-                                CpuRegister.Y -> asmgen.out("  tya |  ldy  #${intIndex} |  sta  (${asmgen.asmSymbolName(idref)}),y")
-                            }
-                        } else {
-                            // copy the pointer var to zp first
-                            asmgen.saveRegisterStack(register, false)
-                            assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                            asmgen.restoreRegisterStack(CpuRegister.A, false)
-                            asmgen.out("  ldy  #${intIndex} |  sta  (P8ZP_SCRATCH_W2),y")
-                        }
-                        return true
-                    }
-                }
-            }
-            return false
-        }
-
-        when {
-            addressLv != null -> {
-                asmgen.out("  st$registerName  ${addressLv.number.toHex()}")
-            }
-            addressExpr is IdentifierReference -> {
-                when (register) {
-                    CpuRegister.A -> {}
-                    CpuRegister.X -> asmgen.out(" txa")
-                    CpuRegister.Y -> asmgen.out(" tya")
-                }
-                asmgen.storeByteIntoPointer(addressExpr, null)
-            }
-            addressExpr is BinaryExpression -> {
-                if(!tryOptimizedPointerAccess(addressExpr))
+                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }
             else -> storeViaExprEval()

@@ -4,14 +4,20 @@ TODO
 
 - why is fibonacci example (and others) generating larger code now? fix?
 - fix textelite saving (and loading?)
+- allow  uwordpointer[index] syntax -> transform into @(uwordpointer+index)  allow index to be >255!
+- add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
+- optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
+- why is there a beq  _prog8_label_2_repeatend  at the end of repeat loops? seems unused
+- optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
+
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
-- add a compiler option to generate a symbol listing at the end
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
+- add a compiler option to not remove unused subroutines. this allows for building library programs
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as '_'
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
-- c64: use VIC banking to move up the graphics bitmap memory location. Move it to $e000 under the kernal rom?
+- c64: make the graphics.BITMAP_ADDRESS configurable
 - some support for recursive subroutines?
     - via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
     - Or via a special recursive call operation that copies the current values of all local vars (including arguments) to the stack, replaces the arguments, jsr subroutine, and after returning copy the stack back to the local variables

@@ -1462,49 +1462,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
             if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
                 if (pushResultOnEstack) {
-                    asmgen.out("  dex |  lda  (P8ZP_SCRATCH_W2) |  sta  P8ESTACK_LO+1,x")
+                    asmgen.out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")
                 } else {
                     asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
                 }
             } else {
                 if (pushResultOnEstack) {
-                    asmgen.out("  dex |  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO+1,x")
+                    asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  dex |  sta  P8ESTACK_LO+1,x")
                 } else {
                     asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
                 }
             }
-        }
-
-        fun tryOptimizedPointerAccess(expr: BinaryExpression): Boolean {
-            // try to optimize simple cases like assignment from ptr+1, ptr+2...
-            if(expr.operator=="+") {
-                // we can assume const operand has been moved to the right.
-                val constOperand = expr.right.constValue(program)
-                if(constOperand!=null) {
-                    val intIndex = constOperand.number.toInt()
-                    if(intIndex in 1..255) {
-                        val idref = expr.left as? IdentifierReference
-                        if(idref!=null && asmgen.isZpVar(idref)) {
-                            // pointer var is already in zp, we can indirect index immediately
-                            if (pushResultOnEstack) {
-                                asmgen.out("  dex |  ldy  #${intIndex} |  lda  (${asmgen.asmSymbolName(idref)}),y |  sta  P8ESTACK_LO+1,x")
-                            } else {
-                                asmgen.out("  ldy  #${intIndex} |  lda  (${asmgen.asmSymbolName(idref)}),y")
-                            }
-                        } else {
-                            // copy the pointer var to zp first
-                            asmgen.assignExpressionToVariable(expr.left, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                            if (pushResultOnEstack) {
-                                asmgen.out("  dex |  ldy  #${intIndex} |  lda  (P8ZP_SCRATCH_W2),y |  sta  P8ESTACK_LO+1,x")
-                            } else {
-                                asmgen.out("  ldy  #${intIndex} |  lda  (P8ZP_SCRATCH_W2),y")
-                            }
-                        }
-                        return true
-                    }
-                }
-            }
-            return false
         }
 
         when(expr.addressExpression) {
@@ -1521,8 +1489,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             }
             is BinaryExpression -> {
-                if(!tryOptimizedPointerAccess(expr.addressExpression as BinaryExpression))
+                if(asmgen.tryOptimizedPointerAccessWithA(expr.addressExpression as BinaryExpression, false)) {
+                    if(pushResultOnEstack)
+                        asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+                } else {
                     assignViaExprEval()
+                }
             }
             else -> assignViaExprEval()
         }
