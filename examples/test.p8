@@ -1,4 +1,5 @@
 %import textio
+%import diskio
 %import string
 %zeropage basicsafe
 %option no_sysinit
@@ -7,35 +8,13 @@ main {
 
 
     sub start() {
-        uword screen=$0400
-        ubyte[256] xbuf = 1
-        ubyte[256] ybuf = 3
-
-
-        ubyte ix = 0
-        ubyte cc = 0
-
-        repeat 20 {
-            cc++
-        }
-
-        @(screen) = 1
-        @(screen+1) = 2
-        swap(@(screen), @(screen+1))
-
-;        cc = @(screen+2)
-;        cc++
-;        @(screen+2) = cc
-
-;        cc = @(screen+ix)
-;        cc++
-;        @(screen+ix) = cc
-;        for ii in 24 downto 0 {
-;            for i in 39 downto 0 {
-;                @(screen+i) = xbuf[i] + ybuf[ii]
-;            }
-;            screen+=40
-;        }
+        diskio.directory(8)
+        diskio.save(8, "blabla", $2000, 1024)
+        diskio.directory(8)
+        diskio.rename(8, "blabla", "newname")
+        diskio.directory(8)
+        diskio.delete(8, "newname")
+        diskio.directory(8)
     }
 
 }
