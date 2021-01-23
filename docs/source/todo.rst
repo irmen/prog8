@@ -2,14 +2,17 @@
 TODO
 ====
 
-- why is fibonacci example (and others) generating larger code now? fix?
-- fix textelite saving (and loading?)
+- fix sys.memcopy()
 - allow  uwordpointer[index] syntax -> transform into @(uwordpointer+index)  allow index to be >255!
+- add offsetof() to get the byte offset of struct members
 - add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
 - why is there a beq  _prog8_label_2_repeatend  at the end of repeat loops? seems unused
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
+- implement the linked_list millfork benchmark
 
+- implement highres 4 color mode in gfx2
+- make a retro amiga workbench 1.3 and/or 2.0 workbench "simulator" using that new gfx mode
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation

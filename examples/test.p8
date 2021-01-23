@@ -8,13 +8,26 @@ main {
 
 
     sub start() {
-        diskio.directory(8)
-        diskio.save(8, "blabla", $2000, 1024)
-        diskio.directory(8)
-        diskio.rename(8, "blabla", "newname")
-        diskio.directory(8)
-        diskio.delete(8, "newname")
-        diskio.directory(8)
+        ubyte[] sarray = [11,22,33]
+        ubyte[] tarray = [0,0,0]
+
+        uword target = &tarray
+        uword source = &sarray
+        ubyte bb
+        @(target) = @(source)
+        target++
+        source++
+        @(target) = @(source)
+        target++
+        source++
+        @(target) = @(source)
+        target++
+        source++
+
+        for bb in tarray {
+            txt.print_ub(bb)
+            txt.chrout('\n')
+        }
     }
 
 }
