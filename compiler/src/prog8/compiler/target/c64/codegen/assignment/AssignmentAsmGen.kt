@@ -1878,8 +1878,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asmgen.out(" sta  ${target.asmVarname}")
                 }
                 TargetStorageKind.MEMORY -> {
-                    val sourceName = asmgen.asmVariableName(identifier)
-                    asmgen.out("  lda  $sourceName")
+                    asmgen.loadByteFromPointerIntoA(identifier)
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
