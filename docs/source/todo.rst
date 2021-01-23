@@ -2,8 +2,7 @@
 TODO
 ====
 
-- allow  uwordpointer[index] syntax -> transform into @(uwordpointer+index)  allow index to be >255!
-- add offsetof() to get the byte offset of struct members
+- add offsetof() to get the byte offset of struct members.
 - add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
 - why is there a beq  _prog8_label_2_repeatend  at the end of repeat loops? seems unused

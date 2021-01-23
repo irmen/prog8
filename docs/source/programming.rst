@@ -381,12 +381,19 @@ Direct access to memory locations
 Normally memory locations are accessed by a *memory mapped* name, such as ``c64.BGCOL0`` that is defined
 as the memory mapped address $d021.
 
-If you want to access a memory location directly (by using the address itself), without defining
-a memory mapped location, you can do so by enclosing the address in ``@(...)``::
+If you want to access a memory location directly (by using the address itself or via an uword pointer variable),
+without defining a memory mapped location, you can do so by enclosing the address in ``@(...)``::
 
     color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
+
+This is the official syntax to 'dereference a pointer' as it is often named in other languages.
+You can actually also use the array indexing notation for this. It will be silently converted into
+the direct memory access expression as explained above. Note that this also means that unlike regular arrays,
+the index is not limited to an ubyte value. You can use a full uword to index a pointer variable like this::
+
+    pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
 
 
 Converting types into other types

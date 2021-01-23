@@ -335,6 +335,10 @@ directly access the memory. Enclose a numeric expression or literal with ``@(...
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; a dynamic expression to 'calculate' the address
 
+The array indexing notation is syntactic sugar for such a direct memory access expression::
+
+    pointervar[999] = 0     ; equivalent to @(pointervar+999) = 0
+
 
 Constants
 ^^^^^^^^^
