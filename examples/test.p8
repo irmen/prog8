@@ -16,5 +16,7 @@ main {
         diskio.directory(8)
         diskio.delete(8, "newname")
         diskio.directory(8)
+
+        txt.print("---------------------------------\n")
     }
 }

@@ -424,10 +424,9 @@ io_error:
 
     sub delete(ubyte drivenumber, uword filenameptr) {
         ; -- delete a file on the drive
-        ubyte flen = string.length(filenameptr)
         filename[0] = 's'
         filename[1] = ':'
-        string.copy(filenameptr, &filename+2)
+        ubyte flen = string.copy(filenameptr, &filename+2)
         c64.SETNAM(flen+2, filename)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
@@ -437,13 +436,11 @@ io_error:
 
     sub rename(ubyte drivenumber, uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
-        ubyte flen_old = string.length(oldfileptr)
-        ubyte flen_new = string.length(newfileptr)
         filename[0] = 'r'
         filename[1] = ':'
-        string.copy(newfileptr, &filename+2)
+        ubyte flen_new = string.copy(newfileptr, &filename+2)
         filename[flen_new+2] = '='
-        string.copy(oldfileptr, &filename+3+flen_new)
+        ubyte flen_old = string.copy(oldfileptr, &filename+3+flen_new)
         c64.SETNAM(3+flen_new+flen_old, filename)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
