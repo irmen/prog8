@@ -102,6 +102,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
     FSignature("sizeof"      , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinSizeof),
+    FSignature("offsetof"    , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinOffsetof),
         // normal functions follow:
     FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
     FSignature("sin"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
@@ -276,6 +277,28 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
         DataType.FLOAT -> numericLiteral(abs(constval.number.toDouble()), args[0].position)
         else -> throw SyntaxError("abs requires one numeric argument", position)
     }
+}
+
+private fun builtinOffsetof(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+    // 1 arg, type = anything, result type = ubyte
+    if(args.size!=1)
+        throw SyntaxError("offsetof requires one argument", position)
+    val idref = args[0] as? IdentifierReference
+        ?: throw SyntaxError("offsetof argument should be an identifier", position)
+
+    val vardecl = idref.targetVarDecl(program.namespace)!!
+    val struct = vardecl.struct
+    if (struct == null || vardecl.datatype == DataType.STRUCT)
+        throw SyntaxError("offsetof can only be used on struct members", position)
+
+    val membername = idref.nameInSource.last()
+    var offset = 0
+    for(member in struct.statements) {
+        if((member as VarDecl).name == membername)
+            return NumericLiteralValue(DataType.UBYTE, offset, position)
+        offset += member.datatype.memorySize()
+    }
+    throw SyntaxError("undefined struct member", position)
 }
 
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {

@@ -843,6 +843,11 @@ sizeof(name)
     For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
 
+offsetof(membername)
+    Number of bytes from the start of a struct variable that this member variable is located.
+    For now, this only works on members of a declared struct variable and not yet on members
+    referenced from the struct type itself.  This might be improved in a future version of the language.
+
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
