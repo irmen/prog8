@@ -8,26 +8,33 @@ main {
 
 
     sub start() {
-        ubyte[] sarray = [11,22,33]
-        ubyte[] tarray = [0,0,0]
+        ; TODO test memcopy
+        ; counts: 0, 1, 2, 254, 255, 256, 257, 512, 1000
 
-        uword target = &tarray
-        uword source = &sarray
-        ubyte bb
-        @(target) = @(source)
-        target++
-        source++
-        @(target) = @(source)
-        target++
-        source++
-        @(target) = @(source)
-        target++
-        source++
+        uword buffer=memory("buffer",1000)
+        uword ones=memory("ones",1000)
 
-        for bb in tarray {
-            txt.print_ub(bb)
-            txt.chrout('\n')
+        sys.memset(buffer, 1000, '.')
+        @(buffer) = '<'
+        @(buffer+255) = '>'
+        @(buffer+256) = '<'
+        @(buffer+511) = '>'
+        @(buffer+512) = '<'
+        @(buffer+767) = '>'
+        @(buffer+768) = '<'
+        @(buffer+999) = '!'
+        sys.memset(ones, 1000, '*')
+
+        txt.clear_screen()
+        txt.print("\n\n\n\n\n\n\n\n\n")
+
+        sys.memcopy(ones, buffer, 999)
+
+        uword scr = $0400
+        uword ix
+        for ix in 0 to 999 {
+            @(scr) = @(buffer+ix)
+            scr++
         }
     }
-
 }

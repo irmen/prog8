@@ -500,19 +500,23 @@ sys {
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
         %asm {{
             ldx  cx16.r0
-            stx  P8ZP_SCRATCH_W1
+            stx  P8ZP_SCRATCH_W1        ; source in ZP
             ldx  cx16.r0+1
             stx  P8ZP_SCRATCH_W1+1
             ldx  cx16.r1
-            stx  P8ZP_SCRATCH_W2
+            stx  P8ZP_SCRATCH_W2        ; target in ZP
             ldx  cx16.r1+1
             stx  P8ZP_SCRATCH_W2+1
             cpy  #0
             bne  _longcopy
-            ; copy <= 255
-            tay
 
-_remainder
+            ; copy <= 255 bytes
+            tay
+            bne  _copyshort
+            rts     ; nothing to copy
+
+_copyshort
+            ; decrease source and target pointers so we can simply index by Y
             lda  P8ZP_SCRATCH_W1
             bne  +
             dec  P8ZP_SCRATCH_W1+1
@@ -521,18 +525,19 @@ _remainder
             bne  +
             dec  P8ZP_SCRATCH_W2+1
 +           dec  P8ZP_SCRATCH_W2
--           lda  (P8ZP_SCRATCH_W1), y
-            sta  (P8ZP_SCRATCH_W2), y
+
+-           lda  (P8ZP_SCRATCH_W1),y
+            sta  (P8ZP_SCRATCH_W2),y
             dey
             bne  -
             rts
 
 _longcopy
-            sta  P8ZP_SCRATCH_B1        ; lsb(count) = remainder
+            sta  P8ZP_SCRATCH_B1        ; lsb(count) = remainder in last page
             tya
             tax                         ; x = num pages (1+)
             ldy  #0
--           lda  (P8ZP_SCRATCH_W1),y    ; copy a page at a time
+-           lda  (P8ZP_SCRATCH_W1),y
             sta  (P8ZP_SCRATCH_W2),y
             iny
             bne  -
@@ -541,7 +546,8 @@ _longcopy
             dex
             bne  -
             ldy  P8ZP_SCRATCH_B1
-            jmp  _remainder
+            bne  _copyshort
+            rts
         }}
     }
 
