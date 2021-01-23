@@ -7,6 +7,7 @@ TODO
 - why is there a beq  _prog8_label_2_repeatend  at the end of repeat loops? seems unused
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 - implement the linked_list millfork benchmark
+- use the 65c02 bit clear/set/test instructions for single-bit operations
 
 - implement highres 4 color mode in gfx2
 - make a retro amiga workbench 1.3 and/or 2.0 workbench "simulator" using that new gfx mode
