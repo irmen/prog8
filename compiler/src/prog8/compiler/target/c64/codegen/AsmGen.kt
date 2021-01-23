@@ -1368,36 +1368,41 @@ $label              nop""")
                 if(write) {
                     when(ptrAndIndex.second) {
                         is NumericLiteralValue, is IdentifierReference -> {
-                            assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                             if(pointervar!=null && isZpVar(pointervar)) {
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                 out("  sta  (${asmSymbolName(pointervar)}),y")
                             } else {
                                 // copy the pointer var to zp first
                                 assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                 out("  sta  (P8ZP_SCRATCH_W2),y")
                             }
                         }
                         else -> {
                             // same as above but we need to save the A register
-                            out("  pha")
-                            assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                            out("  pla")
                             if(pointervar!=null && isZpVar(pointervar)) {
+                                out("  pha")
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                out("  pla")
                                 out("  sta  (${asmSymbolName(pointervar)}),y")
                             } else {
                                 // copy the pointer var to zp first
                                 assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                                out("  pha")
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                out("  pla")
                                 out("  sta  (P8ZP_SCRATCH_W2),y")
                             }
                         }
                     }
                 } else {
-                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                     if(pointervar!=null && isZpVar(pointervar)) {
+                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                         out("  lda  (${asmSymbolName(pointervar)}),y")
                     } else {
                         // copy the pointer var to zp first
                         assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                         out("  lda  (P8ZP_SCRATCH_W2),y")
                     }
                 }
