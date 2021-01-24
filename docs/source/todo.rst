@@ -10,7 +10,8 @@ TODO
 - use the 65c02 bit clear/set/test instructions for single-bit operations
 
 - implement highres 4 color mode in gfx2
-- make a retro amiga workbench 1.3 and/or 2.0 workbench "simulator" using that new gfx mode
+- make a retro Amiga Workbench "simulator" using that new gfx mode
+- add a flood fill routine to gfx2
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation

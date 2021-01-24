@@ -44,16 +44,16 @@ palette {
         }
     }
 
-    sub set_monochrome() {
+    sub set_monochrome(uword screencolorRGB, uword drawcolorRGB) {
         vera_palette_ptr = $fa00
-        cx16.vpoke(1, vera_palette_ptr, 0)
+        cx16.vpoke(1, vera_palette_ptr, lsb(screencolorRGB))   ; G,B
         vera_palette_ptr++
-        cx16.vpoke(1, vera_palette_ptr, 0)
+        cx16.vpoke(1, vera_palette_ptr, msb(screencolorRGB))   ; R
         vera_palette_ptr++
         repeat 255 {
-            cx16.vpoke(1, vera_palette_ptr, 255)
+            cx16.vpoke(1, vera_palette_ptr, lsb(drawcolorRGB)) ; G,B
             vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, 255)
+            cx16.vpoke(1, vera_palette_ptr, msb(drawcolorRGB)) ; R
             vera_palette_ptr++
         }
     }
