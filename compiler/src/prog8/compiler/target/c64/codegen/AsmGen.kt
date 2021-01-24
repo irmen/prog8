@@ -966,12 +966,10 @@ internal class AsmGen(private val program: Program,
                 val name = asmVariableName(stmt.iterations as IdentifierReference)
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        out("  lda  $name")
-                        repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
+                        repeatByteCountVar(name, repeatLabel, endLabel, stmt.body)
                     }
                     DataType.UWORD, DataType.WORD -> {
-                        out("  lda  $name |  ldy  $name+1")
-                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountVar(name, repeatLabel, endLabel, stmt.body)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
                 }
@@ -1001,6 +999,7 @@ internal class AsmGen(private val program: Program,
         if(constIterations==0)
             return
         // note: A/Y must have been loaded with the number of iterations already!
+        // TODO can be even more optimized by iterating over pages
         val counterVar = makeLabel("repeatcounter")
         out("""
                 sta  $counterVar
@@ -1035,22 +1034,54 @@ $counterVar    .word  0""")
         val counterVar = makeLabel("repeatcounter")
         if(constIterations==null)
             out("  beq  $endLabel")
-        out("""
-            sta  $counterVar
-$repeatLabel""")
+        out("  sta  $counterVar")
+        out(repeatLabel)
         translate(body)
         out("""
              dec  $counterVar
              bne  $repeatLabel
-             beq  $endLabel""")
-        if(constIterations!=null && constIterations>=16 && zeropage.available() > 0) {
-            // allocate count var on ZP
-            val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, body.position, errors)
-            out("""$counterVar = $zpAddr  ; auto zp UBYTE""")
-        } else {
-            out("""
+             beq  $endLabel  
 $counterVar    .byte  0""")
-        }
+        out(endLabel)
+    }
+
+    private fun repeatByteCountVar(repeatCountVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // note: cannot use original counter variable because it should retain its original value
+        val counterVar = makeLabel("repeatcounter")
+        out("  lda  $repeatCountVar |  beq  $endLabel |  sta  $counterVar")
+        out(repeatLabel)
+        translate(body)
+        out("  dec  $counterVar |  bne  $repeatLabel")
+        // inline countervar:
+        out("""
+                beq  $endLabel  
+$counterVar    .byte  0""")
+        out(endLabel)
+    }
+
+    private fun repeatWordCountVar(repeatCountVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // TODO can be even more optimized by iterating over pages
+        // note: cannot use original counter variable because it should retain its original value
+        val counterVar = makeLabel("repeatcounter")
+        out("""
+            lda  $repeatCountVar
+            sta  $counterVar
+            ora  $repeatCountVar+1
+            beq  $endLabel
+            lda  $repeatCountVar+1
+            sta  $counterVar+1""")
+        out(repeatLabel)
+        translate(body)
+        out("""
+            lda  $counterVar
+            bne  +
+            dec  $counterVar+1
++           dec  $counterVar
+            lda  $counterVar
+            ora  $counterVar+1
+            bne  $repeatLabel
+            beq  $endLabel  
+$counterVar    .word  0""")
         out(endLabel)
     }
 

@@ -2,15 +2,13 @@
 TODO
 ====
 
-- add any2(), all2(), max2(), min2(), reverse2(), sum2(), sort2() that take (array, startindex, length) arguments
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
-- why is there a beq  _prog8_label_2_repeatend  at the end of repeat loops? seems unused
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 - implement the linked_list millfork benchmark
-- use the 65c02 bit clear/set/test instructions for single-bit operations
 
 - implement highres 4 color mode in gfx2
 - make a retro Amiga Workbench "simulator" using that new gfx mode
+- use the 65c02 bit clear/set/test instructions for single-bit operations
 - add a flood fill routine to gfx2
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?

@@ -5,6 +5,12 @@ main {
 
 
     sub start() {
-        txt.print("hello\n")
+        uword xx
+        uword iter = 256
+        repeat iter {
+            xx++
+        }
+
+        txt.print_uw(xx)
     }
 }
