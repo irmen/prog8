@@ -6,7 +6,7 @@ main {
 
     sub start() {
         uword xx
-        uword iter = 256
+        uword iter = 1000
         repeat iter {
             xx++
         }

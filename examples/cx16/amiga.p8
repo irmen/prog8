@@ -33,7 +33,7 @@ main {
         ; TODO white box
         gfx2.text(8,1, 1, @"AmigaOS 3.1    2,002,448 graphics mem  16,504,384 other mem")
         gfx2.horizontal_line(0, 10, gfx2.width, 1)
-        widget.window_order_icon(gfx2.width-22, 0, false)
+        widget.window_order_icon(gfx2.width-widget.window_order_icon.width, 0, false)
     }
 
 
@@ -66,10 +66,10 @@ main {
     }
 
     sub window_system() {
-        const uword win_x = 360
-        const uword win_y = 40
-        const uword width = 640-360
+        const uword width = 300
         const uword height = 120
+        const uword win_x = 320
+        const uword win_y = 40
 
         widget.window_titlebar(win_x, win_y, width, @"System", false)
         gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
@@ -102,14 +102,23 @@ main {
     }
 }
 
-    ; TODO make "highlightedrect" function (inclusive active /nonactive fill)
 
 
 widget {
+
+    sub highlightedrect(uword x, uword y, uword width, uword height, ubyte active) {
+        ; TODO white
+        gfx2.horizontal_line(x, y, width, 1)
+        gfx2.vertical_line(x, y+1, height-1, 1)
+        ; TODO black
+        gfx2.vertical_line(x+width-1, y+1, height-1, 1)
+        gfx2.horizontal_line(x+1, y+height-1, width-2, 1)
+    }
+
     sub icon(uword x, uword y, uword caption) {
         const ubyte width = 56
         const ubyte height = 28
-        gfx2.rect(x,y,width,height,1)
+        highlightedrect(x, y, width, height, false)
         uword middlex = x+width/2+1
         ubyte halfstring = string.length(caption) * 4
         gfx2.text(middlex-halfstring,y+height+1,1,caption)
@@ -123,25 +132,19 @@ widget {
 
 
     sub window_titlebar(uword x, uword y, uword width, uword titlestr, ubyte active) {
-        const ubyte height = 10
-        gfx2.fillrect(x,y,width,height,0)
-        gfx2.horizontal_line(x, y, width, 1)
+        const ubyte height = 11
+        gfx2.fillrect(x,y,width,height-1,0)
+        widget.highlightedrect(x+widget.window_close_icon.width, y, width-62, height, active)
         gfx2.text(x+32, y+1, 1, titlestr)
-        gfx2.horizontal_line(x, y+height, width, 1)
         widget.window_close_icon(x, y, active)
         widget.window_order_icon(x+width-22, y, active)
-        widget.window_resize_icon(x+width-43, y, active)
+        widget.window_flipsize_icon(x+width-44, y, active)
     }
 
-    sub window_resize_icon(uword x, uword y, ubyte active) {
+    sub window_flipsize_icon(uword x, uword y, ubyte active) {
         const uword width = 22
         const uword height = 11
-        gfx2.horizontal_line(x, y, width, 1)
-        gfx2.horizontal_line(x, y+height-1, width, 1)
-        gfx2.vertical_line(x,y,height,1)
-        gfx2.vertical_line(x+1,y,height,1)
-        gfx2.vertical_line(x+width-1,y,height,1)
-
+        highlightedrect(x, y, width, height, active)
         gfx2.rect(x+5, y+2, width-9, height-4, 1)
         gfx2.rect(x+5, y+2, width-15, height-7, 1)
     }
@@ -150,12 +153,7 @@ widget {
         ; TODO background filled box
         const uword width = 22
         const uword height = 11
-        gfx2.horizontal_line(x, y, width, 1)
-        gfx2.horizontal_line(x, y+height-1, width, 1)
-        gfx2.vertical_line(x,y,height,1)
-        gfx2.vertical_line(x+1,y,height,1)
-        gfx2.vertical_line(x+width-1,y,height,1)
-
+        highlightedrect(x, y, width, height, active)
         gfx2.fillrect(x+4, y+2, 10, 5, 1)       ; grey back
         ; TODO black border
         gfx2.fillrect(x+8, y+4, 10, 5, 1)       ; white front
@@ -166,11 +164,7 @@ widget {
         ; TODO background filled box
         const uword width = 20
         const uword height = 11
-        gfx2.horizontal_line(x, y, width, 1)
-        gfx2.horizontal_line(x, y+height-1, width, 1)
-        gfx2.vertical_line(x,y,height,1)
-        gfx2.vertical_line(x+width-2,y,height,1)
-        gfx2.vertical_line(x+width-1,y,height,1)
+        highlightedrect(x, y, width, height, active)
         gfx2.fillrect(x+7, y+3, 5, 5, 1)
         ; TODO black border
     }
