@@ -7,8 +7,19 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(128)
+        gfx2.screen_mode(5)
 
+;        demo1()
+;        sys.wait(3*60)
+        demo2()
+
+        gfx2.screen_mode(0)
+        txt.print("done!\n")
+
+        test_stack.test()
+    }
+
+    sub demo1() {
         uword pixels = memory("pixels", 320)
         uword yy = 10
         uword xx
@@ -124,21 +135,12 @@ main {
             }
             xx+=4
         }
-
-        sys.wait(3*60)
-
-        demo2()
-
-        gfx2.screen_mode(255)
-        txt.print("done!\n")
-
-        test_stack.test()
     }
 
     sub demo2 () {
         gfx2.text_charset(3)
 
-        ubyte[] modes = [1, 0, 128]
+        ubyte[] modes = [4, 1, 5]
         ubyte mode
         for mode in modes {
             gfx2.screen_mode(mode)

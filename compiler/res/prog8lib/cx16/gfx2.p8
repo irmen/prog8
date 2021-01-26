@@ -6,28 +6,32 @@
 ; Note: for compatible graphics code that words on C64 too, use the "graphics" module instead.
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 
+; SCREEN MODE LIST:
+;   mode 0 = reset back to default text mode
+;   mode 1 = bitmap 320 x 240 monochrome
+;   mode 2 = bitmap 320 x 240 x 4c (unsupported TODO not yet implemented)
+;   mode 3 = bitmap 320 x 240 x 16c (unsupported TODO not yet implemented)
+;   mode 4 = bitmap 320 x 240 x 256c
+;   mode 5 = bitmap 640 x 480 monochrome
+;   mode 6 = bitmap 640 x 480 x 4c (unsupported TODO not yet implemented)
+;   mode 7 = bitmap 640 x 480 x 16c (unsupported due to lack of VRAM)
+;   mode 8 = bitmap 640 x 480 x 256c (unsupported due to lack of VRAM)
+
 ; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
 gfx2 {
 
     ; read-only control variables:
-    ubyte active_mode = 255
+    ubyte active_mode = 0
     uword width = 0
     uword height = 0
     ubyte bpp = 0
     ubyte monochrome_dont_stipple_flag = false            ; set to false to enable stippling mode in monochrome displaymodes
 
     sub screen_mode(ubyte mode) {
-        ; mode 0 = bitmap 320 x 240 x 1c monochrome
-        ; mode 1 = bitmap 320 x 240 x 256c
-        ; mode 128 = bitmap 640 x 480 x 1c monochrome
-        ; ...other modes?
-
-        ; copy the lower-case charset to the upper part of the vram, so we can use it later to plot text
-
         when mode {
-            0 -> {
-                ; 320 x 240 x 1c
+            1 -> {
+                ; lores monchrome
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
                 cx16.VERA_DC_HSCALE = 64
                 cx16.VERA_DC_VSCALE = 64
@@ -38,8 +42,9 @@ gfx2 {
                 height = 240
                 bpp = 1
             }
-            1 -> {
-                ; 320 x 240 x 256c
+            ; TODO modes 2, 3 not yet implemented
+            4 -> {
+                ; lores 256c
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
                 cx16.VERA_DC_HSCALE = 64
                 cx16.VERA_DC_VSCALE = 64
@@ -50,8 +55,8 @@ gfx2 {
                 height = 240
                 bpp = 8
             }
-            128 -> {
-                ; 640 x 480 x 1c
+            5 -> {
+                ; highres monochrome
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
                 cx16.VERA_DC_HSCALE = 128
                 cx16.VERA_DC_VSCALE = 128
@@ -62,13 +67,16 @@ gfx2 {
                 height = 480
                 bpp = 1
             }
-            255 -> {
+            ; TODO mode 6 highres 4c
+            ; modes 7 and 8 not supported due to lack of VRAM
+            else -> {
                 ; back to default text mode and colors
                 cx16.VERA_CTRL = %10000000      ; reset VERA and palette
                 c64.CINT()      ; back to text mode
                 width = 0
                 height = 0
                 bpp = 0
+                mode = 0
             }
         }
 
@@ -81,21 +89,24 @@ gfx2 {
         monochrome_stipple(false)
         position(0, 0)
         when active_mode {
-            0 -> {
-                ; 320 x 240 x 1c
+            1 -> {
+                ; lores monochrome
                 repeat 240/2/8
                     cs_innerloop640()
             }
-            1 -> {
-                ; 320 x 240 x 256c
+            ; TODO mode 2, 3
+            4 -> {
+                ; lores 256c
                 repeat 240/2
                     cs_innerloop640()
             }
-            128 -> {
-                ; 640 x 480 x 1c
+            5 -> {
+                ; highres monochrome
                 repeat 480/8
                     cs_innerloop640()
             }
+            ; TODO mode 6 highres 4c
+            ; modes 7 and 8 not supported due to lack of VRAM
         }
         position(0, 0)
     }
@@ -130,8 +141,8 @@ gfx2 {
         if length==0
             return
         when active_mode {
-            1 -> {
-                ; 8bpp mode
+            4 -> {
+                ; lores 256c
                 position(x, y)
                 %asm {{
                     lda  color
@@ -152,8 +163,8 @@ gfx2 {
 +                   plx
                 }}
             }
-            0, 128 -> {
-                ; 1 bpp mode
+            1, 5 -> {
+                ; monochrome modes, either resolution
                 ubyte separate_pixels = (8-lsb(x)) & 7
                 if separate_pixels as uword > length
                     separate_pixels = lsb(length)
@@ -212,7 +223,8 @@ _done
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
         position(x,y)
-        if active_mode==1 {
+        if active_mode==4 {
+            ; lores 256c
             ; set vera auto-increment to 320 pixel increment (=next line)
             cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
             %asm {{
@@ -230,7 +242,7 @@ _done
         ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
         cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
         cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
-        if active_mode>=128
+        if active_mode>=5
             cx16.r14 = 640/8
         else
             cx16.r14 = 320/8
@@ -472,7 +484,8 @@ _done
         ubyte value
 
         when active_mode {
-            0 -> {
+            1 -> {
+                ; lores monochrome
                 %asm {{
                     lda  x
                     eor  y
@@ -490,7 +503,8 @@ _done
                     }
                 }
             }
-            128 -> {
+            5 -> {
+                ; highres monochrome
                 %asm {{
                     lda  x
                     eor  y
@@ -508,7 +522,8 @@ _done
                     }
                 }
             }
-            1 -> {
+            4 -> {
+                ; lores 256c
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
                 value = lsb(cx16.r1)
                 cx16.vpoke(value, cx16.r0, color)
@@ -521,15 +536,18 @@ _done
 
     sub position(uword @zp x, uword y) {
         when active_mode {
-            0 -> {
+            1 -> {
+                ; lores monochrome
                 cx16.r0 = y*(320/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
-            128 -> {
+            5 -> {
+                ; highres monochrome
                 cx16.r0 = y*(640/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
-            1 -> {
+            4 -> {
+                ; lores 256c
                 void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
                 ubyte bank = lsb(cx16.r1)
                 cx16.vaddr(bank, cx16.r0, 0, 1)
@@ -614,13 +632,13 @@ _done
     sub text(uword @zp x, uword y, ubyte color, uword sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
-        ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !
+        ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !  TODO allow per-pixel horizontal positioning
         uword chardataptr
         when active_mode {
-            0, 128 -> {
-                ; 1-bitplane modes
+            1, 5 -> {
+                ; monochrome mode, either resolution
                 cx16.r2 = 40
-                if active_mode>=128
+                if active_mode>=5
                     cx16.r2 = 80
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
@@ -660,8 +678,8 @@ _done
                     sctextptr++
                 }
             }
-            1 -> {
-                ; 320 x 240 x 256c
+            4 -> {
+                ; lores 256c
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, 1)

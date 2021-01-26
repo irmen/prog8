@@ -11,12 +11,12 @@ main {
 
         test_monochrome()
 
-        gfx2.screen_mode(255)
+        gfx2.screen_mode(0)
         txt.print("done!\n")
     }
 
     sub test_monochrome() {
-        gfx2.screen_mode(128)
+        gfx2.screen_mode(5)
         uword yy
         uword xx
         word ww
