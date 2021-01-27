@@ -55,6 +55,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
+
             if(sub.asmParameterRegisters.isEmpty()) {
                 // via variables
                 for(arg in sub.parameters.withIndex().zip(stmt.args)) {
@@ -66,12 +67,27 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     // just a single parameter, no risk of clobbering registers
                     argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), stmt.args[0])
                 } else {
+
+                    fun isNoClobberRisk(expr: Expression): Boolean {
+                        if(expr is AddressOf ||
+                                expr is NumericLiteralValue ||
+                                expr is StringLiteralValue ||
+                                expr is ArrayLiteralValue ||
+                                expr is IdentifierReference)
+                            return true
+
+                        if(expr is FunctionCall) {
+                            if(expr.target.nameInSource==listOf("lsb") || expr.target.nameInSource==listOf("msb"))
+                                return isNoClobberRisk(expr.args[0])
+                            if(expr.target.nameInSource==listOf("mkword"))
+                                return isNoClobberRisk(expr.args[0]) && isNoClobberRisk(expr.args[1])
+                        }
+
+                        return false
+                    }
+
                     when {
-                        stmt.args.all {it is AddressOf ||
-                                it is NumericLiteralValue ||
-                                it is StringLiteralValue ||
-                                it is ArrayLiteralValue ||
-                                it is IdentifierReference} -> {
+                        stmt.args.all {isNoClobberRisk(it)} -> {
                             // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
                             val argsInfo = sub.parameters.withIndex().zip(stmt.args).zip(sub.asmParameterRegisters)
                             val (vregsArgsInfo, otherRegsArgsInfo) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
