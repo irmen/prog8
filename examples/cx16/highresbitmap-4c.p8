@@ -19,14 +19,14 @@ main {
 
         ubyte color
         uword yy
-        for color in 3 downto 0 {
-            for yy in 100 to 120 {
-                uword xx
-                for xx in 10 to 500 {
-                    gfx2.plot(xx, yy, color)
-                }
-            }
-        }
+;        for color in 3 downto 0 {
+;            for yy in 100 to 120 {
+;                uword xx
+;                for xx in 10 to 500 {
+;                    gfx2.plot(xx, yy, color)
+;                }
+;            }
+;        }
 
 
         for color in 3 downto 0 {

@@ -10,10 +10,8 @@
 main {
 
     sub start() {
-        palette.set_monochrome($0aaa, $0000)
-        gfx2.screen_mode(6)             ; select 640*480 mode
-
-        sys.wait(200)
+        gfx2.screen_mode(5)             ; select 640*480 mode
+        palette.set_monochrome($0aaa, $0000)        ; TODO fix setting the palette... the isNoClobberRisk() for lsb/msb broke it
 
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
         cx16.mouse_config(1, 1)         ; enable mouse   TODO make it an Amiga mouse pointer if possible

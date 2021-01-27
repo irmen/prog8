@@ -239,22 +239,27 @@ _done
             6 -> {
                 ; highres 4c
                 ; TODO also mostly usable for lores 4c?
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
                 color &=3
-                color <<= gfx2.plot.shift4c[lsb(x) & 3]
-                ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
+                ubyte[4] colorbits
+                ubyte[4] masks
+                ubyte mask = %11111100
+                ubyte ii
+                for ii in 3 downto 0 {
+                    colorbits[ii] = color
+                    masks[ii] = mask
+                    color <<= 2
+                    mask <<=2
+                }
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
                 repeat length {
                     ; TODO optimize the vera memory manipulation in pure assembly
-                    ubyte cbits4 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask | color
+                    ubyte lower_x_bits = lsb(x) & 3
+                    ubyte cbits4 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & masks[lower_x_bits] | colorbits[lower_x_bits]
                     cx16.vpoke(lsb(cx16.r1), cx16.r0, cbits4)
-                    x++
-                    if x & 3 == 0
+                    if lower_x_bits==%00000011
                         cx16.r0++   ; next x byte
-                    ror2(color)
-                    ror2(color)
-                    ror2(mask)
-                    ror2(mask)
+                    x++
                 }
             }
         }
@@ -635,6 +640,7 @@ _done
         ; -- sets the next pixel byte to the graphics chip.
         ;    for 8 bpp screens this will plot 1 pixel.
         ;    for 1 bpp screens it will plot 8 pixels at once (color = bit pattern).
+        ;    for 2 bpp screens it will plot 4 pixels at once (color = bit pattern).
         %asm {{
             sta  cx16.VERA_DATA0
         }}
@@ -644,6 +650,7 @@ _done
         ; -- sets the next bunch of pixels from a prepared array of bytes.
         ;    for 8 bpp screens this will plot 1 pixel per byte.
         ;    for 1 bpp screens it will plot 8 pixels at once (colors are the bit patterns per byte).
+        ;    for 2 bpp screens it will plot 4 pixels at once (colors are the bit patterns per byte).
         %asm {{
             phx
             sta  P8ZP_SCRATCH_W1
