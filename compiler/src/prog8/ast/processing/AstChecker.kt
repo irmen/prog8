@@ -790,7 +790,7 @@ internal class AstChecker(private val program: Program,
 
         if(array.parent is VarDecl) {
             if (!array.value.all { it is NumericLiteralValue || it is AddressOf || isPassByReferenceElement(it) })
-                errors.err("array literal for variable initialization contains invalid types", array.position)
+                errors.err("array literal for variable initialization contains non-constant elements", array.position)
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
