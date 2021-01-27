@@ -11,7 +11,10 @@ main {
 
     sub start() {
         palette.set_monochrome($0aaa, $0000)
-        gfx2.screen_mode(5)             ; select 640*480 mode
+        gfx2.screen_mode(6)             ; select 640*480 mode
+
+        sys.wait(200)
+
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
         cx16.mouse_config(1, 1)         ; enable mouse   TODO make it an Amiga mouse pointer if possible
         gfx2.text_charset(3)

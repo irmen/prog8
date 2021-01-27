@@ -1,16 +1,20 @@
 %import textio
+%import syslib
 %zeropage basicsafe
 
 main {
 
 
     sub start() {
-        uword xx
-        uword iter = 1000
-        repeat iter {
-            xx++
-        }
+        ubyte value
+        ubyte bb1
 
-        txt.print_uw(xx)
+        ; TODO why is this generating so much larger code:  (only with asmsub btw)
+        value = cx16.vpeek(lsb(cx16.r0), mkword(value, bb1))
+        value = cx16.vpeek(lsb(cx16.r0), mkword(value, bb1))
+
+        ubyte lx = lsb(cx16.r0)
+        value = cx16.vpeek(lx, mkword(value, bb1))
+        value = cx16.vpeek(lx, mkword(value, bb1))
     }
 }

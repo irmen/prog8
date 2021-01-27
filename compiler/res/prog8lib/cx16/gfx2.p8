@@ -19,6 +19,9 @@
 
 ; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
+; TODO split out the various when blocks in to their own subroutines so the assembler can omit unused code.
+
+
 gfx2 {
 
     ; read-only control variables:
@@ -67,7 +70,18 @@ gfx2 {
                 height = 480
                 bpp = 1
             }
-            ; TODO mode 6 highres 4c
+            6 -> {
+                ; highres 4c
+                cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
+                cx16.VERA_DC_HSCALE = 128
+                cx16.VERA_DC_VSCALE = 128
+                cx16.VERA_L1_CONFIG = %00000101
+                cx16.VERA_L1_MAPBASE = 0
+                cx16.VERA_L1_TILEBASE = %00000001
+                width = 640
+                height = 480
+                bpp = 2
+            }
             ; modes 7 and 8 not supported due to lack of VRAM
             else -> {
                 ; back to default text mode and colors
@@ -105,7 +119,11 @@ gfx2 {
                 repeat 480/8
                     cs_innerloop640()
             }
-            ; TODO mode 6 highres 4c
+            6 -> {
+                ; highres 4c
+                repeat 480/4
+                    cs_innerloop640()
+            }
             ; modes 7 and 8 not supported due to lack of VRAM
         }
         position(0, 0)
@@ -141,28 +159,6 @@ gfx2 {
         if length==0
             return
         when active_mode {
-            4 -> {
-                ; lores 256c
-                position(x, y)
-                %asm {{
-                    lda  color
-                    phx
-                    ldx  length+1
-                    beq  +
-                    ldy  #0
--                   sta  cx16.VERA_DATA0
-                    iny
-                    bne  -
-                    dex
-                    bne  -
-+                   ldy  length     ; remaining
-                    beq  +
--                   sta  cx16.VERA_DATA0
-                    dey
-                    bne  -
-+                   plx
-                }}
-            }
             1, 5 -> {
                 ; monochrome modes, either resolution
                 ubyte separate_pixels = (8-lsb(x)) & 7
@@ -218,110 +214,174 @@ _done
                 }
                 cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; vera auto-increment off again
             }
+            4 -> {
+                ; lores 256c
+                position(x, y)
+                %asm {{
+                    lda  color
+                    phx
+                    ldx  length+1
+                    beq  +
+                    ldy  #0
+-                   sta  cx16.VERA_DATA0
+                    iny
+                    bne  -
+                    dex
+                    bne  -
++                   ldy  length     ; remaining
+                    beq  +
+-                   sta  cx16.VERA_DATA0
+                    dey
+                    bne  -
++                   plx
+                }}
+            }
+            6 -> {
+                ; highres 4c
+                ; TODO also mostly usable for lores 4c?
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
+                color &=3
+                color <<= gfx2.plot.shift4c[lsb(x) & 3]
+                ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
+                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                repeat length {
+                    ; TODO optimize the vera memory manipulation in pure assembly
+                    ubyte cbits4 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask | color
+                    cx16.vpoke(lsb(cx16.r1), cx16.r0, cbits4)
+                    x++
+                    if x & 3 == 0
+                        cx16.r0++   ; next x byte
+                    ror2(color)
+                    ror2(color)
+                    ror2(mask)
+                    ror2(mask)
+                }
+            }
         }
     }
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
         position(x,y)
-        if active_mode==4 {
-            ; lores 256c
-            ; set vera auto-increment to 320 pixel increment (=next line)
-            cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
-            %asm {{
-                ldy  height
-                beq  +
-                lda  color
--               sta  cx16.VERA_DATA0
-                dey
-                bne  -
-+
-            }}
-            return
-        }
-
-        ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
-        cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
-        cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
-        if active_mode>=5
-            cx16.r14 = 640/8
-        else
-            cx16.r14 = 320/8
-        if color {
-            if monochrome_dont_stipple_flag {
-                repeat height {
-                    %asm {{
-                        lda  cx16.VERA_DATA0
-                        ora  cx16.r15
-                        sta  cx16.VERA_DATA0
-                        lda  cx16.VERA_ADDR_L
-                        clc
-                        adc  cx16.r14                 ; advance vera ptr to go to the next line
-                        sta  cx16.VERA_ADDR_L
-                        lda  cx16.VERA_ADDR_M
-                        adc  #0
-                        sta  cx16.VERA_ADDR_M
-                        ; lda  cx16.VERA_ADDR_H     ; the bitmap size is small enough to not have to deal with the _H part.
-                        ; adc  #0
-                        ; sta  cx16.VERA_ADDR_H
-                    }}
+        when active_mode {
+            1, 5 -> {
+                ; monochrome, either resolution
+                ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
+                cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
+                if active_mode>=5
+                    cx16.r14 = 640/8
+                else
+                    cx16.r14 = 320/8
+                if color {
+                    if monochrome_dont_stipple_flag {
+                        repeat height {
+                            %asm {{
+                                lda  cx16.VERA_DATA0
+                                ora  cx16.r15
+                                sta  cx16.VERA_DATA0
+                                lda  cx16.VERA_ADDR_L
+                                clc
+                                adc  cx16.r14                 ; advance vera ptr to go to the next line
+                                sta  cx16.VERA_ADDR_L
+                                lda  cx16.VERA_ADDR_M
+                                adc  #0
+                                sta  cx16.VERA_ADDR_M
+                                ; lda  cx16.VERA_ADDR_H     ; the bitmap size is small enough to not have to deal with the _H part.
+                                ; adc  #0
+                                ; sta  cx16.VERA_ADDR_H
+                            }}
+                        }
+                    } else {
+                        ; stippling.
+                        height = (height+1)/2
+                        %asm {{
+                            lda x
+                            eor y
+                            and #1
+                            bne +
+                            lda  cx16.VERA_ADDR_L
+                            clc
+                            adc  cx16.r14                ; advance vera ptr to go to the next line for correct stipple pattern
+                            sta  cx16.VERA_ADDR_L
+                            lda  cx16.VERA_ADDR_M
+                            adc  #0
+                            sta  cx16.VERA_ADDR_M
+        +
+                            asl  cx16.r14
+                            ldy  height
+                            beq  +
+        -                   lda  cx16.VERA_DATA0
+                            ora  cx16.r15
+                            sta  cx16.VERA_DATA0
+                            lda  cx16.VERA_ADDR_L
+                            clc
+                            adc  cx16.r14               ; advance vera data ptr to go to the next-next line
+                            sta  cx16.VERA_ADDR_L
+                            lda  cx16.VERA_ADDR_M
+                            adc  #0
+                            sta  cx16.VERA_ADDR_M
+                            ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
+                            ; adc  #0
+                            ; sta  cx16.VERA_ADDR_H
+                            dey
+                            bne  -
+        +
+                        }}
+                    }
+                } else {
+                    cx16.r15 = ~cx16.r15
+                    repeat height {
+                        %asm {{
+                            lda  cx16.VERA_DATA0
+                            and  cx16.r15
+                            sta  cx16.VERA_DATA0
+                            lda  cx16.VERA_ADDR_L
+                            clc
+                            adc  cx16.r14             ; advance vera data ptr to go to the next line
+                            sta  cx16.VERA_ADDR_L
+                            lda  cx16.VERA_ADDR_M
+                            adc  #0
+                            sta  cx16.VERA_ADDR_M
+                            ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
+                            ; adc  #0
+                            ; sta  cx16.VERA_ADDR_H
+                        }}
+                    }
                 }
-            } else {
-                ; stippling.
-                height = (height+1)/2
+            }
+            4 -> {
+                ; lores 256c
+                ; set vera auto-increment to 320 pixel increment (=next line)
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
                 %asm {{
-                    lda x
-                    eor y
-                    and #1
-                    bne +
-                    lda  cx16.VERA_ADDR_L
-                    clc
-                    adc  cx16.r14                ; advance vera ptr to go to the next line for correct stipple pattern
-                    sta  cx16.VERA_ADDR_L
-                    lda  cx16.VERA_ADDR_M
-                    adc  #0
-                    sta  cx16.VERA_ADDR_M
-+
-                    asl  cx16.r14
                     ldy  height
                     beq  +
--                   lda  cx16.VERA_DATA0
-                    ora  cx16.r15
-                    sta  cx16.VERA_DATA0
-                    lda  cx16.VERA_ADDR_L
-                    clc
-                    adc  cx16.r14               ; advance vera data ptr to go to the next-next line
-                    sta  cx16.VERA_ADDR_L
-                    lda  cx16.VERA_ADDR_M
-                    adc  #0
-                    sta  cx16.VERA_ADDR_M
-                    ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
-                    ; adc  #0
-                    ; sta  cx16.VERA_ADDR_H
+                    lda  color
+-                   sta  cx16.VERA_DATA0
                     dey
                     bne  -
 +
                 }}
             }
-        } else {
-            cx16.r15 = ~cx16.r15
-            repeat height {
-                %asm {{
-                    lda  cx16.VERA_DATA0
-                    and  cx16.r15
-                    sta  cx16.VERA_DATA0
-                    lda  cx16.VERA_ADDR_L
-                    clc
-                    adc  cx16.r14             ; advance vera data ptr to go to the next line
-                    sta  cx16.VERA_ADDR_L
-                    lda  cx16.VERA_ADDR_M
-                    adc  #0
-                    sta  cx16.VERA_ADDR_M
-                    ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
-                    ; adc  #0
-                    ; sta  cx16.VERA_ADDR_H
-                }}
+            6 -> {
+                ; highres 4c
+                ; note for this mode we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
+                ; TODO also mostly usable for lores 4c?
+                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                color &= 3
+                color <<= gfx2.plot.shift4c[lsb(x) & 3]
+                ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
+
+                repeat height {
+                    ; TODO optimize the vera memory manipulation in pure assembly
+                    ubyte value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask | color
+                    cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
+                    cx16.r0 += 640/4
+                }
             }
         }
+
     }
 
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
@@ -480,6 +540,8 @@ _done
 
     sub plot(uword @zp x, uword y, ubyte color) {
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
+        ubyte[4] mask4c = [%00111111, %11001111, %11110011, %11111100]
+        ubyte[4] shift4c = [6,4,2,0]
         uword addr
         ubyte value
 
@@ -503,6 +565,14 @@ _done
                     }
                 }
             }
+            4 -> {
+                ; lores 256c
+                void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
+                ; activate vera auto-increment mode so next_pixel() can be used after this
+                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
+                color = cx16.VERA_DATA0
+            }
             5 -> {
                 ; highres monochrome
                 %asm {{
@@ -522,14 +592,15 @@ _done
                     }
                 }
             }
-            4 -> {
-                ; lores 256c
-                void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
-                value = lsb(cx16.r1)
-                cx16.vpoke(value, cx16.r0, color)
-                ; activate vera auto-increment mode so next_pixel() can be used after this
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
-                color = cx16.VERA_DATA0
+            6 -> {
+                ; highres 4c
+                ; TODO also mostly usable for lores 4c?
+                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                color &= 3
+                color <<= shift4c[lsb(x) & 3]
+                ; TODO optimize the vera memory manipulation in pure assembly
+                value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask4c[lsb(x) & 3] | color
+                cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
             }
         }
     }
@@ -541,16 +612,21 @@ _done
                 cx16.r0 = y*(320/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
+            4 -> {
+                ; lores 256c
+                void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                ubyte bank = lsb(cx16.r1)
+                cx16.vaddr(bank, cx16.r0, 0, 1)
+            }
             5 -> {
                 ; highres monochrome
                 cx16.r0 = y*(640/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
-            4 -> {
-                ; lores 256c
-                void addr_mul_320_add_24(y, x)      ; 24 bits result is in r0 and r1L
-                ubyte bank = lsb(cx16.r1)
-                cx16.vaddr(bank, cx16.r0, 0, 1)
+            6 -> {
+                ; highres 4c
+                cx16.r0 = y*(640/4) + x/8
+                cx16.vaddr(0, cx16.r0, 0, 1)
             }
         }
     }
@@ -727,7 +803,15 @@ _done
         }}
     }
 
-    asmsub addr_mul_320_add_24(uword address @R0, uword value @AY) clobbers(A) -> uword @R0, ubyte @R1  {
+    sub addr_mul_24_for_highres_4c(uword yy, uword xx) {
+        ; TODO asmsub, 24 bits calc
+        ; 24 bits result is in r0 and r1L (highest byte)
+        cx16.r0 = xx/4 + yy*(640/4)
+        cx16.r1 = 0
+    }
+
+    asmsub addr_mul_24_for_lores_256c(uword yy @R0, uword xx @AY) clobbers(A) -> uword @R0, ubyte @R1  {
+            ; yy * 320 + xx (24 bits calculation)
             %asm {{
                 sta  P8ZP_SCRATCH_W1
                 sty  P8ZP_SCRATCH_W1+1
