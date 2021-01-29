@@ -43,12 +43,12 @@ internal class AsmGen(private val program: Program,
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     private val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
     private val breakpointLabels = mutableListOf<String>()
-    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this)
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
+    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
     internal val slabs = mutableMapOf<String, Int>()
@@ -782,8 +782,8 @@ internal class AsmGen(private val program: Program,
     internal fun translateExpression(indexer: ArrayIndex) =
             expressionsAsmGen.translateExpression(indexer)
 
-    internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean) =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack)
+    internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack, resultRegister)
 
     internal fun translateFunctionCall(functionCall: FunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCall)

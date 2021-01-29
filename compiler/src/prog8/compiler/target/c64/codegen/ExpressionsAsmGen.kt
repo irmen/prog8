@@ -1330,7 +1330,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val sub = call.target.targetStatement(program.namespace)
         if(sub is BuiltinFunctionStatementPlaceholder) {
             val builtinFunc = BuiltinFunctions.getValue(sub.name)
-            asmgen.translateBuiltinFunctionCallExpression(call, builtinFunc, true)
+            asmgen.translateBuiltinFunctionCallExpression(call, builtinFunc, true, null)
         } else {
             sub as Subroutine
             asmgen.saveXbeforeCall(call)

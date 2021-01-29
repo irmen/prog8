@@ -90,8 +90,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         stmt.args.all {isNoClobberRisk(it)} -> {
                             // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
                             val argsInfo = sub.parameters.withIndex().zip(stmt.args).zip(sub.asmParameterRegisters)
-                            val (vregsArgsInfo, otherRegsArgsInfo) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
-                            for(arg in vregsArgsInfo)
+                            val (cx16virtualRegsArgsInfo, otherRegsArgsInfo) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
+                            for(arg in cx16virtualRegsArgsInfo)
                                 argumentViaRegister(sub, arg.first.first, arg.first.second)
                             for(arg in otherRegsArgsInfo)
                                 argumentViaRegister(sub, arg.first.first, arg.first.second)
@@ -256,71 +256,67 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             if(valueDt largerThan requiredDt)
                 throw AssemblyError("can only convert byte values to word param types")
         }
-        when {
-            statusflag!=null -> {
-                if(requiredDt!=valueDt)
-                    throw AssemblyError("for statusflag, byte value is required")
-                if (statusflag == Statusflag.Pc) {
-                    // this param needs to be set last, right before the jsr
-                    // for now, this is already enforced on the subroutine definition by the Ast Checker
-                    when(value) {
-                        is NumericLiteralValue -> {
-                            val carrySet = value.number.toInt() != 0
-                            asmgen.out(if(carrySet) "  sec" else "  clc")
-                        }
-                        is IdentifierReference -> {
-                            val sourceName = asmgen.asmVariableName(value)
-                            asmgen.out("""
-            pha
-            lda  $sourceName
-            beq  +
-            sec  
-            bcs  ++
-+           clc
-+           pla
-""")
-                        }
-                        else -> {
-                            asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                            asmgen.out("""
-                                beq  +
-                                sec
-                                bcs  ++
-+                               clc
-+""")
-                        }
+        if (statusflag!=null) {
+            if(requiredDt!=valueDt)
+                throw AssemblyError("for statusflag, byte value is required")
+            if (statusflag == Statusflag.Pc) {
+                // this param needs to be set last, right before the jsr
+                // for now, this is already enforced on the subroutine definition by the Ast Checker
+                when(value) {
+                    is NumericLiteralValue -> {
+                        val carrySet = value.number.toInt() != 0
+                        asmgen.out(if(carrySet) "  sec" else "  clc")
+                    }
+                    is IdentifierReference -> {
+                        val sourceName = asmgen.asmVariableName(value)
+                        asmgen.out("""
+                pha
+                lda  $sourceName
+                beq  +
+                sec  
+                bcs  ++
+    +           clc
+    +           pla
+    """)
+                    }
+                    else -> {
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                        asmgen.out("""
+                                    beq  +
+                                    sec
+                                    bcs  ++
+    +                               clc
+    +""")
                     }
                 }
-                else throw AssemblyError("can only use Carry as status flag parameter")
-            }
-            else -> {
-                // via register or register pair
-                register!!
-                if(requiredDt largerThan valueDt) {
-                    // we need to sign extend the source, do this via temporary word variable
-                    val scratchVar = asmgen.asmVariableName("P8ZP_SCRATCH_W1")
-                    asmgen.assignExpressionToVariable(value, scratchVar, DataType.UBYTE, sub)
-                    asmgen.signExtendVariableLsb(scratchVar, valueDt)
-                    asmgen.assignVariableToRegister(scratchVar, register)
-                }
-                else {
-                    val target: AsmAssignTarget =
-                        if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
-                            AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, parameter.value.type, sub, register = register)
-                        else
-                            AsmAssignTarget.fromRegisters(register, sub, program, asmgen)
-                    val src = if(valueDt in PassByReferenceDatatypes) {
-                        if(value is IdentifierReference) {
-                            val addr = AddressOf(value, Position.DUMMY)
-                            AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)
-                        } else {
-                            AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
-                        }
+            } else throw AssemblyError("can only use Carry as status flag parameter")
+        }
+        else {
+            // via register or register pair
+            register!!
+            if(requiredDt largerThan valueDt) {
+                // we need to sign extend the source, do this via temporary word variable
+                val scratchVar = asmgen.asmVariableName("P8ZP_SCRATCH_W1")
+                asmgen.assignExpressionToVariable(value, scratchVar, DataType.UBYTE, sub)
+                asmgen.signExtendVariableLsb(scratchVar, valueDt)
+                asmgen.assignVariableToRegister(scratchVar, register)
+            } else {
+                val target: AsmAssignTarget =
+                    if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
+                        AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, parameter.value.type, sub, register = register)
+                    else
+                        AsmAssignTarget.fromRegisters(register, sub, program, asmgen)
+                val src = if(valueDt in PassByReferenceDatatypes) {
+                    if(value is IdentifierReference) {
+                        val addr = AddressOf(value, Position.DUMMY)
+                        AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)
                     } else {
                         AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                     }
-                    asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
+                } else {
+                    AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                 }
+                asmgen.translateNormalAssignment(AsmAssignment(src, target, false, Position.DUMMY))
             }
         }
     }

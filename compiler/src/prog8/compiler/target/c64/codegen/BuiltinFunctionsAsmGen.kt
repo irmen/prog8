@@ -10,23 +10,24 @@ import prog8.compiler.AssemblyError
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
+import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
 import prog8.compiler.target.c64.codegen.assignment.SourceStorageKind
 import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.subroutineFloatEvalResultVar2
 import prog8.compiler.toHex
 import prog8.functions.FSignature
 
-internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
+internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
 
-    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FSignature, resultToStack: Boolean) {
-        translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack)
+    internal fun translateFunctioncallExpression(fcall: FunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
     }
 
     internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FSignature) {
-        translateFunctioncall(fcall, func, discardResult = true, resultToStack = false)
+        translateFunctioncall(fcall, func, discardResult = true, resultToStack = false, resultRegister = null)
     }
 
-    private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean, resultToStack: Boolean) {
+    private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         if (discardResult && func.pure)
             return  // can just ignore the whole function call altogether
 
@@ -34,36 +35,37 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("cannot both discard the result AND put it onto stack")
 
         val sscope = (fcall as Node).definingSubroutine()
+
         when (func.name) {
-            "msb" -> funcMsb(fcall, resultToStack)
-            "lsb" -> funcLsb(fcall, resultToStack)
-            "mkword" -> funcMkword(fcall, resultToStack)
-            "abs" -> funcAbs(fcall, func, resultToStack, sscope)
+            "msb" -> funcMsb(fcall, resultToStack, resultRegister)
+            "lsb" -> funcLsb(fcall, resultToStack, resultRegister)
+            "mkword" -> funcMkword(fcall, resultToStack, resultRegister)
+            "abs" -> funcAbs(fcall, func, resultToStack, resultRegister, sscope)
             "swap" -> funcSwap(fcall)
-            "min", "max" -> funcMinMax(fcall, func, resultToStack)
-            "sum" -> funcSum(fcall, resultToStack)
-            "any", "all" -> funcAnyAll(fcall, func, resultToStack)
+            "min", "max" -> funcMinMax(fcall, func, resultToStack, resultRegister, sscope)
+            "sum" -> funcSum(fcall, resultToStack, resultRegister, sscope)
+            "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sin8", "sin8u", "sin16", "sin16u",
-            "cos8", "cos8u", "cos16", "cos16u" -> funcSinCosInt(fcall, func, resultToStack, sscope)
-            "sgn" -> funcSgn(fcall, func, resultToStack, sscope)
+            "cos8", "cos8u", "cos16", "cos16u" -> funcSinCosInt(fcall, func, resultToStack, resultRegister, sscope)
+            "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
-            "rndf" -> funcVariousFloatFuncs(fcall, func, resultToStack, sscope)
-            "rnd", "rndw" -> funcRnd(func, resultToStack)
-            "sqrt16" -> funcSqrt16(fcall, func, resultToStack, sscope)
+            "rndf" -> funcVariousFloatFuncs(fcall, func, resultToStack, resultRegister, sscope)
+            "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
+            "sqrt16" -> funcSqrt16(fcall, func, resultToStack, resultRegister, sscope)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
             "ror2" -> funcRor2(fcall)
             "sort" -> funcSort(fcall)
             "reverse" -> funcReverse(fcall)
-            "memory" -> funcMemory(fcall, discardResult, resultToStack)
+            "memory" -> funcMemory(fcall, discardResult, resultToStack, resultRegister)
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }
     }
 
-    private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean) {
+    private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         if(discardResult || fcall !is FunctionCall)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val scope = fcall.definingScope()
@@ -82,7 +84,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             if(resultToStack)
                 AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, null)
             else
-                AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
+                AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, null, program, asmgen)
         val assign = AsmAssignment(src, target, false, fcall.position)
         asmgen.translateNormalAssignment(assign)
 
@@ -92,22 +94,30 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         asmgen.slabs[name] = size
     }
 
-    private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
+    private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
-        else
+        else {
             asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
+        }
     }
 
-    private fun funcSinCosInt(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
+    private fun funcSinCosInt(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_${func.name}_stack")
         else
             when(func.name) {
-                "sin8", "sin8u", "cos8", "cos8u" -> asmgen.out("  jsr  prog8_lib.func_${func.name}_into_A")
-                "sin16", "sin16u", "cos16", "cos16u" -> asmgen.out("  jsr  prog8_lib.func_${func.name}_into_AY")
+                "sin8", "sin8u", "cos8", "cos8u" -> {
+                    asmgen.out("  jsr  prog8_lib.func_${func.name}_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
+                }
+                "sin16", "sin16u", "cos16", "cos16u" -> {
+                    asmgen.out("  jsr  prog8_lib.func_${func.name}_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
+                }
             }
     }
 
@@ -390,15 +400,17 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         asmgen.assignExpressionToVariable(indexerExpr, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
     }
 
-    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
+    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         if(resultToStack)
             asmgen.out("  jsr  floats.func_${func.name}_stack")
-        else
+        else {
             asmgen.out("  jsr  floats.func_${func.name}_fac1")
+            assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, scope, program, asmgen))
+        }
     }
 
-    private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
+    private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
@@ -419,10 +431,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
                 else -> throw AssemblyError("weird type $dt")
             }
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
         }
     }
 
-    private fun funcAnyAll(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean) {
+    private fun funcAnyAll(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
@@ -439,10 +452,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_into_A")
                 else -> throw AssemblyError("weird type $dt")
             }
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
         }
     }
 
-    private fun funcMinMax(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean) {
+    private fun funcMinMax(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
@@ -456,17 +470,32 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         } else {
             when (dt.typeOrElse(DataType.STRUCT)) {
-                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_into_A")
-                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A")
-                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_into_AY")
-                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_AY")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_fac1")
+                DataType.ARRAY_UB, DataType.STR -> {
+                    asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
+                }
+                DataType.ARRAY_B -> {
+                    asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
+                }
+                DataType.ARRAY_UW -> {
+                    asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.ARRAY_W -> {
+                    asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.ARRAY_F -> {
+                    asmgen.out("  jsr  floats.func_${function.name}_f_fac1")
+                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, scope, program, asmgen))
+                }
                 else -> throw AssemblyError("weird type $dt")
             }
         }
     }
 
-    private fun funcSum(fcall: IFunctionCall, resultToStack: Boolean) {
+    private fun funcSum(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
@@ -480,11 +509,26 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         } else {
             when (dt.typeOrElse(DataType.STRUCT)) {
-                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub_into_AY")
-                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b_into_AY")
-                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw_into_AY")
-                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w_into_AY")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f_fac1")
+                DataType.ARRAY_UB, DataType.STR -> {
+                    asmgen.out("  jsr  prog8_lib.func_sum_ub_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.ARRAY_B -> {
+                    asmgen.out("  jsr  prog8_lib.func_sum_b_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.ARRAY_UW -> {
+                    asmgen.out("  jsr  prog8_lib.func_sum_uw_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.ARRAY_W -> {
+                    asmgen.out("  jsr  prog8_lib.func_sum_w_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.ARRAY_F -> {
+                    asmgen.out("  jsr  floats.func_sum_f_fac1")
+                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, scope, program, asmgen))
+                }
                 else -> throw AssemblyError("weird type $dt")
             }
         }
@@ -868,7 +912,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-    private fun funcAbs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, scope: Subroutine?) {
+    private fun funcAbs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
         val dt = fcall.args.single().inferType(program).typeOrElse(DataType.STRUCT)
         if(resultToStack) {
@@ -880,40 +924,91 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         } else {
             when (dt) {
-                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_into_A")
-                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_fac1")
+                in ByteDatatypes -> {
+                    asmgen.out("  jsr  prog8_lib.abs_b_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister!!, scope, program, asmgen), CpuRegister.A)
+                }
+                in WordDatatypes -> {
+                    asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister!!, scope, program, asmgen), RegisterOrPair.AY)
+                }
+                DataType.FLOAT -> {
+                    asmgen.out("  jsr  floats.abs_f_fac1")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister!!, scope, program, asmgen), RegisterOrPair.FAC1)
+                }
                 else -> throw AssemblyError("weird type")
             }
         }
     }
 
-    private fun funcRnd(func: FSignature, resultToStack: Boolean) {
+    private fun funcRnd(func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         when(func.name) {
             "rnd" -> {
                 if(resultToStack)
                     asmgen.out("  jsr  prog8_lib.func_rnd_stack")
-                else
+                else {
                     asmgen.out("  jsr  math.randbyte")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
+                }
             }
             "rndw" -> {
                 if(resultToStack)
                     asmgen.out("  jsr  prog8_lib.func_rndw_stack")
-                else
+                else {
                     asmgen.out("  jsr  math.randword")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
+                }
             }
             else -> throw AssemblyError("wrong func")
         }
     }
 
-    private fun funcMkword(fcall: IFunctionCall, resultToStack: Boolean) {
-        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-        if(resultToStack)
+    private fun funcMkword(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        if(resultToStack) {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+        } else {
+            val reg = resultRegister ?: RegisterOrPair.AY
+            val needAsave = !(fcall.args[0] is DirectMemoryRead || fcall.args[0] is NumericLiteralValue || fcall.args[0] is IdentifierReference)
+            when(reg) {
+                RegisterOrPair.AX -> {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    if(needAsave)
+                        asmgen.out("  pha")
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+                    if(needAsave)
+                        asmgen.out("  pla")
+                }
+                RegisterOrPair.AY -> {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    if(needAsave)
+                        asmgen.out("  pha")
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+                    if(needAsave)
+                        asmgen.out("  pla")
+                }
+                RegisterOrPair.XY -> {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    if(needAsave)
+                        asmgen.out("  pha")
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+                    if(needAsave)
+                        asmgen.out("  pla")
+                    asmgen.out("  tax")
+                }
+                in Cx16VirtualRegisters -> {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    asmgen.out("  sta  cx16.${reg.toString().toLowerCase()}")
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // msb
+                    asmgen.out("  sta  cx16.${reg.toString().toLowerCase()}+1")
+                }
+                else -> throw AssemblyError("invalid mkword target reg")
+            }
+        }
     }
 
-    private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean) {
+    private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("msb required word argument")
@@ -921,19 +1016,43 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
-            asmgen.out("  lda  $sourceName+1")
-            if (resultToStack)
-                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            if(resultToStack) {
+                asmgen.out("  lda  $sourceName+1 |  sta  P8ESTACK_LO,x |  dex")
+            } else {
+                when(resultRegister) {
+                    null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName+1")
+                    RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+1")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+1")
+                    else -> throw AssemblyError("invalid reg")
+                }
+            }
         } else {
-            asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
-            if (resultToStack)
+            if(resultToStack) {
+                asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
                 asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
-            else
-                asmgen.out("  tya")
+            } else {
+                when(resultRegister) {
+                    null, RegisterOrPair.A -> {
+                        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                        asmgen.out("  tya")
+                    }
+                    RegisterOrPair.X -> {
+                        asmgen.out("  pha")
+                        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AX)
+                        asmgen.out("  pla")
+                    }
+                    RegisterOrPair.Y -> {
+                        asmgen.out("  pha")
+                        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                        asmgen.out("  pla")
+                    }
+                    else -> throw AssemblyError("invalid reg")
+                }
+            }
         }
     }
 
-    private fun funcLsb(fcall: IFunctionCall, resultToStack: Boolean) {
+    private fun funcLsb(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
         if (arg.inferType(program).typeOrElse(DataType.STRUCT) !in WordDatatypes)
             throw AssemblyError("lsb required word argument")
@@ -942,16 +1061,45 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
-            asmgen.out("  lda  $sourceName")
-            if (resultToStack)
-                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            if(resultToStack) {
+                asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x |  dex")
+            } else {
+                when(resultRegister) {
+                    null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
+                    RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
+                    else -> throw AssemblyError("invalid reg")
+                }
+            }
         } else {
-            asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
-            // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
-            //       this is required because the compiler assumes the status bits are set according to what A is (lsb)
-            //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
-            if (resultToStack)
+            if(resultToStack) {
+                asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
+                //       this is required because the compiler assumes the status bits are set according to what A is (lsb)
+                //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            } else {
+                when(resultRegister) {
+                    null, RegisterOrPair.A -> {
+                        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                        // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
+                        //       this is required because the compiler assumes the status bits are set according to what A is (lsb)
+                        //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
+                    }
+                    RegisterOrPair.X -> {
+                        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.XY)
+                        // NOTE: we rely on the fact that the above assignment to XY, assigns the Lsb to X as the last instruction.
+                        //       this is required because the compiler assumes the status bits are set according to what X is (lsb)
+                        //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
+                    }
+                    RegisterOrPair.Y -> {
+                        asmgen.out("  pha")
+                        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                        asmgen.out("  tay |  pla |  cpy  #0")
+                    }
+                    else -> throw AssemblyError("invalid reg")
+                }
+            }
         }
     }
 
