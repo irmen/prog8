@@ -212,7 +212,7 @@ _done
                         x++
                     }
                 }
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; vera auto-increment off again
+                cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off again
             }
             4 -> {
                 ; lores 256c
@@ -239,28 +239,34 @@ _done
             6 -> {
                 ; highres 4c
                 ; TODO also mostly usable for lores 4c?
-                color &=3
-                ubyte[4] colorbits
-                ubyte[4] masks
-                ubyte mask = %11111100
-                ubyte ii
-                for ii in 3 downto 0 {
-                    colorbits[ii] = color
-                    masks[ii] = mask
-                    color <<= 2
-                    mask <<=2
-                }
-                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
-                repeat length {
-                    ; TODO optimize the vera memory manipulation in pure assembly
-                    ubyte lower_x_bits = lsb(x) & 3
-                    ubyte cbits4 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & masks[lower_x_bits] | colorbits[lower_x_bits]
-                    cx16.vpoke(lsb(cx16.r1), cx16.r0, cbits4)
-                    if lower_x_bits==%00000011
-                        cx16.r0++   ; next x byte
-                    x++
-                }
+
+                for x in x to x+length-1
+                    plot(x, y, color)
+
+                ; TODO this optimized loop sometimes misses the last pixel ????
+;                color &= 3
+;                ubyte[4] colorbits
+;                ubyte[4] masks
+;                ubyte mask = %11111100
+;                ubyte ii
+;                for ii in 3 downto 0 {
+;                    colorbits[ii] = color
+;                    masks[ii] = mask
+;                    color <<= 2
+;                    mask <<=2
+;                }
+
+;                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
+;                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+;                repeat length {
+;                    ; TODO optimize the vera memory manipulation in pure assembly
+;                    ubyte lower_x_bits = lsb(x) & 3
+;                    ubyte cbits4 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & masks[lower_x_bits] | colorbits[lower_x_bits]
+;                    cx16.vpoke(lsb(cx16.r1), cx16.r0, cbits4)
+;                    if lower_x_bits==%00000011
+;                        cx16.r0++   ; next x byte
+;                    x++
+;                }
             }
         }
     }
@@ -271,7 +277,7 @@ _done
             1, 5 -> {
                 ; monochrome, either resolution
                 ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
+                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
                 if active_mode>=5
                     cx16.r14 = 640/8
@@ -357,7 +363,7 @@ _done
             4 -> {
                 ; lores 256c
                 ; set vera auto-increment to 320 pixel increment (=next line)
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | (14<<4)
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
                 %asm {{
                     ldy  height
                     beq  +
@@ -371,7 +377,7 @@ _done
             6 -> {
                 ; highres 4c
                 ; note for this mode we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111)   ; no auto advance
+                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 ; TODO also mostly usable for lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 color &= 3
@@ -575,7 +581,7 @@ _done
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
                 ; activate vera auto-increment mode so next_pixel() can be used after this
-                cx16.VERA_ADDR_H = (cx16.VERA_ADDR_H & %00000111) | %00010000
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | %00010000
                 color = cx16.VERA_DATA0
             }
             5 -> {
@@ -604,6 +610,7 @@ _done
                 color &= 3
                 color <<= shift4c[lsb(x) & 3]
                 ; TODO optimize the vera memory manipulation in pure assembly
+                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask4c[lsb(x) & 3] | color
                 cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
             }

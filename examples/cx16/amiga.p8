@@ -10,15 +10,18 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(5)             ; select 640*480 mode
-        palette.set_monochrome($0aaa, $0000)        ; TODO fix setting the palette... the isNoClobberRisk() for lsb/msb broke it
+        gfx2.screen_mode(6)             ; select 640*480 mode
+        uword[4] amigacolors = [$aaa, $000, $fff, $68c]     ; gray, black, white, lightblue
+        palette.set_rgb(amigacolors, len(amigacolors))
 
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
         cx16.mouse_config(1, 1)         ; enable mouse   TODO make it an Amiga mouse pointer if possible
         gfx2.text_charset(3)
-        gfx2.monochrome_stipple(true)
-        gfx2.fillrect(0,11,gfx2.width,gfx2.height/2-11,1)
-        gfx2.monochrome_stipple(false)
+        if gfx2.active_mode==5 {
+            gfx2.monochrome_stipple(true)
+            gfx2.fillrect(0,11,gfx2.width,gfx2.height/2-11,1)
+            gfx2.monochrome_stipple(false)
+        }
 
         screen_titlebar()
         window_workbench()
@@ -31,7 +34,7 @@ main {
     }
 
     sub screen_titlebar() {
-        ; TODO white box
+        gfx2.fillrect(0, 0, gfx2.width, 10, 2)
         gfx2.text(8,1, 1, @"AmigaOS 3.1    2,002,448 graphics mem  16,504,384 other mem")
         gfx2.horizontal_line(0, 10, gfx2.width, 1)
         widget.window_order_icon(gfx2.width-widget.window_order_icon.width, 0, false)
@@ -44,11 +47,11 @@ main {
         const uword width = 600
         const uword height = 220
 
-        widget.window_titlebar(win_x, win_y, width, @"Workbench", true)
-        gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
-        widget.window_leftborder(win_x, win_y, height, true)
+        widget.window_titlebar(win_x, win_y, width, @"Workbench", false)
+        ; gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
+        widget.window_leftborder(win_x, win_y, height, false)
         widget.window_bottomborder(win_x, win_y, width, height)
-        widget.window_rightborder(win_x, win_y, width, height, true)
+        widget.window_rightborder(win_x, win_y, width, height, false)
 
         vector_v(win_x+width - 380, win_y+height-20)
         vector_v(win_x+width - 380 -14, win_y+height-20)
@@ -73,7 +76,7 @@ main {
         const uword win_y = 40
 
         widget.window_titlebar(win_x, win_y, width, @"System", false)
-        gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
+        gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2, 0)    ; clear window pane
         widget.window_leftborder(win_x, win_y, height, false)
         widget.window_bottomborder(win_x, win_y, width, height)
         widget.window_rightborder(win_x, win_y, width, height, false)
@@ -91,11 +94,11 @@ main {
         const uword width = 500
         const uword height = 65
 
-        widget.window_titlebar(win_x, win_y, width, @"AmigaShell", false)
+        widget.window_titlebar(win_x, win_y, width, @"AmigaShell", true)
         gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
-        widget.window_leftborder(win_x, win_y, height, false)
+        widget.window_leftborder(win_x, win_y, height, true)
         widget.window_bottomborder(win_x, win_y, width, height)
-        widget.window_rightborder(win_x, win_y, width, height, false)
+        widget.window_rightborder(win_x, win_y, width, height, true)
 
         gfx2.text(win_x+5, win_y+12, 1, @"New Shell process 3")
         gfx2.text(win_x+5, win_y+12+8, 1, @"3.Workbench3.1:>")
@@ -108,12 +111,14 @@ main {
 widget {
 
     sub highlightedrect(uword x, uword y, uword width, uword height, ubyte active) {
-        ; TODO white
-        gfx2.horizontal_line(x, y, width, 1)
-        gfx2.vertical_line(x, y+1, height-1, 1)
-        ; TODO black
+        gfx2.horizontal_line(x, y, width, 2)
+        gfx2.vertical_line(x, y+1, height-1, 2)
         gfx2.vertical_line(x+width-1, y+1, height-1, 1)
         gfx2.horizontal_line(x+1, y+height-1, width-2, 1)
+        if active
+            gfx2.fillrect(x+1,y+1,width-2,height-2, 3)
+        else
+            gfx2.fillrect(x+1,y+1,width-2,height-2, 0)
     }
 
     sub icon(uword x, uword y, uword caption) {
@@ -134,8 +139,8 @@ widget {
 
     sub window_titlebar(uword x, uword y, uword width, uword titlestr, ubyte active) {
         const ubyte height = 11
-        gfx2.fillrect(x,y,width,height-1,0)
-        widget.highlightedrect(x+widget.window_close_icon.width, y, width-62, height, active)
+        widget.highlightedrect(x+widget.window_close_icon.width, y, width-64, height, active)
+        gfx2.plot(x+widget.window_close_icon.width, y+height-1, 1) ; correct bottom left corner
         gfx2.text(x+32, y+1, 1, titlestr)
         widget.window_close_icon(x, y, active)
         widget.window_order_icon(x+width-22, y, active)
@@ -146,51 +151,58 @@ widget {
         const uword width = 22
         const uword height = 11
         highlightedrect(x, y, width, height, active)
+        gfx2.plot(x, y+height-1, 1) ; correct bottom left corner
         gfx2.rect(x+5, y+2, width-9, height-4, 1)
-        gfx2.rect(x+5, y+2, width-15, height-7, 1)
+        gfx2.rect(x+5, y+2, 7, 4, 1)
+        gfx2.fillrect(x+6, y+3, 5, 2, 2)
     }
 
     sub window_order_icon(uword x, uword y, ubyte active) {
-        ; TODO background filled box
         const uword width = 22
         const uword height = 11
         highlightedrect(x, y, width, height, active)
-        gfx2.fillrect(x+4, y+2, 10, 5, 1)       ; grey back
-        ; TODO black border
-        gfx2.fillrect(x+8, y+4, 10, 5, 1)       ; white front
-        ; TODO black border
+        gfx2.plot(x, y+height-1, 1) ; correct bottom left corner
+        gfx2.rect(x+4, y+2, 10, 5, 1)       ; back
+        gfx2.fillrect(x+9, y+5, 8, 3, 2)       ; white front
+        gfx2.rect(x+8, y+4, 10, 5, 1)       ; front
     }
 
     sub window_close_icon(uword x, uword y, ubyte active) {
-        ; TODO background filled box
         const uword width = 20
         const uword height = 11
         highlightedrect(x, y, width, height, active)
-        gfx2.fillrect(x+7, y+3, 5, 5, 1)
-        ; TODO black border
+        gfx2.plot(x, y+height-1, 1) ; correct bottom left corner
+        gfx2.rect(x+7, y+3, 5, 5, 1)
+        gfx2.fillrect(x+8, y+4, 3, 3, 2)
     }
 
     sub window_leftborder(uword x, uword y, uword height, ubyte active) {
-        gfx2.vertical_line(x, y, height, 1)
-        gfx2.vertical_line(x+1, y+11, height-11, 1)
+        gfx2.vertical_line(x, y, height, 2)
+        ubyte color = 0
+        if active
+            color = 3
+        gfx2.vertical_line(x+1, y+11, height-11, color)
         gfx2.vertical_line(x+2, y+11, height-11, 1)
     }
 
     sub window_bottomborder(uword x, uword y, uword width, uword height) {
-        gfx2.horizontal_line(x+3, y+height-2, width-3, 1)
+        gfx2.horizontal_line(x+3, y+height-2, width-3, 2)
         gfx2.horizontal_line(x, y+height-1, width, 1)
     }
 
     sub window_rightborder(uword x, uword y, uword width, uword height, ubyte active) {
         ; TODO scrollbar and scroll icons
-        gfx2.vertical_line(x+width-1-16, y+11, height-13,1)
+        gfx2.vertical_line(x+width-1-16, y+11, height-13,2)
         gfx2.vertical_line(x+width-1, y+11, height-11,1)
+        ubyte color = 0
+        if active
+            color = 3
+        gfx2.fillrect(x+width-1-15, y+11, 15, height-12, color)
 
-        gfx2.fillrect(x+width-1-15, y+height-10, 15, 9, 0)
-        gfx2.horizontal_line(x+width-1-13, y+height-3, 11,1)
-        gfx2.vertical_line(x+width-1-3, y+height-3-5, 5,1)
+        gfx2.horizontal_line(x+width-1-13, y+height-3, 11, 1)
+        gfx2.vertical_line(x+width-1-3, y+height-3-5, 5, 1)
         gfx2.line(x+width-1-13,y+height-3, x+width-1-3, y+height-3-5, 1)
-        gfx2.horizontal_line(x+width-1-16, y+height-10, 16,1)
+        gfx2.horizontal_line(x+width-1-16, y+height-10, 16, 2)
 
     }
 }
