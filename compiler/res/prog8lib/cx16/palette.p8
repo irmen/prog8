@@ -13,30 +13,40 @@ palette {
         cx16.vpoke(1, $fa01+index*2, msb(color))
     }
 
-    sub set_rgb4(uword palletteptr, uword num_colors) {
+    sub set_rgb4(uword palette_bytes_ptr, uword num_colors) {
         ; 2 bytes per color entry, the Vera uses this, but the R/GB bytes order is swapped
         vera_palette_ptr = $fa00
         repeat num_colors {
-            cx16.vpoke(1, vera_palette_ptr+1, @(palletteptr))
-            palletteptr++
-            cx16.vpoke(1, vera_palette_ptr, @(palletteptr))
-            palletteptr++
+            cx16.vpoke(1, vera_palette_ptr+1, @(palette_bytes_ptr))
+            palette_bytes_ptr++
+            cx16.vpoke(1, vera_palette_ptr, @(palette_bytes_ptr))
+            palette_bytes_ptr++
             vera_palette_ptr+=2
         }
     }
 
-    sub set_rgb8(uword palletteptr, uword num_colors) {
+    sub set_rgb(uword palette_words_ptr, uword num_colors) {
+        ; 1 word per color entry (in little endian format so $gb0r)
+        vera_palette_ptr = $fa00
+        repeat num_colors*2 {
+            cx16.vpoke(1, vera_palette_ptr, @(palette_words_ptr))
+            palette_words_ptr++
+            vera_palette_ptr++
+        }
+    }
+
+    sub set_rgb8(uword palette_bytes_ptr, uword num_colors) {
         ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
         vera_palette_ptr = $fa00
         ubyte red
         ubyte greenblue
         repeat num_colors {
-            red = @(palletteptr) >> 4
-            palletteptr++
-            greenblue = @(palletteptr) & %11110000
-            palletteptr++
-            greenblue |= @(palletteptr) >> 4    ; add Blue
-            palletteptr++
+            red = @(palette_bytes_ptr) >> 4
+            palette_bytes_ptr++
+            greenblue = @(palette_bytes_ptr) & %11110000
+            palette_bytes_ptr++
+            greenblue |= @(palette_bytes_ptr) >> 4    ; add Blue
+            palette_bytes_ptr++
             cx16.vpoke(1, vera_palette_ptr, greenblue)
             vera_palette_ptr++
             cx16.vpoke(1, vera_palette_ptr, red)
