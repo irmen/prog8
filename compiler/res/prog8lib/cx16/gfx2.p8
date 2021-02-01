@@ -1,11 +1,15 @@
 %target cx16
 
-; Bitmap pixel graphics module for the CommanderX16
+; Bitmap pixel graphics routines for the CommanderX16
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
-; These modes are not supported by the documented GRAPH_xxxx kernel routines.
+; (These modes are not supported by the documented GRAPH_xxxx kernel routines)
+;
 ; No text layer is currently shown, text can be drawn as part of the bitmap itself.
 ; Note: for similar graphics routines that also work on the C-64, use the "graphics" module instead.
 ; Note: for color palette manipulation, use the "palette" module or write Vera registers yourself.
+; Note: this library implements code for various resolutions and color depths. This takes up memory.
+;       If you're memory constrained you should probably not use this built-in library,
+;       but make a copy in your project only containing the code for the required resolution.
 ;
 ;
 ; SCREEN MODE LIST:
@@ -20,9 +24,6 @@
 ;   mode 8 = bitmap 640 x 480 x 256c (unsupported due to lack of VRAM)
 
 ; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
-
-; TODO split out the various when blocks in to their own subroutines so the assembler can omit unused code.
-
 
 gfx2 {
 
@@ -643,11 +644,11 @@ _done
                 cx16.r0 = y*(320/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
+            ; TODO modes 2,3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                ubyte bank = lsb(cx16.r1)
-                cx16.vaddr(bank, cx16.r0, 0, 1)
+                cx16.vaddr(lsb(cx16.r1), cx16.r0, 0, 1)
             }
             5 -> {
                 ; highres monochrome
@@ -656,8 +657,8 @@ _done
             }
             6 -> {
                 ; highres 4c
-                cx16.r0 = y*(640/4) + x/8
-                cx16.vaddr(0, cx16.r0, 0, 1)
+                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                cx16.vaddr(lsb(cx16.r1), cx16.r0, 0, 1)
             }
         }
     }
@@ -816,6 +817,28 @@ _done
                     sctextptr++
                 }
             }
+            6 -> {
+                ; hires 4c
+                while @(sctextptr) {
+                    chardataptr = charset_addr + (@(sctextptr) as uword)*8
+                    repeat 8 {
+                        ; TODO rewrite this inner loop in assembly
+                        ubyte charbits = cx16.vpeek(charset_bank, chardataptr)
+                        repeat 8 {
+                            charbits <<= 1
+                            if_cs
+                                plot(x, y, color)
+                            x++
+                        }
+                        x-=8
+                        chardataptr++
+                        y++
+                    }
+                    x+=8
+                    y-=8
+                    sctextptr++
+                }
+            }
         }
     }
 
@@ -839,8 +862,12 @@ _done
     sub addr_mul_24_for_highres_4c(uword yy, uword xx) {
         ; TODO asmsub, actually do 24 bits calc
         ; 24 bits result is in r0 and r1L (highest byte)
-        cx16.r0 = xx/4 + yy*(640/4)
+        cx16.r0 = yy*128
+        cx16.r2 = yy*32
+
         cx16.r1 = 0
+        cx16.r0 += cx16.r2
+        cx16.r0 += xx/4
     }
 
     asmsub addr_mul_24_for_lores_256c(uword yy @R0, uword xx @AY) clobbers(A) -> uword @R0, ubyte @R1  {

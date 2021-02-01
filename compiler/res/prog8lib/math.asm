@@ -1262,7 +1262,7 @@ mul_word_100	.proc
 		.pend
 
 mul_word_320	.proc
-		; AY = A * 256 + A * 64	 (msb doesn't matter)
+		; AY = A * 256 + A * 64	 (msb in Y doesn't matter)
 		sta  P8ZP_SCRATCH_B1
 		ldy  #0
 		sty  P8ZP_SCRATCH_REG

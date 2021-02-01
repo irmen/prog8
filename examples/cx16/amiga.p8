@@ -13,13 +13,8 @@ main {
         palette.set_rgb(amigacolors, len(amigacolors))
 
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
-        cx16.mouse_config(1, 1)         ; enable mouse   TODO make it an Amiga mouse pointer if possible
+        cx16.mouse_config(1, 1)         ; enable mouse   TODO make it an Amiga mouse pointer shape & colors if possible
         gfx2.text_charset(3)
-        if gfx2.active_mode==5 {
-            gfx2.monochrome_stipple(true)
-            gfx2.fillrect(0,11,gfx2.width,gfx2.height/2-11,1)
-            gfx2.monochrome_stipple(false)
-        }
 
         screen_titlebar()
         window_workbench()
@@ -128,12 +123,8 @@ widget {
         uword middlex = x+width/2+1
         ubyte halfstring = string.length(caption) * 4
         gfx2.text(middlex-halfstring,y+height+1,1,caption)
-
-        gfx2.monochrome_stipple(true)
-        gfx2.disc(x+width/4+4, y+height/2, height/2-4, 1)
-        gfx2.monochrome_stipple(false)
-        gfx2.circle(x+width/4+4, y+height/2, height/2-4, 1)
-        gfx2.fillrect(x+20,y+12,width/2,height/2-4,1)
+        gfx2.disc(x+width/4+4, y+height/2, height/2-3, 1)
+        gfx2.fillrect(x+20,y+12,width/2,height/2-4,3)
     }
 
 
@@ -203,7 +194,14 @@ widget {
         gfx2.line(x+width-1-13,y+height-3, x+width-1-3, y+height-3-5, 1)
         gfx2.horizontal_line(x+width-1-16, y+height-10, 16, 2)
 
-        highlightedrect(x+width-13, y+12, 10, height-23, false, false)
-        ; TODO scroll icons
+        highlightedrect(x+width-13, y+12, 10, height-43, false, false)
+        gfx2.horizontal_line(x+width-1-16, y+height-11, 16, 1)
+        gfx2.horizontal_line(x+width-1-16, y+height-20, 16, 2)
+        gfx2.horizontal_line(x+width-1-16, y+height-21, 16, 1)
+        gfx2.horizontal_line(x+width-1-16, y+height-30, 16, 2)
+        gfx2.line(x+width-1-12, y+height-23, x+width-8, y+height-28, 1)
+        gfx2.line(x+width-1-3, y+height-23, x+width-9, y+height-28, 1)
+        gfx2.line(x+width-1-13, y+height-18, x+width-8, y+height-13, 1)
+        gfx2.line(x+width-1-3, y+height-18, x+width-9, y+height-13, 1)
     }
 }
