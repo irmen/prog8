@@ -2,10 +2,12 @@
 
 ; Bitmap pixel graphics module for the CommanderX16
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
-; This only works on the Cx16. No text layer is currently shown, text can be drawn as part of the bitmap itself.
-; Note: for compatible graphics code that words on C64 too, use the "graphics" module instead.
-; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
-
+; These modes are not supported by the documented GRAPH_xxxx kernel routines.
+; No text layer is currently shown, text can be drawn as part of the bitmap itself.
+; Note: for similar graphics routines that also work on the C-64, use the "graphics" module instead.
+; Note: for color palette manipulation, use the "palette" module or write Vera registers yourself.
+;
+;
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 monochrome
@@ -13,7 +15,7 @@
 ;   mode 3 = bitmap 320 x 240 x 16c (unsupported TODO not yet implemented)
 ;   mode 4 = bitmap 320 x 240 x 256c
 ;   mode 5 = bitmap 640 x 480 monochrome
-;   mode 6 = bitmap 640 x 480 x 4c (unsupported TODO not yet implemented)
+;   mode 6 = bitmap 640 x 480 x 4c (unsupported TODO being implemented)
 ;   mode 7 = bitmap 640 x 480 x 16c (unsupported due to lack of VRAM)
 ;   mode 8 = bitmap 640 x 480 x 256c (unsupported due to lack of VRAM)
 
@@ -239,34 +241,51 @@ _done
             6 -> {
                 ; highres 4c
                 ; TODO also mostly usable for lores 4c?
+                color &= 3
+                ubyte[4] colorbits
+                ubyte ii
+                for ii in 3 downto 0 {
+                    colorbits[ii] = color
+                    color <<= 2
+                }
+                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                %asm {{
+                    lda  cx16.VERA_ADDR_H
+                    and  #%00000111         ; no auto advance
+                    sta  cx16.VERA_ADDR_H
+                    stz  cx16.VERA_CTRL     ; setup vera addr 0
+                    lda  cx16.r1
+                    and  #1
+                    sta  cx16.VERA_ADDR_H
+                    lda  cx16.r0
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.r0+1
+                    sta  cx16.VERA_ADDR_M
+                    phx
+                    ldx  x
+                }}
 
-                for x in x to x+length-1
-                    plot(x, y, color)
+                repeat length {
+                    %asm {{
+                        txa
+                        and  #3
+                        tay
+                        lda  cx16.VERA_DATA0
+                        and  gfx2.plot.mask4c,y
+                        ora  colorbits,y
+                        sta  cx16.VERA_DATA0
+                        cpy  #%00000011         ; next vera byte?
+                        bne  +
+                        inc  cx16.VERA_ADDR_L
+                        bne  +
+                        inc  cx16.VERA_ADDR_M
++                       inx                     ; next pixel
+                    }}
+                }
 
-                ; TODO this optimized loop sometimes misses the last pixel ????
-;                color &= 3
-;                ubyte[4] colorbits
-;                ubyte[4] masks
-;                ubyte mask = %11111100
-;                ubyte ii
-;                for ii in 3 downto 0 {
-;                    colorbits[ii] = color
-;                    masks[ii] = mask
-;                    color <<= 2
-;                    mask <<=2
-;                }
-
-;                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
-;                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-;                repeat length {
-;                    ; TODO optimize the vera memory manipulation in pure assembly
-;                    ubyte lower_x_bits = lsb(x) & 3
-;                    ubyte cbits4 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & masks[lower_x_bits] | colorbits[lower_x_bits]
-;                    cx16.vpoke(lsb(cx16.r1), cx16.r0, cbits4)
-;                    if lower_x_bits==%00000011
-;                        cx16.r0++   ; next x byte
-;                    x++
-;                }
+                %asm {{
+                    plx
+                }}
             }
         }
     }
@@ -380,12 +399,12 @@ _done
                 cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 ; TODO also mostly usable for lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+
+                ; TODO optimize the loop in pure assembly
                 color &= 3
                 color <<= gfx2.plot.shift4c[lsb(x) & 3]
                 ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
-
                 repeat height {
-                    ; TODO optimize the vera memory manipulation in pure assembly
                     ubyte value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask | color
                     cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
                     cx16.r0 += 640/4
@@ -818,7 +837,7 @@ _done
     }
 
     sub addr_mul_24_for_highres_4c(uword yy, uword xx) {
-        ; TODO asmsub, 24 bits calc
+        ; TODO asmsub, actually do 24 bits calc
         ; 24 bits result is in r0 and r1L (highest byte)
         cx16.r0 = xx/4 + yy*(640/4)
         cx16.r1 = 0

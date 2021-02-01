@@ -11,8 +11,8 @@ main {
         gfx2.screen_mode(6)
 
         testrect()
-        ; testhorizontal()
-        ;testvertical()
+        testhorizontal()
+        testvertical()
         sys.wait(9900)
 
         gfx2.screen_mode(0)

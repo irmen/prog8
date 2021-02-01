@@ -5,12 +5,10 @@
 
 ; Mockup of a classic Amiga Workbench screen.
 
-; TODO make everything 4 colors
-
 main {
 
     sub start() {
-        gfx2.screen_mode(6)             ; select 640*480 mode
+        gfx2.screen_mode(6)             ; select 640*480 mode, 4 colors
         uword[4] amigacolors = [$aaa, $000, $fff, $68c]     ; gray, black, white, lightblue
         palette.set_rgb(amigacolors, len(amigacolors))
 
@@ -110,21 +108,23 @@ main {
 
 widget {
 
-    sub highlightedrect(uword x, uword y, uword width, uword height, ubyte active) {
+    sub highlightedrect(uword x, uword y, uword width, uword height, ubyte fill, ubyte active) {
         gfx2.horizontal_line(x, y, width, 2)
         gfx2.vertical_line(x, y+1, height-1, 2)
         gfx2.vertical_line(x+width-1, y+1, height-1, 1)
         gfx2.horizontal_line(x+1, y+height-1, width-2, 1)
-        if active
-            gfx2.fillrect(x+1,y+1,width-2,height-2, 3)
-        else
-            gfx2.fillrect(x+1,y+1,width-2,height-2, 0)
+        if fill {
+            if active
+                gfx2.fillrect(x+1,y+1,width-2,height-2, 3)
+            else
+                gfx2.fillrect(x+1,y+1,width-2,height-2, 0)
+        }
     }
 
     sub icon(uword x, uword y, uword caption) {
         const ubyte width = 56
         const ubyte height = 28
-        highlightedrect(x, y, width, height, false)
+        highlightedrect(x, y, width, height, false, false)
         uword middlex = x+width/2+1
         ubyte halfstring = string.length(caption) * 4
         gfx2.text(middlex-halfstring,y+height+1,1,caption)
@@ -139,7 +139,7 @@ widget {
 
     sub window_titlebar(uword x, uword y, uword width, uword titlestr, ubyte active) {
         const ubyte height = 11
-        widget.highlightedrect(x+widget.window_close_icon.width, y, width-64, height, active)
+        widget.highlightedrect(x+widget.window_close_icon.width, y, width-64, height, true, active)
         gfx2.plot(x+widget.window_close_icon.width, y+height-1, 1) ; correct bottom left corner
         gfx2.text(x+32, y+1, 1, titlestr)
         widget.window_close_icon(x, y, active)
@@ -150,7 +150,7 @@ widget {
     sub window_flipsize_icon(uword x, uword y, ubyte active) {
         const uword width = 22
         const uword height = 11
-        highlightedrect(x, y, width, height, active)
+        highlightedrect(x, y, width, height, true, active)
         gfx2.plot(x, y+height-1, 1) ; correct bottom left corner
         gfx2.rect(x+5, y+2, width-9, height-4, 1)
         gfx2.rect(x+5, y+2, 7, 4, 1)
@@ -160,7 +160,7 @@ widget {
     sub window_order_icon(uword x, uword y, ubyte active) {
         const uword width = 22
         const uword height = 11
-        highlightedrect(x, y, width, height, active)
+        highlightedrect(x, y, width, height, true, active)
         gfx2.plot(x, y+height-1, 1) ; correct bottom left corner
         gfx2.rect(x+4, y+2, 10, 5, 1)       ; back
         gfx2.fillrect(x+9, y+5, 8, 3, 2)       ; white front
@@ -170,7 +170,7 @@ widget {
     sub window_close_icon(uword x, uword y, ubyte active) {
         const uword width = 20
         const uword height = 11
-        highlightedrect(x, y, width, height, active)
+        highlightedrect(x, y, width, height, true, active)
         gfx2.plot(x, y+height-1, 1) ; correct bottom left corner
         gfx2.rect(x+7, y+3, 5, 5, 1)
         gfx2.fillrect(x+8, y+4, 3, 3, 2)
@@ -191,7 +191,6 @@ widget {
     }
 
     sub window_rightborder(uword x, uword y, uword width, uword height, ubyte active) {
-        ; TODO scrollbar and scroll icons
         gfx2.vertical_line(x+width-1-16, y+11, height-13,2)
         gfx2.vertical_line(x+width-1, y+11, height-11,1)
         ubyte color = 0
@@ -204,5 +203,7 @@ widget {
         gfx2.line(x+width-1-13,y+height-3, x+width-1-3, y+height-3-5, 1)
         gfx2.horizontal_line(x+width-1-16, y+height-10, 16, 2)
 
+        highlightedrect(x+width-13, y+12, 10, height-23, false, false)
+        ; TODO scroll icons
     }
 }
