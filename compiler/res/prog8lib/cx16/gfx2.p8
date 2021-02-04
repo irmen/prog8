@@ -280,6 +280,8 @@ _done
                         inc  cx16.VERA_ADDR_L
                         bne  +
                         inc  cx16.VERA_ADDR_M
++                       bne  +
+                        inc  cx16.VERA_ADDR_H
 +                       inx                     ; next pixel
                     }}
                 }
@@ -418,6 +420,7 @@ _done
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+        ; TODO there are some slight errors at the first/last pixels in certain slopes...
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
@@ -860,14 +863,35 @@ _done
     }
 
     sub addr_mul_24_for_highres_4c(uword yy, uword xx) {
-        ; TODO asmsub, actually do 24 bits calc
+        ; TODO turn into asmsub
         ; 24 bits result is in r0 and r1L (highest byte)
         cx16.r0 = yy*128
         cx16.r2 = yy*32
+        xx >>= 2
 
-        cx16.r1 = 0
-        cx16.r0 += cx16.r2
-        cx16.r0 += xx/4
+        %asm {{
+            ; add r2 and xx to r0 (24-bits)
+            stz  cx16.r1
+            clc
+            lda  cx16.r0
+            adc  cx16.r2
+            sta  cx16.r0
+            lda  cx16.r0+1
+            adc  cx16.r2+1
+            sta  cx16.r0+1
+            bcc  +
+            inc  cx16.r1
++           clc
+            lda  cx16.r0
+            adc  xx
+            sta  cx16.r0
+            lda  cx16.r0+1
+            adc  xx+1
+            sta  cx16.r0+1
+            bcc  +
+            inc  cx16.r1
++
+        }}
     }
 
     asmsub addr_mul_24_for_lores_256c(uword yy @R0, uword xx @AY) clobbers(A) -> uword @R0, ubyte @R1  {

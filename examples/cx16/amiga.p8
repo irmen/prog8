@@ -13,13 +13,13 @@ main {
         palette.set_rgb(amigacolors, len(amigacolors))
 
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
-        cx16.mouse_config(1, 1)         ; enable mouse   TODO make it an Amiga mouse pointer shape & colors if possible
         gfx2.text_charset(3)
 
         screen_titlebar()
         window_workbench()
         window_system()
         window_shell()
+        gfx2.text(280, 210, 1, @"640x480(240) 4 colors")
         gfx2.text(280, 220, 1, @"Mockup drawn using Prog8 gfx2 library")
 
         repeat {
@@ -46,8 +46,8 @@ main {
         widget.window_bottomborder(win_x, win_y, width, height)
         widget.window_rightborder(win_x, win_y, width, height, false)
 
-        vector_v(win_x+width - 380, win_y+height-20)
-        vector_v(win_x+width - 380 -14, win_y+height-20)
+        vector_v(win_x+width - 390, win_y+height-20)
+        vector_v(win_x+width - 390 -14, win_y+height-20)
 
         widget.icon(45,40, @"Ram Disk")
         widget.icon(45,90, @"Workbench3.1")

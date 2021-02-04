@@ -1,6 +1,5 @@
 %import textio
 %import syslib
-%import test_stack
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -8,7 +7,7 @@
 main {
 
     sub start() {
-        txt.print("mid-point\ncircle\n and\nbresenham\nline\nalgorithms.\n")
+        txt.print("rectangles\nand circle\ndrawing.\n")
 
         ubyte r
         for r in 3 to 12 step 3 {
@@ -21,16 +20,6 @@ main {
         txt.clear_screen()
         disc(20, 12, 12)
 
-        txt.print("enter for lines:")
-        void c64.CHRIN()
-        c64.CHROUT('\n')
-        txt.clear_screen()
-
-        line(1, 10, 38, 24)
-        line(1, 20, 38, 2)
-        line(20, 4, 10, 24)
-        line(39, 16, 12, 0)
-
         txt.print("enter for rectangles:")
         void c64.CHRIN()
         c64.CHROUT('\n')
@@ -40,8 +29,6 @@ main {
         rect(20, 12, 30, 20, true)
         rect(10, 10, 10, 10, false)
         rect(6, 0, 16, 20, true)
-
-        test_stack.test()
 
 
         sub rect(ubyte x1, ubyte y1, ubyte x2, ubyte y2, ubyte fill) {
@@ -62,46 +49,6 @@ main {
                     for y in y1+1 to y2-1 {
                         txt.setcc(x1, y, 42, 7)
                         txt.setcc(x2, y, 42, 7)
-                    }
-                }
-            }
-        }
-
-        sub line(ubyte x1, ubyte y1, ubyte x2, ubyte y2) {
-            ; Bresenham algorithm, not very optimized to keep clear code.
-            ; For a better optimized version have a look in the graphics.p8 module.
-            byte d = 0
-            ubyte dx = abs(x2 - x1)
-            ubyte dy = abs(y2 - y1)
-            ubyte dx2 = 2 * dx
-            ubyte dy2 = 2 * dy
-            ubyte ix = sgn(x2 as byte - x1 as byte) as ubyte
-            ubyte iy = sgn(y2 as byte - y1 as byte) as ubyte
-            ubyte x = x1
-            ubyte y = y1
-
-            if dx >= dy {
-                repeat {
-                    txt.setcc(x, y, 42, 5)
-                    if x==x2
-                        return
-                    x += ix
-                    d += dy2
-                    if d > dx {
-                        y += iy
-                        d -= dx2
-                    }
-                }
-            } else {
-                repeat {
-                    txt.setcc(x, y, 42, 5)
-                    if y == y2
-                        return
-                    y += iy
-                    d += dx2
-                    if d > dy {
-                        x += ix
-                        d -= dy2
                     }
                 }
             }

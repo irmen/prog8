@@ -34,6 +34,7 @@ graphics {
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+        ; TODO there are some slight errors at the first/last pixels in certain slopes...??
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
