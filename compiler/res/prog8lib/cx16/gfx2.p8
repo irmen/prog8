@@ -410,7 +410,19 @@ _done
                 repeat height {
                     ubyte value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask | color
                     cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
-                    cx16.r0 += 640/4
+                    %asm {{
+                        ; 24 bits add 160 (640/4)
+                        clc
+                        lda  cx16.r0
+                        adc  #640/4
+                        sta  cx16.r0
+                        lda  cx16.r0+1
+                        adc  #0
+                        sta  cx16.r0+1
+                        bcc  +
+                        inc  cx16.r1
++
+                    }}
                 }
             }
         }
