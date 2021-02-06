@@ -2,6 +2,8 @@
 TODO
 ====
 
+- fix imageviewer application with new Prog8 6.1 version - images are all corrupted now.... :(
+
 - refactor the project module structure: make the static ast stuff a separate module, the optimizers another one, etc.
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
 - implement the linked_list millfork benchmark
