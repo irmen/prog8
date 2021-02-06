@@ -506,6 +506,12 @@ internal class AsmGen(private val program: Program,
         }
     }
 
+    internal fun asmSymbolName(regs: RegisterOrPair): String =
+        if(regs in Cx16VirtualRegisters)
+            "cx16." + regs.toString().toLowerCase()
+        else
+            throw AssemblyError("no symbol name for register $regs")
+
     internal fun asmVariableName(identifier: IdentifierReference): String {
         return if(identifier.memberOfStruct(program.namespace)!=null) {
             val name = identifier.targetVarDecl(program.namespace)!!.name
@@ -1442,5 +1448,4 @@ $label              nop""")
         }
         return false
     }
-
 }

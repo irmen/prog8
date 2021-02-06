@@ -91,6 +91,13 @@ enum class RegisterOrPair {
         val names by lazy { values().map { it.toString()} }
     }
 
+    fun asCpuRegister(): CpuRegister = when(this) {
+        A -> CpuRegister.A
+        X -> CpuRegister.X
+        Y -> CpuRegister.Y
+        else -> throw IllegalArgumentException("no cpu hardware register for $this")
+    }
+
 }       // only used in parameter and return value specs in asm subroutines
 
 enum class Statusflag {

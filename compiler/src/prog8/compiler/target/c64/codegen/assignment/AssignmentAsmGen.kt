@@ -263,7 +263,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             SourceStorageKind.REGISTER -> {
-                assignRegisterByte(assign.target, assign.source.register!!)
+                when(assign.source.datatype) {
+                    DataType.UBYTE -> assignRegisterByte(assign.target, assign.source.register!!.asCpuRegister())
+                    DataType.UWORD -> assignRegisterpairWord(assign.target, assign.source.register!!)
+                    else -> throw AssemblyError("invalid register dt")
+                }
             }
             SourceStorageKind.STACK -> {
                 assignStackValue(assign.target)
@@ -1434,7 +1438,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname} |  stx  ${target.asmVarname}+1")
                     RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname} |  sty  ${target.asmVarname}+1")
                     RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname} |  sty  ${target.asmVarname}+1")
-                    else -> throw AssemblyError("expected reg pair")
+                    in Cx16VirtualRegisters -> {
+                        val srcReg = asmgen.asmSymbolName(regs)
+                        asmgen.out("""
+                            lda  $srcReg
+                            sta  ${target.asmVarname}
+                            lda  $srcReg+1
+                            sta  ${target.asmVarname}+1""")
+                    }
+                    else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                 }
             }
             TargetStorageKind.ARRAY -> {
@@ -1444,24 +1456,43 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname}+$idx |  stx  ${target.asmVarname}+$idx+1")
                         RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
                         RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
-                        else -> throw AssemblyError("expected reg pair")
+                        in Cx16VirtualRegisters -> {
+                            val srcReg = asmgen.asmSymbolName(regs)
+                            asmgen.out("""
+                                lda  $srcReg
+                                sta  ${target.asmVarname}+$idx
+                                lda  $srcReg+1
+                                sta  ${target.asmVarname}+$idx+1""")
+                        }
+                        else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
                 }
                 else {
-                    when(regs) {
-                        RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
-                        RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
-                        RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
-                        else -> throw AssemblyError("expected reg pair")
+                    if (regs !in Cx16VirtualRegisters) {
+                        when (regs) {
+                            RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                            RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                            RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                            else -> throw AssemblyError("expected reg pair")
+                        }
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
+                        asmgen.out("""
+                            pla
+                            sta  ${target.asmVarname},y
+                            dey
+                            pla
+                            sta  ${target.asmVarname},y""")
+                    } else {
+                        val srcReg = asmgen.asmSymbolName(regs)
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
+                        asmgen.out("""
+                            lda  $srcReg+1
+                            sta  ${target.asmVarname},y
+                            dey
+                            lda  $srcReg
+                            sta  ${target.asmVarname},y""")
                     }
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
-                    asmgen.out("""
-                        pla
-                        sta  ${target.asmVarname},y
-                        dey
-                        pla
-                        sta  ${target.asmVarname},y""")
-                    }
+                }
             }
             TargetStorageKind.REGISTER -> {
                 when(regs) {
@@ -1475,7 +1506,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     stx  cx16.${target.register.toString().toLowerCase()}+1
                                 """)
                         }
-                        else -> throw AssemblyError("expected reg pair")
+                        else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
                     RegisterOrPair.AY -> when(target.register!!) {
                         RegisterOrPair.AY -> { }
@@ -1487,7 +1518,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     sty  cx16.${target.register.toString().toLowerCase()}+1
                                 """)
                         }
-                        else -> throw AssemblyError("expected reg pair")
+                        else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
                     RegisterOrPair.XY -> when(target.register!!) {
                         RegisterOrPair.AY -> { asmgen.out("  txa") }
@@ -1499,16 +1530,40 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     sty  cx16.${target.register.toString().toLowerCase()}+1
                                 """)
                         }
-                        else -> throw AssemblyError("expected reg pair")
+                        else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
-                    else -> throw AssemblyError("expected reg pair")
+                    in Cx16VirtualRegisters -> {
+                        val srcReg = asmgen.asmSymbolName(regs)
+                        if(regs!=target.register) {
+                            when(target.register) {
+                                RegisterOrPair.AX -> asmgen.out("  lda  $srcReg |  ldx  $srcReg+1")
+                                RegisterOrPair.AY -> asmgen.out("  lda  $srcReg |  ldy  $srcReg+1")
+                                RegisterOrPair.XY -> asmgen.out("  ldx  $srcReg |  ldy  $srcReg+1")
+                                in Cx16VirtualRegisters -> {
+                                    val targetReg = asmgen.asmSymbolName(target.register!!)
+                                    asmgen.out("  lda  $srcReg |  sta  $targetReg |  lda  $srcReg+1 |  sta  $targetReg+1")
+                                }
+                                else -> throw AssemblyError("invalid reg")
+                            }
+                        }
+                    }
+                    else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                 }
             }
             TargetStorageKind.STACK -> {
                 when(regs) {
-                    RegisterOrPair.AY -> asmgen.out(" sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
+                    RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
                     RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't use X here")
-                    else -> throw AssemblyError("expected reg pair")
+                    in Cx16VirtualRegisters -> {
+                        val srcReg = asmgen.asmSymbolName(regs)
+                        asmgen.out("""
+                            lda  $srcReg
+                            sta  P8ESTACK_LO,x
+                            lda  $srcReg+1
+                            sta  P8ESTACK_HI,x
+                            dex""")
+                    }
+                    else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                 }
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")

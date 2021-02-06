@@ -2,6 +2,7 @@
 TODO
 ====
 
+- refactor the project module structure: make the static ast stuff a separate module, the optimizers another one, etc.
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
 - implement the linked_list millfork benchmark
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))

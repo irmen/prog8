@@ -104,7 +104,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                                private val variableAsmName: String? = null,
                                val array: ArrayIndexedExpression? = null,
                                val memory: DirectMemoryRead? = null,
-                               val register: CpuRegister? = null,
+                               val register: RegisterOrPair? = null,
                                val number: NumericLiteralValue? = null,
                                val expression: Expression? = null
 )
@@ -138,7 +138,15 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {
                     val dt = value.inferType(program).typeOrElse(DataType.STRUCT)
-                    AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, dt, variableAsmName = asmgen.asmVariableName(value))
+                    val varName=asmgen.asmVariableName(value)
+                    // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
+                    if(dt==DataType.UWORD && varName.toLowerCase().startsWith("cx16.r")) {
+                        val regStr = varName.toLowerCase().substring(5)
+                        val reg = RegisterOrPair.valueOf(regStr.toUpperCase())
+                        AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, dt, register = reg)
+                    } else {
+                        AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, dt, variableAsmName = varName)
+                    }
                 }
                 is DirectMemoryRead -> {
                     AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
