@@ -653,6 +653,7 @@ _done
     }
 
     sub position(uword @zp x, uword y) {
+        ubyte bank
         when active_mode {
             1 -> {
                 ; lores monochrome
@@ -663,7 +664,8 @@ _done
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                cx16.vaddr(lsb(cx16.r1), cx16.r0, 0, 1)
+                bank = lsb(cx16.r1)
+                cx16.vaddr(bank, cx16.r0, 0, 1)
             }
             5 -> {
                 ; highres monochrome
@@ -673,7 +675,8 @@ _done
             6 -> {
                 ; highres 4c
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                cx16.vaddr(lsb(cx16.r1), cx16.r0, 0, 1)
+                bank = lsb(cx16.r1)
+                cx16.vaddr(bank, cx16.r0, 0, 1)
             }
         }
     }
