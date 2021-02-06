@@ -3,11 +3,10 @@ TODO
 ====
 
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
-- optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 - implement the linked_list millfork benchmark
-- [in progress] implement highres 4 color mode in gfx2
-- [in progress] make a retro Amiga Workbench "simulator" using that new gfx mode
+- optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 
+- optimize several inner loops in gfx2 (highres 4 color mode)
 - use the 65c02 bit clear/set/test instructions for single-bit operations
 - add a flood fill routine to gfx2
 - can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
