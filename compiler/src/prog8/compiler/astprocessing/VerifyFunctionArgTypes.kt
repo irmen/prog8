@@ -1,4 +1,4 @@
-package prog8.ast.processing
+package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
 import prog8.ast.INameScope

@@ -1,4 +1,4 @@
-package prog8.ast.processing
+package prog8.compiler.astprocessing
 
 import prog8.ast.INameScope
 import prog8.ast.Module
@@ -999,7 +999,8 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, functionCallStatement.definingScope(), program)
+        val error =
+            VerifyFunctionArgTypes.checkTypes(functionCallStatement, functionCallStatement.definingScope(), program)
         if(error!=null) {
             errors.err(error, functionCallStatement.args.firstOrNull()?.position ?: functionCallStatement.position)
         }

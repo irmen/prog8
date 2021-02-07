@@ -6,7 +6,6 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
-import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
 import kotlin.math.abs
 
@@ -246,8 +245,8 @@ interface IAssignable {
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
 
-class Program(val name: String, val modules: MutableList<Module>): Node {
-    val namespace = GlobalNamespace(modules)
+class Program(val name: String, val modules: MutableList<Module>, builtinFunctionNames: Set<String>): Node {
+    val namespace = GlobalNamespace(modules, builtinFunctionNames)
 
     val definedLoadAddress: Int
         get() = modules.first().loadAddress
@@ -322,7 +321,7 @@ class Module(override val name: String,
 }
 
 
-class GlobalNamespace(val modules: List<Module>): Node, INameScope {
+class GlobalNamespace(val modules: List<Module>, private val builtinFunctionNames: Set<String>): Node, INameScope {
     override val name = "<<<global>>>"
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used
@@ -337,7 +336,7 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
     }
 
     override fun lookup(scopedName: List<String>, localContext: Node): Statement? {
-        if (scopedName.size == 1 && scopedName[0] in BuiltinFunctions) {
+        if (scopedName.size == 1 && scopedName[0] in builtinFunctionNames) {
             // builtin functions always exist, return a dummy localContext for them
             val builtinPlaceholder = Label("builtin::${scopedName.last()}", localContext.position)
             builtinPlaceholder.parent = ParentSentinel

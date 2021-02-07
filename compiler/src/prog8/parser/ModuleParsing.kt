@@ -8,7 +8,7 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
-import prog8.compiler.checkImportedValid
+import prog8.compiler.astprocessing.checkImportedValid
 import prog8.compiler.target.CompilationTarget
 import prog8.pathFrom
 import java.io.InputStream

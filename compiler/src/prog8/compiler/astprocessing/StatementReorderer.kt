@@ -1,4 +1,4 @@
-package prog8.ast.processing
+package prog8.compiler.astprocessing
 
 import prog8.ast.*
 import prog8.ast.base.*

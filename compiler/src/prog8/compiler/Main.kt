@@ -4,9 +4,15 @@ import prog8.ast.AstToSourceCode
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.statements.Directive
+import prog8.compiler.astprocessing.*
+import prog8.compiler.astprocessing.addTypecasts
+import prog8.compiler.astprocessing.checkValid
+import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
+import prog8.compiler.astprocessing.reorderStatements
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.Cx16Target
+import prog8.functions.BuiltinFunctions
 import prog8.optimizer.*
 import prog8.optimizer.UnusedCodeRemover
 import prog8.optimizer.constantFold
@@ -91,13 +97,13 @@ fun compileProgram(filepath: Path,
         throw x
     }
 
-    return CompilationResult(false, Program("failed", mutableListOf()), programName, emptyList())
+    return CompilationResult(false, Program("failed", mutableListOf(), setOf()), programName, emptyList())
 }
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${CompilationTarget.instance.name}. Parsing...")
     val importer = ModuleImporter()
-    val programAst = Program(moduleName(filepath.fileName), mutableListOf())
+    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), BuiltinFunctions.keys)
     importer.importModule(programAst, filepath)
     errors.handle()
 
