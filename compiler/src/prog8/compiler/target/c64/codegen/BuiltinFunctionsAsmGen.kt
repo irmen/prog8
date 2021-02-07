@@ -8,15 +8,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compiler.functions.FSignature
 import prog8.compiler.target.CompilationTarget
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
-import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
-import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
-import prog8.compiler.target.c64.codegen.assignment.SourceStorageKind
-import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
+import prog8.compiler.target.c64.codegen.assignment.*
 import prog8.compiler.target.subroutineFloatEvalResultVar2
-import prog8.functions.FSignature
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
 

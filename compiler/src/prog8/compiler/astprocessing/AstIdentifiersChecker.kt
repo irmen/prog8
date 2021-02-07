@@ -2,12 +2,17 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.*
-import prog8.ast.expressions.*
+import prog8.ast.base.DataType
+import prog8.ast.base.ErrorReporter
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.Position
+import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.target.CompilationTarget
-import prog8.functions.BuiltinFunctions
 
 internal class AstIdentifiersChecker(private val program: Program, private val errors: ErrorReporter) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()

@@ -5,9 +5,9 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
+import prog8.ast.walk.IAstVisitor
 import java.nio.file.Path
 import kotlin.math.abs
 

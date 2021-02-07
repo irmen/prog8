@@ -1,14 +1,17 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.INameScope
+import prog8.ast.Module
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ErrorReporter
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
+import prog8.ast.walk.IAstVisitor
 import prog8.compiler.loadAsmIncludeFile
 
 private val alwaysKeepSubroutines = setOf(

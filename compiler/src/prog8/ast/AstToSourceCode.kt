@@ -5,8 +5,8 @@ import prog8.ast.base.DataType
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
-import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
+import prog8.ast.walk.IAstVisitor
 
 
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {

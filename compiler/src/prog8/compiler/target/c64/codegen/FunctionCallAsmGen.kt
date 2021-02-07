@@ -9,7 +9,10 @@ import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.c64.codegen.assignment.*
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
+import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
+import prog8.compiler.target.c64.codegen.assignment.TargetStorageKind
 
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {

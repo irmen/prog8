@@ -3,7 +3,6 @@ package prog8.compiler
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
-import kotlin.math.abs
 
 enum class OutputType {
     RAW,

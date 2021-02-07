@@ -6,12 +6,12 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compiler.functions.BuiltinFunctions
+import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
-import prog8.functions.BuiltinFunctions
-import prog8.functions.builtinFunctionReturnType
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen, private val exprAsmgen: ExpressionsAsmGen) {

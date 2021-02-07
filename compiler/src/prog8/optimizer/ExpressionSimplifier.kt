@@ -2,7 +2,10 @@ package prog8.optimizer
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.IntegerDatatypes
+import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
 import prog8.ast.walk.AstWalker

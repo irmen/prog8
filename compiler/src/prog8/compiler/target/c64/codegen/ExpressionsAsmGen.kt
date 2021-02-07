@@ -8,10 +8,10 @@ import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.subroutineFloatEvalResultVar1
-import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
 
 internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen) {

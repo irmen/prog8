@@ -4,9 +4,9 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.functions.BuiltinFunctions
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compiler.functions.BuiltinFunctions
 
 
 internal class StatementReorderer(val program: Program, val errors: ErrorReporter) : AstWalker() {

@@ -4,7 +4,9 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.ForLoop
+import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.target.CompilationTarget

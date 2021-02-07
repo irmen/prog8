@@ -2,9 +2,13 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.*
-import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.ast.base.DataType
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.statements.AnonymousScope
+import prog8.ast.statements.ParameterVarDecl
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 
