@@ -7,7 +7,7 @@ import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.processing.IAstVisitor
+import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.loadAsmIncludeFile
 

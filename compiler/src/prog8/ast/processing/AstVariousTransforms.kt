@@ -5,6 +5,8 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.walk.AstWalker
+import prog8.ast.walk.IAstModification
 
 
 internal class AstVariousTransforms(private val program: Program) : AstWalker() {

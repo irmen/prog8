@@ -8,6 +8,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
+import prog8.ast.walk.IAstVisitor
 import prog8.compiler.CompilerException
 import prog8.functions.BuiltinFunctions
 

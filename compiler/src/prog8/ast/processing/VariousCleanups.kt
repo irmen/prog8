@@ -6,6 +6,8 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.NopStatement
+import prog8.ast.walk.AstWalker
+import prog8.ast.walk.IAstModification
 
 
 internal class VariousCleanups: AstWalker() {

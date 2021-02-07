@@ -5,10 +5,10 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.AstWalker
-import prog8.ast.processing.IAstModification
-import prog8.ast.processing.IAstVisitor
+import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
+import prog8.ast.walk.AstWalker
+import prog8.ast.walk.IAstModification
 import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor

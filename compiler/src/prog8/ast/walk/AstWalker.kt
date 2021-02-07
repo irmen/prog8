@@ -1,4 +1,4 @@
-package prog8.ast.processing
+package prog8.ast.walk
 
 import prog8.ast.*
 import prog8.ast.base.FatalAstException

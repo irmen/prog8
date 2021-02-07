@@ -4,12 +4,12 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.AstWalker
-import prog8.ast.processing.IAstModification
 import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
+import prog8.ast.walk.AstWalker
+import prog8.ast.walk.IAstModification
 import prog8.compiler.target.CompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl
