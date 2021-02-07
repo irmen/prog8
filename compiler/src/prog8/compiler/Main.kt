@@ -127,12 +127,13 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 }
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
-    println("Compiler target: ${CompilationTarget.instance.name}. Parsing...")
+    val compilationTargetName = CompilationTarget.instance.name
+    println("Compiler target: $compilationTargetName. Parsing...")
     val importer = ModuleImporter()
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf)
     bf.program = programAst
-    importer.importModule(programAst, filepath)
+    importer.importModule(programAst, filepath, CompilationTarget.instance, compilationTargetName)
     errors.handle()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
@@ -142,11 +143,11 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the machine and compiler options we may have to include some libraries
-    CompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst)
+    CompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst, CompilationTarget.instance, compilationTargetName)
 
     // always import prog8_lib and math
-    importer.importLibraryModule(programAst, "math")
-    importer.importLibraryModule(programAst, "prog8_lib")
+    importer.importLibraryModule(programAst, "math", CompilationTarget.instance, compilationTargetName)
+    importer.importLibraryModule(programAst, "prog8_lib", CompilationTarget.instance, compilationTargetName)
     errors.handle()
     return Triple(programAst, compilerOptions, importedFiles)
 }

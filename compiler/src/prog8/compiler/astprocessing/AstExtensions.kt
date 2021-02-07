@@ -1,6 +1,5 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.ErrorReporter
 import prog8.ast.base.FatalAstException
@@ -35,12 +34,6 @@ internal fun Program.addTypecasts(errors: ErrorReporter) {
 internal fun Program.verifyFunctionArgTypes() {
     val fixer = VerifyFunctionArgTypes(this)
     fixer.visit(this)
-}
-
-internal fun Module.checkImportedValid() {
-    val imr = ImportedModuleDirectiveRemover()
-    imr.visit(this, this.parent)
-    imr.applyModifications()
 }
 
 internal fun Program.checkIdentifiers(errors: ErrorReporter) {

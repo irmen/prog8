@@ -1,5 +1,6 @@
 package prog8.compiler.target.c64
 
+import prog8.ast.IStringEncoding
 import prog8.ast.Program
 import prog8.compiler.*
 import prog8.compiler.target.CpuType
@@ -30,9 +31,15 @@ internal object C64MachineDefinition: IMachineDefinition {
 
     override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
 
-    override fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program) {
+    override fun importLibs(
+            compilerOptions: CompilationOptions,
+            importer: ModuleImporter,
+            program: Program,
+            encoder: IStringEncoding,
+            compilationTargetName: String)
+    {
         if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
-            importer.importLibraryModule(program, "syslib")
+            importer.importLibraryModule(program, "syslib", encoder, compilationTargetName)
     }
 
     override fun launchEmulator(programName: String) {

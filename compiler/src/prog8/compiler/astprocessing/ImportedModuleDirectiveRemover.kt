@@ -12,6 +12,8 @@ internal class ImportedModuleDirectiveRemover: AstWalker() {
      * Most global directives don't apply for imported modules, so remove them
      */
 
+    // TODO don't use an AstWalker for this, do it directly on the imported module
+
     private val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address")
     private val noModifications = emptyList<IAstModification>()
 

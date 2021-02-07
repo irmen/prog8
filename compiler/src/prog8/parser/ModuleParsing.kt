@@ -1,6 +1,7 @@
 package prog8.parser
 
 import org.antlr.v4.runtime.*
+import prog8.ast.IStringEncoding
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.antlr.toAst
@@ -8,8 +9,7 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
-import prog8.compiler.astprocessing.checkImportedValid
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.astprocessing.ImportedModuleDirectiveRemover
 import prog8.pathFrom
 import java.io.InputStream
 import java.nio.file.Files
@@ -28,7 +28,7 @@ internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLas
 
 internal class ModuleImporter {
 
-    internal fun importModule(program: Program, filePath: Path): Module {
+    internal fun importModule(program: Program, filePath: Path, encoder: IStringEncoding, compilationTargetName: String): Module {
         print("importing '${moduleName(filePath.fileName)}'")
         if(filePath.parent!=null) {
             var importloc = filePath.toString()
@@ -43,14 +43,15 @@ internal class ModuleImporter {
             throw ParsingFailedError("No such file: $filePath")
 
         val input = CharStreams.fromPath(filePath)
-        return importModule(program, input, filePath, false)
+        return importModule(program, input, filePath, false, encoder, compilationTargetName)
     }
 
-    internal fun importLibraryModule(program: Program, name: String): Module? {
+    internal fun importLibraryModule(program: Program, name: String,
+                                     encoder: IStringEncoding, compilationTargetName: String): Module? {
         val import = Directive("%import", listOf(
                 DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0, 0))
         ), Position("<<<implicit-import>>>", 0, 0, 0))
-        return executeImportDirective(program, import, Paths.get(""))
+        return executeImportDirective(program, import, Paths.get(""), encoder, compilationTargetName)
     }
 
     private class MyErrorListener: ConsoleErrorListener() {
@@ -65,7 +66,8 @@ internal class ModuleImporter {
         }
     }
 
-    private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
+    private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean,
+                             encoder: IStringEncoding, compilationTargetName: String): Module {
         val moduleName = moduleName(modulePath.fileName)
         val lexer = CustomLexer(modulePath, stream)
         lexer.removeErrorListeners()
@@ -84,7 +86,7 @@ internal class ModuleImporter {
         // tokens.commentTokens().forEach { println(it) }
 
         // convert to Ast
-        val moduleAst = parseTree.toAst(moduleName, isLibrary, modulePath, CompilationTarget.instance)
+        val moduleAst = parseTree.toAst(moduleName, isLibrary, modulePath, encoder)
         moduleAst.program = program
         moduleAst.linkParents(program.namespace)
         program.modules.add(moduleAst)
@@ -94,13 +96,14 @@ internal class ModuleImporter {
         lines.asSequence()
                 .mapIndexed { i, it -> i to it }
                 .filter { (it.second as? Directive)?.directive == "%import" }
-                .forEach { executeImportDirective(program, it.second as Directive, modulePath) }
+                .forEach { executeImportDirective(program, it.second as Directive, modulePath, encoder, compilationTargetName) }
 
         moduleAst.statements = lines
         return moduleAst
     }
 
-    private fun executeImportDirective(program: Program, import: Directive, source: Path): Module? {
+    private fun executeImportDirective(program: Program, import: Directive, source: Path,
+                                       encoder: IStringEncoding, compilationTargetName: String): Module? {
         if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
             throw SyntaxError("invalid import directive", import.position)
         val moduleName = import.args[0].name!!
@@ -111,27 +114,31 @@ internal class ModuleImporter {
         if(existing!=null)
             return null
 
-        val rsc = tryGetModuleFromResource("$moduleName.p8")
+        val rsc = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
         val importedModule =
                 if(rsc!=null) {
                     // load the module from the embedded resource
                     val (resource, resourcePath) = rsc
                     resource.use {
                         println("importing '$moduleName' (library)")
-                        importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$resourcePath"), true)
+                        importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$resourcePath"),
+                            true, encoder, compilationTargetName)
                     }
                 } else {
                     val modulePath = tryGetModuleFromFile(moduleName, source, import.position)
-                    importModule(program, modulePath)
+                    importModule(program, modulePath, encoder, compilationTargetName)
                 }
 
-        importedModule.checkImportedValid()
+        // TODO don't do this via an AstWalker:
+        val imr = ImportedModuleDirectiveRemover()
+        imr.visit(importedModule, importedModule.parent)
+        imr.applyModifications()
+
         return importedModule
     }
 
-    private fun tryGetModuleFromResource(name: String): Pair<InputStream, String>? {
-        val target = CompilationTarget.instance.name
-        val targetSpecificPath = "/prog8lib/$target/$name"
+    private fun tryGetModuleFromResource(name: String, compilationTargetName: String): Pair<InputStream, String>? {
+        val targetSpecificPath = "/prog8lib/$compilationTargetName/$name"
         val targetSpecificResource = object{}.javaClass.getResourceAsStream(targetSpecificPath)
         if(targetSpecificResource!=null)
             return Pair(targetSpecificResource, targetSpecificPath)
