@@ -4,12 +4,12 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
-import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import prog8.functions.builtinFunctionReturnType
 
@@ -66,7 +66,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val arrayVarName = asmgen.asmVariableName(value.arrayvar)
                 if (value.indexer.indexNum!=null) {
                     // constant array index value
-                    val indexValue = value.indexer.constIndex()!! * elementDt.memorySize()
+                    val indexValue = value.indexer.constIndex()!! * CompilationTarget.instance.memorySize(elementDt)
                     when (elementDt) {
                         in ByteDatatypes -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue")
@@ -762,7 +762,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                    val scaledIdx = target.constArrayIndexValue!! * CompilationTarget.instance.memorySize(target.datatype)
                     when(target.datatype) {
                         in ByteDatatypes -> {
                             asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
@@ -968,7 +968,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.ARRAY -> {
                 target.array!!
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                    val scaledIdx = target.constArrayIndexValue!! * CompilationTarget.instance.memorySize(target.datatype)
                     when(target.datatype) {
                         in ByteDatatypes -> {
                             asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
@@ -1191,7 +1191,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * target.datatype.memorySize()
+                    val scaledIdx = target.constArrayIndexValue!! * CompilationTarget.instance.memorySize(target.datatype)
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
@@ -1777,7 +1777,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.ARRAY -> {
                     if (target.array!!.indexer.indexNum!=null) {
-                        val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
+                        val indexValue = target.array.indexer.constIndex()!! * CompilationTarget.instance.memorySize(DataType.FLOAT)
                         if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("""
                                 stz  ${target.asmVarname}+$indexValue
@@ -1842,7 +1842,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.ARRAY -> {
                     val arrayVarName = target.asmVarname
                     if (target.array!!.indexer.indexNum!=null) {
-                        val indexValue = target.array.indexer.constIndex()!! * DataType.FLOAT.memorySize()
+                        val indexValue = target.array.indexer.constIndex()!! * CompilationTarget.instance.memorySize(DataType.FLOAT)
                         asmgen.out("""
                             lda  $constFloat
                             sta  $arrayVarName+$indexValue

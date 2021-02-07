@@ -1,9 +1,6 @@
 package prog8.compiler.target.c64.codegen
 
-import prog8.ast.IFunctionCall
-import prog8.ast.INameScope
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -711,7 +708,7 @@ internal class AsmGen(private val program: Program,
         val reg = register.toString().toLowerCase()
         val indexnum = expr.indexer.constIndex()
         if(indexnum!=null) {
-            val indexValue = indexnum * elementDt.memorySize() + if(addOneExtra) 1 else 0
+            val indexValue = indexnum * CompilationTarget.instance.memorySize(elementDt) + if(addOneExtra) 1 else 0
             out("  ld$reg  #$indexValue")
             return
         }
@@ -737,7 +734,7 @@ internal class AsmGen(private val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(DataType.FLOAT.memorySize()==5)
+                    require(CompilationTarget.instance.memorySize(DataType.FLOAT)==5)
                     out("""
                                 lda  $indexName
                                 asl  a
@@ -764,7 +761,7 @@ internal class AsmGen(private val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(DataType.FLOAT.memorySize()==5)
+                    require(CompilationTarget.instance.memorySize(DataType.FLOAT)==5)
                     out("""
                                 lda  $indexName
                                 asl  a

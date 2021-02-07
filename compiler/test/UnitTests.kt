@@ -8,6 +8,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.toHex
 import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.CompilationTarget
@@ -50,8 +51,8 @@ class TestCompiler {
         assertEquals("-\$c382", (-50050).toHex())
         assertEquals("-\$ffff", (-65535).toHex())
         assertEquals("-\$ffff", (-65535L).toHex())
-        assertFailsWith<CompilerException> { 65536.toHex()  }
-        assertFailsWith<CompilerException> { 65536L.toHex()  }
+        assertFailsWith<IllegalArgumentException> { 65536.toHex()  }
+        assertFailsWith<IllegalArgumentException> { 65536L.toHex()  }
     }
 
     @Test
@@ -408,27 +409,27 @@ class TestMemory {
         var memexpr = NumericLiteralValue.optimalInteger(0x0000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         var scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertTrue(target.isInRegularRAM(scope))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertTrue(target.isInRegularRAM(scope))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0x9fff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertTrue(target.isInRegularRAM(scope))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0xc000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertTrue(target.isInRegularRAM(scope))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0xcfff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertTrue(target.isInRegularRAM(scope))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, scope))
     }
 
     @Test
@@ -438,37 +439,37 @@ class TestMemory {
         var memexpr = NumericLiteralValue.optimalInteger(0xa000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         var scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertFalse(target.isInRegularRAM(scope))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0xafff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertFalse(target.isInRegularRAM(scope))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0xd000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertFalse(target.isInRegularRAM(scope))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, scope))
 
         memexpr = NumericLiteralValue.optimalInteger(0xffff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertFalse(target.isInRegularRAM(scope))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, scope))
     }
 
     @Test
     fun testInValidRamC64_memory_identifiers() {
         CompilationTarget.instance = C64Target
         var target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.VAR)
-        assertTrue(target.isInRegularRAM(target.definingScope()))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
         target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.VAR)
-        assertFalse(target.isInRegularRAM(target.definingScope()))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
         target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.CONST)
-        assertTrue(target.isInRegularRAM(target.definingScope()))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
         target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.CONST)
-        assertFalse(target.isInRegularRAM(target.definingScope()))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
         target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.MEMORY)
-        assertFalse(target.isInRegularRAM(target.definingScope()))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 
     @Test
@@ -488,7 +489,7 @@ class TestMemory {
         val memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val scope = AnonymousScope(mutableListOf(), Position.DUMMY)
-        assertFalse(target.isInRegularRAM(scope))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, scope))
     }
 
     @Test
@@ -499,7 +500,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
-        assertTrue(target.isInRegularRAM(target.definingScope()))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 
     @Test
@@ -511,7 +512,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
-        assertTrue(target.isInRegularRAM(target.definingScope()))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 
     @Test
@@ -523,7 +524,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
-        assertFalse(target.isInRegularRAM(target.definingScope()))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 
     @Test
@@ -535,7 +536,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
-        assertTrue(target.isInRegularRAM(target.definingScope()))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 
     @Test
@@ -548,7 +549,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
-        assertTrue(target.isInRegularRAM(target.definingScope()))
+        assertTrue(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 
     @Test
@@ -561,6 +562,6 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         subroutine.linkParents(ParentSentinel)
-        assertFalse(target.isInRegularRAM(target.definingScope()))
+        assertFalse(CompilationTarget.instance.isInRegularRAM(target, target.definingScope()))
     }
 }

@@ -7,7 +7,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
-import prog8.compiler.toHex
+
 
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
     private var scopelevel = 0

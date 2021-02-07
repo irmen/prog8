@@ -7,6 +7,7 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstModification
 import prog8.ast.statements.*
+import prog8.compiler.target.CompilationTarget
 import kotlin.math.pow
 
 
@@ -221,7 +222,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                     range.step
                 }
 
-            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, range.position)
+            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, CompilationTarget.instance, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.

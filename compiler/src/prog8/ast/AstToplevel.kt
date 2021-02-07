@@ -8,7 +8,12 @@ import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 import java.nio.file.Path
+import kotlin.math.abs
 
+interface IStringEncoding {
+    fun encodeString(str: String, altEncoding: Boolean): List<Short>
+    fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
+}
 
 interface Node {
     val position: Position
@@ -380,3 +385,20 @@ object BuiltinFunctionScopePlaceholder : INameScope {
 
 // prefix for struct member variables
 internal fun mangledStructMemberName(varName: String, memberName: String) = "prog8struct_${varName}_$memberName"
+
+
+fun Number.toHex(): String {
+    //  0..15 -> "0".."15"
+    //  16..255 -> "$10".."$ff"
+    //  256..65536 -> "$0100".."$ffff"
+    // negative values are prefixed with '-'.
+    val integer = this.toInt()
+    if(integer<0)
+        return '-' + abs(integer).toHex()
+    return when (integer) {
+        in 0 until 16 -> integer.toString()
+        in 0 until 0x100 -> "$"+integer.toString(16).padStart(2,'0')
+        in 0 until 0x10000 -> "$"+integer.toString(16).padStart(4,'0')
+        else -> throw IllegalArgumentException("number too large for 16 bits $this")
+    }
+}

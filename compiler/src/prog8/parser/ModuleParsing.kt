@@ -6,9 +6,9 @@ import prog8.ast.Program
 import prog8.ast.antlr.toAst
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
-import prog8.ast.base.checkImportedValid
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.compiler.checkImportedValid
 import prog8.compiler.target.CompilationTarget
 import prog8.pathFrom
 import java.io.InputStream
@@ -84,7 +84,7 @@ internal class ModuleImporter {
         // tokens.commentTokens().forEach { println(it) }
 
         // convert to Ast
-        val moduleAst = parseTree.toAst(moduleName, isLibrary, modulePath)
+        val moduleAst = parseTree.toAst(moduleName, isLibrary, modulePath, CompilationTarget.instance)
         moduleAst.program = program
         moduleAst.linkParents(program.namespace)
         program.modules.add(moduleAst)

@@ -6,11 +6,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Subroutine
+import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.subroutineFloatEvalResultVar1
-import prog8.compiler.toHex
 import prog8.functions.BuiltinFunctions
 import kotlin.math.absoluteValue
 
@@ -1889,7 +1889,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
         if(arrayExpr.indexer.indexNum!=null) {
-            val indexValue = arrayExpr.indexer.constIndex()!! * elementDt.memorySize()
+            val indexValue = arrayExpr.indexer.constIndex()!! * CompilationTarget.instance.memorySize(elementDt)
             when(elementDt) {
                 in ByteDatatypes -> {
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")

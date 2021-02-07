@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
-import prog8.compiler.target.CompilationTarget
 import prog8.functions.BuiltinFunctions
 import prog8.functions.CannotEvaluateException
 import prog8.functions.NotConstArgumentException
@@ -612,6 +611,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 class RangeExpr(var from: Expression,
                 var to: Expression,
                 var step: Expression,
+                private val encoding: IStringEncoding,
                 override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -677,8 +677,8 @@ class RangeExpr(var from: Expression,
         val toString = to as? StringLiteralValue
         if(fromString!=null && toString!=null ) {
             // string range -> int range over character values
-            fromVal = CompilationTarget.instance.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
-            toVal = CompilationTarget.instance.encodeString(toString.value, fromString.altEncoding)[0].toInt()
+            fromVal = encoding.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
+            toVal = encoding.encodeString(toString.value, fromString.altEncoding)[0].toInt()
         } else {
             val fromLv = from as? NumericLiteralValue
             val toLv = to as? NumericLiteralValue

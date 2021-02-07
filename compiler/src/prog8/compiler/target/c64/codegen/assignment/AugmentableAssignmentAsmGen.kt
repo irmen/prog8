@@ -4,13 +4,13 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
+import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
-import prog8.compiler.toHex
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
@@ -202,7 +202,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 with(target.array!!.indexer) {
                     when {
                         indexNum!=null -> {
-                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*target.datatype.memorySize()}"
+                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*CompilationTarget.instance.memorySize(target.datatype)}"
                             when(target.datatype) {
                                 in ByteDatatypes -> {
                                     when {

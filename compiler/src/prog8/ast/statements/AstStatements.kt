@@ -5,8 +5,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.AstWalker
 import prog8.ast.processing.IAstVisitor
-import prog8.compiler.CompilerException
-import prog8.compiler.target.CompilationTarget
 
 
 sealed class Statement : Node {
@@ -252,7 +250,7 @@ open class VarDecl(val type: VarDeclType,
         if(allowInitializeWithZero)
             return defaultZero(declaredDatatype, position)
         else
-            throw CompilerException("attempt to get zero value for vardecl that shouldn't get it")
+            throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")
     }
 
     fun flattenStructMembers(): MutableList<Statement> {
@@ -517,44 +515,6 @@ data class AssignTarget(var identifier: IdentifierReference?,
             }
         }
         return false
-    }
-
-    fun isInRegularRAM(namespace: INameScope): Boolean {
-        when {
-            this.memoryAddress != null -> {
-                return when (this.memoryAddress.addressExpression) {
-                    is NumericLiteralValue -> {
-                        CompilationTarget.instance.machine.isRegularRAMaddress((this.memoryAddress.addressExpression as NumericLiteralValue).number.toInt())
-                    }
-                    is IdentifierReference -> {
-                        val decl = (this.memoryAddress.addressExpression as IdentifierReference).targetVarDecl(namespace)
-                        if ((decl?.type == VarDeclType.VAR || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
-                            CompilationTarget.instance.machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
-                        else
-                            false
-                    }
-                    else -> false
-                }
-            }
-            this.arrayindexed != null -> {
-                val targetStmt = this.arrayindexed!!.arrayvar.targetVarDecl(namespace)
-                return if (targetStmt?.type == VarDeclType.MEMORY) {
-                    val addr = targetStmt.value as? NumericLiteralValue
-                    if (addr != null)
-                        CompilationTarget.instance.machine.isRegularRAMaddress(addr.number.toInt())
-                    else
-                        false
-                } else true
-            }
-            this.identifier != null -> {
-                val decl = this.identifier!!.targetVarDecl(namespace)!!
-                return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
-                    CompilationTarget.instance.machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
-                else
-                    true
-            }
-            else -> return true
-        }
     }
 }
 

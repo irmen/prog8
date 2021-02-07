@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
+import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.c64.codegen.AsmGen
 
 
@@ -211,7 +212,7 @@ internal class AsmAssignment(val source: AsmAssignSource,
     init {
         if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
             require(source.datatype != DataType.STRUCT) { "must not be placeholder datatype" }
-            require(source.datatype.memorySize() <= target.datatype.memorySize()) {
+            require(CompilationTarget.instance.memorySize(source.datatype) <= CompilationTarget.instance.memorySize(target.datatype)) {
                 "source storage size must be less or equal to target datatype storage size"
             }
     }

@@ -5,8 +5,9 @@ import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.PostIncrDecr
+import prog8.ast.toHex
 import prog8.compiler.AssemblyError
-import prog8.compiler.toHex
+import prog8.compiler.target.CompilationTarget
 
 
 internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -67,7 +68,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.arrayvar)
                 val elementDt = targetArrayIdx.inferType(program).typeOrElse(DataType.STRUCT)
                 if(targetArrayIdx.indexer.indexNum!=null) {
-                    val indexValue = targetArrayIdx.indexer.constIndex()!! * elementDt.memorySize()
+                    val indexValue = targetArrayIdx.indexer.constIndex()!! * CompilationTarget.instance.memorySize(elementDt)
                     when(elementDt) {
                         in ByteDatatypes -> asmgen.out(if (incr) "  inc  $asmArrayvarname+$indexValue" else "  dec  $asmArrayvarname+$indexValue")
                         in WordDatatypes -> {

@@ -1,7 +1,6 @@
 package prog8.ast.base
 
 import prog8.ast.Node
-import prog8.compiler.target.CompilationTarget
 
 
 /**************************** AST Data classes ****************************/
@@ -56,16 +55,6 @@ enum class DataType {
                 this==STR && other==UWORD || this==UWORD && other==STR -> true
                 else -> false
             }
-
-    fun memorySize(): Int {
-        return when(this) {
-            in ByteDatatypes -> 1
-            in WordDatatypes -> 2
-            FLOAT -> CompilationTarget.instance.machine.FLOAT_MEM_SIZE
-            in PassByReferenceDatatypes -> CompilationTarget.instance.machine.POINTER_MEM_SIZE
-            else -> -9999999
-        }
-    }
 }
 
 enum class CpuRegister {

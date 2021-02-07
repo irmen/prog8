@@ -1,11 +1,11 @@
-package prog8.ast.base
+package prog8.compiler
 
 import prog8.ast.Module
 import prog8.ast.Program
+import prog8.ast.base.ErrorReporter
+import prog8.ast.base.FatalAstException
 import prog8.ast.processing.*
 import prog8.ast.statements.Directive
-import prog8.compiler.CompilationOptions
-import prog8.compiler.BeforeAsmGenerationAstChanger
 
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {

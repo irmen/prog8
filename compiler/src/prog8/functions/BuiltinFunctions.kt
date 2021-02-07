@@ -6,6 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
+import prog8.compiler.target.CompilationTarget
 import kotlin.math.*
 
 
@@ -296,7 +297,7 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
     for(member in struct.statements) {
         if((member as VarDecl).name == membername)
             return NumericLiteralValue(DataType.UBYTE, offset, position)
-        offset += member.datatype.memorySize()
+        offset += CompilationTarget.instance.memorySize(member.datatype)
     }
     throw SyntaxError("undefined struct member", position)
 }
@@ -314,13 +315,13 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
         fun structSize(target: StructDecl) =
-                NumericLiteralValue(DataType.UBYTE, target.statements.map { (it as VarDecl).datatype.memorySize() }.sum(), position)
+                NumericLiteralValue(DataType.UBYTE, target.statements.map { CompilationTarget.instance.memorySize((it as VarDecl).datatype) }.sum(), position)
 
         return when {
             dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.STRUCT))
-                numericLiteral(elementDt.memorySize() * length, position)
+                numericLiteral(CompilationTarget.instance.memorySize(elementDt) * length, position)
             }
             dt.istype(DataType.STRUCT) -> {
                 when (target) {
@@ -330,7 +331,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 }
             }
             dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
-            else -> NumericLiteralValue(DataType.UBYTE, dt.typeOrElse(DataType.STRUCT).memorySize(), position)
+            else -> NumericLiteralValue(DataType.UBYTE, CompilationTarget.instance.memorySize(dt.typeOrElse(DataType.STRUCT)), position)
         }
     } else {
         throw SyntaxError("sizeof invalid argument type", position)
