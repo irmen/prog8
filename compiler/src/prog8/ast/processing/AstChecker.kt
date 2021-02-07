@@ -1039,6 +1039,28 @@ internal class AstChecker(private val program: Program,
                     if (!argIDt.isKnown)
                         return
                 }
+
+                // check that cx16 virtual registers aren't used as arguments in a conflicting way
+                val params = target.asmParameterRegisters.withIndex().toList()
+                for(arg in args.withIndex()) {
+                    var ident: IdentifierReference? = null
+                    if(arg.value is IdentifierReference)
+                        ident = arg.value as IdentifierReference
+                    else if(arg.value is FunctionCall) {
+                        val fcall = arg.value as FunctionCall
+                        if(fcall.target.nameInSource == listOf("lsb") || fcall.target.nameInSource == listOf("msb"))
+                            ident = fcall.args[0] as? IdentifierReference
+                    }
+                    if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {
+                        val reg = RegisterOrPair.valueOf(ident.nameInSource[1].toUpperCase())
+                        val same = params.filter { it.value.registerOrPair==reg }
+                        for(s in same) {
+                            if(s.index!=arg.index) {
+                                errors.err("conflicting register $reg used as argument but is also a target register for another parameter", ident.position)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
