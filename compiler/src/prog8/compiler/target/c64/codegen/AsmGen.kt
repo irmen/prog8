@@ -430,10 +430,10 @@ internal class AsmGen(private val program: Program,
                         "$" + it.number.toInt().toString(16).padStart(4, '0')
                     }
                     is AddressOf -> {
-                        it.identifier.firstStructVarName(program.namespace) ?: asmSymbolName(it.identifier)
+                        it.identifier.firstStructVarName(program) ?: asmSymbolName(it.identifier)
                     }
                     is IdentifierReference -> {
-                        it.firstStructVarName(program.namespace) ?: asmSymbolName(it)
+                        it.firstStructVarName(program) ?: asmSymbolName(it)
                     }
                     else -> throw AssemblyError("weird array elt dt")
                 }
@@ -495,8 +495,8 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun asmSymbolName(identifier: IdentifierReference): String {
-        return if(identifier.memberOfStruct(program.namespace)!=null) {
-            val name = identifier.targetVarDecl(program.namespace)!!.name
+        return if(identifier.memberOfStruct(program)!=null) {
+            val name = identifier.targetVarDecl(program)!!.name
             fixNameSymbols(name)
         } else {
             fixNameSymbols(identifier.nameInSource.joinToString("."))
@@ -510,8 +510,8 @@ internal class AsmGen(private val program: Program,
             throw AssemblyError("no symbol name for register $regs")
 
     internal fun asmVariableName(identifier: IdentifierReference): String {
-        return if(identifier.memberOfStruct(program.namespace)!=null) {
-            val name = identifier.targetVarDecl(program.namespace)!!.name
+        return if(identifier.memberOfStruct(program)!=null) {
+            val name = identifier.targetVarDecl(program)!!.name
             fixNameSymbols(name)
         } else {
             fixNameSymbols(identifier.nameInSource.joinToString("."))
@@ -527,7 +527,7 @@ internal class AsmGen(private val program: Program,
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
         // returns if the pointer is already on the ZP itself or not (in the latter case SCRATCH_W1 is used as intermediary)
         val sourceName = asmVariableName(pointervar)
-        val vardecl = pointervar.targetVarDecl(program.namespace)!!
+        val vardecl = pointervar.targetVarDecl(program)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
         if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
             return if (isZpVar(scopedName)) {
@@ -965,7 +965,7 @@ internal class AsmGen(private val program: Program,
                 }
             }
             is IdentifierReference -> {
-                val vardecl = (stmt.iterations as IdentifierReference).targetStatement(program.namespace) as VarDecl
+                val vardecl = (stmt.iterations as IdentifierReference).targetStatement(program) as VarDecl
                 val name = asmVariableName(stmt.iterations as IdentifierReference)
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
@@ -1275,7 +1275,7 @@ $label              nop""")
     private fun getJumpTarget(jmp: Jump): String {
         return when {
             jmp.identifier!=null -> {
-                val target = jmp.identifier.targetStatement(program.namespace)
+                val target = jmp.identifier.targetStatement(program)
                 val asmName = asmSymbolName(jmp.identifier)
                 if(target is Label)
                     "_$asmName"  // prefix with underscore to jump to local label
@@ -1362,7 +1362,7 @@ $label              nop""")
     internal fun isZpVar(scopedName: String): Boolean = scopedName in allocatedZeropageVariables
 
     internal fun isZpVar(variable: IdentifierReference): Boolean {
-        val vardecl = variable.targetVarDecl(program.namespace)!!
+        val vardecl = variable.targetVarDecl(program)!!
         return vardecl.makeScopedName(vardecl.name) in allocatedZeropageVariables
     }
 

@@ -6,10 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
-import prog8.functions.BuiltinFunctions
-import prog8.functions.CannotEvaluateException
-import prog8.functions.NotConstArgumentException
-import prog8.functions.builtinFunctionReturnType
 import java.util.*
 import kotlin.math.abs
 
@@ -256,7 +252,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun referencesIdentifier(vararg scopedName: String) = arrayvar.referencesIdentifier(*scopedName)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        val target = arrayvar.targetStatement(program.namespace)
+        val target = arrayvar.targetStatement(program)
         if (target is VarDecl) {
             return when (target.datatype) {
                 DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
@@ -711,14 +707,14 @@ internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
-    fun targetStatement(namespace: INameScope) =
-        if(nameInSource.size==1 && nameInSource[0] in BuiltinFunctions)
+    fun targetStatement(program: Program) =
+        if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
             BuiltinFunctionStatementPlaceholder(nameInSource[0], position)
         else
-            namespace.lookup(nameInSource, this)
+            program.namespace.lookup(nameInSource, this)
 
-    fun targetVarDecl(namespace: INameScope): VarDecl? = targetStatement(namespace) as? VarDecl
-    fun targetSubroutine(namespace: INameScope): Subroutine? = targetStatement(namespace) as? Subroutine
+    fun targetVarDecl(program: Program): VarDecl? = targetStatement(program) as? VarDecl
+    fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
 
     override fun equals(other: Any?) = other is IdentifierReference && other.nameInSource==nameInSource
     override fun hashCode() = nameInSource.hashCode()
@@ -754,14 +750,14 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             nameInSource.size==scopedName.size && nameInSource.toTypedArray().contentEquals(scopedName)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        return when (val targetStmt = targetStatement(program.namespace)) {
+        return when (val targetStmt = targetStatement(program)) {
             is VarDecl -> InferredTypes.knownFor(targetStmt.datatype)
             is StructDecl -> InferredTypes.knownFor(DataType.STRUCT)
             else -> InferredTypes.InferredType.unknown()
         }
     }
 
-    fun memberOfStruct(namespace: INameScope) = this.targetVarDecl(namespace)?.struct
+    fun memberOfStruct(program: Program) = this.targetVarDecl(program)?.struct
 
     fun heapId(namespace: INameScope): Int {
         val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
@@ -774,11 +770,11 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    fun firstStructVarName(namespace: INameScope): String? {
+    fun firstStructVarName(program: Program): String? {
         // take the name of the first struct member of the structvariable instead
         // if it's just a regular variable, return null.
-        val struct = memberOfStruct(namespace) ?: return null
-        val decl = targetVarDecl(namespace)!!
+        val struct = memberOfStruct(program) ?: return null
+        val decl = targetVarDecl(program)!!
         if(decl.datatype!=DataType.STRUCT)
             return null
 
@@ -816,34 +812,16 @@ class FunctionCall(override var target: IdentifierReference,
     private fun constValue(program: Program, withDatatypeCheck: Boolean): NumericLiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         // lenghts of arrays and strings are constants that are determined at compile time!
-        if(target.nameInSource.size>1) return null
-        try {
-            var resultValue: NumericLiteralValue? = null
-            val func = BuiltinFunctions[target.nameInSource[0]]
-            if(func!=null) {
-                val exprfunc = func.constExpressionFunc
-                if(exprfunc!=null)
-                    resultValue = exprfunc(args, position, program)
-                else if(func.known_returntype==null)
-                    throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used here because it doesn't return a value", position)
-            }
-
-            if(withDatatypeCheck) {
-                val resultDt = this.inferType(program)
-                if(resultValue==null || resultDt istype resultValue.type)
-                    return resultValue
-                throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
-            } else {
+        if(target.nameInSource.size>1)
+            return null
+        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
+        if(withDatatypeCheck) {
+            val resultDt = this.inferType(program)
+            if(resultValue==null || resultDt istype resultValue.type)
                 return resultValue
-            }
-        }
-        catch(x: NotConstArgumentException) {
-            // const-evaluating the builtin function call failed.
-            return null
-        }
-        catch(x: CannotEvaluateException) {
-            // const-evaluating the builtin function call failed.
-            return null
+            throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
+        } else {
+            return resultValue
         }
     }
 
@@ -860,14 +838,14 @@ class FunctionCall(override var target: IdentifierReference,
         val constVal = constValue(program ,false)
         if(constVal!=null)
             return InferredTypes.knownFor(constVal.type)
-        val stmt = target.targetStatement(program.namespace) ?: return InferredTypes.unknown()
+        val stmt = target.targetStatement(program) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionStatementPlaceholder -> {
                 if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
                         target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
                     return InferredTypes.void() // these have no return value
                 }
-                return builtinFunctionReturnType(target.nameInSource[0], this.args, program)
+                return program.builtinFunctions.returnType(target.nameInSource[0], this.args)
             }
             is Subroutine -> {
                 if(stmt.returntypes.isEmpty())

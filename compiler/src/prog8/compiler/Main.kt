@@ -1,8 +1,12 @@
 package prog8.compiler
 
 import prog8.ast.AstToSourceCode
+import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.ast.base.*
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.InferredTypes
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.compiler.astprocessing.*
 import prog8.compiler.astprocessing.addTypecasts
@@ -12,7 +16,7 @@ import prog8.compiler.astprocessing.reorderStatements
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.CompilationTarget
 import prog8.compiler.target.Cx16Target
-import prog8.functions.BuiltinFunctions
+import prog8.functions.*
 import prog8.optimizer.*
 import prog8.optimizer.UnusedCodeRemover
 import prog8.optimizer.constantFold
@@ -97,13 +101,44 @@ fun compileProgram(filepath: Path,
         throw x
     }
 
-    return CompilationResult(false, Program("failed", mutableListOf(), setOf()), programName, emptyList())
+    val failedProgram = Program("failed", mutableListOf(), BuiltinFunctionsFacade(BuiltinFunctions))
+    return CompilationResult(false, failedProgram, programName, emptyList())
+}
+
+private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuiltinFunctions {
+    lateinit var program: Program
+
+    override val names = functions.keys
+    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? {
+        val func = BuiltinFunctions[name]
+        if(func!=null) {
+            val exprfunc = func.constExpressionFunc
+            if(exprfunc!=null) {
+                return try {
+                    exprfunc(args, position, program)
+                } catch(x: NotConstArgumentException) {
+                    // const-evaluating the builtin function call failed.
+                    null
+                } catch(x: CannotEvaluateException) {
+                    // const-evaluating the builtin function call failed.
+                    null
+                }
+            }
+            else if(func.known_returntype==null)
+                throw IllegalArgumentException("builtin function $name can't be used here because it doesn't return a value")
+        }
+        return null
+    }
+    override fun returnType(name: String, args: MutableList<Expression>) =
+        builtinFunctionReturnType(name, args, program)
 }
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${CompilationTarget.instance.name}. Parsing...")
     val importer = ModuleImporter()
-    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), BuiltinFunctions.keys)
+    val bf = BuiltinFunctionsFacade(BuiltinFunctions)
+    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf)
+    bf.program = programAst
     importer.importModule(programAst, filepath)
     errors.handle()
 

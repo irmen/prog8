@@ -1,7 +1,6 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
-import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
@@ -15,13 +14,13 @@ import prog8.functions.BuiltinFunctions
 class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
     override fun visit(functionCall: FunctionCall) {
-        val error = checkTypes(functionCall as IFunctionCall, functionCall.definingScope(), program)
+        val error = checkTypes(functionCall as IFunctionCall, program)
         if(error!=null)
             throw CompilerException(error)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
-        val error = checkTypes(functionCallStatement as IFunctionCall, functionCallStatement.definingScope(), program)
+        val error = checkTypes(functionCallStatement as IFunctionCall, program)
         if (error!=null)
             throw CompilerException(error)
     }
@@ -40,13 +39,13 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             return false
         }
 
-        fun checkTypes(call: IFunctionCall, scope: INameScope, program: Program): String? {
+        fun checkTypes(call: IFunctionCall, program: Program): String? {
             val argITypes = call.args.map { it.inferType(program) }
             val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
             if(firstUnknownDt>=0)
                 return "argument ${firstUnknownDt+1} invalid argument type"
             val argtypes = argITypes.map { it.typeOrElse(DataType.STRUCT) }
-            val target = call.target.targetStatement(scope)
+            val target = call.target.targetStatement(program)
             if (target is Subroutine) {
                 if(call.args.size != target.parameters.size)
                     return "invalid number of arguments"

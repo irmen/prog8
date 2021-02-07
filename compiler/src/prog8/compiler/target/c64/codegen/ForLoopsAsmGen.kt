@@ -239,7 +239,7 @@ $endLabel""")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
-        val decl = ident.targetVarDecl(program.namespace)!!
+        val decl = ident.targetVarDecl(program)!!
         when(iterableDt) {
             DataType.STR -> {
                 asmgen.out("""

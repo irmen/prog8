@@ -1,6 +1,5 @@
 package prog8.compiler.target
 
-import prog8.ast.INameScope
 import prog8.ast.IStringEncoding
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -28,7 +27,7 @@ internal interface CompilationTarget: IStringEncoding {
         lateinit var instance: CompilationTarget
     }
 
-    fun isInRegularRAM(target: AssignTarget, namespace: INameScope): Boolean {
+    fun isInRegularRAM(target: AssignTarget, program: Program): Boolean {
         when {
             target.memoryAddress != null -> {
                 return when (target.memoryAddress.addressExpression) {
@@ -36,7 +35,7 @@ internal interface CompilationTarget: IStringEncoding {
                         machine.isRegularRAMaddress((target.memoryAddress.addressExpression as NumericLiteralValue).number.toInt())
                     }
                     is IdentifierReference -> {
-                        val decl = (target.memoryAddress.addressExpression as IdentifierReference).targetVarDecl(namespace)
+                        val decl = (target.memoryAddress.addressExpression as IdentifierReference).targetVarDecl(program)
                         if ((decl?.type == VarDeclType.VAR || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
                             machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
                         else
@@ -46,7 +45,7 @@ internal interface CompilationTarget: IStringEncoding {
                 }
             }
             target.arrayindexed != null -> {
-                val targetStmt = target.arrayindexed!!.arrayvar.targetVarDecl(namespace)
+                val targetStmt = target.arrayindexed!!.arrayvar.targetVarDecl(program)
                 return if (targetStmt?.type == VarDeclType.MEMORY) {
                     val addr = targetStmt.value as? NumericLiteralValue
                     if (addr != null)
@@ -56,7 +55,7 @@ internal interface CompilationTarget: IStringEncoding {
                 } else true
             }
             target.identifier != null -> {
-                val decl = target.identifier!!.targetVarDecl(namespace)!!
+                val decl = target.identifier!!.targetVarDecl(program)!!
                 return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
                     machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
                 else

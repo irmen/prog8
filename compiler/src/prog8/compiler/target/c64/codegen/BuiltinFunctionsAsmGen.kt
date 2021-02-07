@@ -71,7 +71,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val scope = fcall.definingScope()
         val nameRef = fcall.args[0] as IdentifierReference
-        val name = (nameRef.targetVarDecl(program.namespace)!!.value as StringLiteralValue).value
+        val name = (nameRef.targetVarDecl(program)!!.value as StringLiteralValue).value
         val size = (fcall.args[1] as NumericLiteralValue).number.toInt()
 
         val existingSize = asmgen.slabs[name]
@@ -125,7 +125,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcReverse(fcall: IFunctionCall) {
         val variable = fcall.args.single()
         if (variable is IdentifierReference) {
-            val decl = variable.targetVarDecl(program.namespace)!!
+            val decl = variable.targetVarDecl(program)!!
             val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
@@ -164,7 +164,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcSort(fcall: IFunctionCall) {
         val variable = fcall.args.single()
         if (variable is IdentifierReference) {
-            val decl = variable.targetVarDecl(program.namespace)!!
+            val decl = variable.targetVarDecl(program)!!
             val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraysize!!.constIndex()
             when (decl.datatype) {
@@ -1108,7 +1108,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as IdentifierReference
         val identifierName = asmgen.asmVariableName(arg)
-        val size = arg.targetVarDecl(program.namespace)!!.arraysize!!.constIndex()!!
+        val size = arg.targetVarDecl(program)!!.arraysize!!.constIndex()!!
         asmgen.out("""
                     lda  #<$identifierName
                     ldy  #>$identifierName

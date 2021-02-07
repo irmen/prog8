@@ -89,7 +89,7 @@ internal class StatementOptimizer(private val program: Program,
                 arg as? IdentifierReference
             }
             if(stringVar!=null) {
-                val vardecl = stringVar.targetVarDecl(program.namespace)!!
+                val vardecl = stringVar.targetVarDecl(program)!!
                 val string = vardecl.value as? StringLiteralValue
                 if(string!=null) {
                     val pos = functionCallStatement.position
@@ -123,7 +123,7 @@ internal class StatementOptimizer(private val program: Program,
         }
 
         // if the first instruction in the called subroutine is a return statement, remove the jump altogeter
-        val subroutine = functionCallStatement.target.targetSubroutine(program.namespace)
+        val subroutine = functionCallStatement.target.targetSubroutine(program)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return)
@@ -135,7 +135,7 @@ internal class StatementOptimizer(private val program: Program,
 
     override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
         // if the first instruction in the called subroutine is a return statement with constant value, replace with the constant value
-        val subroutine = functionCall.target.targetSubroutine(program.namespace)
+        val subroutine = functionCall.target.targetSubroutine(program)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return && first.value!=null) {
@@ -203,7 +203,7 @@ internal class StatementOptimizer(private val program: Program,
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
         }
-        val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl(program.namespace)
+        val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl(program)
         if(iterable!=null) {
             if(iterable.datatype==DataType.STR) {
                 val sv = iterable.value as StringLiteralValue
@@ -306,7 +306,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
         // if the jump is to the next statement, remove the jump
         val scope = jump.definingScope()
-        val label = jump.identifier?.targetStatement(scope)
+        val label = jump.identifier?.targetStatement(program)
         if(label!=null && scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1)
             return listOf(IAstModification.Remove(jump, jump.definingScope()))
 
@@ -390,7 +390,7 @@ internal class StatementOptimizer(private val program: Program,
                 // assignments of the form:  X = X <operator> <expr>
                 // remove assignments that have no effect (such as X=X+0)
                 // optimize/rewrite some other expressions
-                val vardeclDt = (assignment.target.identifier?.targetVarDecl(program.namespace))?.type
+                val vardeclDt = (assignment.target.identifier?.targetVarDecl(program))?.type
                 when (bexpr.operator) {
                     "+" -> {
                         if (rightCv == 0.0) {

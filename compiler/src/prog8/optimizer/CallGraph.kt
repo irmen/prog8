@@ -89,7 +89,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     override fun visit(identifier: IdentifierReference) {
         // track symbol usage
-        val target = identifier.targetStatement(this.program.namespace)
+        val target = identifier.targetStatement(program)
         if (target != null) {
             addNodeAndParentScopes(target)
         }
@@ -126,7 +126,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(functionCall: FunctionCall) {
-        val otherSub = functionCall.target.targetSubroutine(program.namespace)
+        val otherSub = functionCall.target.targetSubroutine(program)
         if (otherSub != null) {
             functionCall.definingSubroutine()?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
@@ -137,7 +137,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
-        val otherSub = functionCallStatement.target.targetSubroutine(program.namespace)
+        val otherSub = functionCallStatement.target.targetSubroutine(program)
         if (otherSub != null) {
             functionCallStatement.definingSubroutine()?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
@@ -148,7 +148,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(jump: Jump) {
-        val otherSub = jump.identifier?.targetSubroutine(program.namespace)
+        val otherSub = jump.identifier?.targetSubroutine(program)
         if (otherSub != null) {
             jump.definingSubroutine()?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub).plus(otherSub)

@@ -100,7 +100,7 @@ internal class AstChecker(private val program: Program,
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
-            val loopvar = forLoop.loopVar.targetVarDecl(program.namespace)
+            val loopvar = forLoop.loopVar.targetVarDecl(program)
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
@@ -377,7 +377,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(assignment: Assignment) {
         if(assignment.value is FunctionCall) {
-            val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
+            val stmt = (assignment.value as FunctionCall).target.targetStatement(program)
             if (stmt is Subroutine) {
                 val idt = assignment.target.inferType(program)
                 if(!idt.isKnown) {
@@ -391,7 +391,7 @@ internal class AstChecker(private val program: Program,
 
         val targetIdent = assignment.target.identifier
         if(targetIdent!=null) {
-            val targetVar = targetIdent.targetVarDecl(program.namespace)
+            val targetVar = targetIdent.targetVarDecl(program)
             if(targetVar?.struct != null) {
                 val sourceStructLv = assignment.value as? ArrayLiteralValue
                 if (sourceStructLv != null) {
@@ -400,7 +400,7 @@ internal class AstChecker(private val program: Program,
                 } else {
                     val sourceIdent = assignment.value as? IdentifierReference
                     if (sourceIdent != null) {
-                        val sourceVar = sourceIdent.targetVarDecl(program.namespace)
+                        val sourceVar = sourceIdent.targetVarDecl(program)
                         if (sourceVar?.struct != null) {
                             if (sourceVar.struct !== targetVar.struct)
                                 errors.err("assignment of different struct types", assignment.position)
@@ -488,7 +488,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(addressOf: AddressOf) {
-        val variable=addressOf.identifier.targetVarDecl(program.namespace)
+        val variable=addressOf.identifier.targetVarDecl(program)
         if(variable!=null
             && variable.datatype !in ArrayDatatypes
             && variable.type!=VarDeclType.MEMORY
@@ -783,7 +783,7 @@ internal class AstChecker(private val program: Program,
 
         fun isPassByReferenceElement(e: Expression): Boolean {
             if(e is IdentifierReference) {
-                val decl = e.targetVarDecl(program.namespace)!!
+                val decl = e.targetVarDecl(program)!!
                 return decl.datatype in PassByReferenceDatatypes
             }
             return e is StringLiteralValue
@@ -936,12 +936,12 @@ internal class AstChecker(private val program: Program,
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCall.args.first().position)
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCall, functionCall.definingScope(), program)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCall, program)
         if(error!=null)
             errors.err(error, functionCall.position)
 
         // check the functions that return multiple returnvalues.
-        val stmt = functionCall.target.targetStatement(program.namespace)
+        val stmt = functionCall.target.targetStatement(program)
         if (stmt is Subroutine) {
             if (stmt.returntypes.size > 1) {
                 // Currently, it's only possible to handle ONE (or zero) return values from a subroutine.
@@ -1000,7 +1000,7 @@ internal class AstChecker(private val program: Program,
         }
 
         val error =
-            VerifyFunctionArgTypes.checkTypes(functionCallStatement, functionCallStatement.definingScope(), program)
+            VerifyFunctionArgTypes.checkTypes(functionCallStatement, program)
         if(error!=null) {
             errors.err(error, functionCallStatement.args.firstOrNull()?.position ?: functionCallStatement.position)
         }
@@ -1027,7 +1027,7 @@ internal class AstChecker(private val program: Program,
                     errors.err("swap requires args of numerical type", position)
             }
             else if(target.name=="all" || target.name=="any") {
-                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program.namespace)?.datatype == DataType.STR) {
+                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR) {
                     errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
                 }
                 if(args[0].inferType(program).typeOrElse(DataType.STR) == DataType.STR) {
@@ -1082,7 +1082,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
         } else if(postIncrDecr.target.arrayindexed != null) {
-            val target = postIncrDecr.target.arrayindexed?.arrayvar?.targetStatement(program.namespace)
+            val target = postIncrDecr.target.arrayindexed?.arrayvar?.targetStatement(program)
             if(target==null) {
                 errors.err("undefined symbol", postIncrDecr.position)
             }
@@ -1097,7 +1097,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        val target = arrayIndexedExpression.arrayvar.targetStatement(program.namespace)
+        val target = arrayIndexedExpression.arrayvar.targetStatement(program)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
                 errors.err("indexing requires an iterable variable", arrayIndexedExpression.position)
@@ -1189,7 +1189,7 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
-        val targetStatement = target.targetStatement(program.namespace)
+        val targetStatement = target.targetStatement(program)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
         else if(targetStatement==null)
@@ -1407,7 +1407,7 @@ internal class AstChecker(private val program: Program,
                 if(sourceDatatype==DataType.STRUCT) {
                     val structLv = sourceValue as ArrayLiteralValue
                     val numValues = structLv.value.size
-                    val targetstruct = target.identifier!!.targetVarDecl(program.namespace)!!.struct!!
+                    val targetstruct = target.identifier!!.targetVarDecl(program)!!.struct!!
                     return targetstruct.numberOfElements == numValues
                 }
                 false

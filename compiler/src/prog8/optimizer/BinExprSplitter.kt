@@ -1,6 +1,5 @@
 package prog8.optimizer
 
-import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
@@ -54,7 +53,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
 
  */
-            if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target, program.namespace)) {
+            if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target, program)) {
                 if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
                     return noModifications
 
@@ -79,9 +78,9 @@ X =      BinExpr                                    X   =   LeftExpr
     private fun isSimpleExpression(expr: Expression) =
             expr is IdentifierReference || expr is NumericLiteralValue || expr is AddressOf || expr is DirectMemoryRead || expr is StringLiteralValue || expr is ArrayLiteralValue || expr is RangeExpr
 
-    private fun isSimpleTarget(target: AssignTarget, namespace: INameScope) =
+    private fun isSimpleTarget(target: AssignTarget, program: Program) =
             if (target.identifier!=null || target.memoryAddress!=null)
-                CompilationTarget.instance.isInRegularRAM(target, namespace)
+                CompilationTarget.instance.isInRegularRAM(target, program)
             else
                 false
 

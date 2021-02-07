@@ -287,7 +287,7 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
     val idref = args[0] as? IdentifierReference
         ?: throw SyntaxError("offsetof argument should be an identifier", position)
 
-    val vardecl = idref.targetVarDecl(program.namespace)!!
+    val vardecl = idref.targetVarDecl(program)!!
     val struct = vardecl.struct
     if (struct == null || vardecl.datatype == DataType.STRUCT)
         throw SyntaxError("offsetof can only be used on struct members", position)
@@ -311,7 +311,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
 
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
-        val target = (args[0] as IdentifierReference).targetStatement(program.namespace)
+        val target = (args[0] as IdentifierReference).targetStatement(program)
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
         fun structSize(target: StructDecl) =
@@ -343,7 +343,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
 
-    val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program.namespace)
+    val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program)
     var arraySize = directMemVar?.arraysize?.constIndex()
     if(arraySize != null)
         return NumericLiteralValue.optimalInteger(arraySize, position)
@@ -351,7 +351,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         return NumericLiteralValue.optimalInteger((args[0] as ArrayLiteralValue).value.size, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier", position)
-    val target = (args[0] as IdentifierReference).targetVarDecl(program.namespace)
+    val target = (args[0] as IdentifierReference).targetVarDecl(program)
             ?: throw CannotEvaluateException("len", "no target vardecl")
 
     return when(target.datatype) {

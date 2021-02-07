@@ -84,7 +84,7 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
 
-        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program.namespace)
+        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
         if(arrayVar!=null && arrayVar.datatype ==  DataType.UWORD) {
             // rewrite   pointervar[index]  into  @(pointervar+index)
             val indexer = arrayIndexedExpression.indexer
@@ -142,7 +142,7 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
                 }
                 is IFunctionCall -> {
                     val argnum = parent.args.indexOf(expr)
-                    when (val callee = parent.target.targetStatement(program.namespace)) {
+                    when (val callee = parent.target.targetStatement(program)) {
                         is Subroutine -> {
                             val paramType = callee.parameters[argnum].type
                             if(leftDt isAssignableTo paramType) {
@@ -315,16 +315,16 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
 
     private fun flattenArrayAssignmentFromArrayLiteral(assign: Assignment): List<Assignment> {
         val identifier = assign.target.identifier!!
-        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val targetVar = identifier.targetVarDecl(program)!!
         val alv = assign.value as? ArrayLiteralValue
         return flattenArrayAssign(targetVar, alv, identifier, assign.position)
     }
 
     private fun flattenArrayAssignmentFromIdentifier(assign: Assignment): List<Assignment> {
         val identifier = assign.target.identifier!!
-        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val targetVar = identifier.targetVarDecl(program)!!
         val sourceIdent = assign.value as IdentifierReference
-        val sourceVar = sourceIdent.targetVarDecl(program.namespace)!!
+        val sourceVar = sourceIdent.targetVarDecl(program)!!
         if(!sourceVar.isArray) {
             errors.err("value must be an array",  sourceIdent.position)
             return emptyList()
@@ -354,7 +354,7 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
     private fun flattenStructAssignmentFromStructLiteral(structAssignment: Assignment): List<Assignment> {
         val identifier = structAssignment.target.identifier!!
         val identifierName = identifier.nameInSource.single()
-        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val targetVar = identifier.targetVarDecl(program)!!
         val struct = targetVar.struct!!
 
         val slv = structAssignment.value as? ArrayLiteralValue
@@ -378,11 +378,11 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
         // TODO use memcopy beyond a certain number of elements
         val identifier = structAssignment.target.identifier!!
         val identifierName = identifier.nameInSource.single()
-        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val targetVar = identifier.targetVarDecl(program)!!
         val struct = targetVar.struct!!
         when (structAssignment.value) {
             is IdentifierReference -> {
-                val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
+                val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program)!!
                 when {
                     sourceVar.struct!=null -> {
                         // struct memberwise copy

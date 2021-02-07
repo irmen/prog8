@@ -22,7 +22,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     }
 
     internal fun saveXbeforeCall(stmt: IFunctionCall) {
-        val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
+        val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(sub.shouldSaveX()) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
             val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
@@ -34,7 +34,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     }
 
     internal fun restoreXafterCall(stmt: IFunctionCall) {
-        val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
+        val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(sub.shouldSaveX()) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
             val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
@@ -52,7 +52,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
-        val sub = stmt.target.targetSubroutine(program.namespace) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
+        val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         val subName = asmgen.asmSymbolName(stmt.target)
         if(stmt.args.isNotEmpty()) {
 

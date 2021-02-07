@@ -3,6 +3,8 @@ package prog8.ast
 import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.InferredTypes
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.walk.IAstVisitor
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -242,11 +244,18 @@ interface IAssignable {
     // just a tag for now
 }
 
+interface IBuiltinFunctions {
+    val names: Set<String>
+    fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue?
+    fun returnType(name: String, args: MutableList<Expression>): InferredTypes.InferredType
+}
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
 
-class Program(val name: String, val modules: MutableList<Module>, builtinFunctionNames: Set<String>): Node {
-    val namespace = GlobalNamespace(modules, builtinFunctionNames)
+
+
+class Program(val name: String, val modules: MutableList<Module>, val builtinFunctions: IBuiltinFunctions): Node {
+    val namespace = GlobalNamespace(modules, builtinFunctions.names)
 
     val definedLoadAddress: Int
         get() = modules.first().loadAddress

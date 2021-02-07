@@ -143,7 +143,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.EXPRESSION -> {
                 when(val value = assign.source.expression!!) {
                     is AddressOf -> {
-                        val sourceName = value.identifier.firstStructVarName(program.namespace) ?: asmgen.asmVariableName(value.identifier)
+                        val sourceName = value.identifier.firstStructVarName(program) ?: asmgen.asmVariableName(value.identifier)
                         assignAddressOf(assign.target, sourceName)
                     }
                     is NumericLiteralValue -> throw AssemblyError("source kind should have been literalnumber")
@@ -152,7 +152,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, value)
                     is FunctionCall -> {
-                        when (val sub = value.target.targetStatement(program.namespace)) {
+                        when (val sub = value.target.targetStatement(program)) {
                             is Subroutine -> {
                                 asmgen.saveXbeforeCall(value)
                                 asmgen.translateFunctionCall(value)
@@ -2061,7 +2061,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
         fun storeAIntoPointerVar(pointervar: IdentifierReference) {
             val sourceName = asmgen.asmVariableName(pointervar)
-            val vardecl = pointervar.targetVarDecl(program.namespace)!!
+            val vardecl = pointervar.targetVarDecl(program)!!
             val scopedName = vardecl.makeScopedName(vardecl.name)
             if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
                 if (asmgen.isZpVar(scopedName)) {

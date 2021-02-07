@@ -1,7 +1,6 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
-import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -108,18 +107,18 @@ class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalke
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        return afterFunctionCallArgs(functionCallStatement, functionCallStatement.definingScope())
+        return afterFunctionCallArgs(functionCallStatement)
     }
 
     override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-        return afterFunctionCallArgs(functionCall, functionCall.definingScope())
+        return afterFunctionCallArgs(functionCall)
     }
 
-    private fun afterFunctionCallArgs(call: IFunctionCall, scope: INameScope): Iterable<IAstModification> {
+    private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
         // see if a typecast is needed to convert the arguments into the required parameter's type
         val modifications = mutableListOf<IAstModification>()
 
-        when(val sub = call.target.targetStatement(scope)) {
+        when(val sub = call.target.targetStatement(program)) {
             is Subroutine -> {
                 sub.parameters.zip(call.args).forEachIndexed { index, pair ->
                     val argItype = pair.second.inferType(program)

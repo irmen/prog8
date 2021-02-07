@@ -38,7 +38,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
-                && CompilationTarget.instance.isInRegularRAM(assignment.target, program.namespace)) {
+                && CompilationTarget.instance.isInRegularRAM(assignment.target, program)) {
             val binExpr = assignment.value as? BinaryExpression
             if (binExpr != null && binExpr.operator !in comparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
@@ -157,7 +157,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         if(typecast.type in WordDatatypes) {
             val fcall = typecast.parent as? IFunctionCall
             if (fcall != null) {
-                val sub = fcall.target.targetStatement(program.namespace) as? Subroutine
+                val sub = fcall.target.targetStatement(program) as? Subroutine
                 if (sub != null && sub.isAsmSubroutine) {
                     return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
                 }

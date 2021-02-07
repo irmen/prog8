@@ -986,7 +986,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
         val otherName = asmgen.asmVariableName(ident)
-        val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
+        val valueDt = ident.targetVarDecl(program)!!.datatype
         when (valueDt) {
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
@@ -1467,7 +1467,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: IdentifierReference, scope: Subroutine) {
-        val valueDt = ident.targetVarDecl(program.namespace)!!.datatype
+        val valueDt = ident.targetVarDecl(program)!!.datatype
         if(valueDt != DataType.FLOAT)
             throw AssemblyError("float variable expected")
 

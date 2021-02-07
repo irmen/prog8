@@ -1327,7 +1327,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     private fun translateFunctionCallResultOntoStack(call: FunctionCall) {
         // only for use in nested expression evaluation
 
-        val sub = call.target.targetStatement(program.namespace)
+        val sub = call.target.targetStatement(program)
         if(sub is BuiltinFunctionStatementPlaceholder) {
             val builtinFunc = BuiltinFunctions.getValue(sub.name)
             asmgen.translateBuiltinFunctionCallExpression(call, builtinFunc, true, null)
