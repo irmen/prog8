@@ -9,7 +9,6 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
-import prog8.compiler.astprocessing.ImportedModuleDirectiveRemover
 import prog8.pathFrom
 import java.io.InputStream
 import java.nio.file.Files
@@ -129,12 +128,17 @@ internal class ModuleImporter {
                     importModule(program, modulePath, encoder, compilationTargetName)
                 }
 
-        // TODO don't do this via an AstWalker:
-        val imr = ImportedModuleDirectiveRemover()
-        imr.visit(importedModule, importedModule.parent)
-        imr.applyModifications()
-
+        removeDirectivesFromImportedModule(importedModule)
         return importedModule
+    }
+
+    private fun removeDirectivesFromImportedModule(importedModule: Module) {
+        // Most global directives don't apply for imported modules, so remove them
+        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%target")
+        var directives = importedModule.statements.filterIsInstance<Directive>()
+        importedModule.statements.removeAll(directives)
+        directives = directives.filter{ it.directive !in moduleLevelDirectives }
+        importedModule.statements.addAll(0, directives)
     }
 
     private fun tryGetModuleFromResource(name: String, compilationTargetName: String): Pair<InputStream, String>? {
