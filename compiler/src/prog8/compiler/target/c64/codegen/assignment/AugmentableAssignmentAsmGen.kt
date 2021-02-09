@@ -6,7 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.codegen.AsmGen
@@ -202,7 +202,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 with(target.array!!.indexer) {
                     when {
                         indexNum!=null -> {
-                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*CompilationTarget.instance.memorySize(target.datatype)}"
+                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*ICompilationTarget.instance.memorySize(target.datatype)}"
                             when(target.datatype) {
                                 in ByteDatatypes -> {
                                     when {
@@ -632,7 +632,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             "<<" -> {
                 if(value>=8) {
-                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                    if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                         asmgen.out("  stz  $name")
                     else
                         asmgen.out("  lda  #0 |  sta  $name")
@@ -643,7 +643,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 if(value>0) {
                     if (dt == DataType.UBYTE) {
                         if(value>=8) {
-                            if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                 asmgen.out("  stz  $name")
                             else
                                 asmgen.out("  lda  #0 |  sta  $name")
@@ -858,14 +858,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "<<" -> {
                 when {
                     value>=16 -> {
-                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name |  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
                     }
                     value==8 -> {
                         asmgen.out("  lda  $name |  sta  $name+1")
-                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name")
                         else
                             asmgen.out("  lda  #0 |  sta  $name")
@@ -885,14 +885,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     if(dt==DataType.UWORD) {
                         when {
                             value>=16 -> {
-                                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                     asmgen.out("  stz  $name |  stz  $name+1")
                                 else
                                     asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
                             }
                             value==8 -> {
                                 asmgen.out("  lda  $name+1 |  sta  $name")
-                                if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                     asmgen.out("  stz  $name+1")
                                 else
                                     asmgen.out("  lda  #0 |  sta  $name+1")
@@ -941,13 +941,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&", "and" -> {
                 when {
                     value == 0 -> {
-                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name |  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
                     }
                     value and 255 == 0 -> {
-                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name")
                         else
                             asmgen.out("  lda  #0 |  sta  $name")
@@ -955,7 +955,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     value < 0x0100 -> {
                         asmgen.out("  lda  $name |  and  #$value |  sta  $name")
-                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name+1")
@@ -1042,7 +1042,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "*" -> {
                         asmgen.out("  lda  $otherName |  sta  P8ZP_SCRATCH_W1")
-                        if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                             asmgen.out("  stz  P8ZP_SCRATCH_W1+1")
                         else
                             asmgen.out("  lda  #0 |  sta  P8ZP_SCRATCH_W1+1")
@@ -1093,7 +1093,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     "&", "and" -> {
                         asmgen.out("  lda  $otherName |  and  $name |  sta  $name")
                         if(dt in WordDatatypes) {
-                            if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                 asmgen.out("  stz  $name+1")
                             else
                                 asmgen.out("  lda  #0 |  sta  $name+1")
@@ -1352,7 +1352,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  and  $name |  sta  $name")
                         if(dt in WordDatatypes) {
-                            if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                 asmgen.out("  stz  $name+1")
                             else
                                 asmgen.out("  lda  #0 |  sta  $name+1")
@@ -1475,7 +1475,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
-                if(CompilationTarget.instance is Cx16Target) {
+                if(ICompilationTarget.instance is Cx16Target) {
                     // cx16 doesn't have FPWR() only FPWRT()
                     asmgen.out("""
                         lda  #<$name
@@ -1553,7 +1553,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
-                if(CompilationTarget.instance is Cx16Target) {
+                if(ICompilationTarget.instance is Cx16Target) {
                     // cx16 doesn't have FPWR() only FPWRT()
                     asmgen.out("""
                         lda  #<$name
@@ -1645,7 +1645,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         DataType.UBYTE, DataType.BYTE -> {
                             when(target.kind) {
                                 TargetStorageKind.VARIABLE -> {
-                                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                    if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                         asmgen.out(" stz  ${target.asmVarname}+1")
                                     else
                                         asmgen.out(" lda  #0 |  sta  ${target.asmVarname}+1")
@@ -1655,7 +1655,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
                                 }
                                 TargetStorageKind.STACK -> {
-                                    if(CompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                                    if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
                                         asmgen.out(" stz  P8ESTACK_HI+1,x")
                                     else
                                         asmgen.out(" lda  #0 |  sta  P8ESTACK_HI+1,x")

@@ -12,7 +12,7 @@ import prog8.compiler.ErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.Cx16Target
 import java.io.File
 
@@ -1286,7 +1286,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    if(doubles.any { it < CompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || it > CompilationTarget.instance.machine.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < ICompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || it > ICompilationTarget.instance.machine.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }

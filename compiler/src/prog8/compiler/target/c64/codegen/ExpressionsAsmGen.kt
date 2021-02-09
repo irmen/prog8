@@ -9,7 +9,7 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.functions.BuiltinFunctions
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.subroutineFloatEvalResultVar1
 import kotlin.math.absoluteValue
@@ -1394,7 +1394,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {
-                        if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                        if(ICompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
                             asmgen.out("  stz  P8ESTACK_HI+1,x")
                         else
                             asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")
@@ -1460,7 +1460,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         fun assignViaExprEval() {
             asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-            if (CompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+            if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
                 if (pushResultOnEstack) {
                     asmgen.out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")
                 } else {
@@ -1674,7 +1674,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         }
                         DataType.UWORD -> {
                             if(amount>=16) {
-                                if(CompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
+                                if(ICompilationTarget.instance.machine.cpu==CpuType.CPU65c02)
                                     asmgen.out("  stz  P8ESTACK_LO+1,x |  stz  P8ESTACK_HI+1,x")
                                 else
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_LO+1,x |  sta  P8ESTACK_HI+1,x")
@@ -1889,7 +1889,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
         if(arrayExpr.indexer.indexNum!=null) {
-            val indexValue = arrayExpr.indexer.constIndex()!! * CompilationTarget.instance.memorySize(elementDt)
+            val indexValue = arrayExpr.indexer.constIndex()!! * ICompilationTarget.instance.memorySize(elementDt)
             when(elementDt) {
                 in ByteDatatypes -> {
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")

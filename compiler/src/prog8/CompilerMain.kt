@@ -8,7 +8,7 @@ import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.Cx16Target
 import prog8.parser.ParsingFailedError
 import java.nio.file.FileSystems
@@ -117,7 +117,7 @@ private fun compileMain(args: Array<String>) {
                 if (compilationResult.programName.isEmpty())
                     println("\nCan't start emulator because no program was assembled.")
                 else {
-                    CompilationTarget.instance.machine.launchEmulator(compilationResult.programName)
+                    ICompilationTarget.instance.machine.launchEmulator(compilationResult.programName)
                 }
             }
         }

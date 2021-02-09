@@ -14,7 +14,7 @@ import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.*
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
@@ -415,67 +415,67 @@ class TestMemory {
 
     @Test
     fun testInValidRamC64_memory_addresses() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
 
         var memexpr = NumericLiteralValue.optimalInteger(0x0000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val program = Program("test", mutableListOf(), DummyFunctions())
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0x9fff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0xc000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0xcfff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testNotInValidRamC64_memory_addresses() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
 
         var memexpr = NumericLiteralValue.optimalInteger(0xa000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val program = Program("test", mutableListOf(), DummyFunctions())
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0xafff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0xd000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0xffff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testInValidRamC64_memory_identifiers() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         var target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.VAR)
         val program = Program("test", mutableListOf(), DummyFunctions())
 
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
         target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.VAR)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
         target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.CONST)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
         target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.CONST)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
         target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.MEMORY)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
@@ -492,16 +492,16 @@ class TestMemory {
 
     @Test
     fun testInValidRamC64_memory_expression() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val program = Program("test", mutableListOf(), DummyFunctions())
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testInValidRamC64_variable() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val decl = VarDecl(VarDeclType.VAR, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", null, null, false, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
@@ -509,12 +509,12 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
         val program = Program("test", mutableListOf(module), DummyFunctions())
         module.linkParents(ParentSentinel)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testInValidRamC64_memmap_variable() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val address = 0x1000
         val decl = VarDecl(VarDeclType.MEMORY, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
@@ -523,12 +523,12 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
         val program = Program("test", mutableListOf(module), DummyFunctions())
         module.linkParents(ParentSentinel)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testNotInValidRamC64_memmap_variable() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val address = 0xd020
         val decl = VarDecl(VarDeclType.MEMORY, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
@@ -537,12 +537,12 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
         val program = Program("test", mutableListOf(module), DummyFunctions())
         module.linkParents(ParentSentinel)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testInValidRamC64_array() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val decl = VarDecl(VarDeclType.VAR, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, null, false, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
@@ -551,12 +551,12 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
         val program = Program("test", mutableListOf(module), DummyFunctions())
         module.linkParents(ParentSentinel)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testInValidRamC64_array_memmapped() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val address = 0x1000
         val decl = VarDecl(VarDeclType.MEMORY, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
@@ -566,12 +566,12 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
         val program = Program("test", mutableListOf(module), DummyFunctions())
         module.linkParents(ParentSentinel)
-        assertTrue(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertTrue(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 
     @Test
     fun testNotValidRamC64_array_memmapped() {
-        CompilationTarget.instance = C64Target
+        ICompilationTarget.instance = C64Target
         val address = 0xe000
         val decl = VarDecl(VarDeclType.MEMORY, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
@@ -581,6 +581,6 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
         val program = Program("test", mutableListOf(module), DummyFunctions())
         module.linkParents(ParentSentinel)
-        assertFalse(CompilationTarget.instance.isInRegularRAM(target, program))
+        assertFalse(ICompilationTarget.instance.isInRegularRAM(target, program))
     }
 }

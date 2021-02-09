@@ -11,8 +11,9 @@ import prog8.ast.statements.Directive
 import prog8.compiler.astprocessing.*
 import prog8.compiler.functions.*
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.Cx16Target
+import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
 import prog8.parser.ModuleImporter
 import prog8.parser.ParsingFailedError
@@ -73,8 +74,8 @@ fun compileProgram(filepath: Path,
     val errors = ErrorReporter()
 
     when(compilationTarget) {
-        C64Target.name -> CompilationTarget.instance = C64Target
-        Cx16Target.name -> CompilationTarget.instance = Cx16Target
+        C64Target.name -> ICompilationTarget.instance = C64Target
+        Cx16Target.name -> ICompilationTarget.instance = Cx16Target
         else -> {
             System.err.println("invalid compilation target")
             exitProcess(1)
@@ -161,13 +162,13 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 }
 
 private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
-    val compilationTargetName = CompilationTarget.instance.name
+    val compilationTargetName = ICompilationTarget.instance.name
     println("Compiler target: $compilationTargetName. Parsing...")
     val importer = ModuleImporter()
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf)
     bf.program = programAst
-    importer.importModule(programAst, filepath, CompilationTarget.instance, compilationTargetName)
+    importer.importModule(programAst, filepath, ICompilationTarget.instance, compilationTargetName)
     errors.handle()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
@@ -177,11 +178,11 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the machine and compiler options we may have to include some libraries
-    CompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst, CompilationTarget.instance, compilationTargetName)
+    ICompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst, ICompilationTarget.instance, compilationTargetName)
 
     // always import prog8_lib and math
-    importer.importLibraryModule(programAst, "math", CompilationTarget.instance, compilationTargetName)
-    importer.importLibraryModule(programAst, "prog8_lib", CompilationTarget.instance, compilationTargetName)
+    importer.importLibraryModule(programAst, "math", ICompilationTarget.instance, compilationTargetName)
+    importer.importLibraryModule(programAst, "prog8_lib", ICompilationTarget.instance, compilationTargetName)
     errors.handle()
     return Triple(programAst, compilerOptions, importedFiles)
 }
@@ -208,7 +209,7 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
                     // error will be printed by the astchecker
                 }
 
-    if (zpType==ZeropageType.FLOATSAFE && CompilationTarget.instance.name == Cx16Target.name) {
+    if (zpType==ZeropageType.FLOATSAFE && ICompilationTarget.instance.name == Cx16Target.name) {
         System.err.println("Warning: Cx16 target must use zp option basicsafe instead of floatsafe")
         zpType = ZeropageType.BASICSAFE
     }
@@ -238,7 +239,7 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
 
 private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
-    println("Processing for target ${CompilationTarget.instance.name}...")
+    println("Processing for target ${ICompilationTarget.instance.name}...")
     programAst.checkIdentifiers(errors)
     errors.handle()
     programAst.constantFold(errors)
@@ -295,11 +296,11 @@ private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir:
 
     // printAst(programAst)
 
-    CompilationTarget.instance.machine.initializeZeropage(compilerOptions)
-    val assembly = CompilationTarget.instance.asmGenerator(
+    ICompilationTarget.instance.machine.initializeZeropage(compilerOptions)
+    val assembly = asmGeneratorFor(ICompilationTarget.instance,
             programAst,
             errors,
-            CompilationTarget.instance.machine.zeropage,
+            ICompilationTarget.instance.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly()
     assembly.assemble(compilerOptions)

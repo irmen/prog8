@@ -16,16 +16,15 @@ import prog8.compiler.target.cx16.CX16MachineDefinition
 import java.nio.file.Path
 
 
-internal interface CompilationTarget: IStringEncoding {
+internal interface ICompilationTarget: IStringEncoding {
     val name: String
     val machine: IMachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean): List<Short>
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
     fun memorySize(dt: DataType): Int
-    fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path): IAssemblyGenerator
 
     companion object {
-        lateinit var instance: CompilationTarget
+        lateinit var instance: ICompilationTarget
     }
 
     fun isInRegularRAM(target: AssignTarget, program: Program): Boolean {
@@ -72,15 +71,13 @@ internal interface CompilationTarget: IStringEncoding {
 }
 
 
-internal object C64Target: CompilationTarget {
+internal object C64Target: ICompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean) =
             if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
-    override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
-            AsmGen(program, errors, zp, options, path)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {
@@ -93,15 +90,13 @@ internal object C64Target: CompilationTarget {
     }
 }
 
-internal object Cx16Target: CompilationTarget {
+internal object Cx16Target: ICompilationTarget {
     override val name = "cx16"
     override val machine = CX16MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean) =
             if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
             if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
-    override fun asmGenerator(program: Program, errors: ErrorReporter, zp: Zeropage, options: CompilationOptions, path: Path) =
-            AsmGen(program, errors, zp, options, path)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {
@@ -112,4 +107,17 @@ internal object Cx16Target: CompilationTarget {
             else -> -9999999
         }
     }
+}
+
+
+internal fun asmGeneratorFor(
+    compTarget: ICompilationTarget,
+    program: Program,
+    errors: ErrorReporter,
+    zp: Zeropage,
+    options: CompilationOptions,
+    outputDir: Path
+): IAssemblyGenerator
+{
+    return AsmGen(program, errors, zp, options, outputDir)
 }

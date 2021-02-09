@@ -2,7 +2,7 @@ package prog8.compiler.target.c64
 
 import prog8.compiler.CompilationOptions
 import prog8.compiler.OutputType
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.generatedLabelPrefix
 import java.nio.file.Path
@@ -23,12 +23,12 @@ class AssemblyProgram(override val name: String, outputDir: Path) : IAssemblyPro
         val outFile = when (options.output) {
             OutputType.PRG -> {
                 command.add("--cbm-prg")
-                println("\nCreating prg for target ${CompilationTarget.instance.name}.")
+                println("\nCreating prg for target ${ICompilationTarget.instance.name}.")
                 prgFile
             }
             OutputType.RAW -> {
                 command.add("--nostart")
-                println("\nCreating raw binary for target ${CompilationTarget.instance.name}.")
+                println("\nCreating raw binary for target ${ICompilationTarget.instance.name}.")
                 binFile
             }
         }

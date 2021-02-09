@@ -11,7 +11,7 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.ErrorReporter
-import prog8.compiler.target.CompilationTarget
+import prog8.compiler.target.ICompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl
 internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
@@ -192,7 +192,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     if(rangeExpr==null && litval!=null) {
                         // arraysize initializer is a single int, and we know the size.
                         val fillvalue = litval.number.toDouble()
-                        if (fillvalue < CompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || fillvalue > CompilationTarget.instance.machine.FLOAT_MAX_POSITIVE)
+                        if (fillvalue < ICompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || fillvalue > ICompilationTarget.instance.machine.FLOAT_MAX_POSITIVE)
                             errors.err("float value overflow", litval.position)
                         else {
                             // create the array itself, filled with the fillvalue.
