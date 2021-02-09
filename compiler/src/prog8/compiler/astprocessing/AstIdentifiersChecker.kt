@@ -3,7 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.base.ErrorReporter
+import prog8.compiler.ErrorReporter
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteralValue

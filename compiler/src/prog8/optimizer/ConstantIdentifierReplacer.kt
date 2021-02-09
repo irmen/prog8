@@ -10,6 +10,7 @@ import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compiler.ErrorReporter
 import prog8.compiler.target.CompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl

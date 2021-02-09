@@ -8,6 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.CompilationOptions
+import prog8.compiler.ErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.C64Target
@@ -17,7 +18,8 @@ import java.io.File
 
 internal class AstChecker(private val program: Program,
                           private val compilerOptions: CompilationOptions,
-                          private val errors: ErrorReporter) : IAstVisitor {
+                          private val errors: ErrorReporter
+) : IAstVisitor {
 
     override fun visit(program: Program) {
         assert(program === this.program)

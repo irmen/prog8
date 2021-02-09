@@ -1,7 +1,7 @@
 package prog8.optimizer
 
 import prog8.ast.Program
-import prog8.ast.base.ErrorReporter
+import prog8.compiler.ErrorReporter
 
 
 internal fun Program.constantFold(errors: ErrorReporter) {

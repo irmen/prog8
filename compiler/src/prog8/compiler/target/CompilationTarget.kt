@@ -7,6 +7,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.AssignTarget
 import prog8.compiler.CompilationOptions
+import prog8.compiler.ErrorReporter
 import prog8.compiler.Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii

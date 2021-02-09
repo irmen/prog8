@@ -9,13 +9,15 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
+import prog8.compiler.ErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.target.CompilationTarget
 import kotlin.math.floor
 
 
 internal class StatementOptimizer(private val program: Program,
-                                  private val errors: ErrorReporter) : AstWalker() {
+                                  private val errors: ErrorReporter
+) : AstWalker() {
 
     private val noModifications = emptyList<IAstModification>()
     private val callgraph = CallGraph(program)

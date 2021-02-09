@@ -2,13 +2,14 @@
 TODO
 ====
 
-- refactor the project module structure: make the static ast stuff a separate module, the optimizers another one, etc.
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
 
 - implement the linked_list millfork benchmark
 - port tehtriz to cx16 (add audio later)
 - add a graphical star map (of the local area) to textelite
 
+- refactor the asmgen into their own submodule?
+- refactor the compiler optimizers into their own submodule?
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 - optimize several inner loops in gfx2 (highres 4 color mode)
 - use the 65c02 bit clear/set/test instructions for single-bit operations

@@ -3,7 +3,7 @@ package prog8.optimizer
 import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.ErrorReporter
+import prog8.compiler.ErrorReporter
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.PrefixExpression

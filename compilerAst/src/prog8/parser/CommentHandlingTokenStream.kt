@@ -3,7 +3,6 @@ package prog8.parser
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Lexer
 
-
 internal class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
 
     data class Comment(val type: String, val line: Int, val comment: String)
