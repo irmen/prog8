@@ -24,7 +24,7 @@ internal interface ICompilationTarget: IStringEncoding {
     fun memorySize(dt: DataType): Int
 
     companion object {
-        lateinit var instance: ICompilationTarget
+        lateinit var instance: ICompilationTarget           // TODO reduce dependency on this by just passing the instance as a parameter
     }
 
     fun isInRegularRAM(target: AssignTarget, program: Program): Boolean {

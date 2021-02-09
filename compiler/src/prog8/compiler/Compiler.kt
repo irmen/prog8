@@ -11,8 +11,8 @@ import prog8.ast.statements.Directive
 import prog8.compiler.astprocessing.*
 import prog8.compiler.functions.*
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.Cx16Target
+import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
 import prog8.parser.ModuleImporter
@@ -90,10 +90,10 @@ fun compileProgram(filepath: Path,
             compilationOptions.optimize = optimize
             programAst = ast
             importedFiles = imported
-            processAst(programAst, errors, compilationOptions)
+            processAst(programAst, errors, compilationOptions, ICompilationTarget.instance)
             if (compilationOptions.optimize)
                 optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions))
-            postprocessAst(programAst, errors, compilationOptions)
+            postprocessAst(programAst, errors, compilationOptions, ICompilationTarget.instance)
 
             // printAst(programAst)
 
@@ -237,10 +237,10 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
     )
 }
 
-private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
+private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions, compTarget: ICompilationTarget) {
     // perform initial syntax checks and processings
-    println("Processing for target ${ICompilationTarget.instance.name}...")
-    programAst.checkIdentifiers(errors)
+    println("Processing for target ${compTarget.name}...")
+    programAst.checkIdentifiers(errors, compTarget)
     errors.handle()
     programAst.constantFold(errors)
     errors.handle()
@@ -249,9 +249,9 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     programAst.addTypecasts(errors)
     errors.handle()
     programAst.variousCleanups()
-    programAst.checkValid(compilerOptions, errors)
+    programAst.checkValid(compilerOptions, errors, compTarget)
     errors.handle()
-    programAst.checkIdentifiers(errors)
+    programAst.checkIdentifiers(errors, compTarget)
     errors.handle()
 }
 
@@ -275,11 +275,11 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: I
     errors.handle()
 }
 
-private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
+private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions, compTarget: ICompilationTarget) {
     programAst.addTypecasts(errors)
     errors.handle()
     programAst.variousCleanups()
-    programAst.checkValid(compilerOptions, errors)          // check if final tree is still valid
+    programAst.checkValid(compilerOptions, errors, compTarget)          // check if final tree is still valid
     errors.handle()
     val callGraph = CallGraph(programAst)
     callGraph.checkRecursiveCalls(errors)
@@ -291,7 +291,7 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
 private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir: Path,
                           compilerOptions: CompilationOptions): String {
     // asm generation directly from the Ast,
-    programAst.processAstBeforeAsmGeneration(errors)
+    programAst.processAstBeforeAsmGeneration(errors, ICompilationTarget.instance)
     errors.handle()
 
     // printAst(programAst)

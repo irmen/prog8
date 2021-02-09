@@ -11,7 +11,7 @@ import prog8.ast.walk.IAstModification
 import prog8.compiler.target.ICompilationTarget
 
 
-internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter) : AstWalker() {
+internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
 
     private val noModifications = emptyList<IAstModification>()
 
@@ -38,7 +38,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: E
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
-                && ICompilationTarget.instance.isInRegularRAM(assignment.target, program)) {
+                && compTarget.isInRegularRAM(assignment.target, program)) {
             val binExpr = assignment.value as? BinaryExpression
             if (binExpr != null && binExpr.operator !in comparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {

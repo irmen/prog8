@@ -14,7 +14,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.target.ICompilationTarget
 
-internal class AstIdentifiersChecker(private val program: Program, private val errors: ErrorReporter) : IAstVisitor {
+internal class AstIdentifiersChecker(private val program: Program, private val errors: ErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()
 
     private fun nameError(name: String, position: Position, existing: Statement) {
@@ -28,7 +28,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(block: Block) {
-        if(block.name in ICompilationTarget.instance.machine.opcodeNames)
+        if(block.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${block.name}'", block.position)
 
         val existing = blocks[block.name]
@@ -50,8 +50,8 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     override fun visit(directive: Directive) {
         if(directive.directive=="%target") {
             val compatibleTarget = directive.args.single().name
-            if (compatibleTarget != ICompilationTarget.instance.name)
-                errors.err("module's compilation target ($compatibleTarget) differs from active target (${ICompilationTarget.instance.name})", directive.position)
+            if (compatibleTarget != compTarget.name)
+                errors.err("module's compilation target ($compatibleTarget) differs from active target (${compTarget.name})", directive.position)
         }
 
         super.visit(directive)
@@ -63,7 +63,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if(decl.name in BuiltinFunctions)
             errors.err("builtin function cannot be redefined", decl.position)
 
-        if(decl.name in ICompilationTarget.instance.machine.opcodeNames)
+        if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
         if(decl.datatype==DataType.STRUCT) {
@@ -102,7 +102,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(subroutine: Subroutine) {
-        if(subroutine.name in ICompilationTarget.instance.machine.opcodeNames) {
+        if(subroutine.name in compTarget.machine.opcodeNames) {
             errors.err("can't use a cpu opcode name as a symbol: '${subroutine.name}'", subroutine.position)
         } else if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
@@ -142,7 +142,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
     }
 
     override fun visit(label: Label) {
-        if(label.name in ICompilationTarget.instance.machine.opcodeNames)
+        if(label.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${label.name}'", label.position)
 
         if(label.name in BuiltinFunctions) {

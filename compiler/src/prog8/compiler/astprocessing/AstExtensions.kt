@@ -6,15 +6,16 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.statements.Directive
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.CompilationOptions
+import prog8.compiler.target.ICompilationTarget
 
 
-internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter) {
-    val checker = AstChecker(this, compilerOptions, errors)
+internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter, compTarget: ICompilationTarget) {
+    val checker = AstChecker(this, compilerOptions, errors, compTarget)
     checker.visit(this)
 }
 
-internal fun Program.processAstBeforeAsmGeneration(errors: ErrorReporter) {
-    val fixer = BeforeAsmGenerationAstChanger(this, errors)
+internal fun Program.processAstBeforeAsmGeneration(errors: ErrorReporter, compTarget: ICompilationTarget) {
+    val fixer = BeforeAsmGenerationAstChanger(this, errors, compTarget)
     fixer.visit(this)
     fixer.applyModifications()
 }
@@ -36,9 +37,9 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.checkIdentifiers(errors: ErrorReporter) {
+internal fun Program.checkIdentifiers(errors: ErrorReporter, compTarget: ICompilationTarget) {
 
-    val checker2 = AstIdentifiersChecker(this, errors)
+    val checker2 = AstIdentifiersChecker(this, errors, compTarget)
     checker2.visit(this)
 
     if(errors.isEmpty()) {
