@@ -9,25 +9,25 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
-import prog8.pathFrom
 import java.io.InputStream
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
 
-internal class ParsingFailedError(override var message: String) : Exception(message)
-
+class ParsingFailedError(override var message: String) : Exception(message)
 
 internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexer(input)
 
+fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 
-internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
+internal fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
 
 
-internal class ModuleImporter {
+class ModuleImporter {
 
-    internal fun importModule(program: Program, filePath: Path, encoder: IStringEncoding, compilationTargetName: String): Module {
+    fun importModule(program: Program, filePath: Path, encoder: IStringEncoding, compilationTargetName: String): Module {
         print("importing '${moduleName(filePath.fileName)}'")
         if(filePath.parent!=null) {
             var importloc = filePath.toString()
@@ -45,7 +45,7 @@ internal class ModuleImporter {
         return importModule(program, input, filePath, false, encoder, compilationTargetName)
     }
 
-    internal fun importLibraryModule(program: Program, name: String,
+    fun importLibraryModule(program: Program, name: String,
                                      encoder: IStringEncoding, compilationTargetName: String): Module? {
         val import = Directive("%import", listOf(
                 DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0, 0))

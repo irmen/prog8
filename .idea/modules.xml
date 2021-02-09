@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/compilerAst/compilerAst.iml" filepath="$PROJECT_DIR$/compilerAst/compilerAst.iml" />
       <module fileurl="file://$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" filepath="$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />

@@ -147,10 +147,13 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
                     InferredTypes.unknown()
                 else {
                     try {
-                        InferredTypes.knownFor(commonDatatype(
+                        InferredTypes.knownFor(
+                            commonDatatype(
                                 leftDt.typeOrElse(DataType.BYTE),
                                 rightDt.typeOrElse(DataType.BYTE),
-                                null, null).first)
+                                null, null
+                            ).first
+                        )
                     } catch (x: FatalAstException) {
                         InferredTypes.unknown()
                     }
@@ -704,7 +707,8 @@ internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
     }
 }
 
-data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
+data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(),
+    IAssignable {
     override lateinit var parent: Node
 
     fun targetStatement(program: Program) =

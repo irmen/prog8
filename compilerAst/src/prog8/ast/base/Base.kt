@@ -43,7 +43,7 @@ enum class DataType {
                 this == other -> false
                 this in ByteDatatypes -> false
                 this in WordDatatypes -> other in ByteDatatypes
-                this==STR && other==UWORD || this==UWORD && other==STR -> false
+                this== STR && other== UWORD || this== UWORD && other== STR -> false
                 else -> true
             }
 
@@ -52,7 +52,7 @@ enum class DataType {
                 this == other -> true
                 this in ByteDatatypes -> other in ByteDatatypes
                 this in WordDatatypes -> other in WordDatatypes
-                this==STR && other==UWORD || this==UWORD && other==STR -> true
+                this== STR && other== UWORD || this== UWORD && other== STR -> true
                 else -> false
             }
 }
@@ -128,10 +128,11 @@ val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, Data
 val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
 val StringlyDatatypes = setOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
 val IterableDatatypes = setOf(
-        DataType.STR,
-        DataType.ARRAY_UB, DataType.ARRAY_B,
-        DataType.ARRAY_UW, DataType.ARRAY_W,
-        DataType.ARRAY_F)
+    DataType.STR,
+    DataType.ARRAY_UB, DataType.ARRAY_B,
+    DataType.ARRAY_UW, DataType.ARRAY_W,
+    DataType.ARRAY_F
+)
 val PassByValueDatatypes = NumericDatatypes
 val PassByReferenceDatatypes = IterableDatatypes.plus(DataType.STRUCT)
 val ArrayElementTypes = mapOf(
@@ -140,7 +141,8 @@ val ArrayElementTypes = mapOf(
         DataType.ARRAY_UB to DataType.UBYTE,
         DataType.ARRAY_W to DataType.WORD,
         DataType.ARRAY_UW to DataType.UWORD,
-        DataType.ARRAY_F to DataType.FLOAT)
+        DataType.ARRAY_F to DataType.FLOAT
+)
 val ElementArrayTypes = mapOf(
         DataType.BYTE to DataType.ARRAY_B,
         DataType.UBYTE to DataType.ARRAY_UB,
@@ -148,10 +150,12 @@ val ElementArrayTypes = mapOf(
         DataType.UWORD to DataType.ARRAY_UW,
         DataType.FLOAT to DataType.ARRAY_F
 )
-val Cx16VirtualRegisters = listOf(RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
+val Cx16VirtualRegisters = listOf(
+    RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
     RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
     RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
-    RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15)
+    RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15
+)
 
 
 // find the parent node of a specific type or interface

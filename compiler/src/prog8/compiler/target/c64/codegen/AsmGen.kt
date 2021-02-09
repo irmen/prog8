@@ -177,9 +177,10 @@ internal class AsmGen(private val program: Program,
         out("\n\n; ---- block: '${block.name}' ----")
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
-        if(block.address!=null) {
-            out(".cerror * > ${block.address.toHex()}, 'block address overlaps by ', *-${block.address.toHex()},' bytes'")
-            out("* = ${block.address.toHex()}")
+        val addr = block.address
+        if(addr!=null) {
+            out(".cerror * > ${addr.toHex()}, 'block address overlaps by ', *-${addr.toHex()},' bytes'")
+            out("* = ${addr.toHex()}")
         }
 
         outputSourceLine(block)
@@ -356,10 +357,11 @@ internal class AsmGen(private val program: Program,
         }
         val asmSubs = statements.filterIsInstance<Subroutine>().filter { it.isAsmSubroutine }
         for(sub in asmSubs) {
-            if(sub.asmAddress!=null) {
+            val addr = sub.asmAddress
+            if(addr!=null) {
                 if(sub.statements.isNotEmpty())
                     throw AssemblyError("kernel subroutine cannot have statements")
-                out("  ${sub.name} = ${sub.asmAddress.toHex()}")
+                out("  ${sub.name} = ${addr.toHex()}")
             }
         }
     }
@@ -1268,17 +1270,20 @@ $label              nop""")
     }
 
     private fun getJumpTarget(jmp: Jump): String {
+        val ident = jmp.identifier
+        val label = jmp.generatedLabel
+        val addr = jmp.address
         return when {
-            jmp.identifier!=null -> {
-                val target = jmp.identifier.targetStatement(program)
-                val asmName = asmSymbolName(jmp.identifier)
+            ident!=null -> {
+                val target = ident.targetStatement(program)
+                val asmName = asmSymbolName(ident)
                 if(target is Label)
                     "_$asmName"  // prefix with underscore to jump to local label
                 else
                     asmName
             }
-            jmp.generatedLabel!=null -> jmp.generatedLabel
-            jmp.address!=null -> jmp.address.toHex()
+            label!=null -> label
+            addr!=null -> addr.toHex()
             else -> "????"
         }
     }
@@ -1293,12 +1298,12 @@ $label              nop""")
 
             when (returnType) {
                 in NumericDatatypes -> {
-                    assignExpressionToRegister(returnvalue, returnReg.registerOrPair)
+                    assignExpressionToRegister(returnvalue, returnReg.registerOrPair!!)
                 }
                 else -> {
                     // all else take its address and assign that also to AY register pair
                     val addrofValue = AddressOf(returnvalue as IdentifierReference, returnvalue.position)
-                    assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair)
+                    assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!)
                 }
             }
         }

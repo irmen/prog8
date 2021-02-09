@@ -151,21 +151,24 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(jump: Jump) {
-        if(jump.identifier!=null) {
-            val targetStatement = checkFunctionOrLabelExists(jump.identifier, jump)
+        val ident = jump.identifier
+        if(ident!=null) {
+            val targetStatement = checkFunctionOrLabelExists(ident, jump)
             if(targetStatement!=null) {
                 if(targetStatement is BuiltinFunctionStatementPlaceholder)
                     errors.err("can't jump to a builtin function", jump.position)
             }
         }
 
-        if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
+        val addr = jump.address
+        if(addr!=null && (addr < 0 || addr > 65535))
             errors.err("jump address must be valid integer 0..\$ffff", jump.position)
         super.visit(jump)
     }
 
     override fun visit(block: Block) {
-        if(block.address!=null && (block.address<0 || block.address>65535)) {
+        val addr = block.address
+        if(addr!=null && (addr<0 || addr>65535)) {
             errors.err("block memory address must be valid integer 0..\$ffff", block.position)
         }
 
@@ -316,9 +319,11 @@ internal class AstChecker(private val program: Program,
                         RegisterOrPair.R13,
                         RegisterOrPair.R14,
                         RegisterOrPair.R15 -> { /* no sensible way to count this */ }
-                        null ->
-                            if(p.statusflag!=null)
-                                statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1
+                        null -> {
+                            val statusf = p.statusflag
+                            if (statusf != null)
+                                statusflagCounts[statusf] = statusflagCounts.getValue(statusf) + 1
+                        }
                     }
                 }
             }

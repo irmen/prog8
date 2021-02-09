@@ -1,0 +1,65 @@
+plugins {
+    id 'antlr'
+    id 'java'
+    id "org.jetbrains.kotlin.jvm" version "1.4.30"
+}
+
+targetCompatibility = 11
+sourceCompatibility = 11
+
+repositories {
+    mavenCentral()
+}
+
+
+configurations {
+    // strange antlr plugin issue, see https://github.com/gradle/gradle/issues/820
+    // this avoids linking in the complete antlr binary jar
+    compile {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
+}
+
+dependencies {
+    antlr 'org.antlr:antlr4:4.9'
+    implementation 'org.antlr:antlr4-runtime:4.9'
+    implementation project(':parser')
+
+//    antlr('org.antlr:antlr4:4.9') {
+//        exclude group: 'com.ibm.icu', module: 'icu4j'
+//    }
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "11"
+        // verbose = true
+        // freeCompilerArgs += "-XXLanguage:+NewInference"
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["${project.projectDir}/src"]
+        }
+        resources {
+            srcDirs = ["${project.projectDir}/res"]
+        }
+    }
+    test {
+        java {
+            srcDirs = ["${project.projectDir}/test"]
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '6.7'
+}

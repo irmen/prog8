@@ -2,7 +2,7 @@ package prog8.ast.base
 
 import prog8.parser.ParsingFailedError
 
-
+// TODO can move to compiler?????? **************
 class ErrorReporter {
     private enum class MessageSeverity {
         WARNING,

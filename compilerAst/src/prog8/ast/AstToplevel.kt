@@ -392,7 +392,7 @@ object BuiltinFunctionScopePlaceholder : INameScope {
 
 
 // prefix for struct member variables
-internal fun mangledStructMemberName(varName: String, memberName: String) = "prog8struct_${varName}_$memberName"
+fun mangledStructMemberName(varName: String, memberName: String) = "prog8struct_${varName}_$memberName"
 
 
 fun Number.toHex(): String {
