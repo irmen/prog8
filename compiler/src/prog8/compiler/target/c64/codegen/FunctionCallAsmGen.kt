@@ -7,7 +7,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.c64.codegen.assignment.AsmAssignTarget
@@ -169,7 +168,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                                 lda  P8ESTACK_LO$plusIdxStr,x
                                 sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
                             """)
-                            if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                            if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02)
                                 asmgen.out("  stz  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")

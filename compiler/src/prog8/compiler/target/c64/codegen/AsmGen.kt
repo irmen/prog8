@@ -25,7 +25,7 @@ internal class AsmGen(private val program: Program,
                       val errors: ErrorReporter,
                       val zeropage: Zeropage,
                       val options: CompilationOptions,
-                      private val compTarget: ICompilationTarget,
+                      val compTarget: ICompilationTarget,
                       private val outputDir: Path): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
@@ -40,7 +40,7 @@ internal class AsmGen(private val program: Program,
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen, compTarget)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
@@ -85,7 +85,7 @@ internal class AsmGen(private val program: Program,
             }
         }
 
-        return AssemblyProgram(program.name, outputDir)
+        return AssemblyProgram(program.name, outputDir, compTarget.name)
     }
 
 

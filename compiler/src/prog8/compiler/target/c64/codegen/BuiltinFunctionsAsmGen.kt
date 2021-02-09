@@ -9,7 +9,6 @@ import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.functions.FSignature
-import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.c64.codegen.assignment.*
 import prog8.compiler.target.subroutineFloatEvalResultVar2
 
@@ -679,8 +678,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexValue2: NumericLiteralValue) {
-        val index1 = indexValue1.number.toInt() * ICompilationTarget.instance.memorySize(elementDt)
-        val index2 = indexValue2.number.toInt() * ICompilationTarget.instance.memorySize(elementDt)
+        val index1 = indexValue1.number.toInt() * asmgen.compTarget.memorySize(elementDt)
+        val index2 = indexValue2.number.toInt() * asmgen.compTarget.memorySize(elementDt)
         when(elementDt) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("""
@@ -793,7 +792,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexName2: IdentifierReference) {
-        val index1 = indexValue1.number.toInt() * ICompilationTarget.instance.memorySize(elementDt)
+        val index1 = indexValue1.number.toInt() * asmgen.compTarget.memorySize(elementDt)
         val idxAsmName2 = asmgen.asmVariableName(indexName2)
         when(elementDt) {
             DataType.UBYTE, DataType.BYTE -> {
@@ -852,7 +851,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexName1: IdentifierReference, arrayVarName2: String, indexValue2: NumericLiteralValue) {
         val idxAsmName1 = asmgen.asmVariableName(indexName1)
-        val index2 = indexValue2.number.toInt() * ICompilationTarget.instance.memorySize(elementDt)
+        val index2 = indexValue2.number.toInt() * asmgen.compTarget.memorySize(elementDt)
         when(elementDt) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("""
