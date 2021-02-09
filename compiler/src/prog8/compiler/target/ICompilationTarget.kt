@@ -119,5 +119,5 @@ internal fun asmGeneratorFor(
     outputDir: Path
 ): IAssemblyGenerator
 {
-    return AsmGen(program, errors, zp, options, outputDir)
+    return AsmGen(program, errors, zp, options, compTarget, outputDir)
 }

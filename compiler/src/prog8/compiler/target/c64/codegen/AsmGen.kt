@@ -25,6 +25,7 @@ internal class AsmGen(private val program: Program,
                       val errors: ErrorReporter,
                       val zeropage: Zeropage,
                       val options: CompilationOptions,
+                      private val compTarget: ICompilationTarget,
                       private val outputDir: Path): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
@@ -39,7 +40,7 @@ internal class AsmGen(private val program: Program,
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen, compTarget)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
@@ -90,7 +91,7 @@ internal class AsmGen(private val program: Program,
 
     private fun header() {
         val ourName = this.javaClass.name
-        val cpu = when(ICompilationTarget.instance.machine.cpu) {
+        val cpu = when(compTarget.machine.cpu) {
             CpuType.CPU6502 -> "6502"
             CpuType.CPU65c02 -> "65c02"
             else -> "unsupported"
@@ -105,16 +106,16 @@ internal class AsmGen(private val program: Program,
         program.actualLoadAddress = program.definedLoadAddress
         if (program.actualLoadAddress == 0)   // fix load address
             program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
-                ICompilationTarget.instance.machine.BASIC_LOAD_ADDRESS else ICompilationTarget.instance.machine.RAW_LOAD_ADDRESS
+                compTarget.machine.BASIC_LOAD_ADDRESS else compTarget.machine.RAW_LOAD_ADDRESS
 
         // the global prog8 variables needed
-        val zp = ICompilationTarget.instance.machine.zeropage
+        val zp = compTarget.machine.zeropage
         out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
         out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
-        out("P8ESTACK_LO = ${ICompilationTarget.instance.machine.ESTACK_LO.toHex()}")
-        out("P8ESTACK_HI = ${ICompilationTarget.instance.machine.ESTACK_HI.toHex()}")
+        out("P8ESTACK_LO = ${compTarget.machine.ESTACK_LO.toHex()}")
+        out("P8ESTACK_HI = ${compTarget.machine.ESTACK_HI.toHex()}")
 
         when {
             options.launcher == LauncherType.BASIC -> {
@@ -128,13 +129,13 @@ internal class AsmGen(private val program: Program,
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
                 if(!options.noSysInit)
-                    out("  jsr  ${ICompilationTarget.instance.name}.init_system")
+                    out("  jsr  ${compTarget.name}.init_system")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
                 if(!options.noSysInit)
-                    out("  jsr  ${ICompilationTarget.instance.name}.init_system")
+                    out("  jsr  ${compTarget.name}.init_system")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")
@@ -166,7 +167,7 @@ internal class AsmGen(private val program: Program,
         // the global list of all floating point constants for the whole program
         out("; global float constants")
         for (flt in globalFloatConsts) {
-            val floatFill = ICompilationTarget.instance.machine.getFloat(flt.key).makeFloatFillAsm()
+            val floatFill = compTarget.machine.getFloat(flt.key).makeFloatFillAsm()
             val floatvalue = flt.key
             out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
         }
@@ -337,7 +338,7 @@ internal class AsmGen(private val program: Program,
                         }
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
-                    ICompilationTarget.instance.machine.getFloat(number).makeFloatFillAsm()
+                    compTarget.machine.getFloat(number).makeFloatFillAsm()
                 }
                 out(name)
                 for (f in array.zip(floatFills))
@@ -526,7 +527,7 @@ internal class AsmGen(private val program: Program,
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program)!!
         val scopedName = vardecl.makeScopedName(vardecl.name)
-        if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+        if (compTarget.machine.cpu == CpuType.CPU65c02) {
             return if (isZpVar(scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out("  lda  ($sourceName)")
@@ -561,7 +562,7 @@ internal class AsmGen(private val program: Program,
     private  fun fixNameSymbols(name: String) = name.replace("<", "prog8_").replace(">", "")     // take care of the autogenerated invalid (anon) label names
 
     internal fun saveRegisterLocal(register: CpuRegister, scope: Subroutine) {
-        if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+        if (compTarget.machine.cpu == CpuType.CPU65c02) {
             // just use the cpu's stack for all registers, shorter code
             when (register) {
                 CpuRegister.A -> out("  pha")
@@ -590,7 +591,7 @@ internal class AsmGen(private val program: Program,
         when (register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
-                if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phx")
+                if (compTarget.machine.cpu == CpuType.CPU65c02) out("  phx")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  txa |  pha  |  lda  P8ZP_SCRATCH_REG")
@@ -599,7 +600,7 @@ internal class AsmGen(private val program: Program,
                 }
             }
             CpuRegister.Y -> {
-                if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  phy")
+                if (compTarget.machine.cpu == CpuType.CPU65c02) out("  phy")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  tya |  pha  |  lda  P8ZP_SCRATCH_REG")
@@ -611,7 +612,7 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun restoreRegisterLocal(register: CpuRegister) {
-        if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) {
+        if (compTarget.machine.cpu == CpuType.CPU65c02) {
             when (register) {
                 // this just used the stack, for all registers. Shorter code.
                 CpuRegister.A -> out("  pla")
@@ -636,7 +637,7 @@ internal class AsmGen(private val program: Program,
                 out("  pla")
             }
             CpuRegister.X -> {
-                if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  plx")
+                if (compTarget.machine.cpu == CpuType.CPU65c02) out("  plx")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
@@ -645,7 +646,7 @@ internal class AsmGen(private val program: Program,
                 }
             }
             CpuRegister.Y -> {
-                if (ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02) out("  ply")
+                if (compTarget.machine.cpu == CpuType.CPU65c02) out("  ply")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
@@ -705,7 +706,7 @@ internal class AsmGen(private val program: Program,
         val reg = register.toString().toLowerCase()
         val indexnum = expr.indexer.constIndex()
         if(indexnum!=null) {
-            val indexValue = indexnum * ICompilationTarget.instance.memorySize(elementDt) + if(addOneExtra) 1 else 0
+            val indexValue = indexnum * compTarget.memorySize(elementDt) + if(addOneExtra) 1 else 0
             out("  ld$reg  #$indexValue")
             return
         }
@@ -731,7 +732,7 @@ internal class AsmGen(private val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(ICompilationTarget.instance.memorySize(DataType.FLOAT)==5)
+                    require(compTarget.memorySize(DataType.FLOAT)==5)
                     out("""
                                 lda  $indexName
                                 asl  a
@@ -758,7 +759,7 @@ internal class AsmGen(private val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(ICompilationTarget.instance.memorySize(DataType.FLOAT)==5)
+                    require(compTarget.memorySize(DataType.FLOAT)==5)
                     out("""
                                 lda  $indexName
                                 asl  a
@@ -1328,7 +1329,7 @@ $label              nop""")
         // sign extend signed byte on stack to signed word on stack
         when(valueDt) {
             DataType.UBYTE -> {
-                if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                if(compTarget.machine.cpu == CpuType.CPU65c02)
                     out("  stz  P8ESTACK_HI+1,x")
                 else
                     out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
@@ -1342,7 +1343,7 @@ $label              nop""")
         // sign extend signed byte in a var to a full word in that variable
         when(valueDt) {
             DataType.UBYTE -> {
-                if(ICompilationTarget.instance.machine.cpu == CpuType.CPU65c02)
+                if(compTarget.machine.cpu == CpuType.CPU65c02)
                     out("  stz  $asmvar+1")
                 else
                     out("  lda  #0 |  sta  $asmvar+1")
