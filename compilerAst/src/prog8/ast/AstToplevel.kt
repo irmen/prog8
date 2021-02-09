@@ -246,6 +246,7 @@ interface IAssignable {
 
 interface IBuiltinFunctions {
     val names: Set<String>
+    val purefunctionNames: Set<String>
     fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue?
     fun returnType(name: String, args: MutableList<Expression>): InferredTypes.InferredType
 }

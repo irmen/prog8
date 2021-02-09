@@ -1,5 +1,6 @@
 package prog8.optimizer
 
+import prog8.ast.IBuiltinFunctions
 import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
@@ -10,18 +11,17 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.ErrorReporter
-import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.target.CompilationTarget
 import kotlin.math.floor
 
 
 internal class StatementOptimizer(private val program: Program,
-                                  private val errors: ErrorReporter
+                                  private val errors: ErrorReporter,
+                                  private val functions: IBuiltinFunctions
 ) : AstWalker() {
 
     private val noModifications = emptyList<IAstModification>()
     private val callgraph = CallGraph(program)
-    private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
 
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
@@ -72,9 +72,9 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
+        if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in functions.names) {
             val functionName = functionCallStatement.target.nameInSource[0]
-            if (functionName in pureBuiltinFunctions) {
+            if (functionName in functions.purefunctionNames) {
                 errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
                 return listOf(IAstModification.Remove(functionCallStatement, functionCallStatement.definingScope()))
             }

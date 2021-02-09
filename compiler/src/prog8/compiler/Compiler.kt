@@ -91,7 +91,7 @@ fun compileProgram(filepath: Path,
             importedFiles = imported
             processAst(programAst, errors, compilationOptions)
             if (compilationOptions.optimize)
-                optimizeAst(programAst, errors)
+                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions))
             postprocessAst(programAst, errors, compilationOptions)
 
             // printAst(programAst)
@@ -134,6 +134,8 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     lateinit var program: Program
 
     override val names = functions.keys
+    override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
+
     override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? {
         val func = BuiltinFunctions[name]
         if(func!=null) {
@@ -252,14 +254,14 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     errors.handle()
 }
 
-private fun optimizeAst(programAst: Program, errors: ErrorReporter) {
+private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: IBuiltinFunctions) {
     // optimize the parse tree
     println("Optimizing...")
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.splitBinaryExpressions()
-        val optsDone3 = programAst.optimizeStatements(errors)
+        val optsDone3 = programAst.optimizeStatements(errors, functions)
         programAst.constantFold(errors) // because simplified statements and expressions can result in more constants that can be folded away
         errors.handle()
         if (optsDone1 + optsDone2 + optsDone3 == 0)

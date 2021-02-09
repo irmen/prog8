@@ -1,5 +1,6 @@
 package prog8.optimizer
 
+import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.compiler.ErrorReporter
 
@@ -38,8 +39,8 @@ internal fun Program.constantFold(errors: ErrorReporter) {
 }
 
 
-internal fun Program.optimizeStatements(errors: ErrorReporter): Int {
-    val optimizer = StatementOptimizer(this, errors)
+internal fun Program.optimizeStatements(errors: ErrorReporter, functions: IBuiltinFunctions): Int {
+    val optimizer = StatementOptimizer(this, errors, functions)
     optimizer.visit(this)
     val optimizationCount = optimizer.applyModifications()
 
