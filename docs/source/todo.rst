@@ -15,7 +15,6 @@ TODO
 - use the 65c02 bit clear/set/test instructions for single-bit operations
 - try to fix the bresenham line routines in graphics and gfx2 (sometimes they're a pixel 'off')
 - add a flood fill routine to gfx2?
-- can we get rid of the --longOptionName command line options and only keep the short versions? https://github.com/Kotlin/kotlinx-cli/issues/50
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - add a compiler option to not remove unused subroutines. this allows for building library programs

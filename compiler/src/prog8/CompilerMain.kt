@@ -35,14 +35,14 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 
 private fun compileMain(args: Array<String>) {
-    val cli = ArgParser("prog8compiler")
-    val startEmulator by cli.option(ArgType.Boolean, shortName="emu", description = "auto-start emulator after successful compilation")
-    val outputDir by cli.option(ArgType.String, shortName = "out", description = "directory for output files instead of current directory").default(".")
-    val dontWriteAssembly by cli.option(ArgType.Boolean, shortName = "noasm", description="don't create assembly code")
-    val dontOptimize by cli.option(ArgType.Boolean, shortName = "noopt", description = "don't perform any optimizations")
-    val watchMode by cli.option(ArgType.Boolean, shortName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
-    val slowCodegenWarnings by cli.option(ArgType.Boolean, shortName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
-    val compilationTarget by cli.option(ArgType.String, shortName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
+    val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
+    val startEmulator by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
+    val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
+    val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
+    val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
+    val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
+    val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
+    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
