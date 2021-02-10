@@ -20,12 +20,12 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\u000c\n --- TextElite v1.1 ---\n")
+        txt.print("\u000c\n --- TextElite v1.2 ---\n")
 
         galaxy.travel_to(1, numforLave)
         market.init(0)  ;  Lave's market is seeded with 0
         ship.init()
-        planet.display(false)
+        planet.display(false, 0)
 
         repeat {
             ; test_stack.test()
@@ -112,7 +112,7 @@ trader {
         sys.memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))
         galaxy.travel_to(savedata.galaxy, savedata.planet)
 
-        planet.display(false)
+        planet.display(false, 0)
     }
 
     sub do_save() {
@@ -158,10 +158,10 @@ trader {
                 galaxy.init_market_for_planet()
                 ship.fuel -= distance
                 txt.print("\n\nHyperspace jump! Arrived at:\n")
-                planet.display(true)
+                planet.display(true,0 )
                 return
             }
-            txt.print("Insufficient fuel\n")
+            txt.print("\nInsufficient fuel\n")
         } else {
             txt.print(" Not found!\n")
         }
@@ -250,7 +250,7 @@ trader {
 
     sub do_next_galaxy() {
         galaxy.travel_to(galaxy.number+1, planet.number)
-        planet.display(false)
+        planet.display(false, 0)
     }
 
     sub do_info() {
@@ -259,13 +259,13 @@ trader {
         if num_chars {
             ubyte current_planet = planet.number
             if galaxy.search_closest_planet(input) {
-                planet.display(false)
+                planet.display(false, 0)
             } else {
                 txt.print(" Not found!")
             }
             galaxy.travel_to(galaxy.number, current_planet)
         } else {
-            planet.display(false)
+            planet.display(false, 0)
         }
     }
 
@@ -358,14 +358,15 @@ market {
             util.print_right(13, names[ci])
             txt.print("   ")
             util.print_10s(current_price[ci])
-            txt.print("  ")
+            txt.column(24)
             txt.print_ub(current_quantity[ci])
+            txt.chrout(' ')
             when units[ci] {
                 0 -> txt.chrout('t')
                 1 -> txt.print("kg")
                 2 -> txt.chrout('g')
             }
-            txt.print("   ")
+            txt.column(32)
             txt.print_ub(ship.cargohold[ci])
             txt.nl()
         }
@@ -474,10 +475,7 @@ galaxy {
                     txt.chrout('-')
                 txt.spc()
                 planet.name = make_current_planet_name()
-                planet.display(true)
-                txt.print(" (")
-                util.print_10s(distance)
-                txt.print(" LY)\n")
+                planet.display(true, distance)
             }
             pn++
         } until pn==0
@@ -838,15 +836,21 @@ planet {
         }
     }
 
-    sub display(ubyte compressed) {
+    sub display(ubyte compressed, ubyte distance) {
         if compressed {
             print_name_uppercase()
-            txt.print(" TL:")
+            if distance {
+                txt.print(" (")
+                util.print_10s(distance)
+                txt.print(" LY)")
+            }
+            txt.print("  Tech level:")
             txt.print_ub(techlevel+1)
-            txt.spc()
+            txt.print("\n    ")
             txt.print(econnames[economy])
             txt.spc()
             txt.print(govnames[govtype])
+            txt.nl()
         } else {
             txt.print("\n\nSystem: ")
             print_name_uppercase()
@@ -857,6 +861,11 @@ planet {
             txt.spc()
             txt.chrout('#')
             txt.print_ub(number)
+            if distance {
+                txt.print("\nDistance: ")
+                util.print_10s(distance)
+                txt.print(" LY")
+            }
             txt.print("\nEconomy: ")
             txt.print(econnames[economy])
             txt.print("\nGovernment: ")
