@@ -31,6 +31,16 @@ sub spc() {
     txt.chrout(' ')
 }
 
+asmsub column(ubyte col @A) clobbers(A, X, Y) {
+    ; ---- set the cursor on the given column (starting with 0) on the current line
+    %asm {{
+        sec
+        jsr  c64.PLOT
+        tay
+        clc
+        jmp  c64.PLOT
+    }}
+}
 
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
@@ -588,90 +598,90 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A)  {
 	; ---- sets the character in the screen matrix at the given position
 	%asm {{
-		pha
-		txa
-		asl  a
-        stz  cx16.VERA_CTRL
-		stz  cx16.VERA_ADDR_H
-		sta  cx16.VERA_ADDR_L
-		sty  cx16.VERA_ADDR_M
-		pla
-        sta  cx16.VERA_DATA0
-		rts
+            pha
+            txa
+            asl  a
+            stz  cx16.VERA_CTRL
+            stz  cx16.VERA_ADDR_H
+            sta  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            pla
+            sta  cx16.VERA_DATA0
+            rts
 	}}
 }
 
 asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
-		asl  a
-        stz  cx16.VERA_CTRL
-		stz  cx16.VERA_ADDR_H
-		sta  cx16.VERA_ADDR_L
-		sty  cx16.VERA_ADDR_M
-        lda  cx16.VERA_DATA0
-		rts
+            asl  a
+            stz  cx16.VERA_CTRL
+            stz  cx16.VERA_ADDR_H
+            sta  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            lda  cx16.VERA_DATA0
+            rts
 	}}
 }
 
 asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
 	; ---- set the color in A on the screen matrix at the given position
 	%asm {{
-		pha
-		txa
-		asl  a
-		ina
-        stz  cx16.VERA_CTRL
-		stz  cx16.VERA_ADDR_H
-		sta  cx16.VERA_ADDR_L
-		sty  cx16.VERA_ADDR_M
-		pla
-        sta  cx16.VERA_DATA0
-		rts
+            pha
+            txa
+            asl  a
+            ina
+            stz  cx16.VERA_CTRL
+            stz  cx16.VERA_ADDR_H
+            sta  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            pla
+            sta  cx16.VERA_DATA0
+            rts
 	}}
 }
 
 asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	; ---- get the color in the screen color matrix at the given location
 	%asm  {{
-		asl  a
-		ina
-        stz  cx16.VERA_CTRL
-		stz  cx16.VERA_ADDR_H
-		sta  cx16.VERA_ADDR_L
-		sty  cx16.VERA_ADDR_M
-        lda  cx16.VERA_DATA0
-		rts
+            asl  a
+            ina
+            stz  cx16.VERA_CTRL
+            stz  cx16.VERA_ADDR_H
+            sta  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            lda  cx16.VERA_DATA0
+            rts
 	}}
 }
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
-	    phx
-		lda  column
-		asl  a
-		tax
-		ldy  row
-		lda  charcolor
-		and  #$0f
-	    sta  P8ZP_SCRATCH_B1
-        stz  cx16.VERA_CTRL
-        stz  cx16.VERA_ADDR_H
-        stx  cx16.VERA_ADDR_L
-        sty  cx16.VERA_ADDR_M
-        lda  char
-        sta  cx16.VERA_DATA0
-        inx
-        stz  cx16.VERA_ADDR_H
-        stx  cx16.VERA_ADDR_L
-        sty  cx16.VERA_ADDR_M
-        lda  cx16.VERA_DATA0
-        and  #$f0
-        ora  P8ZP_SCRATCH_B1
-        sta  cx16.VERA_DATA0
-		plx
-		rts
+            phx
+            lda  column
+            asl  a
+            tax
+            ldy  row
+            lda  charcolor
+            and  #$0f
+            sta  P8ZP_SCRATCH_B1
+            stz  cx16.VERA_CTRL
+            stz  cx16.VERA_ADDR_H
+            stx  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            lda  char
+            sta  cx16.VERA_DATA0
+            inx
+            stz  cx16.VERA_ADDR_H
+            stx  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            lda  cx16.VERA_DATA0
+            and  #$f0
+            ora  P8ZP_SCRATCH_B1
+            sta  cx16.VERA_DATA0
+            plx
+            rts
     }}
 }
 

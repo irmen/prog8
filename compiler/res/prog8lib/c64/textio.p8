@@ -31,6 +31,16 @@ sub spc() {
     txt.chrout(' ')
 }
 
+asmsub column(ubyte col @A) clobbers(A, X, Y) {
+    ; ---- set the cursor on the given column (starting with 0) on the current line
+    %asm {{
+        sec
+        jsr  c64.PLOT
+        tay
+        clc
+        jmp  c64.PLOT
+    }}
+}
 
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
