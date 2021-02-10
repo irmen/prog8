@@ -1,14 +1,14 @@
-; TehTriz - a Tetris clone.
+; TehTriz - a Tetris clone.  Commander X16 version.
 ;
 ; features:
 ;   holding area
 ;   wall kick rotations
 ;   shows next piece
 ;   staged speed increase
-;   some simple sound effects
+;   TODO:  replicate the simple sound effects from the C64 version
 
 
-%target c64
+%target cx16
 %import syslib
 %import textio
 %import test_stack
@@ -33,8 +33,7 @@ main {
 
 
     sub start() {
-        c64.disable_runstop_and_charsetswitch()
-        ;@(650) = 128        ; set all keys to repeat
+        cx16.screen_set_mode(0)       ; low res
         sound.init()
         newGame()
         drawBoard()
@@ -46,8 +45,9 @@ newgame:
         spawnNextBlock()
 
 waitkey:
-        if c64.TIME_LO>=(60-4*speedlevel) {
-            c64.TIME_LO = 0
+        ubyte time_lo = lsb(c64.RDTIM16())
+        if time_lo>=(60-4*speedlevel) {
+            c64.SETTIM(0,0,0)
 
             drawBlock(xpos, ypos, 32) ; hide block
             if blocklogic.noCollision(xpos, ypos+1) {
@@ -214,7 +214,7 @@ waitkey:
                 sound.lineclear_big()
             else
                 sound.lineclear()
-            sys.wait(20)    ; slight delay to flash the line
+            sys.wait(20) ; slight delay to flash the line
             for linepos in complete_lines
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
@@ -269,7 +269,6 @@ waitkey:
     }
 
     sub swapBlock(ubyte newblock) {
-        c64.TIME_LO = 0
         blocklogic.newCurrentBlock(newblock)
         xpos = startXpos
         ypos = startYpos
@@ -278,7 +277,7 @@ waitkey:
 
     sub spawnNextBlock() {
         swapBlock(nextBlock)
-        nextBlock = (rnd() + c64.RASTER) % 7
+        nextBlock = (rnd() + lsb(c64.RDTIM16())) % 7
         drawNextBlock()
         holdingAllowed = true
     }
@@ -576,68 +575,68 @@ blocklogic {
 
 
 sound {
-
+    ; TODO stubs for now
     sub init() {
-        c64.MVOL = 15
+        ; c64.MVOL = 15
     }
 
     sub blockrotate() {
         ; soft click
-        c64.MVOL = 5
-        c64.AD1 = %00100010
-        c64.SR1 = %00000000
-        c64.FREQ1 = 15600
-        c64.CR1 = %10000000
-        c64.CR1 = %10000001
+;        c64.MVOL = 5
+;        c64.AD1 = %00100010
+;        c64.SR1 = %00000000
+;        c64.FREQ1 = 15600
+;        c64.CR1 = %10000000
+;        c64.CR1 = %10000001
     }
 
     sub blockdrop() {
         ; swish
-        c64.MVOL = 5
-        c64.AD1 = %01010111
-        c64.SR1 = %00000000
-        c64.FREQ1 = 4600
-        c64.CR1 = %10000000
-        c64.CR1 = %10000001
+;        c64.MVOL = 5
+;        c64.AD1 = %01010111
+;        c64.SR1 = %00000000
+;        c64.FREQ1 = 4600
+;        c64.CR1 = %10000000
+;        c64.CR1 = %10000001
     }
 
     sub swapping() {
         ; beep
-        c64.MVOL = 8
-        c64.AD1 = %01010111
-        c64.SR1 = %00000000
-        c64.FREQ1 = 5500
-        c64.CR1 = %00010000
-        c64.CR1 = %00010001
+;        c64.MVOL = 8
+;        c64.AD1 = %01010111
+;        c64.SR1 = %00000000
+;        c64.FREQ1 = 5500
+;        c64.CR1 = %00010000
+;        c64.CR1 = %00010001
     }
 
     sub lineclear() {
         ; explosion
-        c64.MVOL = 15
-        c64.AD1 = %01100110
-        c64.SR1 = %00000000
-        c64.FREQ1 = 1600
-        c64.CR1 = %10000000
-        c64.CR1 = %10000001
+;        c64.MVOL = 15
+;        c64.AD1 = %01100110
+;        c64.SR1 = %00000000
+;        c64.FREQ1 = 1600
+;        c64.CR1 = %10000000
+;        c64.CR1 = %10000001
     }
 
     sub lineclear_big() {
         ; big explosion
-        c64.MVOL = 15
-        c64.AD1 = %01101010
-        c64.SR1 = %00000000
-        c64.FREQ1 = 2600
-        c64.CR1 = %10000000
-        c64.CR1 = %10000001
+;        c64.MVOL = 15
+;        c64.AD1 = %01101010
+;        c64.SR1 = %00000000
+;        c64.FREQ1 = 2600
+;        c64.CR1 = %10000000
+;        c64.CR1 = %10000001
     }
 
     sub gameover() {
         ; buzz
-        c64.MVOL = 15
-        c64.FREQ2 = 600
-        c64.AD2 = %00111010
-        c64.SR2 = %00000000
-        c64.CR2 = %00110000
-        c64.CR2 = %00110001
+;        c64.MVOL = 15
+;        c64.FREQ2 = 600
+;        c64.AD2 = %00111010
+;        c64.SR2 = %00000000
+;        c64.CR2 = %00110000
+;        c64.CR2 = %00110001
     }
 }
