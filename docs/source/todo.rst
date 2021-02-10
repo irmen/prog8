@@ -3,9 +3,7 @@ TODO
 ====
 
 - optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
-
 - implement the linked_list millfork benchmark
-- add a graphical star map (of the local area) to textelite
 
 - refactor the asmgen into their own submodule?
 - refactor the compiler optimizers into their own submodule?

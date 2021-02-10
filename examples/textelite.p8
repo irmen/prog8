@@ -40,9 +40,9 @@ main {
                 when input[0] {
                     '?' -> {
                         txt.print("\nCommands are:\n"+
-                            "buy   jump      info    cash   >=save\n"+
-                            "sell  teleport  market  hold   <=load\n"+
-                            "fuel  galhyp    local          quit\n")
+                            "buy   jump      info    map    >=save\n"+
+                            "sell  teleport  market  cash   <=load\n"+
+                            "fuel  galhyp    local   hold   quit\n")
                     }
                     'q' -> break
                     'b' -> trader.do_buy()
@@ -52,7 +52,12 @@ main {
                     't' -> trader.do_teleport()
                     'g' -> trader.do_next_galaxy()
                     'i' -> trader.do_info()
-                    'm' -> trader.do_show_market()
+                    'm' -> {
+                        if input[1]=='a' and input[2]=='p'
+                            trader.do_map()
+                        else
+                            trader.do_show_market()
+                    }
                     'l' -> trader.do_local()
                     'c' -> trader.do_cash()
                     'h' -> trader.do_hold()
@@ -249,6 +254,7 @@ trader {
     }
 
     sub do_next_galaxy() {
+        txt.print("\n>>>>>>>> Galaxy Hyperjump!\n")
         galaxy.travel_to(galaxy.number+1, planet.number)
         planet.display(false, 0)
     }
@@ -258,8 +264,11 @@ trader {
         num_chars = txt.input_chars(input)
         if num_chars {
             ubyte current_planet = planet.number
+            ubyte x = planet.x
+            ubyte y = planet.y
             if galaxy.search_closest_planet(input) {
-                planet.display(false, 0)
+                ubyte distance = planet.distance(x, y)
+                planet.display(false, distance)
             } else {
                 txt.print(" Not found!")
             }
@@ -271,6 +280,14 @@ trader {
 
     sub do_local() {
         galaxy.local_area()
+    }
+
+    sub do_map() {
+        txt.print("\n(l)ocal or (g)alaxy starmap? ")
+        num_chars = txt.input_chars(input)
+        if num_chars {
+            galaxy.starmap(input[0]=='l')
+        }
     }
 
     sub do_show_market() {
@@ -479,6 +496,72 @@ galaxy {
             }
             pn++
         } until pn==0
+
+        travel_to(number, current_planet)
+    }
+
+    sub starmap(ubyte local) {
+        ubyte current_planet = planet.number
+        ubyte px = planet.x
+        ubyte py = planet.y
+        uword current_name = planet.name
+        ubyte pn = 0
+        uword scaling = 8
+        if local
+            scaling = 2
+        if txt.width() > 60
+            scaling /= 2
+
+        init(number)
+        txt.clear_screen()
+        txt.print("Galaxy #")
+        txt.print_ub(number)
+        if local
+            txt.print(" - local systems")
+        else
+            txt.print(" - galaxy")
+        txt.print(" starmap:\n")
+        ubyte max_distance = 255
+        if local
+            max_distance = ship.Max_fuel
+        do {
+            generate_next_planet()
+            ubyte distance = planet.distance(px, py)
+            if distance <= max_distance {
+                planet.name = make_current_planet_name()
+                planet.name[0] |= 32       ; uppercase first letter
+                uword tx = planet.x
+                uword ty = planet.y
+                if local {
+                    tx = tx + 24 - px
+                    ty = ty + 24 - py
+                }
+                tx /= scaling
+                ty /= scaling*2
+                ubyte sx = lsb(tx)
+                ubyte sy = lsb(ty)
+                ubyte char = '*'
+                if planet.number==current_planet
+                    char = '%'
+                if local or planet.number==current_planet {
+                    txt.plot(2+sx-2, 2+sy+1)
+                    txt.print(current_name)
+                    if distance {
+                        txt.plot(2+sx-2, 2+sy+2)
+                        util.print_10s(distance)
+                        txt.print(" LY")
+                    }
+                }
+                txt.setchr(2+sx, 2+sy, char)
+            }
+            pn++
+        } until pn==0
+
+        if txt.width() < 80
+            txt.plot(0,20)
+        else
+            txt.plot(0,36)
+
 
         travel_to(number, current_planet)
     }
