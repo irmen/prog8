@@ -964,6 +964,55 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcPokeW(fcall: IFunctionCall) {
+        when(val addrExpr = fcall.args[0]) {
+            is NumericLiteralValue -> {
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+                val addr = addrExpr.number.toHex()
+                asmgen.out("  sta  $addr |  sty  ${addr}+1")
+                return
+            }
+            is IdentifierReference -> {
+                val varname = asmgen.asmVariableName(addrExpr)
+                if(asmgen.isZpVar(addrExpr)) {
+                    // pointervar is already in the zero page, no need to copy
+                    asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine()!!)
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
+                    if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02) {
+                        asmgen.out("""
+                            sta  ($varname)
+                            txa
+                            ldy  #1
+                            sta  ($varname),y""")
+                    } else {
+                        asmgen.out("""
+                            ldy  #0
+                            sta  ($varname),y
+                            txa
+                            iny
+                            sta  ($varname),y""")
+                    }
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
+                    return
+                }
+            }
+            is BinaryExpression -> {
+                if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteralValue) {
+                    asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine()!!)
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
+                    val varname = asmgen.asmVariableName(addrExpr.left as IdentifierReference)
+                    val index = (addrExpr.right as NumericLiteralValue).number.toHex()
+                    asmgen.out("""
+                        ldy  #$index
+                        sta  ($varname),y
+                        txa
+                        iny
+                        sta  ($varname),y""")
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
+                    return
+                }
+            }
+        }
+
         asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.func_pokew")
