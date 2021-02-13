@@ -84,7 +84,6 @@ abstract class AstWalker {
     open fun before(block: Block, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(branchStatement: BranchStatement, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = emptyList()
-    open fun before(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = emptyList()
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = emptyList()
@@ -393,11 +392,6 @@ abstract class AstWalker {
     fun visit(inlineAssembly: InlineAssembly, parent: Node) {
         track(before(inlineAssembly, parent), inlineAssembly, parent)
         track(after(inlineAssembly, parent), inlineAssembly, parent)
-    }
-
-    fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder, parent: Node) {
-        track(before(builtinFunctionStatementPlaceholder, parent), builtinFunctionStatementPlaceholder, parent)
-        track(after(builtinFunctionStatementPlaceholder, parent), builtinFunctionStatementPlaceholder, parent)
     }
 
     fun visit(nopStatement: NopStatement, parent: Node) {

@@ -10,16 +10,16 @@ main {
         @(ptr) = $34
         @(ptr+1) = $ea
 
-        txt.print_ubhex(@(ptr), 1)
-        txt.print_ubhex(@(ptr+1), 1)
+        txt.print_ubhex(peek(ptr), 1)
+        txt.print_ubhex(peek(ptr+1), 1)
         txt.nl()
 
-        uword ww = mkword(@(ptr+1), @(ptr))         ; TODO FIX
+        uword ww = peekw(ptr)
         txt.print_uwhex(ww,1)
         txt.nl()
 
-        ubyte low = @(ptr)
-        ubyte high = @(ptr+1)
+        ubyte low = peek(ptr)
+        ubyte high = peek(ptr+1)
         ww = mkword(high, low)
         txt.print_uwhex(ww,1)
         txt.nl()

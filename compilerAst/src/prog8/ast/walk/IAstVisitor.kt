@@ -158,9 +158,6 @@ interface IAstVisitor {
     fun visit(inlineAssembly: InlineAssembly) {
     }
 
-    fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder) {
-    }
-
     fun visit(nopStatement: NopStatement) {
     }
 

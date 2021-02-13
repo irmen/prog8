@@ -56,6 +56,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "sort" -> funcSort(fcall)
             "reverse" -> funcReverse(fcall)
             "memory" -> funcMemory(fcall, discardResult, resultToStack, resultRegister)
+            "peekw" -> funcPeekW(fcall, resultToStack, resultRegister)
+            "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }
     }
@@ -955,6 +957,22 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
             }
             else -> throw AssemblyError("wrong func")
+        }
+    }
+
+    private fun funcPeekW(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.peekw")
+        if(resultToStack){
+            asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+        } else {
+            when(resultRegister ?: RegisterOrPair.AY) {
+                RegisterOrPair.AY -> {}
+                RegisterOrPair.AX -> asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG")
+                RegisterOrPair.XY -> asmgen.out("  tax")
+                in Cx16VirtualRegisters -> asmgen.out("  sta  cx16.${resultRegister.toString().toLowerCase()} |  sty  cx16.${resultRegister.toString().toLowerCase()}+1")
+                else -> throw AssemblyError("invalid reg")
+            }
         }
     }
 

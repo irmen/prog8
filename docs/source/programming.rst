@@ -803,6 +803,11 @@ mkword(msb, lsb)
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
         in little-endian format, so lsb first then msb)
 
+peek(address)
+    same as @(address) - reads the byte at the given address in memory.
+
+peekw(address)
+    reads the word value at the given address in memory. Word is assumed to be stored in usual lsb/msb byte order.
 
 rnd()
     returns a pseudo-random byte from 0..255

@@ -132,6 +132,8 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("lsb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 } },
     FSignature("msb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255} },
     FSignature("mkword"      , true, listOf(FParam("msb", setOf(DataType.UBYTE)), FParam("lsb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
+    FSignature("peek"        , true, listOf(FParam("address", setOf(DataType.UWORD))), DataType.UBYTE),
+    FSignature("peekw"       , true, listOf(FParam("address", setOf(DataType.UWORD))), DataType.UWORD),
     FSignature("rnd"         , false, emptyList(), DataType.UBYTE),
     FSignature("rndw"        , false, emptyList(), DataType.UWORD),
     FSignature("rndf"        , false, emptyList(), DataType.FLOAT),

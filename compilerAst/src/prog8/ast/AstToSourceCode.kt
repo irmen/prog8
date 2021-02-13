@@ -413,10 +413,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         outputlni("}}")
     }
 
-    override fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder) {
-        output(builtinFunctionStatementPlaceholder.name)
-    }
-
     override fun visit(whenStatement: WhenStatement) {
         output("when ")
         whenStatement.condition.accept(this)

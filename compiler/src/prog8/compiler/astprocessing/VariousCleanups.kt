@@ -2,6 +2,8 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.INameScope
 import prog8.ast.Node
+import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.AnonymousScope
@@ -43,4 +45,14 @@ internal class VariousCleanups: AstWalker() {
 
         return noModifications
     }
+
+    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+        if(functionCall.target.nameInSource==listOf("peek")) {
+            // peek is synonymous with @
+            val memread = DirectMemoryRead(functionCall.args.single(), functionCall.position)
+            return listOf(IAstModification.ReplaceNode(functionCall, memread, parent))
+        }
+        return noModifications
+    }
+
 }

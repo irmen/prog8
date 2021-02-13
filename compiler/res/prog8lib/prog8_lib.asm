@@ -1071,3 +1071,18 @@ sign_extend_AY_byte	.proc
 		pla
 		rts
 		.pend
+
+
+peekw   .proc
+	; -- read the word value on the address in AY
+	sta  P8ZP_SCRATCH_W1
+	sty  P8ZP_SCRATCH_W1+1
+	ldy  #0
+	lda  (P8ZP_SCRATCH_W1),y
+	pha
+	iny
+	lda  (P8ZP_SCRATCH_W1),y
+	tay
+	pla
+	rts
+	.pend
