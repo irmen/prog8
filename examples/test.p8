@@ -7,9 +7,8 @@ main {
 
         uword ptr = $4000
 
-        @(ptr) = $34
-        @(ptr+1) = $ea
-
+        poke(ptr, $34)
+        poke(ptr+1, $ea)
         txt.print_ubhex(peek(ptr), 1)
         txt.print_ubhex(peek(ptr+1), 1)
         txt.nl()
@@ -18,9 +17,8 @@ main {
         txt.print_uwhex(ww,1)
         txt.nl()
 
-        ubyte low = peek(ptr)
-        ubyte high = peek(ptr+1)
-        ww = mkword(high, low)
+        pokew(ptr, $98cf)
+        ww = peekw(ptr)
         txt.print_uwhex(ww,1)
         txt.nl()
     }

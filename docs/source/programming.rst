@@ -807,7 +807,13 @@ peek(address)
     same as @(address) - reads the byte at the given address in memory.
 
 peekw(address)
-    reads the word value at the given address in memory. Word is assumed to be stored in usual lsb/msb byte order.
+    reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
+
+poke(address, value)
+    same as @(address)=value - writes the byte value at the given address in memory.
+
+pokew(address, value)
+    writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
 
 rnd()
     returns a pseudo-random byte from 0..255

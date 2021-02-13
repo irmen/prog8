@@ -14,7 +14,7 @@
     <keywords keywords="&amp;;-&gt;;@;\$;and;as;asmsub;break;clobbers;do;downto;else;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;romsub;step;sub;to;true;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%asm;%asmbinary;%asminclude;%breakpoint;%import;%launcher;%option;%output;%target;%zeropage;%zpreserved" />
     <keywords3 keywords="byte;const;float;str;struct;ubyte;uword;void;word;zp" />
-    <keywords4 keywords="abs;acos;all;any;asin;atan;avg;ceil;cos;cos16;cos16u;cos8;cos8u;deg;floor;len;ln;log2;lsb;lsl;lsr;max;memory;min;mkword;msb;offsetof;rad;reverse;rnd;rndf;rndw;rol;rol2;ror;ror2;round;sgn;sin;sin16;sin16u;sin8;sin8u;sizeof;sort;sqrt;sqrt16;sum;swap;tan" />
+    <keywords4 keywords="abs;acos;all;any;asin;atan;avg;ceil;cos;cos16;cos16u;cos8;cos8u;deg;floor;len;ln;log2;lsb;lsl;lsr;max;memory;min;mkword;msb;offsetof;peek;peekw;poke;pokew;rad;reverse;rnd;rndf;rndw;rol;rol2;ror;ror2;round;sgn;sin;sin16;sin16u;sin8;sin8u;sizeof;sort;sqrt;sqrt16;sum;swap;tan" />
   </highlighting>
   <extensionMap>
     <mapping ext="p8" />

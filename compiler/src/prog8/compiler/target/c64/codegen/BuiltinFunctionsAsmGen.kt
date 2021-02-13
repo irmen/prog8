@@ -58,6 +58,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "memory" -> funcMemory(fcall, discardResult, resultToStack, resultRegister)
             "peekw" -> funcPeekW(fcall, resultToStack, resultRegister)
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
+            "pokew" -> funcPokeW(fcall)
+            "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             else -> TODO("missing asmgen for builtin func ${func.name}")
         }
     }
@@ -960,9 +962,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
+    private fun funcPokeW(fcall: IFunctionCall) {
+        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.func_pokew")
+    }
+
     private fun funcPeekW(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-        asmgen.out("  jsr  prog8_lib.peekw")
+        asmgen.out("  jsr  prog8_lib.func_peekw")
         if(resultToStack){
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
         } else {
