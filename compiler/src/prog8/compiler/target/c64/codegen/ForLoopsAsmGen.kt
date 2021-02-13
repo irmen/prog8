@@ -369,7 +369,7 @@ $loopLabel""")
                         throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
                     }
                     2 -> {
-                        if(range.last==255) {
+                        if(range.last==255 || range.last==254) {
                             asmgen.out("""
                                 inc  $varname
                                 beq  $endLabel
@@ -377,12 +377,11 @@ $loopLabel""")
                                 bne  $loopLabel""")
                         } else {
                             asmgen.out("""
+                                inc  $varname
+                                inc  $varname
                                 lda  $varname
-                                cmp  #${range.last}
-                                beq  $endLabel
-                                inc  $varname
-                                inc  $varname
-                                jmp  $loopLabel""")
+                                cmp  #${range.last+2}
+                                bne  $loopLabel""")
                         }
                     }
                     -2 -> {
@@ -399,12 +398,11 @@ $loopLabel""")
                                 dec  $varname
                                 bne  $loopLabel""")
                             else -> asmgen.out("""
+                                dec  $varname
+                                dec  $varname
                                 lda  $varname
-                                cmp  #${range.last}
-                                beq  $endLabel
-                                dec  $varname
-                                dec  $varname
-                                jmp  $loopLabel""")
+                                cmp  #${range.last-2}
+                                bne  $loopLabel""")
                         }
                     }
                     else -> {
@@ -480,11 +478,10 @@ $loopLabel""")
 $endLabel""")
         } else {
             asmgen.out("""
-                lda  $varname
-                cmp  #${range.last}
-                beq  $endLabel
                 inc  $varname
-                jmp  $loopLabel
+                lda  $varname
+                cmp  #${range.last+1}
+                bne  $loopLabel
 $endLabel""")
         }
         asmgen.loopEndLabels.pop()
@@ -512,16 +509,15 @@ $endLabel""")
             1 -> {
                 asmgen.out("""
                     dec  $varname
-                    jmp  $loopLabel
+                    bne  $loopLabel
 $endLabel""")
             }
             else -> {
                 asmgen.out("""
-                    lda  $varname
-                    cmp  #${range.last}
-                    beq  $endLabel
                     dec  $varname
-                    jmp  $loopLabel
+                    lda  $varname
+                    cmp  #${range.last-1}
+                    bne  $loopLabel
 $endLabel""")
             }
         }
@@ -546,7 +542,6 @@ $loopLabel""")
             bne  +
             lda  $varname+1
             cmp  #>${range.last}
-            bne  +
             beq  $endLabel
 +           inc  $varname
             bne  $loopLabel
@@ -574,7 +569,6 @@ $loopLabel""")
             bne  +
             lda  $varname+1
             cmp  #>${range.last}
-            bne  +
             beq  $endLabel
 +           lda  $varname
             bne  +

@@ -2,7 +2,6 @@
 TODO
 ====
 
-- optimize for loop iterations better to allow proper inx, cpx #value, bne loop  instructions  (like repeat loop)
 - implement the linked_list millfork benchmark
 
 - refactor the asmgen into their own submodule?
