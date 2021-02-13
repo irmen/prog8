@@ -4,29 +4,24 @@
 main {
 
     sub start() {
-        ubyte ib
-        uword iw
-        ubyte xx
 
-        xx=0
+        uword ptr = $4000
 
-        for ib in 241 to 253 step 2 {
-            txt.print_ub(ib)
-            txt.nl()
-            xx++
-        }
+        @(ptr) = $34
+        @(ptr+1) = $ea
 
-        for ib in 10 downto 2 step -2 {
-            txt.print_ub(ib)
-            txt.nl()
-            xx--
-        }
-        for ib in 6 downto 0 step -2 {
-            txt.print_ub(ib)
-            txt.nl()
-            xx--
-        }
+        txt.print_ubhex(@(ptr), 1)
+        txt.print_ubhex(@(ptr+1), 1)
+        txt.nl()
 
-        txt.print_ub(xx)
+        uword ww = mkword(@(ptr+1), @(ptr))         ; TODO FIX
+        txt.print_uwhex(ww,1)
+        txt.nl()
+
+        ubyte low = @(ptr)
+        ubyte high = @(ptr+1)
+        ww = mkword(high, low)
+        txt.print_uwhex(ww,1)
+        txt.nl()
     }
 }

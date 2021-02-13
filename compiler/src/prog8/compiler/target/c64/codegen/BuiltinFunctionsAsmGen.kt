@@ -965,7 +965,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
         } else {
             val reg = resultRegister ?: RegisterOrPair.AY
-            val needAsave = !(fcall.args[0] is DirectMemoryRead || fcall.args[0] is NumericLiteralValue || fcall.args[0] is IdentifierReference)
+            var needAsave = !(fcall.args[0] is DirectMemoryRead || fcall.args[0] is NumericLiteralValue || fcall.args[0] is IdentifierReference)
+            if(!needAsave) {
+                val mr0 = fcall.args[0] as? DirectMemoryRead
+                val mr1 = fcall.args[1] as? DirectMemoryRead
+                if (mr0 != null)
+                    needAsave = mr0.addressExpression !is NumericLiteralValue && mr0.addressExpression !is IdentifierReference
+                if (mr1 != null)
+                    needAsave = needAsave or (mr1.addressExpression !is NumericLiteralValue && mr1.addressExpression !is IdentifierReference)
+            }
             when(reg) {
                 RegisterOrPair.AX -> {
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
