@@ -6,19 +6,20 @@ main {
     sub start() {
 
         uword ptr = $4000
+        uword ww
 
-        poke(ptr, $34)
-        poke(ptr+1, $ea)
-        txt.print_ubhex(peek(ptr), 1)
-        txt.print_ubhex(peek(ptr+1), 1)
-        txt.nl()
-
-        uword ww = peekw(ptr)
+        pokew($4000, $98cf)
+        ww = peekw($4000)
         txt.print_uwhex(ww,1)
         txt.nl()
 
         pokew(ptr, $98cf)
         ww = peekw(ptr)
+        txt.print_uwhex(ww,1)
+        txt.nl()
+
+        pokew(ptr+2, $1234)
+        ww = peekw(ptr+2)
         txt.print_uwhex(ww,1)
         txt.nl()
     }

@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.functions.FSignature
+import prog8.compiler.target.CpuType
 import prog8.compiler.target.c64.codegen.assignment.*
 import prog8.compiler.target.subroutineFloatEvalResultVar2
 
@@ -969,8 +970,59 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcPeekW(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
-        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-        asmgen.out("  jsr  prog8_lib.func_peekw")
+        when(val addrExpr = fcall.args[0]) {
+            is NumericLiteralValue -> {
+                val addr = addrExpr.number.toHex()
+                asmgen.out("  lda  $addr |  ldy  ${addr}+1")
+            }
+            is IdentifierReference -> {
+                val varname = asmgen.asmVariableName(addrExpr)
+                if(asmgen.isZpVar(addrExpr)) {
+                    // pointervar is already in the zero page, no need to copy
+                    if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02) {
+                        asmgen.out("""
+                            ldy  #1
+                            lda  ($varname),y
+                            tay
+                            lda  ($varname)""")
+                    } else {
+                        asmgen.out("""
+                            ldy  #0
+                            lda  ($varname),y
+                            pha
+                            iny
+                            lda  ($varname),y
+                            tay
+                            pla""")
+                    }
+                } else {
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                    asmgen.out("  jsr  prog8_lib.func_peekw")
+                }
+            }
+            is BinaryExpression -> {
+                if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteralValue) {
+                    val varname = asmgen.asmVariableName(addrExpr.left as IdentifierReference)
+                    val index = (addrExpr.right as NumericLiteralValue).number.toHex()
+                    asmgen.out("""
+                        ldy  #$index
+                        lda  ($varname),y
+                        pha
+                        iny
+                        lda  ($varname),y
+                        tay
+                        pla""")
+                } else {
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                    asmgen.out("  jsr  prog8_lib.func_peekw")
+                }
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                asmgen.out("  jsr  prog8_lib.func_peekw")
+            }
+        }
+
         if(resultToStack){
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
         } else {
