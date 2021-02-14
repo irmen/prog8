@@ -2,6 +2,7 @@
 TODO
 ====
 
+- auto_heap_value for strings: avoid creating multiple values for identical strings (or fix it at the end)
 - refactor the asmgen into their own submodule?
 - refactor the compiler optimizers into their own submodule?
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))

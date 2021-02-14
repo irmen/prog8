@@ -9,14 +9,25 @@ main {
         uword textptr = &text
 
         ubyte nlen = conv.any2uword(textptr)
-        ubyte valid_operand = (nlen>0) and (@(textptr+nlen)==0)
+        ubyte lastchr = text[nlen]
+        ubyte valid_operand
+
+        valid_operand = nlen>0 and lastchr==0
+        txt.print("\nvalidoper? ")
+        txt.print_ub(valid_operand)
+        txt.nl()
+
+        valid_operand = nlen>0
+        valid_operand = valid_operand and lastchr==0
 
         txt.print("\nvalidoper? ")
         txt.print_ub(valid_operand)
-        txt.print("\nnlen=")
-        txt.print_ub(nlen)
-        txt.print("\nr15=")
-        txt.print_uwhex(cx16.r15, true)
+        txt.nl()
+
+
+        valid_operand = nlen and lastchr==0
+        txt.print("\nvalidoper? ")
+        txt.print_ub(valid_operand)
         txt.nl()
     }
 }

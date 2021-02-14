@@ -167,6 +167,38 @@ internal class StatementReorderer(val program: Program, val errors: ErrorReporte
                 else -> return noModifications
             }
         }
+        else if(expr.operator in logicalOperators) {
+            // make sure that logical expressions like "var and other-logical-expression
+            // is rewritten as "var!=0 and other-logical-expression", to avoid bitwise boolean and
+            // generating the wrong results later
+
+            fun wrapped(expr: Expression): Expression =
+                BinaryExpression(expr, "!=", NumericLiteralValue(DataType.UBYTE, 0, expr.position), expr.position)
+
+            fun isLogicalExpr(expr: Expression?): Boolean {
+                if(expr is BinaryExpression && expr.operator in (logicalOperators + comparisonOperators))
+                    return true
+                if(expr is PrefixExpression && expr.operator in logicalOperators)
+                    return true
+                return false
+            }
+
+            return if(isLogicalExpr(expr.left)) {
+                if(isLogicalExpr(expr.right))
+                    noModifications
+                else
+                    listOf(IAstModification.ReplaceNode(expr.right, wrapped(expr.right), expr))
+            } else {
+                if(isLogicalExpr(expr.right))
+                    listOf(IAstModification.ReplaceNode(expr.left, wrapped(expr.left), expr))
+                else {
+                    listOf(
+                        IAstModification.ReplaceNode(expr.left, wrapped(expr.left), expr),
+                        IAstModification.ReplaceNode(expr.right, wrapped(expr.right), expr)
+                    )
+                }
+            }
+        }
         return noModifications
     }
 
