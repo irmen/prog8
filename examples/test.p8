@@ -5,22 +5,18 @@ main {
 
     sub start() {
 
-        uword ptr = $4000
-        uword ww
+        str text = "44"
+        uword textptr = &text
 
-        pokew($4000, $98cf)
-        ww = peekw($4000)
-        txt.print_uwhex(ww,1)
-        txt.nl()
+        ubyte nlen = conv.any2uword(textptr)
+        ubyte valid_operand = (nlen>0) and (@(textptr+nlen)==0)
 
-        pokew(ptr, $98cf)
-        ww = peekw(ptr)
-        txt.print_uwhex(ww,1)
-        txt.nl()
-
-        pokew(ptr+2, $1234)
-        ww = peekw(ptr+2)
-        txt.print_uwhex(ww,1)
+        txt.print("\nvalidoper? ")
+        txt.print_ub(valid_operand)
+        txt.print("\nnlen=")
+        txt.print_ub(nlen)
+        txt.print("\nr15=")
+        txt.print_uwhex(cx16.r15, true)
         txt.nl()
     }
 }
