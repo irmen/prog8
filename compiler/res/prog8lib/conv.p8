@@ -257,7 +257,7 @@ asmsub  any2uword(str string @AY) clobbers(Y) -> ubyte @A {
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
 	ldy  #0
-	lda  (P8ZP_SCRATCH_W1)
+	lda  (P8ZP_SCRATCH_W1),y
 	ldy  P8ZP_SCRATCH_W1+1
 	cmp  #'$'
 	beq  _hex
