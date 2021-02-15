@@ -626,6 +626,8 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 
 asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
 	; ---- set the color in A on the screen matrix at the given position
+	;      note: on the CommanderX16 this allows you to set both Fg and Bg colors;
+	;            use the high nybble in A to set the Bg color!
 	%asm {{
             pha
             txa
@@ -657,6 +659,8 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
+	;      note: color handling is the same as on the C64: it only sets the foreground color.
+	;            use setcc2 if you want Cx-16 specific feature of setting both Bg+Fg colors.
 	%asm {{
             phx
             lda  column
@@ -679,6 +683,33 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
             lda  cx16.VERA_DATA0
             and  #$f0
             ora  P8ZP_SCRATCH_B1
+            sta  cx16.VERA_DATA0
+            plx
+            rts
+    }}
+}
+
+sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
+	; ---- set char+color at the given position on the screen
+	;      note: on the CommanderX16 this allows you to set both Fg and Bg colors;
+	;            use the high nybble in A to set the Bg color!
+	%asm {{
+            phx
+            lda  column
+            asl  a
+            tax
+            ldy  row
+            stz  cx16.VERA_CTRL
+            stz  cx16.VERA_ADDR_H
+            stx  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            lda  char
+            sta  cx16.VERA_DATA0
+            inx
+            stz  cx16.VERA_ADDR_H
+            stx  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            lda  colors
             sta  cx16.VERA_DATA0
             plx
             rts
