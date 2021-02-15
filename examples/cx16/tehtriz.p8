@@ -49,11 +49,11 @@ waitkey:
         if time_lo>=(60-4*speedlevel) {
             c64.SETTIM(0,0,0)
 
-            drawBlock(xpos, ypos, 32) ; hide block
+            drawBlock(xpos, ypos, true) ; hide block
             if blocklogic.noCollision(xpos, ypos+1) {
                 ; slowly move the block down
                 ypos++
-                drawBlock(xpos, ypos, 160)  ; show block on new position
+                drawBlock(xpos, ypos, false)  ; show block on new position
             } else {
                 ; block can't move further down!
                 ; check if the game area is full, if not, spawn the next block at the top.
@@ -84,31 +84,31 @@ waitkey:
     }
 
     sub move_left() {
-        drawBlock(xpos, ypos, 32)
+        drawBlock(xpos, ypos, true)
         if blocklogic.noCollision(xpos-1, ypos) {
             xpos--
         }
-        drawBlock(xpos, ypos, 160)
+        drawBlock(xpos, ypos, false)
     }
 
     sub move_right() {
-        drawBlock(xpos, ypos, 32)
+        drawBlock(xpos, ypos, true)
         if blocklogic.noCollision(xpos+1, ypos) {
             xpos++
         }
-        drawBlock(xpos, ypos, 160)
+        drawBlock(xpos, ypos, false)
     }
 
     sub move_down_faster() {
-        drawBlock(xpos, ypos, 32)
+        drawBlock(xpos, ypos, true)
         if blocklogic.noCollision(xpos, ypos+1) {
             ypos++
         }
-        drawBlock(xpos, ypos, 160)
+        drawBlock(xpos, ypos, false)
     }
 
     sub drop_down_immediately() {
-        drawBlock(xpos, ypos, 32)
+        drawBlock(xpos, ypos, true)
         ubyte dropypos
         for dropypos in ypos+1 to boardOffsetY+boardHeight-1 {
             if not blocklogic.noCollision(xpos, dropypos) {
@@ -120,7 +120,7 @@ waitkey:
         if dropypos>ypos {
             ypos = dropypos
             sound.blockdrop()
-            drawBlock(xpos, ypos, 160)
+            drawBlock(xpos, ypos, false)
             checkForLines()
             spawnNextBlock()
             score++
@@ -137,7 +137,7 @@ waitkey:
             'z' -> {
                 ; no joystick equivalent (there is only 1 fire button)
                 ; rotate counter clockwise
-                drawBlock(xpos, ypos, 32)
+                drawBlock(xpos, ypos, true)
                 if blocklogic.canRotateCCW(xpos, ypos) {
                     blocklogic.rotateCCW()
                     sound.blockrotate()
@@ -152,11 +152,11 @@ waitkey:
                     blocklogic.rotateCCW()
                     sound.blockrotate()
                 }
-                drawBlock(xpos, ypos, 160)
+                drawBlock(xpos, ypos, false)
             }
             'x' -> {
                 ; rotate clockwise
-                drawBlock(xpos, ypos, 32)
+                drawBlock(xpos, ypos, true)
                 if blocklogic.canRotateCW(xpos, ypos) {
                     blocklogic.rotateCW()
                     sound.blockrotate()
@@ -171,21 +171,21 @@ waitkey:
                     blocklogic.rotateCW()
                     sound.blockrotate()
                 }
-                drawBlock(xpos, ypos, 160)
+                drawBlock(xpos, ypos, false)
             }
             'c' -> {
                 ; hold
                 if holdingAllowed {
                     sound.swapping()
                     if holding<7 {
-                        drawBlock(xpos, ypos, 32)
+                        drawBlock(xpos, ypos, true)
                         ubyte newholding = blocklogic.currentBlockNum
                         swapBlock(holding)
                         holding = newholding
                         holdingAllowed = false
                     } else {
                         holding = blocklogic.currentBlockNum
-                        drawBlock(xpos, ypos, 32)
+                        drawBlock(xpos, ypos, true)
                         spawnNextBlock()
                     }
                     drawHoldBlock()
@@ -206,7 +206,7 @@ waitkey:
                 num_lines++
                 ubyte x
                 for x in boardOffsetX to boardOffsetX+boardWidth-1
-                    txt.setcc(x, linepos, 160, 1)
+                    txt.setcc2(x, linepos, 160, 1)
             }
         }
         if num_lines {
@@ -272,7 +272,7 @@ waitkey:
         blocklogic.newCurrentBlock(newblock)
         xpos = startXpos
         ypos = startYpos
-        drawBlock(xpos, ypos, 160)
+        drawBlock(xpos, ypos, false)
     }
 
     sub spawnNextBlock() {
@@ -358,14 +358,14 @@ waitkey:
         const ubyte nextBlockYpos = 5
         ubyte x
         for x in nextBlockXpos+3 downto nextBlockXpos {
-            txt.setcc(x, nextBlockYpos, ' ', 0)
-            txt.setcc(x, nextBlockYpos+1, ' ', 0)
+            txt.setcc2(x, nextBlockYpos, ' ', 0)
+            txt.setcc2(x, nextBlockYpos+1, ' ', 0)
         }
 
         ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
         ubyte prev = blocklogic.currentBlockNum
         blocklogic.newCurrentBlock(nextBlock)
-        drawBlock(nextBlockXpos, nextBlockYpos, 160)
+        drawBlock(nextBlockXpos, nextBlockYpos, false)
         blocklogic.newCurrentBlock(prev)
     }
 
@@ -374,24 +374,35 @@ waitkey:
         const ubyte holdBlockYpos = 6
         ubyte x
         for x in holdBlockXpos+3 downto holdBlockXpos {
-            txt.setcc(x, holdBlockYpos, '@', 0)
-            txt.setcc(x, holdBlockYpos+1, '@', 0)
+            txt.setcc2(x, holdBlockYpos, '@', 0)
+            txt.setcc2(x, holdBlockYpos+1, '@', 0)
         }
         if holding < 7 {
             ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
             ubyte prev = blocklogic.currentBlockNum
             blocklogic.newCurrentBlock(holding)
-            drawBlock(holdBlockXpos, holdBlockYpos, 160)
+            drawBlock(holdBlockXpos, holdBlockYpos, false)
             blocklogic.newCurrentBlock(prev)
         }
     }
 
-    sub drawBlock(ubyte x, ubyte y, ubyte character) {
+    sub drawBlock(ubyte x, ubyte y, ubyte erase) {
+        ubyte char = 79   ; top left edge
+        if erase
+            char = 32   ; space
         ubyte @zp i
         for i in 15 downto 0 {
             ubyte @zp c=blocklogic.currentBlock[i]
-            if c
-                txt.setcc((i&3)+x, (i/4)+y, character, c)
+            if c {
+                if erase
+                    c=0
+                else {
+                    ubyte edge = blocklogic.edgecolors[c]
+                    c <<= 4
+                    c |= edge
+                }
+                txt.setcc2((i&3)+x, (i/4)+y, char, c)
+            }
         }
     }
 }
@@ -404,34 +415,36 @@ blocklogic {
     ubyte[16] rotated
 
     ; the 7 tetrominos
-    ubyte[] blockI = [0,0,0,0,        ; cyan ; note: special rotation (around matrix center)
-                      3,3,3,3,
+    ubyte[] blockI = [0,0,0,0,        ; blue    note: special rotation (around matrix center)
+                      6,6,6,6,
                       0,0,0,0,
                       0,0,0,0]
-    ubyte[] blockJ = [6,0,0,0,        ; blue
-                      6,6,6,0,
+    ubyte[] blockJ = [5,0,0,0,        ; green
+                      5,5,5,0,
                       0,0,0,0,
                       0,0,0,0]
-    ubyte[] blockL = [0,0,8,0,        ; orange
-                      8,8,8,0,
+    ubyte[] blockL = [0,0,2,0,        ; red
+                      2,2,2,0,
                       0,0,0,0,
                       0,0,0,0]
-    ubyte[] blockO = [0,7,7,0,        ; yellow ; note: no rotation (square)
-                      0,7,7,0,
+    ubyte[] blockO = [0,12,12,0,      ; grey ; note: no rotation (square)
+                      0,12,12,0,
                       0,0,0,0,
                       0,0,0,0]
-    ubyte[] blockS = [0,5,5,0,        ; green
-                      5,5,0,0,
+    ubyte[] blockS = [0,11,11,0,        ; dark grey
+                      11,11,0,0,
                       0,0,0,0,
                       0,0,0,0]
-    ubyte[] blockT = [0,4,0,0,        ; purple
-                      4,4,4,0,
+    ubyte[] blockT = [0,9,0,0,        ; brown
+                      9,9,9,0,
                       0,0,0,0,
                       0,0,0,0]
-    ubyte[] blockZ = [2,2,0,0,        ; red
-                      0,2,2,0,
+    ubyte[] blockZ = [4,4,0,0,        ; purple
+                      0,4,4,0,
                       0,0,0,0,
                       0,0,0,0]
+
+    ubyte[16] edgecolors = [11, 1, 10, 0, 10, 13, 14, 1, 7, 7, 11, 12, 15, 1, 1, 1]      ; highlighed colors for the edges
 
     uword[] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
 
@@ -545,9 +558,9 @@ blocklogic {
     }
 
     sub isGameOver(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)
+        main.drawBlock(xpos, ypos, true)
         ubyte result = ypos==main.startYpos and not noCollision(xpos, ypos+1)
-        main.drawBlock(xpos, ypos, 160)
+        main.drawBlock(xpos, ypos, false)
         return result
     }
 
@@ -566,7 +579,7 @@ blocklogic {
             for x in main.boardOffsetX+main.boardWidth-1 downto main.boardOffsetX {
                 ubyte char = txt.getchr(x, ypos-1)
                 ubyte color = txt.getclr(x, ypos-1)
-                txt.setcc(x, ypos, char, color)
+                txt.setcc2(x, ypos, char, color)
             }
             ypos--
         }
