@@ -87,10 +87,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, null, program, asmgen)
         val assign = AsmAssignment(src, target, false, fcall.position)
         asmgen.translateNormalAssignment(assign)
-
-        // remove the variable for the name, it's not used as a variable only as a tag for the assembler.
-        val nameDecl = scope.statements.single { it is VarDecl && it.name==nameRef.nameInSource.single() }
-        asmgen.removals.add(Pair(nameDecl, scope))
         asmgen.slabs[name] = size
     }
 
