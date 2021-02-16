@@ -17,13 +17,10 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
 
     override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {
-            // replace the literal string by a identifier reference to a new local vardecl
-            val vardecl = VarDecl.createAuto(string)
-            val identifier = IdentifierReference(listOf(vardecl.name), vardecl.position)
-            return listOf(
-                    IAstModification.ReplaceNode(string, identifier, parent),
-                    IAstModification.InsertFirst(vardecl, string.definingScope())
-            )
+            // replace the literal string by a identifier reference to the interned string
+            val scopedName = program.internString(string)
+            val identifier = IdentifierReference(scopedName, string.position)
+            return listOf(IAstModification.ReplaceNode(string, identifier, parent))
         }
         return noModifications
     }

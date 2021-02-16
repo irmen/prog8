@@ -2,7 +2,6 @@
 TODO
 ====
 
-- auto_heap_value for strings: avoid creating multiple values for identical strings (or fix it at the end)
 - add sound to the cx16 tehtriz
 - refactor the asmgen into their own submodule?
 - refactor the compiler optimizers into their own submodule?

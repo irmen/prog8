@@ -172,7 +172,6 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
     errors.handle()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
-
     val compilerOptions = determineCompilationOptions(programAst)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
@@ -188,7 +187,7 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
 }
 
 private fun determineCompilationOptions(program: Program): CompilationOptions {
-    val mainModule = program.modules.first()
+    val mainModule = program.mainModule
     val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
     val launcherType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" }

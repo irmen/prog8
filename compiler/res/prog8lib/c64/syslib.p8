@@ -178,7 +178,7 @@ c64 {
 
 ; ---- C64 ROM kernal routines ----
 
-romsub $AB1E = STROUT(uword strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use c64scr.print instead)
+romsub $AB1E = STROUT(uword strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use txt.print instead)
 romsub $E544 = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
 romsub $E566 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
 romsub $EA31 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
