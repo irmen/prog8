@@ -26,7 +26,8 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars()) {
-                errors.warn("removing empty block '${block.name}'", block.position)
+                if(block.name != program.internedStringsModuleName)
+                    errors.warn("removing empty block '${block.name}'", block.position)
                 return listOf(IAstModification.Remove(block, parent as INameScope))
             }
 
@@ -81,11 +82,9 @@ internal class StatementOptimizer(private val program: Program,
         }
 
         // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-        // this is a C-64 specific optimization
-        if(functionCallStatement.target.nameInSource==listOf("c64scr", "print")) {
+        if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
-            val stringVar: IdentifierReference?
-            stringVar = if(arg is AddressOf) {
+            val stringVar: IdentifierReference? = if(arg is AddressOf) {
                 arg.identifier
             } else {
                 arg as? IdentifierReference
@@ -98,7 +97,7 @@ internal class StatementOptimizer(private val program: Program,
                     if (string.value.length == 1) {
                         val firstCharEncoded = ICompilationTarget.instance.encodeString(string.value, string.altEncoding)[0]
                         val chrout = FunctionCallStatement(
-                                IdentifierReference(listOf("c64", "CHROUT"), pos),
+                                IdentifierReference(listOf("txt", "chrout"), pos),
                                 mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
                                 functionCallStatement.void, pos
                         )
@@ -106,19 +105,19 @@ internal class StatementOptimizer(private val program: Program,
                     } else if (string.value.length == 2) {
                         val firstTwoCharsEncoded = ICompilationTarget.instance.encodeString(string.value.take(2), string.altEncoding)
                         val chrout1 = FunctionCallStatement(
-                                IdentifierReference(listOf("c64", "CHROUT"), pos),
+                                IdentifierReference(listOf("txt", "chrout"), pos),
                                 mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
                                 functionCallStatement.void, pos
                         )
                         val chrout2 = FunctionCallStatement(
-                                IdentifierReference(listOf("c64", "CHROUT"), pos),
+                                IdentifierReference(listOf("txt", "chrout"), pos),
                                 mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toInt(), pos)),
                                 functionCallStatement.void, pos
                         )
-                        val anonscope = AnonymousScope(mutableListOf(), pos)
-                        anonscope.statements.add(chrout1)
-                        anonscope.statements.add(chrout2)
-                        return listOf(IAstModification.ReplaceNode(functionCallStatement, anonscope, parent))
+                        return listOf(
+                            IAstModification.InsertBefore(functionCallStatement, chrout1, parent as INameScope),
+                            IAstModification.ReplaceNode(functionCallStatement, chrout2, parent)
+                        )
                     }
                 }
             }
