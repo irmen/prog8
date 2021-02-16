@@ -522,12 +522,12 @@ Use a ``when`` statement if you have a set of fixed choices that each should res
 action. It is possible to combine several choices to result in the same action::
 
     when value {
-        4 -> c64scr.print("four")
-        5 -> c64scr.print("five")
+        4 -> txt.print("four")
+        5 -> txt.print("five")
         10,20,30 -> {
-            c64scr.print("ten or twenty or thirty")
+            txt.print("ten or twenty or thirty")
         }
-        else -> c64scr.print("don't know")
+        else -> txt.print("don't know")
     }
 
 The when-*value* can be any expression but the choice values have to evaluate to

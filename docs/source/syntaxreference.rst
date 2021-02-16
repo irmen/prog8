@@ -772,11 +772,11 @@ Choices can result in a single statement or a block of  multiple statements in w
 case you have to use { } to enclose them::
 
     when value {
-        4 -> c64scr.print("four")
-        5 -> c64scr.print("five")
+        4 -> txt.print("four")
+        5 -> txt.print("five")
         10,20,30 -> {
-            c64scr.print("ten or twenty or thirty")
+            txt.print("ten or twenty or thirty")
         }
-        else -> c64scr.print("don't know")
+        else -> txt.print("don't know")
     }
 
