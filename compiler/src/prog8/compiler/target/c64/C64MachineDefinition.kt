@@ -1,12 +1,9 @@
 package prog8.compiler.target.c64
 
-import prog8.ast.IStringEncoding
-import prog8.ast.Program
 import prog8.compiler.*
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.IMachineFloat
-import prog8.parser.ModuleImporter
 import java.io.IOException
 import kotlin.math.absoluteValue
 import kotlin.math.pow
@@ -31,15 +28,11 @@ internal object C64MachineDefinition: IMachineDefinition {
 
     override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
 
-    override fun importLibs(
-            compilerOptions: CompilationOptions,
-            importer: ModuleImporter,
-            program: Program,
-            encoder: IStringEncoding,
-            compilationTargetName: String)
-    {
-        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
-            importer.importLibraryModule(program, "syslib", encoder, compilationTargetName)
+    override fun importLibs(compilerOptions: CompilationOptions,compilationTargetName: String): List<String> {
+        return if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
+            listOf("syslib")
+        else
+            emptyList()
     }
 
     override fun launchEmulator(programName: String) {

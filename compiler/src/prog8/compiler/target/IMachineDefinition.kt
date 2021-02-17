@@ -1,10 +1,7 @@
 package prog8.compiler.target
 
-import prog8.ast.IStringEncoding
-import prog8.ast.Program
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
-import prog8.parser.ModuleImporter
 
 
 internal interface IMachineFloat {
@@ -34,10 +31,7 @@ internal interface IMachineDefinition {
     fun initializeZeropage(compilerOptions: CompilationOptions)
     fun getFloat(num: Number): IMachineFloat
 
-    // TODO don't do the importing here, just return a list of modules to import...:
-    fun importLibs(compilerOptions: CompilationOptions, importer: ModuleImporter, program: Program,
-        encoder: IStringEncoding, compilationTargetName: String)
-
+    fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(programName: String)
     fun isRegularRAMaddress(address: Int): Boolean
 }

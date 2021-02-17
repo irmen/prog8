@@ -1,12 +1,9 @@
 package prog8.compiler.target.cx16
 
-import prog8.ast.IStringEncoding
-import prog8.ast.Program
 import prog8.compiler.*
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.parser.ModuleImporter
 import java.io.IOException
 
 internal object CX16MachineDefinition: IMachineDefinition {
@@ -28,16 +25,11 @@ internal object CX16MachineDefinition: IMachineDefinition {
     override lateinit var zeropage: Zeropage
 
     override fun getFloat(num: Number) = C64MachineDefinition.Mflpt5.fromNumber(num)
-
-    override fun importLibs(
-            compilerOptions: CompilationOptions,
-            importer: ModuleImporter,
-            program: Program,
-            encoder: IStringEncoding,
-            compilationTargetName: String)
-    {
-        if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
-            importer.importLibraryModule(program, "syslib", encoder, compilationTargetName)
+    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
+        return if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
+            listOf("syslib")
+        else
+            emptyList()
     }
 
     override fun launchEmulator(programName: String) {

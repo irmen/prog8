@@ -177,7 +177,8 @@ private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program,
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the machine and compiler options we may have to include some libraries
-    ICompilationTarget.instance.machine.importLibs(compilerOptions, importer, programAst, ICompilationTarget.instance, compilationTargetName)
+    for(lib in ICompilationTarget.instance.machine.importLibs(compilerOptions, compilationTargetName))
+        importer.importLibraryModule(programAst, lib, ICompilationTarget.instance, compilationTargetName)
 
     // always import prog8_lib and math
     importer.importLibraryModule(programAst, "math", ICompilationTarget.instance, compilationTargetName)
