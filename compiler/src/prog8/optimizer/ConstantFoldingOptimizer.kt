@@ -13,7 +13,7 @@ import prog8.compiler.target.ICompilationTarget
 import kotlin.math.pow
 
 
-internal class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
+internal class ConstantFoldingOptimizer(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
@@ -224,7 +224,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                     range.step
                 }
 
-            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, ICompilationTarget.instance, range.position)
+            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, compTarget, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.

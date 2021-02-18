@@ -59,6 +59,7 @@ class CompilerException(message: String?) : Exception(message)
 class CompilationResult(val success: Boolean,
                         val programAst: Program,
                         val programName: String,
+                        val compTarget: ICompilationTarget,
                         val importedFiles: List<Path>)
 
 
@@ -92,7 +93,7 @@ fun compileProgram(filepath: Path,
             importedFiles = imported
             processAst(programAst, errors, compilationOptions, ICompilationTarget.instance)
             if (compilationOptions.optimize)
-                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions))
+                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), ICompilationTarget.instance)
             postprocessAst(programAst, errors, compilationOptions, ICompilationTarget.instance)
 
             // printAst(programAst)
@@ -103,7 +104,7 @@ fun compileProgram(filepath: Path,
         System.out.flush()
         System.err.flush()
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
-        return CompilationResult(true, programAst, programName, importedFiles)
+        return CompilationResult(true, programAst, programName, ICompilationTarget.instance, importedFiles)
 
     } catch (px: ParsingFailedError) {
         System.err.print("\u001b[91m")  // bright red
@@ -128,7 +129,7 @@ fun compileProgram(filepath: Path,
     }
 
     val failedProgram = Program("failed", mutableListOf(), BuiltinFunctionsFacade(BuiltinFunctions))
-    return CompilationResult(false, failedProgram, programName, emptyList())
+    return CompilationResult(false, failedProgram, programName, ICompilationTarget.instance, emptyList())
 }
 
 private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuiltinFunctions {
@@ -242,7 +243,7 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     println("Processing for target ${compTarget.name}...")
     programAst.checkIdentifiers(errors, compTarget)
     errors.handle()
-    programAst.constantFold(errors)
+    programAst.constantFold(errors, compTarget)
     errors.handle()
     programAst.reorderStatements(errors)
     errors.handle()
@@ -255,21 +256,21 @@ private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptio
     errors.handle()
 }
 
-private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: IBuiltinFunctions) {
+private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
     // optimize the parse tree
     println("Optimizing...")
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
-        val optsDone2 = programAst.splitBinaryExpressions()
-        val optsDone3 = programAst.optimizeStatements(errors, functions)
-        programAst.constantFold(errors) // because simplified statements and expressions can result in more constants that can be folded away
+        val optsDone2 = programAst.splitBinaryExpressions(compTarget)
+        val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget)
+        programAst.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.handle()
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
 
-    val remover = UnusedCodeRemover(programAst, errors)
+    val remover = UnusedCodeRemover(programAst, errors, compTarget)
     remover.visit(programAst)
     remover.applyModifications()
     errors.handle()

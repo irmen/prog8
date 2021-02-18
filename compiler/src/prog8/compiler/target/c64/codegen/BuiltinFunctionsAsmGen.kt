@@ -68,7 +68,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         if(discardResult || fcall !is FunctionCall)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
-        val scope = fcall.definingScope()
         val nameRef = fcall.args[0] as IdentifierReference
         val name = (nameRef.targetVarDecl(program)!!.value as StringLiteralValue).value
         val size = (fcall.args[1] as NumericLiteralValue).number.toInt()
@@ -85,7 +84,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, null)
             else
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, null, program, asmgen)
-        val assign = AsmAssignment(src, target, false, fcall.position)
+        val assign = AsmAssignment(src, target, false, asmgen.compTarget, fcall.position)
         asmgen.translateNormalAssignment(assign)
         asmgen.slabs[name] = size
     }
@@ -647,12 +646,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val assignFirst = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, variableAsmName = "P8ZP_SCRATCH_W2"),
                         targetFromExpr(first, datatype),
-                        false, first.position
+                        false, asmgen.compTarget, first.position
                 )
                 val assignSecond = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, variableAsmName = "P8ZP_SCRATCH_W1"),
                         targetFromExpr(second, datatype),
-                        false, second.position
+                        false, asmgen.compTarget, second.position
                 )
                 asmgen.translateNormalAssignment(assignFirst)
                 asmgen.translateNormalAssignment(assignSecond)
@@ -664,12 +663,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val assignFirst = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
                         targetFromExpr(first, datatype),
-                        false, first.position
+                        false, asmgen.compTarget, first.position
                 )
                 val assignSecond = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
                         targetFromExpr(second, datatype),
-                        false, second.position
+                        false, asmgen.compTarget, second.position
                 )
                 asmgen.translateNormalAssignment(assignFirst)
                 asmgen.translateNormalAssignment(assignSecond)
@@ -1288,7 +1287,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, conv.dt, null, variableAsmName = varname)
-                    val assign = AsmAssignment(src, tgt, false, value.position)
+                    val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
                 conv.reg != null -> {
@@ -1304,7 +1303,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
-                    val assign = AsmAssignment(src, tgt, false, value.position)
+                    val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
                 else -> throw AssemblyError("callconv")

@@ -4,17 +4,17 @@ import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
 
 
-internal interface IMachineFloat {
+interface IMachineFloat {
     fun toDouble(): Double
     fun makeFloatFillAsm(): String
 }
 
-internal enum class CpuType {
+enum class CpuType {
     CPU6502,
     CPU65c02
 }
 
-internal interface IMachineDefinition {
+interface IMachineDefinition {
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: Int

@@ -22,7 +22,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
 
-        val assign = AsmAssignment(source, target, assignment.isAugmentable, assignment.position)
+        val assign = AsmAssignment(source, target, assignment.isAugmentable, asmgen.compTarget, assignment.position)
         target.origAssign = assign
 
         if(assign.isAugmentable)
@@ -441,7 +441,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val lsb = FunctionCall(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
         lsb.linkParents(value.parent)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
-        val assign = AsmAssignment(src, target, false, value.position)
+        val assign = AsmAssignment(src, target, false, asmgen.compTarget, value.position)
         translateNormalAssignment(assign)
     }
 
@@ -2109,21 +2109,21 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
-        val assign = AsmAssignment(src, tgt, false, expr.position)
+        val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, expr.position)
         translateNormalAssignment(assign)
     }
 
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, false, expr.position)
+        val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, expr.position)
         translateNormalAssignment(assign)
     }
 
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) {
         val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, false, Position.DUMMY)
+        val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, Position.DUMMY)
         translateNormalAssignment(assign)
     }
 }

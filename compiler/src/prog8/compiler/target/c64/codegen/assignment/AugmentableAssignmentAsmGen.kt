@@ -245,19 +245,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             when(target.datatype) {
                                 in ByteDatatypes -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.A, null, program, asmgen)
-                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, value.position)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, asmgen.compTarget, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
                                 }
                                 in WordDatatypes -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
-                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, value.position)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, asmgen.compTarget, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                                 }
                                 DataType.FLOAT -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.FAC1, null, program, asmgen)
-                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, value.position)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, asmgen.compTarget, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignFAC1float(target)
                                 }

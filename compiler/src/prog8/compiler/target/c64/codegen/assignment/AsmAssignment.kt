@@ -207,12 +207,13 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
 internal class AsmAssignment(val source: AsmAssignSource,
                              val target: AsmAssignTarget,
                              val isAugmentable: Boolean,
+                             compTarget: ICompilationTarget,
                              val position: Position) {
 
     init {
         if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
             require(source.datatype != DataType.STRUCT) { "must not be placeholder datatype" }
-            require(ICompilationTarget.instance.memorySize(source.datatype) <= ICompilationTarget.instance.memorySize(target.datatype)) {
+            require(compTarget.memorySize(source.datatype) <= compTarget.memorySize(target.datatype)) {
                 "source storage size must be less or equal to target datatype storage size"
             }
     }

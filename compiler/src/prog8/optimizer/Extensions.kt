@@ -3,15 +3,16 @@ package prog8.optimizer
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.compiler.ErrorReporter
+import prog8.compiler.target.ICompilationTarget
 
 
-internal fun Program.constantFold(errors: ErrorReporter) {
+internal fun Program.constantFold(errors: ErrorReporter, compTarget: ICompilationTarget) {
     val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
     valuetypefixer.visit(this)
     if(errors.isEmpty()) {
         valuetypefixer.applyModifications()
 
-        val replacer = ConstantIdentifierReplacer(this, errors)
+        val replacer = ConstantIdentifierReplacer(this, errors, compTarget)
         replacer.visit(this)
         if (errors.isEmpty()) {
             replacer.applyModifications()
@@ -20,7 +21,7 @@ internal fun Program.constantFold(errors: ErrorReporter) {
             if(errors.isEmpty()) {
                 valuetypefixer.applyModifications()
 
-                val optimizer = ConstantFoldingOptimizer(this)
+                val optimizer = ConstantFoldingOptimizer(this, compTarget)
                 optimizer.visit(this)
                 while (errors.isEmpty() && optimizer.applyModifications() > 0) {
                     optimizer.visit(this)
@@ -39,8 +40,8 @@ internal fun Program.constantFold(errors: ErrorReporter) {
 }
 
 
-internal fun Program.optimizeStatements(errors: ErrorReporter, functions: IBuiltinFunctions): Int {
-    val optimizer = StatementOptimizer(this, errors, functions)
+internal fun Program.optimizeStatements(errors: ErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget): Int {
+    val optimizer = StatementOptimizer(this, errors, functions, compTarget)
     optimizer.visit(this)
     val optimizationCount = optimizer.applyModifications()
 
@@ -55,8 +56,8 @@ internal fun Program.simplifyExpressions() : Int {
     return opti.applyModifications()
 }
 
-internal fun Program.splitBinaryExpressions() : Int {
-    val opti = BinExprSplitter(this)
+internal fun Program.splitBinaryExpressions(compTarget: ICompilationTarget) : Int {
+    val opti = BinExprSplitter(this, compTarget)
     opti.visit(this)
     return opti.applyModifications()
 }

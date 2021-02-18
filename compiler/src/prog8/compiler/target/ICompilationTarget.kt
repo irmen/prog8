@@ -16,7 +16,7 @@ import prog8.compiler.target.cx16.CX16MachineDefinition
 import java.nio.file.Path
 
 
-internal interface ICompilationTarget: IStringEncoding {
+interface ICompilationTarget: IStringEncoding {
     val name: String
     val machine: IMachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean): List<Short>

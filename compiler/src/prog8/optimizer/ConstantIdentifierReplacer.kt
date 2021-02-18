@@ -39,7 +39,7 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
 // Replace all constant identifiers with their actual value,
 // and the array var initializer values and sizes.
 // This is needed because further constant optimizations depend on those.
-internal class ConstantIdentifierReplacer(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
+internal class ConstantIdentifierReplacer(private val program: Program, private val errors: ErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
@@ -192,7 +192,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     if(rangeExpr==null && litval!=null) {
                         // arraysize initializer is a single int, and we know the size.
                         val fillvalue = litval.number.toDouble()
-                        if (fillvalue < ICompilationTarget.instance.machine.FLOAT_MAX_NEGATIVE || fillvalue > ICompilationTarget.instance.machine.FLOAT_MAX_POSITIVE)
+                        if (fillvalue < compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > compTarget.machine.FLOAT_MAX_POSITIVE)
                             errors.err("float value overflow", litval.position)
                         else {
                             // create the array itself, filled with the fillvalue.

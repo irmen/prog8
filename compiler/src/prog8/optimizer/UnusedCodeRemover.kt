@@ -14,7 +14,7 @@ import prog8.ast.walk.IAstModification
 import prog8.compiler.target.ICompilationTarget
 
 
-internal class UnusedCodeRemover(private val program: Program, private val errors: ErrorReporter): AstWalker() {
+internal class UnusedCodeRemover(private val program: Program, private val errors: ErrorReporter, private val compTarget: ICompilationTarget): AstWalker() {
 
     override fun before(program: Program, parent: Node): Iterable<IAstModification> {
         val callgraph = CallGraph(program)
@@ -96,7 +96,7 @@ internal class UnusedCodeRemover(private val program: Program, private val error
             val assign1 = stmtPairs[0] as? Assignment
             val assign2 = stmtPairs[1] as? Assignment
             if (assign1 != null && assign2 != null && !assign2.isAugmentable) {
-                if (assign1.target.isSameAs(assign2.target, program) && ICompilationTarget.instance.isInRegularRAM(assign1.target, program))  {
+                if (assign1.target.isSameAs(assign2.target, program) && compTarget.isInRegularRAM(assign1.target, program))  {
                     if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(*(assign2.target.identifier!!.nameInSource.toTypedArray())))
                         // only remove the second assignment if its value is a simple expression!
                         when(assign2.value) {

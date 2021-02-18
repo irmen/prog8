@@ -19,7 +19,7 @@
 ;   mode 3 = bitmap 320 x 240 x 16c (unsupported TODO not yet implemented)
 ;   mode 4 = bitmap 320 x 240 x 256c
 ;   mode 5 = bitmap 640 x 480 monochrome
-;   mode 6 = bitmap 640 x 480 x 4c (unsupported TODO being implemented)
+;   mode 6 = bitmap 640 x 480 x 4c
 ;   mode 7 = bitmap 640 x 480 x 16c (unsupported due to lack of VRAM)
 ;   mode 8 = bitmap 640 x 480 x 256c (unsupported due to lack of VRAM)
 

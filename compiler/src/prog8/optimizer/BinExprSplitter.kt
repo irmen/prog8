@@ -10,7 +10,7 @@ import prog8.ast.walk.IAstModification
 import prog8.compiler.target.ICompilationTarget
 
 
-internal class BinExprSplitter(private val program: Program) : AstWalker() {
+internal class BinExprSplitter(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
 //    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -80,7 +80,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
     private fun isSimpleTarget(target: AssignTarget, program: Program) =
             if (target.identifier!=null || target.memoryAddress!=null)
-                ICompilationTarget.instance.isInRegularRAM(target, program)
+                compTarget.isInRegularRAM(target, program)
             else
                 false
 
