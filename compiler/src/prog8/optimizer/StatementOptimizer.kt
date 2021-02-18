@@ -53,7 +53,8 @@ internal class StatementOptimizer(private val program: Program,
         }
 
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {
-            errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
+            if(!subroutine.isAsmSubroutine)
+                errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
             return listOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
         }
 
