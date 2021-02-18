@@ -15,6 +15,7 @@ import prog8.compiler.target.c64.codegen.assignment.AsmAssignment
 import prog8.compiler.target.c64.codegen.assignment.AssignmentAsmGen
 import java.io.CharConversionException
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
@@ -176,13 +177,9 @@ internal class AsmGen(private val program: Program,
 
     private fun block2asm(block: Block) {
         out("\n\n; ---- block: '${block.name}' ----")
+        if(block.address!=null)
+            out("* = ${block.address!!.toHex()}")
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
-
-        val addr = block.address
-        if(addr!=null) {
-            out(".cerror * > ${addr.toHex()}, 'block address overlaps by ', *-${addr.toHex()},' bytes'")
-            out("* = ${addr.toHex()}")
-        }
 
         outputSourceLine(block)
         zeropagevars2asm(block.statements)
@@ -1254,7 +1251,9 @@ $counterVar    .word  0""")
             "%asmbinary" -> {
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                out("  .binary \"${stmt.args[0].str}\" $offset $length")
+                val includedSourcePath = stmt.definingModule().source.resolveSibling(stmt.args[0].str)
+                val relPath = Paths.get("").relativize(includedSourcePath)
+                out("  .binary \"./$relPath\" $offset $length")
             }
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"

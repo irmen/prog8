@@ -2,6 +2,7 @@
 TODO
 ====
 
+- make blocks without explicit memory address, word-aligned in the assembly.
 - add sound to the cx16 tehtriz
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - refactor the asmgen into their own submodule?
