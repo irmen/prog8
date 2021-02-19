@@ -5,15 +5,13 @@ import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.IBuiltinFunctions
-import prog8.ast.Module
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.toHex
 import prog8.compiler.*
 import prog8.compiler.target.C64Target
+import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
@@ -134,7 +132,7 @@ class TestC64Zeropage {
 
     @Test
     fun testNames() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, C64Target))
 
         zp.allocate("", DataType.UBYTE, null, errors)
         zp.allocate("", DataType.UBYTE, null, errors)
@@ -147,37 +145,37 @@ class TestC64Zeropage {
 
     @Test
     fun testZpFloatEnable() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         assertFailsWith<CompilerException> {
             zp.allocate("", DataType.FLOAT, null, errors)
         }
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, C64Target))
         assertFailsWith<CompilerException> {
             zp2.allocate("", DataType.FLOAT, null, errors)
         }
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
         zp3.allocate("", DataType.FLOAT, null, errors)
     }
 
     @Test
     fun testZpModesWithFloats() {
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false))
-        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, C64Target))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, C64Target))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, C64Target))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
+        C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
         assertFailsWith<CompilerException> {
-            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true, false))
+            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true, false, C64Target))
         }
         assertFailsWith<CompilerException> {
-            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, false))
+            C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, false, C64Target))
         }
     }
 
     @Test
     fun testZpDontuse() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false, C64Target))
         println(zp.free)
         assertEquals(0, zp.available())
         assertFailsWith<CompilerException> {
@@ -187,19 +185,19 @@ class TestC64Zeropage {
 
     @Test
     fun testFreeSpaces() {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
         assertEquals(18, zp1.available())
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, C64Target))
         assertEquals(89, zp2.available())
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, C64Target))
         assertEquals(125, zp3.available())
-        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false))
+        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         assertEquals(238, zp4.available())
     }
 
     @Test
     fun testReservedSpace() {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         assertEquals(238, zp1.available())
         assertTrue(50 in zp1.free)
         assertTrue(100 in zp1.free)
@@ -208,7 +206,7 @@ class TestC64Zeropage {
         assertTrue(200 in zp1.free)
         assertTrue(255 in zp1.free)
         assertTrue(199 in zp1.free)
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, listOf(50 .. 100, 200..255), false, false))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, listOf(50 .. 100, 200..255), false, false, C64Target))
         assertEquals(139, zp2.available())
         assertFalse(50 in zp2.free)
         assertFalse(100 in zp2.free)
@@ -221,7 +219,7 @@ class TestC64Zeropage {
 
     @Test
     fun testBasicsafeAllocation() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
         assertEquals(18, zp.available())
 
         assertFailsWith<ZeropageDepletedError> {
@@ -244,7 +242,7 @@ class TestC64Zeropage {
 
     @Test
     fun testFullAllocation() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         assertEquals(238, zp.available())
         val loc = zp.allocate("", DataType.UWORD, null, errors)
         assertTrue(loc > 3)
@@ -274,7 +272,7 @@ class TestC64Zeropage {
 
     @Test
     fun testEfficientAllocation() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false, C64Target))
         assertEquals(18, zp.available())
         assertEquals(0x04, zp.allocate("", DataType.WORD, null, errors))
         assertEquals(0x06, zp.allocate("", DataType.UBYTE, null, errors))
@@ -293,7 +291,7 @@ class TestC64Zeropage {
 
     @Test
     fun testReservedLocations() {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, C64Target))
         assertEquals(zp.SCRATCH_REG, zp.SCRATCH_B1+1, "zp _B1 and _REG must be next to each other to create a word")
     }
 }
@@ -303,9 +301,11 @@ class TestC64Zeropage {
 class TestCx16Zeropage {
     @Test
     fun testReservedLocations() {
-        val zp = CX16MachineDefinition.CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false))
+        val zp = CX16MachineDefinition.CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, Cx16Target))
         assertEquals(zp.SCRATCH_REG, zp.SCRATCH_B1+1, "zp _B1 and _REG must be next to each other to create a word")
     }
+
+    // TODO way more tests for the Cx16 zeropage?
 }
 
 
@@ -408,8 +408,12 @@ class TestMemory {
     private class DummyFunctions: IBuiltinFunctions {
         override val names: Set<String> = emptySet()
         override val purefunctionNames: Set<String> = emptySet()
-        override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? = null
+        override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? = null
         override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
+    }
+
+    private class DummyMemsizer: IMemSizer {
+        override fun memorySize(dt: DataType): Int = 0
     }
 
     @Test
@@ -417,7 +421,7 @@ class TestMemory {
 
         var memexpr = NumericLiteralValue.optimalInteger(0x0000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        val program = Program("test", mutableListOf(), DummyFunctions())
+        val program = Program("test", mutableListOf(), DummyFunctions(), DummyMemsizer())
         assertTrue(C64Target.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY)
@@ -442,7 +446,7 @@ class TestMemory {
 
         var memexpr = NumericLiteralValue.optimalInteger(0xa000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        val program = Program("test", mutableListOf(), DummyFunctions())
+        val program = Program("test", mutableListOf(), DummyFunctions(), DummyMemsizer())
         assertFalse(C64Target.isInRegularRAM(target, program))
 
         memexpr = NumericLiteralValue.optimalInteger(0xafff, Position.DUMMY)
@@ -461,7 +465,7 @@ class TestMemory {
     @Test
     fun testInValidRamC64_memory_identifiers() {
         var target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.VAR)
-        val program = Program("test", mutableListOf(), DummyFunctions())
+        val program = Program("test", mutableListOf(), DummyFunctions(), DummyMemsizer())
 
         assertTrue(C64Target.isInRegularRAM(target, program))
         target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.VAR)
@@ -490,7 +494,7 @@ class TestMemory {
     fun testInValidRamC64_memory_expression() {
         val memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        val program = Program("test", mutableListOf(), DummyFunctions())
+        val program = Program("test", mutableListOf(), DummyFunctions(), DummyMemsizer())
         assertFalse(C64Target.isInRegularRAM(target, program))
     }
 
@@ -501,7 +505,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
-        val program = Program("test", mutableListOf(module), DummyFunctions())
+        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
         module.linkParents(ParentSentinel)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
@@ -514,7 +518,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
-        val program = Program("test", mutableListOf(module), DummyFunctions())
+        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
         module.linkParents(ParentSentinel)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
@@ -527,7 +531,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
-        val program = Program("test", mutableListOf(module), DummyFunctions())
+        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
         module.linkParents(ParentSentinel)
         assertFalse(C64Target.isInRegularRAM(target, program))
     }
@@ -540,7 +544,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
-        val program = Program("test", mutableListOf(module), DummyFunctions())
+        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
         module.linkParents(ParentSentinel)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
@@ -554,7 +558,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
-        val program = Program("test", mutableListOf(module), DummyFunctions())
+        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
         module.linkParents(ParentSentinel)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
@@ -568,7 +572,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, false, Path.of(""))
-        val program = Program("test", mutableListOf(module), DummyFunctions())
+        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
         module.linkParents(ParentSentinel)
         assertFalse(C64Target.isInRegularRAM(target, program))
     }

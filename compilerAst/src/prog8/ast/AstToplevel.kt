@@ -241,10 +241,14 @@ interface IAssignable {
     // just a tag for now
 }
 
+interface IMemSizer {
+    fun memorySize(dt: DataType): Int
+}
+
 interface IBuiltinFunctions {
     val names: Set<String>
     val purefunctionNames: Set<String>
-    fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue?
+    fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue?
     fun returnType(name: String, args: MutableList<Expression>): InferredTypes.InferredType
 }
 
@@ -252,7 +256,10 @@ interface IBuiltinFunctions {
 
 
 
-class Program(val name: String, val modules: MutableList<Module>, val builtinFunctions: IBuiltinFunctions): Node {
+class Program(val name: String,
+              val modules: MutableList<Module>,
+              val builtinFunctions: IBuiltinFunctions,
+              val memsizer: IMemSizer): Node {
     val namespace = GlobalNamespace(modules, builtinFunctions.names)
 
     val mainModule: Module

@@ -820,7 +820,7 @@ class FunctionCall(override var target: IdentifierReference,
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1)
             return null
-        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
+        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position, program.memsizer)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
             if(resultValue==null || resultDt istype resultValue.type)

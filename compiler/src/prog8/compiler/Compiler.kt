@@ -2,6 +2,7 @@ package prog8.compiler
 
 import prog8.ast.AstToSourceCode
 import prog8.ast.IBuiltinFunctions
+import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
@@ -48,7 +49,8 @@ data class CompilationOptions(val output: OutputType,
                               val zeropage: ZeropageType,
                               val zpReserved: List<IntRange>,
                               val floats: Boolean,
-                              val noSysInit: Boolean) {
+                              val noSysInit: Boolean,
+                              val compTarget: ICompilationTarget) {
     var slowCodegenWarnings = false
     var optimize = false
 }
@@ -74,27 +76,28 @@ fun compileProgram(filepath: Path,
     lateinit var importedFiles: List<Path>
     val errors = ErrorReporter()
 
-    when(compilationTarget) {
-        C64Target.name -> ICompilationTarget.instance = C64Target
-        Cx16Target.name -> ICompilationTarget.instance = Cx16Target
-        else -> {
-            System.err.println("invalid compilation target")
-            exitProcess(1)
+    val compTarget =
+        when(compilationTarget) {
+            C64Target.name -> C64Target
+            Cx16Target.name -> Cx16Target
+            else -> {
+                System.err.println("invalid compilation target")
+                exitProcess(1)
+            }
         }
-    }
 
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors)
+            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             compilationOptions.optimize = optimize
             programAst = ast
             importedFiles = imported
-            processAst(programAst, errors, compilationOptions, ICompilationTarget.instance)
+            processAst(programAst, errors, compilationOptions)
             if (compilationOptions.optimize)
-                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), ICompilationTarget.instance)
-            postprocessAst(programAst, errors, compilationOptions, ICompilationTarget.instance)
+                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
+            postprocessAst(programAst, errors, compilationOptions)
 
             // printAst(programAst)
 
@@ -104,7 +107,7 @@ fun compileProgram(filepath: Path,
         System.out.flush()
         System.err.flush()
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
-        return CompilationResult(true, programAst, programName, ICompilationTarget.instance, importedFiles)
+        return CompilationResult(true, programAst, programName, compTarget, importedFiles)
 
     } catch (px: ParsingFailedError) {
         System.err.print("\u001b[91m")  // bright red
@@ -128,8 +131,8 @@ fun compileProgram(filepath: Path,
         throw x
     }
 
-    val failedProgram = Program("failed", mutableListOf(), BuiltinFunctionsFacade(BuiltinFunctions))
-    return CompilationResult(false, failedProgram, programName, ICompilationTarget.instance, emptyList())
+    val failedProgram = Program("failed", mutableListOf(), BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
+    return CompilationResult(false, failedProgram, programName, compTarget, emptyList())
 }
 
 private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuiltinFunctions {
@@ -138,13 +141,13 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val names = functions.keys
     override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
 
-    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? {
+    override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? {
         val func = BuiltinFunctions[name]
         if(func!=null) {
             val exprfunc = func.constExpressionFunc
             if(exprfunc!=null) {
                 return try {
-                    exprfunc(args, position, program)
+                    exprfunc(args, position, program, memsizer)
                 } catch(x: NotConstArgumentException) {
                     // const-evaluating the builtin function call failed.
                     null
@@ -162,33 +165,33 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         builtinFunctionReturnType(name, args, program)
 }
 
-private fun parseImports(filepath: Path, errors: ErrorReporter): Triple<Program, CompilationOptions, List<Path>> {
-    val compilationTargetName = ICompilationTarget.instance.name
+private fun parseImports(filepath: Path, errors: ErrorReporter, compTarget: ICompilationTarget): Triple<Program, CompilationOptions, List<Path>> {
+    val compilationTargetName = compTarget.name
     println("Compiler target: $compilationTargetName. Parsing...")
     val importer = ModuleImporter()
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf)
+    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf, compTarget)
     bf.program = programAst
-    importer.importModule(programAst, filepath, ICompilationTarget.instance, compilationTargetName)
+    importer.importModule(programAst, filepath, compTarget, compilationTargetName)
     errors.handle()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
-    val compilerOptions = determineCompilationOptions(programAst)
+    val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the machine and compiler options we may have to include some libraries
-    for(lib in ICompilationTarget.instance.machine.importLibs(compilerOptions, compilationTargetName))
-        importer.importLibraryModule(programAst, lib, ICompilationTarget.instance, compilationTargetName)
+    for(lib in compTarget.machine.importLibs(compilerOptions, compilationTargetName))
+        importer.importLibraryModule(programAst, lib, compTarget, compilationTargetName)
 
     // always import prog8_lib and math
-    importer.importLibraryModule(programAst, "math", ICompilationTarget.instance, compilationTargetName)
-    importer.importLibraryModule(programAst, "prog8_lib", ICompilationTarget.instance, compilationTargetName)
+    importer.importLibraryModule(programAst, "math", compTarget, compilationTargetName)
+    importer.importLibraryModule(programAst, "prog8_lib", compTarget, compilationTargetName)
     errors.handle()
     return Triple(programAst, compilerOptions, importedFiles)
 }
 
-private fun determineCompilationOptions(program: Program): CompilationOptions {
+private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
     val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
@@ -210,7 +213,7 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
                     // error will be printed by the astchecker
                 }
 
-    if (zpType==ZeropageType.FLOATSAFE && ICompilationTarget.instance.name == Cx16Target.name) {
+    if (zpType==ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.name) {
         System.err.println("Warning: Cx16 target must use zp option basicsafe instead of floatsafe")
         zpType = ZeropageType.BASICSAFE
     }
@@ -234,25 +237,26 @@ private fun determineCompilationOptions(program: Program): CompilationOptions {
     return CompilationOptions(
             if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
             if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-            zpType, zpReserved, floatsEnabled, noSysInit
+            zpType, zpReserved, floatsEnabled, noSysInit,
+            compTarget
     )
 }
 
-private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions, compTarget: ICompilationTarget) {
+private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
-    println("Processing for target ${compTarget.name}...")
-    programAst.checkIdentifiers(errors, compTarget)
+    println("Processing for target ${compilerOptions.compTarget.name}...")
+    programAst.checkIdentifiers(errors, compilerOptions.compTarget)
     errors.handle()
-    programAst.constantFold(errors, compTarget)
+    programAst.constantFold(errors, compilerOptions.compTarget)
     errors.handle()
     programAst.reorderStatements(errors)
     errors.handle()
     programAst.addTypecasts(errors)
     errors.handle()
     programAst.variousCleanups()
-    programAst.checkValid(compilerOptions, errors, compTarget)
+    programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)
     errors.handle()
-    programAst.checkIdentifiers(errors, compTarget)
+    programAst.checkIdentifiers(errors, compilerOptions.compTarget)
     errors.handle()
 }
 
@@ -276,11 +280,11 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: I
     errors.handle()
 }
 
-private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions, compTarget: ICompilationTarget) {
+private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
     programAst.addTypecasts(errors)
     errors.handle()
     programAst.variousCleanups()
-    programAst.checkValid(compilerOptions, errors, compTarget)          // check if final tree is still valid
+    programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
     errors.handle()
     val callGraph = CallGraph(programAst)
     callGraph.checkRecursiveCalls(errors)
@@ -289,19 +293,21 @@ private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerO
     programAst.moveMainAndStartToFirst()
 }
 
-private fun writeAssembly(programAst: Program, errors: ErrorReporter, outputDir: Path,
+private fun writeAssembly(programAst: Program,
+                          errors: ErrorReporter,
+                          outputDir: Path,
                           compilerOptions: CompilationOptions): String {
     // asm generation directly from the Ast,
-    programAst.processAstBeforeAsmGeneration(errors, ICompilationTarget.instance)
+    programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.handle()
 
     // printAst(programAst)
 
-    ICompilationTarget.instance.machine.initializeZeropage(compilerOptions)
-    val assembly = asmGeneratorFor(ICompilationTarget.instance,
+    compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
+    val assembly = asmGeneratorFor(compilerOptions.compTarget,
             programAst,
             errors,
-            ICompilationTarget.instance.machine.zeropage,
+            compilerOptions.compTarget.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly()
     assembly.assemble(compilerOptions)

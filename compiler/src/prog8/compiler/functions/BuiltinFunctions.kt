@@ -1,19 +1,19 @@
 package prog8.compiler.functions
 
+import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
-import prog8.compiler.target.ICompilationTarget
 import kotlin.math.*
 
 
 class FParam(val name: String, val possibleDatatypes: Set<DataType>)
 
 
-typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteralValue
+typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer) -> NumericLiteralValue
 
 
 class ReturnConvention(val dt: DataType, val reg: RegisterOrPair?, val floatFac1: Boolean)
@@ -97,40 +97,40 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
         // these few have a return value depending on the argument(s):
-    FSignature("max"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
-    FSignature("min"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
-    FSignature("sum"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
+    FSignature("max"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
+    FSignature("min"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
+    FSignature("sum"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
     FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
     FSignature("sizeof"      , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinSizeof),
     FSignature("offsetof"    , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinOffsetof),
         // normal functions follow:
     FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
-    FSignature("sin"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
+    FSignature("sin"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sin) },
     FSignature("sin8"        , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
     FSignature("sin8u"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
     FSignature("sin16"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
     FSignature("sin16u"      , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinSin16u ),
-    FSignature("cos"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::cos) },
+    FSignature("cos"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::cos) },
     FSignature("cos8"        , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
     FSignature("cos8u"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinCos8u ),
     FSignature("cos16"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
     FSignature("cos16u"      , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinCos16u ),
-    FSignature("tan"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::tan) },
-    FSignature("atan"        , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::atan) },
-    FSignature("ln"          , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::log) },
-    FSignature("log2"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, ::log2) },
-    FSignature("sqrt16"      , true, listOf(FParam("value", setOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()).toInt() } },
-    FSignature("sqrt"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sqrt) },
-    FSignature("rad"         , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toRadians) },
-    FSignature("deg"         , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toDegrees) },
-    FSignature("round"       , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
-    FSignature("floor"       , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
-    FSignature("ceil"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
-    FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
-    FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
-    FSignature("lsb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 } },
-    FSignature("msb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255} },
+    FSignature("tan"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::tan) },
+    FSignature("atan"        , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::atan) },
+    FSignature("ln"          , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::log) },
+    FSignature("log2"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, ::log2) },
+    FSignature("sqrt16"      , true, listOf(FParam("value", setOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()).toInt() } },
+    FSignature("sqrt"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sqrt) },
+    FSignature("rad"         , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::toRadians) },
+    FSignature("deg"         , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::toDegrees) },
+    FSignature("round"       , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
+    FSignature("floor"       , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
+    FSignature("ceil"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
+    FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinAny) },
+    FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinAll) },
+    FSignature("lsb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 } },
+    FSignature("msb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255} },
     FSignature("mkword"      , true, listOf(FParam("msb", setOf(DataType.UBYTE)), FParam("lsb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
     FSignature("peek"        , true, listOf(FParam("address", setOf(DataType.UWORD))), DataType.UBYTE),
     FSignature("peekw"       , true, listOf(FParam("address", setOf(DataType.UWORD))), DataType.UWORD),
@@ -271,7 +271,7 @@ private fun collectionArg(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
 }
 
-private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinAbs(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // 1 arg, type = float or int, result type= isSameAs as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
@@ -284,7 +284,7 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
     }
 }
 
-private fun builtinOffsetof(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinOffsetof(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // 1 arg, type = anything, result type = ubyte
     if(args.size!=1)
         throw SyntaxError("offsetof requires one argument", position)
@@ -301,12 +301,12 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
     for(member in struct.statements) {
         if((member as VarDecl).name == membername)
             return NumericLiteralValue(DataType.UBYTE, offset, position)
-        offset += ICompilationTarget.instance.memorySize(member.datatype)
+        offset += memsizer.memorySize(member.datatype)
     }
     throw SyntaxError("undefined struct member", position)
 }
 
-private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSizeof(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // 1 arg, type = anything, result type = ubyte
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
@@ -319,13 +319,13 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
         fun structSize(target: StructDecl) =
-                NumericLiteralValue(DataType.UBYTE, target.statements.map { ICompilationTarget.instance.memorySize((it as VarDecl).datatype) }.sum(), position)
+                NumericLiteralValue(DataType.UBYTE, target.statements.map { memsizer.memorySize((it as VarDecl).datatype) }.sum(), position)
 
         return when {
             dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.STRUCT))
-                numericLiteral(ICompilationTarget.instance.memorySize(elementDt) * length, position)
+                numericLiteral(memsizer.memorySize(elementDt) * length, position)
             }
             dt.istype(DataType.STRUCT) -> {
                 when (target) {
@@ -335,14 +335,14 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 }
             }
             dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
-            else -> NumericLiteralValue(DataType.UBYTE, ICompilationTarget.instance.memorySize(dt.typeOrElse(DataType.STRUCT)), position)
+            else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.typeOrElse(DataType.STRUCT)), position)
         }
     } else {
         throw SyntaxError("sizeof invalid argument type", position)
     }
 }
 
-private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinLen(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // note: in some cases the length is > 255 and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
@@ -376,7 +376,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
 }
 
 
-private fun builtinMkword(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinMkword(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 2)
         throw SyntaxError("mkword requires msb and lsb arguments", position)
     val constMsb = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -385,7 +385,7 @@ private fun builtinMkword(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue(DataType.UWORD, result, position)
 }
 
-private fun builtinSin8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin8(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -393,7 +393,7 @@ private fun builtinSin8(args: List<Expression>, position: Position, program: Pro
     return NumericLiteralValue(DataType.BYTE, (127.0 * sin(rad)).toInt().toShort(), position)
 }
 
-private fun builtinSin8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin8u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -401,7 +401,7 @@ private fun builtinSin8u(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toInt().toShort(), position)
 }
 
-private fun builtinCos8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos8(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -409,7 +409,7 @@ private fun builtinCos8(args: List<Expression>, position: Position, program: Pro
     return NumericLiteralValue(DataType.BYTE, (127.0 * cos(rad)).toInt().toShort(), position)
 }
 
-private fun builtinCos8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos8u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -417,7 +417,7 @@ private fun builtinCos8u(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toInt().toShort(), position)
 }
 
-private fun builtinSin16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin16(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -425,7 +425,7 @@ private fun builtinSin16(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.WORD, (32767.0 * sin(rad)).toInt(), position)
 }
 
-private fun builtinSin16u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin16u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -433,7 +433,7 @@ private fun builtinSin16u(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue(DataType.UWORD, (32768.0 + 32767.5 * sin(rad)).toInt(), position)
 }
 
-private fun builtinCos16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos16(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -441,7 +441,7 @@ private fun builtinCos16(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.WORD, (32767.0 * cos(rad)).toInt(), position)
 }
 
-private fun builtinCos16u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos16u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -449,7 +449,7 @@ private fun builtinCos16u(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue(DataType.UWORD, (32768.0 + 32767.5 * cos(rad)).toInt(), position)
 }
 
-private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSgn(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()

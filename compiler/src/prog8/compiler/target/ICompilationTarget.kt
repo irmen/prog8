@@ -1,5 +1,6 @@
 package prog8.compiler.target
 
+import prog8.ast.IMemSizer
 import prog8.ast.IStringEncoding
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -16,16 +17,11 @@ import prog8.compiler.target.cx16.CX16MachineDefinition
 import java.nio.file.Path
 
 
-interface ICompilationTarget: IStringEncoding {
+interface ICompilationTarget: IStringEncoding, IMemSizer {
     val name: String
     val machine: IMachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean): List<Short>
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
-    fun memorySize(dt: DataType): Int
-
-    companion object {
-        lateinit var instance: ICompilationTarget           // TODO reduce dependency on this by just passing the instance as a parameter
-    }
 
     fun isInRegularRAM(target: AssignTarget, program: Program): Boolean {
         val memAddr = target.memoryAddress
@@ -67,7 +63,6 @@ interface ICompilationTarget: IStringEncoding {
             else -> return true
         }
     }
-
 }
 
 
