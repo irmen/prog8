@@ -168,7 +168,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                                 lda  P8ESTACK_LO$plusIdxStr,x
                                 sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
                             """)
-                            if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02)
+                            if (asmgen.isTargetCpu(CpuType.CPU65c02))
                                 asmgen.out("  stz  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")

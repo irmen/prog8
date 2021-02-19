@@ -1393,7 +1393,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {
-                        if(asmgen.compTarget.machine.cpu==CpuType.CPU65c02)
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  stz  P8ESTACK_HI+1,x")
                         else
                             asmgen.out("  lda  #0  |  sta  P8ESTACK_HI+1,x")
@@ -1459,7 +1459,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         fun assignViaExprEval() {
             asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-            if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02) {
+            if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                 if (pushResultOnEstack) {
                     asmgen.out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")
                 } else {
@@ -1673,7 +1673,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         }
                         DataType.UWORD -> {
                             if(amount>=16) {
-                                if(asmgen.compTarget.machine.cpu==CpuType.CPU65c02)
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                     asmgen.out("  stz  P8ESTACK_LO+1,x |  stz  P8ESTACK_HI+1,x")
                                 else
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_LO+1,x |  sta  P8ESTACK_HI+1,x")

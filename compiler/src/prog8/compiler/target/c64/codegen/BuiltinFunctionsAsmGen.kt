@@ -972,7 +972,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     // pointervar is already in the zero page, no need to copy
                     asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine()!!)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                    if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02) {
+                    if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                         asmgen.out("""
                             sta  ($varname)
                             txa
@@ -1023,7 +1023,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
-                    if (asmgen.compTarget.machine.cpu == CpuType.CPU65c02) {
+                    if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                         asmgen.out("""
                             ldy  #1
                             lda  ($varname),y

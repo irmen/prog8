@@ -1,5 +1,6 @@
 package prog8.compiler.target.c64.codegen.assignment
 
+import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -207,13 +208,13 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
 internal class AsmAssignment(val source: AsmAssignSource,
                              val target: AsmAssignTarget,
                              val isAugmentable: Boolean,
-                             compTarget: ICompilationTarget,
+                             memsizer: IMemSizer,
                              val position: Position) {
 
     init {
         if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
             require(source.datatype != DataType.STRUCT) { "must not be placeholder datatype" }
-            require(compTarget.memorySize(source.datatype) <= compTarget.memorySize(target.datatype)) {
+            require(memsizer.memorySize(source.datatype) <= memsizer.memorySize(target.datatype)) {
                 "source storage size must be less or equal to target datatype storage size"
             }
     }
