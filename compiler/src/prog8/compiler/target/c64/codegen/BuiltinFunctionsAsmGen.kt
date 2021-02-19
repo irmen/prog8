@@ -5,7 +5,10 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.ast.statements.ArrayIndex
+import prog8.ast.statements.DirectMemoryWrite
+import prog8.ast.statements.FunctionCallStatement
+import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.functions.FSignature
@@ -84,7 +87,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, null)
             else
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, null, program, asmgen)
-        val assign = AsmAssignment(src, target, false, asmgen.compTarget, fcall.position)
+        val assign = AsmAssignment(src, target, false, program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign)
         asmgen.slabs[name] = size
     }
@@ -646,12 +649,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val assignFirst = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, variableAsmName = "P8ZP_SCRATCH_W2"),
                         targetFromExpr(first, datatype),
-                        false, asmgen.compTarget, first.position
+                        false, program.memsizer, first.position
                 )
                 val assignSecond = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, variableAsmName = "P8ZP_SCRATCH_W1"),
                         targetFromExpr(second, datatype),
-                        false, asmgen.compTarget, second.position
+                        false, program.memsizer, second.position
                 )
                 asmgen.translateNormalAssignment(assignFirst)
                 asmgen.translateNormalAssignment(assignSecond)
@@ -663,12 +666,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 val assignFirst = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
                         targetFromExpr(first, datatype),
-                        false, asmgen.compTarget, first.position
+                        false, program.memsizer, first.position
                 )
                 val assignSecond = AsmAssignment(
                         AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
                         targetFromExpr(second, datatype),
-                        false, asmgen.compTarget, second.position
+                        false, program.memsizer, second.position
                 )
                 asmgen.translateNormalAssignment(assignFirst)
                 asmgen.translateNormalAssignment(assignSecond)
@@ -678,8 +681,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexValue2: NumericLiteralValue) {
-        val index1 = indexValue1.number.toInt() * asmgen.compTarget.memorySize(elementDt)
-        val index2 = indexValue2.number.toInt() * asmgen.compTarget.memorySize(elementDt)
+        val index1 = indexValue1.number.toInt() * program.memsizer.memorySize(elementDt)
+        val index2 = indexValue2.number.toInt() * program.memsizer.memorySize(elementDt)
         when(elementDt) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("""
@@ -792,7 +795,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexName2: IdentifierReference) {
-        val index1 = indexValue1.number.toInt() * asmgen.compTarget.memorySize(elementDt)
+        val index1 = indexValue1.number.toInt() * program.memsizer.memorySize(elementDt)
         val idxAsmName2 = asmgen.asmVariableName(indexName2)
         when(elementDt) {
             DataType.UBYTE, DataType.BYTE -> {
@@ -851,7 +854,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexName1: IdentifierReference, arrayVarName2: String, indexValue2: NumericLiteralValue) {
         val idxAsmName1 = asmgen.asmVariableName(indexName1)
-        val index2 = indexValue2.number.toInt() * asmgen.compTarget.memorySize(elementDt)
+        val index2 = indexValue2.number.toInt() * program.memsizer.memorySize(elementDt)
         when(elementDt) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("""
@@ -1287,7 +1290,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, conv.dt, null, variableAsmName = varname)
-                    val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, value.position)
+                    val assign = AsmAssignment(src, tgt, false, program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
                 conv.reg != null -> {
@@ -1303,7 +1306,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     }
                     val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
-                    val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, value.position)
+                    val assign = AsmAssignment(src, tgt, false, program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
                 else -> throw AssemblyError("callconv")

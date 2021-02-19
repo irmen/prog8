@@ -7,7 +7,6 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
 
@@ -201,7 +200,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 with(target.array!!.indexer) {
                     when {
                         indexNum!=null -> {
-                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*asmgen.compTarget.memorySize(target.datatype)}"
+                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*program.memsizer.memorySize(target.datatype)}"
                             when(target.datatype) {
                                 in ByteDatatypes -> {
                                     when {
@@ -245,19 +244,19 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             when(target.datatype) {
                                 in ByteDatatypes -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.A, null, program, asmgen)
-                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, asmgen.compTarget, value.position)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
                                 }
                                 in WordDatatypes -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
-                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, asmgen.compTarget, value.position)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                                 }
                                 DataType.FLOAT -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.FAC1, null, program, asmgen)
-                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, asmgen.compTarget, value.position)
+                                    val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignFAC1float(target)
                                 }
@@ -1474,7 +1473,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
-                if(asmgen.compTarget is Cx16Target) {
+                if(asmgen.haveFPWR()) {
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.CONUPK
+                        lda  #<$otherName
+                        ldy  #>$otherName
+                        jsr  floats.FPWR
+                    """)
+                } else
                     // cx16 doesn't have FPWR() only FPWRT()
                     asmgen.out("""
                         lda  #<$name
@@ -1484,15 +1492,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         ldy  #>$otherName
                         jsr  floats.MOVFM
                         jsr  floats.FPWRT
-                    """)
-                } else
-                    asmgen.out("""
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  floats.CONUPK
-                        lda  #<$otherName
-                        ldy  #>$otherName
-                        jsr  floats.FPWR
                     """)
             }
             "+" -> {
@@ -1552,7 +1551,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {
-                if(asmgen.compTarget is Cx16Target) {
+                if(asmgen.haveFPWR()) {
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.CONUPK
+                        lda  #<$constValueName
+                        ldy  #>$constValueName
+                        jsr  floats.FPWR
+                    """)
+                } else
                     // cx16 doesn't have FPWR() only FPWRT()
                     asmgen.out("""
                         lda  #<$name
@@ -1562,15 +1570,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         ldy  #>$constValueName
                         jsr  floats.MOVFM
                         jsr  floats.FPWRT
-                    """)
-                } else
-                    asmgen.out("""
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  floats.CONUPK
-                        lda  #<$constValueName
-                        ldy  #>$constValueName
-                        jsr  floats.FPWR
                     """)
             }
             "+" -> {

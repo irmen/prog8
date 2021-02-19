@@ -6,7 +6,10 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.base.DataType
+import prog8.ast.base.ParentSentinel
+import prog8.ast.base.Position
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*

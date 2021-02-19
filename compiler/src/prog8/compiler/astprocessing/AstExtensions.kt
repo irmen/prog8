@@ -1,11 +1,11 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.Program
-import prog8.compiler.ErrorReporter
 import prog8.ast.base.FatalAstException
 import prog8.ast.statements.Directive
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.CompilationOptions
+import prog8.compiler.ErrorReporter
 import prog8.compiler.target.ICompilationTarget
 
 

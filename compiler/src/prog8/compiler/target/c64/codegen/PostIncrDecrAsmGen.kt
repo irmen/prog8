@@ -67,7 +67,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.arrayvar)
                 val elementDt = targetArrayIdx.inferType(program).typeOrElse(DataType.STRUCT)
                 if(targetArrayIdx.indexer.indexNum!=null) {
-                    val indexValue = targetArrayIdx.indexer.constIndex()!! * asmgen.compTarget.memorySize(elementDt)
+                    val indexValue = targetArrayIdx.indexer.constIndex()!! * program.memsizer.memorySize(elementDt)
                     when(elementDt) {
                         in ByteDatatypes -> asmgen.out(if (incr) "  inc  $asmArrayvarname+$indexValue" else "  dec  $asmArrayvarname+$indexValue")
                         in WordDatatypes -> {

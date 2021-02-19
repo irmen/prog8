@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
-import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.c64.codegen.AsmGen
 
 

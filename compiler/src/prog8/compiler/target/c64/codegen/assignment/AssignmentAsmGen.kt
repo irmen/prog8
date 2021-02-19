@@ -22,7 +22,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
 
-        val assign = AsmAssignment(source, target, assignment.isAugmentable, asmgen.compTarget, assignment.position)
+        val assign = AsmAssignment(source, target, assignment.isAugmentable, program.memsizer, assignment.position)
         target.origAssign = assign
 
         if(assign.isAugmentable)
@@ -66,7 +66,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val arrayVarName = asmgen.asmVariableName(value.arrayvar)
                 if (value.indexer.indexNum!=null) {
                     // constant array index value
-                    val indexValue = value.indexer.constIndex()!! * asmgen.compTarget.memorySize(elementDt)
+                    val indexValue = value.indexer.constIndex()!! * program.memsizer.memorySize(elementDt)
                     when (elementDt) {
                         in ByteDatatypes -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue")
@@ -441,7 +441,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val lsb = FunctionCall(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
         lsb.linkParents(value.parent)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
-        val assign = AsmAssignment(src, target, false, asmgen.compTarget, value.position)
+        val assign = AsmAssignment(src, target, false, program.memsizer, value.position)
         translateNormalAssignment(assign)
     }
 
@@ -762,7 +762,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * asmgen.compTarget.memorySize(target.datatype)
+                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype)
                     when(target.datatype) {
                         in ByteDatatypes -> {
                             asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
@@ -968,7 +968,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.ARRAY -> {
                 target.array!!
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * asmgen.compTarget.memorySize(target.datatype)
+                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype)
                     when(target.datatype) {
                         in ByteDatatypes -> {
                             asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
@@ -1191,7 +1191,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * asmgen.compTarget.memorySize(target.datatype)
+                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype)
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
@@ -1777,7 +1777,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.ARRAY -> {
                     if (target.array!!.indexer.indexNum!=null) {
-                        val indexValue = target.array.indexer.constIndex()!! * asmgen.compTarget.memorySize(DataType.FLOAT)
+                        val indexValue = target.array.indexer.constIndex()!! * program.memsizer.memorySize(DataType.FLOAT)
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("""
                                 stz  ${target.asmVarname}+$indexValue
@@ -1842,7 +1842,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 TargetStorageKind.ARRAY -> {
                     val arrayVarName = target.asmVarname
                     if (target.array!!.indexer.indexNum!=null) {
-                        val indexValue = target.array.indexer.constIndex()!! * asmgen.compTarget.memorySize(DataType.FLOAT)
+                        val indexValue = target.array.indexer.constIndex()!! * program.memsizer.memorySize(DataType.FLOAT)
                         asmgen.out("""
                             lda  $constFloat
                             sta  $arrayVarName+$indexValue
@@ -2109,21 +2109,21 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
-        val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, expr.position)
+        val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
 
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, expr.position)
+        val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
 
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) {
         val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, false, asmgen.compTarget, Position.DUMMY)
+        val assign = AsmAssignment(src, tgt, false, program.memsizer, Position.DUMMY)
         translateNormalAssignment(assign)
     }
 }

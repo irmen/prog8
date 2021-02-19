@@ -1888,7 +1888,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
         if(arrayExpr.indexer.indexNum!=null) {
-            val indexValue = arrayExpr.indexer.constIndex()!! * asmgen.compTarget.memorySize(elementDt)
+            val indexValue = arrayExpr.indexer.constIndex()!! * program.memsizer.memorySize(elementDt)
             when(elementDt) {
                 in ByteDatatypes -> {
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")

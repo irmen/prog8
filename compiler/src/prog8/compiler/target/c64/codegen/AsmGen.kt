@@ -26,7 +26,7 @@ internal class AsmGen(private val program: Program,
                       val errors: ErrorReporter,
                       val zeropage: Zeropage,
                       val options: CompilationOptions,
-                      val compTarget: ICompilationTarget,
+                      private val compTarget: ICompilationTarget,
                       private val outputDir: Path): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
@@ -90,6 +90,7 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun isTargetCpu(cpu: CpuType) = compTarget.machine.cpu == cpu
+    internal fun haveFPWR() = compTarget is Cx16Target
 
     private fun header() {
         val ourName = this.javaClass.name
