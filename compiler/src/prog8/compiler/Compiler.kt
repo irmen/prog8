@@ -165,7 +165,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         builtinFunctionReturnType(name, args, program)
 }
 
-private fun parseImports(filepath: Path, errors: ErrorReporter, compTarget: ICompilationTarget): Triple<Program, CompilationOptions, List<Path>> {
+private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICompilationTarget): Triple<Program, CompilationOptions, List<Path>> {
     val compilationTargetName = compTarget.name
     println("Compiler target: $compilationTargetName. Parsing...")
     val importer = ModuleImporter()
@@ -173,7 +173,7 @@ private fun parseImports(filepath: Path, errors: ErrorReporter, compTarget: ICom
     val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf, compTarget)
     bf.program = programAst
     importer.importModule(programAst, filepath, compTarget, compilationTargetName)
-    errors.handle()
+    errors.report()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
     val compilerOptions = determineCompilationOptions(programAst, compTarget)
@@ -187,7 +187,7 @@ private fun parseImports(filepath: Path, errors: ErrorReporter, compTarget: ICom
     // always import prog8_lib and math
     importer.importLibraryModule(programAst, "math", compTarget, compilationTargetName)
     importer.importLibraryModule(programAst, "prog8_lib", compTarget, compilationTargetName)
-    errors.handle()
+    errors.report()
     return Triple(programAst, compilerOptions, importedFiles)
 }
 
@@ -242,25 +242,25 @@ private fun determineCompilationOptions(program: Program, compTarget: ICompilati
     )
 }
 
-private fun processAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
+private fun processAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
     programAst.checkIdentifiers(errors, compilerOptions.compTarget)
-    errors.handle()
+    errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)
-    errors.handle()
+    errors.report()
     programAst.reorderStatements(errors)
-    errors.handle()
+    errors.report()
     programAst.addTypecasts(errors)
-    errors.handle()
+    errors.report()
     programAst.variousCleanups()
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)
-    errors.handle()
+    errors.report()
     programAst.checkIdentifiers(errors, compilerOptions.compTarget)
-    errors.handle()
+    errors.report()
 }
 
-private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
+private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
     // optimize the parse tree
     println("Optimizing...")
     while (true) {
@@ -269,7 +269,7 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: I
         val optsDone2 = programAst.splitBinaryExpressions(compTarget)
         val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget)
         programAst.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
-        errors.handle()
+        errors.report()
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
@@ -277,29 +277,29 @@ private fun optimizeAst(programAst: Program, errors: ErrorReporter, functions: I
     val remover = UnusedCodeRemover(programAst, errors, compTarget)
     remover.visit(programAst)
     remover.applyModifications()
-    errors.handle()
+    errors.report()
 }
 
-private fun postprocessAst(programAst: Program, errors: ErrorReporter, compilerOptions: CompilationOptions) {
+private fun postprocessAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     programAst.addTypecasts(errors)
-    errors.handle()
+    errors.report()
     programAst.variousCleanups()
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
-    errors.handle()
+    errors.report()
     val callGraph = CallGraph(programAst)
     callGraph.checkRecursiveCalls(errors)
-    errors.handle()
+    errors.report()
     programAst.verifyFunctionArgTypes()
     programAst.moveMainAndStartToFirst()
 }
 
 private fun writeAssembly(programAst: Program,
-                          errors: ErrorReporter,
+                          errors: IErrorReporter,
                           outputDir: Path,
                           compilerOptions: CompilationOptions): String {
     // asm generation directly from the Ast,
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
-    errors.handle()
+    errors.report()
 
     // printAst(programAst)
 
@@ -311,7 +311,7 @@ private fun writeAssembly(programAst: Program,
             compilerOptions,
             outputDir).compileToAssembly()
     assembly.assemble(compilerOptions)
-    errors.handle()
+    errors.report()
     return assembly.name
 }
 

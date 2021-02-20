@@ -8,7 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.CompilationOptions
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.C64Target
@@ -18,7 +18,7 @@ import java.io.File
 
 internal class AstChecker(private val program: Program,
                           private val compilerOptions: CompilationOptions,
-                          private val errors: ErrorReporter,
+                          private val errors: IErrorReporter,
                           private val compTarget: ICompilationTarget
 ) : IAstVisitor {
 
@@ -1416,7 +1416,10 @@ internal class AstChecker(private val program: Program,
                 }
                 false
             }
-            else -> errors.err("cannot assign new value to variable of type $targetDatatype", position)
+            else -> {
+                errors.err("cannot assign new value to variable of type $targetDatatype", position)
+                false
+            }
         }
 
         if(result)

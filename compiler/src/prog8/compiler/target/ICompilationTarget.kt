@@ -8,7 +8,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.AssignTarget
 import prog8.compiler.CompilationOptions
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
@@ -108,7 +108,7 @@ internal object Cx16Target: ICompilationTarget {
 internal fun asmGeneratorFor(
     compTarget: ICompilationTarget,
     program: Program,
-    errors: ErrorReporter,
+    errors: IErrorReporter,
     zp: Zeropage,
     options: CompilationOptions,
     outputDir: Path

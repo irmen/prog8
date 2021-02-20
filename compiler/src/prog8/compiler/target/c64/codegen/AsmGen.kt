@@ -23,7 +23,7 @@ import kotlin.math.absoluteValue
 
 
 internal class AsmGen(private val program: Program,
-                      val errors: ErrorReporter,
+                      val errors: IErrorReporter,
                       val zeropage: Zeropage,
                       val options: CompilationOptions,
                       private val compTarget: ICompilationTarget,
@@ -263,7 +263,7 @@ internal class AsmGen(private val program: Program,
                     try {
                         val errors = ErrorReporter()
                         val address = zeropage.allocate(fullName, variable.datatype, null, errors)
-                        errors.handle()
+                        errors.report()
                         out("${variable.name} = $address\t; auto zp ${variable.datatype}")
                         // make sure we add the var to the set of zpvars for this block
                         allocatedZeropageVariables[fullName] = address to variable.datatype

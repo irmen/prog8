@@ -8,11 +8,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 
 
-class TypecastsAdder(val program: Program, val errors: ErrorReporter) : AstWalker() {
+class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalker() {
     /*
      * Make sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
      * (this includes function call arguments)

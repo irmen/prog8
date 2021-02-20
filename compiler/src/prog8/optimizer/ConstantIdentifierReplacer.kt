@@ -10,11 +10,11 @@ import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl
-internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: ErrorReporter) : AstWalker() {
+internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -39,7 +39,7 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
 // Replace all constant identifiers with their actual value,
 // and the array var initializer values and sizes.
 // This is needed because further constant optimizations depend on those.
-internal class ConstantIdentifierReplacer(private val program: Program, private val errors: ErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
+internal class ConstantIdentifierReplacer(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
     private val noModifications = emptyList<IAstModification>()
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {

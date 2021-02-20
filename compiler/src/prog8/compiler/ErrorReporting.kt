@@ -3,7 +3,16 @@ package prog8.compiler
 import prog8.ast.base.Position
 import prog8.parser.ParsingFailedError
 
-class ErrorReporter {
+
+interface IErrorReporter {
+    fun err(msg: String, position: Position)
+    fun warn(msg: String, position: Position)
+    fun isEmpty(): Boolean
+    fun report()
+}
+
+
+internal class ErrorReporter: IErrorReporter {
     private enum class MessageSeverity {
         WARNING,
         ERROR
@@ -13,10 +22,14 @@ class ErrorReporter {
     private val messages = mutableListOf<CompilerMessage>()
     private val alreadyReportedMessages = mutableSetOf<String>()
 
-    fun err(msg: String, position: Position) = messages.add(CompilerMessage(MessageSeverity.ERROR, msg, position))
-    fun warn(msg: String, position: Position) = messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
+    override fun err(msg: String, position: Position) {
+        messages.add(CompilerMessage(MessageSeverity.ERROR, msg, position))
+    }
+    override fun warn(msg: String, position: Position) {
+        messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
+    }
 
-    fun handle() {
+    override fun report() {
         var numErrors = 0
         var numWarnings = 0
         messages.forEach {
@@ -40,5 +53,5 @@ class ErrorReporter {
             throw ParsingFailedError("There are $numErrors errors and $numWarnings warnings.")
     }
 
-    fun isEmpty() = messages.isEmpty()
+    override fun isEmpty() = messages.isEmpty()
 }

@@ -11,7 +11,7 @@ import prog8.ast.walk.IAstModification
 import prog8.compiler.target.ICompilationTarget
 
 
-internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: ErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
+internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
 
     private val noModifications = emptyList<IAstModification>()
 

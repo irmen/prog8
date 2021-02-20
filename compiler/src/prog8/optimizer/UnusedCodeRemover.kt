@@ -10,11 +10,11 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
 
 
-internal class UnusedCodeRemover(private val program: Program, private val errors: ErrorReporter, private val compTarget: ICompilationTarget): AstWalker() {
+internal class UnusedCodeRemover(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget): AstWalker() {
 
     override fun before(program: Program, parent: Node): Iterable<IAstModification> {
         val callgraph = CallGraph(program)

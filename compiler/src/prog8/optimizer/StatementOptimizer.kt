@@ -10,13 +10,13 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
 import kotlin.math.floor
 
 
 internal class StatementOptimizer(private val program: Program,
-                                  private val errors: ErrorReporter,
+                                  private val errors: IErrorReporter,
                                   private val functions: IBuiltinFunctions,
                                   private val compTarget: ICompilationTarget
 ) : AstWalker() {

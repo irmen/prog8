@@ -11,7 +11,7 @@ import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.loadAsmIncludeFile
 
 private val alwaysKeepSubroutines = setOf(
@@ -213,7 +213,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         }
     }
 
-    fun checkRecursiveCalls(errors: ErrorReporter) {
+    fun checkRecursiveCalls(errors: IErrorReporter) {
         val cycles = recursionCycles()
         if(cycles.any()) {
             errors.warn("Program contains recursive subroutine calls. These only works in very specific limited scenarios!", Position.DUMMY)

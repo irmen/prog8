@@ -6,11 +6,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 
 
-internal class StatementReorderer(val program: Program, val errors: ErrorReporter) : AstWalker() {
+internal class StatementReorderer(val program: Program, val errors: IErrorReporter) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - library blocks are put last.

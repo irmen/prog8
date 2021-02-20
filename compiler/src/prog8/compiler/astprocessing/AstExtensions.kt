@@ -5,28 +5,28 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.statements.Directive
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.CompilationOptions
-import prog8.compiler.ErrorReporter
+import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
 
 
-internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: ErrorReporter, compTarget: ICompilationTarget) {
+internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: IErrorReporter, compTarget: ICompilationTarget) {
     val checker = AstChecker(this, compilerOptions, errors, compTarget)
     checker.visit(this)
 }
 
-internal fun Program.processAstBeforeAsmGeneration(errors: ErrorReporter, compTarget: ICompilationTarget) {
+internal fun Program.processAstBeforeAsmGeneration(errors: IErrorReporter, compTarget: ICompilationTarget) {
     val fixer = BeforeAsmGenerationAstChanger(this, errors, compTarget)
     fixer.visit(this)
     fixer.applyModifications()
 }
 
-internal fun Program.reorderStatements(errors: ErrorReporter) {
+internal fun Program.reorderStatements(errors: IErrorReporter) {
     val reorder = StatementReorderer(this, errors)
     reorder.visit(this)
     reorder.applyModifications()
 }
 
-internal fun Program.addTypecasts(errors: ErrorReporter) {
+internal fun Program.addTypecasts(errors: IErrorReporter) {
     val caster = TypecastsAdder(this, errors)
     caster.visit(this)
     caster.applyModifications()
@@ -37,7 +37,7 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.checkIdentifiers(errors: ErrorReporter, compTarget: ICompilationTarget) {
+internal fun Program.checkIdentifiers(errors: IErrorReporter, compTarget: ICompilationTarget) {
 
     val checker2 = AstIdentifiersChecker(this, errors, compTarget)
     checker2.visit(this)
