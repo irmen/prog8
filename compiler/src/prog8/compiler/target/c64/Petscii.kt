@@ -172,7 +172,7 @@ object Petscii {
             '\u258c',    //  ▌    0xA1 -> LEFT HALF BLOCK
             '\u2584',    //  ▄    0xA2 -> LOWER HALF BLOCK
             '\u2594',    //  ▔    0xA3 -> UPPER ONE EIGHTH BLOCK
-            '\u2581',    //  ▁    0xA4 -> LOWER ONE EIGHTH BLOCK
+            '_',         //  ▁    0xA4 -> LOWER ONE EIGHTH BLOCK
             '\u258f',    //  ▏    0xA5 -> LEFT ONE EIGHTH BLOCK
             '\u2592',    //  ▒    0xA6 -> MEDIUM SHADE
             '\u2595',    //  ▕    0xA7 -> RIGHT ONE EIGHTH BLOCK
@@ -236,7 +236,7 @@ object Petscii {
             '\u258c',    //  ▌    0xE1 -> LEFT HALF BLOCK
             '\u2584',    //  ▄    0xE2 -> LOWER HALF BLOCK
             '\u2594',    //  ▔    0xE3 -> UPPER ONE EIGHTH BLOCK
-            '\u2581',    //  ▁    0xE4 -> LOWER ONE EIGHTH BLOCK
+            '_',         //  ▁    0xE4 -> LOWER ONE EIGHTH BLOCK
             '\u258f',    //  ▏    0xE5 -> LEFT ONE EIGHTH BLOCK
             '\u2592',    //  ▒    0xE6 -> MEDIUM SHADE
             '\u2595',    //  ▕    0xE7 -> RIGHT ONE EIGHTH BLOCK
@@ -431,7 +431,7 @@ object Petscii {
             '\u258c',    //  ▌    0xA1 -> LEFT HALF BLOCK
             '\u2584',    //  ▄    0xA2 -> LOWER HALF BLOCK
             '\u2594',    //  ▔    0xA3 -> UPPER ONE EIGHTH BLOCK
-            '\u2581',    //  ▁    0xA4 -> LOWER ONE EIGHTH BLOCK
+            '_',         //  ▁    0xA4 -> LOWER ONE EIGHTH BLOCK
             '\u258f',    //  ▏    0xA5 -> LEFT ONE EIGHTH BLOCK
             '\u2592',    //  ▒    0xA6 -> MEDIUM SHADE
             '\u2595',    //  ▕    0xA7 -> RIGHT ONE EIGHTH BLOCK
@@ -495,7 +495,7 @@ object Petscii {
             '\u258c',    //  ▌    0xE1 -> LEFT HALF BLOCK
             '\u2584',    //  ▄    0xE2 -> LOWER HALF BLOCK
             '\u2594',    //  ▔    0xE3 -> UPPER ONE EIGHTH BLOCK
-            '\u2581',    //  ▁    0xE4 -> LOWER ONE EIGHTH BLOCK
+            '_',         //  ▁    0xE4 -> LOWER ONE EIGHTH BLOCK
             '\u258f',    //  ▏    0xE5 -> LEFT ONE EIGHTH BLOCK
             '\u2592',    //  ▒    0xE6 -> MEDIUM SHADE
             '\u2595',    //  ▕    0xE7 -> RIGHT ONE EIGHTH BLOCK
@@ -626,7 +626,7 @@ object Petscii {
             '\u258c',    //  ▌    0x61 -> LEFT HALF BLOCK
             '\u2584',    //  ▄    0x62 -> LOWER HALF BLOCK
             '\u2594',    //  ▔    0x63 -> UPPER ONE EIGHTH BLOCK
-            '\u2581',    //  ▁    0x64 -> LOWER ONE EIGHTH BLOCK
+            '_',         //  ▁    0x64 -> LOWER ONE EIGHTH BLOCK
             '\u258f',    //  ▏    0x65 -> LEFT ONE EIGHTH BLOCK
             '\u2592',    //  ▒    0x66 -> MEDIUM SHADE
             '\u2595',    //  ▕    0x67 -> RIGHT ONE EIGHTH BLOCK
@@ -885,7 +885,7 @@ object Petscii {
             '\u258c',    //  ▌    0x61 -> LEFT HALF BLOCK
             '\u2584',    //  ▄    0x62 -> LOWER HALF BLOCK
             '\u2594',    //  ▔    0x63 -> UPPER ONE EIGHTH BLOCK
-            '\u2581',    //  ▁    0x64 -> LOWER ONE EIGHTH BLOCK
+            '_',         //  ▁    0x64 -> LOWER ONE EIGHTH BLOCK
             '\u258f',    //  ▏    0x65 -> LEFT ONE EIGHTH BLOCK
             '\u2592',    //  ▒    0x66 -> MEDIUM SHADE
             '\u2595',    //  ▕    0x67 -> RIGHT ONE EIGHTH BLOCK
