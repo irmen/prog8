@@ -20,7 +20,7 @@ import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
 import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.cx16.CX16MachineDefinition
+import prog8.compiler.target.cx16.CX16MachineDefinition.CX16Zeropage
 import java.io.CharConversionException
 import java.nio.file.Path
 import kotlin.test.*
@@ -304,11 +304,30 @@ class TestC64Zeropage {
 class TestCx16Zeropage {
     @Test
     fun testReservedLocations() {
-        val zp = CX16MachineDefinition.CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, Cx16Target))
+        val zp = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, Cx16Target))
         assertEquals(zp.SCRATCH_REG, zp.SCRATCH_B1+1, "zp _B1 and _REG must be next to each other to create a word")
     }
 
-    // TODO way more tests for the Cx16 zeropage?
+    @Test
+    fun testFreeSpaces() {
+        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, Cx16Target))
+        assertEquals(88, zp1.available())
+        val zp3 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, Cx16Target))
+        assertEquals(175, zp3.available())
+        val zp4 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
+        assertEquals(216, zp4.available())
+    }
+
+    @Test
+    fun testReservedSpace() {
+        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
+        assertEquals(216, zp1.available())
+        assertTrue(0x22 in zp1.free)
+        assertTrue(0x80 in zp1.free)
+        assertTrue(0xff in zp1.free)
+        assertFalse(0x02 in zp1.free)
+        assertFalse(0x21 in zp1.free)
+    }
 }
 
 

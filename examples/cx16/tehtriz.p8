@@ -33,7 +33,7 @@ main {
 
 
     sub start() {
-        cx16.screen_set_mode(0)       ; low res
+        void cx16.screen_set_mode(0)       ; low res
         sound.init()
         newGame()
         drawBoard()
