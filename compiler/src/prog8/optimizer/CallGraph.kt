@@ -12,7 +12,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
-import prog8.compiler.loadAsmIncludeFile
+import java.nio.file.Path
 
 private val alwaysKeepSubroutines = setOf(
         Pair("main", "start"),
@@ -23,7 +23,7 @@ private val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr)[ \t]+(\S+).*""", R
 private val asmRefRx = Regex("""[\-+a-zA-Z0-9_ \t]+(...)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
 
 
-class CallGraph(private val program: Program) : IAstVisitor {
+class CallGraph(private val program: Program, private val asmFileLoader: (filename: String, source: Path)->String) : IAstVisitor {
 
     val imports = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
     val importedBy = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
@@ -80,7 +80,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
             imports[thisModule] = imports.getValue(thisModule).plus(importedModule)
             importedBy[importedModule] = importedBy.getValue(importedModule).plus(thisModule)
         } else if (directive.directive == "%asminclude") {
-            val asm = loadAsmIncludeFile(directive.args[0].str!!, thisModule.source)
+            val asm = asmFileLoader(directive.args[0].str!!, thisModule.source)
             val scope = directive.definingSubroutine()
             if(scope!=null) {
                 scanAssemblyCode(asm, directive, scope)

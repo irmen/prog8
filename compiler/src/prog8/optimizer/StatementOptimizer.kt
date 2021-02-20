@@ -12,17 +12,19 @@ import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
+import java.nio.file.Path
 import kotlin.math.floor
 
 
 internal class StatementOptimizer(private val program: Program,
                                   private val errors: IErrorReporter,
                                   private val functions: IBuiltinFunctions,
-                                  private val compTarget: ICompilationTarget
+                                  private val compTarget: ICompilationTarget,
+                                  private val asmFileLoader: (filename: String, source: Path)->String
 ) : AstWalker() {
 
     private val noModifications = emptyList<IAstModification>()
-    private val callgraph = CallGraph(program)
+    private val callgraph = CallGraph(program, asmFileLoader)
 
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {

@@ -267,14 +267,14 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.splitBinaryExpressions(compTarget)
-        val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget)
+        val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget, ::loadAsmIncludeFile)
         programAst.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
 
-    val remover = UnusedCodeRemover(programAst, errors, compTarget)
+    val remover = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
     remover.visit(programAst)
     remover.applyModifications()
     errors.report()
@@ -286,7 +286,7 @@ private fun postprocessAst(programAst: Program, errors: IErrorReporter, compiler
     programAst.variousCleanups()
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
     errors.report()
-    val callGraph = CallGraph(programAst)
+    val callGraph = CallGraph(programAst, ::loadAsmIncludeFile)
     callGraph.checkRecursiveCalls(errors)
     errors.report()
     programAst.verifyFunctionArgTypes()

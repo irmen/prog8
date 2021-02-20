@@ -12,12 +12,16 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
+import java.nio.file.Path
 
 
-internal class UnusedCodeRemover(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget): AstWalker() {
+internal class UnusedCodeRemover(private val program: Program,
+                                 private val errors: IErrorReporter,
+                                 private val compTarget: ICompilationTarget,
+                                 private val asmFileLoader: (filename: String, source: Path)->String): AstWalker() {
 
     override fun before(program: Program, parent: Node): Iterable<IAstModification> {
-        val callgraph = CallGraph(program)
+        val callgraph = CallGraph(program, asmFileLoader)
         val removals = mutableListOf<IAstModification>()
 
         // remove all subroutines that aren't called, or are empty

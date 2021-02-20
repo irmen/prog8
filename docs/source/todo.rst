@@ -5,8 +5,6 @@ TODO
 - add sound to the cx16 tehtriz
 
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
-- refactor the asmgen into their own submodule?
-- refactor the compiler optimizers into their own submodule?
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 - optimize several inner loops in gfx2 (highres 4 color mode)
 - use the 65c02 bit clear/set/test instructions for single-bit operations
@@ -14,6 +12,8 @@ TODO
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)
 - add a flood fill routine to gfx2?
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
+- refactor the asmgen into their own submodule?
+- refactor the compiler optimizers into their own submodule?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - add a compiler option to not remove unused subroutines. this allows for building library programs
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as 'v_'
