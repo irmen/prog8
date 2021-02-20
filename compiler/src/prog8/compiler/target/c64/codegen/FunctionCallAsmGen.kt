@@ -91,11 +91,15 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     when {
                         stmt.args.all {isNoClobberRisk(it)} -> {
                             // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
+                            // register assignment order: 1) cx16 virtual word registers, 2) actual CPU registers, 3) CPU Carry status flag.
                             val argsInfo = sub.parameters.withIndex().zip(stmt.args).zip(sub.asmParameterRegisters)
-                            val (cx16virtualRegsArgsInfo, otherRegsArgsInfo) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
-                            for(arg in cx16virtualRegsArgsInfo)
+                            val (cx16virtualRegs, args2) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
+                            val (cpuRegs, statusRegs) = args2.partition { it.second.registerOrPair!=null }
+                            for(arg in cx16virtualRegs)
                                 argumentViaRegister(sub, arg.first.first, arg.first.second)
-                            for(arg in otherRegsArgsInfo)
+                            for(arg in cpuRegs)
+                                argumentViaRegister(sub, arg.first.first, arg.first.second)
+                            for(arg in statusRegs)
                                 argumentViaRegister(sub, arg.first.first, arg.first.second)
                         }
                         else -> {

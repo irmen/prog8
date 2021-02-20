@@ -351,10 +351,6 @@ internal class AstChecker(private val program: Program,
             if(statusFlagsNoCarry.isNotEmpty())
                 err("can only use Carry as status flag parameter")
 
-            val carryParameter = subroutine.asmParameterRegisters.singleOrNull { it.statusflag==Statusflag.Pc }
-            if(carryParameter!=null && carryParameter !== subroutine.asmParameterRegisters.last())
-                err("carry parameter has to come last")
-
         } else {
             // Pass-by-reference datatypes can not occur as parameters to a subroutine directly
             // Instead, their reference (address) should be passed (as an UWORD).

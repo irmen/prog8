@@ -40,6 +40,6 @@ vtui $1000 {
     romsub $1023  =  pet2scr(ubyte char @A) -> ubyte @A
     romsub $1026  =  scr2pet(ubyte char @A) -> ubyte @A
     romsub $1029  =  border(ubyte mode @A, ubyte width @R1, ubyte height @R2, ubyte colors @X) clobbers(Y)       ; NOTE: mode 6 means 'custom' characters taken from r3 - r6
-    romsub $102c  =  save_rect(ubyte vbank @A, uword address @R0, ubyte width @R1, ubyte height @R2, ubyte ramtype @Pc) clobbers(A, X, Y)
-    romsub $102f  =  rest_rect(ubyte vbank @A, uword address @R0, ubyte width @R1, ubyte height @R2, ubyte ramtype @Pc) clobbers(A, X, Y)
+    romsub $102c  =  save_rect(ubyte ramtype @Pc, ubyte vbank @A, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
+    romsub $102f  =  rest_rect(ubyte ramtype @Pc, ubyte vbank @A, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
 }
