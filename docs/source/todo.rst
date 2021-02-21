@@ -16,7 +16,7 @@ TODO
 - refactor the compiler optimizers into their own submodule?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - add a compiler option to not remove unused subroutines. this allows for building library programs
-- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as 'v_'
+- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - some support for recursive subroutines?

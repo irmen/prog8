@@ -120,17 +120,18 @@ Directives
 	Level: module, block.
 	Sets special compiler options.
 
-    - For a module option, there is ``enable_floats``, which will tell the compiler
+    - ``enable_floats`` (module level) tells the compiler
       to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
       Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
       importing the ``floats`` library is required anyway and that will enable it for you automatically.
-    - There's also ``no_sysinit`` which cause the resulting program to *not* include
+    - ``no_sysinit`` (module level) which cause the resulting program to *not* include
       the system re-initialization logic of clearing the screen, resetting I/O config etc. You'll have to
       take care of that yourself. The program will just start running from whatever state the machine is in when the
       program was launched.
-    - When used in a block with the ``force_output`` option, it will force the block to be outputted
-      in the final program. Can be useful to make sure some
-      data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
+    - ``force_output`` (in a block) will force the block to be outputted in the final program.
+      Can be useful to make sure some data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
+    - ``align_word`` (in a block) will make the assembler align the start address of this block on a word boundary in memory (so, an even memory address).
+    - ``align_page`` (in a block) will make the assembler align the start address of this block on a page boundary in memory (so, the LSB of the address is 0).
 
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]

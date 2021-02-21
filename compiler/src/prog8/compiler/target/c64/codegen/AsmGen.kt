@@ -181,8 +181,13 @@ internal class AsmGen(private val program: Program,
         out("\n\n; ---- block: '${block.name}' ----")
         if(block.address!=null)
             out("* = ${block.address!!.toHex()}")
-        else
-            out("\t.align 2")
+        else {
+            if("align_word" in block.options())
+                out("\t.align 2")
+            else if("align_page" in block.options())
+                out("\t.align $100")
+        }
+
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
         outputSourceLine(block)
