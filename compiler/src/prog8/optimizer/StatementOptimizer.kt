@@ -20,7 +20,7 @@ internal class StatementOptimizer(private val program: Program,
                                   private val errors: IErrorReporter,
                                   private val functions: IBuiltinFunctions,
                                   private val compTarget: ICompilationTarget,
-                                  private val asmFileLoader: (filename: String, source: Path)->String
+                                  asmFileLoader: (filename: String, source: Path)->String
 ) : AstWalker() {
 
     private val noModifications = emptyList<IAstModification>()
@@ -294,18 +294,6 @@ internal class StatementOptimizer(private val program: Program,
             }
         }
         return noModifications
-    }
-
-    override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
-        // remove empty choices
-        class ChoiceRemover(val choice: WhenChoice) : IAstModification {
-            override fun perform() {
-                whenStatement.choices.remove(choice)
-            }
-        }
-        return whenStatement.choices
-                .filter { !it.statements.containsCodeOrVars() }
-                .map { ChoiceRemover(it) }
     }
 
     override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {

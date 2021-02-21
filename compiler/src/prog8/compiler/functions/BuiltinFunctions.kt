@@ -366,7 +366,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             NumericLiteralValue.optimalInteger(arraySize, args[0].position)
         }
         DataType.STR -> {
-            val refLv = target.value as StringLiteralValue
+            val refLv = target.value as? StringLiteralValue ?: throw CannotEvaluateException("len", "stringsize unknown")
             NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
         }
         DataType.STRUCT -> throw SyntaxError("cannot use len on struct, did you mean sizeof?", args[0].position)

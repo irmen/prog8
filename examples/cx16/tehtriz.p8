@@ -6,6 +6,7 @@
 ;   shows next piece
 ;   staged speed increase
 ;   TODO:  replicate the simple sound effects from the C64 version
+;          how to do this on the Vera PSG without a ADSR envelope...?
 
 
 %target cx16
