@@ -28,7 +28,8 @@ internal class UnusedCodeRemover(private val program: Program,
         val entrypoint = program.entrypoint()
         program.modules.forEach {
             callgraph.forAllSubroutines(it) { sub ->
-                if (sub !== entrypoint && !sub.isAsmSubroutine && (callgraph.calledBy[sub].isNullOrEmpty() || sub.containsNoCodeNorVars())) {
+                val forceOutput = "force_output" in sub.definingBlock().options()
+                if (sub !== entrypoint && !forceOutput && !sub.isAsmSubroutine && (callgraph.calledBy[sub].isNullOrEmpty() || sub.containsNoCodeNorVars())) {
                     removals.add(IAstModification.Remove(sub, sub.definingScope()))
                 }
             }
