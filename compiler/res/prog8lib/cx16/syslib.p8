@@ -102,10 +102,11 @@ asmsub MEMTOP2() -> ubyte @A {
 
 cx16 {
 
-; 65c02 hardware vectors:
-    &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
-    &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
-    &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
+; irq and hardware vectors:
+    &uword  CINV            = $0314     ; IRQ vector (in ram)
+    &uword  NMI_VEC         = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
+    &uword  RESET_VEC       = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
+    &uword  IRQ_VEC         = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
 
 
 ; the sixteen virtual 16-bit registers
@@ -453,7 +454,7 @@ _loop       ldy  #0
 }
 
 ; ---- system stuff -----
-asmsub init_system()  {
+asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.
     %asm {{
@@ -485,7 +486,165 @@ asmsub init_system()  {
     }}
 }
 
+asmsub  init_system_phase2()  {
+    %asm {{
+        sei
+        lda  cx16.CINV
+        sta  restore_irq._orig_irqvec
+        lda  cx16.CINV+1
+        sta  restore_irq._orig_irqvec+1
+        cli
+        rts
+    }}
 }
+
+asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
+	%asm {{
+	        sta  _modified+1
+	        sty  _modified+2
+	        lda  #0
+	        adc  #0
+	        sta  _use_kernal
+		sei
+		lda  #<_irq_handler
+		sta  cx16.CINV
+		lda  #>_irq_handler
+		sta  cx16.CINV+1
+                lda  cx16.VERA_IEN
+                ora  #%00000001     ; enable the vsync irq
+                sta  cx16.VERA_IEN
+		cli
+		rts
+
+_irq_handler    jsr  _irq_handler_init
+_modified	jsr  $ffff                      ; modified
+		jsr  _irq_handler_end
+		lda  _use_kernal
+		bne  +
+		; end irq processing - don't use kernal's irq handling
+		lda  cx16.VERA_ISR
+		ora  #1
+		sta  cx16.VERA_ISR      ; clear Vera Vsync irq status
+		ply
+		plx
+		pla
+		rti
++		jmp  (restore_irq._orig_irqvec)   ; continue with normal kernal irq routine
+
+_use_kernal     .byte  0
+
+_irq_handler_init
+		; save all zp scratch registers and the X register as these might be clobbered by the irq routine
+		stx  IRQ_X_REG
+		lda  P8ZP_SCRATCH_B1
+		sta  IRQ_SCRATCH_ZPB1
+		lda  P8ZP_SCRATCH_REG
+		sta  IRQ_SCRATCH_ZPREG
+		lda  P8ZP_SCRATCH_W1
+		sta  IRQ_SCRATCH_ZPWORD1
+		lda  P8ZP_SCRATCH_W1+1
+		sta  IRQ_SCRATCH_ZPWORD1+1
+		lda  P8ZP_SCRATCH_W2
+		sta  IRQ_SCRATCH_ZPWORD2
+		lda  P8ZP_SCRATCH_W2+1
+		sta  IRQ_SCRATCH_ZPWORD2+1
+		; stack protector; make sure we don't clobber the top of the evaluation stack
+		dex
+		dex
+		dex
+		dex
+		dex
+		dex
+		cld
+		rts
+
+_irq_handler_end
+		; restore all zp scratch registers and the X register
+		lda  IRQ_SCRATCH_ZPB1
+		sta  P8ZP_SCRATCH_B1
+		lda  IRQ_SCRATCH_ZPREG
+		sta  P8ZP_SCRATCH_REG
+		lda  IRQ_SCRATCH_ZPWORD1
+		sta  P8ZP_SCRATCH_W1
+		lda  IRQ_SCRATCH_ZPWORD1+1
+		sta  P8ZP_SCRATCH_W1+1
+		lda  IRQ_SCRATCH_ZPWORD2
+		sta  P8ZP_SCRATCH_W2
+		lda  IRQ_SCRATCH_ZPWORD2+1
+		sta  P8ZP_SCRATCH_W2+1
+		ldx  IRQ_X_REG
+		rts
+
+IRQ_X_REG		.byte  0
+IRQ_SCRATCH_ZPB1	.byte  0
+IRQ_SCRATCH_ZPREG	.byte  0
+IRQ_SCRATCH_ZPWORD1	.word  0
+IRQ_SCRATCH_ZPWORD2	.word  0
+
+		}}
+}
+
+
+asmsub  restore_irq() clobbers(A) {
+	%asm {{
+	    sei
+	    lda  _orig_irqvec
+	    sta  cx16.CINV
+	    lda  _orig_irqvec+1
+	    sta  cx16.CINV+1
+	    lda  cx16.VERA_IEN
+	    and  #%11110000     ; disable all Vera IRQs
+	    ora  #%00000001     ; enable only the vsync Irq
+	    sta  cx16.VERA_IEN
+	    cli
+	    rts
+_orig_irqvec    .word  0
+        }}
+}
+
+asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
+	%asm {{
+            sta  _modified+1
+            sty  _modified+2
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            sei
+            lda  cx16.VERA_IEN
+            and  #%11110000     ; clear other IRQs
+            ora  #%00000010     ; enable the line (raster) irq
+            sta  cx16.VERA_IEN
+            lda  cx16.r0
+            sta  cx16.VERA_IRQ_LINE_L
+            lda  cx16.r0+1
+            lsr  a
+            ror  a
+            and  #%10000000
+            ora  cx16.VERA_IEN
+            sta  cx16.VERA_IEN      ; high bit of the raster line
+            lda  #<_raster_irq_handler
+            sta  cx16.CINV
+            lda  #>_raster_irq_handler
+            sta  cx16.CINV+1
+            cli
+            rts
+
+_raster_irq_handler
+            jsr  set_irq._irq_handler_init
+_modified   jsr  $ffff                      ; modified
+            jsr  set_irq._irq_handler_end
+            ; end irq processing - don't use kernal's irq handling
+            lda  cx16.VERA_ISR
+            ora  #%00000010
+            sta  cx16.VERA_ISR      ; clear Vera line irq status
+            ply
+            plx
+            pla
+            rti
+        }}
+}
+
+}
+
 
 sys {
     ; ------- lowlevel system routines --------

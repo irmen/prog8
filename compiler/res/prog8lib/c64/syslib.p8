@@ -294,6 +294,12 @@ asmsub  init_system()  {
     }}
 }
 
+asmsub  init_system_phase2()  {
+    %asm {{
+        rts     ; no phase 2 steps on the C64
+    }}
+}
+
 asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
         lda  #$80
@@ -410,7 +416,7 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0, ubyte useKernal @P
 	        sty  _modified+2
 	        lda  #0
 	        adc  #0
-	        sta  _use_kernal
+	        sta  set_irq._use_kernal
 		lda  cx16.r0
 		ldy  cx16.r0+1
 		sei
@@ -422,15 +428,13 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0, ubyte useKernal @P
 		cli
 		rts
 
-_use_kernal     .byte  0
-
 _raster_irq_handler
 		jsr  set_irq._irq_handler_init
 _modified	jsr  $ffff              ; modified
 		jsr  set_irq._irq_handler_end
                 lda  #$ff
                 sta  c64.VICIRQ			; acknowledge raster irq
-		lda  _use_kernal
+		lda  set_irq._use_kernal
 		bne  +
 		; end irq processing - don't use kernal's irq handling
 		pla

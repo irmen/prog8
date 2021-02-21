@@ -7,17 +7,10 @@ main {
 ;   $1F9C0 - $1F9FF 	PSG registers
 
     sub start() {
-        uword color=0
-        repeat {
-            cx16.vpoke(1, $fa00+6*2, lsb(color))
-            cx16.vpoke(1, $fa01+6*2, msb(color))
-            color++
-        }
-        ;c64.set_rasterirq(&irq.irq, 100, true)
-
+        cx16.set_rasterirq(&irq.irq, 100)
+        ;cx16.set_irq(&irq.irq, true)
         sys.wait(100)
-
-        ;c64.restore_irq()
+        cx16.restore_irq()
 
 ;        uword freq = 1181
 ;        cx16.vpoke(1, $f9c0, lsb(freq))
@@ -29,10 +22,26 @@ main {
 
 
 irq {
+    %option force_output
+
     uword counter = 0
 
     sub irq() {
-
+        cx16.vpoke(1, $fa00+6*2, lsb(counter))
+        cx16.vpoke(1, $fa01+6*2, msb(counter))
+        repeat 20 {
+            uword xx
+            repeat 16 {
+                xx++
+            }
+            cx16.vpoke(1, $fa00+6*2, 0)
+            cx16.vpoke(1, $fa01+6*2, 255)
+            repeat 16 {
+                xx++
+            }
+            cx16.vpoke(1, $fa00+6*2, 0)
+            cx16.vpoke(1, $fa01+6*2, 0)
+        }
         counter++
     }
 }

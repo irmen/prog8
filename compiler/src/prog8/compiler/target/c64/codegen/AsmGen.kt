@@ -133,12 +133,14 @@ internal class AsmGen(private val program: Program,
                 out("_prog8_entrypoint\t; assembly code starts here\n")
                 if(!options.noSysInit)
                     out("  jsr  ${compTarget.name}.init_system")
+                out("  jsr  ${compTarget.name}.init_system_phase2")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without basic sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}\n")
                 if(!options.noSysInit)
                     out("  jsr  ${compTarget.name}.init_system")
+                out("  jsr  ${compTarget.name}.init_system_phase2")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")

@@ -148,3 +148,8 @@ For the C64 these routines are::
     c64.set_rasterirq(uword handler_address, uword rasterline, boolean useKernal)
     c64.restore_irq()     ; set everything back to the systems default irq handler
 
+And for the Commander X16:
+
+    cx16.set_irq(uword handler_address, boolean useKernal)          ; vsync irq
+    cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables kernal irq handler! sys.wait() won't work anymore
+    cx16.restore_irq()     ; set everything back to the systems default irq handler
