@@ -1141,12 +1141,18 @@ internal class AstChecker(private val program: Program,
         val conditionType = whenStatement.condition.inferType(program).typeOrElse(DataType.STRUCT)
         if(conditionType !in IntegerDatatypes)
             errors.err("when condition must be an integer value", whenStatement.position)
-        val choiceValues = whenStatement.choiceValues(program)
-        val occurringValues = choiceValues.map {it.first}
-        val tally = choiceValues.associate { it.second to occurringValues.count { ov->it.first==ov} }
-        tally.filter { it.value>1 }.forEach {
-            errors.err("choice value occurs multiple times", it.key.position)
+        val tally = mutableSetOf<Int>()
+        for((choices, choiceNode) in whenStatement.choiceValues(program)) {
+            if(choices!=null) {
+                for (c in choices) {
+                    if(c in tally)
+                        errors.err("choice value already occurs earlier", choiceNode.position)
+                    else
+                        tally.add(c)
+                }
+            }
         }
+
         if(whenStatement.choices.isEmpty())
             errors.err("empty when statement", whenStatement.position)
 

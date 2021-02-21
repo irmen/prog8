@@ -2,8 +2,6 @@
 TODO
 ====
 
-- compiler error for double when labels
-
 - add sound to the cx16 tehtriz
 
 - add const arrays and cost strings

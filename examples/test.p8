@@ -6,14 +6,19 @@ main {
 
 ;   $1F9C0 - $1F9FF 	PSG registers
 
-    sub init(uword addr, ubyte length) {
-        @(addr+length) = $ea
-    }
-
     sub start() {
 
-        init($4000, 0)
-        txt.print_uwhex(@($4000), true)
+        ubyte xx=33
+        when xx {
+            1 -> {
+            }
+            2 -> {
+            }
+            else -> {
+            }
+            else -> {
+            }
+        }
 
 ;        uword freq = 1181
 ;        cx16.vpoke(1, $f9c0, lsb(freq))
