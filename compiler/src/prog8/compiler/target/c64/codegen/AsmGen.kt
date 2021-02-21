@@ -96,7 +96,7 @@ internal class AsmGen(private val program: Program,
         val ourName = this.javaClass.name
         val cpu = when(compTarget.machine.cpu) {
             CpuType.CPU6502 -> "6502"
-            CpuType.CPU65c02 -> "65c02"
+            CpuType.CPU65c02 -> "w65c02"
             else -> "unsupported"
         }
 
