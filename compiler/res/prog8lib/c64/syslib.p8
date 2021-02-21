@@ -304,27 +304,13 @@ asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     }}
 }
 
-asmsub  set_irqvec_excl() clobbers(A)  {
+asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
 	%asm {{
-		sei
-		lda  #<_irq_handler
-		sta  c64.CINV
-		lda  #>_irq_handler
-		sta  c64.CINV+1
-		cli
-		rts
-_irq_handler	jsr  set_irqvec._irq_handler_init
-		jsr  irq.irq
-		jsr  set_irqvec._irq_handler_end
-		lda  #$ff
-		sta  c64.VICIRQ			; acknowledge raster irq
-		lda  c64.CIA1ICR		; acknowledge CIA1 interrupt
-		jmp  c64.IRQDFEND		; end irq processing - don't call kernel
-	}}
-}
-
-asmsub  set_irqvec() clobbers(A)  {
-	%asm {{
+	        sta  _modified+1
+	        sty  _modified+2
+	        lda  #0
+	        adc  #0
+	        sta  _use_kernal
 		sei
 		lda  #<_irq_handler
 		sta  c64.CINV
@@ -333,9 +319,23 @@ asmsub  set_irqvec() clobbers(A)  {
 		cli
 		rts
 _irq_handler    jsr  _irq_handler_init
-		jsr  irq.irq
+_modified	jsr  $ffff                      ; modified
 		jsr  _irq_handler_end
-		jmp  c64.IRQDFRT		; continue with normal kernel irq routine
+		lda  _use_kernal
+		bne  +
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		lda  c64.CIA1ICR		; acknowledge CIA1 interrupt
+		; end irq processing - don't use kernal's irq handling
+		pla
+		tay
+		pla
+		tax
+		pla
+		rti
++		jmp  c64.IRQDFRT		; continue with normal kernal irq routine
+
+_use_kernal     .byte  0
 
 _irq_handler_init
 		; save all zp scratch registers and the X register as these might be clobbered by the irq routine
@@ -388,7 +388,7 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 		}}
 }
 
-asmsub  restore_irqvec() clobbers(A) {
+asmsub  restore_irq() clobbers(A) {
 	%asm {{
 		sei
 		lda  #<c64.IRQDFRT
@@ -404,8 +404,15 @@ asmsub  restore_irqvec() clobbers(A) {
 	}}
 }
 
-asmsub  set_rasterirq(uword rasterpos @ AY) clobbers(A) {
+asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0, ubyte useKernal @Pc) clobbers(A) {
 	%asm {{
+	        sta  _modified+1
+	        sty  _modified+2
+	        lda  #0
+	        adc  #0
+	        sta  _use_kernal
+		lda  cx16.r0
+		ldy  cx16.r0+1
 		sei
 		jsr  _setup_raster_irq
 		lda  #<_raster_irq_handler
@@ -415,13 +422,24 @@ asmsub  set_rasterirq(uword rasterpos @ AY) clobbers(A) {
 		cli
 		rts
 
+_use_kernal     .byte  0
+
 _raster_irq_handler
-		jsr  set_irqvec._irq_handler_init
-		jsr  irq.irq
-		jsr  set_irqvec._irq_handler_end
-		lda  #$ff
-		sta  c64.VICIRQ			; acknowledge raster irq
-		jmp  c64.IRQDFRT
+		jsr  set_irq._irq_handler_init
+_modified	jsr  $ffff              ; modified
+		jsr  set_irq._irq_handler_end
+                lda  #$ff
+                sta  c64.VICIRQ			; acknowledge raster irq
+		lda  _use_kernal
+		bne  +
+		; end irq processing - don't use kernal's irq handling
+		pla
+		tay
+		pla
+		tax
+		pla
+		rti
++		jmp  c64.IRQDFRT                ; continue with kernal irq routine
 
 _setup_raster_irq
 		pha
@@ -442,28 +460,6 @@ _setup_raster_irq
 +		lda  #%00000001
 		sta  c64.IREQMASK   ;enable raster interrupt signals from vic
 		rts
-	}}
-}
-
-asmsub  set_rasterirq_excl(uword rasterpos @ AY) clobbers(A) {
-	%asm {{
-		sei
-		jsr  set_rasterirq._setup_raster_irq
-		lda  #<_raster_irq_handler
-		sta  c64.CINV
-		lda  #>_raster_irq_handler
-		sta  c64.CINV+1
-		cli
-		rts
-
-_raster_irq_handler
-		jsr  set_irqvec._irq_handler_init
-		jsr  irq.irq
-		jsr  set_irqvec._irq_handler_end
-		lda  #$ff
-		sta  c64.VICIRQ			; acknowledge raster irq
-		jmp  c64.IRQDFEND		; end irq processing - don't call kernel
-
 	}}
 }
 

@@ -16,8 +16,7 @@ import prog8.compiler.IErrorReporter
 import java.nio.file.Path
 
 private val alwaysKeepSubroutines = setOf(
-        Pair("main", "start"),
-        Pair("irq", "irq")
+        Pair("main", "start")
 )
 
 private val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)

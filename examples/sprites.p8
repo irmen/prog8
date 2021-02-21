@@ -46,7 +46,7 @@ main {
         }
 
         c64.SPENA = 255                ; enable all sprites
-        c64.set_rasterirq(51)     ; enable animation
+        c64.set_rasterirq(&irq.irq, 255, true)     ; enable animation
     }
 }
 

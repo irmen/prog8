@@ -41,19 +41,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        // there can be an optional single 'irq' block with a 'irq' subroutine in it,
-        // which will be used as the 60hz irq routine in the vm if it's present
-        val irqBlocks = program.modules.flatMap { it.statements }.filter { it is Block && it.name=="irq" }.map { it as Block }
-        if(irqBlocks.size>1)
-            errors.err("more than one 'irq' block", irqBlocks[0].position)
-        for(irqBlock in irqBlocks) {
-            val irqSub = irqBlock.subScope("irq") as? Subroutine
-            if (irqSub != null) {
-                if (irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
-                    errors.err("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position)
-            }
-        }
-
         super.visit(program)
     }
 

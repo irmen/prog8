@@ -2,6 +2,8 @@
 TODO
 ====
 
+- rename kernel -> kernal
+- add sys.halt()  that is smart on the 65c02
 - add sound to the cx16 tehtriz
 
 - add const arrays and cost strings

@@ -37,7 +37,7 @@ main {
             c64.SPRPTR[i] = $0a00/64
         }
         c64.SPENA = 255                 ; enable all sprites
-        c64.set_rasterirq(220)     ; enable animation
+        c64.set_rasterirq(&irq.irq, 230, true)     ; enable animation
     }
 }
 

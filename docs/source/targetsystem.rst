@@ -139,26 +139,12 @@ IRQ Handling
 ============
 
 Normally, the system's default IRQ handling is not interfered with.
-You can however install your own IRQ handler.
-This is possible ofcourse by doing it all using customized inline assembly,
-but there are a few library routines available to make setting up C-64 IRQs and raster IRQs a lot easier (no assembly code required).
+You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
+There are a few library routines available to make setting up C-64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
 
 For the C64 these routines are::
 
-    c64.set_irqvec()
-    c64.set_irqvec_excl()
-
-    c64.set_rasterirq( <raster line> )
-    c64.set_rasterirq_excl( <raster line> )
-
-    c64.restore_irqvec()     ; set it back to the systems default irq handler
-
-If you activate an IRQ handler with one of these, it expects the handler to be defined
-as a subroutine ``irq`` in the module ``irq`` so like this::
-
-    irq {
-        sub irq() {
-            ; ... irq handling here ...
-        }
-    }
+    c64.set_irq(uword handler_address, boolean useKernal)
+    c64.set_rasterirq(uword handler_address, uword rasterline, boolean useKernal)
+    c64.restore_irq()     ; set everything back to the systems default irq handler
 

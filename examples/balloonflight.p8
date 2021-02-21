@@ -23,7 +23,7 @@ main {
 
         c64.SCROLX &= %11110111     ; 38 column mode
 
-        c64.set_rasterirq(200)     ; enable animation
+        c64.set_rasterirq(&irq.irq, 200, false)     ; enable animation via raster interrupt
 
         ubyte target_height = 10
         ubyte active_height = 24
