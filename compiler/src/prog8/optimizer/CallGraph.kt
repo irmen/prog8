@@ -7,6 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
+import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
@@ -148,6 +149,17 @@ class CallGraph(private val program: Program, private val asmFileLoader: (filena
             }
         }
         super.visit(functionCallStatement)
+    }
+
+    override fun visit(addressOf: AddressOf) {
+        val otherSub = addressOf.identifier.targetSubroutine(program)
+        if(otherSub!=null) {
+            addressOf.definingSubroutine()?.let { thisSub ->
+                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
+                calledBy[otherSub] = calledBy.getValue(otherSub).plus(thisSub)
+            }
+        }
+        super.visit(addressOf)
     }
 
     override fun visit(jump: Jump) {
