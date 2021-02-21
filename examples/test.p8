@@ -1,21 +1,19 @@
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
 %option no_sysinit
 
 main {
 
 ;   $1F9C0 - $1F9FF 	PSG registers
 
+    sub init(uword addr, ubyte length) {
+        @(addr+length) = $ea
+    }
+
     sub start() {
 
-        ubyte xx = '?'
-        when xx {
-            'a' -> txt.print("a\n")
-            'b' -> txt.print("b\n")
-            '?' -> {
-            }
-            else -> txt.print("else\n")
-        }
+        init($4000, 0)
+        txt.print_uwhex(@($4000), true)
 
 ;        uword freq = 1181
 ;        cx16.vpoke(1, $f9c0, lsb(freq))

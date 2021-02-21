@@ -1412,13 +1412,15 @@ $label              nop""")
                     when(ptrAndIndex.second) {
                         is NumericLiteralValue, is IdentifierReference -> {
                             if(pointervar!=null && isZpVar(pointervar)) {
+                                out("  pha")
                                 assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  sta  (${asmSymbolName(pointervar)}),y")
+                                out("  pla |  sta  (${asmSymbolName(pointervar)}),y")
                             } else {
                                 // copy the pointer var to zp first
+                                out("  pha")
                                 assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
                                 assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  sta  (P8ZP_SCRATCH_W2),y")
+                                out("  pla |  sta  (P8ZP_SCRATCH_W2),y")
                             }
                         }
                         else -> {
@@ -1426,15 +1428,13 @@ $label              nop""")
                             if(pointervar!=null && isZpVar(pointervar)) {
                                 out("  pha")
                                 assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  pla")
-                                out("  sta  (${asmSymbolName(pointervar)}),y")
+                                out("  pla |  sta  (${asmSymbolName(pointervar)}),y")
                             } else {
                                 // copy the pointer var to zp first
                                 assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
                                 out("  pha")
                                 assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  pla")
-                                out("  sta  (P8ZP_SCRATCH_W2),y")
+                                out("  pla |  sta  (P8ZP_SCRATCH_W2),y")
                             }
                         }
                     }
