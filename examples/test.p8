@@ -7,11 +7,17 @@ main {
 ;   $1F9C0 - $1F9FF 	PSG registers
 
     sub start() {
-        c64.set_rasterirq(&irq.irq, 100, true)
+        uword color=0
+        repeat {
+            cx16.vpoke(1, $fa00+6*2, lsb(color))
+            cx16.vpoke(1, $fa01+6*2, msb(color))
+            color++
+        }
+        ;c64.set_rasterirq(&irq.irq, 100, true)
 
         sys.wait(100)
 
-        c64.restore_irq()
+        ;c64.restore_irq()
 
 ;        uword freq = 1181
 ;        cx16.vpoke(1, $f9c0, lsb(freq))
@@ -26,15 +32,6 @@ irq {
     uword counter = 0
 
     sub irq() {
-        c64.EXTCOL++
-        ubyte xx
-        repeat 20 {
-            xx++
-        }
-        c64.EXTCOL--
-
-        @($0400) = lsb(counter)
-        @($0401) = msb(counter)
 
         counter++
     }

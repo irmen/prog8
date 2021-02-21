@@ -70,7 +70,7 @@ Directives
       It's not possible to return cleanly to BASIC when the program exits. The only choice is
       to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
     - style ``floatsafe`` -- like the previous one but also reserves the addresses that
-      are required to perform floating point operations (from the BASIC kernel). No clean exit is possible.
+      are required to perform floating point operations (from the BASIC kernal). No clean exit is possible.
     - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
       touch change anything else. This allows full use of BASIC and KERNAL ROM routines including default IRQs
       during normal system operation.
@@ -514,7 +514,7 @@ Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
-(referencing a routine in kernel ROM) can return more than one return value.
+(referencing a routine in kernal ROM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
 It is not possible to process the results of a call to these kind of routines
 directly from the language, because only single value assignments are possible.

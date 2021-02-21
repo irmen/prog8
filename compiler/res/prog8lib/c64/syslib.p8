@@ -11,7 +11,7 @@ c64 {
         &ubyte  TIME_HI         = $a0       ; software jiffy clock, hi byte
         &ubyte  TIME_MID        = $a1       ;  .. mid byte
         &ubyte  TIME_LO         = $a2       ;    .. lo byte. Updated by IRQ every 1/60 sec
-        &ubyte  STATUS          = $90       ; kernel status variable for I/O
+        &ubyte  STATUS          = $90       ; kernal status variable for I/O
         &ubyte  STKEY           = $91       ; various keyboard statuses (updated by IRQ)
         &ubyte  SFDX            = $cb       ; current key pressed (matrix value) (updated by IRQ)
 

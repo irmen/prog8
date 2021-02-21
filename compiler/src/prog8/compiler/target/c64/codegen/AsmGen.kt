@@ -354,7 +354,7 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun memdefs2asm(statements: List<Statement>) {
-        out("\n; memdefs and kernel subroutines")
+        out("\n; memdefs and kernal subroutines")
         val memvars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
         for(m in memvars) {
             if(m.value is NumericLiteralValue)
@@ -367,7 +367,7 @@ internal class AsmGen(private val program: Program,
             val addr = sub.asmAddress
             if(addr!=null) {
                 if(sub.statements.isNotEmpty())
-                    throw AssemblyError("kernel subroutine cannot have statements")
+                    throw AssemblyError("kernal subroutine cannot have statements")
                 out("  ${sub.name} = ${addr.toHex()}")
             }
         }

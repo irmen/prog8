@@ -50,7 +50,7 @@ Calling the routine is just a simple JSR instruction, but the other two work lik
 ``asmsub`` routines
 ^^^^^^^^^^^^^^^^^^^
 
-These are usually declarations of kernel (ROM) routines or low-level assembly only routines,
+These are usually declarations of kernal (ROM) routines or low-level assembly only routines,
 that have their arguments solely passed into specific registers.
 Sometimes even via a processor status flag such as the Carry flag.
 Return values also via designated registers.

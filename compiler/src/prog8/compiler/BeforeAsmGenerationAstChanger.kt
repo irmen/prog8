@@ -107,7 +107,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         }
 
 
-        // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernel routine.
+        // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
         val mods = mutableListOf<IAstModification>()
         val returnStmt = Return(null, subroutine.position)

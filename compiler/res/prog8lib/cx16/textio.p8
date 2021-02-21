@@ -717,7 +717,7 @@ sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
 }
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
-	; ---- safe wrapper around PLOT kernel routine, to save the X register.
+	; ---- safe wrapper around PLOT kernal routine, to save the X register.
 	%asm  {{
 		phx
 		tax

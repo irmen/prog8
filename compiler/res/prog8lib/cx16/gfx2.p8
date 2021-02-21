@@ -2,7 +2,7 @@
 
 ; Bitmap pixel graphics routines for the CommanderX16
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
-; (These modes are not supported by the documented GRAPH_xxxx kernel routines)
+; (These modes are not supported by the documented GRAPH_xxxx kernal routines)
 ;
 ; No text layer is currently shown, text can be drawn as part of the bitmap itself.
 ; Note: for similar graphics routines that also work on the C-64, use the "graphics" module instead.

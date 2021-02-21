@@ -2,7 +2,6 @@
 TODO
 ====
 
-- rename kernel -> kernal
 - add sound to the cx16 tehtriz
 
 - add const arrays and cost strings

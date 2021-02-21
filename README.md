@@ -52,7 +52,7 @@ What does Prog8 provide?
 
 - "c64": Commodore-64  (6510 CPU = almost a 6502)
 - "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)
-- If you only use standard kernel and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
+- If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
 
 
