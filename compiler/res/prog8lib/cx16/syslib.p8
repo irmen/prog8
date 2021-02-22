@@ -614,13 +614,8 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
             ora  #%00000010     ; enable the line (raster) irq
             sta  cx16.VERA_IEN
             lda  cx16.r0
-            sta  cx16.VERA_IRQ_LINE_L
-            lda  cx16.r0+1
-            lsr  a
-            ror  a
-            and  #%10000000
-            ora  cx16.VERA_IEN
-            sta  cx16.VERA_IEN      ; high bit of the raster line
+            ldy  cx16.r0+1
+            jsr  set_rasterline
             lda  #<_raster_irq_handler
             sta  cx16.CINV
             lda  #>_raster_irq_handler
@@ -641,6 +636,22 @@ _modified   jsr  $ffff                      ; modified
             pla
             rti
         }}
+}
+
+asmsub  set_rasterline(uword line @AY) {
+    %asm {{
+        sta  cx16.VERA_IRQ_LINE_L
+        lda  cx16.VERA_IEN
+        and  #%01111111
+        sta  cx16.VERA_IEN
+        tya
+        lsr  a
+        ror  a
+        and  #%10000000
+        ora  cx16.VERA_IEN
+        sta  cx16.VERA_IEN
+        rts
+    }}
 }
 
 }
