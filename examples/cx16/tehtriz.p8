@@ -5,8 +5,7 @@
 ;   wall kick rotations
 ;   shows next piece
 ;   staged speed increase
-;   TODO:  replicate the simple sound effects from the C64 version
-;          how to do this on the Vera PSG without a ADSR envelope...?
+;   simplistic sound effects (Vera PSG)
 
 
 %target cx16
@@ -215,7 +214,7 @@ waitkey:
                 sound.lineclear_big()
             else
                 sound.lineclear()
-            sys.wait(20) ; slight delay to flash the line
+            sys.wait(10) ; slight delay to flash the line
             for linepos in complete_lines
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
@@ -589,68 +588,73 @@ blocklogic {
 
 
 sound {
-    ; TODO stubs for now
     sub init() {
-        ; c64.MVOL = 15
+        cx16.vpoke(1, $f9c2, %00111111)     ; volume max, no channels
     }
 
     sub blockrotate() {
-        ; soft click
-;        c64.MVOL = 5
-;        c64.AD1 = %00100010
-;        c64.SR1 = %00000000
-;        c64.FREQ1 = 15600
-;        c64.CR1 = %10000000
-;        c64.CR1 = %10000001
+        ; soft click/"tschk" sound
+        uword freq = 15600
+        cx16.vpoke(1, $f9c0, lsb(freq))
+        cx16.vpoke(1, $f9c1, msb(freq))
+        cx16.vpoke(1, $f9c2, %11110000)     ; half volume
+        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
+        sys.wait(2)
+        cx16.vpoke(1, $f9c2, 0)     ; shut off
     }
 
     sub blockdrop() {
         ; swish
-;        c64.MVOL = 5
-;        c64.AD1 = %01010111
-;        c64.SR1 = %00000000
-;        c64.FREQ1 = 4600
-;        c64.CR1 = %10000000
-;        c64.CR1 = %10000001
+        uword freq = 4600
+        cx16.vpoke(1, $f9c0, lsb(freq))
+        cx16.vpoke(1, $f9c1, msb(freq))
+        cx16.vpoke(1, $f9c2, %11110000)     ; half volume
+        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
+        sys.wait(6)
+        cx16.vpoke(1, $f9c2, 0)     ; shut off
     }
 
     sub swapping() {
         ; beep
-;        c64.MVOL = 8
-;        c64.AD1 = %01010111
-;        c64.SR1 = %00000000
-;        c64.FREQ1 = 5500
-;        c64.CR1 = %00010000
-;        c64.CR1 = %00010001
+        uword freq = 1500
+        cx16.vpoke(1, $f9c0, lsb(freq))
+        cx16.vpoke(1, $f9c1, msb(freq))
+        cx16.vpoke(1, $f9c2, %11110000)     ; half volume
+        cx16.vpoke(1, $f9c3, %10000000)     ; triangle waveform
+        sys.wait(6)
+        cx16.vpoke(1, $f9c2, 0)     ; shut off
     }
 
     sub lineclear() {
         ; explosion
-;        c64.MVOL = 15
-;        c64.AD1 = %01100110
-;        c64.SR1 = %00000000
-;        c64.FREQ1 = 1600
-;        c64.CR1 = %10000000
-;        c64.CR1 = %10000001
+        uword freq = 1400
+        cx16.vpoke(1, $f9c0, lsb(freq))
+        cx16.vpoke(1, $f9c1, msb(freq))
+        cx16.vpoke(1, $f9c2, %11111111)     ; max volume
+        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
+        sys.wait(8)
+        cx16.vpoke(1, $f9c2, 0)     ; shut off
     }
 
     sub lineclear_big() {
         ; big explosion
-;        c64.MVOL = 15
-;        c64.AD1 = %01101010
-;        c64.SR1 = %00000000
-;        c64.FREQ1 = 2600
-;        c64.CR1 = %10000000
-;        c64.CR1 = %10000001
+        uword freq = 2500
+        cx16.vpoke(1, $f9c0, lsb(freq))
+        cx16.vpoke(1, $f9c1, msb(freq))
+        cx16.vpoke(1, $f9c2, %11111111)     ; max volume
+        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
+        sys.wait(30)
+        cx16.vpoke(1, $f9c2, 0)     ; shut off
     }
 
     sub gameover() {
-        ; buzz
-;        c64.MVOL = 15
-;        c64.FREQ2 = 600
-;        c64.AD2 = %00111010
-;        c64.SR2 = %00000000
-;        c64.CR2 = %00110000
-;        c64.CR2 = %00110001
+        ; attempt at buzz/boing (but can't get the sawtooth/triangle combined waveform of the sid)
+        uword freq = 200
+        cx16.vpoke(1, $f9c0, lsb(freq))
+        cx16.vpoke(1, $f9c1, msb(freq))
+        cx16.vpoke(1, $f9c2, %11111111)     ; max volume
+        cx16.vpoke(1, $f9c3, %01000000)     ; sawtooth waveform
+        sys.wait(30)
+        cx16.vpoke(1, $f9c2, 0)     ; shut off
     }
 }
