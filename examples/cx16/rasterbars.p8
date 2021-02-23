@@ -1,4 +1,5 @@
 %import textio
+%import palette
 
 main {
 
@@ -17,14 +18,14 @@ main {
 
 irq {
     uword[32] colors = [
-        $011,        $112,        $213,        $214,
-        $315,        $316,        $417,        $418,
-        $519,        $51a,        $62b,        $62c,
-        $73d,        $73e,        $84f,        $94f,
-        $93e,        $83d,        $82c,        $72b,
-        $71a,        $619,        $618,        $517,
-        $516,        $415,        $414,        $313,
-        $312,        $211,        $100,        $000
+        $011,  $112,  $213,  $214,
+        $315,  $316,  $417,  $418,
+        $519,  $51a,  $62b,  $62c,
+        $73d,  $73e,  $84f,  $94f,
+        $93e,  $83d,  $82c,  $72b,
+        $71a,  $619,  $618,  $517,
+        $516,  $415,  $414,  $313,
+        $312,  $211,  $100,  $000
     ]
 
     uword next_irq_line = 0
@@ -44,9 +45,7 @@ irq {
             next_irq_line += barheight
         }
 
-        ; set new screen background color
-        cx16.vpoke(1, $fa00, lsb(c))
-        cx16.vpoke(1, $fa01, msb(c))
+        palette.set_color(0, c)
 
         cx16.set_rasterline(next_irq_line)
     }

@@ -9,8 +9,10 @@ palette {
     ubyte c
 
     sub set_color(ubyte index, uword color) {
-        cx16.vpoke(1, $fa00+index*2, lsb(color))
-        cx16.vpoke(1, $fa01+index*2, msb(color))
+        vera_palette_ptr = $fa00+index*2
+        cx16.vpoke(1, vera_palette_ptr, lsb(color))
+        vera_palette_ptr++
+        cx16.vpoke(1, vera_palette_ptr, msb(color))
     }
 
     sub set_rgb4(uword palette_bytes_ptr, uword num_colors) {
