@@ -1,3 +1,4 @@
+%target cx16
 %import textio
 %import palette
 
