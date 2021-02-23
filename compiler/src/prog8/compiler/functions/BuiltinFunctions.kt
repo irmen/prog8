@@ -88,6 +88,7 @@ class FSignature(val name: String,
     }
 }
 
+@Suppress("UNUSED_ANONYMOUS_PARAMETER")
 private val functionSignatures: List<FSignature> = listOf(
         // this set of function have no return value and operate in-place:
     FSignature("rol"         , false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
@@ -271,6 +272,7 @@ private fun collectionArg(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // 1 arg, type = float or int, result type= isSameAs as argument type
     if(args.size!=1)
@@ -342,6 +344,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinLen(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // note: in some cases the length is > 255 and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
@@ -376,6 +379,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
 }
 
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinMkword(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 2)
         throw SyntaxError("mkword requires msb and lsb arguments", position)
@@ -385,6 +389,7 @@ private fun builtinMkword(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue(DataType.UWORD, result, position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinSin8(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin8 requires one argument", position)
@@ -393,6 +398,7 @@ private fun builtinSin8(args: List<Expression>, position: Position, program: Pro
     return NumericLiteralValue(DataType.BYTE, (127.0 * sin(rad)).toInt().toShort(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinSin8u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin8u requires one argument", position)
@@ -401,6 +407,7 @@ private fun builtinSin8u(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toInt().toShort(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinCos8(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos8 requires one argument", position)
@@ -409,6 +416,7 @@ private fun builtinCos8(args: List<Expression>, position: Position, program: Pro
     return NumericLiteralValue(DataType.BYTE, (127.0 * cos(rad)).toInt().toShort(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinCos8u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos8u requires one argument", position)
@@ -417,6 +425,7 @@ private fun builtinCos8u(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toInt().toShort(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinSin16(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin16 requires one argument", position)
@@ -425,6 +434,7 @@ private fun builtinSin16(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.WORD, (32767.0 * sin(rad)).toInt(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinSin16u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sin16u requires one argument", position)
@@ -433,6 +443,7 @@ private fun builtinSin16u(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue(DataType.UWORD, (32768.0 + 32767.5 * sin(rad)).toInt(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinCos16(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos16 requires one argument", position)
@@ -441,6 +452,7 @@ private fun builtinCos16(args: List<Expression>, position: Position, program: Pr
     return NumericLiteralValue(DataType.WORD, (32767.0 * cos(rad)).toInt(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinCos16u(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos16u requires one argument", position)
@@ -449,6 +461,7 @@ private fun builtinCos16u(args: List<Expression>, position: Position, program: P
     return NumericLiteralValue(DataType.UWORD, (32768.0 + 32767.5 * cos(rad)).toInt(), position)
 }
 
+@Suppress("UNUSED_PARAMETER")
 private fun builtinSgn(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("sgn requires one argument", position)

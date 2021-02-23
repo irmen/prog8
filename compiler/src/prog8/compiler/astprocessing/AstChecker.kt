@@ -1350,7 +1350,7 @@ internal class AstChecker(private val program: Program,
         val array = value.value.map {
             when (it) {
                 is NumericLiteralValue -> it.number.toInt()
-                is AddressOf -> it.identifier.heapId(program.namespace)
+                is AddressOf -> it.identifier.hashCode() and 0xffff
                 is TypecastExpression -> {
                     val constVal = it.expression.constValue(program)
                     val cast = constVal?.cast(it.type)

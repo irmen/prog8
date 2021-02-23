@@ -480,14 +480,10 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 }
 
-private var heapIdSequence = 0   // unique ids for strings and arrays "on the heap"
-
 class StringLiteralValue(val value: String,
                          val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
-
-    val heapId = ++heapIdSequence
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -517,8 +513,6 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
                         val value: Array<Expression>,
                         override val position: Position) : Expression() {
     override lateinit var parent: Node
-
-    val heapId = ++heapIdSequence
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -764,17 +758,6 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 
     fun memberOfStruct(program: Program) = this.targetVarDecl(program)?.struct
-
-    fun heapId(namespace: INameScope): Int {
-        val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
-        val value = (node as? VarDecl)?.value ?: throw FatalAstException("requires a reference value")
-        return when (value) {
-            is IdentifierReference -> value.heapId(namespace)
-            is StringLiteralValue -> value.heapId
-            is ArrayLiteralValue -> value.heapId
-            else -> throw FatalAstException("requires a reference value")
-        }
-    }
 
     fun firstStructVarName(program: Program): String? {
         // take the name of the first struct member of the structvariable instead

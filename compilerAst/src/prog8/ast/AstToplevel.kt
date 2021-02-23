@@ -296,7 +296,6 @@ class Program(val name: String,
 
     fun internString(string: StringLiteralValue): List<String> {
         val key = Pair(string.value, string.altEncoding)
-        string.heapId
         val existing = internedStrings[key]
         if(existing!=null)
             return existing
