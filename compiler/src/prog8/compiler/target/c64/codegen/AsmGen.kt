@@ -407,8 +407,9 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun outputStringvar(lastvar: VarDecl, encoded: List<Short>) {
-        val string = (lastvar.value as StringLiteralValue).value
-        out("${lastvar.name}\t; ${lastvar.datatype} \"${escape(string).replace("\u0000", "<NULL>")}\"")
+        val sv = lastvar.value as StringLiteralValue
+        val altEncoding = if(sv.altEncoding) "@" else ""
+        out("${lastvar.name}\t; ${lastvar.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
         val outputBytes = encoded.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
             out("  .byte  " + chunk.joinToString())

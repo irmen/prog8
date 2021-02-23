@@ -12,7 +12,9 @@ main {
         vtui.gotoxy(10,10)
         vtui.border(1, 40, 6, $47)
         vtui.gotoxy(12,12)
-        vtui.print_str(@"Hello, world! VTUI from Prog8!", $f2, false)
+        vtui.print_str(@"Hello, world! vtui from Prog8!", $f2, $80)
+        vtui.gotoxy(12,13)
+        vtui.print_str("Hello, world! vtui from Prog8!", $f2, $00)
 
         repeat {
         }
@@ -22,7 +24,7 @@ main {
 
 vtui $1000 {
 
-    %asmbinary "VTUI0.4.BIN", 2     ; skip the 2 dummy load address bytes
+    %asmbinary "VTUI0.5.BIN", 2     ; skip the 2 dummy load address bytes
 
     ; NOTE: base address $1000 here must be the same as the block's memory address, for obvious reasons!
     romsub $1000  =  initialize() clobbers(A, X, Y)
@@ -35,7 +37,7 @@ vtui $1000 {
     romsub $1014  =  scan_char() -> ubyte @A, ubyte @X
     romsub $1017  =  hline(ubyte char @A, ubyte length @Y, ubyte colors @X) clobbers(A)
     romsub $101a  =  vline(ubyte char @A, ubyte length @Y, ubyte colors @X) clobbers(A)
-    romsub $101d  =  print_str(str string @R0, ubyte colors @X, ubyte convertchars @Pc) clobbers(A, Y)
+    romsub $101d  =  print_str(str string @R0, ubyte colors @X, ubyte convertchars @A) clobbers(A, Y)
     romsub $1020  =  fill_box(ubyte char @A, ubyte width @R1, ubyte height @R2, ubyte colors @X) clobbers(A, Y)
     romsub $1023  =  pet2scr(ubyte char @A) -> ubyte @A
     romsub $1026  =  scr2pet(ubyte char @A) -> ubyte @A

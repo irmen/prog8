@@ -268,7 +268,7 @@ class Program(val name: String,
         get() = mainModule.loadAddress
 
     var actualLoadAddress: Int = 0
-    private val internedStrings = mutableMapOf<String, List<String>>()
+    private val internedStrings = mutableMapOf<Pair<String, Boolean>, List<String>>()
     val internedStringsModuleName = "prog8_interned_strings"
 
     init {
@@ -295,7 +295,9 @@ class Program(val name: String,
     }
 
     fun internString(string: StringLiteralValue): List<String> {
-        val existing = internedStrings[string.value]
+        val key = Pair(string.value, string.altEncoding)
+        string.heapId
+        val existing = internedStrings[key]
         if(existing!=null)
             return existing
 
@@ -305,7 +307,7 @@ class Program(val name: String,
         (internedStringsBlock as Block).statements.add(decl)
         decl.linkParents(internedStringsBlock)
         val scopedName = listOf(internedStringsModuleName, decl.name)
-        internedStrings[string.value] = scopedName
+        internedStrings[key] = scopedName
         return scopedName
     }
 
