@@ -174,7 +174,7 @@ internal class AstChecker(private val program: Program,
                 else -> false
             }
             if (!ok) {
-                errors.err("statement occurs in a block, where it will never be executed. Use it in a subroutine instead.", statement.position)
+                errors.err("non-declarative statement occurs in block scope, where it will never be executed. Move it to a subroutine instead.", statement.position)
                 break
             }
         }
