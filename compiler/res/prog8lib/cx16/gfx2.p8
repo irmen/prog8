@@ -812,6 +812,7 @@ _done
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, 1)
                     repeat 8 {
+                        ; TODO rewrite this inner loop fully in assembly
                         position(x,y)
                         y++
                         %asm {{
@@ -840,7 +841,7 @@ _done
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     repeat 8 {
-                        ; TODO rewrite this inner loop in assembly
+                        ; TODO rewrite this inner loop fully in assembly
                         ubyte charbits = cx16.vpeek(charset_bank, chardataptr)
                         repeat 8 {
                             charbits <<= 1
@@ -877,15 +878,31 @@ _done
         }}
     }
 
-    sub addr_mul_24_for_highres_4c(uword yy, uword xx) {
-        ; TODO turn into asmsub
+    asmsub addr_mul_24_for_highres_4c(uword yy @R2, uword xx @R3)  clobbers(A, Y) -> uword @R0, uword @R1 {
+        ; yy * 160 + xx/4  (24 bits calculation)
         ; 24 bits result is in r0 and r1L (highest byte)
-        cx16.r0 = yy*128
-        cx16.r2 = yy*32
-        xx >>= 2
-
         %asm {{
-            ; add r2 and xx to r0 (24-bits)
+            ldy  #5
+-           asl  cx16.r2
+            rol  cx16.r2+1
+            dey
+            bne  -
+            lda  cx16.r2
+            sta  cx16.r0
+            lda  cx16.r2+1
+            sta  cx16.r0+1
+            asl  cx16.r0
+            rol  cx16.r0+1
+            asl  cx16.r0
+            rol  cx16.r0+1
+
+            ; xx >>= 2  (xx=R3)
+            lsr  cx16.r3+1
+            ror  cx16.r3
+            lsr  cx16.r3+1
+            ror  cx16.r3
+
+            ; add r2 and xx (r3) to r0 (24-bits)
             stz  cx16.r1
             clc
             lda  cx16.r0
@@ -898,14 +915,15 @@ _done
             inc  cx16.r1
 +           clc
             lda  cx16.r0
-            adc  xx
+            adc  cx16.r3
             sta  cx16.r0
             lda  cx16.r0+1
-            adc  xx+1
+            adc  cx16.r3+1
             sta  cx16.r0+1
             bcc  +
             inc  cx16.r1
 +
+            rts
         }}
     }
 
