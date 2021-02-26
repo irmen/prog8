@@ -33,6 +33,7 @@ dependencies {
 compileKotlin {
     kotlinOptions {
         jvmTarget = "11"
+        useIR = true
         // verbose = true
         // freeCompilerArgs += "-XXLanguage:+NewInference"
     }
@@ -41,6 +42,7 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions {
         jvmTarget = "11"
+        useIR = true
     }
 }
 

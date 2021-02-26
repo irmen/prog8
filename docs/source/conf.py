@@ -20,7 +20,7 @@ import os
 # -- Project information -----------------------------------------------------
 
 project = 'Prog8'
-copyright = '2019, Irmen de Jong'
+copyright = '2021, Irmen de Jong'
 author = 'Irmen de Jong'
 
 
