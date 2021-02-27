@@ -1407,39 +1407,44 @@ $label              nop""")
 
     internal fun tryOptimizedPointerAccessWithA(expr: BinaryExpression, write: Boolean): Boolean {
         // optimize pointer,indexregister if possible
+
+        fun evalBytevalueWillClobberA(expr: Expression): Boolean {
+            val dt = expr.inferType(program)
+            if(!dt.istype(DataType.UBYTE) && !dt.istype(DataType.BYTE))
+                return true
+            return when(expr) {
+                is IdentifierReference -> false
+                is NumericLiteralValue -> false
+                is DirectMemoryRead -> expr.addressExpression !is IdentifierReference && expr.addressExpression !is NumericLiteralValue
+                is TypecastExpression -> evalBytevalueWillClobberA(expr.expression)
+                else -> true
+            }
+        }
+
+
         if(expr.operator=="+") {
             val ptrAndIndex = pointerViaIndexRegisterPossible(expr)
             if(ptrAndIndex!=null) {
                 val pointervar = ptrAndIndex.first as? IdentifierReference
                 if(write) {
-                    when(ptrAndIndex.second) {
-                        is NumericLiteralValue, is IdentifierReference -> {
-                            if(pointervar!=null && isZpVar(pointervar)) {
-                                out("  pha")
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  pla |  sta  (${asmSymbolName(pointervar)}),y")
-                            } else {
-                                // copy the pointer var to zp first
-                                out("  pha")
-                                assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  pla |  sta  (P8ZP_SCRATCH_W2),y")
-                            }
-                        }
-                        else -> {
-                            // same as above but we need to save the A register
-                            if(pointervar!=null && isZpVar(pointervar)) {
-                                out("  pha")
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  pla |  sta  (${asmSymbolName(pointervar)}),y")
-                            } else {
-                                // copy the pointer var to zp first
-                                assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                                out("  pha")
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  pla |  sta  (P8ZP_SCRATCH_W2),y")
-                            }
-                        }
+                    if(pointervar!=null && isZpVar(pointervar)) {
+                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
+                        if(saveA)
+                            out("  pha")
+                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                        if(saveA)
+                            out("  pla")
+                        out("  sta  (${asmSymbolName(pointervar)}),y")
+                    } else {
+                        // copy the pointer var to zp first
+                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
+                        if(saveA)
+                            out("  pha")
+                        assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                        if(saveA)
+                            out("  pla")
+                        out("  sta  (P8ZP_SCRATCH_W2),y")
                     }
                 } else {
                     if(pointervar!=null && isZpVar(pointervar)) {
