@@ -100,7 +100,7 @@ palette {
         $666,  ; 12 = medium grey
         $9D8,  ; 13 = light green
         $65B,  ; 14 = light blue
-        $999  ; 15 = light grey
+        $999   ; 15 = light grey
     ]
 
     uword[] C64_colorpalette_pepto = [  ; # this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
@@ -119,7 +119,7 @@ palette {
         $777,  ; 12 = medium grey
         $af9,  ; 13 = light green
         $76e,  ; 14 = light blue
-        $bbb  ; 15 = light grey
+        $bbb   ; 15 = light grey
     ]
 
     uword[] C64_colorpalette_light = [  ; this is a lighter palette

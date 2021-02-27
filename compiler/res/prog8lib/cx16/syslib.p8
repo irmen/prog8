@@ -462,7 +462,7 @@ asmsub  init_system()  {
         cld
         ;stz  $00
         ;stz  $01
-        ;stz  d1prb      ; select rom bank 0
+        ;stz  d1prb      ; select rom bank 0 (enable kernal)
         lda  #$80
         sta  VERA_CTRL
         jsr  c64.IOINIT

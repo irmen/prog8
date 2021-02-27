@@ -2,9 +2,10 @@
 TODO
 ====
 
+- optimize assigning array and struct variables (multi-element assings -> memcopy)
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
-- optimize several inner loops in gfx2 (highres 4 color mode)
+- optimize several inner loops in gfx2
 - try to fix the bresenham line routines in graphics and gfx2 (sometimes they're a pixel 'off')
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)
 - add a flood fill routine to gfx2?

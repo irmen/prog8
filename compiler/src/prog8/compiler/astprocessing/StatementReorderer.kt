@@ -377,7 +377,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
             return emptyList()
         }
 
-        // TODO use memcopy instead of individual assignments
+        // TODO use memcopy instead of individual assignments after certain amount of elements
         // TODO what does assigning a struct var use?
         return alv.value.mapIndexed { index, value ->
             val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, position), position), position)

@@ -15,13 +15,12 @@
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 monochrome
-;   mode 2 = bitmap 320 x 240 x 4c (unsupported TODO not yet implemented)
-;   mode 3 = bitmap 320 x 240 x 16c (unsupported TODO not yet implemented)
+;   mode 2 = bitmap 320 x 240 x 4c (TODO not yet implemented)
+;   mode 3 = bitmap 320 x 240 x 16c (TODO not yet implemented)
 ;   mode 4 = bitmap 320 x 240 x 256c
 ;   mode 5 = bitmap 640 x 480 monochrome
 ;   mode 6 = bitmap 640 x 480 x 4c
-;   mode 7 = bitmap 640 x 480 x 16c (unsupported due to lack of VRAM)
-;   mode 8 = bitmap 640 x 480 x 256c (unsupported due to lack of VRAM)
+;   higher color dephts in highres are not supported due to lack of VRAM
 
 ; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
@@ -85,7 +84,6 @@ gfx2 {
                 height = 480
                 bpp = 2
             }
-            ; modes 7 and 8 not supported due to lack of VRAM
             else -> {
                 ; back to default text mode and colors
                 cx16.VERA_CTRL = %10000000      ; reset VERA and palette
@@ -168,7 +166,7 @@ gfx2 {
                 if separate_pixels as uword > length
                     separate_pixels = lsb(length)
                 repeat separate_pixels {
-                    ; this could be  optimized by setting this byte in 1 go but probably not worth it due to code size
+                    ; TODO optimize this by writing a masked byte in 1 go
                     plot(x, y, color)
                     x++
                 }
@@ -210,7 +208,7 @@ _loop                   lda  length
 _done
                     }}
                     repeat separate_pixels {
-                        ; this could be  optimized by setting this byte in 1 go but probably not worth it due to code size
+                        ; TODO optimize this by writing a masked byte in 1 go
                         plot(x, y, color)
                         x++
                     }
@@ -299,6 +297,7 @@ _done
             1, 5 -> {
                 ; monochrome, either resolution
                 ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
+                ; TODO use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment IS possible
                 cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
                 if active_mode>=5
@@ -326,7 +325,7 @@ _done
                         }
                     } else {
                         ; stippling.
-                        height = (height+1)/2
+                        height = (height+1)/2       ; TODO is the line sometimes 1 pixel too long now because of rounding?
                         %asm {{
                             lda x
                             eor y
@@ -375,7 +374,8 @@ _done
                             lda  cx16.VERA_ADDR_M
                             adc  #0
                             sta  cx16.VERA_ADDR_M
-                            ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
+                            ; the bitmap size is small enough to not have to deal with the _H part:
+                            ; lda  cx16.VERA_ADDR_H
                             ; adc  #0
                             ; sta  cx16.VERA_ADDR_H
                         }}
@@ -399,6 +399,7 @@ _done
             6 -> {
                 ; highres 4c
                 ; note for this mode we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
+                ; TODO use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment IS possible
                 cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 ; TODO also mostly usable for lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
@@ -928,48 +929,48 @@ _done
     }
 
     asmsub addr_mul_24_for_lores_256c(uword yy @R0, uword xx @AY) clobbers(A) -> uword @R0, ubyte @R1  {
-            ; yy * 320 + xx (24 bits calculation)
-            %asm {{
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                lda  cx16.r0
-                sta  P8ZP_SCRATCH_B1
-                lda  cx16.r0+1
-                sta  cx16.r1
-                sta  P8ZP_SCRATCH_REG
-                lda  cx16.r0
-                asl  a
-                rol  P8ZP_SCRATCH_REG
-                asl  a
-                rol  P8ZP_SCRATCH_REG
-                asl  a
-                rol  P8ZP_SCRATCH_REG
-                asl  a
-                rol  P8ZP_SCRATCH_REG
-                asl  a
-                rol  P8ZP_SCRATCH_REG
-                asl  a
-                rol  P8ZP_SCRATCH_REG
-                sta  cx16.r0
-                lda  P8ZP_SCRATCH_B1
-                clc
-                adc  P8ZP_SCRATCH_REG
-                sta  cx16.r0+1
-                bcc  +
-                inc  cx16.r1
-+		        ; now add the value to this 24-bits number
-                lda  cx16.r0
-                clc
-                adc  P8ZP_SCRATCH_W1
-                sta  cx16.r0
-                lda  cx16.r0+1
-                adc  P8ZP_SCRATCH_W1+1
-                sta  cx16.r0+1
-                bcc  +
-                inc  cx16.r1
-+               lda  cx16.r1
-                rts
-            }}
-        }
+        ; yy * 320 + xx (24 bits calculation)
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  cx16.r0
+            sta  P8ZP_SCRATCH_B1
+            lda  cx16.r0+1
+            sta  cx16.r1
+            sta  P8ZP_SCRATCH_REG
+            lda  cx16.r0
+            asl  a
+            rol  P8ZP_SCRATCH_REG
+            asl  a
+            rol  P8ZP_SCRATCH_REG
+            asl  a
+            rol  P8ZP_SCRATCH_REG
+            asl  a
+            rol  P8ZP_SCRATCH_REG
+            asl  a
+            rol  P8ZP_SCRATCH_REG
+            asl  a
+            rol  P8ZP_SCRATCH_REG
+            sta  cx16.r0
+            lda  P8ZP_SCRATCH_B1
+            clc
+            adc  P8ZP_SCRATCH_REG
+            sta  cx16.r0+1
+            bcc  +
+            inc  cx16.r1
++           ; now add the value to this 24-bits number
+            lda  cx16.r0
+            clc
+            adc  P8ZP_SCRATCH_W1
+            sta  cx16.r0
+            lda  cx16.r0+1
+            adc  P8ZP_SCRATCH_W1+1
+            sta  cx16.r0+1
+            bcc  +
+            inc  cx16.r1
++           lda  cx16.r1
+            rts
+        }}
+    }
 
 }
