@@ -1008,28 +1008,30 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // note: A/Y must have been loaded with the number of iterations!
         if(constIterations==0)
             return
-        // note: A/Y must have been loaded with the number of iterations already!
+        if(constIterations==null) {
+            out( """
+                cmp  #0
+                bne  +
+                cpy  #0
+                beq  $endLabel      ; skip if 0 iterations
++""")
+        }
         val counterVar = makeLabel("repeatcounter")
         out("""
-            cmp  #0
-            bne  +
-            cpy  #0
-            beq  $endLabel      ; skip if 0 iterations
-+           sta  $counterVar
+            sta  $counterVar
+            iny
             sty  $counterVar+1
-$repeatLabel
-            lda  $counterVar
-            bne  +
-            lda  $counterVar+1
-            beq  $endLabel
-+           lda  $counterVar
-            bne  +
-            dec  $counterVar+1
-+           dec  $counterVar""")
+$repeatLabel""")
         translate(body)
-        jmp(repeatLabel)
+        out("""
+            dec  $counterVar
+            bne  $repeatLabel
+            dec  $counterVar+1
+            bne  $repeatLabel
+            beq  $endLabel""")
 
         if(constIterations!=null && constIterations>=16 && zeropage.available() > 1) {
             // allocate count var on ZP
