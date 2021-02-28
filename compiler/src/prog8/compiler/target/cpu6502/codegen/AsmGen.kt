@@ -1008,56 +1008,67 @@ internal class AsmGen(private val program: Program,
     }
 
     private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // note: A/Y must have been loaded with the number of iterations!
         if(constIterations==0)
             return
-        // note: A/Y must have been loaded with the number of iterations already!
+        if(constIterations==null) {
+            out("""
+                cmp  #0
+                bne  +
+                cpy  #0
+                beq  $endLabel   ; skip loop if zero iters
++""")
+        }
         val counterVar = makeLabel("repeatcounter")
         out("""
-            cmp  #0
-            bne  +
-            cpy  #0
-            beq  $endLabel      ; skip if 0 iterations
-+           sta  $counterVar
-            sty  $counterVar+1
-$repeatLabel
-            lda  $counterVar
-            bne  +
-            lda  $counterVar+1
-            beq  $endLabel
-+           lda  $counterVar
-            bne  +
-            dec  $counterVar+1
-+           dec  $counterVar""")
+                sta  $counterVar
+                sty  $counterVar+1
+$repeatLabel    lda  $counterVar
+                bne  +
+                lda  $counterVar+1
+                beq  $endLabel
++               lda  $counterVar
+                bne  +
+                dec  $counterVar+1
++               dec  $counterVar
+""")
         translate(body)
         jmp(repeatLabel)
 
         if(constIterations!=null && constIterations>=16 && zeropage.available() > 1) {
-            // allocate count var on ZP
+            // allocate count var on ZP  TODO can be shared with countervars from other subroutines
             val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, body.position, errors)
-            out("""$counterVar = $zpAddr  ; auto zp UWORD""")
+            out("$counterVar = $zpAddr  ; auto zp UWORD")
         } else {
-            out("""
-$counterVar    .word  0""")
+            out("$counterVar    .word  0")
         }
 
         out(endLabel)
     }
 
     private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+        // note: A must have been loaded with the number of iterations!
         if(constIterations==0)
             return
-        // note: A must have been loaded with the number of iterations already!
-        val counterVar = makeLabel("repeatcounter")
         if(constIterations==null)
-            out("  beq  $endLabel")
+            out("  beq  $endLabel   ; skip loop if zero iters")
+        val counterVar = makeLabel("repeatcounter")
         out("  sta  $counterVar")
         out(repeatLabel)
         translate(body)
         out("""
              dec  $counterVar
              bne  $repeatLabel
-             beq  $endLabel  
-$counterVar    .byte  0""")
+             beq  $endLabel""")
+
+        if(constIterations!=null && constIterations>=16 && zeropage.available() > 0) {
+            // allocate count var on ZP  TODO can be shared with countervars from other subroutines
+            val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, body.position, errors)
+            out("$counterVar = $zpAddr  ; auto zp UBYTE")
+        } else {
+            out("$counterVar    .byte  0")
+        }
+
         out(endLabel)
     }
 
