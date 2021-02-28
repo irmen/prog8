@@ -4,8 +4,6 @@
 
 main {
     sub start() {
-        ; todo feedback: new routines at the end of the jump table so existing jump vectors remain unchanged
-
         txt.lowercase()
 
         vtui.initialize()

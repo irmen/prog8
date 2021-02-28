@@ -50,8 +50,9 @@ Language features
 - Provide high level programming constructs but at the same time stay close to the metal;
   still able to directly use memory addresses and ROM subroutines,
   and inline assembly to have full control when every register, cycle or byte matters
-- Arbitrary number of subroutine parameters, Complex nested expressions are possible
-- No stack frame allocations because parameters and local variables are automatically allocated statically
+- Subroutines with parameters and return values
+- complex nested expressions are possible
+- Variables are allocated statically
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
 - Variable data types include signed and unsigned bytes and words, arrays, strings and floats.
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.

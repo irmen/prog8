@@ -23,13 +23,14 @@ https://prog8.readthedocs.io/
 What does Prog8 provide?
 ------------------------
 
-- big reduction of source code length over raw assembly
+- reduction of source code length over raw assembly
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - automatic variable allocations, automatic string and array variables and string sharing
-- subroutines with an input- and output parameter signature
-- no stack frame allocations because parameters and local variables are automatically allocated statically
-- constant folding in expressions and other high-level program optimizations
+- subroutines with input parameters and result values
+- high-level program optimizations
+- small program boilerplate/compilersupport overhead
+- sane variable initialization, programs can be restarted again just fine after exiting to basic
 - conditional branches
 - floating point operations  (requires the C64 Basic ROM routines for this)
 - 'when' statement to provide a concise jump table alternative to if/elseif chains
@@ -38,8 +39,10 @@ What does Prog8 provide?
 - various powerful built-in libraries to do I/O, number conversions, graphics and more  
 - convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - fast execution speed due to compilation to native assembly code
+- variables are allocated statically
 - inline assembly allows you to have full control when every cycle or byte matters
 - supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, and provides them also on the C64.
+- encode strings and characters into petscii or screencodes as desired (C64/Cx16)
 
 *Rapid edit-compile-run-debug cycle:*
 
