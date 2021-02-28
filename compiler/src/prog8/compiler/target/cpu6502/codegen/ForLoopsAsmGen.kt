@@ -57,9 +57,9 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                         lda  $varname
 $modifiedLabel          cmp  #0         ; modified 
                         beq  $endLabel
-                        $incdec  $varname
-                        jmp  $loopLabel
-$endLabel""")
+                        $incdec  $varname""")
+                    asmgen.jmp(loopLabel)
+                    asmgen.out(endLabel)
 
                 } else {
 
@@ -117,16 +117,15 @@ $modifiedLabel2 cmp  #0    ; modified
                             asmgen.out("""
 +               inc  $varname
                 bne  $loopLabel
-                inc  $varname+1
-                jmp  $loopLabel
-                            """)
+                inc  $varname+1""")
+                            asmgen.jmp(loopLabel)
                         } else {
                             asmgen.out("""
 +               lda  $varname
                 bne  +
                 dec  $varname+1
-+               dec  $varname
-                jmp  $loopLabel""")
++               dec  $varname""")
+                            asmgen.jmp(loopLabel)
                         }
                         asmgen.out(endLabel)
                     }
@@ -386,23 +385,25 @@ $loopLabel""")
                     }
                     -2 -> {
                         when (range.last) {
-                            0 -> asmgen.out("""
-                                lda  $varname
-                                beq  $endLabel
-                                dec  $varname
-                                dec  $varname
-                                jmp  $loopLabel""")
+                            0 -> {
+                                asmgen.out("""
+                                    lda  $varname
+                                    beq  $endLabel
+                                    dec  $varname
+                                    dec  $varname""")
+                                asmgen.jmp(loopLabel)
+                            }
                             1 -> asmgen.out("""
-                                dec  $varname
-                                beq  $endLabel
-                                dec  $varname
-                                bne  $loopLabel""")
+                                    dec  $varname
+                                    beq  $endLabel
+                                    dec  $varname
+                                    bne  $loopLabel""")
                             else -> asmgen.out("""
-                                dec  $varname
-                                dec  $varname
-                                lda  $varname
-                                cmp  #${range.last-2}
-                                bne  $loopLabel""")
+                                    dec  $varname
+                                    dec  $varname
+                                    lda  $varname
+                                    cmp  #${range.last-2}
+                                    bne  $loopLabel""")
                         }
                     }
                     else -> {
@@ -413,8 +414,8 @@ $loopLabel""")
                             beq  $endLabel
                             clc
                             adc  #${range.step}
-                            sta  $varname
-                            jmp  $loopLabel""")
+                            sta  $varname""")
+                        asmgen.jmp(loopLabel)
                     }
                 }
                 asmgen.out(endLabel)
@@ -450,9 +451,9 @@ $loopLabel""")
                             sta  $varname
                             lda  $varname+1
                             adc  #>${range.step}
-                            sta  $varname+1
-                            jmp  $loopLabel
-$endLabel""")
+                            sta  $varname+1""")
+                        asmgen.jmp(loopLabel)
+                        asmgen.out(endLabel)
                     }
                 }
             }
@@ -502,9 +503,9 @@ $loopLabel""")
                 asmgen.out("""
                     lda  $varname
                     beq  $endLabel
-                    dec  $varname
-                    jmp  $loopLabel
-$endLabel""")
+                    dec  $varname""")
+                asmgen.jmp(loopLabel)
+                asmgen.out(endLabel)
             }
             1 -> {
                 asmgen.out("""
@@ -545,9 +546,9 @@ $loopLabel""")
             beq  $endLabel
 +           inc  $varname
             bne  $loopLabel
-            inc  $varname+1
-            jmp  $loopLabel
-$endLabel""")
+            inc  $varname+1""")
+        asmgen.jmp(loopLabel)
+        asmgen.out(endLabel)
         asmgen.loopEndLabels.pop()
     }
 
@@ -573,9 +574,9 @@ $loopLabel""")
 +           lda  $varname
             bne  +
             dec  $varname+1
-+           dec  $varname
-            jmp  $loopLabel
-$endLabel""")
++           dec  $varname""")
+        asmgen.jmp(loopLabel)
+        asmgen.out(endLabel)
         asmgen.loopEndLabels.pop()
     }
 
