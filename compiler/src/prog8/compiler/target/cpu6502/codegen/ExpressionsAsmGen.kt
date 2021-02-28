@@ -370,7 +370,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -381,7 +381,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             cmp  #${rightConstVal.number}
                             bcs  $jumpIfFalseLabel""")
                     else
-                        asmgen.out("  jmp  $jumpIfFalseLabel")
+                        asmgen.jmp(jumpIfFalseLabel)
                     return
                 }
                 else if (left is DirectMemoryRead) {
@@ -390,7 +390,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out("  cmp  #${rightConstVal.number} |  bcs  $jumpIfFalseLabel")
                     }
                     else
-                        asmgen.out("  jmp  $jumpIfFalseLabel")
+                        asmgen.jmp(jumpIfFalseLabel)
                     return
                 }
             }
@@ -405,7 +405,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -439,7 +439,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -455,7 +455,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             bcs  $jumpIfFalseLabel
 +""")
                     else
-                        asmgen.out("  jmp  $jumpIfFalseLabel")
+                        asmgen.jmp(jumpIfFalseLabel)
                     return
                 }
             }
@@ -470,7 +470,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -500,7 +500,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -538,7 +538,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -576,7 +576,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -611,7 +611,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -647,7 +647,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -693,7 +693,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -731,7 +731,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -765,7 +765,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -801,7 +801,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -831,7 +831,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -868,7 +868,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -897,7 +897,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -928,7 +928,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -959,7 +959,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -990,7 +990,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -1027,7 +1027,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -1067,7 +1067,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {
@@ -1151,7 +1151,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
-                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    asmgen.jmp(jumpIfFalseLabel)
                 return
             } else {
                 if (left is IdentifierReference) {

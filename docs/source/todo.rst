@@ -2,8 +2,6 @@
 TODO
 ====
 
-- on 65C02 target; replace all jmp by bra  (64tass will sort it out if the jump exceeds relative distance)
-
 - optimize assigning array and struct variables (multi-element assings -> memcopy)
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))

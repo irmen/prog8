@@ -157,7 +157,7 @@ internal class AsmGen(private val program: Program,
                 pha""")
         }
 
-        out("  jmp  main.start  ; start program / force start proc to be included")
+        jmp("main.start")
     }
 
     private fun slaballocations() {
@@ -695,7 +695,7 @@ internal class AsmGen(private val program: Program,
             is Break -> {
                 if(loopEndLabels.isEmpty())
                     throw AssemblyError("break statement out of context  ${stmt.position}")
-                out("  jmp  ${loopEndLabels.peek()}")
+                jmp(loopEndLabels.peek())
             }
             is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
@@ -930,7 +930,7 @@ internal class AsmGen(private val program: Program,
             val endLabel = makeLabel("if_end")
             expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, elseLabel)
             translate(stmt.truepart)
-            out("  jmp  $endLabel")
+            jmp(endLabel)
             out(elseLabel)
             translate(stmt.elsepart)
             out(endLabel)
@@ -952,7 +952,7 @@ internal class AsmGen(private val program: Program,
                 // endless loop
                 out(repeatLabel)
                 translate(stmt.body)
-                out("  jmp  $repeatLabel")
+                jmp(repeatLabel)
                 out(endLabel)
             }
             is NumericLiteralValue -> {
@@ -1104,7 +1104,7 @@ $counterVar    .word  0""")
         out(whileLabel)
         expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
         translate(stmt.body)
-        out("  jmp  $whileLabel")
+        jmp(whileLabel)
         out(endLabel)
         loopEndLabels.pop()
     }
@@ -1138,7 +1138,7 @@ $counterVar    .word  0""")
             if(choice.values==null) {
                 // the else choice
                 translate(choice.statements)
-                out("  jmp  $endLabel")
+                jmp(endLabel)
             } else {
                 choiceBlocks.add(choiceLabel to choice.statements)
                 for (cv in choice.values!!) {
@@ -1157,11 +1157,11 @@ $counterVar    .word  0""")
                 }
             }
         }
-        out("  jmp  $endLabel")
+        jmp(endLabel)
         for(choiceBlock in choiceBlocks) {
             out(choiceBlock.first)
             translate(choiceBlock.second)
-            out("  jmp  $endLabel")
+            jmp(endLabel)
         }
         out(endLabel)
     }
@@ -1220,7 +1220,7 @@ $counterVar    .word  0""")
                 val endLabel = makeLabel("branch_end")
                 out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
-                out("  jmp  $endLabel")
+                jmp(endLabel)
                 out(elseLabel)
                 translate(stmt.elsepart)
                 out(endLabel)
@@ -1277,14 +1277,12 @@ $label              nop""")
         }
     }
 
-    private fun translate(jmp: Jump) {
-        out("  jmp  ${getJumpTarget(jmp)}")
-    }
+    private fun translate(jump: Jump) = jmp(getJumpTarget(jump))
 
-    private fun getJumpTarget(jmp: Jump): String {
-        val ident = jmp.identifier
-        val label = jmp.generatedLabel
-        val addr = jmp.address
+    private fun getJumpTarget(jump: Jump): String {
+        val ident = jump.identifier
+        val label = jump.generatedLabel
+        val addr = jump.address
         return when {
             ident!=null -> {
                 val target = ident.targetStatement(program)
