@@ -976,10 +976,12 @@ internal class AsmGen(private val program: Program,
                 val name = asmVariableName(stmt.iterations as IdentifierReference)
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        repeatByteCountVar(name, repeatLabel, endLabel, stmt.body)
+                        assignVariableToRegister(name, RegisterOrPair.A)
+                        repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
                     }
                     DataType.UWORD, DataType.WORD -> {
-                        repeatWordCountVar(name, repeatLabel, endLabel, stmt.body)
+                        assignVariableToRegister(name, RegisterOrPair.AY)
+                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
                 }
@@ -1009,22 +1011,26 @@ internal class AsmGen(private val program: Program,
         if(constIterations==0)
             return
         // note: A/Y must have been loaded with the number of iterations already!
-        // TODO can be even more optimized by iterating over pages
         val counterVar = makeLabel("repeatcounter")
         out("""
-                sta  $counterVar
-                sty  $counterVar+1
-$repeatLabel    lda  $counterVar
-                bne  +
-                lda  $counterVar+1
-                beq  $endLabel
-+               lda  $counterVar
-                bne  +
-                dec  $counterVar+1
-+               dec  $counterVar
-""")
+            cmp  #0
+            bne  +
+            cpy  #0
+            beq  $endLabel      ; skip if 0 iterations
++           sta  $counterVar
+            sty  $counterVar+1
+$repeatLabel
+            lda  $counterVar
+            bne  +
+            lda  $counterVar+1
+            beq  $endLabel
++           lda  $counterVar
+            bne  +
+            dec  $counterVar+1
++           dec  $counterVar""")
         translate(body)
         jmp(repeatLabel)
+
         if(constIterations!=null && constIterations>=16 && zeropage.available() > 1) {
             // allocate count var on ZP
             val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, body.position, errors)
@@ -1033,8 +1039,8 @@ $repeatLabel    lda  $counterVar
             out("""
 $counterVar    .word  0""")
         }
-        out(endLabel)
 
+        out(endLabel)
     }
 
     private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
@@ -1052,46 +1058,6 @@ $counterVar    .word  0""")
              bne  $repeatLabel
              beq  $endLabel  
 $counterVar    .byte  0""")
-        out(endLabel)
-    }
-
-    private fun repeatByteCountVar(repeatCountVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
-        // note: cannot use original counter variable because it should retain its original value
-        val counterVar = makeLabel("repeatcounter")
-        out("  lda  $repeatCountVar |  beq  $endLabel |  sta  $counterVar")
-        out(repeatLabel)
-        translate(body)
-        out("  dec  $counterVar |  bne  $repeatLabel")
-        // inline countervar:
-        out("""
-                beq  $endLabel  
-$counterVar    .byte  0""")
-        out(endLabel)
-    }
-
-    private fun repeatWordCountVar(repeatCountVar: String, repeatLabel: String, endLabel: String, body: AnonymousScope) {
-        // TODO can be even more optimized by iterating over pages
-        // note: cannot use original counter variable because it should retain its original value
-        val counterVar = makeLabel("repeatcounter")
-        out("""
-            lda  $repeatCountVar
-            sta  $counterVar
-            ora  $repeatCountVar+1
-            beq  $endLabel
-            lda  $repeatCountVar+1
-            sta  $counterVar+1""")
-        out(repeatLabel)
-        translate(body)
-        out("""
-            lda  $counterVar
-            bne  +
-            dec  $counterVar+1
-+           dec  $counterVar
-            lda  $counterVar
-            ora  $counterVar+1
-            bne  $repeatLabel
-            beq  $endLabel  
-$counterVar    .word  0""")
         out(endLabel)
     }
 
