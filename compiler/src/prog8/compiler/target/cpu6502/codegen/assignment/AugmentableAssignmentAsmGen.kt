@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen.assignment
+package prog8.compiler.target.cpu6502.codegen.assignment
 
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -7,13 +7,14 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.c64.codegen.AsmGen
-import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
+import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
                                            private val exprAsmGen: ExpressionsAsmGen,
-                                           private val asmgen: AsmGen) {
+                                           private val asmgen: AsmGen
+) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
         require(assign.source.kind== SourceStorageKind.EXPRESSION)

@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen.assignment
+package prog8.compiler.target.cpu6502.codegen.assignment
 
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -9,12 +9,13 @@ import prog8.compiler.AssemblyError
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.c64.codegen.AsmGen
-import prog8.compiler.target.c64.codegen.ExpressionsAsmGen
+import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen,
-                                private val exprAsmgen: ExpressionsAsmGen) {
+                                private val exprAsmgen: ExpressionsAsmGen
+) {
 
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, exprAsmgen, asmgen)
 
@@ -356,7 +357,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
 
         // special case optimizations
-        if(target.kind==TargetStorageKind.VARIABLE) {
+        if(target.kind== TargetStorageKind.VARIABLE) {
             if(value is IdentifierReference && valueDt != DataType.STRUCT)
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 

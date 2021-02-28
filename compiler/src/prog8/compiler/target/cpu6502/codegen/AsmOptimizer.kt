@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package prog8.compiler.target.cpu6502.codegen
 
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations

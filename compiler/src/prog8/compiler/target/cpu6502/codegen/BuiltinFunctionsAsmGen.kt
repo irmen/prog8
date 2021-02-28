@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64.codegen
+package prog8.compiler.target.cpu6502.codegen
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
@@ -13,7 +13,12 @@ import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.functions.FSignature
 import prog8.compiler.target.CpuType
-import prog8.compiler.target.c64.codegen.assignment.*
+import prog8.compiler.target.cpu6502.codegen.assignment.*
+import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
+import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
+import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
+import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
+import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.subroutineFloatEvalResultVar2
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {

@@ -12,7 +12,7 @@ import prog8.compiler.IErrorReporter
 import prog8.compiler.Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.c64.codegen.AsmGen
+import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cx16.CX16MachineDefinition
 import java.nio.file.Path
 
@@ -114,5 +114,6 @@ internal fun asmGeneratorFor(
     outputDir: Path
 ): IAssemblyGenerator
 {
+    // at the moment we only have one code generation backend (for 6502 and 65c02)
     return AsmGen(program, errors, zp, options, compTarget, outputDir)
 }
