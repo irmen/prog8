@@ -592,7 +592,7 @@ flag such as Carry (Pc).
     Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
     directly instead of a call to them. Note that it is literal copy-paste of code that is done,
     so make sure the assembly is actually written to behave like such - which probably means you
-    don't want a ``rts`` or ``jmp`` in it!
+    don't want a ``rts`` or ``jmp`` or ``bra`` in it!
 
 
 .. note::

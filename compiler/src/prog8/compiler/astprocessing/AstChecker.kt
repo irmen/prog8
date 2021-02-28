@@ -218,13 +218,13 @@ internal class AstChecker(private val program: Program,
             err("subroutines can only have one return value")
 
         // subroutine must contain at least one 'return' or 'goto'
-        // (or if it has an asm block, that must contain a 'rts' or 'jmp')
+        // (or if it has an asm block, that must contain a 'rts' or 'jmp' or 'bra')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
             if (subroutine.amountOfRtsInAsm() == 0) {
                 if (subroutine.returntypes.isNotEmpty()) {
                     // for asm subroutines with an address, no statement check is possible.
                     if (subroutine.asmAddress == null && !subroutine.inline)
-                        err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                        err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or rts/jmp/bra in case of %asm)")
                 }
             }
         }

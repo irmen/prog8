@@ -420,7 +420,7 @@ _print_byte_digits
 		jsr  c64.CHROUT
 		pla
 		jsr  c64.CHROUT
-		jmp  _ones
+		bra  _ones
 +       pla
         cmp  #'0'
         beq  _ones
@@ -443,7 +443,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 		jsr  c64.CHROUT
 +		pla
 		jsr  conv.byte2decimal
-		jmp  print_ub._print_byte_digits
+		bra  print_ub._print_byte_digits
 	}}
 }
 
@@ -494,7 +494,7 @@ asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 		jsr  print_ubbin
 		pla
 		clc
-		jmp  print_ubbin
+		bra  print_ubbin
 	}}
 }
 
@@ -507,7 +507,7 @@ asmsub  print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 		jsr  print_ubhex
 		pla
 		clc
-		jmp  print_ubhex
+		bra  print_ubhex
 	}}
 }
 
@@ -570,7 +570,7 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 		adc  #1
 		bcc  +
 		iny
-+		jmp  print_uw
++		bra  print_uw
 	}}
 }
 

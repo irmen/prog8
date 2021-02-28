@@ -4,15 +4,20 @@
 main {
 
     sub start() {
-        uword screen = 2000
-        ubyte i = 1
-        uword w = 33
-        str derp  ="derp"
-        ubyte[] array = [1,2,3]
+        uword xx1
+        uword xx2
+        uword xx3
+        uword total
 
-        @(screen+i) = 128
-        @(i+screen) = 129
-
-        txt.print("done\n")
+        c64.SETTIM(0,0,0)
+        repeat 600 {
+            repeat 600 {
+                xx1++
+                xx2++
+                xx3++
+            }
+        }
+        uword time = c64.RDTIM16()
+        txt.print_uw(time)
     }
 }

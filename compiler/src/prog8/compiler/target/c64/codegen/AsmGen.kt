@@ -1024,7 +1024,7 @@ $repeatLabel    lda  $counterVar
 +               dec  $counterVar
 """)
         translate(body)
-        out("  jmp  $repeatLabel")
+        jmp(repeatLabel)
         if(constIterations!=null && constIterations>=16 && zeropage.available() > 1) {
             // allocate count var on ZP
             val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, body.position, errors)
@@ -1376,6 +1376,13 @@ $label              nop""")
     internal fun isZpVar(variable: IdentifierReference): Boolean {
         val vardecl = variable.targetVarDecl(program)!!
         return vardecl.makeScopedName(vardecl.name) in allocatedZeropageVariables
+    }
+
+    internal fun jmp(asmLabel: String) {
+        if(isTargetCpu(CpuType.CPU65c02))
+            out("  bra  $asmLabel")     // note: 64tass will convert this automatically to a jmp if the relative distance is too large
+        else
+            out("  jmp  $asmLabel")
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: Expression): Pair<Expression, Expression>? {

@@ -19,7 +19,7 @@ private val alwaysKeepSubroutines = setOf(
         Pair("main", "start")
 )
 
-private val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
+private val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr|bra)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
 private val asmRefRx = Regex("""[\-+a-zA-Z0-9_ \t]+(...)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
 
 
@@ -178,7 +178,7 @@ class CallGraph(private val program: Program, private val asmFileLoader: (filena
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {
-        // parse inline asm for subroutine calls (jmp, jsr)
+        // parse inline asm for subroutine calls (jmp, jsr, bra)
         val scope = inlineAssembly.definingSubroutine()
         scanAssemblyCode(inlineAssembly.assembly, inlineAssembly, scope)
         super.visit(inlineAssembly)

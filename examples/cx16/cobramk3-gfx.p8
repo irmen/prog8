@@ -64,25 +64,25 @@ main {
 
     asmsub print_number_gfx(ubyte num @ A) clobbers(A,Y) {
     	%asm {{
-    		phx
-    		jsr  conv.ubyte2decimal
-    		phx
-    		pha
-    		cpy  #'0'
-    		beq  +
-    		tya
-    		jsr  cx16.GRAPH_put_char
-    		pla
-    		jsr  cx16.GRAPH_put_char
-    		jmp  _ones
-    +       pla
+            phx
+            jsr  conv.ubyte2decimal
+            phx
+            pha
+            cpy  #'0'
+            beq  +
+            tya
+            jsr  cx16.GRAPH_put_char
+            pla
+            jsr  cx16.GRAPH_put_char
+            bra  _ones
++           pla
             cmp  #'0'
             beq  _ones
             jsr  cx16.GRAPH_put_char
-    _ones   pla
-    		jsr  cx16.GRAPH_put_char
-    		plx
-    		rts
+_ones       pla
+            jsr  cx16.GRAPH_put_char
+            plx
+            rts
     	}}
     }
 
