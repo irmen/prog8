@@ -1011,14 +1011,8 @@ internal class AsmGen(private val program: Program,
         // note: A/Y must have been loaded with the number of iterations!
         if(constIterations==0)
             return
-        if(constIterations==null) {
-            out("""
-                cmp  #0
-                bne  +
-                cpy  #0
-                beq  $endLabel   ; skip loop if zero iters
-+""")
-        }
+        // no need to explicitly test for 0 iterations as this is done in the count down logic below
+
         val counterVar = makeLabel("repeatcounter")
         out("""
                 sta  $counterVar
@@ -1027,7 +1021,7 @@ $repeatLabel    lda  $counterVar
                 bne  +
                 lda  $counterVar+1
                 beq  $endLabel
-+               lda  $counterVar
+                lda  $counterVar
                 bne  +
                 dec  $counterVar+1
 +               dec  $counterVar

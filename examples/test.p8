@@ -2,6 +2,37 @@
 %zeropage basicsafe
 
 main {
+    sub start() {
+        bench()
+        txt.nl()
+
+        uword total
+        ubyte bb
+        uword ww
+
+        for bb in 0 to 255 {
+            total = 0
+            repeat bb
+                total++
+            txt.print_uw(total)
+            txt.spc()
+            txt.spc()
+        }
+
+        txt.nl()
+        txt.nl()
+
+        for ww in 0 to 600 {
+            total = 0
+            repeat ww
+                total++
+            txt.print_uw(total)
+            txt.spc()
+            txt.spc()
+        }
+
+    }
+
 
     sub iter(uword iterations) -> uword {
         uword total = 0
@@ -26,7 +57,7 @@ main {
         return total
     }
 
-    sub start() {
+    sub bench() {
         uword xx1
         uword xx2
         uword xx3
