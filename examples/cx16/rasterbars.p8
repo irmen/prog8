@@ -2,6 +2,10 @@
 %import textio
 %import palette
 
+; horizontal raster bars
+; also see: kefrenbars.p8
+
+
 main {
 
     sub start() {
@@ -9,7 +13,6 @@ main {
         txt.plot(14,14)
         txt.print("raster bars!")
 
-        cx16.rombank(0)     ; switch to kernal rom for faster irq handling
         cx16.set_rasterirq(&irq.irq, 0)
 
         repeat {
