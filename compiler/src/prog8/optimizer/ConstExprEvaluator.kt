@@ -9,28 +9,32 @@ import kotlin.math.pow
 class ConstExprEvaluator {
 
     fun evaluate(left: NumericLiteralValue, operator: String, right: NumericLiteralValue): Expression {
-        return when(operator) {
-            "+" -> plus(left, right)
-            "-" -> minus(left, right)
-            "*" -> multiply(left, right)
-            "/" -> divide(left, right)
-            "%" -> remainder(left, right)
-            "**" -> power(left, right)
-            "&" -> bitwiseand(left, right)
-            "|" -> bitwiseor(left, right)
-            "^" -> bitwisexor(left, right)
-            "and" -> logicaland(left, right)
-            "or" -> logicalor(left, right)
-            "xor" -> logicalxor(left, right)
-            "<" -> NumericLiteralValue.fromBoolean(left < right, left.position)
-            ">" -> NumericLiteralValue.fromBoolean(left > right, left.position)
-            "<=" -> NumericLiteralValue.fromBoolean(left <= right, left.position)
-            ">=" -> NumericLiteralValue.fromBoolean(left >= right, left.position)
-            "==" -> NumericLiteralValue.fromBoolean(left == right, left.position)
-            "!=" -> NumericLiteralValue.fromBoolean(left != right, left.position)
-            "<<" -> shiftedleft(left, right)
-            ">>" -> shiftedright(left, right)
-            else -> throw FatalAstException("const evaluation for invalid operator $operator")
+        try {
+            return when(operator) {
+                "+" -> plus(left, right)
+                "-" -> minus(left, right)
+                "*" -> multiply(left, right)
+                "/" -> divide(left, right)
+                "%" -> remainder(left, right)
+                "**" -> power(left, right)
+                "&" -> bitwiseand(left, right)
+                "|" -> bitwiseor(left, right)
+                "^" -> bitwisexor(left, right)
+                "and" -> logicaland(left, right)
+                "or" -> logicalor(left, right)
+                "xor" -> logicalxor(left, right)
+                "<" -> NumericLiteralValue.fromBoolean(left < right, left.position)
+                ">" -> NumericLiteralValue.fromBoolean(left > right, left.position)
+                "<=" -> NumericLiteralValue.fromBoolean(left <= right, left.position)
+                ">=" -> NumericLiteralValue.fromBoolean(left >= right, left.position)
+                "==" -> NumericLiteralValue.fromBoolean(left == right, left.position)
+                "!=" -> NumericLiteralValue.fromBoolean(left != right, left.position)
+                "<<" -> shiftedleft(left, right)
+                ">>" -> shiftedright(left, right)
+                else -> throw FatalAstException("const evaluation for invalid operator $operator")
+            }
+        } catch (ax: FatalAstException) {
+            throw ExpressionError(ax.message, left.position)
         }
     }
 
