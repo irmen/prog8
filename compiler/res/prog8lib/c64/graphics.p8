@@ -2,7 +2,7 @@
 %import textio
 
 ; bitmap pixel graphics module for the C64
-; only black/white monchrome 320x200 for now
+; only black/white monochrome 320x200 for now
 ; assumes bitmap screen memory is $2000-$3fff
 
 graphics {

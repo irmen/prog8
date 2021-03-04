@@ -36,7 +36,7 @@ gfx2 {
     sub screen_mode(ubyte mode) {
         when mode {
             1 -> {
-                ; lores monchrome
+                ; lores monochrome
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
                 cx16.VERA_DC_HSCALE = 64
                 cx16.VERA_DC_VSCALE = 64

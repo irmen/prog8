@@ -2,7 +2,6 @@
 %import gfx2
 %import textio
 %import test_stack
-%zeropage dontuse
 
 main {
 
