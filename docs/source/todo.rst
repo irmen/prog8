@@ -2,8 +2,6 @@
 TODO
 ====
 
-- optimize word multiplication if the constant multiplier is a multiple of 256
-- move current rnd() to fastrnd() and add new rnd() based on the 16-bits rndw() for better results
 - add more convenient number-to-string conversion routines to conv (and clean up the number printing routine in the blobs example?)
 
 - optimize assigning array and struct variables (multi-element assings -> memcopy)

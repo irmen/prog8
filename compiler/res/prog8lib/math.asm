@@ -244,8 +244,8 @@ randseed	.proc
 		.pend
 
 
-randbyte	.proc
-	; -- 8-bit pseudo random number generator into A
+fast_randbyte	.proc
+	; -- fast but bad 8-bit pseudo random number generator into A
 		lda  _seed
 		beq  _eor
 		asl  a
@@ -263,6 +263,10 @@ _seed		.byte  $3a
 
 		.pend
 
+randbyte        .proc
+	; -- 8 bit pseudo random number generator into A (by just reusing randword)
+		jmp  randword
+		.pend
 
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY

@@ -106,7 +106,7 @@ main {
                 ubyte @zp ii
                 for ii in 0 to 7 {
                     ; use 16 bit rng for a bit more randomness instead of the 8-bit rng
-                    if lsb(rndw()) > s {
+                    if rnd() > s {
                         b |= bittab[ii]
                     }
                 }
