@@ -3,6 +3,9 @@
 %import conv
 %import textio
 
+; "unlimited sprites / bobs" demo effect.
+; Note that everything is prog8, no inline assembly used/required.
+
 
 main {
     sub start() {
@@ -39,9 +42,6 @@ main {
 
         repeat {
             ; don't exit
-            %asm {{
-                wai
-            }}
         }
     }
 
@@ -110,16 +110,9 @@ main {
         cx16.VERA_ADDR_H &= 1
         cx16.VERA_ADDR_H |= %10110000   ; increment 40 for write (next line)
         ubyte ix
-        for ix in 0 to len(shifted_sprite)-1 step 3 {
-            ;cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
-            %asm {{
-                ldy  ix
-                lda  cx16.VERA_DATA0
-                and  shifted_mask,y
-                ora  shifted_sprite,y
-                sta  cx16.VERA_DATA1
-            }}
-        }
+        for ix in 0 to len(shifted_sprite)-1 step 3
+            cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
+
         ; middle column of the (shifted)sprite
         cx16.vaddr(bank, vmem+1, 0, false)
         cx16.VERA_ADDR_H &= 1
@@ -127,16 +120,9 @@ main {
         cx16.vaddr(bank, vmem+1, 1, false)
         cx16.VERA_ADDR_H &= 1
         cx16.VERA_ADDR_H |= %10110000   ; increment 40 for write (next line)
-        for ix in 1 to len(shifted_sprite)-1 step 3 {
-            ;cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
-            %asm {{
-                ldy  ix
-                lda  cx16.VERA_DATA0
-                and  shifted_mask,y
-                ora  shifted_sprite,y
-                sta  cx16.VERA_DATA1
-            }}
-        }
+        for ix in 1 to len(shifted_sprite)-1 step 3
+            cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
+
         ; right column of the (shifted)sprite
         cx16.vaddr(bank, vmem+2, 0, false)
         cx16.VERA_ADDR_H &= 1
@@ -145,14 +131,7 @@ main {
         cx16.VERA_ADDR_H &= 1
         cx16.VERA_ADDR_H |= %10110000   ; increment 40 for write (next line)
         for ix in 2 to len(shifted_sprite)-1 step 3
-            ;cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
-            %asm {{
-                ldy  ix
-                lda  cx16.VERA_DATA0
-                and  shifted_mask,y
-                ora  shifted_sprite,y
-                sta  cx16.VERA_DATA1
-            }}
+            cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
         anim1 += 217
         anim2 += 190
@@ -195,27 +174,8 @@ main {
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
         ubyte bank = vmembase>=32
         vmem += 35
-        ubyte thousands
-        ubyte hundreds
-        ubyte tens
-        ubyte ones
-        void conv.uword2decimal(number)
-        %asm {{
-            lda  conv.uword2decimal.decThousands
-            and  #15
-            sta  thousands
-            lda  conv.uword2decimal.decHundreds
-            and  #15
-            sta  hundreds
-            lda  conv.uword2decimal.decTens
-            and  #15
-            sta  tens
-            lda  conv.uword2decimal.decOnes
-            and  #15
-            sta  ones
-        }}
-
-        uword pixelsptr = &numberpixels + thousands*7
+        conv.str_uw0(number)
+        uword pixelsptr = &numberpixels + (conv.string_out[1] & 15)*7
         ubyte pix
         cx16.vaddr(bank, vmem, 0, false)
         cx16.VERA_ADDR_H &= 1
@@ -226,21 +186,21 @@ main {
         cx16.vaddr(bank, vmem, 0, false)
         cx16.VERA_ADDR_H &= 1
         cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
-        pixelsptr = &numberpixels + hundreds*7
+        pixelsptr = &numberpixels + (conv.string_out[2] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
         cx16.vaddr(bank, vmem, 0, false)
         cx16.VERA_ADDR_H &= 1
         cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
-        pixelsptr = &numberpixels + tens*7
+        pixelsptr = &numberpixels + (conv.string_out[3] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
         cx16.vaddr(bank, vmem, 0, false)
         cx16.VERA_ADDR_H &= 1
         cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
-        pixelsptr = &numberpixels + ones*7
+        pixelsptr = &numberpixels + (conv.string_out[4] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
     }
