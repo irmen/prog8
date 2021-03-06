@@ -105,7 +105,7 @@ conv
 Routines to convert strings to numbers or vice versa.
 
 - numbers to strings, in various formats (binary, hex, decimal)
-- strings in decimal, hex and binary format into numbers
+- strings in decimal, hex and binary format into numbers (bytes, words)
 
 
 textio (txt.*)
