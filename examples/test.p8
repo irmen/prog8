@@ -90,16 +90,17 @@ main {
         txt.nl()
         txt.nl()
 
-;        conv.str_w(ww)
-;        txt.print(conv.string_out)
-;        txt.nl()
-;        txt.print_w(ww)
-;        txt.nl()
-;        conv.str_uw(7)
-;        txt.print(conv.string_out)
-;        txt.nl()
-;        txt.print_uw(7)
-;        txt.nl()
-;        txt.nl()
+        conv.str_w(ww)
+        txt.print(conv.string_out)
+        txt.nl()
+        txt.print_w(ww)
+        txt.nl()
+        txt.nl()
+
+        conv.str_w(99)
+        txt.print(conv.string_out)
+        txt.nl()
+        txt.print_w(99)
+        txt.nl()
     }
 }

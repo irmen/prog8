@@ -31,7 +31,7 @@ asmsub  str_ub  (ubyte value @ A) clobbers(A,Y)  {
 		ldy  #0
 		sty  P8ZP_SCRATCH_B1
 		jsr  conv.ubyte2decimal
-_print_byte_digits
+_output_byte_digits
                 ; hundreds?
 		cpy  #'0'
 		beq  +
@@ -72,7 +72,7 @@ asmsub  str_b  (byte value @ A) clobbers(A,Y)  {
             inc  P8ZP_SCRATCH_B1
             pla
 +	    jsr  conv.byte2decimal
-            bra  str_ub._print_byte_digits
+            bra  str_ub._output_byte_digits
 	}}
 }
 
@@ -167,8 +167,9 @@ asmsub  str_uw  (uword value @ AY) clobbers(A,Y)  {
 	%asm {{
 	    phx
 	    jsr  conv.uword2decimal
-	    ldy  #0
 	    ldx  #0
+_output_digits
+	    ldy  #0
 -           lda  conv.uword2decimal.decTenThousands,y
             beq  _allzero
             cmp  #'0'
@@ -195,22 +196,24 @@ _allzero    lda  #'0'
 asmsub  str_w  (word value @ AY) clobbers(A,Y)  {
 	; ---- convert the (signed) word in A/Y in decimal string form, without left padding 0's
 	%asm {{
-	rts
-;		cpy  #0
-;		bpl  +
-;		pha
-;		lda  #'-'
-;		jsr  c64.CHROUT
-;		tya
-;		eor  #255
-;		tay
-;		pla
-;		eor  #255
-;		clc
-;		adc  #1
-;		bcc  +
-;		iny
-;+		bra  print_uw
+	    cpy  #0
+	    bpl  str_uw
+	    phx
+	    pha
+	    lda  #'-'
+	    sta  string_out
+            tya
+            eor  #255
+            tay
+            pla
+            eor  #255
+            clc
+            adc  #1
+            bcc  +
+            iny
++	    jsr  conv.uword2decimal
+	    ldx  #1
+	    bne  str_uw._output_digits
 	}}
 }
 
