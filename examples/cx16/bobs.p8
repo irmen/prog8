@@ -38,7 +38,7 @@ main {
         palette.set_color(0, $000)
         palette.set_color(1, $af8)
 
-        cx16.set_irq(&irq, false)
+        cx16.set_rasterirq(&irq, 340)           ; time it so that the page flip occurs near the bottom of the screen to avoid tearing
 
         repeat {
             ; don't exit
@@ -85,7 +85,10 @@ main {
 
     sub init_buffers() {
         ; erase all vram
-        cx16.vaddr(0, 0, 0, true)
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = 0
+        cx16.VERA_ADDR_M = 0
+        cx16.VERA_ADDR_H = %00010000        ; auto incr 1
         repeat $ffff
             cx16.VERA_DATA0 = 0
         repeat $f960
@@ -102,34 +105,37 @@ main {
         bitshift(lsb(blit_x) & 7)
 
         ; left column of the (shifted)sprite
-        ; TODO don't call vaddr, inline it here
-        cx16.vaddr(bank, vmem, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
-        cx16.vaddr(bank, vmem, 1, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for write (next line)
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
+        cx16.VERA_ADDR_H = bank | %10110000     ; increment 40 for read (next line)
+        cx16.VERA_CTRL = 1
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
+        cx16.VERA_ADDR_H = bank | %10110000     ; increment 40 for read (next line)
         ubyte ix
         for ix in 0 to len(shifted_sprite)-1 step 3
             cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
         ; middle column of the (shifted)sprite
-        cx16.vaddr(bank, vmem+1, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
-        cx16.vaddr(bank, vmem+1, 1, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for write (next line)
+        vmem++
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
+        cx16.VERA_CTRL = 1
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
         for ix in 1 to len(shifted_sprite)-1 step 3
             cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
         ; right column of the (shifted)sprite
-        cx16.vaddr(bank, vmem+2, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
-        cx16.vaddr(bank, vmem+2, 1, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for write (next line)
+        vmem++
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
+        cx16.VERA_CTRL = 1
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
         for ix in 2 to len(shifted_sprite)-1 step 3
             cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
@@ -137,10 +143,6 @@ main {
         anim2 += 190
         anim3 += 222
         anim4 += 195
-;        anim1 += 107
-;        anim2 += 80
-;        anim3 += 122
-;        anim4 += 93
     }
 
     sub bitshift(ubyte shift) {
@@ -177,29 +179,27 @@ main {
         conv.str_uw0(number)
         uword pixelsptr = &numberpixels + (conv.string_out[1] & 15)*7
         ubyte pix
-        cx16.vaddr(bank, vmem, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
+        cx16.VERA_ADDR_H = bank | %10110000       ; increment 40 for read (next line)
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
-        cx16.vaddr(bank, vmem, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
         pixelsptr = &numberpixels + (conv.string_out[2] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
-        cx16.vaddr(bank, vmem, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
         pixelsptr = &numberpixels + (conv.string_out[3] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
-        cx16.vaddr(bank, vmem, 0, false)
-        cx16.VERA_ADDR_H &= 1
-        cx16.VERA_ADDR_H |= %10110000   ; increment 40 for read (next line)
+        cx16.VERA_ADDR_L = lsb(vmem)
+        cx16.VERA_ADDR_M = msb(vmem)
         pixelsptr = &numberpixels + (conv.string_out[4] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
