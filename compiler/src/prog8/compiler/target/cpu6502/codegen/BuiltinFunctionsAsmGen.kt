@@ -483,11 +483,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
                 DataType.ARRAY_UW -> {
                     asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.ARRAY_W -> {
                     asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.ARRAY_F -> {
                     asmgen.out("  jsr  floats.func_${function.name}_f_fac1")
@@ -514,19 +514,19 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when (dt.typeOrElse(DataType.STRUCT)) {
                 DataType.ARRAY_UB, DataType.STR -> {
                     asmgen.out("  jsr  prog8_lib.func_sum_ub_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.ARRAY_B -> {
                     asmgen.out("  jsr  prog8_lib.func_sum_b_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.ARRAY_UW -> {
                     asmgen.out("  jsr  prog8_lib.func_sum_uw_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.ARRAY_W -> {
                     asmgen.out("  jsr  prog8_lib.func_sum_w_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.ARRAY_F -> {
                     asmgen.out("  jsr  floats.func_sum_f_fac1")
@@ -929,15 +929,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             when (dt) {
                 in ByteDatatypes -> {
                     asmgen.out("  jsr  prog8_lib.abs_b_into_A")
-                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister!!, scope, program, asmgen), CpuRegister.A)
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
                 }
                 in WordDatatypes -> {
                     asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister!!, scope, program, asmgen), RegisterOrPair.AY)
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
                 }
                 DataType.FLOAT -> {
                     asmgen.out("  jsr  floats.abs_f_fac1")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister!!, scope, program, asmgen), RegisterOrPair.FAC1)
+                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, scope, program, asmgen))
                 }
                 else -> throw AssemblyError("weird type")
             }

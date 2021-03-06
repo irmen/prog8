@@ -396,14 +396,18 @@ galaxy7 {
     sub init(ubyte galaxy7num) {
         number = 1
         planet7.number = 255
-        seed = [base0, base1, base2]
+        seed[0] = base0
+        seed[1] = base1
+        seed[2] = base2
         repeat galaxy7num-1 {
             nextgalaxy7()
         }
     }
 
     sub nextgalaxy7() {
-        seed = [twist(seed[0]), twist(seed[1]), twist(seed[2])]
+        seed[0] = twist(seed[0])
+        seed[1] = twist(seed[1])
+        seed[2] = twist(seed[2])
         number++
         if number==9
             number = 1
@@ -577,7 +581,10 @@ galaxy7 {
             planet7.species_kind = (planet7.species_look + (seed2_msb & 3)) & 7      ;Add bits 0-1 of w2_hi to A from previous step, and take bits 0-2 of the result
         }
 
-        planet7.goatsoup_seed = [lsb(seed[1]), msb(seed[1]), lsb(seed[2]), seed2_msb]
+        planet7.goatsoup_seed[0] = lsb(seed[1])
+        planet7.goatsoup_seed[1] = msb(seed[1])
+        planet7.goatsoup_seed[2] = lsb(seed[2])
+        planet7.goatsoup_seed[3] = seed2_msb
     }
 
     sub tweakseed() {

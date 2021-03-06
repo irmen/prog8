@@ -396,14 +396,18 @@ galaxy4 {
     sub init(ubyte galaxy4num) {
         number = 1
         planet4.number = 255
-        seed = [base0, base1, base2]
+        seed[0] = base0
+        seed[1] = base1
+        seed[2] = base2
         repeat galaxy4num-1 {
             nextgalaxy4()
         }
     }
 
     sub nextgalaxy4() {
-        seed = [twist(seed[0]), twist(seed[1]), twist(seed[2])]
+        seed[0] = twist(seed[0])
+        seed[1] = twist(seed[1])
+        seed[2] = twist(seed[2])
         number++
         if number==9
             number = 1
@@ -577,7 +581,10 @@ galaxy4 {
             planet4.species_kind = (planet4.species_look + (seed2_msb & 3)) & 7      ;Add bits 0-1 of w2_hi to A from previous step, and take bits 0-2 of the result
         }
 
-        planet4.goatsoup_seed = [lsb(seed[1]), msb(seed[1]), lsb(seed[2]), seed2_msb]
+        planet4.goatsoup_seed[0] = lsb(seed[1])
+        planet4.goatsoup_seed[1] = msb(seed[1])
+        planet4.goatsoup_seed[2] = lsb(seed[2])
+        planet4.goatsoup_seed[3] = seed2_msb
     }
 
     sub tweakseed() {

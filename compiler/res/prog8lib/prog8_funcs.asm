@@ -440,6 +440,7 @@ func_min_ub_stack	.proc
 func_min_b_into_A	.proc
 		; -- min(barray) -> A.  (array in P8ZP_SCRATCH_W1, num elements in A)
 		tay
+		dey
 		lda  #127
 		sta  P8ZP_SCRATCH_B1
 -		lda  (P8ZP_SCRATCH_W1),y
@@ -556,6 +557,7 @@ func_min_w_stack	.proc
 func_max_ub_into_A	.proc
 		; -- max(ubarray) -> A  (array in P8ZP_SCRATCH_W1, num elements in A)
 		tay
+		dey
 		lda  #0
 		sta  P8ZP_SCRATCH_B1
 -		lda  (P8ZP_SCRATCH_W1),y
