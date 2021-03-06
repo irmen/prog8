@@ -757,11 +757,12 @@ all(x)
     1 ('true') if all of the values in the array value x are 'true' (not zero), else 0 ('false')
 
 len(x)
-    Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).
+    Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
     Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
-    length of the string during execution, the value of len(string) may no longer be correct!
-    (use strlen function if you want to dynamically determine the length)
+    length of the string during execution, the value of len(s) may no longer be correct!
+    (use the ``string.length`` routine if you want to dynamically determine the length by counting to the
+    first 0-byte)
 
 max(x)
     Maximum of the values in the array value x

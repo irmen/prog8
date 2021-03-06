@@ -4,103 +4,62 @@
 
 main {
     sub start() {
-        ubyte ubb = $f4
-        byte bb = -123
-        uword uww = $f4a1
-        word ww = -12345
+        ubyte[] arr1 = [1,2,3]
+        ubyte[] arr2 = [9,9,9]
 
-        conv.str_ub0($0f)
-        txt.print(conv.string_out)
+        arr1[2]=42
+        txt.print_ub(arr2[0])
+        txt.chrout(',')
+        txt.print_ub(arr2[1])
+        txt.chrout(',')
+        txt.print_ub(arr2[2])
         txt.nl()
-        txt.print_ub0($0f)
+        arr2=[99,88,77]
+        txt.print_ub(arr2[0])
+        txt.chrout(',')
+        txt.print_ub(arr2[1])
+        txt.chrout(',')
+        txt.print_ub(arr2[2])
         txt.nl()
-        txt.nl()
-
-        conv.str_ub(ubb)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_ub(ubb)
-        txt.nl()
-        txt.nl()
-        conv.str_ub(8)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_ub(8)
-        txt.nl()
-        txt.nl()
-
-        conv.str_b(bb)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_b(bb)
-        txt.nl()
-        txt.nl()
-        conv.str_b(-8)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_b(-8)
+        arr2=arr1
+        txt.print_ub(arr2[0])
+        txt.chrout(',')
+        txt.print_ub(arr2[1])
+        txt.chrout(',')
+        txt.print_ub(arr2[2])
         txt.nl()
         txt.nl()
 
-        conv.str_ubhex(ubb)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_ubhex(ubb,false)
-        txt.nl()
-        txt.nl()
 
-        conv.str_ubbin(ubb)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_ubbin(ubb,false)
-        txt.nl()
-        txt.nl()
 
-        conv.str_uwbin(uww)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_uwbin(uww, false)
-        txt.nl()
-        txt.nl()
+        struct MyType {
+            uword v1
+            uword w1
+            uword w2
+        }
 
-        conv.str_uwhex(uww)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_uwhex(uww, false)
-        txt.nl()
-        txt.nl()
+        MyType m1 = [1, 888, 999]
+        MyType m2 = [22, 222, 222]
 
-        conv.str_uw0(987)
-        txt.print(conv.string_out)
+        txt.print_uw(m2.v1)
+        txt.chrout(',')
+        txt.print_uw(m2.w1)
+        txt.chrout(',')
+        txt.print_uw(m2.w2)
         txt.nl()
-        txt.print_uw0(987)
+        m2 = [111,222,333]
+        txt.print_uw(m2.v1)
+        txt.chrout(',')
+        txt.print_uw(m2.w1)
+        txt.chrout(',')
+        txt.print_uw(m2.w2)
         txt.nl()
-        txt.nl()
-
-        conv.str_uw(uww)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_uw(uww)
-        txt.nl()
-        txt.nl()
-        conv.str_uw(7)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_uw(7)
-        txt.nl()
-        txt.nl()
-
-        conv.str_w(ww)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_w(ww)
-        txt.nl()
-        txt.nl()
-
-        conv.str_w(99)
-        txt.print(conv.string_out)
-        txt.nl()
-        txt.print_w(99)
+        m2 = m1
+        txt.print_uw(m2.v1)
+        txt.chrout(',')
+        txt.print_uw(m2.w1)
+        txt.chrout(',')
+        txt.print_uw(m2.w2)
         txt.nl()
     }
 }

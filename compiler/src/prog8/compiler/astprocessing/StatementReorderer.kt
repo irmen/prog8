@@ -268,30 +268,29 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program)
-        var assignments = emptyList<Assignment>()
 
         if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {
-            assignments = if (assignment.value is ArrayLiteralValue) {
-                flattenStructAssignmentFromStructLiteral(assignment)    //  'structvar = [ ..... ] '
+            val assignments = if (assignment.value is ArrayLiteralValue) {
+                throw FatalAstException("array literal should have been translated to a variable at "+assignment.position.toString())
             } else {
-                flattenStructAssignmentFromIdentifier(assignment)    //   'structvar1 = structvar2'
+                flattenStructAssignmentFromIdentifier(assignment)
+            }
+
+            if(assignments.isNotEmpty()) {
+                val modifications = mutableListOf<IAstModification>()
+                val scope = assignment.definingScope()
+                assignments.reversed().mapTo(modifications) { IAstModification.InsertAfter(assignment, it, scope) }
+                modifications.add(IAstModification.Remove(assignment, scope))
+                return modifications
             }
         }
 
         if(targetType.typeOrElse(DataType.STRUCT) in ArrayDatatypes && valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes ) {
-            assignments = if (assignment.value is ArrayLiteralValue) {
-                flattenArrayAssignmentFromArrayLiteral(assignment)    //  'arrayvar = [ ..... ] '
+            if (assignment.value is ArrayLiteralValue) {
+                throw FatalAstException("array literal should have been translated to a variable at "+assignment.position.toString())
             } else {
-                flattenArrayAssignmentFromIdentifier(assignment)    //   'arrayvar1 = arrayvar2'
+                return copyArrayValue(assignment)
             }
-        }
-
-        if(assignments.isNotEmpty()) {
-            val modifications = mutableListOf<IAstModification>()
-            val scope = assignment.definingScope()
-            assignments.reversed().mapTo(modifications) { IAstModification.InsertAfter(assignment, it, scope) }
-            modifications.add(IAstModification.Remove(assignment, scope))
-            return modifications
         }
 
         return noModifications
@@ -346,66 +345,37 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         return noModifications
     }
 
-    private fun flattenArrayAssignmentFromArrayLiteral(assign: Assignment): List<Assignment> {
+    private fun copyArrayValue(assign: Assignment): List<IAstModification> {
         val identifier = assign.target.identifier!!
         val targetVar = identifier.targetVarDecl(program)!!
-        val alv = assign.value as? ArrayLiteralValue
-        return flattenArrayAssign(targetVar, alv, identifier, assign.position)
-    }
 
-    private fun flattenArrayAssignmentFromIdentifier(assign: Assignment): List<Assignment> {
-        val identifier = assign.target.identifier!!
-        val targetVar = identifier.targetVarDecl(program)!!
+        if(targetVar.arraysize==null)
+            errors.err("array has no defined size", assign.position)
+
         val sourceIdent = assign.value as IdentifierReference
         val sourceVar = sourceIdent.targetVarDecl(program)!!
         if(!sourceVar.isArray) {
-            errors.err("value must be an array",  sourceIdent.position)
+            errors.err("value must be an array", sourceIdent.position)
+        } else {
+            if (sourceVar.arraysize!!.constIndex() != targetVar.arraysize!!.constIndex())
+                errors.err("element count mismatch", assign.position)
+            if (sourceVar.datatype != targetVar.datatype)
+                errors.err("element type mismatch", assign.position)
+        }
+
+        if(!errors.isEmpty())
             return emptyList()
-        }
-        val alv = sourceVar.value as? ArrayLiteralValue
-        return flattenArrayAssign(targetVar, alv, identifier, assign.position)
-    }
 
-    private fun flattenArrayAssign(targetVar: VarDecl, alv: ArrayLiteralValue?, identifier: IdentifierReference, position: Position): List<Assignment> {
-        if(targetVar.arraysize==null) {
-            errors.err("array has no defined size", identifier.position)
-            return emptyList()
-        }
-
-        if(alv==null || alv.value.size != targetVar.arraysize!!.constIndex()) {
-            errors.err("element count mismatch", position)
-            return emptyList()
-        }
-
-        // TODO use memcopy instead of individual assignments after certain amount of elements
-        // TODO what does assigning a struct var use?
-        return alv.value.mapIndexed { index, value ->
-            val idx = ArrayIndexedExpression(identifier, ArrayIndex(NumericLiteralValue(DataType.UBYTE, index, position), position), position)
-            Assignment(AssignTarget(null, idx, null, position), value, value.position)
-        }
-    }
-
-    private fun flattenStructAssignmentFromStructLiteral(structAssignment: Assignment): List<Assignment> {
-        val identifier = structAssignment.target.identifier!!
-        val identifierName = identifier.nameInSource.single()
-        val targetVar = identifier.targetVarDecl(program)!!
-        val struct = targetVar.struct!!
-
-        val slv = structAssignment.value as? ArrayLiteralValue
-        if(slv==null || slv.value.size != struct.numberOfElements) {
-            errors.err("element count mismatch", structAssignment.position)
-            return emptyList()
-        }
-
-        return struct.statements.zip(slv.value).map { (targetDecl, sourceValue) ->
-            targetDecl as VarDecl
-            val mangled = mangledStructMemberName(identifierName, targetDecl.name)
-            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-            val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position),
-                    sourceValue, sourceValue.position)
-            assign.linkParents(structAssignment)
-            assign
-        }
+        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),
+            mutableListOf(
+                AddressOf(sourceIdent, assign.position),
+                AddressOf(identifier, assign.position),
+                NumericLiteralValue.optimalInteger(targetVar.arraysize!!.constIndex()!!, assign.position)
+            ),
+            true,
+            assign.position
+        )
+        return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
     }
 
     private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment): List<Assignment> {
