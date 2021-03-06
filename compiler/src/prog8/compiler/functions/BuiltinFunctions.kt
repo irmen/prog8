@@ -321,8 +321,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
         val target = (args[0] as IdentifierReference).targetStatement(program)
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
-        fun structSize(target: StructDecl) =
-                NumericLiteralValue(DataType.UBYTE, target.statements.map { memsizer.memorySize((it as VarDecl).datatype) }.sum(), position)
+        fun structSize(target: StructDecl) = NumericLiteralValue(DataType.UBYTE, target.memsize(memsizer), position)
 
         return when {
             dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {

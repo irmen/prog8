@@ -270,24 +270,16 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         val targetType = assignment.target.inferType(program)
 
         if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {
-            val assignments = if (assignment.value is ArrayLiteralValue) {
-                throw FatalAstException("array literal should have been translated to a variable at "+assignment.position.toString())
+            if (assignment.value is ArrayLiteralValue) {
+                errors.err("cannot assign non-const array value, use separate assignment per field", assignment.position)
             } else {
-                flattenStructAssignmentFromIdentifier(assignment)
-            }
-
-            if(assignments.isNotEmpty()) {
-                val modifications = mutableListOf<IAstModification>()
-                val scope = assignment.definingScope()
-                assignments.reversed().mapTo(modifications) { IAstModification.InsertAfter(assignment, it, scope) }
-                modifications.add(IAstModification.Remove(assignment, scope))
-                return modifications
+                return copyStructValue(assignment)
             }
         }
 
         if(targetType.typeOrElse(DataType.STRUCT) in ArrayDatatypes && valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes ) {
             if (assignment.value is ArrayLiteralValue) {
-                throw FatalAstException("array literal should have been translated to a variable at "+assignment.position.toString())
+                errors.err("cannot assign non-const array value, use separate assignment per element", assignment.position)
             } else {
                 return copyArrayValue(assignment)
             }
@@ -378,52 +370,61 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
     }
 
-    private fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment): List<Assignment> {
-        // TODO use memcopy beyond a certain number of elements
+    private fun copyStructValue(structAssignment: Assignment): List<IAstModification> {
         val identifier = structAssignment.target.identifier!!
-        val identifierName = identifier.nameInSource.single()
         val targetVar = identifier.targetVarDecl(program)!!
         val struct = targetVar.struct!!
         when (structAssignment.value) {
             is IdentifierReference -> {
                 val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program)!!
+                val memsize = struct.memsize(program.memsizer)
                 when {
                     sourceVar.struct!=null -> {
                         // struct memberwise copy
                         val sourceStruct = sourceVar.struct!!
                         if(sourceStruct!==targetVar.struct) {
-                            // structs are not the same in assignment
-                            return listOf()     // error will be printed elsewhere
+                            errors.err("struct type mismatch", structAssignment.position)
+                            return listOf()
                         }
-                        if(struct.statements.size!=sourceStruct.statements.size)
-                            return listOf()     // error will be printed elsewhere
-                        return struct.statements.zip(sourceStruct.statements).map { member ->
-                            val targetDecl = member.first as VarDecl
-                            val sourceDecl = member.second as VarDecl
-                            if(targetDecl.name != sourceDecl.name)
-                                throw FatalAstException("struct member mismatch")
-                            val mangled = mangledStructMemberName(identifierName, targetDecl.name)
-                            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-                            val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
-                            val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
-                            val assign = Assignment(AssignTarget(idref, null, null, structAssignment.position), sourceIdref, member.second.position)
-                            assign.linkParents(structAssignment)
-                            assign
+                        if(struct.statements.size!=sourceStruct.statements.size) {
+                            errors.err("struct element count mismatch", structAssignment.position)
+                            return listOf()
                         }
+                        if(memsize!=sourceStruct.memsize(program.memsizer)) {
+                            errors.err("memory size mismatch", structAssignment.position)
+                            return listOf()
+                        }
+                        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), structAssignment.position),
+                            mutableListOf(
+                                AddressOf(structAssignment.value as IdentifierReference, structAssignment.position),
+                                AddressOf(identifier, structAssignment.position),
+                                NumericLiteralValue.optimalInteger(memsize, structAssignment.position)
+                            ),
+                            true,
+                            structAssignment.position
+                        )
+                        return listOf(IAstModification.ReplaceNode(structAssignment, memcopy, structAssignment.parent))
                     }
                     sourceVar.isArray -> {
-                        val array = (sourceVar.value as ArrayLiteralValue).value
-                        if(struct.statements.size!=array.size)
-                            return listOf()     // error will be printed elsewhere
-                        return struct.statements.zip(array).map {
-                            val decl = it.first as VarDecl
-                            val mangled = mangledStructMemberName(identifierName, decl.name)
-                            val targetName = IdentifierReference(listOf(mangled), structAssignment.position)
-                            val target = AssignTarget(targetName, null, null, structAssignment.position)
-                            val assign = Assignment(target, it.second, structAssignment.position)
-                            assign.linkParents(structAssignment)
-                            assign
+                        val array = sourceVar.value as ArrayLiteralValue
+                        if(struct.statements.size!=array.value.size) {
+                            errors.err("struct element count mismatch", structAssignment.position)
+                            return listOf()
                         }
+                        if(memsize!=array.memsize(program.memsizer)) {
+                            errors.err("memory size mismatch", structAssignment.position)
+                            return listOf()
+                        }
+                        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), structAssignment.position),
+                            mutableListOf(
+                                AddressOf(structAssignment.value as IdentifierReference, structAssignment.position),
+                                AddressOf(identifier, structAssignment.position),
+                                NumericLiteralValue.optimalInteger(memsize, structAssignment.position)
+                            ),
+                            true,
+                            structAssignment.position
+                        )
+                        return listOf(IAstModification.ReplaceNode(structAssignment, memcopy, structAssignment.parent))
                     }
                     else -> {
                         throw FatalAstException("can only assign arrays or structs to structs")
@@ -431,7 +432,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                 }
             }
             is ArrayLiteralValue -> {
-                throw IllegalArgumentException("not going to flatten a structLv assignment here")
+                throw IllegalArgumentException("not going to do a structLv assignment here")
             }
             else -> throw FatalAstException("strange struct value")
         }

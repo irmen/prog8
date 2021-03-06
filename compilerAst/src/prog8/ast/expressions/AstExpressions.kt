@@ -6,7 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import java.util.*
+import java.util.Objects
 import kotlin.math.abs
 
 
@@ -540,6 +540,14 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         if(other==null || other !is ArrayLiteralValue)
             return false
         return type==other.type && value.contentEquals(other.value)
+    }
+
+    fun memsize(memsizer: IMemSizer): Int {
+        if(type.isKnown) {
+            val eltType = ArrayElementTypes.getValue(type.typeOrElse(DataType.STRUCT))
+            return memsizer.memorySize(eltType) * value.size
+        }
+        else throw IllegalArgumentException("array datatype is not yet known")
     }
 
     fun guessDatatype(program: Program): InferredTypes.InferredType {

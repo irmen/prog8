@@ -1000,6 +1000,9 @@ class StructDecl(override val name: String,
     val numberOfElements: Int
         get() = this.statements.size
 
+    fun memsize(memsizer: IMemSizer) =
+        statements.map { memsizer.memorySize((it as VarDecl).datatype) }.sum()
+
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 

@@ -31,7 +31,6 @@ main {
         txt.nl()
 
 
-
         struct MyType {
             uword v1
             uword w1
