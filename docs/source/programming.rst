@@ -739,9 +739,11 @@ sin16(x)
 
 sqrt16(w)
     16 bit unsigned integer Square root. Result is unsigned byte.
+    To do the reverse, squaring an integer, just write ``x*x``.
 
 sqrt(x)
     Floating point Square root.
+    To do the reverse, squaring a floating point number, just write ``x*x`` or ``x**2``.
 
 tan(x)
     Tangent.

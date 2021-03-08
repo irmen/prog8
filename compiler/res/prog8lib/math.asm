@@ -1541,3 +1541,71 @@ _negative	lsr  a
 		rts
 		.pend
 
+
+square          .proc
+; -- calculate square root of signed word in AY, result in AY
+; routine by Lee Davsion, source: http://6502.org/source/integers/square.htm
+; using this routine is about twice as fast as doing a regular multiplication.
+;
+; Calculates the 16 bit unsigned integer square of the signed 16 bit integer in
+; Numberl/Numberh.  The result is always in the range 0 to 65025 and is held in
+; Squarel/Squareh
+;
+; The maximum input range is only +/-255 and no checking is done to ensure that
+; this is so.
+;
+; This routine is useful if you are trying to draw circles as for any circle
+;
+; x^2+y^2=r^2 where x and y are the co-ordinates of any point on the circle and
+; r is the circle radius
+
+numberl = P8ZP_SCRATCH_W1       ; number to square low byte
+numberh = P8ZP_SCRATCH_W1+1     ; number to square high byte
+squarel = P8ZP_SCRATCH_W2       ; square low byte
+squareh = P8ZP_SCRATCH_W2+1     ; square high byte
+tempsq = P8ZP_SCRATCH_B1        ; temp byte for intermediate result
+
+	sta  numberl
+	sty  numberh
+	stx  P8ZP_SCRATCH_REG
+
+        lda     #$00        ; clear a
+        sta     squarel     ; clear square low byte
+                            ; (no need to clear the high byte, it gets shifted out)
+        lda	numberl     ; get number low byte
+	ldx	numberh     ; get number high  byte
+	bpl	_nonneg      ; if +ve don't negate it
+                            ; else do a two's complement
+	eor	#$ff        ; invert
+        sec	            ; +1
+	adc	#$00        ; and add it
+
+_nonneg:
+	sta	tempsq      ; save abs(number)
+	ldx	#$08        ; set bit count
+
+_nextr2bit:
+	asl	squarel     ; low byte *2
+	rol	squareh     ; high byte *2+carry from low
+	asl	a           ; shift number byte
+	bcc	_nosqadd     ; don't do add if c = 0
+	tay                 ; save a
+	clc                 ; clear carry for add
+	lda	tempsq      ; get number
+	adc	squarel     ; add number^2 low byte
+	sta	squarel     ; save number^2 low byte
+	lda	#$00        ; clear a
+	adc	squareh     ; add number^2 high byte
+	sta	squareh     ; save number^2 high byte
+	tya                 ; get a back
+
+_nosqadd:
+	dex                 ; decrement bit count
+	bne	_nextr2bit   ; go do next bit
+
+	lda  squarel
+	ldy  squareh
+	ldx  P8ZP_SCRATCH_REG
+	rts
+
+		.pend

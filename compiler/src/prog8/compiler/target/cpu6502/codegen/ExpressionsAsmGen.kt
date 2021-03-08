@@ -1746,6 +1746,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             "*" -> {
+                if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
+                    val leftVar = expr.left as? IdentifierReference
+                    val rightVar = expr.right as? IdentifierReference
+                    if(leftVar!=null && rightVar!=null && leftVar==rightVar)
+                        return translateSquared(leftVar, leftDt)
+                }
+
                 val value = expr.right.constValue(program)
                 if(value!=null) {
                     if(rightDt in IntegerDatatypes) {
@@ -1840,6 +1847,22 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 else -> throw AssemblyError("non-numerical datatype")
             }
         }
+    }
+
+    private fun translateSquared(variable: IdentifierReference, dt: DataType) {
+        val asmVar = asmgen.asmVariableName(variable)
+        when(dt) {
+            DataType.BYTE, DataType.UBYTE -> {
+                asmgen.out("  lda  $asmVar")
+                asmgen.signExtendAYlsb(dt)
+                asmgen.out("  jsr  math.square")
+            }
+            DataType.UWORD, DataType.WORD -> {
+                asmgen.out("  lda  $asmVar |  ldy  $asmVar+1 |  jsr  math.square")
+            }
+            else -> throw AssemblyError("require integer dt for square")
+        }
+        asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
     }
 
     private fun translateExpression(expr: PrefixExpression) {
