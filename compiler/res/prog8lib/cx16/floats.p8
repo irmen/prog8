@@ -79,10 +79,10 @@ asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
         phx
-        sta  P8ZP_SCRATCH_W2
+        sta  _tmp
         sty  P8ZP_SCRATCH_B1
         tya
-        ldy  P8ZP_SCRATCH_W2
+        ldy  _tmp
         jsr  GIVAYF                 ; load it as signed... correct afterwards
         lda  P8ZP_SCRATCH_B1
 	    bpl  +
@@ -91,6 +91,7 @@ asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	    jsr  FADD
 +	    plx
         rts
+_tmp        .byte 0
 _flt65536    .byte 145,0,0,0,0       ; 65536.0
 	}}
 }
@@ -126,6 +127,14 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 		ldy  P8ZP_SCRATCH_B1
 		rts
 	}}
+}
+
+asmsub  FREADUY (ubyte value @Y) {
+    ; -- 8 bit unsigned Y -> float in fac1
+    %asm {{
+        lda  #0
+        jmp  GIVAYF
+    }}
 }
 
 sub  print_f  (float value) {
