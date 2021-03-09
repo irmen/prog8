@@ -3,7 +3,6 @@ TODO
 ====
 
 - optimize several inner loops in gfx2
-- fix the bresenham line routines in graphics and gfx2 (sometimes they're a pixel 'off') (or maybe finally just replace them with a proper all-assembly implementation)
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
 - add a flood fill routine to gfx2?

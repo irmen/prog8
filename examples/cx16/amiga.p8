@@ -56,11 +56,11 @@ main {
 
     sub vector_v(uword x, uword y) {
         gfx2.horizontal_line(x, y, 12, 1)
-        gfx2.horizontal_line(x+16, y+16, 12,1)
+        gfx2.horizontal_line(x+16, y+16, 11,1)
         gfx2.line(x,y,x+16,y+16,1)
-        gfx2.line(x+11,y,x+16+6,y+10,1)
-        gfx2.line(x+16+6,y+10,x+48,y-16,1)
-        gfx2.line(x+16+11,y+16,x+48+11,y-16,1)
+        gfx2.line(x+11,y,x+16+5,y+10,1)
+        gfx2.line(x+16+5,y+10,x+47,y-16,1)
+        gfx2.line(x+16+10,y+16,x+46+12,y-16,1)
     }
 
     sub window_system() {
@@ -200,9 +200,9 @@ widget {
         gfx2.horizontal_line(x+width-1-16, y+height-20, 16, 2)
         gfx2.horizontal_line(x+width-1-16, y+height-21, 16, 1)
         gfx2.horizontal_line(x+width-1-16, y+height-30, 16, 2)
-        gfx2.line(x+width-1-12, y+height-23, x+width-8, y+height-28, 1)
+        gfx2.line(x+width-1-13, y+height-23, x+width-9, y+height-28, 1)
         gfx2.line(x+width-1-3, y+height-23, x+width-9, y+height-28, 1)
-        gfx2.line(x+width-1-13, y+height-18, x+width-8, y+height-13, 1)
+        gfx2.line(x+width-1-13, y+height-18, x+width-9, y+height-13, 1)
         gfx2.line(x+width-1-3, y+height-18, x+width-9, y+height-13, 1)
     }
 }
