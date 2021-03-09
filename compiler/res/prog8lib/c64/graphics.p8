@@ -39,8 +39,8 @@ graphics {
             swap(x1, x2)
             swap(y1, y2)
         }
-        word @zp dx = x2-x1 as word
-        word @zp dy = y2-y1
+        word @zp dx = (x2-x1) as word
+        word @zp dy = (y2-y1) as word
 
         if dx==0 {
             vertical_line(x1, y1, abs(dy)+1 as ubyte)

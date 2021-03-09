@@ -1,6 +1,8 @@
-%import graphics
+%target c64
 %import floats
-
+%import graphics
+%import test_stack
+%zeropage floatsafe
 
 main {
     sub start() {
@@ -10,7 +12,9 @@ main {
         uword xx
         ubyte yy
 
-        graphics.line(150,50,150,50)
+        graphics.line(160,100,160,80)
+        graphics.line(160,80,180,81)
+        graphics.line(180,81,177,103)
 
         for yy in 0 to 199-60 step 16 {
 
