@@ -34,7 +34,6 @@ graphics {
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
-        ; TODO there are some slight errors at the first/last pixels in certain slopes...??
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
@@ -62,8 +61,8 @@ graphics {
             dx = -dx
             positive_ix = false
         }
-        dx *= 2
-        dy *= 2
+        word @zp dx2 = dx*2
+        word @zp dy2 = dy*2
         internal_plotx = x1
 
         if dx >= dy {
@@ -73,10 +72,10 @@ graphics {
                     if internal_plotx==x2
                         return
                     internal_plotx++
-                    d += dy
+                    d += dy2
                     if d > dx {
                         y1++
-                        d -= dx
+                        d -= dx2
                     }
                 }
             } else {
@@ -85,10 +84,10 @@ graphics {
                     if internal_plotx==x2
                         return
                     internal_plotx--
-                    d += dy
+                    d += dy2
                     if d > dx {
                         y1++
-                        d -= dx
+                        d -= dx2
                     }
                 }
             }
@@ -100,10 +99,10 @@ graphics {
                     if y1 == y2
                         return
                     y1++
-                    d += dx
+                    d += dx2
                     if d > dy {
                         internal_plotx++
-                        d -= dy
+                        d -= dy2
                     }
                 }
             } else {
@@ -112,10 +111,10 @@ graphics {
                     if y1 == y2
                         return
                     y1++
-                    d += dx
+                    d += dx2
                     if d > dy {
                         internal_plotx--
-                        d -= dy
+                        d -= dy2
                     }
                 }
             }
