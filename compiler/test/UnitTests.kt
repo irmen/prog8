@@ -191,7 +191,7 @@ class TestC64Zeropage {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
         assertEquals(18, zp1.available())
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, C64Target))
-        assertEquals(89, zp2.available())
+        assertEquals(85, zp2.available())
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, C64Target))
         assertEquals(125, zp3.available())
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))

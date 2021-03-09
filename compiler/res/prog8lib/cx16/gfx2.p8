@@ -433,7 +433,6 @@ _done
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
-        ; TODO there are some slight errors at the first/last pixels in certain slopes...
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
@@ -455,26 +454,26 @@ _done
 
         ; TODO rewrite the rest in optimized assembly (or reuse GRAPH_draw_line if we can get the FB replacement vector layer working)
         word @zp d = 0
-        ubyte positive_ix = true
+        cx16.r13 = true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
-            positive_ix = false
+            cx16.r13 = false
         }
-        dx *= 2
-        dy *= 2
+        word @zp dx2 = dx*2
+        word @zp dy2 = dy*2
         cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
-            if positive_ix {
+            if cx16.r13 {
                 repeat {
                     plot(cx16.r14, y1, color)
                     if cx16.r14==x2
                         return
                     cx16.r14++
-                    d += dy
+                    d += dy2
                     if d > dx {
                         y1++
-                        d -= dx
+                        d -= dx2
                     }
                 }
             } else {
@@ -483,25 +482,25 @@ _done
                     if cx16.r14==x2
                         return
                     cx16.r14--
-                    d += dy
+                    d += dy2
                     if d > dx {
                         y1++
-                        d -= dx
+                        d -= dx2
                     }
                 }
             }
         }
         else {
-            if positive_ix {
+            if cx16.r13 {
                 repeat {
                     plot(cx16.r14, y1, color)
                     if y1 == y2
                         return
                     y1++
-                    d += dx
+                    d += dx2
                     if d > dy {
                         cx16.r14++
-                        d -= dy
+                        d -= dy2
                     }
                 }
             } else {
@@ -510,10 +509,10 @@ _done
                     if y1 == y2
                         return
                     y1++
-                    d += dx
+                    d += dx2
                     if d > dy {
                         cx16.r14--
-                        d -= dy
+                        d -= dy2
                     }
                 }
             }
