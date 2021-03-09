@@ -154,16 +154,6 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // The only place for now where we can do this is for:
         //    asmsub register pair parameter.
 
-        if(typecast.type in WordDatatypes) {
-            val fcall = typecast.parent as? IFunctionCall
-            if (fcall != null) {
-                val sub = fcall.target.targetStatement(program) as? Subroutine
-                if (sub != null && sub.isAsmSubroutine) {
-                    return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
-                }
-            }
-        }
-
         if(sourceDt in PassByReferenceDatatypes) {
             if(typecast.type==DataType.UWORD) {
                 if(typecast.expression is IdentifierReference) {
