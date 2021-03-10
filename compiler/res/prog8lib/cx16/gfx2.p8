@@ -404,7 +404,7 @@ _done
                 ; TODO also mostly usable for lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
 
-                ; TODO optimize the loop in pure assembly
+                ; TODO optimize this vertical line loop in pure assembly
                 color &= 3
                 color <<= gfx2.plot.shift4c[lsb(x) & 3]
                 ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
@@ -438,21 +438,20 @@ _done
             swap(x1, x2)
             swap(y1, y2)
         }
-        word @zp dx = x2-x1 as word
-        word @zp dy = y2-y1 as word
+        word @zp dx = (x2 as word)-x1
+        word @zp dy = (y2 as word)-y1
 
         if dx==0 {
-            vertical_line(x1, y1, abs(dy)+1 as uword, color)
+            vertical_line(x1, y1, abs(dy) as uword +1, color)
             return
         }
         if dy==0 {
             if x1>x2
                 x1=x2
-            horizontal_line(x1, y1, abs(dx)+1 as uword, color)
+            horizontal_line(x1, y1, abs(dx) as uword +1, color)
             return
         }
 
-        ; TODO rewrite the rest in optimized assembly (or reuse GRAPH_draw_line if we can get the FB replacement vector layer working)
         word @zp d = 0
         cx16.r13 = true      ; 'positive_ix'
         if dx < 0 {

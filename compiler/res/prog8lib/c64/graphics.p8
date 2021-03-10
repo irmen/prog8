@@ -39,21 +39,19 @@ graphics {
             swap(x1, x2)
             swap(y1, y2)
         }
-        word @zp dx = (x2-x1) as word
-        word @zp dy = (y2-y1) as word
+        word @zp dx = (x2 as word)-x1
+        word @zp dy = (y2 as word)-y1
 
         if dx==0 {
-            vertical_line(x1, y1, abs(dy)+1 as ubyte)
+            vertical_line(x1, y1, abs(dy) as ubyte +1)
             return
         }
         if dy==0 {
             if x1>x2
                 x1=x2
-            horizontal_line(x1, y1, abs(dx)+1 as uword)
+            horizontal_line(x1, y1, abs(dx) as uword +1)
             return
         }
-
-        ; TODO rewrite the rest in optimized assembly
 
         word @zp d = 0
         ubyte positive_ix = true

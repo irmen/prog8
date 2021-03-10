@@ -2,6 +2,9 @@
 TODO
 ====
 
+- add a cmp(x,y) function that returns no value but only sets the status bits based off the comparison (can be used with a conditional jump afterwards)
+- optimize comparisons followed by a conditional jump ; try to not have to jsr to the comparison routines. (so if/while/do-until are faster)
+
 - optimize several inner loops in gfx2
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
