@@ -374,7 +374,7 @@ internal class AstChecker(private val program: Program,
                 if(!idt.isKnown) {
                      errors.err("return type mismatch", assignment.value.position)
                 }
-                if(stmt.returntypes.size <= 1 && stmt.returntypes.single() isNotAssignableTo idt.typeOrElse(DataType.BYTE)) {
+                if(stmt.returntypes.isEmpty() || (stmt.returntypes.size == 1 && stmt.returntypes.single() isNotAssignableTo idt.typeOrElse(DataType.BYTE))) {
                     errors.err("return type mismatch", assignment.value.position)
                 }
             }
@@ -950,6 +950,24 @@ internal class AstChecker(private val program: Program,
                 } else {
                     errors.err("It's not possible to store the multiple result values of this asmsub call; you should use a small block of custom inline assembly for this.", functionCall.position)
                 }
+            }
+        }
+
+        // check if a function that doesn't return a value, is used in an expression or assignment
+        if(targetStatement is Subroutine) {
+            if(targetStatement.returntypes.isEmpty()) {
+                if(functionCall.parent is Expression || functionCall.parent is Assignment)
+                    errors.err("subroutine doesn't return a value", functionCall.position)
+                else
+                    TODO("check $functionCall  ${functionCall.parent}")
+            }
+        }
+        else if(targetStatement is BuiltinFunctionStatementPlaceholder) {
+            if(builtinFunctionReturnType(targetStatement.name, functionCall.args, program).isUnknown) {
+                if(functionCall.parent is Expression || functionCall.parent is Assignment)
+                    errors.err("function doesn't return a value", functionCall.position)
+                else
+                    TODO("check builtinfunc $functionCall  ${functionCall.parent}")
             }
         }
 
