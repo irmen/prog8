@@ -2,7 +2,6 @@
 TODO
 ====
 
-- add a cmp(x,y) function that returns no value but only sets the status bits based off the comparison (can be used with a conditional jump afterwards)
 - optimize comparisons followed by a conditional jump ; try to not have to jsr to the comparison routines. (so if/while/do-until are faster)
 
 - optimize several inner loops in gfx2

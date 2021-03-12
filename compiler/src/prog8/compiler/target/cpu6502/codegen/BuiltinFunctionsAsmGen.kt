@@ -69,7 +69,77 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
+            "cmp" -> funcCmp(fcall)
             else -> TODO("missing asmgen for builtin func ${func.name}")
+        }
+    }
+
+    private fun funcCmp(fcall: IFunctionCall) {
+        val arg1 = fcall.args[0]
+        val arg2 = fcall.args[1]
+        val dt1 = arg1.inferType(program).typeOrElse(DataType.STRUCT)
+        val dt2 = arg2.inferType(program).typeOrElse(DataType.STRUCT)
+        if(dt1 in ByteDatatypes) {
+            if(dt2 in ByteDatatypes) {
+                when (arg2) {
+                    is IdentifierReference -> {
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                        asmgen.out("  cmp  ${asmgen.asmVariableName(arg2)}")
+                    }
+                    is NumericLiteralValue -> {
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                        asmgen.out("  cmp  #${arg2.number}")
+                    }
+                    is DirectMemoryRead -> {
+                        if(arg2.addressExpression is NumericLiteralValue) {
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                            asmgen.out("  cmp  ${arg2.addressExpression.constValue(program)!!.number.toHex()}")
+                        } else {
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine())
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                        }
+                    }
+                    else -> {
+                        asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine())
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                        asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                    }
+                }
+            } else
+                throw AssemblyError("args for cmp() should have same dt")
+        } else {
+            // dt1 is a word
+            if(dt2 in WordDatatypes) {
+                when (arg2) {
+                    is IdentifierReference -> {
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                        asmgen.out("""
+                            cpy  ${asmgen.asmVariableName(arg2)}+1
+                            bne  +
+                            cmp  ${asmgen.asmVariableName(arg2)}
++""")
+                    }
+                    is NumericLiteralValue -> {
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                        asmgen.out("""
+                            cpy  #>${arg2.number}
+                            bne  +
+                            cmp  #<${arg2.number}
++""")
+                    }
+                    else -> {
+                        asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, (fcall as Node).definingSubroutine())
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                        asmgen.out("""
+                            cpy  P8ZP_SCRATCH_W1+1
+                            bne  +
+                            cmp  P8ZP_SCRATCH_W1
++""")
+                    }
+                }
+            } else
+                throw AssemblyError("args for cmp() should have same dt")
         }
     }
 

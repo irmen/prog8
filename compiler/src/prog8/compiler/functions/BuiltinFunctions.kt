@@ -97,6 +97,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("ror2"        , false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
+    FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
         // these few have a return value depending on the argument(s):
     FSignature("max"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
     FSignature("min"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args

@@ -791,6 +791,12 @@ sort(array)
 
 Miscellaneous
 ^^^^^^^^^^^^^
+
+cmp(x,y)
+    Compare the integer value x to integer value y. Doesn't return a value or boolean result, only sets the processor's status bits!
+    You can use a conditional jumps (``if_cc`` etcetera) to act on this.
+    Normally you should just use a comparison expression (``x < y``)
+
 lsb(x)
     Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".
 

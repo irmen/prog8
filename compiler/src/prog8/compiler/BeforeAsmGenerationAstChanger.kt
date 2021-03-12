@@ -206,4 +206,26 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         }
         return noModifications
     }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        if(functionCallStatement.target.nameInSource==listOf("cmp")) {
+            // if the datatype of the arguments of cmp() are different, cast the byte one to word.
+            val arg1 = functionCallStatement.args[0]
+            val arg2 = functionCallStatement.args[1]
+            val dt1 = arg1.inferType(program).typeOrElse(DataType.STRUCT)
+            val dt2 = arg2.inferType(program).typeOrElse(DataType.STRUCT)
+            if(dt1 in ByteDatatypes) {
+                if(dt2 in ByteDatatypes)
+                    return noModifications
+                val cast1 = TypecastExpression(arg1, if(dt1==DataType.UBYTE) DataType.UWORD else DataType.WORD, true, functionCallStatement.position)
+                return listOf(IAstModification.ReplaceNode(arg1, cast1, functionCallStatement))
+            } else {
+                if(dt2 in WordDatatypes)
+                    return noModifications
+                val cast2 = TypecastExpression(arg2, if(dt2==DataType.UBYTE) DataType.UWORD else DataType.WORD, true, functionCallStatement.position)
+                return listOf(IAstModification.ReplaceNode(arg2, cast2, functionCallStatement))
+            }
+        }
+        return noModifications
+    }
 }
