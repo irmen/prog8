@@ -3,21 +3,12 @@
 
 main {
     sub start() {
-        byte xx
-        word yy
-
-        uword addr = $3000
-        cmp(xx, @($2000))
-        cmp(@($2000), xx)
-        cmp(yy, @($2000))
-        cmp(@($2000), yy)
-    }
-    sub start3() {
 
         byte xx
         byte yy
 
-        ; all comparisons with constant values are already optimized
+        ; all comparisons with constant values are already optimized.
+        ; but for variables (and memreads) we can optimize further (don't use temporary ZP location)
 
         byte value = 100
 

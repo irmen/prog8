@@ -67,11 +67,14 @@ graphics {
             if positive_ix {
                 repeat {
                     internal_plot(y1)
-                    if internal_plotx==x2
-                        return
+                    cmp(internal_plotx,x2)
+                    if_eq return
+;                    if internal_plotx==x2
+;                        return
                     internal_plotx++
                     d += dy2
-                    if d > dx {
+                    cmp(d,dx)
+                    if_pl {
                         y1++
                         d -= dx2
                     }
@@ -79,11 +82,14 @@ graphics {
             } else {
                 repeat {
                     internal_plot(y1)
-                    if internal_plotx==x2
-                        return
+                    cmp(internal_plotx,x2)
+                    if_eq return
+;                    if internal_plotx==x2
+;                        return
                     internal_plotx--
                     d += dy2
-                    if d > dx {
+                    cmp(d,dx)
+                    if_pl {
                         y1++
                         d -= dx2
                     }
@@ -94,11 +100,14 @@ graphics {
             if positive_ix {
                 repeat {
                     internal_plot(y1)
-                    if y1 == y2
-                        return
+                    cmp(y1,y2)
+                    if_eq return
+;                    if y1 == y2
+;                        return
                     y1++
                     d += dx2
-                    if d > dy {
+                    cmp(d,dy)
+                    if_pl {
                         internal_plotx++
                         d -= dy2
                     }
@@ -106,11 +115,14 @@ graphics {
             } else {
                 repeat {
                     internal_plot(y1)
-                    if y1 == y2
-                        return
+                    cmp(y1,y2)
+                    if_eq return
+;                    if y1 == y2
+;                        return
                     y1++
                     d += dx2
-                    if d > dy {
+                    cmp(d,dy)
+                    if_pl {
                         internal_plotx--
                         d -= dy2
                     }

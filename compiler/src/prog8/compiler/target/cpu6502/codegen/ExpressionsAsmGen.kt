@@ -32,8 +32,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     internal fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-        // first, if it is of the form:   <constvalue> <comparison> X  ,  swap the operands around,
-        // so that the constant value is always the right operand.
+         // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
+        // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
         var left = expr.left
         var right = expr.right
         var operator = expr.operator
@@ -396,6 +396,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bcs  $jumpIfFalseLabel")
@@ -425,6 +426,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -461,6 +463,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
@@ -491,6 +494,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
@@ -526,6 +530,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -560,6 +565,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -602,6 +608,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
@@ -638,6 +645,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
@@ -680,6 +688,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -717,6 +726,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -756,6 +766,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
@@ -792,6 +803,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
@@ -822,6 +834,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bcc  $jumpIfFalseLabel")
@@ -854,6 +867,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -888,6 +902,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
@@ -919,6 +934,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize this so it doesn't call a comparison-subroutine
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
@@ -950,6 +966,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
@@ -981,6 +998,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
@@ -1014,6 +1032,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("""
@@ -1053,6 +1072,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
+        // TODO optimize if right is variable or mem-read to avoid use of ZP location
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("""
