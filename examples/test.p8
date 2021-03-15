@@ -46,6 +46,12 @@ main {
     }
 
     sub start() {
+        uword uw1
+        uword uw2
+
+        if uw1<uw2+2 {
+            uw1++
+        }
 
         byte xx
         byte yy

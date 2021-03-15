@@ -442,6 +442,19 @@ less_b		.proc
 		bpl  equal_b._equal_b_false
 		.pend
 
+reg_less_uw	.proc
+		;  AY < P8ZP_SCRATCH_W2?
+		cpy  P8ZP_SCRATCH_W2+1
+		bcc  _true
+		bne  _false
+		cmp  P8ZP_SCRATCH_W2
+		bcc  _true
+_false		lda  #0
+		rts
+_true		lda  #1
+		rts
+		.pend
+
 less_uw		.proc
 		lda  P8ESTACK_HI+2,x
 		cmp  P8ESTACK_HI+1,x

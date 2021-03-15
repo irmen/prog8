@@ -497,7 +497,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-        return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
+        return asmgen.out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
     private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -526,7 +526,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize this so it doesn't call a comparison-subroutine reg_less_w
+        if(right is IdentifierReference) {
+            // TODO optimize comparison against identifier
+//            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+//            val varname = asmgen.asmVariableName(right)
+//            return code("$varname+1", varname)
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         return asmgen.out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
@@ -656,6 +662,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            asmgen.out("""
+        		cmp  $lsbCmpOperand
+        		tya
+        		sbc  $msbCpyOperand
+        		bvc  +
+        		eor  #${'$'}80
++       		bpl  $jumpIfFalseLabel""")
+        }
+
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
@@ -685,7 +702,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize this so it doesn't call a comparison-subroutine reg_less_w
+        if(right is IdentifierReference) {
+            // TODO optimize comparison against identifier
+//            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+//            val varname = asmgen.asmVariableName(right)
+//            return code("$varname+1", varname)
+        }
+
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         return asmgen.out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
@@ -797,7 +820,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize this so it doesn't call a comparison-subroutine reg_lesseq_uw
+        if(right is IdentifierReference) {
+            // TODO optimize comparison against identifier
+//            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+//            val varname = asmgen.asmVariableName(right)
+//            return code("$varname+1", varname)
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         return asmgen.out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
@@ -833,7 +862,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize this so it doesn't call a comparison-subroutine reg_lesseq_w
+        if(right is IdentifierReference) {
+            // TODO optimize comparison against identifier
+//            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+//            val varname = asmgen.asmVariableName(right)
+//            return code("$varname+1", varname)
+        }
+
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         return asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
@@ -934,7 +969,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize this so it doesn't call a comparison-subroutine reg_lesseq_uw
+        if(right is IdentifierReference) {
+            // TODO optimize comparison against identifier
+//            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+//            val varname = asmgen.asmVariableName(right)
+//            return code("$varname+1", varname)
+        }
+
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
         return asmgen.out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
@@ -964,7 +1005,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize this so it doesn't call a comparison-subroutine reg_lesseq_w
+        if(right is IdentifierReference) {
+            // TODO optimize comparison against identifier
+//            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+//            val varname = asmgen.asmVariableName(right)
+//            return code("$varname+1", varname)
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         return asmgen.out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
