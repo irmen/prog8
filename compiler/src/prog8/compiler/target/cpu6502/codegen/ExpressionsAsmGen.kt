@@ -367,6 +367,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            asmgen.out("  cmp  $cmpOperand |  bcs  $jumpIfFalseLabel")
+        }
+
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal>=leftConstVal)
@@ -376,7 +381,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                        asmgen.out("  cmp  #${rightConstVal.number} |  bcs  $jumpIfFalseLabel")
+                        code("#${rightConstVal.number}")
                     }
                     else
                         asmgen.jmp(jumpIfFalseLabel)
@@ -384,7 +389,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 else if (left is DirectMemoryRead) {
                     return if(rightConstVal.number.toInt()!=0) {
                         translateDirectMemReadExpression(left, false)
-                        asmgen.out("  cmp  #${rightConstVal.number} |  bcs  $jumpIfFalseLabel")
+                        code("#${rightConstVal.number}")
                     }
                     else
                         asmgen.jmp(jumpIfFalseLabel)
@@ -392,10 +397,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(byteJumpForSimpleRightOperands(left, right, ::code))
+            return
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-        asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bcs  $jumpIfFalseLabel")
+        return code("P8ZP_SCRATCH_B1")
     }
 
     private fun translateByteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -517,6 +524,14 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateUbyteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            asmgen.out("""
+                cmp  $cmpOperand
+                bcc  $jumpIfFalseLabel
+                beq  $jumpIfFalseLabel""")
+        }
+
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
@@ -526,30 +541,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if (left is IdentifierReference) {
                     asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
                     return if(rightConstVal.number.toInt()!=0)
-                        asmgen.out("""
-                            cmp  #${rightConstVal.number}
-                            bcc  $jumpIfFalseLabel
-                            beq  $jumpIfFalseLabel""")
+                        code("#${rightConstVal.number}")
                     else
                         asmgen.out("  beq $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
                     return if(rightConstVal.number.toInt()!=0)
-                        asmgen.out("  cmp  #${rightConstVal.number} |  bcc  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
+                        code("#${rightConstVal.number}")
                     else
                         asmgen.out("  beq  $jumpIfFalseLabel")
                 }
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(byteJumpForSimpleRightOperands(left, right, ::code))
+            return
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-        asmgen.out("""
-            cmp  P8ZP_SCRATCH_B1
-            bcc  $jumpIfFalseLabel
-            beq  $jumpIfFalseLabel""")
+        return code("P8ZP_SCRATCH_B1")
     }
 
     private fun translateByteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
