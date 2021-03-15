@@ -824,6 +824,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateUbyteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            asmgen.out("  cmp  $cmpOperand |  bcc  $jumpIfFalseLabel")
+        }
+
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
@@ -833,27 +838,38 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if (left is IdentifierReference) {
                     if(rightConstVal.number.toInt()!=0) {
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                        asmgen.out("  cmp  #${rightConstVal.number} |  bcc  $jumpIfFalseLabel")
+                        code("#${rightConstVal.number}")
                     }
                     return
                 }
                 else if (left is DirectMemoryRead) {
                     if(rightConstVal.number.toInt()!=0) {
                         translateDirectMemReadExpression(left, false)
-                        asmgen.out("  cmp  #${rightConstVal.number} |  bcc  $jumpIfFalseLabel")
+                        code("#${rightConstVal.number}")
                     }
                     return
                 }
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(byteJumpForSimpleRightOperands(left, right, ::code))
+            return
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-        asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bcc  $jumpIfFalseLabel")
+        return code("P8ZP_SCRATCH_B1")
     }
 
     private fun translateByteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        fun code(sbcOperand: String) {
+            asmgen.out("""
+                sec
+                sbc  $sbcOperand
+                bvc  +
+                eor  #$80
++               bmi  $jumpIfFalseLabel""")
+        }
+
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<leftConstVal)
@@ -861,34 +877,21 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0) {
-                        asmgen.out("""
-                            lda  $name
-                            sec
-                            sbc  #${rightConstVal.number}
-                            bvc  +
-                            eor  #$80
-+                           bmi  $jumpIfFalseLabel""")
-                         return
-                    }
-                    else {
-                        asmgen.out(" lda  $name |  bmi  $jumpIfFalseLabel")
-                        return
-                    }
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        asmgen.out("  bmi  $jumpIfFalseLabel")
                 }
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(byteJumpForSimpleRightOperands(left, right, ::code))
+            return
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-        asmgen.out("""
-            sec
-            sbc  P8ZP_SCRATCH_B1
-            bvc  +
-            eor  #$80
-+           bmi  $jumpIfFalseLabel""")
+        return code("P8ZP_SCRATCH_B1")
     }
 
     private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
