@@ -966,7 +966,23 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(right is IdentifierReference) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+            asmgen.out("  cmp  ${asmgen.asmVariableName(right)} |  bne  $jumpIfFalseLabel")
+            return
+        }
+        var memread = right as? DirectMemoryRead
+        if(memread==null && right is TypecastExpression)
+            memread = right.expression as? DirectMemoryRead
+        if(memread!=null) {
+            val address = memread.addressExpression as? NumericLiteralValue
+            if(address!=null) {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                asmgen.out("  cmp  ${address.number.toHex()} |  bne  $jumpIfFalseLabel")
+                return
+            }
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
@@ -998,7 +1014,23 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(right is IdentifierReference) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+            asmgen.out("  cmp  ${asmgen.asmVariableName(right)} |  beq  $jumpIfFalseLabel")
+            return
+        }
+        var memread = right as? DirectMemoryRead
+        if(memread==null && right is TypecastExpression)
+            memread = right.expression as? DirectMemoryRead
+        if(memread!=null) {
+            val address = memread.addressExpression as? NumericLiteralValue
+            if(address!=null) {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                asmgen.out("  cmp  ${address.number.toHex()} |  beq  $jumpIfFalseLabel")
+                return
+            }
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("  cmp  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
@@ -1032,7 +1064,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(right is IdentifierReference) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+            asmgen.out("""
+                cmp  ${asmgen.asmVariableName(right)}
+                bne  $jumpIfFalseLabel
+                cpy  ${asmgen.asmVariableName(right)}+1
+                bne  $jumpIfFalseLabel
+                """)
+            return
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("""
@@ -1072,7 +1114,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(right is IdentifierReference) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+            asmgen.out("""
+                cmp  ${asmgen.asmVariableName(right)}
+                bne  +
+                cpy  ${asmgen.asmVariableName(right)}+1
+                beq  $jumpIfFalseLabel
++""")
+            return
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         asmgen.out("""

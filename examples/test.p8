@@ -4,6 +4,49 @@
 main {
     sub start() {
 
+        word xx
+        word yy
+
+        ; all comparisons with constant values are already optimized.
+        ; but for variables (and memreads) we can optimize further (don't use temporary ZP location)
+
+        word value = 100
+
+        while xx==value {
+            yy++
+        }
+
+        while xx!=value {
+            yy++
+        }
+
+        do {
+            yy++
+        } until xx==value
+
+        do {
+            yy++
+        } until xx!=value
+
+        if xx==value
+            yy++
+
+        if xx!=value
+            yy++
+
+;        while xx>value {
+;            yy++
+;        }
+;        do {
+;            yy++
+;        } until xx>value
+;
+;        if xx>value
+;            yy++
+    }
+
+    sub start3() {
+
         byte xx
         byte yy
 
@@ -16,11 +59,15 @@ main {
             yy++
         }
 
+        while xx==@($2000) {
+            yy++
+        }
+
         while xx!=value {
             yy++
         }
 
-        while xx>value {
+        while xx!=@($2000) {
             yy++
         }
 
@@ -32,18 +79,21 @@ main {
             yy++
         } until xx!=value
 
-        do {
-            yy++
-        } until xx>value
-
         if xx==value
             yy++
 
         if xx!=value
             yy++
 
-        if xx>value
-            yy++
+;        while xx>value {
+;            yy++
+;        }
+;        do {
+;            yy++
+;        } until xx>value
+;
+;        if xx>value
+;            yy++
     }
 
 
