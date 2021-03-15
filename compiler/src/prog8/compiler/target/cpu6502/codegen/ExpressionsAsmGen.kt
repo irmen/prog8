@@ -410,23 +410,48 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
                     if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
-                            lda  $name
                             sec
                             sbc  #${rightConstVal.number}
                             bvc  +
                             eor  #$80
 +                           bpl  $jumpIfFalseLabel""")
                     else
-                        asmgen.out("  lda  $name |  bpl  $jumpIfFalseLabel")
+                        asmgen.out("  bpl  $jumpIfFalseLabel")
                     return
                 }
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(right is IdentifierReference) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+            asmgen.out("""
+                sec
+                sbc  ${asmgen.asmVariableName(right)}
+                bvc  +
+                eor  #$80
++               bpl  $jumpIfFalseLabel""")
+            return
+        }
+        var memread = right as? DirectMemoryRead
+        if(memread==null && right is TypecastExpression)
+            memread = right.expression as? DirectMemoryRead
+        if(memread!=null) {
+            val address = memread.addressExpression as? NumericLiteralValue
+            if(address!=null) {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                asmgen.out("""
+                    sec
+                    sbc  ${address.number.toHex()}
+                    bvc  +
+                    eor  #$80
++                   bpl  $jumpIfFalseLabel""")
+                return
+            }
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
@@ -547,10 +572,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
                     if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
-                            lda  $name
                             clc
                             sbc  #${rightConstVal.number}
                             bvc  +
@@ -559,13 +583,43 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             bmi  $jumpIfFalseLabel
 +""")
                     else
-                        asmgen.out(" lda  $name |  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
+                        asmgen.out("  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
                     return
                 }
             }
         }
 
-        // TODO optimize if right is variable or mem-read to avoid use of ZP location
+        if(right is IdentifierReference) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+            asmgen.out("""
+                clc
+                sbc  ${asmgen.asmVariableName(right)}
+                bvc  +
+                eor  #$80
++               bpl  +
+                bmi  $jumpIfFalseLabel
++""")
+            return
+        }
+        var memread = right as? DirectMemoryRead
+        if(memread==null && right is TypecastExpression)
+            memread = right.expression as? DirectMemoryRead
+        if(memread!=null) {
+            val address = memread.addressExpression as? NumericLiteralValue
+            if(address!=null) {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                asmgen.out("""
+                    clc
+                    sbc  ${address.number.toHex()}
+                    bvc  +
+                    eor  #$80
++                   bpl  +
+                    bmi  $jumpIfFalseLabel
++""")
+                return
+            }
+        }
+
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
         asmgen.out("""
