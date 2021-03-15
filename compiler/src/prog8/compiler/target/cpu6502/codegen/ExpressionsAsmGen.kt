@@ -374,24 +374,20 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0)
-                        asmgen.out("""
-                            lda  $name
-                            cmp  #${rightConstVal.number}
-                            bcs  $jumpIfFalseLabel""")
+                    return if(rightConstVal.number.toInt()!=0) {
+                        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                        asmgen.out("  cmp  #${rightConstVal.number} |  bcs  $jumpIfFalseLabel")
+                    }
                     else
                         asmgen.jmp(jumpIfFalseLabel)
-                    return
                 }
                 else if (left is DirectMemoryRead) {
-                    if(rightConstVal.number.toInt()!=0) {
+                    return if(rightConstVal.number.toInt()!=0) {
                         translateDirectMemReadExpression(left, false)
                         asmgen.out("  cmp  #${rightConstVal.number} |  bcs  $jumpIfFalseLabel")
                     }
                     else
                         asmgen.jmp(jumpIfFalseLabel)
-                    return
                 }
             }
         }
@@ -528,24 +524,21 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0)
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
-                            lda  $name
                             cmp  #${rightConstVal.number}
                             bcc  $jumpIfFalseLabel
                             beq  $jumpIfFalseLabel""")
                     else
-                        asmgen.out(" lda  $name |  beq $jumpIfFalseLabel")
-                    return
+                        asmgen.out("  beq $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
-                    if(rightConstVal.number.toInt()!=0)
+                    return if(rightConstVal.number.toInt()!=0)
                         asmgen.out("  cmp  #${rightConstVal.number} |  bcc  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
                     else
                         asmgen.out("  beq  $jumpIfFalseLabel")
-                    return
                 }
             }
         }
@@ -677,23 +670,19 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0)
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
-                            lda  $name
                             cmp  #${rightConstVal.number}
                             beq  +
                             bcs  $jumpIfFalseLabel
 +""")
                     else
-                        asmgen.out("""
-                            lda  $name
-                            bne  $jumpIfFalseLabel""")
-                    return
+                        asmgen.out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
-                    if(rightConstVal.number.toInt()!=0)
+                    return if(rightConstVal.number.toInt()!=0)
                         asmgen.out("""
                             cmp  #${rightConstVal.number} 
                             beq  +
@@ -701,7 +690,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 +""")
                     else
                         asmgen.out("  bne  $jumpIfFalseLabel")
-                    return
                 }
             }
         }
@@ -835,18 +823,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 return
             } else {
                 if (left is IdentifierReference) {
-                    val name = asmgen.asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0)
-                        asmgen.out("""
-                            lda  $name
-                            cmp  #${rightConstVal.number}
-                            bcc  $jumpIfFalseLabel""")
+                    if(rightConstVal.number.toInt()!=0) {
+                        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                        asmgen.out("  cmp  #${rightConstVal.number} |  bcc  $jumpIfFalseLabel")
+                    }
                     return
                 }
                 else if (left is DirectMemoryRead) {
-                    translateDirectMemReadExpression(left, false)
-                    if(rightConstVal.number.toInt()!=0)
+                    if(rightConstVal.number.toInt()!=0) {
+                        translateDirectMemReadExpression(left, false)
                         asmgen.out("  cmp  #${rightConstVal.number} |  bcc  $jumpIfFalseLabel")
+                    }
                     return
                 }
             }
@@ -976,7 +963,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     else
                         asmgen.out("  bne  $jumpIfFalseLabel")
                 }
-                if (left is DirectMemoryRead) {
+                else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number}")
@@ -1013,7 +1000,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     else
                         asmgen.out("  beq  $jumpIfFalseLabel")
                 }
-                if (left is DirectMemoryRead) {
+                else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpression(left, false)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number}")
