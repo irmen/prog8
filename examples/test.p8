@@ -1,140 +1,177 @@
-; %import graphics
+%import textio
 %zeropage basicsafe
 
 main {
-    sub start2() {
-
-        word xx
-        word yy
-
-        ; all comparisons with constant values are already optimized.
-        ; but for variables (and memreads) we can optimize further (don't use temporary ZP location)
-
-        word value = 100
-
-        while xx==value {
-            yy++
-        }
-
-        while xx!=value {
-            yy++
-        }
-
-        do {
-            yy++
-        } until xx==value
-
-        do {
-            yy++
-        } until xx!=value
-
-        if xx==value
-            yy++
-
-        if xx!=value
-            yy++
-
-;        while xx>value {
-;            yy++
-;        }
-;        do {
-;            yy++
-;        } until xx>value
-;
-;        if xx>value
-;            yy++
-    }
 
     sub start() {
-        uword uw1
-        uword uw2
+        txt.print("\n"*25)
 
-        if uw1<uw2+2 {
-            uw1++
-        }
+        word xx
+        word compare
 
-        byte xx
-        byte yy
+        xx=10
+        if xx>9
+            txt.print("1ok\n")
+        else
+            txt.print("1fault\n")
 
-        ; all comparisons with constant values are already optimized.
-        ; but for variables (and memreads) we can optimize further (don't use temporary ZP location)
+        if xx>10
+            txt.print("2fault\n")
+        else
+            txt.print("2ok\n")
 
-        byte value = 100
+        if xx>11
+            txt.print("3fault\n")
+        else
+            txt.print("3ok\n")
 
-        while xx==value {
-            yy++
-        }
+        if xx>2222
+            txt.print("4fault\n")
+        else
+            txt.print("4ok\n")
 
-        while xx==@($2000) {
-            yy++
-        }
+        if xx>-9
+            txt.print("5ok\n")
+        else
+            txt.print("5fault\n")
 
-        while xx!=value {
-            yy++
-        }
+        if xx>-9999
+            txt.print("6ok\n")
+        else
+            txt.print("6fault\n")
 
-        while xx!=@($2000) {
-            yy++
-        }
+        if xx>0
+            txt.print("7ok\n")
+        else
+            txt.print("7fault\n")
 
-        do {
-            yy++
-        } until xx==value
+        xx=0
+        if xx>0
+            txt.print("8false\n")
+        else
+            txt.print("8ok\n")
 
-        do {
-            yy++
-        } until xx!=value
+        xx=-9999
+        if xx>0
+            txt.print("9false\n")
+        else
+            txt.print("9ok\n")
 
-        if xx==value
-            yy++
+        txt.nl()
 
-        if xx!=value
-            yy++
+        xx=10
+        compare=9
+        if xx>compare
+            txt.print("1ok\n")
+        else
+            txt.print("1fault\n")
 
-        while xx>value {
-            yy++
-        }
-        while xx<value {
-            yy++
-        }
-        do {
-            yy++
-        } until xx>value
-        do {
-            yy++
-        } until xx<value
+        compare=10
+        if xx>compare
+            txt.print("2fault\n")
+        else
+            txt.print("2ok\n")
 
-        if xx>value
-            yy++
-        if xx<value
-            yy++
+        compare=11
+        if xx>compare
+            txt.print("3fault\n")
+        else
+            txt.print("3ok\n")
+
+        compare=2222
+        if xx>compare
+            txt.print("4fault\n")
+        else
+            txt.print("4ok\n")
+
+        compare=-9
+        if xx>compare
+            txt.print("5ok\n")
+        else
+            txt.print("5fault\n")
+
+        compare=-9999
+        if xx>compare
+            txt.print("6ok\n")
+        else
+            txt.print("6fault\n")
+
+        compare=0
+        if xx>compare
+            txt.print("7ok\n")
+        else
+            txt.print("7fault\n")
+
+        xx=0
+        if xx>compare
+            txt.print("8false\n")
+        else
+            txt.print("8ok\n")
+
+        xx=-9999
+        if xx>compare
+            txt.print("9false\n")
+        else
+            txt.print("9ok\n")
+
+
+
+        txt.nl()
+
+        xx=9
+        compare=9
+        if xx+1>compare
+            txt.print("1ok\n")
+        else
+            txt.print("1fault\n")
+
+        compare=10
+        if xx+1>compare
+            txt.print("2fault\n")
+        else
+            txt.print("2ok\n")
+
+        compare=11
+        if xx+1>compare
+            txt.print("3fault\n")
+        else
+            txt.print("3ok\n")
+
+        compare=2222
+        if xx+1>compare
+            txt.print("4fault\n")
+        else
+            txt.print("4ok\n")
+
+        compare=-9
+        if xx+1>compare
+            txt.print("5ok\n")
+        else
+            txt.print("5fault\n")
+
+        compare=-9999
+        if xx+1>compare
+            txt.print("6ok\n")
+        else
+            txt.print("6fault\n")
+
+        compare=0
+        if xx+1>compare
+            txt.print("7ok\n")
+        else
+            txt.print("7fault\n")
+
+        xx=1
+        if xx-1>compare
+            txt.print("8false\n")
+        else
+            txt.print("8ok\n")
+
+        xx=-9999
+        if xx-1>compare
+            txt.print("9false\n")
+        else
+            txt.print("9ok\n")
+
     }
-
-
-;    sub start2() {
-;
-;        graphics.enable_bitmap_mode()
-;
-;        uword xx
-;        ubyte yy
-;
-;        graphics.line(150,50,150,50)
-;
-;        for yy in 0 to 199-60 step 16 {
-;
-;            for xx in 0 to 319-50 step 16 {
-;                graphics.line(30+xx, 10+yy, 50+xx, 30+yy)
-;                graphics.line(49+xx, 30+yy, 10+xx, 30+yy)
-;                graphics.line(11+xx, 29+yy, 29+xx, 11+yy)
-;
-;                ; triangle 2, counter-clockwise
-;                graphics.line(30+xx, 40+yy, 10+xx, 60+yy)
-;                graphics.line(11+xx, 60+yy, 50+xx, 60+yy)
-;                graphics.line(49+xx, 59+yy, 31+xx,41+yy)
-;            }
-;        }
-;
-;        repeat {
-;        }
-;    }
 }
