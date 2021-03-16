@@ -686,7 +686,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
                     }
                     else {
-                        // TODO is this correct?  word > 0
+                        // TODO is this correct?  word > 0   can be shorter as well?
                         val name = asmgen.asmVariableName(left)
                         asmgen.out("""
                             lda  #0

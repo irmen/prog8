@@ -17,7 +17,7 @@ main {
 
 irq {
 
-    const ubyte barheight = 4       ; should be big enough to re-trigger the Raster irq properly.
+    const ubyte barheight = 3       ; should be big enough to re-trigger the Raster irq properly.
     ubyte[] colors = [6,2,4,5,15,7,1,13,3,12,8,11,9]
     ubyte color = 0
     ubyte yanim = 0

@@ -2,6 +2,9 @@
 %import syslib
 %zeropage basicsafe
 
+; TODO seems slightly slower since recent compiler changes????
+
+
 spritedata $0a00 {
     ; this memory block contains the sprite data
     ; it must start on an address aligned to 64 bytes.
