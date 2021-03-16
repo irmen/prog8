@@ -622,17 +622,18 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
+        // TODO verify correctness uword >
+
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
                 cpy  $msbCpyOperand
-                bcc  $jumpIfFalseLabel
+                bcs  $jumpIfFalseLabel
                 bne  +
                 cmp  $lsbCmpOperand
-                bcc  $jumpIfFalseLabel
-                beq  $jumpIfFalseLabel
+                bcs  $jumpIfFalseLabel
 +""")
-
         }
+
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal<=leftConstVal)
