@@ -2,8 +2,8 @@
 TODO
 ====
 
-- optimize comparisons followed by a conditional jump ; try to not have to jsr to the comparison routines. (so if/while/do-until are faster)
-   see: ExpressionAsmGen  translateXXXXXJump() routines, all called from translateComparisonExpressionWithJumpIfFalse()
+- fix imageviewer only showing first image
+- fix errors in comparison changes
 - add cx16 vload()
 
 - optimize several inner loops in gfx2
