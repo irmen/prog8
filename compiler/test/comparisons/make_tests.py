@@ -1,3 +1,6 @@
+# generates various Prog8 files with a huge amount of number comparion tests,
+# for all supported datatypes and all comparison operators.
+
 import sys
 
 index = 0
@@ -128,14 +131,18 @@ f"""        ; test #{index}
 """)
 
 
-def gen_comp_equal(dt):
-    minval, maxval = minmaxvalues(dt)
-    print("        ; tests: ", dt, "==")
-    print("        comparison = \"==\"")
+def gen_comp_header(dt, operator):
+    print("        ; tests: ", dt, operator)
+    print("        comparison = \""+operator+"\"")
     print("        txt.print(datatype)")
     print("        txt.spc()")
     print("        txt.print(comparison)")
     print("        txt.nl()")
+
+
+def gen_comp_equal(dt):
+    minval, maxval = minmaxvalues(dt)
+    gen_comp_header(dt, "==")
     gen_test(dt, "==", 0, 0, True)
     gen_test(dt, "==", 0, 1, False)
     gen_test(dt, "==", 100, 100, True)
@@ -174,18 +181,9 @@ def gen_comp_equal(dt):
     gen_test(dt, "==", maxval, maxval-1, False)
 
 
-def gen_comp_header(dt):
-    print("        ; tests: ", dt, "!=")
-    print("        comparison = \"!=\"")
-    print("        txt.print(datatype)")
-    print("        txt.spc()")
-    print("        txt.print(comparison)")
-    print("        txt.nl()")
-
-
 def gen_comp_notequal(dt):
     minval, maxval = minmaxvalues(dt)
-    gen_comp_header(dt)
+    gen_comp_header(dt, "!=")
     gen_test(dt, "!=", 0, 0, False)
     gen_test(dt, "!=", 0, 1, True)
     gen_test(dt, "!=", 100, 100, False)
@@ -226,22 +224,182 @@ def gen_comp_notequal(dt):
 
 def gen_comp_less(dt):
     minval, maxval = minmaxvalues(dt)
-    print("        ; tests: ", dt, "<")
+    gen_comp_header(dt, "<")
+    gen_test(dt, "<", 0, 0, False)
+    gen_test(dt, "<", 0, 1, True)
+    gen_test(dt, "<", 100, 100, False)
+    gen_test(dt, "<", 100, 101, True)
+    gen_test(dt, "<", 100, 99, False)
+    if maxval >= 200:
+        gen_test(dt, "<", 200, 200, False)
+        gen_test(dt, "<", 200, 201, True)
+        gen_test(dt, "<", 200, 199, False)
+    if maxval >= 9999:
+        gen_test(dt, "<", 9999, 9999, False)
+        gen_test(dt, "<", 9999, 10000, True)
+        gen_test(dt, "<", 9999, 9998, False)
+        gen_test(dt, "<", 0x5000, 0x5000, False)
+        gen_test(dt, "<", 0x5000, 0x5001, True)
+        gen_test(dt, "<", 0x5000, 0x4fff, False)
+    if maxval >= 30000:
+        gen_test(dt, "<", 30000, 30000, False)
+        gen_test(dt, "<", 30000, 30001, True)
+        gen_test(dt, "<", 30000, 29999, False)
+    if maxval >= 40000:
+        gen_test(dt, "<", 0xf000, 0xf000, False)
+        gen_test(dt, "<", 0xf000, 0xf001, True)
+        gen_test(dt, "<", 0xf000, 0xefff, False)
+    if minval < 0:
+        gen_test(dt, "<", 0, -1, False)
+        gen_test(dt, "<", -100, -100, False)
+        gen_test(dt, "<", -100, -101, False)
+        gen_test(dt, "<", -100, -99, True)
+    if minval < -200:
+        gen_test(dt, "<", -200, -200, False)
+        gen_test(dt, "<", -200, -201, False)
+        gen_test(dt, "<", -200, -199, True)
+    if minval < -9999:
+        gen_test(dt, "<", -0x5000, -0x5000, False)
+        gen_test(dt, "<", -0x5000, -0x5001, False)
+        gen_test(dt, "<", -0x5000, -0x4fff, True)
+        gen_test(dt, "<", -9999, -9999, False)
+        gen_test(dt, "<", -9999, -10000, False)
+        gen_test(dt, "<", -9999, -9998, True)
 
 
 def gen_comp_greater(dt):
     minval, maxval = minmaxvalues(dt)
-    print("        ; tests: ", dt, ">")
+    gen_comp_header(dt, ">")
+    gen_test(dt, ">", 0, 0, False)
+    gen_test(dt, ">", 0, 1, False)
+    gen_test(dt, ">", 100, 100, False)
+    gen_test(dt, ">", 100, 101, False)
+    gen_test(dt, ">", 100, 99, True)
+    if maxval >= 200:
+        gen_test(dt, ">", 200, 200, False)
+        gen_test(dt, ">", 200, 201, False)
+        gen_test(dt, ">", 200, 199, True)
+    if maxval >= 9999:
+        gen_test(dt, ">", 9999, 9999, False)
+        gen_test(dt, ">", 9999, 10000, False)
+        gen_test(dt, ">", 9999, 9998, True)
+        gen_test(dt, ">", 0x5000, 0x5000, False)
+        gen_test(dt, ">", 0x5000, 0x5001, False)
+        gen_test(dt, ">", 0x5000, 0x4fff, True)
+    if maxval >= 30000:
+        gen_test(dt, ">", 30000, 30000, False)
+        gen_test(dt, ">", 30000, 30001, False)
+        gen_test(dt, ">", 30000, 29999, True)
+    if maxval >= 40000:
+        gen_test(dt, ">", 0xf000, 0xf000, False)
+        gen_test(dt, ">", 0xf000, 0xf001, False)
+        gen_test(dt, ">", 0xf000, 0xefff, True)
+    if minval < 0:
+        gen_test(dt, ">", 0, -1, True)
+        gen_test(dt, ">", -100, -100, False)
+        gen_test(dt, ">", -100, -101, True)
+        gen_test(dt, ">", -100, -99, False)
+    if minval < -200:
+        gen_test(dt, ">", -200, -200, False)
+        gen_test(dt, ">", -200, -201, True)
+        gen_test(dt, ">", -200, -199, False)
+    if minval < -9999:
+        gen_test(dt, ">", -0x5000, -0x5000, False)
+        gen_test(dt, ">", -0x5000, -0x5001, True)
+        gen_test(dt, ">", -0x5000, -0x4fff, False)
+        gen_test(dt, ">", -9999, -9999, False)
+        gen_test(dt, ">", -9999, -10000, True)
+        gen_test(dt, ">", -9999, -9998, False)
 
 
 def gen_comp_lessequal(dt):
     minval, maxval = minmaxvalues(dt)
-    print("        ; tests: ", dt, "<=")
+    gen_comp_header(dt, "<=")
+    gen_test(dt, "<=", 0, 0, True)
+    gen_test(dt, "<=", 0, 1, True)
+    gen_test(dt, "<=", 100, 100, True)
+    gen_test(dt, "<=", 100, 101, True)
+    gen_test(dt, "<=", 100, 99, False)
+    if maxval >= 200:
+        gen_test(dt, "<=", 200, 200, True)
+        gen_test(dt, "<=", 200, 201, True)
+        gen_test(dt, "<=", 200, 199, False)
+    if maxval >= 9999:
+        gen_test(dt, "<=", 9999, 9999, True)
+        gen_test(dt, "<=", 9999, 10000, True)
+        gen_test(dt, "<=", 9999, 9998, False)
+        gen_test(dt, "<=", 0x5000, 0x5000, True)
+        gen_test(dt, "<=", 0x5000, 0x5001, True)
+        gen_test(dt, "<=", 0x5000, 0x4fff, False)
+    if maxval >= 30000:
+        gen_test(dt, "<=", 30000, 30000, True)
+        gen_test(dt, "<=", 30000, 30001, True)
+        gen_test(dt, "<=", 30000, 29999, False)
+    if maxval >= 40000:
+        gen_test(dt, "<=", 0xf000, 0xf000, True)
+        gen_test(dt, "<=", 0xf000, 0xf001, True)
+        gen_test(dt, "<=", 0xf000, 0xefff, False)
+    if minval < 0:
+        gen_test(dt, "<=", 0, -1, False)
+        gen_test(dt, "<=", -100, -100, True)
+        gen_test(dt, "<=", -100, -101, False)
+        gen_test(dt, "<=", -100, -99, True)
+    if minval < -200:
+        gen_test(dt, "<=", -200, -200, True)
+        gen_test(dt, "<=", -200, -201, False)
+        gen_test(dt, "<=", -200, -199, True)
+    if minval < -9999:
+        gen_test(dt, "<=", -0x5000, -0x5000, True)
+        gen_test(dt, "<=", -0x5000, -0x5001, False)
+        gen_test(dt, "<=", -0x5000, -0x4fff, True)
+        gen_test(dt, "<=", -9999, -9999, True)
+        gen_test(dt, "<=", -9999, -10000, False)
+        gen_test(dt, "<=", -9999, -9998, True)
 
 
 def gen_comp_greaterequal(dt):
     minval, maxval = minmaxvalues(dt)
-    print("        ; tests: ", dt, ">=")
+    gen_comp_header(dt, ">=")
+    gen_test(dt, ">=", 0, 0, True)
+    gen_test(dt, ">=", 0, 1, False)
+    gen_test(dt, ">=", 100, 100, True)
+    gen_test(dt, ">=", 100, 101, False)
+    gen_test(dt, ">=", 100, 99, True)
+    if maxval >= 200:
+        gen_test(dt, ">=", 200, 200, True)
+        gen_test(dt, ">=", 200, 201, False)
+        gen_test(dt, ">=", 200, 199, True)
+    if maxval >= 9999:
+        gen_test(dt, ">=", 9999, 9999, True)
+        gen_test(dt, ">=", 9999, 10000, False)
+        gen_test(dt, ">=", 9999, 9998, True)
+        gen_test(dt, ">=", 0x5000, 0x5000, True)
+        gen_test(dt, ">=", 0x5000, 0x5001, False)
+        gen_test(dt, ">=", 0x5000, 0x4fff, True)
+    if maxval >= 30000:
+        gen_test(dt, ">=", 30000, 30000, True)
+        gen_test(dt, ">=", 30000, 30001, False)
+        gen_test(dt, ">=", 30000, 29999, True)
+    if maxval >= 40000:
+        gen_test(dt, ">=", 0xf000, 0xf000, True)
+        gen_test(dt, ">=", 0xf000, 0xf001, False)
+        gen_test(dt, ">=", 0xf000, 0xefff, True)
+    if minval < 0:
+        gen_test(dt, ">=", 0, -1, True)
+        gen_test(dt, ">=", -100, -100, True)
+        gen_test(dt, ">=", -100, -101, True)
+        gen_test(dt, ">=", -100, -99, False)
+    if minval < -200:
+        gen_test(dt, ">=", -200, -200, True)
+        gen_test(dt, ">=", -200, -201, True)
+        gen_test(dt, ">=", -200, -199, False)
+    if minval < -9999:
+        gen_test(dt, ">=", -0x5000, -0x5000, True)
+        gen_test(dt, ">=", -0x5000, -0x5001, True)
+        gen_test(dt, ">=", -0x5000, -0x4fff, False)
+        gen_test(dt, ">=", -9999, -9999, True)
+        gen_test(dt, ">=", -9999, -10000, True)
+        gen_test(dt, ">=", -9999, -9998, False)
 
 
 def generate_test_routine_equalsnotequals(dt):

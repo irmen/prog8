@@ -7,9 +7,9 @@ clean:
 
 test: clean
 	python make_tests.py
-	p8compile -noopt *.p8 >/dev/null
+	p8compile -noopt -target cx16 *.p8 >/dev/null
 	for program in *.prg; do \
 		echo "RUNNING:" $$program ; \
-		x64sc $$program >/dev/null ; \
+		x16emu -run -prg $$program >/dev/null ; \
 	done
 
