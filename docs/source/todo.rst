@@ -2,8 +2,9 @@
 TODO
 ====
 
-- fix imageviewer only showing first image
-- fix errors in comparison changes
+- fix errors in comparison changes (first complete the new comparison test generation tool)
+- fix imageviewer only showing first image (likely fixed by the one above)
+- fix X register (evalstack) issue in arithmetic/builtins.prg
 - add cx16 vload()
 
 - optimize several inner loops in gfx2

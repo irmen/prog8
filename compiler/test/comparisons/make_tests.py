@@ -174,14 +174,18 @@ def gen_comp_equal(dt):
     gen_test(dt, "==", maxval, maxval-1, False)
 
 
-def gen_comp_notequal(dt):
-    minval, maxval = minmaxvalues(dt)
+def gen_comp_header(dt):
     print("        ; tests: ", dt, "!=")
     print("        comparison = \"!=\"")
     print("        txt.print(datatype)")
     print("        txt.spc()")
     print("        txt.print(comparison)")
     print("        txt.nl()")
+
+
+def gen_comp_notequal(dt):
+    minval, maxval = minmaxvalues(dt)
+    gen_comp_header(dt)
     gen_test(dt, "!=", 0, 0, False)
     gen_test(dt, "!=", 0, 1, True)
     gen_test(dt, "!=", 100, 100, False)
