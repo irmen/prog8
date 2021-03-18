@@ -622,16 +622,15 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
-        // TODO verify correctness uword >
-
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
                 cpy  $msbCpyOperand
-                bcs  $jumpIfFalseLabel
+                bcc  $jumpIfFalseLabel
                 bne  +
                 cmp  $lsbCmpOperand
-                bcs  $jumpIfFalseLabel
-+""")
+                bcc  $jumpIfFalseLabel
++               beq  $jumpIfFalseLabel
+""")
         }
 
         if(rightConstVal!=null) {
@@ -662,8 +661,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             return code("$varname+1", varname)
         }
 
-        asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
         return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
     }
 
