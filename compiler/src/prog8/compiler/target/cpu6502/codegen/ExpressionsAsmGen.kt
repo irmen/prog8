@@ -501,7 +501,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO 100% checked ok.
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
@@ -667,7 +666,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
-        // TODO 100% checked ok.
+
         fun code(leftName: String) {
             asmgen.out("""
                 cmp  $leftName
@@ -791,6 +790,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
+        // TODO fix this uword <=
+
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
                 cpy  $msbCpyOperand
@@ -809,7 +810,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             } else {
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
-                        // TODO is this correct? uword <= not-null
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
                         code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
                     }
@@ -825,7 +825,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
 
         if(right is IdentifierReference) {
-            // TODO is this correct? uword <= variable
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
             val varname = asmgen.asmVariableName(right)
             return code("$varname+1", varname)
@@ -837,6 +836,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateWordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        // TODO fix this word <=
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
@@ -857,27 +858,24 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             } else {
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
-                        // TODO is this correct? word <= not-null
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
                         code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
                     }
                     else {
-                        // TODO is this correct? word <= 0  (can be shorter?)
                         val name = asmgen.asmVariableName(left)
                         asmgen.out("""
-                            lda  #0
-                            cmp  $name
-                            sbc  $name+1
-                            bvc  +
-                            eor  #$80
-    +                       bmi  $jumpIfFalseLabel""")
+                            lda  $name+1
+                            bmi  +
+                            bne  $jumpIfFalseLabel
+                            lda  $name
+                            bne  $jumpIfFalseLabel
++""")
                     }
                 }
             }
         }
 
         if(right is IdentifierReference) {
-            // TODO is this correct? word <= variable
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
             val varname = asmgen.asmVariableName(right)
             return code("$varname+1", varname)
@@ -961,6 +959,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
+        // TODO fix this uword >=
+
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
                 cpy  $msbCpyOperand
@@ -979,7 +979,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             } else {
                 if (left is IdentifierReference) {
                     if(rightConstVal.number.toInt()!=0) {
-                        // TODO is this correct? uword >= not-0
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
                         code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
                     }
@@ -988,7 +987,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
 
         if(right is IdentifierReference) {
-            // TODO is this correct? uword >= variable
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
             val varname = asmgen.asmVariableName(right)
             return code("$varname+1", varname)
@@ -1000,6 +998,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateWordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        // TODO fix this word >=
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
@@ -1019,7 +1019,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             } else {
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
-                        // TODO is this correct? word >= not-0
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
                         code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
                     }
@@ -1032,7 +1031,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
 
         if(right is IdentifierReference) {
-            // TODO is this correct?  word >= variable
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
             val varname = asmgen.asmVariableName(right)
             return code("$varname+1", varname)
