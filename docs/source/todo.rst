@@ -2,8 +2,6 @@
 TODO
 ====
 
-- fix errors in comparison changes (first complete the new comparison test generation tool)
-- fix imageviewer only showing first image (likely fixed by the one above)
 - add cx16 vload()
 
 - optimize several inner loops in gfx2
