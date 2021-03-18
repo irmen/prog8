@@ -790,16 +790,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
-        // TODO fix this uword <=
-
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
                 cpy  $msbCpyOperand
                 beq  +
+                bcc  ++
                 bcs  $jumpIfFalseLabel
 +               cmp  $lsbCmpOperand
-                bcs  $jumpIfFalseLabel
-                bne  $jumpIfFalseLabel""")
+                bcc  +
+                beq  +
+                bne  $jumpIfFalseLabel
++""")
         }
 
         if(rightConstVal!=null) {
@@ -959,14 +960,12 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
-        // TODO fix this uword >=
-
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
                 cpy  $msbCpyOperand
-                beq  +
                 bcc  $jumpIfFalseLabel
-+               cmp  $lsbCmpOperand
+                bne  +
+                cmp  $lsbCmpOperand
                 bcc  $jumpIfFalseLabel
 +""")
         }
