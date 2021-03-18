@@ -33,9 +33,14 @@ def gen_test(dt, comparison, left, right, expected):
         stmt_ok = lambda ix: f"error({ix})"
         stmt_else = lambda ix: "num_successes++"
 
+    def c(number):
+        if dt not in ("byte", "ubyte"):
+            return f"({number} as {dt})"
+        return str(number)
+
     print(
-f"""        left = {left}
-        right = {right}
+f"""        left = {c(left)}
+        right = {c(right)}
 """
     )
 
@@ -43,7 +48,7 @@ f"""        left = {left}
     index += 1
     print(
 f"""        ; test #{index}
-        if {left} {comparison} {right} {{
+        if {c(left)} {comparison} {c(right)} {{
             {stmt_ok(index)}
         }} else {{
             {stmt_else(index)}
@@ -53,7 +58,7 @@ f"""        ; test #{index}
     index += 1
     print(
 f"""        ; test #{index}
-        if {left} {comparison} right {{
+        if {c(left)} {comparison} right {{
             {stmt_ok(index)}
         }} else {{
             {stmt_else(index)}
@@ -63,7 +68,7 @@ f"""        ; test #{index}
     index += 1
     print(
 f"""        ; test #{index}
-        if {left} {comparison} right+zero {{
+        if {c(left)} {comparison} right+zero {{
             {stmt_ok(index)}
         }} else {{
             {stmt_else(index)}
@@ -73,7 +78,7 @@ f"""        ; test #{index}
     index += 1
     print(
 f"""        ; test #{index}
-        if left {comparison} {right} {{
+        if left {comparison} {c(right)} {{
             {stmt_ok(index)}
         }} else {{
             {stmt_else(index)}
@@ -103,7 +108,7 @@ f"""        ; test #{index}
     index += 1
     print(
 f"""        ; test #{index}
-        if left+zero {comparison} {right} {{
+        if left+zero {comparison} {c(right)} {{
             {stmt_ok(index)}
         }} else {{
             {stmt_else(index)}

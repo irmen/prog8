@@ -428,7 +428,9 @@ var_fac1_greater_f	.proc
 		cmp  #1
 		beq  +
 		lda  #0
-+		rts
+		rts
++		lda  #1
+		rts
 		.pend
 
 var_fac1_greatereq_f	.proc
