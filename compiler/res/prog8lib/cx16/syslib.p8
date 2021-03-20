@@ -35,7 +35,7 @@ romsub $FFAE = UNLSN() clobbers(A)                              ; command serial
 romsub $FFB1 = LISTEN(ubyte device @ A) clobbers(A)             ; command serial bus device to LISTEN
 romsub $FFB4 = TALK(ubyte device @ A) clobbers(A)               ; command serial bus device to TALK
 romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word
-romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte address @ Y)   ; set logical file parameters
+romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)   ; set logical file parameters
 romsub $FFBD = SETNAM(ubyte namelen @ A, str filename @ XY)     ; set filename parameters
 romsub $FFC0 = OPEN() clobbers(X,Y) -> ubyte @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
 romsub $FFC3 = CLOSE(ubyte logical @ A) clobbers(A,X,Y)         ; (via 796 ($31C)) close a logical file
@@ -44,8 +44,8 @@ romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; (via 800 ($320
 romsub $FFCC = CLRCHN() clobbers(A,X)                           ; (via 802 ($322)) restore default devices
 romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A   ; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
 romsub $FFD2 = CHROUT(ubyte char @ A)                           ; (via 806 ($326)) output a character
-romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> ubyte @Pc, ubyte @ A, ubyte @ X, ubyte @ Y     ; (via 816 ($330)) load from device
-romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> ubyte @ Pc, ubyte @ A                    ; (via 818 ($332)) save to a device
+romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> ubyte @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
+romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> ubyte @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
 romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock
 romsub $FFE1 = STOP() clobbers(X) -> ubyte @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
@@ -350,74 +350,114 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
 }
 
 asmsub vpoke(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
-        ; -- write a single byte to VERA's video memory
-        ;    note: inefficient when writing multiple sequential bytes!
-        %asm {{
-            stz  cx16.VERA_CTRL
-            and  #1
-            sta  cx16.VERA_ADDR_H
-            lda  cx16.r0
-            sta  cx16.VERA_ADDR_L
-            lda  cx16.r0+1
-            sta  cx16.VERA_ADDR_M
-            sty  cx16.VERA_DATA0
-            rts
-        }}
+    ; -- write a single byte to VERA's video memory
+    ;    note: inefficient when writing multiple sequential bytes!
+    %asm {{
+        stz  cx16.VERA_CTRL
+        and  #1
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.r0
+        sta  cx16.VERA_ADDR_L
+        lda  cx16.r0+1
+        sta  cx16.VERA_ADDR_M
+        sty  cx16.VERA_DATA0
+        rts
+    }}
 }
 
 asmsub vpoke_or(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) {
-        ; -- or a single byte to the value already in the VERA's video memory at that location
-        ;    note: inefficient when writing multiple sequential bytes!
-        %asm {{
-            stz  cx16.VERA_CTRL
-            and  #1
-            sta  cx16.VERA_ADDR_H
-            lda  cx16.r0
-            sta  cx16.VERA_ADDR_L
-            lda  cx16.r0+1
-            sta  cx16.VERA_ADDR_M
-            tya
-            ora  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            rts
-        }}
+    ; -- or a single byte to the value already in the VERA's video memory at that location
+    ;    note: inefficient when writing multiple sequential bytes!
+    %asm {{
+        stz  cx16.VERA_CTRL
+        and  #1
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.r0
+        sta  cx16.VERA_ADDR_L
+        lda  cx16.r0+1
+        sta  cx16.VERA_ADDR_M
+        tya
+        ora  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
+        rts
+    }}
 }
 
 asmsub vpoke_and(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
-        ; -- and a single byte to the value already in the VERA's video memory at that location
-        ;    note: inefficient when writing multiple sequential bytes!
-        %asm {{
-            stz  cx16.VERA_CTRL
-            and  #1
-            sta  cx16.VERA_ADDR_H
-            lda  cx16.r0
-            sta  cx16.VERA_ADDR_L
-            lda  cx16.r0+1
-            sta  cx16.VERA_ADDR_M
-            tya
-            and  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            rts
-        }}
+    ; -- and a single byte to the value already in the VERA's video memory at that location
+    ;    note: inefficient when writing multiple sequential bytes!
+    %asm {{
+        stz  cx16.VERA_CTRL
+        and  #1
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.r0
+        sta  cx16.VERA_ADDR_L
+        lda  cx16.r0+1
+        sta  cx16.VERA_ADDR_M
+        tya
+        and  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
+        rts
+    }}
 }
 
 asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) {
-        ; -- xor a single byte to the value already in the VERA's video memory at that location
-        ;    note: inefficient when writing multiple sequential bytes!
-        %asm {{
-            stz  cx16.VERA_CTRL
-            and  #1
-            sta  cx16.VERA_ADDR_H
-            lda  cx16.r0
-            sta  cx16.VERA_ADDR_L
-            lda  cx16.r0+1
-            sta  cx16.VERA_ADDR_M
-            tya
-            eor  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            rts
-        }}
+    ; -- xor a single byte to the value already in the VERA's video memory at that location
+    ;    note: inefficient when writing multiple sequential bytes!
+    %asm {{
+        stz  cx16.VERA_CTRL
+        and  #1
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.r0
+        sta  cx16.VERA_ADDR_L
+        lda  cx16.r0+1
+        sta  cx16.VERA_ADDR_M
+        tya
+        eor  cx16.VERA_DATA0
+        sta  cx16.VERA_DATA0
+        rts
+    }}
 }
+
+asmsub vload(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+    ; -- like the basic command VLOAD "filename",device,bank,address
+    ;    loads a file into video memory in the given bank:address, returns success in A
+    ;    !! NOTE !! the V38 ROMs contain a bug in the LOAD code that makes the load address not work correctly,
+    ;               it works fine when loading from local filesystem
+    %asm {{
+        ; -- load a file into video ram
+        phx
+        pha
+        tya
+        tax
+        lda  #1
+        ldy  #0
+        jsr  c64.SETLFS
+        lda  cx16.r0
+        ldy  cx16.r0+1
+        jsr  prog8_lib.strlen
+        tya
+        ldx  cx16.r0
+        ldy  cx16.r0+1
+        jsr  c64.SETNAM
+        pla
+        clc
+        adc  #2
+        ldx  cx16.r1
+        ldy  cx16.r1+1
+        stz  P8ZP_SCRATCH_B1
+        jsr  c64.LOAD
+        bcs  +
+        inc  P8ZP_SCRATCH_B1
++       jsr  c64.CLRCHN
+        lda  #1
+        jsr  c64.CLOSE
+        plx
+        lda  P8ZP_SCRATCH_B1
+        rts
+    }}
+}
+
 
 sub FB_set_pixels_from_buf(uword buffer, uword count) {
     %asm {{

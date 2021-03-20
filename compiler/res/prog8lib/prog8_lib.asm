@@ -1072,3 +1072,14 @@ sign_extend_AY_byte	.proc
 		rts
 		.pend
 
+strlen          .proc
+        ; -- returns the number of bytes in the string in AY, in Y.
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+-		lda  (P8ZP_SCRATCH_W1),y
+		beq  +
+		iny
+		bne  -
++		rts
+		.pend
