@@ -5,8 +5,6 @@
 ; Vertical rasterbars a.k.a. "Kefren bars"
 ; also see: rasterbars.p8
 
-; TODO exhibits tearing since recent compiler changes????
-
 
 main {
 

@@ -1,7 +1,7 @@
 %target cx16
 %import textio
 %option no_sysinit
-
+%zeropage basicsafe
 
 ; simple test program for the "VTUI" text user interface library
 ; see:  https://github.com/JimmyDansbo/VTUIlib
@@ -23,20 +23,24 @@ main {
         vtui.gotoxy(12,13)
         vtui.print_str2("Hello, world! vtui from Prog8!", $f2, $00)
 
+        str inputbuffer = "?" * 20
+
+;        txt.print_uwhex(inputbuffer, 1)
+;        txt.chrout(':')
+;        txt.print(inputbuffer)
+;        txt.chrout('\n')
+
         vtui.gotoxy(5,20)
         vtui.print_str2(@"Enter your name: ", $e3, $80)
-        str inputbuffer = "?" * 20
         ubyte length = vtui.input_str(inputbuffer, len(inputbuffer), $21)
 
         vtui.gotoxy(8,22)
         vtui.print_str2(@"Your name is: ", $e3, $80)
+        ;vtui.print_str2(inputbuffer, $67, $00)
         vtui.print_str(inputbuffer, length, $67, $00)
 
         ; txt.uppercase()   ; kills vtui?
         logo_mover()
-
-        repeat {
-        }
     }
 
     sub store_logo() {
