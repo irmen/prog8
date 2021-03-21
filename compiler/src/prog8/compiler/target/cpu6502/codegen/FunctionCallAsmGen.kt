@@ -177,7 +177,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
                         }
-                        in WordDatatypes ->
+                        in WordDatatypes, in IterableDatatypes ->
                             asmgen.out("""
                                 lda  P8ESTACK_LO$plusIdxStr,x
                                 sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
