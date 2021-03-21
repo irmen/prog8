@@ -25,6 +25,7 @@ internal class UnusedCodeRemover(private val program: Program,
         val removals = mutableListOf<IAstModification>()
 
         // remove all subroutines that aren't called, or are empty
+        // NOTE: part of this is also done already in the StatementOptimizer
         val entrypoint = program.entrypoint()
         program.modules.forEach {
             callgraph.forAllSubroutines(it) { sub ->

@@ -2,8 +2,6 @@
 TODO
 ====
 
-- add cx16.vsave() to be able to make screenshots? (there's no kernal routine for this)
-
 - optimize several inner loops in gfx2
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
@@ -13,7 +11,7 @@ TODO
 - refactor the asmgen into their own submodule?
 - refactor the compiler optimizers into their own submodule?
 - optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
-- add a compiler option to not remove unused subroutines. this allows for building library programs
+- add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
 - option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
