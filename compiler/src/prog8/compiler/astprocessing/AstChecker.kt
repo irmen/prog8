@@ -493,7 +493,7 @@ internal class AstChecker(private val program: Program,
         fun err(msg: String, position: Position?=null) = errors.err(msg, position ?: decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexVar?.referencesIdentifier(decl.name) == true)
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexExpr?.referencesIdentifier(decl.name) == true)
             err("recursive var declaration")
 
         // CONST can only occur on simple types (byte, word, float)
@@ -1125,16 +1125,9 @@ internal class AstChecker(private val program: Program,
             errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
 
         // check index value 0..255
-        val dtxNum = arrayIndexedExpression.indexer.indexNum?.inferType(program)?.typeOrElse(DataType.STRUCT)
-        if(dtxNum!=null && dtxNum != DataType.UBYTE && dtxNum != DataType.BYTE)
+        val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
+        if(!dtxNum.istype(DataType.UBYTE) && !dtxNum.istype(DataType.BYTE))
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
-        val dtxVar = arrayIndexedExpression.indexer.indexVar?.inferType(program)?.typeOrElse(DataType.STRUCT)
-        if(dtxVar!=null && dtxVar != DataType.UBYTE && dtxVar != DataType.BYTE)
-            errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
-
-        // TODO remove this once this rewriter is moved to BeforeAsmGen
-        if(arrayIndexedExpression.indexer.origExpression!=null)
-            throw FatalAstException("array indexer should have been replaced with a temp var @ ${arrayIndexedExpression.indexer.position}")
 
         super.visit(arrayIndexedExpression)
     }

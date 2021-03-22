@@ -199,9 +199,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             TargetStorageKind.ARRAY -> {
                 with(target.array!!.indexer) {
+                    val indexNum = indexExpr as? NumericLiteralValue
+                    val indexVar = indexExpr as? IdentifierReference
                     when {
                         indexNum!=null -> {
-                            val targetVarName = "${target.asmVarname} + ${indexNum!!.number.toInt()*program.memsizer.memorySize(target.datatype)}"
+                            val targetVarName = "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
                             when(target.datatype) {
                                 in ByteDatatypes -> {
                                     when {

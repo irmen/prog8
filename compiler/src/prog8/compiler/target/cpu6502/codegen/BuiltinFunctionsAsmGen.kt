@@ -14,11 +14,6 @@ import prog8.compiler.AssemblyError
 import prog8.compiler.functions.FSignature
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.cpu6502.codegen.assignment.*
-import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
-import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
-import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
-import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compiler.target.subroutineFloatEvalResultVar2
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
@@ -469,8 +464,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun translateRolRorArrayArgs(arrayvar: IdentifierReference, indexer: ArrayIndex, operation: String, dt: Char) {
         asmgen.assignExpressionToVariable(AddressOf(arrayvar, arrayvar.position), "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
-        val indexerExpr = if(indexer.indexVar!=null) indexer.indexVar!! else indexer.indexNum!!
-        asmgen.assignExpressionToVariable(indexerExpr, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
+        asmgen.assignExpressionToVariable(indexer.indexExpr, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
     }
 
     private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
@@ -685,10 +679,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 throw AssemblyError("unknown dt")
             val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
 
-            val firstNum = first.indexer.indexNum
-            val firstVar = first.indexer.indexVar
-            val secondNum = second.indexer.indexNum
-            val secondVar = second.indexer.indexVar
+            val firstNum = first.indexer.indexExpr as? NumericLiteralValue
+            val firstVar = first.indexer.indexExpr as? IdentifierReference
+            val secondNum = second.indexer.indexExpr as? NumericLiteralValue
+            val secondVar = second.indexer.indexExpr as? IdentifierReference
 
             if(firstNum!=null && secondNum!=null) {
                 swapArrayValues(elementDt, arrayVarName1, firstNum, arrayVarName2, secondNum)

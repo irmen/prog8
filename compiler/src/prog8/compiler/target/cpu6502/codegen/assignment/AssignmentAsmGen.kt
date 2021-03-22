@@ -65,9 +65,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val value = assign.source.array!!
                 val elementDt = assign.source.datatype
                 val arrayVarName = asmgen.asmVariableName(value.arrayvar)
-                if (value.indexer.indexNum!=null) {
+                val constIndex = value.indexer.constIndex()
+                if (constIndex!=null) {
                     // constant array index value
-                    val indexValue = value.indexer.constIndex()!! * program.memsizer.memorySize(elementDt)
+                    val indexValue = constIndex * program.memsizer.memorySize(elementDt)
                     when (elementDt) {
                         in ByteDatatypes -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue")
@@ -1074,11 +1075,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1""")
-                if(target.array!!.indexer.indexNum!=null) {
-                    val index = target.array.indexer.constIndex()!!
-                    asmgen.out(" lda  #$index")
+                val constIndex = target.array!!.indexer.constIndex()
+                if(constIndex!=null) {
+                    asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out("  jsr  floats.set_array_float_from_fac1")
@@ -1110,11 +1111,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W2
                     sty  P8ZP_SCRATCH_W2+1""")
-                if(target.array!!.indexer.indexNum!=null) {
-                    val index = target.array.indexer.constIndex()!!
-                    asmgen.out(" lda  #$index")
+                val constIndex = target.array!!.indexer.constIndex()
+                if(constIndex!=null) {
+                    asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out(" jsr  floats.set_array_float")
@@ -1157,11 +1158,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W2
                     sty  P8ZP_SCRATCH_W2+1""")
-                if(target.array!!.indexer.indexNum!=null) {
-                    val index = target.array.indexer.constIndex()!!
-                    asmgen.out(" lda  #$index")
+                val constIndex = target.array!!.indexer.constIndex()
+                if(constIndex!=null) {
+                    asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out(" jsr  floats.set_array_float")
@@ -1369,7 +1370,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         CpuRegister.X -> asmgen.out(" txa")
                         CpuRegister.Y -> asmgen.out(" tya")
                     }
-                    asmgen.out(" ldy  ${asmgen.asmVariableName(target.array!!.indexer.indexVar!!)} |  sta  ${target.asmVarname},y")
+                    val indexVar = target.array!!.indexer.indexExpr as IdentifierReference
+                    asmgen.out(" ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -1777,8 +1779,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
-                    if (target.array!!.indexer.indexNum!=null) {
-                        val indexValue = target.array.indexer.constIndex()!! * program.memsizer.memorySize(DataType.FLOAT)
+                    val constIndex = target.array!!.indexer.constIndex()
+                    if (constIndex!=null) {
+                        val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("""
                                 stz  ${target.asmVarname}+$indexValue
@@ -1797,7 +1800,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 sta  ${target.asmVarname}+$indexValue+4
                             """)
                     } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
@@ -1842,8 +1845,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 TargetStorageKind.ARRAY -> {
                     val arrayVarName = target.asmVarname
-                    if (target.array!!.indexer.indexNum!=null) {
-                        val indexValue = target.array.indexer.constIndex()!! * program.memsizer.memorySize(DataType.FLOAT)
+                    val constIndex = target.array!!.indexer.constIndex()
+                    if (constIndex!=null) {
+                        val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
                         asmgen.out("""
                             lda  $constFloat
                             sta  $arrayVarName+$indexValue
@@ -1857,7 +1861,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             sta  $arrayVarName+$indexValue+4
                         """)
                     } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexVar!!)
+                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
                         asmgen.out("""
                             lda  #<${constFloat}
                             sta  P8ZP_SCRATCH_W1

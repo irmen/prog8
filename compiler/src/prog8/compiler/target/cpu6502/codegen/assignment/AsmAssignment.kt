@@ -120,13 +120,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
             asmgen.asmVariableName(array.arrayvar)
 
     companion object {
-        fun fromAstSource(indexer: ArrayIndex, program: Program, asmgen: AsmGen): AsmAssignSource {
-            return when {
-                indexer.indexNum!=null -> fromAstSource(indexer.indexNum!!, program, asmgen)
-                indexer.indexVar!=null -> fromAstSource(indexer.indexVar!!, program, asmgen)
-                else -> throw AssemblyError("weird indexer")
-            }
-        }
+        fun fromAstSource(indexer: ArrayIndex, program: Program, asmgen: AsmGen): AsmAssignSource = fromAstSource(indexer.indexExpr, program, asmgen)
 
         fun fromAstSource(value: Expression, program: Program, asmgen: AsmGen): AsmAssignSource {
             val cv = value.constValue(program)

@@ -75,7 +75,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
     override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         // the initializer value can't refer to the variable itself (recursive definition)
         // TODO: use call graph for this?
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexVar?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexExpr?.referencesIdentifier(decl.name) == true) {
             errors.err("recursive var declaration", decl.position)
             return noModifications
         }
@@ -92,19 +92,6 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                                 NumericLiteralValue.optimalInteger(arrayval.value.size, decl.position),
                                 decl
                         ))
-                    }
-                } else if(arraysize.constIndex()==null) {
-                    // see if we can calculate the size from other fields
-                    try {
-                        val cval =  arraysize.indexVar?.constValue(program) ?: arraysize.origExpression?.constValue(program)
-                        if (cval != null) {
-                            arraysize.indexVar = null
-                            arraysize.origExpression = null
-                            arraysize.indexNum = cval
-                        }
-                    } catch (x: UndefinedSymbolError) {
-                        errors.err(x.message, x.position)
-                        return noModifications
                     }
                 }
             }

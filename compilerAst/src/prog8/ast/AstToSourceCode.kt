@@ -121,8 +121,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
         output(datatypeString(decl.datatype))
         if(decl.arraysize!=null) {
-            decl.arraysize!!.indexNum?.accept(this)
-            decl.arraysize!!.indexVar?.accept(this)
+            decl.arraysize!!.indexExpr.accept(this)
         }
         if(decl.isArray)
             output("]")
@@ -365,8 +364,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
         arrayIndexedExpression.arrayvar.accept(this)
         output("[")
-        arrayIndexedExpression.indexer.indexNum?.accept(this)
-        arrayIndexedExpression.indexer.indexVar?.accept(this)
+        arrayIndexedExpression.indexer.indexExpr.accept(this)
         output("]")
     }
 

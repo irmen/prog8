@@ -2055,8 +2055,9 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             throw AssemblyError("unknown dt")
         val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
-        if(arrayExpr.indexer.indexNum!=null) {
-            val indexValue = arrayExpr.indexer.constIndex()!! * program.memsizer.memorySize(elementDt)
+        val constIndexNum = arrayExpr.indexer.constIndex()
+        if(constIndexNum!=null) {
+            val indexValue = constIndexNum * program.memsizer.memorySize(elementDt)
             when(elementDt) {
                 in ByteDatatypes -> {
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  dex")
@@ -2095,13 +2096,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
-    fun translateExpression(indexer: ArrayIndex) {
-        // it is either a number, or a variable
-        val indexNum = indexer.indexNum
-        val indexVar = indexer.indexVar
-        indexNum?.let { asmgen.translateExpression(indexNum) }
-        indexVar?.let { asmgen.translateExpression(indexVar) }
-    }
+    fun translateExpression(indexer: ArrayIndex) = asmgen.translateExpression(indexer.indexExpr)
 
     private fun translateBinaryOperatorBytes(operator: String, types: DataType) {
         when(operator) {

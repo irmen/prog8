@@ -275,46 +275,19 @@ class ParameterVarDecl(name: String, declaredDatatype: DataType, position: Posit
     : VarDecl(VarDeclType.VAR, declaredDatatype, ZeropageWish.DONTCARE, null, name, null, null, false, true, position)
 
 
-class ArrayIndex(var origExpression: Expression?,            // will be replaced later by either the number or the identifier
+class ArrayIndex(var indexExpr: Expression,
                  override val position: Position) : Node {
-    // for code simplicity, either indexed via a constant number or via a variable (no arbitrary expressions)
     override lateinit var parent: Node
-    var indexNum: NumericLiteralValue? = origExpression as? NumericLiteralValue
-    var indexVar: IdentifierReference? = origExpression as? IdentifierReference
-
-    init {
-        if(indexNum!=null || indexVar!=null)
-            origExpression = null
-    }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        origExpression?.linkParents(this)
-        indexNum?.linkParents(this)
-        indexVar?.linkParents(this)
+        indexExpr.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
-        when {
-            node===origExpression -> origExpression = replacement
-            node===indexVar -> {
-                when (replacement) {
-                    is NumericLiteralValue -> {
-                        indexVar = null
-                        indexNum = replacement
-                    }
-                    is IdentifierReference -> {
-                        indexVar = replacement
-                        indexNum = null
-                    }
-                    else -> {
-                        throw FatalAstException("invalid replace")
-                    }
-                }
-            }
-            else -> throw FatalAstException("invalid replace")
-        }
+        if (node===indexExpr) indexExpr = replacement
+        else throw FatalAstException("invalid replace")
     }
 
     companion object {
@@ -324,29 +297,16 @@ class ArrayIndex(var origExpression: Expression?,            // will be replaced
         }
     }
 
-    fun accept(visitor: IAstVisitor) {
-        origExpression?.accept(visitor)
-        indexNum?.accept(visitor)
-        indexVar?.accept(visitor)
-    }
-    fun accept(visitor: AstWalker, parent: Node) {
-        origExpression?.accept(visitor, this)
-        indexNum?.accept(visitor, this)
-        indexVar?.accept(visitor, this)
-    }
+    fun accept(visitor: IAstVisitor) = indexExpr.accept(visitor)
+    fun accept(visitor: AstWalker, parent: Node)  = indexExpr.accept(visitor, this)
 
     override fun toString(): String {
-        return("ArrayIndex($indexNum, $indexVar, pos=$position)")
+        return("ArrayIndex($indexExpr, pos=$position)")
     }
 
-    fun constIndex() = indexNum?.number?.toInt()
+    fun constIndex() = (indexExpr as? NumericLiteralValue)?.number?.toInt()
 
-    infix fun isSameAs(other: ArrayIndex): Boolean {
-        return if(indexNum!=null || indexVar!=null)
-            indexNum==other.indexNum && indexVar == other.indexVar
-        else
-            other.origExpression!=null && origExpression!! isSameAs other.origExpression!!
-    }
+    infix fun isSameAs(other: ArrayIndex): Boolean = indexExpr isSameAs other.indexExpr
 }
 
 open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
