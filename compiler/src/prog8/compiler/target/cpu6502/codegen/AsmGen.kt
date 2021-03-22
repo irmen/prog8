@@ -720,7 +720,12 @@ internal class AsmGen(private val program: Program,
             return
         }
 
-        val indexName = asmVariableName(expr.indexer.indexVar!!)
+        val indexVar = expr.indexer.indexVar
+            ?: throw AssemblyError("array indexer should have been replaced with a temp var @ ${expr.indexer.position}")
+
+        // must be indexed via variable (arbitrary expression is already replaced out)
+
+        val indexName = asmVariableName(indexVar)
         if(addOneExtra) {
             // add 1 to the result
             when(elementDt) {

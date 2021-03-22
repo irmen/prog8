@@ -60,7 +60,13 @@ enum class DataType {
 enum class CpuRegister {
     A,
     X,
-    Y
+    Y;
+
+    fun asRegisterOrPair(): RegisterOrPair = when(this) {
+        A -> RegisterOrPair.A
+        X -> RegisterOrPair.X
+        Y -> RegisterOrPair.Y
+    }
 }
 
 enum class RegisterOrPair {

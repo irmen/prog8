@@ -297,7 +297,7 @@ private fun writeAssembly(programAst: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
                           compilerOptions: CompilationOptions): String {
-    // asm generation directly from the Ast,
+    // asm generation directly from the Ast
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.report()
 

@@ -953,21 +953,17 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        // check if a function that doesn't return a value, is used in an expression or assignment
+        // functions that don't return a value, can't be used in an expression or assignment
         if(targetStatement is Subroutine) {
             if(targetStatement.returntypes.isEmpty()) {
                 if(functionCall.parent is Expression || functionCall.parent is Assignment)
                     errors.err("subroutine doesn't return a value", functionCall.position)
-                else
-                    TODO("check $functionCall  ${functionCall.parent}")
             }
         }
         else if(targetStatement is BuiltinFunctionStatementPlaceholder) {
             if(builtinFunctionReturnType(targetStatement.name, functionCall.args, program).isUnknown) {
                 if(functionCall.parent is Expression || functionCall.parent is Assignment)
                     errors.err("function doesn't return a value", functionCall.position)
-                else
-                    TODO("check builtinfunc $functionCall  ${functionCall.parent}")
             }
         }
 
@@ -1136,6 +1132,7 @@ internal class AstChecker(private val program: Program,
         if(dtxVar!=null && dtxVar != DataType.UBYTE && dtxVar != DataType.BYTE)
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
 
+        // TODO remove this once this rewriter is moved to BeforeAsmGen
         if(arrayIndexedExpression.indexer.origExpression!=null)
             throw FatalAstException("array indexer should have been replaced with a temp var @ ${arrayIndexedExpression.indexer.position}")
 

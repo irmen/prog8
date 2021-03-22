@@ -114,7 +114,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                 return noModifications
             }
             is Expression -> {
-                // replace complex indexing with a temp variable
+                // replace complex indexing with a temp variable   TODO move this to BeforeAsmGeneration transformer,   get rid of indexNum/indexVar/origExpression differentiation? (just use 'is Identifier' etc)?
                 return getAutoIndexerVarFor(arrayIndexedExpression)
             }
             else -> return noModifications
@@ -209,7 +209,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         val indexerVarPrefix = "prog8_autovar_index_"
         val repo = subroutine.asmGenInfo.usedAutoArrayIndexerForStatements
 
-        // TODO make this a bit smarter so it can reuse indexer variables. BUT BEWARE of scoping+initialization problems then
+        // TODO [codegen] make this a bit smarter so it can reuse indexer variables. BUT BEWARE of scoping+initialization problems then
         // add another loop index var to be used for this expression
         val indexerVarName = "$indexerVarPrefix${expr.indexer.hashCode()}"
         val indexerVar = AsmGenInfo.ArrayIndexerInfo(indexerVarName, expr.indexer)
