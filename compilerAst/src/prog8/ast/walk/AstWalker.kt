@@ -56,7 +56,7 @@ interface IAstModification {
         }
     }
 
-    class ReplaceNode(private val node: Node, private val replacement: Node, private val parent: Node) :
+    class ReplaceNode(val node: Node, private val replacement: Node, private val parent: Node) :
         IAstModification {
         override fun perform() {
             parent.replaceChildNode(node, replacement)
@@ -158,9 +158,19 @@ abstract class AstWalker {
     open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = emptyList()
 
     private val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
+    // private val modificationsReplacedNodes = mutableSetOf<Pair<Node, Position>>()
 
     private fun track(mods: Iterable<IAstModification>, node: Node, parent: Node) {
-        for (it in mods) modifications += Triple(it, node, parent)
+        for (it in mods) {
+//            if(it is IAstModification.ReplaceNode) {
+//                val replaceKey = Pair(it.node, it.node.position)
+//                if(replaceKey in modificationsReplacedNodes)
+//                    throw FatalAstException("there already is a node replacement for $replaceKey - optimizer can't deal with multiple replacements for same node yet. Split the ast modification?")
+//                else
+//                    modificationsReplacedNodes.add(replaceKey)
+//            }
+            modifications += Triple(it, node, parent)
+        }
     }
 
     fun applyModifications(): Int {
@@ -169,6 +179,7 @@ abstract class AstWalker {
         }
         val amount = modifications.size
         modifications.clear()
+//        modificationsReplacedNodes.clear()
         return amount
     }
 
