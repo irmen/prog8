@@ -58,6 +58,7 @@ syn region prog8Asm start="\(%asm\)\@16<=\s\+{{" end="}}" contains=
             \prog8AsmIdentifier,
             \prog8AsmStatement,
             \prog8AsmLabel
+syn sync match prog8AsmSync groupthere prog8Asm "%asm\s\+{{"
 
 syn keyword prog8AsmIdentifier a x y contained
 
