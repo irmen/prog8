@@ -7,6 +7,16 @@ main {
     sub start() {
         txt.print("hello")
 
+        ubyte[] array = [1,2,3,4]
+        ubyte ix
+
+        ubyte a = array[1] + array[ix]
+        a = array[ix] + array[ix]
+        a = array[ix+1] + array[ix]
+        uword multiple=0
+        a = array[lsb(multiple)] + array[ix]
+
+
 ;        str filename = "titlescreen.bin"
 ;        ubyte success = cx16.vload(filename, 8, 0, $0000)
 ;        if success {

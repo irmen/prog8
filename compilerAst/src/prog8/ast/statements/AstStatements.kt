@@ -606,14 +606,11 @@ class AsmGenInfo {
     // Conceptually it should be part of any INameScope.
     // But because the resulting code only creates "real" scopes on a subroutine level,
     // it's more consistent to only define these attributes on a Subroutine node.
-    var usedAutoArrayIndexerForStatements = mutableListOf<ArrayIndexerInfo>()
     var usedRegsaveA = false
     var usedRegsaveX = false
     var usedRegsaveY = false
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
-
-    class ArrayIndexerInfo(val name: String, val replaces: ArrayIndex)
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
