@@ -51,13 +51,20 @@ syn region prog8Expression start="(" end=")" transparent
 syn region prog8Array start="\[" end="\]" transparent
 
 
+if !exists("g:prog8_no_highlight_builtins")
+    runtime! syntax/prog8_builtins.vim
+endif
+
+
 syn region prog8Asm start="\(%asm\)\@16<=\s\+{{" end="}}" contains=
             \prog8Comment,
             \prog8Character,
             \prog8Number,
             \prog8AsmIdentifier,
             \prog8AsmStatement,
-            \prog8AsmLabel
+            \prog8AsmLabel,
+            \prog8BuiltInVar,
+            \prog8BuiltInFunc
 syn sync match prog8AsmSync groupthere prog8Asm "%asm\s\+{{"
 
 syn keyword prog8AsmIdentifier a x y contained
