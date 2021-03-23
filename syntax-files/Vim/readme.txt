@@ -1,3 +1,7 @@
+Vim syntax highlighting definitions.
+Created by Elektron72 on github
+
+
 To install:
     Copy prog8.vim into ~/.vim/syntax/
 
