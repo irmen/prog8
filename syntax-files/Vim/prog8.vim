@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language: Prog8
 " Maintainer: Elektron72
-" Latest Revision: 22 March 2021
+" Latest Revision: 23 March 2021
 
 if exists("b:current_syntax")
     finish
@@ -31,7 +31,7 @@ syn keyword prog8Conditional if_pl if_pos if_mi if_neg
 syn keyword prog8Conditional when
 syn keyword prog8Repeat for while in do until repeat
 syn match prog8Label "\<\w\+\>:"
-syn keyword prog8Operator and or to downto as
+syn keyword prog8Operator and or to downto as void
 
 syn match prog8Directive "\(^\|\s\)%\(target\|output\|launcher\|zeropage\)\>"
 syn match prog8Directive "\(^\|\s\)%\(zpreserved\|address\|import\|option\)\>"
