@@ -65,7 +65,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "pokew" -> funcPokeW(fcall)
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "cmp" -> funcCmp(fcall)
-            else -> TODO("missing asmgen for builtin func ${func.name}")
+            else -> throw AssemblyError("missing asmgen for builtin func ${func.name}")
         }
     }
 
