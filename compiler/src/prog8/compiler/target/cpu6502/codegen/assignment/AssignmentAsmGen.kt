@@ -571,11 +571,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.STR -> {
-                if (targetDt != DataType.UWORD && targetDt == DataType.STR)
-                    throw AssemblyError("cannot typecast a string into another incompatitble type")
-                TODO("assign typecasted string into target var")
-            }
+            DataType.STR -> throw AssemblyError("cannot typecast a string value")
             else -> throw AssemblyError("weird type")
         }
     }
@@ -710,11 +706,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.STR -> {
-                if (targetDt != DataType.UWORD && targetDt == DataType.STR)
-                    throw AssemblyError("cannot typecast a string into another incompatitble type")
-                TODO("assign typecasted string into target var")
-            }
+            DataType.STR -> throw AssemblyError("cannot typecast a string value")
             else -> throw AssemblyError("weird type")
         }
     }

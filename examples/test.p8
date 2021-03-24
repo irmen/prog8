@@ -5,13 +5,14 @@ main {
 
     sub start() {
 
-        ubyte zero
-        ubyte one=1
+        str string1 = "irmen"
+        str string2 = "hello"
 
-        ubyte qq=1
-        qq = qq + c64.CHKIN(1) * qq
+        uword xx = $f000
 
-        txt.print_ub(qq)
+;        string1 = xx
+;        string1 = string2
+        string1 = string2 as uword
 
 ;        ubyte[] array = [1,2,3,4]
 ;        ubyte ix
