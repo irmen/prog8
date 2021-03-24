@@ -9,10 +9,14 @@ main {
         str string2 = "hello"
 
         uword xx = $f000
+        word ww
 
-;        string1 = xx
-;        string1 = string2
-        string1 = string2 as uword
+        ubyte[] arr = [1,2,3]
+        arr = ~ arr
+        cx16.r0 = ~cx16.r0
+        ww = -cx16.r0
+        cx16.r0 = not cx16.r0
+
 
 ;        ubyte[] array = [1,2,3,4]
 ;        ubyte ix

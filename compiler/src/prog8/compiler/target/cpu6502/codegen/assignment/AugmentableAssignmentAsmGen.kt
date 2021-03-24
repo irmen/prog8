@@ -270,8 +270,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            TargetStorageKind.REGISTER -> TODO("reg in-place modification")
-            TargetStorageKind.STACK -> TODO("stack in-place modification")
+            TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg in-place modification")
+            TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack in-place modification")
         }
     }
 
@@ -1732,9 +1732,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    TargetStorageKind.ARRAY -> TODO("in-place not of ubyte array")
-                    TargetStorageKind.REGISTER -> TODO("reg not")
-                    TargetStorageKind.STACK -> TODO("stack not")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place not of ubyte array")
+                    TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg not")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack not")
                 }
             }
             DataType.UWORD -> {
@@ -1751,9 +1751,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory not")
-                    TargetStorageKind.ARRAY -> TODO("in-place not of uword array")
-                    TargetStorageKind.REGISTER -> TODO("reg not")
-                    TargetStorageKind.STACK -> TODO("stack not")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place not of uword array")
+                    TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg not")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack not")
                 }
             }
             else -> throw AssemblyError("boolean-not of invalid type")
@@ -1798,9 +1798,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    TargetStorageKind.ARRAY -> TODO("in-place invert ubyte array")
-                    TargetStorageKind.REGISTER -> TODO("reg invert")
-                    TargetStorageKind.STACK -> TODO("stack invert")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place invert ubyte array")
+                    TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg invert")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack invert")
                 }
             }
             DataType.UWORD -> {
@@ -1815,9 +1815,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for uword-memory invert")
-                    TargetStorageKind.ARRAY -> TODO("in-place invert uword array")
-                    TargetStorageKind.REGISTER -> TODO("reg invert")
-                    TargetStorageKind.STACK -> TODO("stack invert")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place invert uword array")
+                    TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg invert")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack invert")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
@@ -1836,9 +1836,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  ${target.asmVarname}""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("can't in-place negate memory ubyte")
-                    TargetStorageKind.ARRAY -> TODO("in-place negate byte array")
-                    TargetStorageKind.REGISTER -> TODO("reg negate")
-                    TargetStorageKind.STACK -> TODO("stack negate")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place negate byte array")
+                    TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg negate")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack negate")
                 }
             }
             DataType.WORD -> {
@@ -1853,10 +1853,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sbc  ${target.asmVarname}+1
                             sta  ${target.asmVarname}+1""")
                     }
-                    TargetStorageKind.ARRAY -> TODO("in-place negate word array")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place negate word array")
                     TargetStorageKind.MEMORY -> throw AssemblyError("no asm gen for word memory negate")
-                    TargetStorageKind.REGISTER -> TODO("reg negate")
-                    TargetStorageKind.STACK -> TODO("stack negate")
+                    TargetStorageKind.REGISTER -> throw AssemblyError("missing codegen for reg negate")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack negate")
                 }
             }
             DataType.FLOAT -> {
@@ -1869,8 +1869,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  ${target.asmVarname}+1
                         """)
                     }
-                    TargetStorageKind.ARRAY -> TODO("in-place negate float array")
-                    TargetStorageKind.STACK -> TODO("stack float negate")
+                    TargetStorageKind.ARRAY -> throw AssemblyError("missing codegen for in-place negate float array")
+                    TargetStorageKind.STACK -> throw AssemblyError("missing codegen for stack float negate")
                     else -> throw AssemblyError("weird target kind for float")
                 }
             }

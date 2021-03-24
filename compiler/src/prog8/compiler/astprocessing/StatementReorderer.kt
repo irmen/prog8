@@ -298,6 +298,10 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         if(targetVar.arraysize==null)
             errors.err("array has no defined size", assign.position)
 
+        if(assign.value !is IdentifierReference) {
+            errors.err("invalid array value to assign to other array", assign.value.position)
+            return noModifications
+        }
         val sourceIdent = assign.value as IdentifierReference
         val sourceVar = sourceIdent.targetVarDecl(program)!!
         if(!sourceVar.isArray) {
@@ -310,7 +314,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         }
 
         if(!errors.isEmpty())
-            return emptyList()
+            return noModifications
 
         val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),
             mutableListOf(
