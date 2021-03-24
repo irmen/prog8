@@ -1523,9 +1523,42 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                             """)
                         }
                     }
-                }
-                else if(reg.statusflag!=null) {
-                    TODO("statusflag result onto stack")
+                } else when(reg.statusflag) {
+                    Statusflag.Pc -> {
+                        asmgen.out("""
+                            lda  #0
+                            adc  #0
+                            sta  P8ESTACK_LO,x
+                            dex""")
+                    }
+                    Statusflag.Pz -> {
+                        asmgen.out("""
+                            beq  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  P8ESTACK_LO,x
+                            dex""")
+                    }
+                    Statusflag.Pv -> {
+                        asmgen.out("""
+                            bvs  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  P8ESTACK_LO,x
+                            dex""")
+                    }
+                    Statusflag.Pn -> {
+                        asmgen.out("""
+                            bmi  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  P8ESTACK_LO,x
+                            dex""")
+                    }
+                    null -> {}
                 }
             }
         }

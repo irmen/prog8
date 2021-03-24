@@ -1,20 +1,26 @@
-;%target cx16
 %import textio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        txt.print("hello")
 
-        ubyte[] array = [1,2,3,4]
-        ubyte ix
+        ubyte zero
+        ubyte one=1
 
-        ubyte a = array[1] + array[ix]
-        a = array[ix] + array[ix]
-        a = array[ix+1] + array[ix]
-        uword multiple=0
-        a = array[lsb(multiple)] + array[ix]
+        ubyte qq=1
+        qq = qq + c64.CHKIN(1) * qq
+
+        txt.print_ub(qq)
+
+;        ubyte[] array = [1,2,3,4]
+;        ubyte ix
+;
+;        ubyte a = array[1] + array[ix]
+;        a = array[ix] + array[ix]
+;        a = array[ix+1] + array[ix]
+;        uword multiple=0
+;        a = array[lsb(multiple)] + array[ix]
 
 
 ;        str filename = "titlescreen.bin"
