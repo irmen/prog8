@@ -221,8 +221,13 @@ open class VarDecl(val type: VarDeclType,
         value?.linkParents(this)
         if(structName!=null) {
             val structStmt = definingScope().lookup(listOf(structName), this)
-            if(structStmt!=null)
-                struct = definingScope().lookup(listOf(structName), this) as StructDecl
+            if(structStmt!=null) {
+                val node = definingScope().lookup(listOf(structName), this)
+                if(node is StructDecl)
+                    struct = node
+                else
+                    datatypeErrors.add(SyntaxError("invalid datatype declaration", position))
+            }
         }
     }
 

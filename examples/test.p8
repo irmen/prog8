@@ -5,17 +5,30 @@ main {
 
     sub start() {
 
-        str string1 = "irmen"
-        str string2 = "hello"
+        word wvar
+        word wvar2
+        uword uwvar
+        uword uwvar2
+        byte bvar
+        byte bvar2
+        ubyte ubvar
 
-        uword xx = $f000
-        word ww
+        uwvar result
 
-        ubyte[] arr = [1,2,3]
-        arr = ~ arr
-        cx16.r0 = ~cx16.r0
-        ww = -cx16.r0
-        cx16.r0 = not cx16.r0
+        uwvar = 49999
+        uwvar2 = 1234
+        result = uwvar / uwvar2
+        txt.print_uw(result)
+        result = uwvar % uwvar2
+        txt.print_uw(result)
+
+ ;       uwvar %= uwvar2
+
+
+;        wvar /= bvar
+;        uwvar /= bvar
+;        uwvar %= ubvar
+
 
 
 ;        ubyte[] array = [1,2,3,4]
