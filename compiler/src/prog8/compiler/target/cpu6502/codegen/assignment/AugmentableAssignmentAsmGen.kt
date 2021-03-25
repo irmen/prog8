@@ -1051,20 +1051,47 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "/" -> {
                         if(dt==DataType.UWORD) {
-                            TODO("uwordvar / bytevar")
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  $otherName
+                                ldy  #0
+                                jsr  math.divmod_uw_asm
+                                sta  $name
+                                sty  $name+1
+                            """)
                         } else {
-                            TODO("wordvar / bytevar")
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  P8ZP_SCRATCH_W1
+                                sty  P8ZP_SCRATCH_W1+1
+                                lda  $otherName
+                                ldy  #0
+                                jsr  math.divmod_w_asm
+                                sta  $name
+                                sty  $name+1
+                            """)
                         }
                     }
                     "%" -> {
                         if(valueDt!=DataType.UBYTE || dt!=DataType.UWORD)
-                            throw AssemblyError("% expects unsigned operands")
-                        if(dt==DataType.UWORD) {
-                            TODO("uwordvar % ubytevar")
-                        } else {
-                            TODO("wordvar % ubytevar")
-                        }
-                    }
+                            throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  $otherName
+                            ldy  #0
+                            jsr  math.divmod_uw_asm
+                            lda  P8ZP_SCRATCH_W2
+                            sta  $name
+                            lda  P8ZP_SCRATCH_W2+1
+                            sta  $name+1
+                        """)                    }
                     "<<" -> {
                         asmgen.out("""
                         ldy  $otherName
