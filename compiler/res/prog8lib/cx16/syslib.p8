@@ -172,7 +172,7 @@ cx16 {
 
 ; I/O
 
-    const uword  via1   = $9f60                  ;VIA 6522 #1
+    const uword  via1   = $9f00                  ;VIA 6522 #1
     &ubyte  d1prb	= via1+0
     &ubyte  d1pra	= via1+1
     &ubyte  d1ddrb	= via1+2
@@ -190,7 +190,7 @@ cx16 {
     &ubyte  d1ier	= via1+14
     &ubyte  d1ora	= via1+15
 
-    const uword  via2   = $9f70                  ;VIA 6522 #2
+    const uword  via2   = $9f10                  ;VIA 6522 #2
     &ubyte  d2prb	= via2+0
     &ubyte  d2pra	= via2+1
     &ubyte  d2ddrb	= via2+2
@@ -207,6 +207,11 @@ cx16 {
     &ubyte  d2ifr	= via2+13
     &ubyte  d2ier	= via2+14
     &ubyte  d2ora	= via2+15
+
+    &ubyte  ym2151adr	= $9f40
+    &ubyte  ym2151dat	= $9f41
+
+    const uword  extdev	= $9f60
 
 
 ; ---- Commander X-16 additions on top of C64 kernal routines ----
@@ -294,16 +299,14 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
 inline asmsub rombank(ubyte rombank @A) {
     ; -- set the rom banks
     %asm {{
-        sta  $01            ; rom bank register (new)
-        sta  cx16.d1prb     ; rom bank register (old)
+        sta  $01            ; rom bank register (v39+, used to be cx16.d1prb $9f60 in v38)
     }}
 }
 
 inline asmsub rambank(ubyte rambank @A) {
     ; -- set the ram bank
     %asm {{
-        sta  $00            ; ram bank register (new)
-        sta  cx16.d1pra     ; ram bank register (old)
+        sta  $00            ; ram bank register (v39+, used to be cx16.d1pra $9f61 in v38)
     }}
 }
 
@@ -500,9 +503,7 @@ asmsub  init_system()  {
     %asm {{
         sei
         cld
-        ;stz  $00
-        ;stz  $01
-        ;stz  d1prb      ; select rom bank 0 (enable kernal)
+        stz  $01        ; select rom bank 0 (enable kernal)
         lda  #$80
         sta  VERA_CTRL
         jsr  c64.IOINIT
@@ -707,8 +708,7 @@ sys {
         ; Soft-reset the system back to Basic prompt.
         %asm {{
             sei
-            stz  $01            ; bank the kernal in (new rom bank register)
-            stz  cx16.d1prb     ; bank the kernal in (old rom bank register)
+            stz  $01            ; bank the kernal in
             jmp  (cx16.RESET_VEC)
         }}
     }
