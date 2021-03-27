@@ -160,7 +160,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(addr.toHex(), DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, ident)
-                            // TODO more specialized code for types such as memory read etc.  -> inplaceModification_byte_memread_to_variable()
+                            memread != null -> inplaceModification_byte_memread_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
                             value is TypecastExpression -> {
                                 if (tryRemoveRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
