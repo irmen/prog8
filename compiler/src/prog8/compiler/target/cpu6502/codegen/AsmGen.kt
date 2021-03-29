@@ -9,8 +9,8 @@ import prog8.compiler.*
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.FSignature
 import prog8.compiler.target.*
-import prog8.compiler.target.c64.AssemblyProgram
-import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.cbm.AssemblyProgram
+import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import java.io.CharConversionException

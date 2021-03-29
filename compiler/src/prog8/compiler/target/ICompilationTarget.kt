@@ -11,7 +11,7 @@ import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
 import prog8.compiler.Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cx16.CX16MachineDefinition
 import java.nio.file.Path

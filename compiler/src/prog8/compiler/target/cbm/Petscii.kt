@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64
+package prog8.compiler.target.cbm
 
 import java.io.CharConversionException
 
