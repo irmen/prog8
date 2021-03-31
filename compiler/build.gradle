@@ -1,8 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id "org.jetbrains.kotlin.jvm" version "1.4.30"
-    id 'org.jetbrains.dokka' version "0.9.18"
+    id "org.jetbrains.kotlin.jvm" version "1.4.32"
     id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
@@ -21,7 +20,7 @@ dependencies {
     implementation project(':compilerAst')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.2'
     // implementation 'net.razorvine:ksim65:1.8'
     // implementation "com.github.hypfvieh:dbus-java:3.2.4"
 
@@ -96,11 +95,6 @@ test {
     }
 }
 
-
-dokka {
-    outputFormat = 'html'
-    outputDirectory = "$buildDir/kdoc"
-}
 
 task wrapper(type: Wrapper) {
     gradleVersion = '6.7'

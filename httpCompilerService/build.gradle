@@ -2,7 +2,7 @@
 plugins {
     id 'java'
     id 'application'
-    id "org.jetbrains.kotlin.jvm" version "1.4.30"
+    id "org.jetbrains.kotlin.jvm" version "1.4.32"
     id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
@@ -19,7 +19,7 @@ dependencies {
     implementation project(':compiler')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.2'
     implementation "org.takes:takes:1.19"
     implementation "javax.json:javax.json-api:1.1.4"
     implementation "org.glassfish:javax.json:1.1.4"
