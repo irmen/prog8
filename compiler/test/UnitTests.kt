@@ -19,7 +19,7 @@ import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
-import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cx16.CX16MachineDefinition.CX16Zeropage
 import java.io.CharConversionException
 import java.nio.file.Path
