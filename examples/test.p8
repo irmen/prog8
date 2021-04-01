@@ -1,10 +1,26 @@
 %import textio
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
     sub start() {
 
+        ubyte color=0
+        ubyte xx
+        uword ptr = $0400
+
+        @($02) = 0
+
+        repeat {
+            sys.waitvsync()
+            %asm {{
+                ldy  $02
+                lda  #'*'
+                sta  $0400,y
+                inc  $02
+            }}
+        }
         txt.print("hello")
 
 ;        str filename = "titlescreen.bin"

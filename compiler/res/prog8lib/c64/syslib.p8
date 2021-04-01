@@ -503,10 +503,21 @@ sys {
         ;     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
         %asm {{
 -           lda  c64.RASTER
+            beq  -
+-           lda  c64.RASTER
             bne  -
             bit  c64.SCROLY
             bmi  -
             rts
+        }}
+    }
+
+    inline asmsub waitrastborder() {
+        ; --- busy wait till the raster position has reached the bottom screen border (approximately)
+        ;     note: a more accurate way to do this is by using a raster irq handler instead.
+        %asm {{
+-           bit  c64.SCROLY
+            bpl  -
         }}
     }
 
