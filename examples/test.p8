@@ -1,27 +1,11 @@
 %import textio
 %zeropage basicsafe
-%option no_sysinit
 
 main {
 
     sub start() {
-
-        ubyte color=0
-        ubyte xx
-        uword ptr = $0400
-
-        @($02) = 0
-
-        repeat {
-            sys.waitvsync()
-            %asm {{
-                ldy  $02
-                lda  #'*'
-                sta  $0400,y
-                inc  $02
-            }}
-        }
-        txt.print("hello")
+        ubyte thing = otherblock.othersub()
+        txt.print_ub(thing)     ; should print 99!
 
 ;        str filename = "titlescreen.bin"
 ;        ubyte success = cx16.vload(filename, 8, 0, $0000)
@@ -38,3 +22,16 @@ main {
     }
 }
 
+otherblock {
+
+    ubyte othervar=20
+    ubyte calcparam=10
+
+    sub calc(ubyte zz) -> ubyte {
+        return zz+1
+    }
+
+    inline sub othersub() -> ubyte {
+        return calc(calcparam)
+    }
+}

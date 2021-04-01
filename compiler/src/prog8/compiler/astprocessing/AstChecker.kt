@@ -205,7 +205,7 @@ internal class AstChecker(private val program: Program,
 
         if(subroutine.inline) {
             if (subroutine.containsDefinedVariables())
-                err("can't inline a subroutine that defines variables")
+                err("can't inline a subroutine that defines variables (might also be a generated intermediate variable for complex return expressions)")
             if (!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty())
                 err("can't inline a non-asm subroutine that has parameters")
         }
