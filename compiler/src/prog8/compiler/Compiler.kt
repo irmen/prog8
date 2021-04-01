@@ -253,7 +253,8 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     errors.report()
     programAst.addTypecasts(errors)
     errors.report()
-    programAst.variousCleanups()
+    programAst.variousCleanups(programAst, errors, compilerOptions)
+    errors.report()
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)
     errors.report()
     programAst.checkIdentifiers(errors, compilerOptions.compTarget)
@@ -283,7 +284,7 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
 private fun postprocessAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     programAst.addTypecasts(errors)
     errors.report()
-    programAst.variousCleanups()
+    programAst.variousCleanups(programAst, errors, compilerOptions)
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
     errors.report()
     val callGraph = CallGraph(programAst, ::loadAsmIncludeFile)

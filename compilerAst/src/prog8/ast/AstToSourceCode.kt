@@ -137,8 +137,11 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
     override fun visit(subroutine: Subroutine) {
         output("\n")
+        outputi("")
+        if(subroutine.inline)
+            output("inline ")
         if(subroutine.isAsmSubroutine) {
-            outputi("asmsub ${subroutine.name} (")
+            output("asmsub ${subroutine.name} (")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 val reg =
                         when {
@@ -152,7 +155,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             }
         }
         else {
-            outputi("sub ${subroutine.name} (")
+            output("sub ${subroutine.name} (")
             for(param in subroutine.parameters) {
                 output("${datatypeString(param.type)} ${param.name}")
                 if(param!==subroutine.parameters.last())

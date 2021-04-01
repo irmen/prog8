@@ -1,11 +1,12 @@
 %import textio
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
     sub start() {
         ubyte thing = otherblock.othersub()
-        txt.print_ub(thing)     ; should print 99!
+        txt.print_ub(thing)     ; should print 21!
 
 ;        str filename = "titlescreen.bin"
 ;        ubyte success = cx16.vload(filename, 8, 0, $0000)
@@ -22,13 +23,21 @@ main {
     }
 }
 
+block3 {
+    ubyte returnvalue=10
+
+    sub thing()->ubyte {
+        return returnvalue
+    }
+}
+
 otherblock {
 
     ubyte othervar=20
     ubyte calcparam=10
 
     sub calc(ubyte zz) -> ubyte {
-        return zz+1
+        return zz+1+block3.thing()
     }
 
     inline sub othersub() -> ubyte {

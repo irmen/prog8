@@ -711,8 +711,7 @@ internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
     }
 }
 
-data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(),
-    IAssignable {
+data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
     fun targetStatement(program: Program) =

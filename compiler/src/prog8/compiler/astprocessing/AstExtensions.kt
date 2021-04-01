@@ -56,11 +56,13 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, compTarget: ICompi
     }
 }
 
-internal fun Program.variousCleanups() {
-    val process = VariousCleanups()
+internal fun Program.variousCleanups(program: Program, errors: IErrorReporter, options: CompilationOptions) {
+    val process = VariousCleanups(program, errors, options)
     process.visit(this)
-    process.applyModifications()
+    if(errors.isEmpty())
+        process.applyModifications()
 }
+
 
 internal fun Program.moveMainAndStartToFirst() {
     // the module containing the program entrypoint is moved to the first in the sequence.

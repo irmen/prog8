@@ -111,7 +111,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             }
         }
 
-        if(sub.inline && asmgen.options.optimize) {
+        if(!sub.inline || !asmgen.options.optimize) {
+            asmgen.out("  jsr  $subName")
+        } else {
+            // inline the subroutine
             if(sub.containsDefinedVariables())
                 throw AssemblyError("can't inline sub with vars")
             if(!sub.isAsmSubroutine && sub.parameters.isNotEmpty())
@@ -119,9 +122,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             asmgen.out("  \t; inlined routine follows: ${sub.name} from ${sub.position}")
             val statements = sub.statements.filter { it !is ParameterVarDecl && it !is Directive }
             statements.forEach { asmgen.translate(it) }
-        }
-        else {
-            asmgen.out("  jsr  $subName")
         }
 
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
