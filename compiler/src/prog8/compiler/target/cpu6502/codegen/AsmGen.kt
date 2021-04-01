@@ -1272,7 +1272,7 @@ $label              nop""")
         }
     }
 
-    private fun translate(ret: Return) {
+    internal fun translate(ret: Return, withRts: Boolean=true) {
         ret.value?.let { returnvalue ->
             val sub = ret.definingSubroutine()!!
             val returnType = sub.returntypes.single()
@@ -1291,7 +1291,9 @@ $label              nop""")
                 }
             }
         }
-        out("  rts")
+
+        if(withRts)
+            out("  rts")
     }
 
     private fun translate(asm: InlineAssembly) {

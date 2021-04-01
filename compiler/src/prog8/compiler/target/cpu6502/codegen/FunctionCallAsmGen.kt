@@ -114,14 +114,23 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(!sub.inline || !asmgen.options.optimize) {
             asmgen.out("  jsr  $subName")
         } else {
-            // inline the subroutine
+            // inline the subroutine.
+            // we do this by copying the subroutine's statements at the call site.
+            // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
+            // (this condition has been enforced by an ast check earlier)
             if(sub.containsDefinedVariables())
                 throw AssemblyError("can't inline sub with vars")
             if(!sub.isAsmSubroutine && sub.parameters.isNotEmpty())
                 throw AssemblyError("can't inline a non-asm subroutine with parameters")
             asmgen.out("  \t; inlined routine follows: ${sub.name} from ${sub.position}")
             val statements = sub.statements.filter { it !is ParameterVarDecl && it !is Directive }
-            statements.forEach { asmgen.translate(it) }
+            statements.forEach {
+                if(it is Return) {
+                    asmgen.translate(it, false)     // don't use RTS for the inlined return statement
+                } else {
+                    asmgen.translate(it)
+                }
+            }
         }
 
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
