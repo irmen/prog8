@@ -896,3 +896,40 @@ of the library modules to see what's there.
 (They can be found in the compiler/res directory)
 The example programs also use a small set of the library routines, you can study
 their source code to see how they might be used.
+
+
+The 6502 CPU's X-register: off-limits
+-------------------------------------
+
+Prog8 uses the cpu's X-register as a pointer in its internal expression evaluation stack.
+When only writing code in Prog8, this is taken care of behind the scenes for you by the compiler.
+However when you are including or linking with assembly routines or kernal/ROM calls that *do*
+use the X register (either clobbering it internally, or using it as a parameter, or return value register),
+those calls will destroy Prog8's stack pointer and this will result in invalid calculations.
+
+You should avoid using the X register in your assembly code, or take preparations.
+If you make sure that the value of the X register is preserved before calling a routine
+that uses it, and restored when the routine is done, you'll be ok.
+
+Routines that return a value in the X register can be called from Prog8 but the return value is
+inaccessible unless you write a short piece of inline assembly code to deal with it yourself, such as::
+
+    ubyte returnvalue
+
+    %asm {{
+        stx  P8ZP_SCRATCH_REG       ; use 'phx/plx' if using 65c02 cpu
+        ldx  #10
+        jsr  routine_using_x
+        stx  returnvalue
+        ldx  P8ZP_SCRATCH_REG
+    }}
+    ; now use 'returnvalue' variable
+
+Prog8 also provides some help to deal with this:
+
+- you should use a ``clobbers(X)`` specification for asmsub routines that modify the X register; the compiler will preserve it for you automatically when such a routine is called
+- the ``sys.rsave()`` and ``sys.rrestore()`` routines can preserve and restore *all* registers (but this is very slow and overkill if you only need to save X)
+
+
+
+
