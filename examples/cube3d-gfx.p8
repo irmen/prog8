@@ -1,6 +1,5 @@
 %import syslib
 %import graphics
-%import test_stack
 
 ; Note: this program is compatible with C64 and CX16.
 
@@ -37,9 +36,8 @@ main {
             angley+=217
             anglez+=452
 
-            sys.wait(2)
-
-            ; test_stack.test()
+            sys.waitvsync()
+            sys.waitvsync()
         }
     }
 
