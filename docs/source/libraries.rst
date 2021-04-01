@@ -99,6 +99,19 @@ sys (part of syslib)
     Returns the last address of the program in memory + 1.
     Can be used to load dynamic data after the program, instead of hardcoding something.
 
+``wait(uword jiffies)``
+    wait approximately the given number of jiffies (1/60th seconds)
+    note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
+
+``waitvsync()``
+    busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
+    note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
+    note for cx16: the system irq handler has to be active for this to work (this is not required on c64)
+
+``reset_system()``
+    Soft-reset the system back to initial power-on Basic prompt.
+    (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
+
 
 conv
 ----

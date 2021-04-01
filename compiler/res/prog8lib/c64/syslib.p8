@@ -214,7 +214,7 @@ romsub $FFD2 = CHROUT(ubyte char @ A)                           ; (via 806 ($326
 romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> ubyte @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
 romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> ubyte @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
-romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock
+romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
 romsub $FFE1 = STOP() clobbers(X) -> ubyte @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
 romsub $FFE4 = GETIN() clobbers(X,Y) -> ubyte @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
@@ -246,7 +246,7 @@ asmsub STOP2() -> ubyte @A  {
 }
 
 asmsub RDTIM16() -> uword @AY {
-    ; --  like RDTIM() but only returning the lower 16 bits for convenience
+    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
         stx  P8ZP_SCRATCH_REG
         jsr  c64.RDTIM
@@ -478,7 +478,7 @@ sys {
 
 
     asmsub  reset_system()  {
-        ; Soft-reset the system back to Basic prompt.
+        ; Soft-reset the system back to initial power-on Basic prompt.
         %asm {{
             sei
             lda  #14
@@ -489,12 +489,25 @@ sys {
 
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
+        ;     note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
         repeat jiffies {
             ubyte jiff = lsb(c64.RDTIM16())
             while jiff==lsb(c64.RDTIM16()) {
                 ; wait until 1 jiffy has passed
             }
         }
+    }
+
+    asmsub waitvsync() clobbers(A) {
+        ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
+        ;     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
+        %asm {{
+-           lda  c64.RASTER
+            bne  -
+            bit  c64.SCROLY
+            bmi  -
+            rts
+        }}
     }
 
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
