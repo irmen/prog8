@@ -15,6 +15,8 @@ import prog8.compiler.target.ICompilationTarget
 import java.nio.file.Path
 import kotlin.math.floor
 
+private const val retvalName = "prog8_retval"
+
 
 internal class StatementOptimizer(private val program: Program,
                                   private val errors: IErrorReporter,
@@ -25,6 +27,7 @@ internal class StatementOptimizer(private val program: Program,
 
     private val noModifications = emptyList<IAstModification>()
     private val callgraph = CallGraph(program, asmFileLoader)
+    private val subsThatNeedReturnVariable = mutableSetOf<Triple<INameScope, DataType, Position>>()
 
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
@@ -43,6 +46,12 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        for(returnvar in subsThatNeedReturnVariable) {
+            val decl = VarDecl(VarDeclType.VAR, returnvar.second, ZeropageWish.DONTCARE, null, retvalName, null, null, false, true, returnvar.third)
+            returnvar.first.statements.add(0, decl)
+        }
+        subsThatNeedReturnVariable.clear()
+
         val forceOutput = "force_output" in subroutine.definingBlock().options()
         if(subroutine.asmAddress==null && !forceOutput) {
             if(subroutine.containsNoCodeNorVars() && !subroutine.inline) {
@@ -436,18 +445,13 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
-        fun returnViaIntermediary(value: Expression): Iterable<IAstModification>? {
-            val returnDt = returnStmt.definingSubroutine()!!.returntypes.single()
+        fun returnViaIntermediaryVar(value: Expression): Iterable<IAstModification>? {
+            val subr = returnStmt.definingSubroutine()!!
+            val returnDt = subr.returntypes.single()
             if (returnDt in IntegerDatatypes) {
-                // first assign to intermediary, then return that register
-                val returnValueIntermediary =
-                    when(returnDt) {
-                        DataType.UBYTE -> IdentifierReference(listOf("prog8_lib", "retval_interm_ub"), returnStmt.position)
-                        DataType.BYTE -> IdentifierReference(listOf("prog8_lib", "retval_interm_b"), returnStmt.position)
-                        DataType.UWORD -> IdentifierReference(listOf("prog8_lib", "retval_interm_uw"), returnStmt.position)
-                        DataType.WORD -> IdentifierReference(listOf("prog8_lib", "retval_interm_w"), returnStmt.position)
-                        else -> throw FatalAstException("weird return dt")
-                    }
+                // first assign to intermediary variable, then return that
+                subsThatNeedReturnVariable.add(Triple(subr, returnDt, returnStmt.position))
+                val returnValueIntermediary = IdentifierReference(listOf(retvalName), returnStmt.position)
                 val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
                 val assign = Assignment(tgt, value, returnStmt.position)
                 val returnReplacement = Return(returnValueIntermediary, returnStmt.position)
@@ -461,12 +465,12 @@ internal class StatementOptimizer(private val program: Program,
 
         when(returnStmt.value) {
             is PrefixExpression -> {
-                val mod = returnViaIntermediary(returnStmt.value!!)
+                val mod = returnViaIntermediaryVar(returnStmt.value!!)
                 if(mod!=null)
                     return mod
             }
             is BinaryExpression -> {
-                val mod = returnViaIntermediary(returnStmt.value!!)
+                val mod = returnViaIntermediaryVar(returnStmt.value!!)
                 if(mod!=null)
                     return mod
             }
