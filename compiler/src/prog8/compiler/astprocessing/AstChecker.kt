@@ -118,7 +118,7 @@ internal class AstChecker(private val program: Program,
                     }
                     else -> errors.err("loop variable must be numeric type", forLoop.position)
                 }
-                if(errors.isEmpty()) {
+                if(errors.noErrors()) {
                     // check loop range values
                     val range = forLoop.iterable as? RangeExpr
                     if(range!=null) {
@@ -203,12 +203,8 @@ internal class AstChecker(private val program: Program,
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
-        if(subroutine.inline) {
-            if (subroutine.containsDefinedVariables())
-                err("can't inline a subroutine that defines variables (might also be a generated intermediate variable for complex return expressions)")
-            if (!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty())
-                err("can't inline a non-asm subroutine that has parameters")
-        }
+        if(subroutine.inline && !subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty())
+            err("can't inline a non-asm subroutine that has parameters")
 
         super.visit(subroutine)
 

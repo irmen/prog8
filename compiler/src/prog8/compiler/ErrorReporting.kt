@@ -7,7 +7,7 @@ import prog8.parser.ParsingFailedError
 interface IErrorReporter {
     fun err(msg: String, position: Position)
     fun warn(msg: String, position: Position)
-    fun isEmpty(): Boolean
+    fun noErrors(): Boolean
     fun report()
 }
 
@@ -53,5 +53,5 @@ internal class ErrorReporter: IErrorReporter {
             throw ParsingFailedError("There are $numErrors errors and $numWarnings warnings.")
     }
 
-    override fun isEmpty() = messages.isEmpty()
+    override fun noErrors() = messages.none { it.severity==MessageSeverity.ERROR }
 }

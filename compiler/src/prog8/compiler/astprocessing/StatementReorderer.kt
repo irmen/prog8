@@ -313,7 +313,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                 errors.err("element type mismatch", assign.position)
         }
 
-        if(!errors.isEmpty())
+        if(!errors.noErrors())
             return noModifications
 
         val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),

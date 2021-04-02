@@ -42,7 +42,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, compTarget: ICompi
     val checker2 = AstIdentifiersChecker(this, errors, compTarget)
     checker2.visit(this)
 
-    if(errors.isEmpty()) {
+    if(errors.noErrors()) {
         val transforms = AstVariousTransforms(this)
         transforms.visit(this)
         transforms.applyModifications()
@@ -59,7 +59,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, compTarget: ICompi
 internal fun Program.variousCleanups(program: Program, errors: IErrorReporter, options: CompilationOptions) {
     val process = VariousCleanups(program, errors, options)
     process.visit(this)
-    if(errors.isEmpty())
+    if(errors.noErrors())
         process.applyModifications()
 }
 

@@ -6,7 +6,9 @@ main {
 
     sub start() {
         ubyte thing = otherblock.othersub()
-        txt.print_ub(thing)     ; should print 21!
+        ;ubyte thing2 = otherblock.othersub()
+        txt.print_ub(thing)     ; should print 41!
+        ;txt.print_ub(thing2)     ; should print 41!
 
 ;        str filename = "titlescreen.bin"
 ;        ubyte success = cx16.vload(filename, 8, 0, $0000)

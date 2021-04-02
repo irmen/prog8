@@ -10,25 +10,25 @@ import java.nio.file.Path
 internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget) {
     val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
     valuetypefixer.visit(this)
-    if(errors.isEmpty()) {
+    if(errors.noErrors()) {
         valuetypefixer.applyModifications()
 
         val replacer = ConstantIdentifierReplacer(this, errors, compTarget)
         replacer.visit(this)
-        if (errors.isEmpty()) {
+        if (errors.noErrors()) {
             replacer.applyModifications()
 
             valuetypefixer.visit(this)
-            if(errors.isEmpty()) {
+            if(errors.noErrors()) {
                 valuetypefixer.applyModifications()
 
                 val optimizer = ConstantFoldingOptimizer(this, compTarget)
                 optimizer.visit(this)
-                while (errors.isEmpty() && optimizer.applyModifications() > 0) {
+                while (errors.noErrors() && optimizer.applyModifications() > 0) {
                     optimizer.visit(this)
                 }
 
-                if (errors.isEmpty()) {
+                if (errors.noErrors()) {
                     replacer.visit(this)
                     replacer.applyModifications()
                 }
@@ -36,7 +36,7 @@ internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilati
         }
     }
 
-    if(errors.isEmpty())
+    if(errors.noErrors())
         modules.forEach { it.linkParents(namespace) }   // re-link in final configuration
 }
 

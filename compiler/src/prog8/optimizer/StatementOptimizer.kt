@@ -15,7 +15,7 @@ import prog8.compiler.target.ICompilationTarget
 import java.nio.file.Path
 import kotlin.math.floor
 
-private const val retvalName = "prog8_retval"
+internal const val retvarName = "prog8_retval"
 
 
 internal class StatementOptimizer(private val program: Program,
@@ -47,7 +47,7 @@ internal class StatementOptimizer(private val program: Program,
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         for(returnvar in subsThatNeedReturnVariable) {
-            val decl = VarDecl(VarDeclType.VAR, returnvar.second, ZeropageWish.DONTCARE, null, retvalName, null, null, false, true, returnvar.third)
+            val decl = VarDecl(VarDeclType.VAR, returnvar.second, ZeropageWish.DONTCARE, null, retvarName, null, null, false, true, returnvar.third)
             returnvar.first.statements.add(0, decl)
         }
         subsThatNeedReturnVariable.clear()
@@ -451,8 +451,8 @@ internal class StatementOptimizer(private val program: Program,
             if (returnDt in IntegerDatatypes) {
                 // first assign to intermediary variable, then return that
                 subsThatNeedReturnVariable.add(Triple(subr, returnDt, returnStmt.position))
-                val returnValueIntermediary1 = IdentifierReference(listOf(retvalName), returnStmt.position)
-                val returnValueIntermediary2 = IdentifierReference(listOf(retvalName), returnStmt.position)
+                val returnValueIntermediary1 = IdentifierReference(listOf(retvarName), returnStmt.position)
+                val returnValueIntermediary2 = IdentifierReference(listOf(retvarName), returnStmt.position)
                 val tgt = AssignTarget(returnValueIntermediary1, null, null, returnStmt.position)
                 val assign = Assignment(tgt, value, returnStmt.position)
                 val returnReplacement = Return(returnValueIntermediary2, returnStmt.position)
