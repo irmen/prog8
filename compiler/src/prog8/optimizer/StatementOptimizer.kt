@@ -403,7 +403,7 @@ internal class StatementOptimizer(private val program: Program,
                                 // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
                                 val incs = AnonymousScope(mutableListOf(), assignment.position)
                                 repeat(rightCv.toInt()) {
-                                    incs.statements.add(PostIncrDecr(assignment.target, "++", assignment.position))
+                                    incs.statements.add(PostIncrDecr(assignment.target.copy(), "++", assignment.position))
                                 }
                                 return listOf(IAstModification.ReplaceNode(assignment, incs, parent))
                             }
@@ -417,7 +417,7 @@ internal class StatementOptimizer(private val program: Program,
                                 // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
                                 val decs = AnonymousScope(mutableListOf(), assignment.position)
                                 repeat(rightCv.toInt()) {
-                                    decs.statements.add(PostIncrDecr(assignment.target, "--", assignment.position))
+                                    decs.statements.add(PostIncrDecr(assignment.target.copy(), "--", assignment.position))
                                 }
                                 return listOf(IAstModification.ReplaceNode(assignment, decs, parent))
                             }
