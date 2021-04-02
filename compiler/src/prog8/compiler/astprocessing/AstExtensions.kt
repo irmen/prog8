@@ -56,8 +56,8 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, compTarget: ICompi
     }
 }
 
-internal fun Program.variousCleanups(program: Program, errors: IErrorReporter, options: CompilationOptions) {
-    val process = VariousCleanups(program, errors, options)
+internal fun Program.variousCleanups(errors: IErrorReporter) {
+    val process = VariousCleanups(errors)
     process.visit(this)
     if(errors.noErrors())
         process.applyModifications()

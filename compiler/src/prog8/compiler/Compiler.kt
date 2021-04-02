@@ -96,7 +96,7 @@ fun compileProgram(filepath: Path,
             importedFiles = imported
             processAst(programAst, errors, compilationOptions)
             if (compilationOptions.optimize)
-                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
+                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compilationOptions)
             postprocessAst(programAst, errors, compilationOptions)
 
             // printAst(programAst)
@@ -253,7 +253,7 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     errors.report()
     programAst.addTypecasts(errors)
     errors.report()
-    programAst.variousCleanups(programAst, errors, compilerOptions)
+    programAst.variousCleanups(errors)
     errors.report()
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)
     errors.report()
@@ -261,7 +261,7 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     errors.report()
 }
 
-private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
+private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget, options: CompilationOptions) {
     // optimize the parse tree
     println("Optimizing...")
     while (true) {
@@ -275,16 +275,24 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
             break
     }
 
-    val remover = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
-    remover.visit(programAst)
-    remover.applyModifications()
+    val inliner = SubroutineInliner(programAst, errors, options)
+    inliner.visit(programAst)
+    errors.report()
+    if(errors.noErrors()) {
+        inliner.applyModifications()
+        inliner.fixCallsToInlinedSubroutines()
+        val remover = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
+        remover.visit(programAst)
+        remover.applyModifications()
+    }
+
     errors.report()
 }
 
 private fun postprocessAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     programAst.addTypecasts(errors)
     errors.report()
-    programAst.variousCleanups(programAst, errors, compilerOptions)
+    programAst.variousCleanups(errors)
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
     errors.report()
     val callGraph = CallGraph(programAst, ::loadAsmIncludeFile)
