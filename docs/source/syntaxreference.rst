@@ -550,7 +550,7 @@ and can have nothing following it. The close curly brace must be on its own line
 The parameters is a (possibly empty) comma separated list of "<datatype> <parametername>" pairs specifying the input parameters.
 The return type has to be specified if the subroutine returns a value.
 The ``inline`` keyword makes their code copied in-place to the locations where the subroutine is called,
-rather than having an actual call and return to the subroutine. This is meant for trivial subroutines only
+rather than having an actual call and return to the subroutine. This is meant for very small subroutines only
 as it can increase code size significantly.
 
 

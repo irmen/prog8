@@ -642,7 +642,7 @@ Subroutines can be defined in a Block, but also nested inside another subroutine
 With ``asmsub`` you can define a low-level subroutine that is implemented in inline assembly and takes any parameters
 in registers directly.
 
-Trivial subroutines can be tagged as inline to tell the compiler to copy their code
+Trivial subroutines can be tagged as ``inline`` to tell the compiler to copy their code
 in-place to the locations where the subroutine is called, rather than inserting an actual call and return to the
 subroutine. This may increase code size significantly and can only be used in limited scenarios, so YMMV.
 
