@@ -70,7 +70,7 @@ internal class AstChecker(private val program: Program,
         if(expectedReturnValues.size==1 && returnStmt.value!=null) {
             val valueDt = returnStmt.value!!.inferType(program)
             if(!valueDt.isKnown) {
-                errors.err("return value type mismatch", returnStmt.value!!.position)
+                errors.err("return value type mismatch or unknown symbol", returnStmt.value!!.position)
             } else {
                 if (expectedReturnValues[0] != valueDt.typeOrElse(DataType.STRUCT))
                     errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}", returnStmt.value!!.position)

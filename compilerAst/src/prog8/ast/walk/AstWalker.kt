@@ -157,7 +157,7 @@ abstract class AstWalker {
     open fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> = emptyList()
     open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = emptyList()
 
-    private val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
+    protected val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
     // private val modificationsReplacedNodes = mutableSetOf<Pair<Node, Position>>()
 
     private fun track(mods: Iterable<IAstModification>, node: Node, parent: Node) {

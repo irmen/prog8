@@ -26,7 +26,7 @@ main {
 block3 {
     ubyte returnvalue=10
 
-    sub thing()->ubyte {
+    inline sub thing()->ubyte {
         return returnvalue
     }
 }
@@ -41,6 +41,6 @@ otherblock {
     }
 
     inline sub othersub() -> ubyte {
-        return calc(calcparam)
+        return calc(calcparam)+othervar
     }
 }

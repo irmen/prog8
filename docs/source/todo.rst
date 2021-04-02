@@ -3,6 +3,7 @@ TODO
 ====
 
 - allow inlining of subroutines with vardecls
+- allow inlining of subroutines with params
 - optimize several inner loops in gfx2
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))

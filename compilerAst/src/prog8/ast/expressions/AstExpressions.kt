@@ -271,6 +271,8 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun toString(): String {
         return "ArrayIndexed(ident=$arrayvar, arraysize=$indexer; pos=$position)"
     }
+
+    fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)
 }
 
 class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
@@ -351,6 +353,8 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
     }
+
+    fun copy() =  DirectMemoryRead(addressExpression, position)
 }
 
 class NumericLiteralValue(val type: DataType,    // only numerical types allowed

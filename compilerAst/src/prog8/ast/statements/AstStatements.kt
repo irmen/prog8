@@ -312,6 +312,7 @@ class ArrayIndex(var indexExpr: Expression,
     fun constIndex() = (indexExpr as? NumericLiteralValue)?.number?.toInt()
 
     infix fun isSameAs(other: ArrayIndex): Boolean = indexExpr isSameAs other.indexExpr
+    fun copy() = ArrayIndex(indexExpr, position)
 }
 
 open class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
@@ -429,9 +430,10 @@ data class AssignTarget(var identifier: IdentifierReference?,
     }
 
     fun toExpression(): Expression {
+        // return a copy of the assignment target but as a source expression.
         return when {
-            identifier != null -> identifier!!
-            arrayindexed != null -> arrayindexed!!
+            identifier != null -> identifier!!.copy()
+            arrayindexed != null -> arrayindexed!!.copy()
             memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression, memoryAddress.position)
             else -> throw FatalAstException("invalid assignmenttarget $this")
         }
@@ -476,6 +478,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
         }
         return false
     }
+
+    fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), position)
 }
 
 
@@ -992,4 +996,5 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    fun copy() = DirectMemoryWrite(addressExpression, position)
 }

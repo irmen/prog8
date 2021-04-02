@@ -1,5 +1,6 @@
 package prog8.optimizer
 
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
@@ -58,12 +59,13 @@ X =      BinExpr                                    X   =   LeftExpr
                     return noModifications
 
                 if(isSimpleExpression(binExpr.right) && !assignment.isAugmentable) {
-                    val firstAssign = Assignment(assignment.target, binExpr.left, binExpr.left.position)
+                    val firstAssign = Assignment(assignment.target.copy(), binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
                     return listOf(
-                            IAstModification.InsertBefore(assignment, firstAssign, assignment.definingScope()),
-                            IAstModification.ReplaceNode(assignment.value, augExpr, assignment))
+                        IAstModification.ReplaceNode(binExpr, augExpr, assignment),
+                        IAstModification.InsertBefore(assignment, firstAssign, assignment.parent as INameScope)
+                    )
                 }
             }
 

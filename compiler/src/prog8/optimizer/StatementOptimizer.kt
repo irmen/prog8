@@ -451,10 +451,11 @@ internal class StatementOptimizer(private val program: Program,
             if (returnDt in IntegerDatatypes) {
                 // first assign to intermediary variable, then return that
                 subsThatNeedReturnVariable.add(Triple(subr, returnDt, returnStmt.position))
-                val returnValueIntermediary = IdentifierReference(listOf(retvalName), returnStmt.position)
-                val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
+                val returnValueIntermediary1 = IdentifierReference(listOf(retvalName), returnStmt.position)
+                val returnValueIntermediary2 = IdentifierReference(listOf(retvalName), returnStmt.position)
+                val tgt = AssignTarget(returnValueIntermediary1, null, null, returnStmt.position)
                 val assign = Assignment(tgt, value, returnStmt.position)
-                val returnReplacement = Return(returnValueIntermediary, returnStmt.position)
+                val returnReplacement = Return(returnValueIntermediary2, returnStmt.position)
                 return listOf(
                     IAstModification.InsertBefore(returnStmt, assign, parent as INameScope),
                     IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
