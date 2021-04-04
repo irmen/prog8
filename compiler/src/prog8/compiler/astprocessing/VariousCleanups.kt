@@ -30,6 +30,7 @@ internal class VariousCleanups(val errors: IErrorReporter): AstWalker() {
             val idx = into.statements.indexOf(scope)
             if(idx>=0) {
                 into.statements.addAll(idx+1, scope.statements)
+                scope.statements.forEach { it.parent = into as Node }
                 into.statements.remove(scope)
             }
         }

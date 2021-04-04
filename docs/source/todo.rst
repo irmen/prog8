@@ -2,8 +2,6 @@
 TODO
 ====
 
-- fix crash parent node mismatch with -noopt (textelite)
-
 - implement new 'unused' in CallGraph for more node types
 
 - allow inlining of subroutines with params

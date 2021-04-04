@@ -22,9 +22,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             val decls = decl.flattenStructMembers()
             decls.add(decl)
             val result = AnonymousScope(decls, decl.position)
-            return listOf(IAstModification.ReplaceNode(
-                    decl, result, parent
-            ))
+            return listOf(IAstModification.ReplaceNode(decl, result, parent))
         }
 
         return noModifications
