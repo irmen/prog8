@@ -10,14 +10,14 @@
 main {
     sub start() {
         cx16.screen_set_mode(0)
-        txt.print("\n\n how many sprites does\n    the commander x16 have?\n")
-        sys.wait(180)
-        txt.print("\n\n the manual says: '128'.\n")
-        sys.wait(80)
-        txt.print("\n\n but that's just a manual...\n")
-        sys.wait(80)
-        txt.print("\n\n let's find out for ourselves,\n        shall we?")
-        sys.wait(180)
+;        txt.print("\n\n how many sprites does\n    the commander x16 have?\n")
+;        sys.wait(180)
+;        txt.print("\n\n the manual says: '128'.\n")
+;        sys.wait(80)
+;        txt.print("\n\n but that's just a manual...\n")
+;        sys.wait(80)
+;        txt.print("\n\n let's find out for ourselves,\n        shall we?")
+;        sys.wait(180)
 
         ; enable bitmap mode 320x240, 1 bpp, only layer 1
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000
@@ -50,9 +50,9 @@ main {
     ubyte backbuffer = num_backbuffers-1
     ubyte blitbuffer = 0
     uword anim1 = $0432
-    uword anim2 = $0123
-    uword anim3 = $4321
-    uword anim4 = $8500
+    uword anim2 = $f123
+    uword anim3 = $e321
+    uword anim4 = $7500
 
     sub irq() {
 
@@ -98,7 +98,7 @@ main {
     sub blit(ubyte vmembase) {
         ubyte bank = vmembase>=32
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
-        uword blit_x = (cos8u(msb(anim1)) as uword) + sin8u(msb(anim2))/5
+        uword blit_x = (cos8u(msb(anim1)) as uword) + sin8u(msb(anim2))/6
         ubyte blit_y = sin8u(msb(anim3))/2  + cos8u(msb(anim4))/5
         vmem += blit_x/8 + (blit_y as uword) * 40
 
@@ -139,10 +139,10 @@ main {
         for ix in 2 to len(shifted_sprite)-1 step 3
             cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
-        anim1 += 217
-        anim2 += 190
-        anim3 += 222
-        anim4 += 195
+        anim1 += 117
+        anim2 += 90
+        anim3 += 122
+        anim4 += 145
     }
 
     sub bitshift(ubyte shift) {
@@ -288,41 +288,41 @@ main {
     ]
 
     uword[16] sprite = [
-        %0000000000000000,
-        %0110001110000000,
-        %0101001001000000,
-        %0100111001000000,
-        %0100000000100000,
-        %0101001000100000,
-        %0101001000110000,
-        %0100100000101000,
-        %0101111000101000,
-        %0010000001010100,
-        %0001111110010100,
-        %0001000000010000,
-        %0001000000010000,
-        %0001010111010000,
-        %0001101100110000,
-        %0000000000000000
+        %0000001111000000,
+        %0001111111111000,
+        %0011111110101100,
+        %0111111011010010,
+        %0111111010100010,
+        %0111110100001010,
+        %1111101000100001,
+        %1111010000000001,
+        %1111000100100001,
+        %1110100000000001,
+        %0110001000000010,
+        %0101000000000010,
+        %0100000000000010,
+        %0010100000000100,
+        %0001110000111000,
+        %0000001111000000
     ]
 
     uword[16] mask = [
-        %1111111111111111,
-        %1000000001111111,
-        %1000000000111111,
-        %1000000000111111,
-        %1000000000011111,
-        %1000000000011111,
-        %1000000000001111,
-        %1000000000000111,
-        %1000000000000111,
-        %1100000000001011,
-        %1110000000001011,
-        %1110000000001111,
-        %1110000000001111,
-        %1110000000001111,
-        %1110010011001111,
-        %1111111111111111
+        %1111110000111111,
+        %1110000000000111,
+        %1100000000000011,
+        %1000000000000001,
+        %1000000000000001,
+        %1000000000000001,
+        %0000000000000000,
+        %0000000000000000,
+        %0000000000000000,
+        %0000000000000000,
+        %1000000000000001,
+        %1000000000000001,
+        %1000000000000001,
+        %1100000000000011,
+        %1110000000000111,
+        %1111110000111111
     ]
 
     ubyte[16*3] shifted_sprite
