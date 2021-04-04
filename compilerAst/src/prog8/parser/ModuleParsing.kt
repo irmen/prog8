@@ -41,8 +41,8 @@ class ModuleImporter {
         if(!Files.isReadable(filePath))
             throw ParsingFailedError("No such file: $filePath")
 
-        val input = CharStreams.fromPath(filePath)
-        return importModule(program, input, filePath, false, encoder, compilationTargetName)
+        val content = Files.readAllBytes(filePath).toString(Charsets.UTF_8).replace("\r\n", "\n")
+        return importModule(program, CharStreams.fromString(content), filePath, false, encoder, compilationTargetName)
     }
 
     fun importLibraryModule(program: Program, name: String,
@@ -122,7 +122,8 @@ class ModuleImporter {
                     val (resource, resourcePath) = rsc
                     resource.use {
                         println("importing '$moduleName' (library)")
-                        importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$resourcePath"),
+                        val content = it.readAllBytes().toString(Charsets.UTF_8).replace("\r\n", "\n")
+                        importModule(program, CharStreams.fromString(content), Paths.get("@embedded@/$resourcePath"),
                             true, encoder, compilationTargetName)
                     }
                 } else {

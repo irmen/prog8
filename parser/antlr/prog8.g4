@@ -5,6 +5,7 @@ NOTES:
 
 - whitespace is ignored. (tabs/spaces)
 - every position can be empty, be a comment, or contain ONE statement.
+- input is assumed to be a text file with UNIX line endings (\n).
 
 */
 
@@ -14,10 +15,10 @@ grammar prog8;
 package prog8.parser;
 }
 
-LINECOMMENT : [\r\n][ \t]* COMMENT -> channel(HIDDEN);
-COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
+LINECOMMENT : [\n][ \t]* COMMENT -> channel(HIDDEN);
+COMMENT :  ';' ~[\n]* -> channel(HIDDEN) ;
 WS :  [ \t] -> skip ;
-EOL :  [\r\n]+ ;
+EOL :  [\n]+ ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
 NAME :  [a-zA-Z][a-zA-Z0-9_]* ;
