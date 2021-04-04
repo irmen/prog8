@@ -62,6 +62,8 @@ class ModuleImporter {
                 is prog8Parser -> System.err.println("${recognizer.inputStream.sourceName}:$line:$charPositionInLine: $msg")
                 else -> System.err.println("$line:$charPositionInLine $msg")
             }
+            if(numberOfErrors>=5)
+                throw ParsingFailedError("There are too many parse errors. Stopping.")
         }
     }
 
