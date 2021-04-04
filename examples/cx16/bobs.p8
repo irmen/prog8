@@ -10,14 +10,14 @@
 main {
     sub start() {
         cx16.screen_set_mode(0)
-;        txt.print("\n\n how many sprites does\n    the commander x16 have?\n")
-;        sys.wait(180)
-;        txt.print("\n\n the manual says: '128'.\n")
-;        sys.wait(80)
-;        txt.print("\n\n but that's just a manual...\n")
-;        sys.wait(80)
-;        txt.print("\n\n let's find out for ourselves,\n        shall we?")
-;        sys.wait(180)
+        txt.print("\n\n how many sprites does\n    the commander x16 have?\n")
+        sys.wait(120)
+        txt.print("\n\n the manual says: '128'.\n")
+        sys.wait(80)
+        txt.print("\n\n but that's just a manual...\n")
+        sys.wait(80)
+        txt.print("\n\n let's find out for ourselves,\n        shall we?")
+        sys.wait(180)
 
         ; enable bitmap mode 320x240, 1 bpp, only layer 1
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000
