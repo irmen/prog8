@@ -4,8 +4,12 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.Position
-import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.statements.FunctionCallStatement
+import prog8.ast.statements.Return
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.CompilationOptions
@@ -13,7 +17,6 @@ import prog8.compiler.IErrorReporter
 
 
 internal class SubroutineInliner(private val program: Program, val errors: IErrorReporter, private val compilerOptions: CompilationOptions): AstWalker() {
-    private val noModifications = emptyList<IAstModification>()
     private var callsToInlinedSubroutines = mutableListOf<Pair<IFunctionCall, Node>>()
 
     fun fixCallsToInlinedSubroutines() {

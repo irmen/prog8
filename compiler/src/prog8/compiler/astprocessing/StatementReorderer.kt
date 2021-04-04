@@ -26,7 +26,6 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc).
 
-    private val noModifications = emptyList<IAstModification>()
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
     override fun after(module: Module, parent: Node): Iterable<IAstModification> {

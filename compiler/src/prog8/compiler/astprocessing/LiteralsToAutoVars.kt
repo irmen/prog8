@@ -13,7 +13,6 @@ import prog8.ast.walk.IAstModification
 
 
 internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
-    private val noModifications = emptyList<IAstModification>()
 
     override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {

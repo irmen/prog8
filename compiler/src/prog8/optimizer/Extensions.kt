@@ -4,7 +4,6 @@ import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
-import java.nio.file.Path
 
 
 internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget) {
@@ -43,9 +42,8 @@ internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilati
 
 internal fun Program.optimizeStatements(errors: IErrorReporter,
                                         functions: IBuiltinFunctions,
-                                        compTarget: ICompilationTarget,
-                                        asmFileLoader: (filename: String, source: Path)->String): Int {
-    val optimizer = StatementOptimizer(this, errors, functions, compTarget, asmFileLoader)
+                                        compTarget: ICompilationTarget): Int {
+    val optimizer = StatementOptimizer(this, errors, functions, compTarget)
     optimizer.visit(this)
     val optimizationCount = optimizer.applyModifications()
 

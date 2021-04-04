@@ -14,7 +14,6 @@ import kotlin.math.pow
 
 
 internal class ConstantFoldingOptimizer(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
-    private val noModifications = emptyList<IAstModification>()
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
         // @( &thing )  -->  thing

@@ -264,11 +264,16 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
 private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget, options: CompilationOptions) {
     // optimize the parse tree
     println("Optimizing...")
+
+    val remover = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
+    remover.visit(programAst)
+    remover.applyModifications()
+
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = programAst.simplifyExpressions()
         val optsDone2 = programAst.splitBinaryExpressions(compTarget)
-        val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget, ::loadAsmIncludeFile)
+        val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget)
         programAst.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
         if (optsDone1 + optsDone2 + optsDone3 == 0)
@@ -281,9 +286,9 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
     if(errors.noErrors()) {
         inliner.applyModifications()
         inliner.fixCallsToInlinedSubroutines()
-        val remover = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
-        remover.visit(programAst)
-        remover.applyModifications()
+        val remover2 = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
+        remover2.visit(programAst)
+        remover2.applyModifications()
     }
 
     errors.report()

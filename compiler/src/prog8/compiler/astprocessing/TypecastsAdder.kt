@@ -18,8 +18,6 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
      * (this includes function call arguments)
      */
 
-    private val noModifications = emptyList<IAstModification>()
-
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val declValue = decl.value
         if(decl.type==VarDeclType.VAR && declValue!=null && decl.struct==null) {

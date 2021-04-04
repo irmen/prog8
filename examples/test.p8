@@ -1,4 +1,3 @@
-%import textio
 %zeropage basicsafe
 
 main {
@@ -9,6 +8,26 @@ main {
 ; Comment here
                            4,5,6 ]
 
-        txt.print_ub(len(array))
+        ubyte zz = len(array)
+
+        ubyte foobar
+        empty2()
+
+        %asm {{
+            lda  foobar
+        }}
+    }
+
+    sub nix() {
+    }
+
+    sub empty2() {
+    }
+}
+
+derp {
+    sub nix2() {
+        ubyte zz
+        zz++
     }
 }

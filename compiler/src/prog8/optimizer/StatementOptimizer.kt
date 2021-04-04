@@ -12,7 +12,6 @@ import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
-import java.nio.file.Path
 import kotlin.math.floor
 
 internal const val retvarName = "prog8_retval"
@@ -21,29 +20,10 @@ internal const val retvarName = "prog8_retval"
 internal class StatementOptimizer(private val program: Program,
                                   private val errors: IErrorReporter,
                                   private val functions: IBuiltinFunctions,
-                                  private val compTarget: ICompilationTarget,
-                                  asmFileLoader: (filename: String, source: Path)->String
-) : AstWalker() {
+                                  private val compTarget: ICompilationTarget) : AstWalker() {
 
-    private val noModifications = emptyList<IAstModification>()
-    private val callgraph = CallGraph(program, asmFileLoader)
     private val subsThatNeedReturnVariable = mutableSetOf<Triple<INameScope, DataType, Position>>()
 
-    override fun after(block: Block, parent: Node): Iterable<IAstModification> {
-        if("force_output" !in block.options()) {
-            if (block.containsNoCodeNorVars()) {
-                if(block.name != program.internedStringsModuleName)
-                    errors.warn("removing empty block '${block.name}'", block.position)
-                return listOf(IAstModification.Remove(block, parent as INameScope))
-            }
-
-            if (block !in callgraph.usedSymbols) {
-                errors.warn("removing unused block '${block.name}'", block.position)
-                return listOf(IAstModification.Remove(block, parent as INameScope))
-            }
-        }
-        return noModifications
-    }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         for(returnvar in subsThatNeedReturnVariable) {
@@ -51,38 +31,6 @@ internal class StatementOptimizer(private val program: Program,
             returnvar.first.statements.add(0, decl)
         }
         subsThatNeedReturnVariable.clear()
-
-        val forceOutput = "force_output" in subroutine.definingBlock().options()
-        if(subroutine.asmAddress==null && !forceOutput) {
-            if(subroutine.containsNoCodeNorVars() && !subroutine.inline) {
-                errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
-                val removals = callgraph.calledBy.getValue(subroutine).map {
-                    IAstModification.Remove(it, it.definingScope())
-                }.toMutableList()
-                removals += IAstModification.Remove(subroutine, subroutine.definingScope())
-                return removals
-            }
-        }
-
-        if(subroutine !in callgraph.usedSymbols && !forceOutput) {
-            if(!subroutine.isAsmSubroutine) {
-                errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
-                return listOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
-            }
-        }
-
-        return noModifications
-    }
-
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        val forceOutput = "force_output" in decl.definingBlock().options()
-        if(decl !in callgraph.usedSymbols && !forceOutput) {
-            if(decl.type == VarDeclType.VAR)
-                errors.warn("removing unused variable '${decl.name}'", decl.position)
-
-            return listOf(IAstModification.Remove(decl, decl.definingScope()))
-        }
-
         return noModifications
     }
 

@@ -13,7 +13,6 @@ import prog8.compiler.IErrorReporter
 
 
 internal class VariousCleanups(val errors: IErrorReporter): AstWalker() {
-    private val noModifications = emptyList<IAstModification>()
 
     override fun before(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(nopStatement, parent as INameScope))

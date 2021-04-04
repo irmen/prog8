@@ -1,8 +1,10 @@
 package prog8.optimizer
 
 import prog8.ast.INameScope
+import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.PrefixExpression
@@ -18,38 +20,16 @@ import java.nio.file.Path
 internal class UnusedCodeRemover(private val program: Program,
                                  private val errors: IErrorReporter,
                                  private val compTarget: ICompilationTarget,
-                                 private val asmFileLoader: (filename: String, source: Path)->String): AstWalker() {
+                                 asmFileLoader: (filename: String, source: Path)->String): AstWalker() {
 
-    override fun before(program: Program, parent: Node): Iterable<IAstModification> {
-        val callgraph = CallGraph(program, asmFileLoader)
-        val removals = mutableListOf<IAstModification>()
+    private val callgraph = CallGraph(program, asmFileLoader)
 
-        // remove all subroutines that aren't called, or are empty
-        // NOTE: part of this is also done already in the StatementOptimizer
-        val entrypoint = program.entrypoint()
-        program.modules.forEach {
-            callgraph.forAllSubroutines(it) { sub ->
-                val forceOutput = "force_output" in sub.definingBlock().options()
-                if (sub !== entrypoint && !forceOutput && !sub.isAsmSubroutine && (callgraph.calledBy[sub].isNullOrEmpty() || sub.containsNoCodeNorVars())) {
-                    removals.add(IAstModification.Remove(sub, sub.definingScope()))
-                }
-            }
-        }
-
-        program.modules.flatMap { it.statements }.filterIsInstance<Block>().forEach { block ->
-            if (block.containsNoCodeNorVars() && "force_output" !in block.options())
-                removals.add(IAstModification.Remove(block, block.definingScope()))
-        }
-
-        // remove modules that are not imported, or are empty (unless it's a library modules)
-        program.modules.forEach {
-            if (!it.isLibraryModule && (it.importedBy.isEmpty() || it.containsNoCodeNorVars()))
-                removals.add(IAstModification.Remove(it, it.definingScope()))
-        }
-
-        return removals
+    override fun before(module: Module, parent: Node): Iterable<IAstModification> {
+        return if (!module.isLibraryModule && (module.importedBy.isEmpty() || module.containsNoCodeNorVars()))
+            listOf(IAstModification.Remove(module, module.definingScope()))
+        else
+            noModifications
     }
-
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         reportUnreachable(breakStmt, parent as INameScope)
@@ -85,13 +65,56 @@ internal class UnusedCodeRemover(private val program: Program,
     }
 
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
+        if("force_output" !in block.options()) {
+            if (block.containsNoCodeNorVars()) {
+                if(block.name != program.internedStringsModuleName)
+                    errors.warn("removing unused block '${block.name}'", block.position)
+                return listOf(IAstModification.Remove(block, parent as INameScope))
+            }
+            if(callgraph.unused(block)) {
+                errors.warn("removing unused block '${block.name}'", block.position)
+                return listOf(IAstModification.Remove(block, parent as INameScope))
+            }
+        }
+
         val removeDoubleAssignments = deduplicateAssignments(block.statements)
         return removeDoubleAssignments.map { IAstModification.Remove(it, block) }
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        val forceOutput = "force_output" in subroutine.definingBlock().options()
+        if (subroutine !== program.entrypoint() && !forceOutput && !subroutine.inline && !subroutine.isAsmSubroutine) {
+            if(callgraph.unused(subroutine)) {
+                if(!subroutine.definingModule().isLibraryModule)
+                    errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
+                return listOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
+            }
+            if(subroutine.containsNoCodeNorVars()) {
+                if(!subroutine.definingModule().isLibraryModule)
+                    errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
+                val removals = mutableListOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
+                callgraph.calledBy[subroutine]?.let {
+                    for(node in it)
+                        removals.add(IAstModification.Remove(node, node.definingScope()))
+                }
+                return removals
+            }
+        }
+
         val removeDoubleAssignments = deduplicateAssignments(subroutine.statements)
         return removeDoubleAssignments.map { IAstModification.Remove(it, subroutine) }
+    }
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        val forceOutput = "force_output" in decl.definingBlock().options()
+        if(!forceOutput && callgraph.unused(decl)) {
+            if(decl.type == VarDeclType.VAR)
+                errors.warn("removing unused variable '${decl.name}'", decl.position)
+
+            return listOf(IAstModification.Remove(decl, decl.definingScope()))
+        }
+
+        return noModifications
     }
 
     private fun deduplicateAssignments(statements: List<Statement>): List<Assignment> {

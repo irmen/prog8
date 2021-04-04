@@ -14,7 +14,6 @@ import prog8.ast.walk.IAstModification
 
 
 internal class AstVariousTransforms(private val program: Program) : AstWalker() {
-    private val noModifications = emptyList<IAstModification>()
 
     override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         // is it a struct variable? then define all its struct members as mangled names,

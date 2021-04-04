@@ -12,7 +12,6 @@ import prog8.compiler.target.ICompilationTarget
 
 
 internal class BinExprSplitter(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
-    private val noModifications = emptyList<IAstModification>()
 
 //    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 // TODO somehow if we do this, the resulting code for some programs (cube3d.p8) gets hundreds of bytes larger...:
