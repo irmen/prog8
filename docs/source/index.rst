@@ -42,8 +42,9 @@ Language features
 -----------------
 
 - It is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
-  The generated output is a machine code program runnable on actual 8-bit 6502 hardware.
-- Provide a very convenient edit/compile/run cycle by being able to directly launch
+  It generates a machine code program runnable on actual 8-bit 6502 hardware.
+- Fast execution speed due to compilation to native assembly code. It's possible to write certain raster interrupt 'demoscene' effects purely in Prog8.
+- Provides a very convenient edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - Based on simple and familiar imperative structured programming (it looks like a mix of C and Python)
 - Modular programming and scoping via modules, code blocks, and subroutines.
@@ -57,6 +58,7 @@ Language features
 - Variable data types include signed and unsigned bytes and words, arrays, strings and floats.
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
+- Programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the C64.
 - If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
 
@@ -162,11 +164,11 @@ If you're targeting the CommanderX16 instead, there's the `x16emu <https://githu
     :maxdepth: 2
     :caption: Contents of this manual:
 
-    targetsystem.rst
     building.rst
     programming.rst
     syntaxreference.rst
     libraries.rst
+    targetsystem.rst
     technical.rst
     todo.rst
 
