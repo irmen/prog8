@@ -200,13 +200,32 @@ class CallGraph(private val program: Program, private val asmFileLoader: (filena
         return false
     }
 
-    fun unused(stmt: ISymbolStatement): Boolean {
-        if(stmt is Subroutine)
-            return calledBy[stmt].isNullOrEmpty()   // TODO also check inline assembly if it uses the subroutine
+    fun unused(sub: Subroutine): Boolean {
+        return calledBy[sub].isNullOrEmpty()   // TODO also check inline assembly if it uses the subroutine
+    }
 
-        // TODO implement algorithm to check usages of other things:
-        // stmt can be: Block, Label, VarDecl (including ParameterVarDecl), Subroutine, StructDecl.
-        // NOTE also check inline assembly blocks that may reference a name.
-        return false
+    fun unused(block: Block): Boolean {
+        return false    // TODO implement unused check for Block, also check inline asm
+    }
+
+    fun unused(decl: VarDecl): Boolean {
+        return false    // TODO implement unused check for vardecls, also check inline asm
+    }
+
+    fun unused(struct: StructDecl): Boolean {
+        return false    // TODO implement unused check for struct decls, also check inline asm
+    }
+
+    inline fun unused(label: Label) = false   // just always output labels
+
+    fun unused(stmt: ISymbolStatement): Boolean {
+        return when(stmt) {
+            is Subroutine -> unused(stmt)
+            is Block -> unused(stmt)
+            is VarDecl -> unused(stmt)
+            is Label -> false   // just always output labels
+            is StructDecl -> unused(stmt)
+            else -> false
+        }
     }
 }
