@@ -71,29 +71,27 @@ internal fun Program.moveMainAndStartToFirst() {
 
     val directives = modules[0].statements.filterIsInstance<Directive>()
     val start = this.entrypoint()
-    if(start!=null) {
-        val mod = start.definingModule()
-        val block = start.definingBlock()
-        if(!modules.remove(mod))
-            throw FatalAstException("module wrong")
-        modules.add(0, mod)
-        mod.remove(block)
-        var afterDirective = mod.statements.indexOfFirst { it !is Directive }
-        if(afterDirective<0)
-            mod.statements.add(block)
-        else
-            mod.statements.add(afterDirective, block)
-        block.remove(start)
-        afterDirective = block.statements.indexOfFirst { it !is Directive }
-        if(afterDirective<0)
-            block.statements.add(start)
-        else
-            block.statements.add(afterDirective, start)
+    val mod = start.definingModule()
+    val block = start.definingBlock()
+    if(!modules.remove(mod))
+        throw FatalAstException("module wrong")
+    modules.add(0, mod)
+    mod.remove(block)
+    var afterDirective = mod.statements.indexOfFirst { it !is Directive }
+    if(afterDirective<0)
+        mod.statements.add(block)
+    else
+        mod.statements.add(afterDirective, block)
+    block.remove(start)
+    afterDirective = block.statements.indexOfFirst { it !is Directive }
+    if(afterDirective<0)
+        block.statements.add(start)
+    else
+        block.statements.add(afterDirective, start)
 
-        // overwrite the directives in the module containing the entrypoint
-        for(directive in directives) {
-            modules[0].statements.removeAll { it is Directive && it.directive == directive.directive }
-            modules[0].statements.add(0, directive)
-        }
+    // overwrite the directives in the module containing the entrypoint
+    for(directive in directives) {
+        modules[0].statements.removeAll { it is Directive && it.directive == directive.directive }
+        modules[0].statements.add(0, directive)
     }
 }

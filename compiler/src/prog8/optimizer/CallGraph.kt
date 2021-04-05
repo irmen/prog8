@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
@@ -17,9 +18,35 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val importedBy = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
     val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
     val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
+    private val allIdentifiers = mutableSetOf<IdentifierReference>()
 
     init {
         visit(program)
+    }
+
+    private val usedSubroutines: Set<Subroutine> by lazy {
+        // TODO also check inline assembly if it uses the subroutine
+        calledBy.keys
+    }
+
+    private val usedBlocks: Set<Block> by lazy {
+        // TODO also check inline assembly if it uses the block
+        val blocksFromSubroutines = usedSubroutines.map { it.definingBlock() }
+        val blocksFromLibraries = program.allBlocks().filter { it.isInLibrary }
+        val used = mutableSetOf<Block>()
+
+        allIdentifiers.forEach {
+            if(it.definingBlock() in blocksFromSubroutines) {
+                val target = it.targetStatement(program)!!.definingBlock()
+                used.add(target)
+            }
+        }
+
+        used + blocksFromLibraries + program.entrypoint().definingBlock()
+    }
+
+    private val usedModules: Set<Module> by lazy {
+        program.modules.toSet() // TODO
     }
 
     override fun visit(directive: Directive) {
@@ -77,6 +104,10 @@ class CallGraph(private val program: Program) : IAstVisitor {
         super.visit(jump)
     }
 
+    override fun visit(identifier: IdentifierReference) {
+        allIdentifiers.add(identifier)
+    }
+
     fun checkRecursiveCalls(errors: IErrorReporter) {
         val cycles = recursionCycles()
         if(cycles.any()) {
@@ -128,13 +159,11 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return false
     }
 
-    fun unused(sub: Subroutine): Boolean {
-        return calledBy[sub].isNullOrEmpty()   // TODO also check inline assembly if it uses the subroutine
-    }
+    fun unused(module: Module) = module !in usedModules
 
-    fun unused(block: Block): Boolean {
-        return false    // TODO implement unused check for Block, also check inline asm
-    }
+    fun unused(sub: Subroutine) = sub !in usedSubroutines
+
+    fun unused(block: Block) = block !in usedBlocks
 
     fun unused(decl: VarDecl): Boolean {
         return false    // TODO implement unused check for vardecls, also check inline asm
@@ -142,10 +171,6 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     fun unused(struct: StructDecl): Boolean {
         return false    // TODO implement unused check for struct decls, also check inline asm
-    }
-
-    fun unused(module: Module): Boolean {
-        return false        // TODO
     }
 
     inline fun unused(label: Label) = false   // just always output labels

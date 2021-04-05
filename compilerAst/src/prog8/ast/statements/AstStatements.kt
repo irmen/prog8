@@ -35,8 +35,7 @@ sealed class Statement : Node {
 }
 
 
-class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : Statement() {
-    override var parent: Node = ParentSentinel
+class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position, override var parent: Node) : Statement() {
     override fun linkParents(parent: Node) {}
     override fun accept(visitor: IAstVisitor) = throw FatalAstException("should not iterate over this node")
     override fun accept(visitor: AstWalker, parent: Node) = throw FatalAstException("should not iterate over this node")

@@ -720,7 +720,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     fun targetStatement(program: Program) =
         if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
-            BuiltinFunctionStatementPlaceholder(nameInSource[0], position)
+            BuiltinFunctionStatementPlaceholder(nameInSource[0], position, parent)
         else
             program.namespace.lookup(nameInSource, this)
 

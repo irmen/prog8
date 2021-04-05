@@ -283,15 +283,13 @@ class Program(val name: String,
         }
     }
 
-    fun entrypoint(): Subroutine? {
+    fun entrypoint(): Subroutine {
         val mainBlocks = allBlocks().filter { it.name=="main" }
         if(mainBlocks.size > 1)
             throw FatalAstException("more than one 'main' block")
-        return if(mainBlocks.isEmpty()) {
-            null
-        } else {
-            mainBlocks[0].subScope("start") as Subroutine?
-        }
+        if(mainBlocks.isEmpty())
+            throw FatalAstException("no 'main' block")
+        return mainBlocks[0].subScope("start") as Subroutine
     }
 
     fun internString(string: StringLiteralValue): List<String> {
