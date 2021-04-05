@@ -727,7 +727,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     fun targetVarDecl(program: Program): VarDecl? = targetStatement(program) as? VarDecl
     fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
 
-    override fun equals(other: Any?) = other is IdentifierReference && other.nameInSource==nameInSource
+    override fun equals(other: Any?) = other is IdentifierReference && other.nameInSource==nameInSource     // NOTE: only compare by the name, not the position!
     override fun hashCode() = nameInSource.hashCode()
 
     override fun linkParents(parent: Node) {
