@@ -14,18 +14,16 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
-import java.nio.file.Path
 
 
 internal class UnusedCodeRemover(private val program: Program,
                                  private val errors: IErrorReporter,
-                                 private val compTarget: ICompilationTarget,
-                                 asmFileLoader: (filename: String, source: Path)->String): AstWalker() {
+                                 private val compTarget: ICompilationTarget): AstWalker() {
 
-    private val callgraph = CallGraph(program, asmFileLoader)
+    private val callgraph = CallGraph(program)
 
     override fun before(module: Module, parent: Node): Iterable<IAstModification> {
-        return if (!module.isLibraryModule && (module.importedBy.isEmpty() || module.containsNoCodeNorVars()))
+        return if (!module.isLibraryModule && (module.containsNoCodeNorVars() || callgraph.unused(module)))
             listOf(IAstModification.Remove(module, module.definingScope()))
         else
             noModifications

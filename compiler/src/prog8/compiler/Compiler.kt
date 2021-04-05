@@ -265,7 +265,7 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
     // optimize the parse tree
     println("Optimizing...")
 
-    val remover = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
+    val remover = UnusedCodeRemover(programAst, errors, compTarget)
     remover.visit(programAst)
     remover.applyModifications()
 
@@ -286,7 +286,7 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
     if(errors.noErrors()) {
         inliner.applyModifications()
         inliner.fixCallsToInlinedSubroutines()
-        val remover2 = UnusedCodeRemover(programAst, errors, compTarget, ::loadAsmIncludeFile)
+        val remover2 = UnusedCodeRemover(programAst, errors, compTarget)
         remover2.visit(programAst)
         remover2.applyModifications()
     }
@@ -300,7 +300,7 @@ private fun postprocessAst(programAst: Program, errors: IErrorReporter, compiler
     programAst.variousCleanups(errors)
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
     errors.report()
-    val callGraph = CallGraph(programAst, ::loadAsmIncludeFile)
+    val callGraph = CallGraph(programAst)
     callGraph.checkRecursiveCalls(errors)
     errors.report()
     programAst.verifyFunctionArgTypes()

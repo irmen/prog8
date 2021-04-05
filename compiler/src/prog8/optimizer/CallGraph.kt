@@ -9,36 +9,17 @@ import prog8.ast.expressions.FunctionCall
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
-import java.nio.file.Path
-
-private val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr|bra)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
-private val asmRefRx = Regex("""[\-+a-zA-Z0-9_ \t]+(...)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
 
 
-class CallGraph(private val program: Program, private val asmFileLoader: (filename: String, source: Path)->String) : IAstVisitor {
+class CallGraph(private val program: Program) : IAstVisitor {
 
-    val imports = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
-    val importedBy = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
-    val calls = mutableMapOf<Subroutine, List<Subroutine>>().withDefault { mutableListOf() }
-    val calledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
+    val imports = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
+    val importedBy = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
+    val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
+    val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
 
     init {
         visit(program)
-    }
-
-    override fun visit(program: Program) {
-        super.visit(program)
-
-        program.modules.forEach {
-            it.importedBy.clear()
-            it.imports.clear()
-
-            it.importedBy.addAll(importedBy.getValue(it))
-            it.imports.addAll(imports.getValue(it))
-        }
-
-        val rootmodule = program.modules.first()
-        rootmodule.importedBy.add(rootmodule)       // don't discard root module
     }
 
     override fun visit(directive: Directive) {
@@ -47,12 +28,6 @@ class CallGraph(private val program: Program, private val asmFileLoader: (filena
             val importedModule: Module = program.modules.single { it.name == directive.args[0].name }
             imports[thisModule] = imports.getValue(thisModule).plus(importedModule)
             importedBy[importedModule] = importedBy.getValue(importedModule).plus(thisModule)
-        } else if (directive.directive == "%asminclude") {
-            val asm = asmFileLoader(directive.args[0].str!!, thisModule.source)
-            val scope = directive.definingSubroutine()
-            if(scope!=null) {
-                scanAssemblyCode(asm, directive, scope)
-            }
         }
 
         super.visit(directive)
@@ -100,53 +75,6 @@ class CallGraph(private val program: Program, private val asmFileLoader: (filena
             }
         }
         super.visit(jump)
-    }
-
-    override fun visit(inlineAssembly: InlineAssembly) {
-        // parse inline asm for subroutine calls (jmp, jsr, bra)
-        val scope = inlineAssembly.definingSubroutine()
-        scanAssemblyCode(inlineAssembly.assembly, inlineAssembly, scope)
-        super.visit(inlineAssembly)
-    }
-
-    private fun scanAssemblyCode(asm: String, context: Statement, scope: Subroutine?) {
-        asm.lines().forEach { line ->
-            val matches = asmJumpRx.matchEntire(line)
-            if (matches != null) {
-                val jumptarget = matches.groups[2]?.value
-                if (jumptarget != null && (jumptarget[0].isLetter() || jumptarget[0] == '_')) {
-                    val node = program.namespace.lookup(jumptarget.split('.'), context)
-                    if (node is Subroutine) {
-                        if(scope!=null)
-                            calls[scope] = calls.getValue(scope).plus(node)
-                        calledBy[node] = calledBy.getValue(node).plus(context)
-                    } else if (jumptarget.contains('.')) {
-                        // maybe only the first part already refers to a subroutine
-                        val node2 = program.namespace.lookup(listOf(jumptarget.substringBefore('.')), context)
-                        if (node2 is Subroutine) {
-                            if(scope!=null)
-                                calls[scope] = calls.getValue(scope).plus(node2)
-                            calledBy[node2] = calledBy.getValue(node2).plus(context)
-                        }
-                    }
-                }
-            } else {
-                val matches2 = asmRefRx.matchEntire(line)
-                if (matches2 != null) {
-                    val target = matches2.groups[2]?.value
-                    if (target != null && (target[0].isLetter() || target[0] == '_')) {
-                        if (target.contains('.')) {
-                            val node = program.namespace.lookup(listOf(target.substringBefore('.')), context)
-                            if (node is Subroutine) {
-                                if(scope!=null)
-                                    calls[scope] = calls.getValue(scope).plus(node)
-                                calledBy[node] = calledBy.getValue(node).plus(context)
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     fun checkRecursiveCalls(errors: IErrorReporter) {
@@ -214,6 +142,10 @@ class CallGraph(private val program: Program, private val asmFileLoader: (filena
 
     fun unused(struct: StructDecl): Boolean {
         return false    // TODO implement unused check for struct decls, also check inline asm
+    }
+
+    fun unused(module: Module): Boolean {
+        return false        // TODO
     }
 
     inline fun unused(label: Label) = false   // just always output labels
