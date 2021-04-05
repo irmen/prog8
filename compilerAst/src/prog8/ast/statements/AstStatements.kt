@@ -948,7 +948,7 @@ class WhenChoice(var values: MutableList<Expression>?,           // if null,  th
 
 class StructDecl(override val name: String,
                  override var statements: MutableList<Statement>,      // actually, only vardecls here
-                 override val position: Position): Statement(), INameScope, ISymbolStatement {
+                 override val position: Position): Statement(), INameScope {
 
     override lateinit var parent: Node
 
