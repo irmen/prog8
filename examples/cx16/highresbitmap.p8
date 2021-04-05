@@ -2,7 +2,7 @@
 %import gfx2
 %import floats
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
 

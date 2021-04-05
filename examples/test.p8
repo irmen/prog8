@@ -1,33 +1,36 @@
-%zeropage basicsafe
+%import textio
+%import floats
+%zeropage dontuse
 
 main {
 
     sub start() {
-
-        ubyte[6] array = [ 1,2,3,
-; Comment here
-                           4,5,6 ]
-
-        ubyte zz = len(array)
-
-        ubyte foobar
-        empty2()
+        float f1 = 9.9999
+        float f2 = 8.8888
+        float f3 = 0.1111
 
         %asm {{
-            lda  foobar
+            phx
+            ldy  #<f1
+            lda  #>f1
+            jsr  $FE42
+            jsr  $FE7B
+            plx
         }}
-    }
+        f3=cos(f3)
 
-    sub nix() {
-    }
+        floats.print_f(f1)
+        txt.nl()
+        floats.print_f(f2)
+        txt.nl()
+        floats.print_f(f3)
+        txt.nl()
+        f3 = cos(f3)
+        floats.print_f(f3)
 
-    sub empty2() {
-    }
-}
+        txt.print("ok!\n")
 
-derp {
-    sub nix2() {
-        ubyte zz
-        zz++
+        sys.wait(2*60)
+
     }
 }

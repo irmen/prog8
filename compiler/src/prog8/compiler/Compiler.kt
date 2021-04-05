@@ -214,7 +214,7 @@ private fun determineCompilationOptions(program: Program, compTarget: ICompilati
                 }
 
     if (zpType==ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.name) {
-        System.err.println("Warning: Cx16 target must use zp option basicsafe instead of floatsafe")
+        System.err.println("Warning: cx16 target must use zp option basicsafe instead of floatsafe")
         zpType = ZeropageType.BASICSAFE
     }
 

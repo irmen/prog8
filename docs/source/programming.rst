@@ -233,6 +233,10 @@ to worry about this yourself)
 
 The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
 
+.. note::
+    On the Commander X16, to use floating point operations, ROM bank 4 has to be enabled (BASIC).
+    Importing the ``floats`` library will do this for you if needed.
+
 
 Arrays
 ^^^^^^

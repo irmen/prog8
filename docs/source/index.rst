@@ -148,6 +148,8 @@ For MacOS you can use the Homebrew system to install a recent version of OpenJDK
 Finally: an **emulator** (or a real machine ofcourse) to test and run your programs on.
 In C64 mode, thhe compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
 If you're targeting the CommanderX16 instead, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
+Make sure you use cx16 emulator and roms **V39 or newer**! Starting from version 6.5, prog8 targets that system version.
+Your program may work on V38 but that will only be by luck.
 
 .. important::
     **Building the compiler itself:** (*Only needed if you have not downloaded a pre-built 'fat-jar'*)

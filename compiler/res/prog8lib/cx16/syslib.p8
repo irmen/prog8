@@ -503,9 +503,9 @@ asmsub  init_system()  {
     %asm {{
         sei
         cld
-        stz  $01        ; select rom bank 0 (enable kernal)
         lda  #$80
         sta  VERA_CTRL
+        stz  $01        ; select rom bank 0 (enable kernal)
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
@@ -517,6 +517,8 @@ asmsub  init_system()  {
         jsr  c64.CHROUT
         lda  #147       ; clear screen
         jsr  c64.CHROUT
+        ldx  #4
+        stx  $01        ; select rom bank 4 (enable basic again)
         lda  #0
         tax
         tay
