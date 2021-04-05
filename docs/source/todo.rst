@@ -2,8 +2,6 @@
 TODO
 ====
 
-- check use of float NEGOP vs NEGFAC for cx16
-
 - allow inlining of subroutines with params
 - optimize several inner loops in gfx2
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)

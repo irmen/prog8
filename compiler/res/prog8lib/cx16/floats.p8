@@ -42,7 +42,6 @@ romsub $fe12 = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt valu
 romsub $fe15 = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2
 romsub $fe1b = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
 romsub $fe1e = NORMAL() clobbers(A,X,Y)                     ; normalize fac1 (?)
-romsub $fe21 = NEGFAC() clobbers(A,X,Y)                     ; fac1 = -fac1
 romsub $fe24 = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
 romsub $fe27 = FMULT(uword mflpt @ AY) clobbers(A,X,Y)      ; fac1 *= mflpt value from A/Y
 romsub $fe2a = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
@@ -67,7 +66,7 @@ romsub $fe78 = FINLOG(byte value @A) clobbers (A, X, Y)           ; fac1 += sign
 romsub $fe7b = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
 romsub $fe81 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 romsub $fe84 = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
-romsub $fe8a = NEGOP() clobbers(A,X,Y)                      ; fac1 = -fac1-1
+romsub $fe8a = NEGOP() clobbers(A)                          ; switch the sign of fac1 (fac1 = -fac1)
 romsub $fe8d = EXP() clobbers(A,X,Y)                        ; fac1 = EXP(fac1)  (e ** fac1)
 romsub $fe96 = RND() clobbers(A,X,Y)                        ; fac1 = RND(fac1) float random number generator
 romsub $fe99 = COS() clobbers(A,X,Y)                        ; fac1 = COS(fac1)
