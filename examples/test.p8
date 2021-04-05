@@ -1,22 +1,15 @@
 %import textio
 %import floats
-%zeropage dontuse
+%zeropage basicsafe
 
 main {
 
     sub start() {
+        ;cx16.rombank(4)
         float f1 = 9.9999
         float f2 = 8.8888
         float f3 = 0.1111
 
-        %asm {{
-            phx
-            ldy  #<f1
-            lda  #>f1
-            jsr  $FE42
-            jsr  $FE7B
-            plx
-        }}
         f3=cos(f3)
 
         floats.print_f(f1)
@@ -28,9 +21,10 @@ main {
         f3 = cos(f3)
         floats.print_f(f3)
 
+        cx16.rombank(0)
+
         txt.print("ok!\n")
 
         sys.wait(2*60)
-
     }
 }

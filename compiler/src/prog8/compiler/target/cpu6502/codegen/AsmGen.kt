@@ -157,7 +157,12 @@ internal class AsmGen(private val program: Program,
                 pha""")
         }
 
-        jmp("main.start")
+        // make sure that on the cx16 and c64, basic rom is banked in again when we exit the program
+        when(compTarget.name) {
+            Cx16Target.name -> out("  jsr  main.start |  lda  #4 |  sta  $01 |  rts")
+            C64Target.name -> out("  jsr  main.start |  lda  #31 |  sta  $01 |  rts")
+            else -> jmp("main.start")
+        }
     }
 
     private fun slaballocations() {

@@ -517,8 +517,6 @@ asmsub  init_system()  {
         jsr  c64.CHROUT
         lda  #147       ; clear screen
         jsr  c64.CHROUT
-        ldx  #4
-        stx  $01        ; select rom bank 4 (enable basic again)
         lda  #0
         tax
         tay
