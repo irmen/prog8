@@ -2,8 +2,6 @@
 TODO
 ====
 
-- make the floats lib set rombank 4 on cx16 and set sysinit back to rombank 0 (kernal only)
-- make sure rombank is back to 4 on cx16 when program exits back to basic
 - check use of float NEGOP vs NEGFAC for cx16
 
 - allow inlining of subroutines with params

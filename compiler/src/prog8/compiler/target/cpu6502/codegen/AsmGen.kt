@@ -159,7 +159,11 @@ internal class AsmGen(private val program: Program,
 
         // make sure that on the cx16 and c64, basic rom is banked in again when we exit the program
         when(compTarget.name) {
-            Cx16Target.name -> out("  jsr  main.start |  lda  #4 |  sta  $01 |  rts")
+            Cx16Target.name -> {
+                if(options.floats)
+                    out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
+                out("  jsr  main.start |  lda  #4 |  sta  $01 |  rts")
+            }
             C64Target.name -> out("  jsr  main.start |  lda  #31 |  sta  $01 |  rts")
             else -> jmp("main.start")
         }

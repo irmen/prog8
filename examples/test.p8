@@ -1,6 +1,6 @@
 %import textio
 %import floats
-%zeropage basicsafe
+%zeropage floatsafe
 
 main {
 
@@ -21,7 +21,7 @@ main {
         f3 = cos(f3)
         floats.print_f(f3)
 
-        cx16.rombank(0)
+        ;cx16.rombank(0)
 
         txt.print("ok!\n")
 

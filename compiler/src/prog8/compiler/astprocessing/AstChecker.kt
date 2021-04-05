@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
+import prog8.compiler.ZeropageType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.C64Target
@@ -39,6 +40,11 @@ internal class AstChecker(private val program: Program,
                 if (startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
                     errors.err("program entrypoint subroutine can't have parameters and/or return values", startSub.position)
             }
+        }
+
+        if(compilerOptions.floats) {
+            if (compilerOptions.zeropage !in setOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+                errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.mainModule.position)
         }
 
         super.visit(program)
