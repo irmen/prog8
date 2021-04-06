@@ -365,6 +365,7 @@ io_error:
         c64.SETNAM(string.length(filenameptr), filenameptr)
         c64.SETLFS(1, drivenumber, 0)
         uword end_address = address + size
+        first_byte = 0      ; result var reuse
 
         %asm {{
             lda  address
@@ -381,7 +382,6 @@ io_error:
             plp
         }}
 
-        first_byte = 0      ; result var reuse
         if_cc
             first_byte = c64.READST()==0
 
