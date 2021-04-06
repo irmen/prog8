@@ -1,34 +1,30 @@
 %import textio
-%import floats
-%zeropage floatsafe
+%zeropage basicsafe
 
 main {
 
     sub start() {
-        float f1 = 9.9999
-        float f2 = 8.8888
-        float f3 = 0.1111
+        uword[] uw_arr = [1111,2222,3333]
+        word[] w_arr = [1111,2222,3333]
 
-        uword fs
+        ubyte ub = 42
+        byte bb = -42
+        ubyte ix = 2
 
-        %asm {{
-            phx
-            lda  #<f1
-            ldy  #>f1
-            jsr  floats.MOVFM
-            jsr  floats.NEGOP
-            jsr  floats.FOUT
-            sta  fs
-            sty  fs+1
-            plx
-        }}
+        uw_arr[1] = ub
+        w_arr[1] = bb
 
-        txt.print_uwhex(fs,1)
+        txt.print_uw(uw_arr[1])
         txt.nl()
-        txt.print(fs)
+        txt.print_w(w_arr[1])
         txt.nl()
 
-        txt.print("ok!\n")
-        sys.wait(2*60)
+        uw_arr[ix] = ub
+        w_arr[ix] = bb
+
+        txt.print_uw(uw_arr[1])
+        txt.nl()
+        txt.print_w(w_arr[1])
+
     }
 }

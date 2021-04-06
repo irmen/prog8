@@ -431,8 +431,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
 
         // give up, do it via eval stack
-        // TODO optimize typecasts for more special cases?
         // note: cannot use assignTypeCastedValue because that is ourselves :P
+        // TODO optimize typecasts for more special cases?
         if(this.asmgen.options.slowCodegenWarnings)
             println("warning: slow stack evaluation used for typecast: $value into $targetDt (target=${target.kind} at ${value.position}")
         asmgen.translateExpression(origTypeCastExpression)      // this performs the actual type cast in translateExpression(Typecast)
@@ -1236,11 +1236,20 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     """)
             }
             TargetStorageKind.ARRAY -> {
-                // TODO optimize slow stack evaluation for this case, see assignVariableUByteIntoWord
-                if(this.asmgen.options.slowCodegenWarnings)
-                    println("warning: slow stack evaluation used for sign-extend byte typecast at ${bytevar.position}")
-                asmgen.translateExpression(wordtarget.origAssign.source.expression!!)
-                assignStackValue(wordtarget)
+                if (wordtarget.constArrayIndexValue!=null) {
+                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2
+                    asmgen.out("  lda  $sourceName")
+                    asmgen.signExtendAYlsb(DataType.BYTE)
+                    asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
+                }
+                else {
+                    asmgen.saveRegisterLocal(CpuRegister.X, wordtarget.scope!!)
+                    asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array!!, wordtarget.datatype, CpuRegister.X)
+                    asmgen.out("  lda  $sourceName")
+                    asmgen.signExtendAYlsb(DataType.BYTE)
+                    asmgen.out("  sta  ${wordtarget.asmVarname},x |  inx |  tya |  sta  ${wordtarget.asmVarname},x")
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
+                }
             }
             TargetStorageKind.REGISTER -> {
                 when(wordtarget.register!!) {

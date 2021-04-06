@@ -688,8 +688,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sec
                     sbc  P8ZP_SCRATCH_B1
                     sta  $name""")
-                // TODO: tuned code for more operators
             }
+            // TODO: tuned code for more operators
             else -> {
                 inplaceModification_byte_value_to_variable(name, dt, operator, memread)
             }
@@ -719,8 +719,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     bcc  +
                     dec  $name+1
 +""")
-                // TODO: tuned code for more operators
             }
+            // TODO: tuned code for more operators
             else -> {
                 inplaceModification_word_value_to_variable(name, dt, operator, memread)
             }
