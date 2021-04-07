@@ -4,27 +4,22 @@
 main {
 
     sub start() {
-        uword[] uw_arr = [1111,2222,3333]
-        word[] w_arr = [1111,2222,3333]
+;        cx16.rambank(4)
+;        cx16.rambank(4)
+;        cx16.rambank(4)
+;        cx16.rambank(4)
+;        cx16.rambank(4)
+        uword yy = 12345
+        ubyte xx
+        xx = calc2(41, 12345)
+        xx = calc2(41, 12345)
+        xx = calc2(41, 12345)
+        xx = calc2(41, 12345)
+        txt.print_ub(xx)        ; must be 99
+    }
 
-        ubyte ub = 42
-        byte bb = -42
-        ubyte ix = 2
-
-        uw_arr[1] = ub
-        w_arr[1] = bb
-
-        txt.print_uw(uw_arr[1])
-        txt.nl()
-        txt.print_w(w_arr[1])
-        txt.nl()
-
-        uw_arr[ix] = ub
-        w_arr[ix] = bb
-
-        txt.print_uw(uw_arr[1])
-        txt.nl()
-        txt.print_w(w_arr[1])
-
+    inline sub calc2(ubyte a1, uword a2) -> ubyte {
+        uword thesum = a2 + a1
+        return lsb(thesum+a2)
     }
 }

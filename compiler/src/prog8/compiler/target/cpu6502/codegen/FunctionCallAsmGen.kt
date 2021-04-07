@@ -118,9 +118,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             // we do this by copying the subroutine's statements at the call site.
             // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
             // (this condition has been enforced by an ast check earlier)
-            if(!sub.isAsmSubroutine && sub.parameters.isNotEmpty())
-                throw AssemblyError("can't inline a non-asm subroutine with parameters")
-            asmgen.out("  \t; inlined routine follows: ${sub.name} from ${sub.position}")
+            asmgen.out("  \t; inlined routine follows: ${sub.name}")
             val statements = sub.statements.filter { it !is ParameterVarDecl && it !is Directive }
             statements.forEach {
                 if(it is Return) {
@@ -129,6 +127,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     asmgen.translate(it)
                 }
             }
+            asmgen.out("  \t; inlined routine end: ${sub.name}")
         }
 
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller

@@ -13,6 +13,7 @@ import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
+import prog8.optimizer.CallGraph
 import java.io.CharConversionException
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -32,6 +33,7 @@ internal class AsmGen(private val program: Program,
     // for expressions and augmented assignments:
     val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320)
+    private val callGraph = CallGraph(program)
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -830,9 +832,18 @@ internal class AsmGen(private val program: Program,
 
 
     private fun translateSubroutine(sub: Subroutine) {
+        var onlyVariables = false
+
         if(sub.inline) {
-            if(options.optimize)
-                return      // inline subroutines don't exist anymore on their own
+            if(options.optimize) {
+                if(sub.isAsmSubroutine ||callGraph.unused(sub))
+                    return
+
+                // from an inlined subroutine only the local variables are generated,
+                // all other code statements are omitted in the subroutine itself
+                // (they've been inlined at the call site, remember?)
+                onlyVariables = true
+            }
             else if(sub.amountOfRtsInAsm()==0) {
                 // make sure the NOT INLINED subroutine actually does an rts at the end
                 sub.statements.add(Return(null, Position.DUMMY))
@@ -849,7 +860,7 @@ internal class AsmGen(private val program: Program,
 
             // asmsub with most likely just an inline asm in it
             out("${sub.name}\t.proc")
-            sub.statements.forEach{ translate(it) }
+            sub.statements.forEach { translate(it) }
             out("  .pend\n")
         } else {
             // regular subroutine
@@ -873,8 +884,10 @@ internal class AsmGen(private val program: Program,
                     clc""")
             }
 
-            out("; statements")
-            sub.statements.forEach{ translate(it) }
+            if(!onlyVariables) {
+                out("; statements")
+                sub.statements.forEach { translate(it) }
+            }
 
             for(removal in removals.toList()) {
                 if(removal.second==sub) {

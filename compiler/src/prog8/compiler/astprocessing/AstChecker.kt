@@ -209,9 +209,6 @@ internal class AstChecker(private val program: Program,
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
-        if(subroutine.inline && !subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty())
-            err("can't inline a non-asm subroutine that has parameters")
-
         super.visit(subroutine)
 
         // user-defined subroutines can only have zero or one return type
