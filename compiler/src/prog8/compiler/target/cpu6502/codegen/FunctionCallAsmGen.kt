@@ -124,7 +124,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 if(it is Return) {
                     asmgen.translate(it, false)     // don't use RTS for the inlined return statement
                 } else {
-                    asmgen.translate(it)
+                    if(!sub.inline || it !is VarDecl)
+                        asmgen.translate(it)
                 }
             }
             asmgen.out("  \t; inlined routine end: ${sub.name}")

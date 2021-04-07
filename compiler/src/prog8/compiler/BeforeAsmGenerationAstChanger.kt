@@ -22,7 +22,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             if(decl.allowInitializeWithZero)
             {
                 val nextAssign = decl.definingScope().nextSibling(decl) as? Assignment
-                if (nextAssign != null && nextAssign.target.isSameAs(IdentifierReference(listOf(decl.name), Position.DUMMY)))
+                if (nextAssign != null && nextAssign.target isSameAs IdentifierReference(listOf(decl.name), Position.DUMMY))
                     decl.value = null
                 else
                     decl.value = decl.zeroElementValue()
