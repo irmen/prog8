@@ -12,7 +12,7 @@ main {
         store_logo()
 
         txt.lowercase()
-        vtui.screen_set(2)
+        vtui.screen_set(0)
         vtui.clr_scr('%', $50)
         vtui.gotoxy(5,5)
         vtui.fill_box(':', 70, 50, $c6)
@@ -114,6 +114,7 @@ vtui $1000 {
     %asmbinary "VTUI0.8.BIN", 2     ; skip the 2 dummy load address bytes
 
     ; NOTE: base address $1000 here must be the same as the block's memory address, for obvious reasons!
+    ; The routines below are for VTUI 0.8
     romsub $1000  =  initialize() clobbers(A, X, Y)
     romsub $1002  =  screen_set(ubyte mode @A) clobbers(A, X, Y)
     romsub $1005  =  set_bank(ubyte bank @Pc) clobbers(A)
