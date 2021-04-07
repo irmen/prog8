@@ -24,7 +24,7 @@ romsub $FF8D = VECTOR(uword userptr @ XY, ubyte dir @ Pc) clobbers(A,Y)     ; re
 romsub $FF90 = SETMSG(ubyte value @ A)                          ; set Kernal message control flag
 romsub $FF93 = SECOND(ubyte address @ A) clobbers(A)            ; (alias: LSTNSA) send secondary address after LISTEN
 romsub $FF96 = TKSA(ubyte address @ A) clobbers(A)              ; (alias: TALKSA) send secondary address after TALK
-romsub $FF99 = MEMTOP(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer.   NOTE: as a Cx16 extension, also returns the number of RAM memory banks in register A !  See MEMTOP2
+romsub $FF99 = MEMTOP(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer.   NOTE: as a Cx16 extension, also returns the number of RAM memory banks in register A !  See cx16.numbanks()
 romsub $FF9C = MEMBOT(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set bottom of memory  pointer
 romsub $FF9F = SCNKEY() clobbers(A,X,Y)                         ; scan the keyboard
 romsub $FFA2 = SETTMO(ubyte timeout @ A)                        ; set time-out flag for IEEE bus
@@ -82,17 +82,6 @@ asmsub RDTIM16() -> uword @AY {
         txa
         tay
         pla
-        plx
-        rts
-    }}
-}
-
-asmsub MEMTOP2() -> ubyte @A {
-    ; -- uses MEMTOP's cx16 extension to query the number of available RAM banks.
-    %asm {{
-        phx
-        sec
-        jsr  c64.MEMTOP
         plx
         rts
     }}
@@ -307,6 +296,17 @@ inline asmsub rambank(ubyte rambank @A) {
     ; -- set the ram bank
     %asm {{
         sta  $00            ; ram bank register (v39+, used to be cx16.d1pra $9f61 in v38)
+    }}
+}
+
+asmsub numbanks() -> ubyte @A {
+    ; -- uses MEMTOP's cx16 extension to query the number of available RAM banks. (each is 8 Kb)
+    %asm {{
+        phx
+        sec
+        jsr  c64.MEMTOP
+        plx
+        rts
     }}
 }
 
