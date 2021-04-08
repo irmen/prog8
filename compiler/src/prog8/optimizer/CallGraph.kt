@@ -28,7 +28,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     private val usedSubroutines: Set<Subroutine> by lazy {
-        calledBy.keys
+        calledBy.keys + program.entrypoint()
     }
 
     private val usedBlocks: Set<Block> by lazy {
@@ -54,8 +54,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val thisModule = directive.definingModule()
         if (directive.directive == "%import") {
             val importedModule: Module = program.modules.single { it.name == directive.args[0].name }
-            imports[thisModule] = imports.getValue(thisModule).plus(importedModule)
-            importedBy[importedModule] = importedBy.getValue(importedModule).plus(thisModule)
+            imports[thisModule] = imports.getValue(thisModule) + importedModule
+            importedBy[importedModule] = importedBy.getValue(importedModule) + thisModule
         }
 
         super.visit(directive)
@@ -65,8 +65,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = functionCall.target.targetSubroutine(program)
         if (otherSub != null) {
             functionCall.definingSubroutine()?.let { thisSub ->
-                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
-                calledBy[otherSub] = calledBy.getValue(otherSub).plus(functionCall)
+                calls[thisSub] = calls.getValue(thisSub) + otherSub
+                calledBy[otherSub] = calledBy.getValue(otherSub) + functionCall
             }
         }
         super.visit(functionCall)
@@ -76,8 +76,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = functionCallStatement.target.targetSubroutine(program)
         if (otherSub != null) {
             functionCallStatement.definingSubroutine()?.let { thisSub ->
-                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
-                calledBy[otherSub] = calledBy.getValue(otherSub).plus(functionCallStatement)
+                calls[thisSub] = calls.getValue(thisSub) + otherSub
+                calledBy[otherSub] = calledBy.getValue(otherSub) + functionCallStatement
             }
         }
         super.visit(functionCallStatement)
@@ -87,8 +87,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = addressOf.identifier.targetSubroutine(program)
         if(otherSub!=null) {
             addressOf.definingSubroutine()?.let { thisSub ->
-                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
-                calledBy[otherSub] = calledBy.getValue(otherSub).plus(thisSub)
+                calls[thisSub] = calls.getValue(thisSub) + otherSub
+                calledBy[otherSub] = calledBy.getValue(otherSub) + thisSub
             }
         }
         super.visit(addressOf)
@@ -98,8 +98,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val otherSub = jump.identifier?.targetSubroutine(program)
         if (otherSub != null) {
             jump.definingSubroutine()?.let { thisSub ->
-                calls[thisSub] = calls.getValue(thisSub).plus(otherSub)
-                calledBy[otherSub] = calledBy.getValue(otherSub).plus(jump)
+                calls[thisSub] = calls.getValue(thisSub) + otherSub
+                calledBy[otherSub] = calledBy.getValue(otherSub) + jump
             }
         }
         super.visit(jump)

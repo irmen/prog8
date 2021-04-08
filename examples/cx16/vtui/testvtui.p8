@@ -12,16 +12,16 @@ main {
         store_logo()
 
         txt.lowercase()
-        vtui.screen_set(0)
+        vtui.screen_set(2)
         vtui.clr_scr('%', $50)
         vtui.gotoxy(5,5)
         vtui.fill_box(':', 70, 50, $c6)
         vtui.gotoxy(10,10)
         vtui.border(1, 40, 6, $47)
         vtui.gotoxy(12,12)
-        vtui.print_str2(@"Hello, world! vtui from Prog8!", $f2, $80)
+        vtui.print_str2(@"Hello, world! vtui from Prog8!", $f2, false)
         vtui.gotoxy(12,13)
-        vtui.print_str2("Hello, world! vtui from Prog8!", $f2, $00)
+        vtui.print_str2("Hello, world! vtui from Prog8!", $f2, true)
 
         str inputbuffer = "?" * 20
 
@@ -31,11 +31,11 @@ main {
 ;        txt.chrout('\n')
 
         vtui.gotoxy(5,20)
-        vtui.print_str2(@"Enter your name: ", $e3, $80)
+        vtui.print_str2(@"Enter your name: ", $e3, false)
         ubyte length = vtui.input_str(inputbuffer, len(inputbuffer), $21)
 
         vtui.gotoxy(8,22)
-        vtui.print_str2(@"Your name is: ", $e3, $80)
+        vtui.print_str2(@"Your name is: ", $e3, false)
         ;vtui.print_str2(inputbuffer, $67, $00)
         vtui.print_str(inputbuffer, length, $67, $00)
 
@@ -58,7 +58,7 @@ main {
 
         ;vtui.screen_set(2)
         vtui.gotoxy(30, 32)
-        vtui.print_str2("arrow keys to move!", $61, 0)
+        vtui.print_str2("arrow keys to move!", $61, true)
 
 char_loop:
         ubyte char = c64.GETIN()
@@ -135,10 +135,13 @@ vtui $1000 {
     romsub $1032  =  rest_rect(ubyte ramtype @A, ubyte vbank @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
     romsub $1035  =  input_str(uword buffer @R0, ubyte buflen @Y, ubyte colors @X) clobbers (A) -> ubyte @Y
 
-    ; -- helper function to do string length counting for you internally
-    asmsub print_str2(str txtstring @R0, ubyte colors @X, ubyte convertchars @A) clobbers(A, Y) {
+    ; -- helper function to do string length counting for you internally, and turn the convertchars flag into a boolean again
+    asmsub print_str2(str txtstring @R0, ubyte colors @X, ubyte convertchars @Pc) clobbers(A, Y) {
         %asm {{
-            pha
+            lda  #0
+            bcs  +
+            lda  #$80
++           pha
             lda  cx16.r0
             ldy  cx16.r0+1
             jsr  prog8_lib.strlen
