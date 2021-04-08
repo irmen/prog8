@@ -455,6 +455,14 @@ Breaking out of a loop prematurely is possible with the ``break`` statement.
     after the loop without first assigning a new value to it!
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
 
+.. warning::
+    For efficiency reasons, it is assumed that the ending value of the for loop is actually >= the starting value
+    (or <= if the step is negative).  This means that for loops in prog8 behave differently than in other
+    languages if this is *not* the case! A for loop from ubyte 10 to ubyte 2, for example, will iterate through
+    all values 10, 11, 12, 13, .... 254, 255, 0  (wrapped), 1, 2. In other languages the entire loop will
+    be skipped in such cases. But prog8 omits the overhead of an extra loop range check and/or branch for every for loop
+    by assuming the normal ranges.
+
 
 Conditional Execution
 ---------------------

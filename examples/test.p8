@@ -1,18 +1,16 @@
 %import textio
+%zeropage basicsafe
 
 main {
     sub start() {
-        uword width
-        uword width2 = 12345
-        ubyte ub1
-        ubyte ub2 = 123
+        ubyte lives=2
+        ubyte lvs
 
-        ub1 = ub2 % 32
-        txt.print_ub(ub1)
+        for lvs in 10 to lives {
+            txt.print_ub(lvs)
+            txt.spc()
+        }
         txt.nl()
-        width = width2 % 32
-        txt.print_uw(width)
-
     }
 }
 
