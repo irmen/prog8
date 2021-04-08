@@ -23,7 +23,12 @@ internal fun Program.processAstBeforeAsmGeneration(errors: IErrorReporter, compT
 internal fun Program.reorderStatements(errors: IErrorReporter) {
     val reorder = StatementReorderer(this, errors)
     reorder.visit(this)
-    reorder.applyModifications()
+    if(errors.noErrors()) {
+        reorder.applyModifications()
+        reorder.visit(this)
+        if(errors.noErrors())
+            reorder.applyModifications()
+    }
 }
 
 internal fun Program.addTypecasts(errors: IErrorReporter) {

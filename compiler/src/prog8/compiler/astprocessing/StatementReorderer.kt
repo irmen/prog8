@@ -210,7 +210,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                     val assign = Assignment(target, declValue, decl.position)
                     return listOf(
                             IAstModification.ReplaceNode(decl, assign, parent),
-                            IAstModification.InsertFirst(decl, decl.definingScope())
+                            IAstModification.InsertFirst(decl.copy(), decl.definingScope())
                     )
                 }
             }

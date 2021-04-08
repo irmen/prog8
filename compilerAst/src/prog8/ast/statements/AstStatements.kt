@@ -234,9 +234,7 @@ open class VarDecl(val type: VarDeclType,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Expression && node===value)
-        // NOTE: ideally you also want to check that node===value but this sometimes crashes the optimizer when queueing multiple node replacements
-        //       just accept the risk of having the wrong node specified in the IAstModification object...
+        require(replacement is Expression && (value==null || node===value))
         value = replacement
         replacement.parent = this
     }
