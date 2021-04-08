@@ -490,9 +490,9 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
                     return NumericLiteralValue(idt.typeOrElse(DataType.STRUCT), 0, expr.position)
-                } else if (cv == 2.0) {
+                } else if (cv in powersOfTwo) {
                     expr.operator = "&"
-                    expr.right = NumericLiteralValue.optimalInteger(1, expr.position)
+                    expr.right = NumericLiteralValue.optimalInteger(cv!!.toInt()-1, expr.position)
                     return null
                 }
             }
