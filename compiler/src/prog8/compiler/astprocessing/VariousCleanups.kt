@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.INameScope
 import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
@@ -12,7 +13,7 @@ import prog8.ast.walk.IAstModification
 import prog8.compiler.IErrorReporter
 
 
-internal class VariousCleanups(val errors: IErrorReporter): AstWalker() {
+internal class VariousCleanups(val program: Program, val errors: IErrorReporter): AstWalker() {
 
     override fun before(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(nopStatement, parent as INameScope))
@@ -36,16 +37,6 @@ internal class VariousCleanups(val errors: IErrorReporter): AstWalker() {
         }
     }
 
-    override fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        if(typecast.expression is NumericLiteralValue) {
-            val value = (typecast.expression as NumericLiteralValue).cast(typecast.type)
-            if(value.isValid)
-                return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
-        }
-
-        return noModifications
-    }
-
     override fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         return before(functionCallStatement as IFunctionCall, parent, functionCallStatement.position)
     }
@@ -66,6 +57,23 @@ internal class VariousCleanups(val errors: IErrorReporter): AstWalker() {
             val assign = Assignment(tgt, functionCall.args[1], position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
         }
+        return noModifications
+    }
+
+    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+        if(typecast.parent!==parent)
+            throw FatalAstException("parent node mismatch at $typecast")
+
+        if(typecast.expression is NumericLiteralValue) {
+            val value = (typecast.expression as NumericLiteralValue).cast(typecast.type)
+            if(value.isValid)
+                return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
+        }
+
+        val sourceDt = typecast.expression.inferType(program)
+        if(sourceDt.istype(typecast.type))
+            return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+
         return noModifications
     }
 
@@ -96,12 +104,6 @@ internal class VariousCleanups(val errors: IErrorReporter): AstWalker() {
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         if(scope.parent!==parent)
             throw FatalAstException("parent node mismatch at $scope")
-        return noModifications
-    }
-
-    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        if(typecast.parent!==parent)
-            throw FatalAstException("parent node mismatch at $typecast")
         return noModifications
     }
 

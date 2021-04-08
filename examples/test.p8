@@ -1,12 +1,11 @@
 
 main {
     sub start() {
+        uword width
 
-        uword world = $2000
-        ubyte xx
+        ; TODO fix compiler crash with noopt:
+        uword x1 = (width-1 as uword) + 2
 
-        ubyte chr = world[2]
-        ubyte chr2 = world[xx]
     }
 }
 
