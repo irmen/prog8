@@ -256,7 +256,14 @@ open class VarDecl(val type: VarDeclType,
     fun flattenStructMembers(): MutableList<Statement> {
         val result = struct!!.statements.mapIndexed { index, statement ->
             val member = statement as VarDecl
-            val initvalue = if(value!=null) (value as ArrayLiteralValue).value[index] else null
+            val initvalueOrig = if(value!=null) (value as ArrayLiteralValue).value[index] else null
+            val initvalue = when(initvalueOrig) {
+                is AddressOf -> initvalueOrig.copy()
+                is ArrayIndexedExpression -> initvalueOrig.copy()
+                is DirectMemoryRead -> initvalueOrig.copy()
+                is IdentifierReference -> initvalueOrig.copy()
+                else -> initvalueOrig
+            }
             VarDecl(
                     VarDeclType.VAR,
                     member.datatype,

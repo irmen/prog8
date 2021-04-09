@@ -224,7 +224,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
 
         if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {
             if (assignment.value is ArrayLiteralValue) {
-                errors.err("cannot assign non-const array value, use separate assignment per field", assignment.position)
+                errors.err("cannot assign array literal here, use separate assignment per field", assignment.position)
             } else {
                 return copyStructValue(assignment)
             }
@@ -232,7 +232,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
 
         if(targetType.typeOrElse(DataType.STRUCT) in ArrayDatatypes && valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes ) {
             if (assignment.value is ArrayLiteralValue) {
-                errors.err("cannot assign non-const array value, use separate assignment per element", assignment.position)
+                errors.err("cannot assign array literal here, use separate assignment per element", assignment.position)
             } else {
                 return copyArrayValue(assignment)
             }
