@@ -1051,49 +1051,75 @@ object Petscii {
 
 
     fun encodePetscii(text: String, lowercase: Boolean = false): List<Short> {
-        val lookup = if(lowercase) encodingPetsciiLowercase else encodingPetsciiUppercase
-        return text.map {
-            val petscii = lookup[it]
-            petscii?.toShort() ?: when (it) {
+        fun encodeChar(chr: Char, lowercase: Boolean): Short {
+            val screencode = if(lowercase) encodingPetsciiLowercase[chr] else encodingPetsciiUppercase[chr]
+            return screencode?.toShort() ?: when (chr) {
                 '\u0000' -> 0.toShort()
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
-                    (it.toInt() - 0x8000).toShort()
+                    (chr.toInt() - 0x8000).toShort()
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}case Petscii character for '$it' (${it.toShort()})")
+                    throw CharConversionException("no ${case}Petscii character for '$chr' (${chr.toShort()})")
                 }
+            }
+        }
+
+        return text.map{
+            try {
+                encodeChar(it, lowercase)
+            } catch (x: CharConversionException) {
+                encodeChar(it, !lowercase)
             }
         }
     }
 
     fun decodePetscii(petscii: Iterable<Short>, lowercase: Boolean = false): String {
-        val decodeTable = if(lowercase) decodingPetsciiLowercase else decodingPetsciiUppercase
-        return petscii.map { decodeTable[it.toInt()] }.joinToString("")
+        return petscii.map {
+            val code = it.toInt()
+            try {
+                if(lowercase) decodingPetsciiLowercase[code] else decodingPetsciiUppercase[code]
+            } catch(x: CharConversionException) {
+                if(lowercase) decodingPetsciiUppercase[code] else decodingPetsciiLowercase[code]
+            }
+        }.joinToString("")
     }
 
     fun encodeScreencode(text: String, lowercase: Boolean = false): List<Short> {
-        val lookup = if(lowercase) encodingScreencodeLowercase else encodingScreencodeUppercase
-        return text.map{
-            val screencode = lookup[it]
-            screencode?.toShort() ?: when (it) {
+        fun encodeChar(chr: Char, lowercase: Boolean): Short {
+            val screencode = if(lowercase) encodingScreencodeLowercase[chr] else encodingScreencodeUppercase[chr]
+            return screencode?.toShort() ?: when (chr) {
                 '\u0000' -> 0.toShort()
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
-                    (it.toInt() - 0x8000).toShort()
+                    (chr.toInt() - 0x8000).toShort()
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Screencode character for '$it' (${it.toShort()})")
+                    throw CharConversionException("no ${case}Screencode character for '$chr' (${chr.toShort()})")
                 }
+            }
+        }
+
+        return text.map{
+            try {
+                encodeChar(it, lowercase)
+            } catch (x: CharConversionException) {
+                encodeChar(it, !lowercase)
             }
         }
     }
 
     fun decodeScreencode(screencode: Iterable<Short>, lowercase: Boolean = false): String {
-        val decodeTable = if(lowercase) decodingScreencodeLowercase else decodingScreencodeUppercase
-        return screencode.map { decodeTable[it.toInt()] }.joinToString("")
+        return screencode.map {
+            val code = it.toInt()
+            try {
+                if (lowercase) decodingScreencodeLowercase[code] else decodingScreencodeUppercase[code]
+            } catch (x: CharConversionException) {
+                if (lowercase) decodingScreencodeUppercase[code] else decodingScreencodeLowercase[code]
+            }
+        }.joinToString("")
     }
 
     fun petscii2scr(petscii_code: Short, inverseVideo: Boolean): Short {

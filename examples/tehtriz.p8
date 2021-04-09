@@ -206,7 +206,7 @@ waitkey:
                 num_lines++
                 ubyte x
                 for x in boardOffsetX to boardOffsetX+boardWidth-1
-                    txt.setcc(x, linepos, 160, 1)
+                    txt.setcc(x, linepos, @'▒', 1)
             }
         }
         if num_lines {
@@ -338,7 +338,7 @@ waitkey:
         for i in len(colors)-1 downto 0 {
             ubyte x
             for x in 5 downto 0 {
-                txt.setcc(6+x-i, 11+2*i, 102, colors[i])
+                txt.setcc(6+x-i, 11+2*i, @'▒', colors[i])
             }
         }
         drawScore()

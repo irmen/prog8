@@ -7,6 +7,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.AssignTarget
+import prog8.compiler.AssemblyError
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
 import prog8.compiler.Zeropage
@@ -14,6 +15,7 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cx16.CX16MachineDefinition
+import java.io.CharConversionException
 import java.nio.file.Path
 
 
@@ -70,9 +72,17 @@ internal object C64Target: ICompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean) =
-            if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        try {
+            if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        } catch (x: CharConversionException) {
+            throw AssemblyError("There was a problem converting a string to the target machine's char encoding: ${x.message}")
+        }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
-            if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+        try {
+            if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+        } catch (x: CharConversionException) {
+            throw AssemblyError("There was a problem decoding to a string: ${x.message}")
+        }
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {
@@ -89,9 +99,17 @@ internal object Cx16Target: ICompilationTarget {
     override val name = "cx16"
     override val machine = CX16MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean) =
-            if(altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        try {
+            if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        } catch (x: CharConversionException) {
+            throw AssemblyError("There was a problem converting a string to the target machine's char encoding: ${x.message}")
+        }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
-            if(altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+        try {
+            if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+        } catch (x: CharConversionException) {
+            throw AssemblyError("There was a problem decoding to a string: ${x.message}")
+        }
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {

@@ -3,13 +3,11 @@
 
 main {
     sub start() {
-        ubyte lives=2
-        ubyte lvs
-
-        for lvs in 10 to lives {
-            txt.print_ub(lvs)
-            txt.spc()
-        }
+        txt.print("✓✓✓✓✓")
+        txt.nl()
+        txt.print("WWWWW")
+        txt.nl()
+        txt.print("●●●●●")
         txt.nl()
     }
 }

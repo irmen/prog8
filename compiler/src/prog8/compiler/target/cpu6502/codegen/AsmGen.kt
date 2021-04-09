@@ -10,11 +10,9 @@ import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.FSignature
 import prog8.compiler.target.*
 import prog8.compiler.target.cbm.AssemblyProgram
-import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.optimizer.CallGraph
-import java.io.CharConversionException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.LocalDate
@@ -257,15 +255,6 @@ internal class AsmGen(private val program: Program,
         } else assemblyLines.add(fragment)
     }
 
-    private fun encode(str: String, altEncoding: Boolean): List<Short> {
-        try {
-            val bytes = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
-            return bytes.plus(0)
-        } catch(x: CharConversionException) {
-            throw AssemblyError("There was a problem converting a string to the target machine's char encoding: ${x.message}")
-        }
-    }
-
     private fun zeropagevars2asm(statements: List<Statement>) {
         out("; vars allocated on zeropage")
         val variables = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
@@ -304,7 +293,7 @@ internal class AsmGen(private val program: Program,
             DataType.STRUCT -> {}       // is flattened
             DataType.STR -> {
                 val str = decl.value as StringLiteralValue
-                outputStringvar(decl, encode(str.value, str.altEncoding))
+                outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0))
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -401,7 +390,7 @@ internal class AsmGen(private val program: Program,
                 .filter {it.datatype == DataType.STR }
                 .map {
                     val str = it.value as StringLiteralValue
-                    it to encode(str.value, str.altEncoding)
+                    it to compTarget.encodeString(str.value, str.altEncoding).plus(0)
                 }
                 .groupBy({it.second}, {it.first})
         for((encoded, variables) in encodedstringVars) {
