@@ -4,30 +4,40 @@
 main {
 
     sub start() {
-        ubyte j1
-        ubyte j2
-        ubyte j3
+        ubyte yy
+        ubyte joy=1
+        ubyte zz
+        str foobar="foobar"
+        uword joyw=1
 
-        repeat {
-            %asm {{
-                lda  #0
-                jsr  cx16.joystick_get
-                sta  j1
-                stx  j2
-                sty  j3
-            }}
+        if joyw + 1000 > 1000
+            txt.print(">1000")
+        if joyw + 1000 > 1011
+            txt.print(">1011")
+        if joyw + 1000 > & foobar
+            txt.print(">&foobar")
+        if joyw + 1000 > joyw
+            txt.print(">&foobar")
 
-            txt.print_ubbin(j1, false)
-            txt.spc()
-            txt.print_ubbin(j2, false)
-            txt.spc()
-            txt.print_ubbin(j3, false)
+        if joy + 10 > 10
+            txt.print(">10")
+        if joy + 10 >11
+            txt.print(">11")
 
-            txt.spc()
-            uword qq = cx16.joystick_get2(0)
-            txt.print_uwbin(qq, false)
-            txt.nl()
-        }
+        joy >>= 1
+        if_cs
+            yy++
+
+        joy >>= 1
+        if_cs
+            yy++
+
+; TODO the shifting checks above result in way smaller code than this:
+         if joy & %00000001
+            yy++
+         if joy & %00000010
+            yy++
+
     }
 }
 

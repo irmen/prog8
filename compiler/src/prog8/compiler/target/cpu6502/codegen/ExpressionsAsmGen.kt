@@ -63,31 +63,20 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
                 // and use the result value directly to determine the boolean result. Shortcut only for integers.
                 if(rightConstVal?.number?.toDouble() == 0.0) {
-                    when(left) {
-                        is PrefixExpression,
-                        is BinaryExpression,
-                        is ArrayIndexedExpression,
-                        is TypecastExpression,
-                        is AddressOf,
-                        is RangeExpr,
-                        is FunctionCall -> {
-                            if(dt in ByteDatatypes) {
-                                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                                if(left is FunctionCall)
-                                    asmgen.out("  cmp  #0")
-                                asmgen.out("  bne  $jumpIfFalseLabel")
-                                return
-                            }
-                            else if(dt in WordDatatypes) {
-                                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-                                asmgen.out("""
-                                    sty  P8ZP_SCRATCH_B1
-                                    ora  P8ZP_SCRATCH_B1
-                                    bne  $jumpIfFalseLabel""")
-                                return
-                            }
-                        }
-                        else -> {}
+                    if(dt in ByteDatatypes) {
+                        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                        if(left is FunctionCall)
+                            asmgen.out("  cmp  #0")
+                        asmgen.out("  bne  $jumpIfFalseLabel")
+                        return
+                    }
+                    else if(dt in WordDatatypes) {
+                        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                        asmgen.out("""
+                            sty  P8ZP_SCRATCH_B1
+                            ora  P8ZP_SCRATCH_B1
+                            bne  $jumpIfFalseLabel""")
+                        return
                     }
                 }
 
@@ -103,31 +92,20 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
                 // and use the result value directly to determine the boolean result. Shortcut only for integers.
                 if(rightConstVal?.number?.toDouble() == 0.0) {
-                    when(left) {
-                        is PrefixExpression,
-                        is BinaryExpression,
-                        is ArrayIndexedExpression,
-                        is TypecastExpression,
-                        is AddressOf,
-                        is RangeExpr,
-                        is FunctionCall -> {
-                            if(dt in ByteDatatypes) {
-                                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                                if(left is FunctionCall)
-                                    asmgen.out("  cmp  #0")
-                                asmgen.out("  beq  $jumpIfFalseLabel")
-                                return
-                            }
-                            else if(dt in WordDatatypes) {
-                                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-                                asmgen.out("""
-                                    sty  P8ZP_SCRATCH_B1
-                                    ora  P8ZP_SCRATCH_B1
-                                    beq  $jumpIfFalseLabel""")
-                                return
-                            }
-                        }
-                        else -> {}
+                    if(dt in ByteDatatypes) {
+                        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                        if(left is FunctionCall)
+                            asmgen.out("  cmp  #0")
+                        asmgen.out("  beq  $jumpIfFalseLabel")
+                        return
+                    }
+                    else if(dt in WordDatatypes) {
+                        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                        asmgen.out("""
+                            sty  P8ZP_SCRATCH_B1
+                            ora  P8ZP_SCRATCH_B1
+                            beq  $jumpIfFalseLabel""")
+                        return
                     }
                 }
 
@@ -397,7 +375,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -432,7 +410,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -440,7 +418,36 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun byteJumpForSimpleRightOperands(left: Expression, right: Expression, code: (String)->Unit): Boolean {
+    private fun wordJumpForSimpleLeftOperand(left: Expression, right: Expression, code: (String, String)->Unit): Boolean {
+        when (left) {
+            is NumericLiteralValue -> {
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+                val number = left.number.toHex()
+                code("#>$number", "#<$number")
+                return true
+            }
+            is AddressOf -> {
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+                val name = asmgen.asmSymbolName(left.identifier)
+                code("#>$name", "#<$name")
+                return true
+            }
+            is IdentifierReference -> {
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
+                val varname = asmgen.asmVariableName(left)
+                code("$varname+1", varname)
+                return true
+            }
+            else -> return false
+        }
+    }
+
+    private fun byteJumpForSimpleRightOperand(left: Expression, right: Expression, code: (String)->Unit): Boolean {
+        if(right is NumericLiteralValue) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+            code("#${right.number.toHex()}")
+            return true
+        }
         if(right is IdentifierReference) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
             code(asmgen.asmVariableName(right))
@@ -458,6 +465,30 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
         return false
+    }
+
+    private fun wordJumpForSimpleRightOperands(left: Expression, right: Expression, code: (String, String)->Unit): Boolean {
+        when (right) {
+            is NumericLiteralValue -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val number = right.number.toHex()
+                code("#>$number", "#<$number")
+                return true
+            }
+            is AddressOf -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val name = asmgen.asmSymbolName(right.identifier)
+                code("#>$name", "#<$name")
+                return true
+            }
+            is IdentifierReference -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val varname = asmgen.asmVariableName(right)
+                code("$varname+1", varname)
+                return true
+            }
+            else -> return false
+        }
     }
 
     private fun translateUwordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -489,11 +520,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            val varname = asmgen.asmVariableName(right)
-            return code("$varname+1", varname)
-        }
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -531,11 +559,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            val varname = asmgen.asmVariableName(right)
-            return code("$varname+1", varname)
-        }
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -574,7 +599,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -611,7 +636,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -654,11 +679,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            val varname = asmgen.asmVariableName(right)
-            return code("$varname+1", varname)
-        }
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -667,11 +689,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
 
-        fun code(leftName: String) {
+        fun code(msbCmpOperand: String, lsbCmpOperand: String) {
             asmgen.out("""
-                cmp  $leftName
+                cmp  $lsbCmpOperand
                 tya
-                sbc  $leftName+1
+                sbc  $msbCmpOperand
                 bvc  +
                 eor  #$80
 +               bpl  $jumpIfFalseLabel""")
@@ -686,7 +708,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
-                        code(asmgen.asmVariableName(left))
+                        val varname = asmgen.asmVariableName(left)
+                        code("$varname+1", varname)
                     }
                     else {
                         val name = asmgen.asmVariableName(left)
@@ -700,10 +723,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(left is IdentifierReference) {
-            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
-            return code(asmgen.asmVariableName(left))
-        }
+        if(wordJumpForSimpleLeftOperand(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
@@ -743,7 +764,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -780,7 +801,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -825,11 +846,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            val varname = asmgen.asmVariableName(right)
-            return code("$varname+1", varname)
-        }
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -913,7 +931,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -947,7 +965,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -982,11 +1000,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            val varname = asmgen.asmVariableName(right)
-            return code("$varname+1", varname)
-        }
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY)
@@ -1024,11 +1039,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            val varname = asmgen.asmVariableName(right)
-            return code("$varname+1", varname)
-        }
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -1063,7 +1075,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -1100,7 +1112,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(byteJumpForSimpleRightOperands(left, right, ::code))
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
         asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
@@ -1136,24 +1148,47 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            asmgen.out("""
-                cmp  ${asmgen.asmVariableName(right)}
-                bne  $jumpIfFalseLabel
-                cpy  ${asmgen.asmVariableName(right)}+1
-                bne  $jumpIfFalseLabel
-                """)
-            return
+        when (right) {
+            is NumericLiteralValue -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val number = right.number.toHex()
+                asmgen.out("""
+                    cmp  #<$number
+                    bne  $jumpIfFalseLabel
+                    cpy  #>$number
+                    bne  $jumpIfFalseLabel
+                    """)
+            }
+            is IdentifierReference -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                asmgen.out("""
+                    cmp  ${asmgen.asmVariableName(right)}
+                    bne  $jumpIfFalseLabel
+                    cpy  ${asmgen.asmVariableName(right)}+1
+                    bne  $jumpIfFalseLabel
+                    """)
+            }
+            is AddressOf -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val name = asmgen.asmSymbolName(right.identifier)
+                asmgen.out("""
+                    cmp  #<$name
+                    bne  $jumpIfFalseLabel
+                    cpy  #>$name
+                    bne  $jumpIfFalseLabel
+                    """)
+            }
+            else -> {
+                asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_W2
+                    bne  $jumpIfFalseLabel
+                    cpy  P8ZP_SCRATCH_W2+1
+                    bne  $jumpIfFalseLabel""")
+            }
         }
 
-        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-        asmgen.out("""
-            cmp  P8ZP_SCRATCH_W2
-            bne  $jumpIfFalseLabel
-            cpy  P8ZP_SCRATCH_W2+1
-            bne  $jumpIfFalseLabel""")
     }
 
     private fun translateWordNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
@@ -1187,25 +1222,49 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        if(right is IdentifierReference) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-            asmgen.out("""
-                cmp  ${asmgen.asmVariableName(right)}
-                bne  +
-                cpy  ${asmgen.asmVariableName(right)}+1
-                beq  $jumpIfFalseLabel
+        when (right) {
+            is NumericLiteralValue -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val number = right.number.toHex()
+                asmgen.out("""
+                    cmp  #<$number
+                    bne  +
+                    cpy  #>$number
+                    beq  $jumpIfFalseLabel
 +""")
-            return
+            }
+            is IdentifierReference -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                asmgen.out("""
+                    cmp  ${asmgen.asmVariableName(right)}
+                    bne  +
+                    cpy  ${asmgen.asmVariableName(right)}+1
+                    beq  $jumpIfFalseLabel
++""")
+            }
+            is AddressOf -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                val name = asmgen.asmSymbolName(right.identifier)
+                asmgen.out("""
+                    cmp  #<$name
+                    bne  +
+                    cpy  #>$name
+                    beq  $jumpIfFalseLabel
++""")
+            }
+            else -> {
+                asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_W2
+                    bne  +
+                    cpy  P8ZP_SCRATCH_W2+1
+                    beq  $jumpIfFalseLabel
++"""
+                )
+            }
         }
 
-        asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-        asmgen.out("""
-            cmp  P8ZP_SCRATCH_W2
-            bne  +
-            cpy  P8ZP_SCRATCH_W2+1
-            beq  $jumpIfFalseLabel
-+""")
     }
 
     private fun translateFloatEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
