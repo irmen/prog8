@@ -2,29 +2,32 @@
 %zeropage basicsafe
 
 main {
+
     sub start() {
-        const ubyte world_width=100
+        ubyte j1
+        ubyte j2
+        ubyte j3
 
-    struct Color {
-        ubyte red
-        ubyte green
-        ubyte blue
-    }
+        repeat {
+            %asm {{
+                lda  #0
+                jsr  cx16.joystick_get
+                sta  j1
+                stx  j2
+                sty  j3
+            }}
 
-    Color rgb = [255,world_width,0]     ; note that struct initializer value is same as an array
-    ;rgb = [255,world_width,0]     ; note that struct initializer value is same as an array
-    ;rgb = [255,world_width/2,0]     ; note that struct initializer value is same as an array
+            txt.print_ubbin(j1, false)
+            txt.spc()
+            txt.print_ubbin(j2, false)
+            txt.spc()
+            txt.print_ubbin(j3, false)
 
-
-;        struct Entity {
-;            ubyte active
-;            ubyte x
-;            ubyte y
-;            byte direction
-;        }
-;
-;        Entity pede
-;        pede = [1, 1, 0, -1]
+            txt.spc()
+            uword qq = cx16.joystick_get2(0)
+            txt.print_uwbin(qq, false)
+            txt.nl()
+        }
     }
 }
 
