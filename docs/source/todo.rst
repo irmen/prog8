@@ -2,37 +2,29 @@
 TODO
 ====
 
-- make sure that in if statements, the left and right operand of the comparison is never a complex expression
-  anymore (only number, variable, addressof or memread) by rewriting if  <left> <op> <right>  {..} into:
-    if_eval_left = left
-    if_eval_right = right
-    if if_eval_left <op> if_eval_right { ... }          (only rewrite operand if x.isSimple() !!)
-  and then simplify all the codegeneration for if statements.
-  the variables are allocated in subroutine scope (otherwise irq handler could clobber them)
-
-- optimize several inner loops in gfx2
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
-- optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
+- c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
+- get rid of all other TODO's in the code ;-)
+
+
+Low prio
+^^^^^^^^
+- optimize several inner loops in gfx2 even further?
+- add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
 - add a flood fill routine to gfx2?
-- add modes 2 and 3 to gfx2 (lowres 4 color and 16 color) ?
 - add a f_seek() routine for the Cx16 that uses its seek dos api?
-- refactor the asmgen into their own submodule?
-- refactor the compiler optimizers into their own submodule?
-- optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
+- refactor the asmgen into own submodule
+- refactor the compiler optimizers into own submodule
 - add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
-- option to load the built-in library files from a directory instead of the embedded ones (for easier library development/debugging)
-- c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
-- some support for recursive subroutines?
-    - via %option recursive?: allocate all params and local vars on estack, don't allow nested subroutines, can begin by first not allowing any local variables just fixing the parameters
-    - Or via a special recursive call operation that copies the current values of all local vars (including arguments) to the stack, replaces the arguments, jsr subroutine, and after returning copy the stack back to the local variables
-- get rid of all other TODO's in the code ;-)
 
 More optimizations
 ^^^^^^^^^^^^^^^^^^
 
 Add more compiler optimizations to the existing ones.
 
+- find a way to optimize if-statement codegen so that "if var & %10000" doesn't use stack & subroutine call, but also that the simple case "if X {...}" remains fast
+- optimizer: detect variables that are written but never read - mark those as unused too and remove them, such as uword unused = memory("unused222", 20) - also remove the memory slab allocation
 - further optimize assignment codegeneration, such as the following:
 - rewrite expression code generator to not use eval stack but a fixed number of predetermined value 'variables' (1 per nesting level?)
 - binexpr splitting (beware self-referencing expressions and asm code ballooning though)

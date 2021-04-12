@@ -69,9 +69,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
     }
 
     private val subroutineVariables = mutableListOf<Pair<String, VarDecl>>()
+    private val addedIfConditionVars = mutableSetOf<Pair<Subroutine, String>>()
 
     override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         subroutineVariables.clear()
+        addedIfConditionVars.clear()
         return noModifications
     }
 
@@ -192,8 +194,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
         }
 
-        return noModifications
-        // TODO split the conditional expression into separate variables if the operand(s) is not simple.
+        if((binExpr.left as? NumericLiteralValue)?.number==0)
+            throw CompilerException("if 0==X should have been swapped to if X==0")
+
+        // split the conditional expression into separate variables if the operand(s) is not simple.
+        // DISABLED FOR NOW AS IT GENEREATES LARGER CODE IN THE SIMPLE CASES LIKE    IF X {...}  or  IF NOT X {...}
 //        val modifications = mutableListOf<IAstModification>()
 //        if(!binExpr.left.isSimple) {
 //            val sub = binExpr.definingSubroutine()!!
@@ -202,6 +207,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
 //                modifications.add(IAstModification.InsertFirst(variable, sub))
 //            modifications.add(IAstModification.InsertBefore(ifStatement, assignment, parent as INameScope))
 //            modifications.add(IAstModification.ReplaceNode(binExpr.left, IdentifierReference(listOf(variable.name), binExpr.position), binExpr))
+//            addedIfConditionVars.add(Pair(sub, variable.name))
 //        }
 //        if(!binExpr.right.isSimple) {
 //            val sub = binExpr.definingSubroutine()!!
@@ -210,19 +216,29 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
 //                modifications.add(IAstModification.InsertFirst(variable, sub))
 //            modifications.add(IAstModification.InsertBefore(ifStatement, assignment, parent as INameScope))
 //            modifications.add(IAstModification.ReplaceNode(binExpr.right, IdentifierReference(listOf(variable.name), binExpr.position), binExpr))
+//            addedIfConditionVars.add(Pair(sub, variable.name))
 //        }
 //        return modifications
+        return noModifications
     }
 
-    private fun addIfOperandVar(sub: Subroutine, side: String, operand: Expression): Triple<VarDecl, Boolean, Assignment> {
-        val dt = operand.inferType(program).typeOrElse(DataType.STRUCT)
-        val varname = "prog8_ifvar_${side}_${dt.name.toLowerCase()}"
-        // TODO check occurrence in sub
-        val vardecl = VarDecl(VarDeclType.VAR, dt, ZeropageWish.DONTCARE, null, varname, null, null, false, true, operand.position)
-        val tgt = AssignTarget(IdentifierReference(listOf(varname), operand.position), null, null, operand.position)
-        val assign = Assignment(tgt, operand, operand.position)
-        return Triple(vardecl, true, assign)
-    }
+//    private fun addIfOperandVar(sub: Subroutine, side: String, operand: Expression): Triple<VarDecl, Boolean, Assignment> {
+//        val dt = operand.inferType(program).typeOrElse(DataType.STRUCT)
+//        val varname = "prog8_ifvar_${side}_${dt.name.toLowerCase()}"
+//        val tgt = AssignTarget(IdentifierReference(listOf(varname), operand.position), null, null, operand.position)
+//        val assign = Assignment(tgt, operand, operand.position)
+//        if(Pair(sub, varname) in addedIfConditionVars) {
+//            val vardecl = VarDecl(VarDeclType.VAR, dt, ZeropageWish.DONTCARE, null, varname, null, null, false, true, operand.position)
+//            return Triple(vardecl, false, assign)
+//        }
+//        val existing = sub.statements.firstOrNull { it is VarDecl && it.name == varname} as VarDecl?
+//        return if (existing == null) {
+//            val vardecl = VarDecl(VarDeclType.VAR, dt, ZeropageWish.DONTCARE, null, varname, null, null, false, true, operand.position)
+//            Triple(vardecl, true, assign)
+//        } else {
+//            Triple(existing, false, assign)
+//        }
+//    }
 
     override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
         val binExpr = untilLoop.condition as? BinaryExpression

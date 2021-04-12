@@ -931,7 +931,7 @@ internal class AsmGen(private val program: Program,
         checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
 
-        // TODO check this:
+        // DISABLED FOR NOW:
 //        if(!booleanCondition.left.isSimple || !booleanCondition.right.isSimple)
 //            throw AssemblyError("both operands for if comparison expression should have been simplified")
 
