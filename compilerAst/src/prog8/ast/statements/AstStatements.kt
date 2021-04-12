@@ -662,7 +662,6 @@ class Subroutine(override val name: String,
     override lateinit var parent: Node
     val asmGenInfo = AsmGenInfo()
     val scopedname: String by lazy { makeScopedName(name) }
-    var inlineAnnotated: Boolean = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent

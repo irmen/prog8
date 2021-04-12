@@ -65,7 +65,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(rightConstVal?.number?.toDouble() == 0.0) {
                     if(dt in ByteDatatypes) {
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                        if(left is FunctionCall)
+                        if(left is FunctionCall && !left.isSimple)
                             asmgen.out("  cmp  #0")
                         asmgen.out("  bne  $jumpIfFalseLabel")
                         return
@@ -94,7 +94,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(rightConstVal?.number?.toDouble() == 0.0) {
                     if(dt in ByteDatatypes) {
                         asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                        if(left is FunctionCall)
+                        if(left is FunctionCall && !left.isSimple)
                             asmgen.out("  cmp  #0")
                         asmgen.out("  beq  $jumpIfFalseLabel")
                         return

@@ -22,6 +22,7 @@ sealed class Expression: Node {
     abstract fun accept(visitor: AstWalker, parent: Node)
     abstract fun referencesIdentifier(vararg scopedName: String): Boolean
     abstract fun inferType(program: Program): InferredTypes.InferredType
+    abstract val isSimple: Boolean
 
     infix fun isSameAs(assigntarget: AssignTarget) = assigntarget.isSameAs(this)
 
@@ -105,6 +106,8 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         }
     }
 
+    override val isSimple = false
+
     override fun toString(): String {
         return "Prefix($operator $expression)"
     }
@@ -132,6 +135,8 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     override fun toString(): String {
         return "[$left $operator $right]"
     }
+
+    override val isSimple = false
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(program: Program): NumericLiteralValue? = null
@@ -242,6 +247,8 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         indexer.linkParents(this)
     }
 
+    override val isSimple = false
+
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
             node===arrayvar -> arrayvar = replacement as IdentifierReference
@@ -283,6 +290,8 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         expression.linkParents(this)
     }
 
+    override val isSimple = false
+
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===expression)
         expression = replacement
@@ -316,6 +325,8 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
         identifier.parent=this
     }
 
+    override val isSimple = true
+
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is IdentifierReference && node===identifier)
         identifier = replacement
@@ -336,6 +347,8 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
         this.parent = parent
         this.addressExpression.linkParents(this)
     }
+
+    override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===addressExpression)
@@ -361,6 +374,8 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                           val number: Number,    // can be byte, word or float depending on the type
                           override val position: Position) : Expression() {
     override lateinit var parent: Node
+
+    override val isSimple = true
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
@@ -493,6 +508,8 @@ class StringLiteralValue(val value: String,
         this.parent = parent
     }
 
+    override val isSimple = true
+
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("can't replace here")
     }
@@ -522,6 +539,8 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         this.parent = parent
         value.forEach {it.linkParents(this)}
     }
+
+    override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
@@ -629,6 +648,8 @@ class RangeExpr(var from: Expression,
         step.linkParents(this)
     }
 
+    override val isSimple = true
+
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
         when {
@@ -718,6 +739,8 @@ internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node
 
+    override val isSimple = true
+
     fun targetStatement(program: Program) =
         if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
             BuiltinFunctionStatementPlaceholder(nameInSource[0], position, parent)
@@ -796,6 +819,8 @@ class FunctionCall(override var target: IdentifierReference,
         target.linkParents(this)
         args.forEach { it.linkParents(this) }
     }
+
+    override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in setOf("msb", "lsb", "peek", "peekw"))
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)

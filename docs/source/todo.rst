@@ -1,6 +1,13 @@
 ====
 TODO
 ====
+- make sure that in if statements, the left and right operand of the comparison is never a complex expression
+  anymore (only number, variable, addressof or memread) by rewriting if  <left> <op> <right>  {..} into:
+    if_eval_left = left
+    if_eval_right = right
+    if if_eval_left <op> if_eval_right { ... }          (only rewrite operand if x.isSimple() !!)
+  and then simplify all the codegeneration for if statements.
+  the variables are allocated in subroutine scope (otherwise irq handler could clobber them)
 
 - optimize several inner loops in gfx2
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)

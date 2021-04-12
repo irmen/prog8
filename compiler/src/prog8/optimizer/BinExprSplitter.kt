@@ -57,7 +57,7 @@ X =      BinExpr                                    X   =   LeftExpr
                 if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
                     return noModifications
 
-                if(isSimpleExpression(binExpr.right) && !assignment.isAugmentable) {
+                if(binExpr.right.isSimple && !assignment.isAugmentable) {
                     val firstAssign = Assignment(assignment.target.copy(), binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
@@ -75,9 +75,6 @@ X =      BinExpr                                    X   =   LeftExpr
 
         return noModifications
     }
-
-    private fun isSimpleExpression(expr: Expression) =
-            expr is IdentifierReference || expr is NumericLiteralValue || expr is AddressOf || expr is DirectMemoryRead || expr is StringLiteralValue || expr is ArrayLiteralValue || expr is RangeExpr
 
     private fun isSimpleTarget(target: AssignTarget, program: Program) =
             if (target.identifier!=null || target.memoryAddress!=null)
