@@ -17,7 +17,9 @@ internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: IEr
 internal fun Program.processAstBeforeAsmGeneration(errors: IErrorReporter, compTarget: ICompilationTarget) {
     val fixer = BeforeAsmGenerationAstChanger(this, errors, compTarget)
     fixer.visit(this)
-    fixer.applyModifications()
+    while(errors.noErrors() && fixer.applyModifications()>0) {
+        fixer.visit(this)
+    }
 }
 
 internal fun Program.reorderStatements(errors: IErrorReporter) {

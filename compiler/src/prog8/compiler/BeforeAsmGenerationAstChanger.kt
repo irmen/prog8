@@ -1,6 +1,7 @@
 package prog8.compiler
 
 import prog8.ast.IFunctionCall
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -183,7 +184,37 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             val booleanExpr = BinaryExpression(ifStatement.condition, "!=", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
             return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
         }
+
         return noModifications
+        // TODO split the conditional expression into separate variables if the operand(s) is not simple.
+//        val modifications = mutableListOf<IAstModification>()
+//        if(!binExpr.left.isSimple) {
+//            val sub = binExpr.definingSubroutine()!!
+//            val (variable, isNew, assignment) = addIfOperandVar(sub, "left", binExpr.left)
+//            if(isNew)
+//                modifications.add(IAstModification.InsertFirst(variable, sub))
+//            modifications.add(IAstModification.InsertBefore(ifStatement, assignment, parent as INameScope))
+//            modifications.add(IAstModification.ReplaceNode(binExpr.left, IdentifierReference(listOf(variable.name), binExpr.position), binExpr))
+//        }
+//        if(!binExpr.right.isSimple) {
+//            val sub = binExpr.definingSubroutine()!!
+//            val (variable, isNew, assignment) = addIfOperandVar(sub, "right", binExpr.right)
+//            if(isNew)
+//                modifications.add(IAstModification.InsertFirst(variable, sub))
+//            modifications.add(IAstModification.InsertBefore(ifStatement, assignment, parent as INameScope))
+//            modifications.add(IAstModification.ReplaceNode(binExpr.right, IdentifierReference(listOf(variable.name), binExpr.position), binExpr))
+//        }
+//        return modifications
+    }
+
+    private fun addIfOperandVar(sub: Subroutine, side: String, operand: Expression): Triple<VarDecl, Boolean, Assignment> {
+        val dt = operand.inferType(program).typeOrElse(DataType.STRUCT)
+        val varname = "prog8_ifvar_${side}_${dt.name.toLowerCase()}"
+        // TODO check occurrence in sub
+        val vardecl = VarDecl(VarDeclType.VAR, dt, ZeropageWish.DONTCARE, null, varname, null, null, false, true, operand.position)
+        val tgt = AssignTarget(IdentifierReference(listOf(varname), operand.position), null, null, operand.position)
+        val assign = Assignment(tgt, operand, operand.position)
+        return Triple(vardecl, true, assign)
     }
 
     override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {

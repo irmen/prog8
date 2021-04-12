@@ -247,7 +247,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         indexer.linkParents(this)
     }
 
-    override val isSimple = false
+    override val isSimple = indexer.indexExpr is NumericLiteralValue || indexer.indexExpr is IdentifierReference
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {

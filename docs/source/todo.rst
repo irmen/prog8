@@ -1,6 +1,10 @@
 ====
 TODO
 ====
+
+- fix: cube3d is suddenly way bigger than it was a few changes ago
+
+
 - make sure that in if statements, the left and right operand of the comparison is never a complex expression
   anymore (only number, variable, addressof or memread) by rewriting if  <left> <op> <right>  {..} into:
     if_eval_left = left
