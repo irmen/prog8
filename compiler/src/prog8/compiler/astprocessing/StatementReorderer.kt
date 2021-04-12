@@ -1,9 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.Module
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -201,18 +198,15 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         if(declValue!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
             val declConstValue = declValue.constValue(program)
             if(declConstValue==null) {
-                // move the vardecl (without value) to the scope and replace this with a regular assignment
-                // Unless we're dealing with a floating point variable because that will actually make things less efficient at the moment (because floats are mostly calcualated via the stack)
-                if(decl.datatype!=DataType.FLOAT) {
-                    decl.value = null
-                    decl.allowInitializeWithZero = false
-                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                    val assign = Assignment(target, declValue, decl.position)
-                    return listOf(
-                            IAstModification.ReplaceNode(decl, assign, parent),
-                            IAstModification.InsertFirst(decl.copy(), decl.definingScope())
-                    )
-                }
+                // move the vardecl (without value) to the scope of the defining subroutine and put a regular assignment in its place here.
+                decl.value = null
+                decl.allowInitializeWithZero = false
+                val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                val assign = Assignment(target, declValue, decl.position)
+                return listOf(
+                        IAstModification.ReplaceNode(decl, assign, parent),
+                        IAstModification.InsertFirst(decl, decl.definingSubroutine() as INameScope)
+                )
             }
         }
         return noModifications
