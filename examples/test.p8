@@ -1,33 +1,17 @@
 %import textio
+%import gfx2
 %zeropage basicsafe
 
 main {
     sub start()  {
-        ubyte xx=9
-        ubyte yy=9
-
-        ; ubyte c_xx = xx+1
-
-        if xx+1 >= 10 {
-            txt.print("yes")
-        } else {
-            txt.print("error!")
-        }
-        if yy+1 >= 10 {
-            txt.print("yes2")
-        } else {
-            txt.print("error2!")
+        repeat {
+            sys.waitvsync()
+            ubyte joy = lsb(cx16.joystick_get2(0))
+            txt.print_ubbin(joy,1)
+            txt.nl()
         }
 
-        if xx+1 >= xx-2 {
-            txt.print("yes")
-        } else {
-            txt.print("error!")
-        }
-        if yy+1 >= yy-2 {
-            txt.print("yes2")
-        } else {
-            txt.print("error2!")
+        repeat {
         }
     }
 }
