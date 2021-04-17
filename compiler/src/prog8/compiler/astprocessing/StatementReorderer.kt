@@ -198,15 +198,18 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         if(declValue!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
             val declConstValue = declValue.constValue(program)
             if(declConstValue==null) {
-                // move the vardecl (without value) to the scope of the defining subroutine and put a regular assignment in its place here.
-                decl.value = null
-                decl.allowInitializeWithZero = false
-                val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                val assign = Assignment(target, declValue, decl.position)
-                return listOf(
+                val subroutine = decl.definingSubroutine() as? INameScope
+                if(subroutine!=null) {
+                    // move the vardecl (without value) to the scope of the defining subroutine and put a regular assignment in its place here.
+                    decl.value = null
+                    decl.allowInitializeWithZero = false
+                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                    val assign = Assignment(target, declValue, decl.position)
+                    return listOf(
                         IAstModification.ReplaceNode(decl, assign, parent),
-                        IAstModification.InsertFirst(decl, decl.definingSubroutine() as INameScope)
-                )
+                        IAstModification.InsertFirst(decl, subroutine)
+                    )
+                }
             }
         }
         return noModifications

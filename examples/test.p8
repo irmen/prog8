@@ -1,17 +1,11 @@
 %import textio
-%import gfx2
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
-    sub start()  {
-        repeat {
-            sys.waitvsync()
-            ubyte joy = lsb(cx16.joystick_get2(0))
-            txt.print_ubbin(joy,1)
-            txt.nl()
-        }
+    uword hash_buckets = memory("buckets", 128*32*2)
 
-        repeat {
-        }
+    sub start()  {
+        txt.print_uwhex(hash_buckets,true)
+        txt.print("ok")
     }
 }

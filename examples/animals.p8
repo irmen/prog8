@@ -8,8 +8,8 @@
 main {
     const ubyte database_size = 100
 
-    uword animal_names_buf
-    uword questions_buf
+    uword animal_names_buf = memory("animalnames", 500)
+    uword questions_buf = memory("questions", 2000)
     uword animal_names_ptr
     uword questions_ptr
 
@@ -23,8 +23,6 @@ main {
 
     sub start() {
         ; initialize the database
-        animal_names_buf = memory("animalnames", 500)
-        questions_buf = memory("questions", 2000)
         animal_names_ptr = animal_names_buf
         questions_ptr = questions_buf
 
