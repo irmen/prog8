@@ -78,7 +78,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
     }
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
-        val decls = scope.statements.filterIsInstance<VarDecl>()
+        val decls = scope.statements.filterIsInstance<VarDecl>().filter { it.type == VarDeclType.VAR }
         subroutineVariables.addAll(decls.map { it.name to it })
 
         val sub = scope.definingSubroutine()
