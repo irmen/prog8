@@ -45,7 +45,8 @@ private fun prog8Parser.BlockContext.toAst(isInLibrary: Boolean, encoding: IStri
             it.subroutinedeclaration()!=null -> it.subroutinedeclaration().toAst(encoding)
             it.directive()!=null -> it.directive().toAst()
             it.inlineasm()!=null -> it.inlineasm().toAst()
-            else -> throw FatalAstException("weird block statement $it")
+            it.labeldef()!=null -> it.labeldef().toAst()
+            else -> throw FatalAstException("weird block node $it")
         }
     }
     return Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), blockstatements.toMutableList(), isInLibrary, toPosition())

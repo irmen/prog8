@@ -2,8 +2,6 @@
 TODO
 ====
 
-- allow labels in blocks instead of only in subroutines?
-
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - get rid of all other TODO's in the code ;-)

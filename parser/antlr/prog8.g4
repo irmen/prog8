@@ -80,6 +80,7 @@ block_statement:
 	| variabledeclaration
 	| subroutinedeclaration
 	| inlineasm
+	| labeldef
 	;
 
 
