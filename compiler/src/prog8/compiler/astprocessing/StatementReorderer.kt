@@ -104,6 +104,13 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+
+        // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
+        // (this should be done by the ExpressionSimplifier when optimizing is enabled,
+        //  but the current assembly code generator for IF statements now also depends on it so we do it here regardless of optimization.)
+        if (expr.left.constValue(program) != null && expr.operator in associativeOperators && expr.right.constValue(program) == null)
+            return listOf(IAstModification.SwapOperands(expr))
+
         // when using a simple bit shift and assigning it to a variable of a different type,
         // try to make the bit shifting 'wide enough' to fall into the variable's type.
         // with this, for instance, uword x = 1 << 10  will result in 1024 rather than 0 (the ubyte result).

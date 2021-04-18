@@ -28,6 +28,10 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                 if(valueDt.typeOrElse(DataType.STRUCT) in IntegerDatatypes && decl.datatype in ArrayDatatypes)
                     return noModifications
 
+                // don't add a typecast if the initializer value is inherently not assignable
+                if(valueDt isNotAssignableTo decl.datatype)
+                    return noModifications
+
                 return listOf(IAstModification.ReplaceNode(
                         declValue,
                         TypecastExpression(declValue, decl.datatype, true, declValue.position),

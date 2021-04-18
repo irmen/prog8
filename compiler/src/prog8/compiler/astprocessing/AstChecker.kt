@@ -409,7 +409,7 @@ internal class AstChecker(private val program: Program,
             if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
                 errors.err("cannot assign value to string or array", assignment.value.position)
             else if(!(valueDt.istype(DataType.STR) && targetDt.istype(DataType.UWORD)))
-                errors.err("value's type doesn't match target", assignment.value.position)
+                errors.err("type of value doesn't match target", assignment.value.position)
         }
 
         if(assignment.value is TypecastExpression) {
@@ -562,7 +562,7 @@ internal class AstChecker(private val program: Program,
                                 }
                                 val memberDt = memberdecl.datatype
                                 if(!checkValueTypeAndRange(memberDt, constValue)) {
-                                    errors.err("struct member value's type is not compatible with member field '${memberdecl.name}'", value.first.position)
+                                    errors.err("type of struct member value is not compatible with member field '${memberdecl.name}'", value.first.position)
                                     return
                                 }
                             }

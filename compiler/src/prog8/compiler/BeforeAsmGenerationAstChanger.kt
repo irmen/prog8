@@ -194,7 +194,9 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
         }
 
-        if((binExpr.left as? NumericLiteralValue)?.number==0)
+        if((binExpr.operator=="==" || binExpr.operator=="!=") &&
+            (binExpr.left as? NumericLiteralValue)?.number==0 &&
+            (binExpr.right as? NumericLiteralValue)?.number!=0)
             throw CompilerException("if 0==X should have been swapped to if X==0")
 
         // split the conditional expression into separate variables if the operand(s) is not simple.
