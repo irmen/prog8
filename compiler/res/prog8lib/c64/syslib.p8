@@ -703,4 +703,37 @@ cx16 {
     &uword r14 = $cf1c
     &uword r15 = $cf1e
 
+    &ubyte r0L  = $cf00
+    &ubyte r1L  = $cf02
+    &ubyte r2L  = $cf04
+    &ubyte r3L  = $cf06
+    &ubyte r4L  = $cf08
+    &ubyte r5L  = $cf0a
+    &ubyte r6L  = $cf0c
+    &ubyte r7L  = $cf0e
+    &ubyte r8L  = $cf10
+    &ubyte r9L  = $cf12
+    &ubyte r10L = $cf14
+    &ubyte r11L = $cf16
+    &ubyte r12L = $cf18
+    &ubyte r13L = $cf1a
+    &ubyte r14L = $cf1c
+    &ubyte r15L = $cf1e
+
+    &ubyte r0H  = $cf01
+    &ubyte r1H  = $cf03
+    &ubyte r2H  = $cf05
+    &ubyte r3H  = $cf07
+    &ubyte r4H  = $cf09
+    &ubyte r5H  = $cf0b
+    &ubyte r6H  = $cf0d
+    &ubyte r7H  = $cf0f
+    &ubyte r8H  = $cf11
+    &ubyte r9H  = $cf13
+    &ubyte r10H = $cf15
+    &ubyte r11H = $cf17
+    &ubyte r12H = $cf19
+    &ubyte r13H = $cf1b
+    &ubyte r14H = $cf1d
+    &ubyte r15H = $cf1f
 }

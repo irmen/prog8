@@ -1,10 +1,23 @@
+%import textio
+%zeropage basicsafe
+%import test_stack
+
 main {
     sub start() {
-        if cx16.r0 {
-                const ubyte buffer_length = 255     ; less than 256
-                ubyte[255] buffer
-                ubyte[buffer_length] buffer2
+        str anim = "1234"
+        ubyte anim_counter = 0
+
+        test_stack.test()
+
+        txt.print("loading ")
+        repeat 100 {
+            ubyte qq = anim[anim_counter/2]
+            txt.chrout(qq)
+            anim_counter = (anim_counter+1) & 7
         }
+        txt.print("done!\n")
+
+        test_stack.test()
     }
 }
 

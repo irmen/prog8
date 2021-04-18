@@ -116,6 +116,41 @@ cx16 {
     &uword r14 = $001e
     &uword r15 = $0020
 
+    &ubyte r0L  = $0002
+    &ubyte r1L  = $0004
+    &ubyte r2L  = $0006
+    &ubyte r3L  = $0008
+    &ubyte r4L  = $000a
+    &ubyte r5L  = $000c
+    &ubyte r6L  = $000e
+    &ubyte r7L  = $0010
+    &ubyte r8L  = $0012
+    &ubyte r9L  = $0014
+    &ubyte r10L = $0016
+    &ubyte r11L = $0018
+    &ubyte r12L = $001a
+    &ubyte r13L = $001c
+    &ubyte r14L = $001e
+    &ubyte r15L = $0020
+
+    &ubyte r0H  = $0003
+    &ubyte r1H  = $0005
+    &ubyte r2H  = $0007
+    &ubyte r3H  = $0009
+    &ubyte r4H  = $000b
+    &ubyte r5H  = $000d
+    &ubyte r6H  = $000f
+    &ubyte r7H  = $0011
+    &ubyte r8H  = $0013
+    &ubyte r9H  = $0015
+    &ubyte r10H = $0017
+    &ubyte r11H = $0019
+    &ubyte r12H = $001b
+    &ubyte r13H = $001d
+    &ubyte r14H = $001f
+    &ubyte r15H = $0021
+
+
 ; VERA registers
 
     const uword VERA_BASE       = $9F20
