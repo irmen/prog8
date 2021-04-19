@@ -425,6 +425,9 @@ There are several escape sequences available to put special characters into your
 - ``\uHHHH`` - a unicode codepoint \u0000 - \uffff (16-bit hexadecimal)
 - ``\xHH`` - 8-bit hex value that will be copied verbatim *without encoding*
 
+- String literals can contain many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳".
+  Characters like ^, _, \\, {, } and | (that have no direct PETSCII counterpart) are still accepted and converted to the closest PETSCII equivalents. (Make sure you save the source file in UTF-8 encoding if you use this.)
+
 
 Operators
 ---------

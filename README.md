@@ -27,6 +27,7 @@ What does Prog8 provide?
 - fast execution speed due to compilation to native assembly code. It's possible to write certain raster interrupt 'demoscene' effects purely in Prog8.
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
+- Strings can contain excaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \, {, } and | are also accepted and converted to the closest petscii equivalents.
 - automatic static variable allocations, automatic string and array variables and string sharing
 - subroutines with input parameters and result values
 - high-level program optimizations

@@ -5,12 +5,7 @@
 main {
 
     sub start() {
-        txt.print("^\n")
-        txt.print("_\n")
-        txt.print("{\n")
-        txt.print("}\n")
-        txt.print("|\n")
-        txt.print("\\\n")
+        txt.print("♠♥♣♦π▚●○╳")
     }
 }
 
