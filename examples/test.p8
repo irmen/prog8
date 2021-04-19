@@ -4,16 +4,13 @@
 
 main {
 
-blocklabel:
-
     sub start() {
-
-label1:
-        ubyte xx=99
-        if 0==xx {
-            txt.print("fout")
-        }
-        txt.print("loading ")
+        txt.print("^\n")
+        txt.print("_\n")
+        txt.print("{\n")
+        txt.print("}\n")
+        txt.print("|\n")
+        txt.print("\\\n")
     }
 }
 
