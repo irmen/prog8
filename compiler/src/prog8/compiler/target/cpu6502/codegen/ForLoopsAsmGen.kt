@@ -40,6 +40,13 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
         val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
         asmgen.loopEndLabels.push(endLabel)
         val stepsize=range.step.constValue(program)!!.number.toInt()
+
+        if(stepsize < -1) {
+            val limit = range.to.constValue(program)?.number?.toDouble()
+            if(limit==0.0)
+                throw AssemblyError("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping")
+        }
+
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 if (stepsize==1 || stepsize==-1) {

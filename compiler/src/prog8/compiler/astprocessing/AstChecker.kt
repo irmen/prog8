@@ -92,6 +92,18 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(forLoop: ForLoop) {
+
+        fun checkUnsignedLoopDownto0(range: RangeExpr?) {
+            if(range==null)
+                return
+            val step = range.step.constValue(program)?.number?.toDouble() ?: 1.0
+            if(step < -1.0) {
+                val limit = range.to.constValue(program)?.number?.toDouble()
+                if(limit==0.0 && range.from.constValue(program)==null)
+                    errors.err("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping", forLoop.position)
+            }
+        }
+
         val iterableDt = forLoop.iterable.inferType(program).typeOrElse(DataType.BYTE)
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             errors.err("can only loop over an iterable type", forLoop.position)
@@ -104,11 +116,15 @@ internal class AstChecker(private val program: Program,
                     DataType.UBYTE -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
+
+                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpr)
                     }
                     DataType.UWORD -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
                                 iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
+
+                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpr)
                     }
                     DataType.BYTE -> {
                         if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
@@ -145,6 +161,7 @@ internal class AstChecker(private val program: Program,
 
         super.visit(forLoop)
     }
+
 
     override fun visit(jump: Jump) {
         val ident = jump.identifier
