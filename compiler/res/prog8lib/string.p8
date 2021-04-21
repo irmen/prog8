@@ -190,8 +190,8 @@ _found		sty  P8ZP_SCRATCH_B1
         }}
     }
 
-    asmsub lower(uword st @AY) {
-        ; Lowercases the petscii string in-place.
+    asmsub lower(uword st @AY) -> ubyte @Y {
+        ; Lowercases the petscii string in-place. Returns length of the string.
         ; (for efficiency, non-letter characters > 128 will also not be left intact,
         ;  but regular text doesn't usually contain those characters anyway.)
         %asm {{
@@ -213,8 +213,8 @@ _done       rts
         }}
     }
 
-    asmsub upper(uword st @AY) {
-        ; Uppercases the petscii string in-place.
+    asmsub upper(uword st @AY) -> ubyte @Y {
+        ; Uppercases the petscii string in-place. Returns length of the string.
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1

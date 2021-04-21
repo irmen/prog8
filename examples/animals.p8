@@ -91,7 +91,7 @@ main {
         txt.print("is it a ")
         txt.print(animals[animal_number])
         txt.print("? ")
-        txt.input_chars(userinput)
+        void txt.input_chars(userinput)
         if userinput[0] == 'y' {
             txt.print("\n\nsee, i knew it!\n")
             return
@@ -99,18 +99,18 @@ main {
 
         str name = "x"*30
         txt.print("\n\ni give up. what is it? ")
-        txt.input_chars(name)
+        void txt.input_chars(name)
         txt.print("\nwhat yes-no question would best articulate the difference\nbetween a ")
         txt.print(animals[animal_number])
         txt.print(" and a ")
         txt.print(name)
         txt.print("? ")
-        txt.input_chars(userinput)
+        void txt.input_chars(userinput)
         txt.print("\nfor a ")
         txt.print(name)
         txt.print(", what is the answer to that; yes or no? ")
         str answer = "x"*10
-        txt.input_chars(answer)
+        void txt.input_chars(answer)
 
         animals[new_animal_number] = animal_names_ptr
         questions[new_question_number] = questions_ptr
