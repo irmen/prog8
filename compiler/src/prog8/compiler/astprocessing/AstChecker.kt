@@ -196,6 +196,28 @@ internal class AstChecker(private val program: Program,
         super.visit(label)
     }
 
+    private fun hasReturnOrJump(scope: INameScope): Boolean {
+        class Searcher: IAstVisitor
+        {
+            var count=0
+
+            override fun visit(returnStmt: Return) {
+                count++
+            }
+            override fun visit(jump: Jump) {
+                count++
+            }
+        }
+
+        val s=Searcher()
+        for(stmt in scope.statements) {
+            stmt.accept(s)
+            if(s.count>0)
+                return true
+        }
+        return s.count > 0
+    }
+
     override fun visit(subroutine: Subroutine) {
         fun err(msg: String) = errors.err(msg, subroutine.position)
 
@@ -218,7 +240,7 @@ internal class AstChecker(private val program: Program,
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp' or 'bra')
-        if(subroutine.statements.count { it is Return || it is Jump } == 0) {
+        if(!hasReturnOrJump(subroutine)) {
             if (subroutine.amountOfRtsInAsm() == 0) {
                 if (subroutine.returntypes.isNotEmpty()) {
                     // for asm subroutines with an address, no statement check is possible.

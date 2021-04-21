@@ -7,16 +7,22 @@
 main {
 
     sub start() {
-        ubyte xx=existing_entry(1,2)
+        ubyte num_entries
+
+        num_entries = 10
+        ubyte ix
+        for ix in (num_entries-1)*2 downto 0 step -2 {
+            txt.print_ub(ix)
+            txt.spc()
+        }
+
+        txt.nl()
+        num_entries = 10
+        for ix in num_entries-1 downto 0 {
+            txt.print_ub(ix*2)
+            txt.spc()
+        }
     }
 
-    ; TODO FIX COMPILER ERROR ABOUT MISSING RETURN
-
-    sub existing_entry(ubyte hash, uword symbol) -> ubyte {
-        if hash>10
-            return 44
-        else
-            return false
-    }
 }
 
