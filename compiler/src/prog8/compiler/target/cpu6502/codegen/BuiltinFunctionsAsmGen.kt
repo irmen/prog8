@@ -1072,18 +1072,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             is BinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteralValue) {
-                    asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine()!!)
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
                     val varname = asmgen.asmVariableName(addrExpr.left as IdentifierReference)
-                    val index = (addrExpr.right as NumericLiteralValue).number.toHex()
-                    asmgen.out("""
-                        ldy  #$index
-                        sta  ($varname),y
-                        txa
-                        iny
-                        sta  ($varname),y""")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
-                    return
+                    if(asmgen.isZpVar(addrExpr.left as IdentifierReference)) {
+                        // pointervar is already in the zero page, no need to copy
+                        asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine()!!)
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
+                        val index = (addrExpr.right as NumericLiteralValue).number.toHex()
+                        asmgen.out("""
+                            ldy  #$index
+                            sta  ($varname),y
+                            txa
+                            iny
+                            sta  ($varname),y""")
+                        asmgen.restoreRegisterLocal(CpuRegister.X)
+                        return
+                    }
                 }
             }
         }
@@ -1127,15 +1130,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             is BinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteralValue) {
                     val varname = asmgen.asmVariableName(addrExpr.left as IdentifierReference)
-                    val index = (addrExpr.right as NumericLiteralValue).number.toHex()
-                    asmgen.out("""
-                        ldy  #$index
-                        lda  ($varname),y
-                        pha
-                        iny
-                        lda  ($varname),y
-                        tay
-                        pla""")
+                    if(asmgen.isZpVar(addrExpr.left as IdentifierReference)) {
+                        // pointervar is already in the zero page, no need to copy
+                        val index = (addrExpr.right as NumericLiteralValue).number.toHex()
+                        asmgen.out("""
+                            ldy  #$index
+                            lda  ($varname),y
+                            pha
+                            iny
+                            lda  ($varname),y
+                            tay
+                            pla""")
+                    }  else {
+                        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                        asmgen.out("  jsr  prog8_lib.func_peekw")
+                    }
                 } else {
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                     asmgen.out("  jsr  prog8_lib.func_peekw")
