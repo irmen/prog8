@@ -897,6 +897,15 @@ memory(name, size)
     The return value is just a simple uword address so it cannot be used as an array in your program.
     You can only treat it as a pointer or use it in inline assembly.
 
+callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler target for now
+    Calls an assembly routine in another ram-bank on the CommanderX16 (using the ``jsrfar`` routine)
+    The banked RAM is located in the address range $A000-$BFFF (8 kilobyte).
+    Notice that bank $00 is used by the Kernal and should not be used by user code.
+    The third argument can be used to designate the memory address
+    of an argument for the routine; it will be loaded into the A register and will
+    receive the result value returned by the routine in the A register. If you leave this at zero,
+    no argument passing will be done.
+
 
 Library routines
 ----------------

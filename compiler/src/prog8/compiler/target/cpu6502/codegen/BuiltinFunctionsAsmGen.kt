@@ -13,6 +13,7 @@ import prog8.ast.toHex
 import prog8.compiler.AssemblyError
 import prog8.compiler.functions.FSignature
 import prog8.compiler.target.CpuType
+import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cpu6502.codegen.assignment.*
 import prog8.compiler.target.subroutineFloatEvalResultVar2
 
@@ -65,7 +66,53 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "pokew" -> funcPokeW(fcall)
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "cmp" -> funcCmp(fcall)
+            "callfar" -> funcCallFar(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${func.name}")
+        }
+    }
+
+    private fun funcCallFar(fcall: IFunctionCall) {
+        if(asmgen.options.compTarget !is Cx16Target)
+            throw AssemblyError("callfar only works on cx16 target at this time")
+
+        val bank = fcall.args[0].constValue(program)?.number?.toInt()
+        val address = fcall.args[1].constValue(program)?.number?.toInt()
+        if(bank==null || address==null)
+            throw AssemblyError("callfar (jsrfar) requires constant arguments")
+
+        if(address !in 0xa000..0xbfff)
+            throw AssemblyError("callfar done on address outside of cx16 banked ram")
+        if(bank==0)
+            throw AssemblyError("callfar done on bank 0 which is reserved for the kernal")
+
+        val argAddrArg = fcall.args[2]
+        if(argAddrArg.constValue(program)?.number == 0) {
+            asmgen.out("""
+                jsr  cx16.jsrfar
+                .word  ${address.toHex()}
+                .byte  ${bank.toHex()}""")
+        } else {
+            when(argAddrArg) {
+                is AddressOf -> {
+                    if(argAddrArg.identifier.targetVarDecl(program)?.datatype != DataType.UBYTE)
+                        throw AssemblyError("callfar done with 'arg' pointer to variable that's not UBYTE")
+                    asmgen.out("""
+                        lda  ${asmgen.asmVariableName(argAddrArg.identifier)}
+                        jsr  cx16.jsrfar
+                        .word  ${address.toHex()}
+                        .byte  ${bank.toHex()}
+                        sta  ${asmgen.asmVariableName(argAddrArg.identifier)}""")
+                }
+                is NumericLiteralValue -> {
+                    asmgen.out("""
+                        lda  ${argAddrArg.number.toHex()}
+                        jsr  cx16.jsrfar
+                        .word  ${address.toHex()}
+                        .byte  ${bank.toHex()}
+                        sta  ${argAddrArg.number.toHex()}""")
+                }
+                else -> throw AssemblyError("callfar only accepts pointer-of a (ubyte) variable or constant memory address for the 'arg' parameter")
+            }
         }
     }
 

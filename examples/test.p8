@@ -1,23 +1,30 @@
 %import textio
-%import string
-%zeropage dontuse
-%import test_stack
+%zeropage basicsafe
 
 main {
 
     sub start() {
-        uword zz = $4000
+        ubyte uu
+        cx16.rambank(1)
+        sys.memcopy(&banked.double, $a000, 100)
+        cx16.rambank(0)
+        txt.nl()
 
-        txt.print("hello")
-
-        txt.print_uwhex(peekw(zz+2), true)
-
-        @(zz+2) = lsb($ea31)
-        @(zz+3) = msb($ea31)
-        pokew(zz+2, $ea32)          ; TODO fix crash
-        zz = peekw(zz+2)        ; TODO fix crash with asm
-        txt.print_uwhex(zz, true)
+        uword ww
+        uu = 99
+        txt.print_ub(uu)
+        txt.nl()
+        callfar($01, $a000, &uu)
+        txt.print_ub(uu)
     }
-
 }
 
+
+banked {
+    asmsub double(ubyte number @A) -> ubyte @A {
+        %asm {{
+            asl  a
+            rts
+        }}
+    }
+}
