@@ -905,6 +905,20 @@ callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler t
     of an argument for the routine; it will be loaded into the A register and will
     receive the result value returned by the routine in the A register. If you leave this at zero,
     no argument passing will be done.
+    If the routine requires different arguments or return values, ``callfar`` cannot be used
+    and you'll have to set up a call to ``jsrfar`` yourself to process this.
+
+callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler target for now
+    Calls an assembly routine in another rom-bank on the CommanderX16
+    The banked ROM is located in the address range $C000-$FFFF (16 kilobyte).
+    There are 32 banks (0 to 31).
+    The third argument can be used to designate the memory address
+    of an argument for the routine; it will be loaded into the A register and will
+    receive the result value returned by the routine in the A register. If you leave this at zero,
+    no argument passing will be done.
+    If the routine requires different arguments or return values, ``callrom`` cannot be used
+    and you'll have to set up a call in assembly code yourself that handles the banking and
+    argument/returnvalues.
 
 
 Library routines

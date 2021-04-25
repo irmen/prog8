@@ -67,6 +67,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
+            "callrom" -> funcCallRom(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${func.name}")
         }
     }
@@ -112,6 +113,63 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         sta  ${argAddrArg.number.toHex()}""")
                 }
                 else -> throw AssemblyError("callfar only accepts pointer-of a (ubyte) variable or constant memory address for the 'arg' parameter")
+            }
+        }
+    }
+
+    private fun funcCallRom(fcall: IFunctionCall) {
+        if(asmgen.options.compTarget !is Cx16Target)
+            throw AssemblyError("callrom only works on cx16 target at this time")
+
+        val bank = fcall.args[0].constValue(program)?.number?.toInt()
+        val address = fcall.args[1].constValue(program)?.number?.toInt()
+        if(bank==null || address==null)
+            throw AssemblyError("callrom requires constant arguments")
+
+        if(address !in 0xc000..0xffff)
+            throw AssemblyError("callrom done on address outside of cx16 banked rom")
+        if(bank>=32)
+            throw AssemblyError("callrom bank must be <32")
+
+        val argAddrArg = fcall.args[2]
+        if(argAddrArg.constValue(program)?.number == 0) {
+            asmgen.out("""
+                lda  $01
+                pha
+                lda  #${bank}
+                sta  $01
+                jsr  ${address.toHex()}
+                pla
+                sta  $01""")
+        } else {
+            when(argAddrArg) {
+                is AddressOf -> {
+                    if(argAddrArg.identifier.targetVarDecl(program)?.datatype != DataType.UBYTE)
+                        throw AssemblyError("callrom done with 'arg' pointer to variable that's not UBYTE")
+                    asmgen.out("""
+                        lda  $01
+                        pha
+                        lda  #${bank}
+                        sta  $01
+                        lda  ${asmgen.asmVariableName(argAddrArg.identifier)}                
+                        jsr  ${address.toHex()}
+                        sta  ${asmgen.asmVariableName(argAddrArg.identifier)}
+                        pla
+                        sta  $01""")
+                }
+                is NumericLiteralValue -> {
+                    asmgen.out("""
+                        lda  $01
+                        pha
+                        lda  #${bank}
+                        sta  $01
+                        lda  ${argAddrArg.number.toHex()}
+                        jsr  ${address.toHex()}
+                        sta  ${argAddrArg.number.toHex()}
+                        pla
+                        sta  $01""")
+                }
+                else -> throw AssemblyError("callrom only accepts pointer-of a (ubyte) variable or constant memory address for the 'arg' parameter")
             }
         }
     }

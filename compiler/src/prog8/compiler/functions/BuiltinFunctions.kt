@@ -145,6 +145,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("memory"      , true, listOf(FParam("name", setOf(DataType.STR)), FParam("size", setOf(DataType.UWORD))), DataType.UWORD),
     FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
     FSignature("callfar"     , false, listOf(FParam("bank", setOf(DataType.UBYTE)), FParam("address", setOf(DataType.UWORD)), FParam("arg", setOf(DataType.UWORD))), null),
+    FSignature("callrom"     , false, listOf(FParam("bank", setOf(DataType.UBYTE)), FParam("address", setOf(DataType.UWORD)), FParam("arg", setOf(DataType.UWORD))), null),
 
 )
 

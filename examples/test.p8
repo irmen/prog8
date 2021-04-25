@@ -16,6 +16,26 @@ main {
         txt.nl()
         callfar($01, $a000, &uu)
         txt.print_ub(uu)
+
+        uu = '\n'
+        callrom($00, $ffd2, &uu)
+        uu = 'a'
+        callrom($00, $ffd2, &uu)
+        uu = '!'
+        callrom($00, $ffd2, &uu)
+        uu = '\n'
+        callrom($00, $ffd2, &uu)
+
+;        cx16.rombank(0)
+;        %asm{{
+;            lda  #13
+;            jsr  $ffd2
+;            lda  #'a'
+;            jsr  $ffd2
+;            lda  #13
+;            jsr  $ffd2
+;        }}
+;        cx16.rombank(4)
     }
 }
 
