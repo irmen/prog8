@@ -293,17 +293,67 @@ _done
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
         when active_mode {
-            1, 5 -> {
-                ; monochrome, either resolution
+            1 -> {
+                ; monochrome, lo-res
+                cx16.r15L = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
+                if color {
+                    if monochrome_dont_stipple_flag {
+                        ; draw continuous line.
+                        position2(x,y,true)
+                        cx16.VERA_CTRL = 0
+                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
+                        cx16.VERA_CTRL = 1
+                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
+                        repeat height {
+                            %asm {{
+                                lda  cx16.VERA_DATA0
+                                ora  cx16.r15L
+                                sta  cx16.VERA_DATA1
+                            }}
+                        }
+                    } else {
+                        ; draw stippled line.
+                        if x&1 {
+                            y++
+                            height--
+                        }
+                        position2(x,y,true)
+                        cx16.VERA_CTRL = 0
+                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (12<<4)       ; 80 increment = 2 line in 320 px monochrome
+                        cx16.VERA_CTRL = 1
+                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (12<<4)       ; 80 increment = 2 line in 320 px monochrome
+                        repeat height/2 {
+                            %asm {{
+                                lda  cx16.VERA_DATA0
+                                ora  cx16.r15L
+                                sta  cx16.VERA_DATA1
+                            }}
+                        }
+                    }
+                } else {
+                    position2(x,y,true)
+                    cx16.r15 = ~cx16.r15    ; erase pixels
+                    cx16.VERA_CTRL = 0
+                    cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
+                    cx16.VERA_CTRL = 1
+                    cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
+                    repeat height {
+                        %asm {{
+                            lda  cx16.VERA_DATA0
+                            and  cx16.r15L
+                            sta  cx16.VERA_DATA1
+                        }}
+                    }
+                }
+            }
+            5 -> {
+                ; monochrome, highres
                 ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
                 ; TODO use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment IS possible
                 position(x,y)
                 cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
-                if active_mode==5
-                    cx16.r14 = 640/8
-                else
-                    cx16.r14 = 320/8
+                cx16.r14 = 640/8
                 if color {
                     if monochrome_dont_stipple_flag {
                         repeat height {
