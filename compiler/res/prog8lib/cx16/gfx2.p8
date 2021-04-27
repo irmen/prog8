@@ -292,15 +292,15 @@ _done
     }
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
-        position(x,y)
         when active_mode {
             1, 5 -> {
                 ; monochrome, either resolution
                 ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
                 ; TODO use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment IS possible
+                position(x,y)
                 cx16.VERA_ADDR_H &= %00000111   ; no auto advance
                 cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
-                if active_mode>=5
+                if active_mode==5
                     cx16.r14 = 640/8
                 else
                     cx16.r14 = 320/8
@@ -385,6 +385,7 @@ _done
             4 -> {
                 ; lores 256c
                 ; set vera auto-increment to 320 pixel increment (=next line)
+                position(x,y)
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
                 %asm {{
                     ldy  height
@@ -398,31 +399,23 @@ _done
             }
             6 -> {
                 ; highres 4c
-                ; note for this mode we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
-                ; TODO use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment IS possible
-                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
-                ; TODO also mostly usable for lores 4c?
-                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-
-                ; TODO optimize this vertical line loop in pure assembly
+                ; use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment is possible
+                if height==0
+                    return
+                position2(x,y,true)
+                cx16.VERA_CTRL = 0
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (13<<4)       ; 160 increment = 1 line in 640 px 4c mode
+                cx16.VERA_CTRL = 1
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (13<<4)       ; 160 increment = 1 line in 640 px 4c mode
                 color &= 3
                 color <<= gfx2.plot.shift4c[lsb(x) & 3]
                 ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
                 repeat height {
-                    ubyte value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask | color
-                    cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
                     %asm {{
-                        ; 24 bits add 160 (640/4)
-                        clc
-                        lda  cx16.r0
-                        adc  #640/4
-                        sta  cx16.r0
-                        lda  cx16.r0+1
-                        adc  #0
-                        sta  cx16.r0+1
-                        bcc  +
-                        inc  cx16.r1
-+
+                        lda  cx16.VERA_DATA0
+                        and  mask
+                        ora  color
+                        sta  cx16.VERA_DATA1
                     }}
                 }
             }
@@ -680,6 +673,20 @@ _done
         }
     }
 
+    sub position2(uword @zp x, uword y, ubyte also_port_1) {
+        position(x, y)
+        if also_port_1 {
+            when active_mode {
+                1, 5 -> cx16.vaddr(0, cx16.r0, 1, 1)
+                ; TODO modes 2, 3
+                4, 6 -> {
+                    ubyte bank = lsb(cx16.r1)
+                    cx16.vaddr(bank, cx16.r0, 1, 1)
+                }
+            }
+        }
+    }
+
     inline asmsub next_pixel(ubyte color @A) {
         ; -- sets the next pixel byte to the graphics chip.
         ;    for 8 bpp screens this will plot 1 pixel.
@@ -765,7 +772,7 @@ _done
             1, 5 -> {
                 ; monochrome mode, either resolution
                 cx16.r2 = 40
-                if active_mode>=5
+                if active_mode==5
                     cx16.r2 = 80
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8

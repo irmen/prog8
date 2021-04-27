@@ -1,50 +1,41 @@
-%import textio
-%zeropage basicsafe
+%import conv
+%import gfx2
 
 main {
 
     sub start() {
-        ubyte uu
-        cx16.rambank(1)
-        sys.memcopy(&banked.double, $a000, 100)
-        cx16.rambank(0)
-        txt.nl()
+        gfx2.screen_mode(6)     ; high res 4 colors
+        gfx2.text_charset(3)
+        gfx2.text(10, 10, 1, @"Hello!")
 
-        uword ww
-        uu = 99
-        txt.print_ub(uu)
-        txt.nl()
-        callfar($01, $a000, &uu)
-        txt.print_ub(uu)
+        c64.SETTIM(0,0,0)
 
-        uu = '\n'
-        callrom($00, $ffd2, &uu)
-        uu = 'a'
-        callrom($00, $ffd2, &uu)
-        uu = '!'
-        callrom($00, $ffd2, &uu)
-        uu = '\n'
-        callrom($00, $ffd2, &uu)
+        repeat 1 {
+            uword xx
+            ; gfx2.monochrome_stipple(true)
+;            for xx in 0 to 639 {
+;                gfx2.vertical_line(xx, 20, 220, 1)
+;            }
+;            gfx2.monochrome_stipple(false)
+            for xx in 0 to 639 {
+                gfx2.vertical_line(xx, 20, 450, 1)
+            }
+            for xx in 0 to 639 {
+                gfx2.vertical_line(xx, 20, 450, 2)
+            }
+            for xx in 0 to 639 {
+                gfx2.vertical_line(xx, 20, 450, 3)
+            }
+            for xx in 0 to 639 {
+                gfx2.vertical_line(xx, 20, 450, 0)
+            }
+        }
 
-;        cx16.rombank(0)
-;        %asm{{
-;            lda  #13
-;            jsr  $ffd2
-;            lda  #'a'
-;            jsr  $ffd2
-;            lda  #13
-;            jsr  $ffd2
-;        }}
-;        cx16.rombank(4)
-    }
-}
+        uword time = c64.RDTIM16()
+        conv.str_uw(time)
+        gfx2.text(100, 10, 1, conv.string_out)
 
-
-banked {
-    asmsub double(ubyte number @A) -> ubyte @A {
-        %asm {{
-            asl  a
-            rts
-        }}
+        repeat {
+        }
     }
 }
