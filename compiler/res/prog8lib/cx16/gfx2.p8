@@ -293,17 +293,17 @@ _done
 
     sub vertical_line(uword x, uword y, uword height, ubyte color) {
         when active_mode {
-            1 -> {
+            1, 5 -> {
                 ; monochrome, lo-res
                 cx16.r15L = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
                 if color {
                     if monochrome_dont_stipple_flag {
                         ; draw continuous line.
                         position2(x,y,true)
-                        cx16.VERA_CTRL = 0
-                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
-                        cx16.VERA_CTRL = 1
-                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
+                        if active_mode==1
+                            set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
+                        else
+                            set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
                         repeat height {
                             %asm {{
                                 lda  cx16.VERA_DATA0
@@ -318,10 +318,10 @@ _done
                             height--
                         }
                         position2(x,y,true)
-                        cx16.VERA_CTRL = 0
-                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (12<<4)       ; 80 increment = 2 line in 320 px monochrome
-                        cx16.VERA_CTRL = 1
-                        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (12<<4)       ; 80 increment = 2 line in 320 px monochrome
+                        if active_mode==1
+                            set_both_strides(12)    ; 80 increment = 2 line in 320 px monochrome
+                        else
+                            set_both_strides(13)    ; 160 increment = 2 line in 640 px monochrome
                         repeat height/2 {
                             %asm {{
                                 lda  cx16.VERA_DATA0
@@ -333,101 +333,15 @@ _done
                 } else {
                     position2(x,y,true)
                     cx16.r15 = ~cx16.r15    ; erase pixels
-                    cx16.VERA_CTRL = 0
-                    cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
-                    cx16.VERA_CTRL = 1
-                    cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (11<<4)       ; 40 increment = 1 line in 320 px monochrome
+                    if active_mode==1
+                        set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
+                    else
+                        set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
                     repeat height {
                         %asm {{
                             lda  cx16.VERA_DATA0
                             and  cx16.r15L
                             sta  cx16.VERA_DATA1
-                        }}
-                    }
-                }
-            }
-            5 -> {
-                ; monochrome, highres
-                ; note for the 1 bpp modes we can't use vera's auto increment mode because we have to 'or' the pixel data in place.
-                ; TODO use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment IS possible
-                position(x,y)
-                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
-                cx16.r15 = gfx2.plot.bits[x as ubyte & 7]           ; bitmask
-                cx16.r14 = 640/8
-                if color {
-                    if monochrome_dont_stipple_flag {
-                        repeat height {
-                            %asm {{
-                                lda  cx16.VERA_DATA0
-                                ora  cx16.r15
-                                sta  cx16.VERA_DATA0
-                                lda  cx16.VERA_ADDR_L
-                                clc
-                                adc  cx16.r14                 ; advance vera ptr to go to the next line
-                                sta  cx16.VERA_ADDR_L
-                                lda  cx16.VERA_ADDR_M
-                                adc  #0
-                                sta  cx16.VERA_ADDR_M
-                                ; lda  cx16.VERA_ADDR_H     ; the bitmap size is small enough to not have to deal with the _H part.
-                                ; adc  #0
-                                ; sta  cx16.VERA_ADDR_H
-                            }}
-                        }
-                    } else {
-                        ; stippling.
-                        height = (height+1)/2       ; TODO is the line sometimes 1 pixel too long now because of rounding?
-                        %asm {{
-                            lda x
-                            eor y
-                            and #1
-                            bne +
-                            lda  cx16.VERA_ADDR_L
-                            clc
-                            adc  cx16.r14                ; advance vera ptr to go to the next line for correct stipple pattern
-                            sta  cx16.VERA_ADDR_L
-                            lda  cx16.VERA_ADDR_M
-                            adc  #0
-                            sta  cx16.VERA_ADDR_M
-        +
-                            asl  cx16.r14
-                            ldy  height
-                            beq  +
-        -                   lda  cx16.VERA_DATA0
-                            ora  cx16.r15
-                            sta  cx16.VERA_DATA0
-                            lda  cx16.VERA_ADDR_L
-                            clc
-                            adc  cx16.r14               ; advance vera data ptr to go to the next-next line
-                            sta  cx16.VERA_ADDR_L
-                            lda  cx16.VERA_ADDR_M
-                            adc  #0
-                            sta  cx16.VERA_ADDR_M
-                            ; lda  cx16.VERA_ADDR_H      ; the bitmap size is small enough to not have to deal with the _H part.
-                            ; adc  #0
-                            ; sta  cx16.VERA_ADDR_H
-                            dey
-                            bne  -
-        +
-                        }}
-                    }
-                } else {
-                    cx16.r15 = ~cx16.r15
-                    repeat height {
-                        %asm {{
-                            lda  cx16.VERA_DATA0
-                            and  cx16.r15
-                            sta  cx16.VERA_DATA0
-                            lda  cx16.VERA_ADDR_L
-                            clc
-                            adc  cx16.r14             ; advance vera data ptr to go to the next line
-                            sta  cx16.VERA_ADDR_L
-                            lda  cx16.VERA_ADDR_M
-                            adc  #0
-                            sta  cx16.VERA_ADDR_M
-                            ; the bitmap size is small enough to not have to deal with the _H part:
-                            ; lda  cx16.VERA_ADDR_H
-                            ; adc  #0
-                            ; sta  cx16.VERA_ADDR_H
                         }}
                     }
                 }
@@ -453,10 +367,7 @@ _done
                 if height==0
                     return
                 position2(x,y,true)
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (13<<4)       ; 160 increment = 1 line in 640 px 4c mode
-                cx16.VERA_CTRL = 1
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (13<<4)       ; 160 increment = 1 line in 640 px 4c mode
+                set_both_strides(13)    ; 160 increment = 1 line in 640 px 4c mode
                 color &= 3
                 color <<= gfx2.plot.shift4c[lsb(x) & 3]
                 ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
@@ -469,6 +380,14 @@ _done
                     }}
                 }
             }
+        }
+
+        sub set_both_strides(ubyte stride) {
+            stride <<= 4
+            cx16.VERA_CTRL = 0
+            cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
+            cx16.VERA_CTRL = 1
+            cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
         }
 
     }
@@ -633,6 +552,7 @@ _done
         uword addr
         ubyte value
 
+        ; TODO get rid of all the vpoke calls to optimize all plot() ?
         when active_mode {
             1 -> {
                 ; lores monochrome
@@ -659,7 +579,7 @@ _done
                 cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
                 ; activate vera auto-increment mode so next_pixel() can be used after this
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | %00010000
-                color = cx16.VERA_DATA0
+                cx16.r0L = cx16.VERA_DATA0      ; advance 1
             }
             5 -> {
                 ; highres monochrome
