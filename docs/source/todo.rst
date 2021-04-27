@@ -2,6 +2,7 @@
 TODO
 ====
 
+- simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
 - hoist all variable declarations up to the subroutine scope *before* even the constant folding takes place (to avoid undefined symbol errors when referring to a variable from another nested scope in the subroutine)
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - get rid of all other TODO's in the code ;-)
