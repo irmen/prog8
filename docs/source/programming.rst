@@ -845,9 +845,6 @@ rndw()
 rndf()
     returns a pseudo-random float between 0.0 and 1.0
 
-fastrnd8()
-    returns a pseudo-random byte from 0..255 (using a fast but not very good rng)
-
 rol(x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,

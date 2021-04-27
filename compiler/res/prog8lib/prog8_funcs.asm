@@ -387,14 +387,6 @@ func_sqrt16_into_A	.proc
 		rts
 		.pend
 
-func_fastrnd8_stack	.proc
-	; -- put a random ubyte on the estack (using fast but bad RNG)
-		jsr  math.fast_randbyte
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
 func_rnd_stack	.proc
 	; -- put a random ubyte on the estack
 		jsr  math.randbyte

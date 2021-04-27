@@ -24,12 +24,11 @@ main {
         ; Setup Starting Ball Positions
         ubyte lp
         for lp in 0 to ballCount-1 {
-            BX[lp] = fastrnd8() % txt.DEFAULT_WIDTH
-            BY[lp] = fastrnd8() % txt.DEFAULT_HEIGHT
-            BC[lp] = fastrnd8() & 15
-            DX[lp] = fastrnd8() & 1
-            DY[lp] = fastrnd8() & 1
-            void fastrnd8()
+            BX[lp] = rnd() % txt.DEFAULT_WIDTH
+            BY[lp] = rnd() % txt.DEFAULT_HEIGHT
+            BC[lp] = rnd() & 15
+            DX[lp] = rnd() & 1
+            DY[lp] = rnd() & 1
         }
 
         ; start clock

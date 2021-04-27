@@ -573,6 +573,7 @@ _done
                     }
                 }
             }
+            ; TODO mode 2,3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)

@@ -52,7 +52,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "ln", "log2", "sqrt", "rad",
             "deg", "round", "floor", "ceil",
             "rndf" -> funcVariousFloatFuncs(fcall, func, resultToStack, resultRegister, sscope)
-            "fastrnd8", "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
+            "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
             "sqrt16" -> funcSqrt16(fcall, func, resultToStack, resultRegister, sscope)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
@@ -1115,14 +1115,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcRnd(func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         when(func.name) {
-            "fastrnd8" -> {
-                if(resultToStack)
-                    asmgen.out("  jsr  prog8_lib.func_fastrnd8_stack")
-                else {
-                    asmgen.out("  jsr  math.fast_randbyte")
-                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
-                }
-            }
             "rnd" -> {
                 if(resultToStack)
                     asmgen.out("  jsr  prog8_lib.func_rnd_stack")

@@ -244,25 +244,6 @@ randseed	.proc
 		.pend
 
 
-fast_randbyte	.proc
-	; -- fast but bad 8-bit pseudo random number generator into A
-		lda  _seed
-		beq  _eor
-		asl  a
-		beq  _done	; if the input was $80, skip the EOR
-		bcc  _done
-_eor		eor  #$1d	; xor with magic value see below for possible values
-_done		sta  _seed
-		rts
-
-_seed		.byte  $3a
-
-		; possible 'magic' eor bytes are:
-		; $1d, $2b, $2d, $4d, $5f, $63, $65, $69
-		; $71, $87, $8d, $a9, $c3, $cf, $e7, $f5
-
-		.pend
-
 randbyte        .proc
 	; -- 8 bit pseudo random number generator into A (by just reusing randword)
 		jmp  randword
@@ -271,45 +252,37 @@ randbyte        .proc
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
 
-magic_eor = $3f1d
-		; possible magic eor words are:
-		; $3f1d, $3f81, $3fa5, $3fc5, $4075, $409d, $40cd, $4109
- 		; $413f, $414b, $4153, $4159, $4193, $4199, $41af, $41bb
+		; rand64k       ;Factors of 65535: 3 5 17 257
+		lda sr1+1
+		asl a
+		asl a
+		eor sr1+1
+		asl a
+		eor sr1+1
+		asl a
+		asl a
+		eor sr1+1
+		asl a
+		rol sr1         ;shift this left, "random" bit comes from low
+		rol sr1+1
+		; rand32k       ;Factors of 32767: 7 31 151 are independent and can be combined
+		lda sr2+1
+		asl a
+		eor sr2+1
+		asl a
+		asl a
+		ror sr2         ;shift this right, random bit comes from high - nicer when eor with sr1
+		rol sr2+1
+		lda sr1+1         ;can be left out
+		eor sr2+1         ;if you dont use
+		tay               ;y as suggested
+		lda sr1           ;mix up lowbytes of SR1
+		eor sr2           ;and SR2 to combine both
+		rts
 
-		lda  _seed
-		beq  _lowZero	; $0000 and $8000 are special values to test for
+sr1     	.word $a55a
+sr2     	.word $7653
 
- 		; Do a normal shift
-		asl  _seed
-		lda  _seed+1
-		rol  a
-		bcc  _noEor
-
-_doEor		; high byte is in A
-		eor  #>magic_eor
-  		sta  _seed+1
-  		lda  _seed
-  		eor  #<magic_eor
-  		sta  _seed
-  		ldy  _seed+1
-  		rts
-
-_lowZero	lda  _seed+1
-		beq  _doEor	; High byte is also zero, so apply the EOR
-				; For speed, you could store 'magic' into 'seed' directly
-				; instead of running the EORs
-
- 		; wasn't zero, check for $8000
-		asl  a
-		beq  _noEor	; if $00 is left after the shift, then it was $80
-		bcs  _doEor	; else, do the EOR based on the carry bit as usual
-
-_noEor		sta  _seed+1
-		tay
-		lda  _seed
- 		rts
-
-_seed		.word	$2c9e
 		.pend
 
 
