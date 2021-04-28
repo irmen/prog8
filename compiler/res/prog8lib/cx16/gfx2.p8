@@ -588,12 +588,19 @@ _done
             ; TODO mode 2,3
             4 -> {
                 ; lores 256c
-                ; TODO get rid of all the vpoke calls to optimize all plot() ?
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
-                ; activate vera auto-increment mode so next_pixel() can be used after this
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | %00010000
-                cx16.r0L = cx16.VERA_DATA0      ; advance 1
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    lda  cx16.r1
+                    ora  #%00010000     ; enable auto-increment so next_pixel() can be used after this
+                    sta  cx16.VERA_ADDR_H
+                    lda  cx16.r0+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  cx16.r0
+                    sta  cx16.VERA_ADDR_L
+                    lda  color
+                    sta  cx16.VERA_DATA0
+                }}
             }
             5 -> {
                 ; highres monochrome

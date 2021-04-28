@@ -5,7 +5,7 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(1)     ; lo res
+        gfx2.screen_mode(4)     ; lo res 256c
         gfx2.text_charset(3)
         gfx2.text(10, 10, 1, @"Hello!")
 
@@ -14,7 +14,7 @@ main {
         ubyte yy
         uword rw
 
-        ;413 jiffies (lores mono) / 480 jiffies (highres mono) / 368 jiffies (lores 256c) / 442 jiffies (lores 4c)
+        ;480 jiffies (highres mono) / 442 jiffies (lores 4c)
         repeat 50000 {
             rw = rndw()
             yy = (lsb(rw) & 127) + 20
