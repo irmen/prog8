@@ -277,9 +277,9 @@ _done
                         ora  colorbits,y
                         sta  cx16.VERA_DATA0
                         cpy  #%00000011         ; next vera byte?
-                        bne  +
+                        bne  +                  ; TODO should be ++?
                         inc  cx16.VERA_ADDR_L
-                        bne  +
+                        bne  +                  ; TODO should be ++?
                         inc  cx16.VERA_ADDR_M
 +                       bne  +
                         inc  cx16.VERA_ADDR_H
@@ -634,13 +634,24 @@ _done
             6 -> {
                 ; highres 4c
                 ; TODO also mostly usable for lores 4c?
-                ; TODO get rid of all the vpoke calls to optimize all plot() ?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                cx16.r2L = lsb(x) & 3       ; xbits
                 color &= 3
-                color <<= shift4c[lsb(x) & 3]
-                cx16.VERA_ADDR_H &= %00000111   ; no auto advance
-                ubyte value2 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask4c[lsb(x) & 3] | color
-                cx16.vpoke(lsb(cx16.r1), cx16.r0, value2)
+                color <<= shift4c[cx16.r2L]
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    lda  cx16.r1L
+                    sta  cx16.VERA_ADDR_H
+                    lda  cx16.r0H
+                    sta  cx16.VERA_ADDR_M
+                    lda  cx16.r0L
+                    sta  cx16.VERA_ADDR_L
+                    ldy  cx16.r2L           ; xbits
+                    lda  mask4c,y
+                    and  cx16.VERA_DATA0
+                    ora  color
+                    sta  cx16.VERA_DATA0
+                }}
             }
         }
     }

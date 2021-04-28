@@ -14,7 +14,6 @@ main {
         ubyte yy
         uword rw
 
-        ; 520 jiffies (hires 4c)
         repeat 20000 {
             rw = rndw()
             yy = (lsb(rw) & 127) + 20
