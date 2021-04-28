@@ -11,28 +11,12 @@ main {
 
         c64.SETTIM(0,0,0)
 
-        ubyte yy
-        uword rw
-
-        repeat 20000 {
-            rw = rndw()
-            yy = (lsb(rw) & 127) + 20
-            gfx2.plot(msb(rw), yy, 1)
-        }
-        repeat 20000 {
-            rw = rndw()
-            yy = (lsb(rw) & 127) + 20
-            gfx2.plot(msb(rw), yy, 2)
-        }
-        repeat 20000 {
-            rw = rndw()
-            yy = (lsb(rw) & 127) + 20
-            gfx2.plot(msb(rw), yy, 3)
-        }
-        repeat 50000 {
-            rw = rndw()
-            yy = (lsb(rw) & 127) + 20
-            gfx2.plot(msb(rw), yy, 0)
+        ubyte rr
+        for rr in 0 to 2 {
+            uword yy
+            for yy in 20 to 420 {
+                gfx2.horizontal_line(10, yy, 610, (lsb(yy>>3) + rr) & 3)
+            }
         }
 
         uword time = c64.RDTIM16()

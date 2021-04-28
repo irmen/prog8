@@ -277,9 +277,9 @@ _done
                         ora  colorbits,y
                         sta  cx16.VERA_DATA0
                         cpy  #%00000011         ; next vera byte?
-                        bne  +                  ; TODO should be ++?
+                        bne  ++
                         inc  cx16.VERA_ADDR_L
-                        bne  +                  ; TODO should be ++?
+                        bne  ++
                         inc  cx16.VERA_ADDR_M
 +                       bne  +
                         inc  cx16.VERA_ADDR_H
