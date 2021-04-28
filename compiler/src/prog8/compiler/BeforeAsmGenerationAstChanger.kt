@@ -82,8 +82,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
 
         val sub = scope.definingSubroutine()
         if (sub != null) {
-            // move vardecls of the scope into the upper scope. Make sure the position remains the same!
-            // TODO THIS HAS ALREADY BEEN TAKEN CARE OF AT THE START????
+            // move any remaining vardecls of the scope into the upper scope. Make sure the position remains the same!
             val replacements = mutableListOf<IAstModification>()
             val movements = mutableListOf<IAstModification.InsertFirst>()
 

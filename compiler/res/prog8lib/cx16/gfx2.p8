@@ -776,7 +776,7 @@ _done
     sub text(uword @zp x, uword y, ubyte color, uword sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
-        ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to mulitples of 8 !  TODO allow per-pixel horizontal positioning
+        ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to multiples of 8 !  TODO allow per-pixel horizontal positioning
         uword chardataptr
         when active_mode {
             1, 5 -> {
