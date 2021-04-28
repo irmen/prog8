@@ -182,7 +182,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
             return false
 
         val allReferencedVardecls = allIdentifiersAndTargets.filter { it.value is VarDecl }.map { it.value }.toSet()
-        return decl !in allReferencedVardecls && !nameInAssemblyCode(decl.name)
+        return decl !in allReferencedVardecls // Don't check assembly just for occurrences of variables, if they're not used in prog8 itself, just kill them
     }
 
     private fun nameInAssemblyCode(name: String) = allAssemblyNodes.any { it.assembly.contains(name) }

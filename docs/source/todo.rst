@@ -2,7 +2,6 @@
 TODO
 ====
 
-- fix problem that unused vars are no longer properly removed
 - BeforeAsmGenerationAstChanger no longer needs to move vardecls??
 
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
