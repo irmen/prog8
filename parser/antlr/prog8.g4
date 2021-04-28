@@ -109,12 +109,9 @@ statement :
 
 variabledeclaration :
 	varinitializer
-	| structvarinitializer
 	| vardecl
-	| structvardecl
 	| constdecl
 	| memoryvardecl
-	| structdecl
     ;
 
 
@@ -139,17 +136,11 @@ directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: datatype ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
 
-structvardecl: structname=identifier varname=identifier ;
-
 varinitializer : vardecl '=' expression ;
-
-structvarinitializer : structvardecl '=' expression ;
 
 constdecl: 'const' varinitializer ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
-
-structdecl: 'struct' identifier '{' EOL vardecl ( EOL vardecl)* EOL? '}' EOL;
 
 datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' ;
 

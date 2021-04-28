@@ -145,7 +145,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.EXPRESSION -> {
                 when(val value = assign.source.expression!!) {
                     is AddressOf -> {
-                        val sourceName = value.identifier.firstStructVarName(program) ?: asmgen.asmVariableName(value.identifier)
+                        val sourceName = asmgen.asmVariableName(value.identifier)
                         assignAddressOf(assign.target, sourceName)
                     }
                     is NumericLiteralValue -> throw AssemblyError("source kind should have been literalnumber")

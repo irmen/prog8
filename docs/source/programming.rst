@@ -330,39 +330,6 @@ read the syntax reference on strings.
     The same is true for arrays! So be careful to (re)initialize them if needed.
 
 
-Structs
-^^^^^^^
-
-A struct is a group of one or more other variables.
-This allows you to reuse the definition and manipulate it as a whole.
-Individual variables in the struct are accessed as you would expect, just
-use a scoped name to refer to them: ``structvariable.membername``.
-
-Structs are a bit limited in Prog8: you can only use numerical variables
-as member of a struct, so strings and arrays and other structs can not be part of a struct.
-Also, it is not possible to use a struct itself inside an array.
-Structs are mainly syntactic sugar for repeated groups of vardecls
-and assignments that belong together. However,
-*they are layed out in sequence in memory as the members are defined*
-which may be usefulif you want to pass pointers around.
-
-To create a variable of a struct type you need to define the struct itself,
-and then create a variable with it::
-
-    struct Color {
-        ubyte red
-        ubyte green
-        ubyte blue
-    }
-
-    Color rgb = [255,122,0]     ; note that struct initializer value is same as an array
-    Color another               ; the init value is optional, like arrays
-
-    another = rgb           ; assign all of the values of rgb to another
-    another.blue = 255      ; set a single member
-
-
-
 Special types: const and memory-mapped
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -874,11 +841,6 @@ sizeof(name)
     the object. For instance, for a variable of type uword, the sizeof is 2.
     For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
-
-offsetof(membername)
-    Number of bytes from the start of a struct variable that this member variable is located.
-    For now, this only works on members of a declared struct variable and not yet on members
-    referenced from the struct type itself.  This might be improved in a future version of the language.
 
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.

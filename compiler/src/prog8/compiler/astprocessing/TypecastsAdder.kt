@@ -20,7 +20,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val declValue = decl.value
-        if(decl.type==VarDeclType.VAR && declValue!=null && decl.struct==null) {
+        if(decl.type==VarDeclType.VAR && declValue!=null) {
             val valueDt = declValue.inferType(program)
             if(!valueDt.istype(decl.datatype)) {
 

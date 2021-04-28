@@ -379,14 +379,8 @@ internal class AsmGen(private val program: Program,
         out("\n; non-zeropage variables")
         val vars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
 
-        // first output the flattened struct member variables *in order*
-        // after that, the other variables sorted by their datatype
-
-        val (structMembers, normalVars) = vars.partition { it.struct!=null }
-        structMembers.forEach { vardecl2asm(it) }
-
         // special treatment for string types: merge strings that are identical
-        val encodedstringVars = normalVars
+        val encodedstringVars = vars
                 .filter {it.datatype == DataType.STR }
                 .map {
                     val str = it.value as StringLiteralValue
@@ -400,7 +394,7 @@ internal class AsmGen(private val program: Program,
         }
 
         // non-string variables
-        normalVars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
+        vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
             if(it.makeScopedName(it.name) !in allocatedZeropageVariables)
                 vardecl2asm(it)
         }
@@ -437,10 +431,10 @@ internal class AsmGen(private val program: Program,
                         "$" + it.number.toInt().toString(16).padStart(4, '0')
                     }
                     is AddressOf -> {
-                        it.identifier.firstStructVarName(program) ?: asmSymbolName(it.identifier)
+                        asmSymbolName(it.identifier)
                     }
                     is IdentifierReference -> {
-                        it.firstStructVarName(program) ?: asmSymbolName(it)
+                        asmSymbolName(it)
                     }
                     else -> throw AssemblyError("weird array elt dt")
                 }
@@ -501,14 +495,8 @@ internal class AsmGen(private val program: Program,
         return newName
     }
 
-    internal fun asmSymbolName(identifier: IdentifierReference): String {
-        return if(identifier.memberOfStruct(program)!=null) {
-            val name = identifier.targetVarDecl(program)!!.name
-            fixNameSymbols(name)
-        } else {
-            fixNameSymbols(identifier.nameInSource.joinToString("."))
-        }
-    }
+    internal fun asmSymbolName(identifier: IdentifierReference) =
+        fixNameSymbols(identifier.nameInSource.joinToString("."))
 
     internal fun asmSymbolName(regs: RegisterOrPair): String =
         if(regs in Cx16VirtualRegisters)
@@ -516,14 +504,8 @@ internal class AsmGen(private val program: Program,
         else
             throw AssemblyError("no symbol name for register $regs")
 
-    internal fun asmVariableName(identifier: IdentifierReference): String {
-        return if(identifier.memberOfStruct(program)!=null) {
-            val name = identifier.targetVarDecl(program)!!.name
-            fixNameSymbols(name)
-        } else {
-            fixNameSymbols(identifier.nameInSource.joinToString("."))
-        }
-    }
+    internal fun asmVariableName(identifier: IdentifierReference) =
+        fixNameSymbols(identifier.nameInSource.joinToString("."))
 
     internal fun asmSymbolName(name: String) = fixNameSymbols(name)
     internal fun asmVariableName(name: String) = fixNameSymbols(name)
@@ -671,7 +653,7 @@ internal class AsmGen(private val program: Program,
         when(stmt) {
             is ParameterVarDecl -> { /* subroutine parameter vardecls don't get any special treatment here */ }
             is VarDecl -> translate(stmt)
-            is StructDecl, is NopStatement -> {}
+            is NopStatement -> {}
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
             is Subroutine -> translateSubroutine(stmt)

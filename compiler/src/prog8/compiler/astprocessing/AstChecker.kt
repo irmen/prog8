@@ -418,30 +418,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val targetIdent = assignment.target.identifier
-        if(targetIdent!=null) {
-            val targetVar = targetIdent.targetVarDecl(program)
-            if(targetVar?.struct != null) {
-                val sourceStructLv = assignment.value as? ArrayLiteralValue
-                if (sourceStructLv != null) {
-                    if (sourceStructLv.value.size != targetVar.struct?.numberOfElements)
-                        errors.err("number of elements doesn't match struct definition", sourceStructLv.position)
-                } else {
-                    val sourceIdent = assignment.value as? IdentifierReference
-                    if (sourceIdent != null) {
-                        val sourceVar = sourceIdent.targetVarDecl(program)
-                        if (sourceVar?.struct != null) {
-                            if (sourceVar.struct !== targetVar.struct)
-                                errors.err("assignment of different struct types", assignment.position)
-                        } else if(sourceVar?.isArray==true) {
-                            if((sourceVar.value as ArrayLiteralValue).value.size != targetVar.struct?.numberOfElements)
-                                errors.err("number of elements doesn't match struct definition", sourceVar.position)
-                        }
-                    }
-                }
-            }
-        }
-
         val targetDt = assignment.target.inferType(program)
         val valueDt = assignment.value.inferType(program)
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
@@ -561,17 +537,6 @@ internal class AstChecker(private val program: Program,
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
-                if(decl.datatype==DataType.STRUCT) {
-                    if(decl.struct==null)
-                        throw FatalAstException("struct vardecl should be linked to its struct $decl")
-                    if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE || decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
-                        err("struct can not be in zeropage")
-                }
-                if(decl.struct!=null) {
-                    if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE || decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
-                        err("struct can not be in zeropage")
-                }
-
                 when(decl.value) {
                     null -> {
                         // a vardecl without an initial value, don't bother with it
@@ -581,30 +546,8 @@ internal class AstChecker(private val program: Program,
                         checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteralValue)
                     }
                     is ArrayLiteralValue -> {
-                        if(decl.datatype==DataType.STRUCT) {
-                            val struct = decl.struct!!
-                            val structLv = decl.value as ArrayLiteralValue
-                            if(struct.numberOfElements != structLv.value.size) {
-                                errors.err("struct value has incorrect number of elements", structLv.position)
-                                return
-                            }
-                            for(value in structLv.value.zip(struct.statements)) {
-                                val memberdecl = value.second as VarDecl
-                                val constValue = value.first.constValue(program)
-                                if(constValue==null) {
-                                    errors.err("struct literal value for field '${memberdecl.name}' should consist of compile-time constants", value.first.position)
-                                    return
-                                }
-                                val memberDt = memberdecl.datatype
-                                if(!checkValueTypeAndRange(memberDt, constValue)) {
-                                    errors.err("type of struct member value is not compatible with member field '${memberdecl.name}'", value.first.position)
-                                    return
-                                }
-                            }
-                        } else {
-                            val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteralValue)
-                            checkValueTypeAndRangeArray(decl.datatype, decl.struct, arraySpec, decl.value as ArrayLiteralValue)
-                        }
+                        val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteralValue)
+                        checkValueTypeAndRangeArray(decl.datatype, arraySpec, decl.value as ArrayLiteralValue)
                     }
                     is NumericLiteralValue -> {
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
@@ -648,14 +591,7 @@ internal class AstChecker(private val program: Program,
 
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR) {
-            if(decl.datatype==DataType.STRUCT) {
-                val valueIdt = declValue.inferType(program)
-                if(!valueIdt.isKnown)
-                    throw AstException("unknown dt")
-                val valueDt = valueIdt.typeOrElse(DataType.STRUCT)
-                if(valueDt !in ArrayDatatypes)
-                    err("initialisation of struct should be with array value", declValue.position)
-            } else if (!declValue.inferType(program).istype(decl.datatype)) {
+            if (!declValue.inferType(program).istype(decl.datatype)) {
                 err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
             }
         }
@@ -803,7 +739,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
-            checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), null, arrayspec, array)
+            checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), arrayspec, array)
         }
 
         fun isPassByReferenceElement(e: Expression): Boolean {
@@ -1209,24 +1145,6 @@ internal class AstChecker(private val program: Program,
         super.visit(whenChoice)
     }
 
-    override fun visit(structDecl: StructDecl) {
-        // a struct can only contain 1 or more vardecls and can not be nested
-        if(structDecl.statements.isEmpty())
-            errors.err("struct must contain at least one member", structDecl.position)
-
-        for(member in structDecl.statements){
-            val decl = member as? VarDecl
-            if(decl==null)
-                errors.err("struct can only contain variable declarations", structDecl.position)
-            else {
-                if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
-                    errors.err("struct can not contain zeropage members", decl.position)
-                if(decl.datatype !in NumericDatatypes)
-                    errors.err("structs can only contain numerical types", decl.position)
-            }
-        }
-    }
-
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         val targetStatement = target.targetStatement(program)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
@@ -1250,8 +1168,7 @@ internal class AstChecker(private val program: Program,
         else false
     }
 
-    private fun checkValueTypeAndRangeArray(targetDt: DataType, struct: StructDecl?,
-                                            arrayspec: ArrayIndex, value: ArrayLiteralValue) : Boolean {
+    private fun checkValueTypeAndRangeArray(targetDt: DataType, arrayspec: ArrayIndex, value: ArrayLiteralValue) : Boolean {
         fun err(msg: String) : Boolean {
             errors.err(msg, value.position)
             return false
@@ -1323,22 +1240,6 @@ internal class AstChecker(private val program: Program,
                     return true
                 }
                 return err("invalid float array initialization value ${value.type}, expected $targetDt")
-            }
-            DataType.STRUCT -> {
-                if(value.type.typeOrElse(DataType.STRUCT) in ArrayDatatypes) {
-                    if(value.value.size != struct!!.numberOfElements)
-                        return err("number of values is not the same as the number of members in the struct")
-                    for(elt in value.value.zip(struct.statements)) {
-                        val vardecl = elt.second as VarDecl
-                        val valuetype = elt.first.inferType(program)
-                        if (!valuetype.isKnown || valuetype isNotAssignableTo vardecl.datatype) {
-                            errors.err("invalid struct member init value type $valuetype, expected ${vardecl.datatype}", elt.first.position)
-                            return false
-                        }
-                    }
-                    return true
-                }
-                return false
             }
             else -> return false
         }
@@ -1442,15 +1343,6 @@ internal class AstChecker(private val program: Program,
             DataType.UWORD -> sourceDatatype== DataType.UBYTE || sourceDatatype== DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype== DataType.STR
-            DataType.STRUCT -> {
-                if(sourceDatatype==DataType.STRUCT) {
-                    val structLv = sourceValue as ArrayLiteralValue
-                    val numValues = structLv.value.size
-                    val targetstruct = target.identifier!!.targetVarDecl(program)!!.struct!!
-                    return targetstruct.numberOfElements == numValues
-                }
-                false
-            }
             else -> {
                 errors.err("cannot assign new value to variable of type $targetDatatype", position)
                 false

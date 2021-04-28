@@ -786,26 +786,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun inferType(program: Program): InferredTypes.InferredType {
         return when (val targetStmt = targetStatement(program)) {
             is VarDecl -> InferredTypes.knownFor(targetStmt.datatype)
-            is StructDecl -> InferredTypes.knownFor(DataType.STRUCT)
             else -> InferredTypes.InferredType.unknown()
         }
-    }
-
-    fun memberOfStruct(program: Program) = this.targetVarDecl(program)?.struct
-
-    fun firstStructVarName(program: Program): String? {
-        // take the name of the first struct member of the structvariable instead
-        // if it's just a regular variable, return null.
-        val struct = memberOfStruct(program) ?: return null
-        val decl = targetVarDecl(program)!!
-        if(decl.datatype!=DataType.STRUCT)
-            return null
-
-        val firstStructMember = struct.nameOfFirstMember()
-        // find the flattened var that belongs to this first struct member
-        val firstVarName = listOf(decl.name, firstStructMember)
-        val firstVar = definingScope().lookup(firstVarName, this) as VarDecl
-        return firstVar.name
     }
 }
 

@@ -16,7 +16,7 @@ syn keyword prog8BuiltInFunc any all len max min reverse sum sort
 
 " Miscellaneous functions
 syn keyword prog8BuiltInFunc cmp lsb msb mkword peek peekw poke pokew rnd rndw
-syn keyword prog8BuiltInFunc rndf rol rol2 ror ror2 sizeof offsetof
+syn keyword prog8BuiltInFunc rndf rol rol2 ror ror2 sizeof 
 syn keyword prog8BuiltInFunc swap memory callfar callrom
 
 

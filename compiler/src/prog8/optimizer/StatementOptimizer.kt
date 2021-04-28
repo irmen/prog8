@@ -27,7 +27,7 @@ internal class StatementOptimizer(private val program: Program,
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         for(returnvar in subsThatNeedReturnVariable) {
-            val decl = VarDecl(VarDeclType.VAR, returnvar.second, ZeropageWish.DONTCARE, null, retvarName, null, null, false, true, returnvar.third)
+            val decl = VarDecl(VarDeclType.VAR, returnvar.second, ZeropageWish.DONTCARE, null, retvarName, null, false, true, returnvar.third)
             returnvar.first.statements.add(0, decl)
         }
         subsThatNeedReturnVariable.clear()

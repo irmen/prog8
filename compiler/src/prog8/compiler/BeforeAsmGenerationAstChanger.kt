@@ -1,7 +1,6 @@
 package prog8.compiler
 
 import prog8.ast.IFunctionCall
-import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -84,6 +83,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         val sub = scope.definingSubroutine()
         if (sub != null) {
             // move vardecls of the scope into the upper scope. Make sure the position remains the same!
+            // TODO THIS HAS ALREADY BEEN TAKEN CARE OF AT THE START????
             val replacements = mutableListOf<IAstModification>()
             val movements = mutableListOf<IAstModification.InsertFirst>()
 

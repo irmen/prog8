@@ -4,7 +4,6 @@ import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
 import kotlin.math.*
@@ -105,7 +104,6 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
     FSignature("sizeof"      , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinSizeof),
-    FSignature("offsetof"    , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinOffsetof),
         // normal functions follow:
     FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
     FSignature("sin"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sin) },
@@ -289,28 +287,6 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
     }
 }
 
-private fun builtinOffsetof(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
-    // 1 arg, type = anything, result type = ubyte
-    if(args.size!=1)
-        throw SyntaxError("offsetof requires one argument", position)
-    val idref = args[0] as? IdentifierReference
-        ?: throw SyntaxError("offsetof argument should be an identifier", position)
-
-    val vardecl = idref.targetVarDecl(program)!!
-    val struct = vardecl.struct
-    if (struct == null || vardecl.datatype == DataType.STRUCT)
-        throw SyntaxError("offsetof can only be used on struct members", position)
-
-    val membername = idref.nameInSource.last()
-    var offset = 0
-    for(member in struct.statements) {
-        if((member as VarDecl).name == membername)
-            return NumericLiteralValue(DataType.UBYTE, offset, position)
-        offset += memsizer.memorySize(member.datatype)
-    }
-    throw SyntaxError("undefined struct member", position)
-}
-
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
     // 1 arg, type = anything, result type = ubyte
     if(args.size!=1)
@@ -323,20 +299,11 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
         val target = (args[0] as IdentifierReference).targetStatement(program)
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
-        fun structSize(target: StructDecl) = NumericLiteralValue(DataType.UBYTE, target.memsize(memsizer), position)
-
         return when {
             dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.STRUCT))
                 numericLiteral(memsizer.memorySize(elementDt) * length, position)
-            }
-            dt.istype(DataType.STRUCT) -> {
-                when (target) {
-                    is VarDecl -> structSize(target.struct!!)
-                    is StructDecl -> structSize(target)
-                    else -> throw CompilerException("weird struct type $target")
-                }
             }
             dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
             else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.typeOrElse(DataType.STRUCT)), position)
@@ -374,7 +341,6 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             val refLv = target.value as? StringLiteralValue ?: throw CannotEvaluateException("len", "stringsize unknown")
             NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
         }
-        DataType.STRUCT -> throw SyntaxError("cannot use len on struct, did you mean sizeof?", args[0].position)
         in NumericDatatypes -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
         else -> throw CompilerException("weird datatype")
     }

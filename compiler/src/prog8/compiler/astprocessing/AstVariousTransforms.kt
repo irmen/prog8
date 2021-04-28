@@ -2,10 +2,8 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.StringLiteralValue
-import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.ParameterVarDecl
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
@@ -14,19 +12,6 @@ import prog8.ast.walk.IAstModification
 
 
 internal class AstVariousTransforms(private val program: Program) : AstWalker() {
-
-    override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        // is it a struct variable? then define all its struct members as mangled names,
-        //    and include the original decl as well.
-        if(decl.datatype==DataType.STRUCT && !decl.structHasBeenFlattened) {
-            val decls = decl.flattenStructMembers()
-            decls.add(decl)
-            val result = AnonymousScope(decls, decl.position)
-            return listOf(IAstModification.ReplaceNode(decl, result, parent))
-        }
-
-        return noModifications
-    }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         // For non-kernal subroutines and non-asm parameters:

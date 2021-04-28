@@ -2,11 +2,7 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.Position
-import prog8.ast.expressions.ArrayLiteralValue
-import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -65,29 +61,6 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
 
         if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
-
-        if(decl.datatype==DataType.STRUCT) {
-            if (decl.structHasBeenFlattened)
-                return super.visit(decl)    // don't do this multiple times
-
-            if (decl.struct == null) {
-                errors.err("undefined struct type", decl.position)
-                return super.visit(decl)
-            }
-
-            if (decl.struct!!.statements.any { (it as VarDecl).datatype !in NumericDatatypes })
-                return super.visit(decl)     // a non-numeric member, not supported. proper error is given by AstChecker later
-
-            if (decl.value is NumericLiteralValue) {
-                errors.err("you cannot initialize a struct using a single value", decl.position)
-                return super.visit(decl)
-            }
-
-            if (decl.value != null && decl.value !is ArrayLiteralValue) {
-                errors.err("initializing a struct requires array literal value", decl.value?.position ?: decl.position)
-                return super.visit(decl)
-            }
-        }
 
         val existing = program.namespace.lookup(listOf(decl.name), decl)
         if (existing != null && existing !== decl)
@@ -168,15 +141,5 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             errors.err("string literal length max is 255", string.position)
 
         super.visit(string)
-    }
-
-    override fun visit(structDecl: StructDecl) {
-        for(member in structDecl.statements){
-            val decl = member as? VarDecl
-            if(decl!=null && decl.datatype !in NumericDatatypes)
-                errors.err("structs can only contain numerical types", decl.position)
-        }
-
-        super.visit(structDecl)
     }
 }

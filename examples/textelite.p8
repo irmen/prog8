@@ -74,31 +74,14 @@ trader {
     str input = "??????????"
     ubyte num_chars
 
-    struct SaveData {
-        ubyte galaxy
-        ubyte planet
-        ubyte cargo0
-        ubyte cargo1
-        ubyte cargo2
-        ubyte cargo3
-        ubyte cargo4
-        ubyte cargo5
-        ubyte cargo6
-        ubyte cargo7
-        ubyte cargo8
-        ubyte cargo9
-        ubyte cargo10
-        ubyte cargo11
-        ubyte cargo12
-        ubyte cargo13
-        ubyte cargo14
-        ubyte cargo15
-        ubyte cargo16
-        uword cash
-        ubyte max_cargo
-        ubyte fuel
-    }
-    SaveData savedata
+    ubyte[23]  savedata
+    ; format:
+    ;  0 ubyte galaxy
+    ;  1 ubyte planet
+    ;  2-18  ubyte cargo0..cargo16
+    ; 19 uword cash
+    ; 21 ubyte max_cargo
+    ; 22 ubyte fuel
 
     sub do_load() {
         txt.print("\nLoading universe...")
@@ -111,22 +94,23 @@ trader {
             return
         }
 
-        ship.cash = savedata.cash
-        ship.Max_cargo = savedata.max_cargo
-        ship.fuel = savedata.fuel
-        sys.memcopy(&savedata.cargo0, ship.cargohold, len(ship.cargohold))
-        galaxy.travel_to(savedata.galaxy, savedata.planet)
+        ship.cash = mkword(savedata[20], savedata[19])
+        ship.Max_cargo = savedata[21]
+        ship.fuel = savedata[22]
+        sys.memcopy(&savedata + 2, ship.cargohold, len(ship.cargohold))
+        galaxy.travel_to(savedata[0], savedata[1])
 
         planet.display(false, 0)
     }
 
     sub do_save() {
-        savedata.galaxy = galaxy.number
-        savedata.planet = planet.number
-        savedata.cash = ship.cash
-        savedata.max_cargo = ship.Max_cargo
-        savedata.fuel = ship.fuel
-        sys.memcopy(ship.cargohold, &savedata.cargo0, len(ship.cargohold))
+        savedata[0] = galaxy.number
+        savedata[1] = planet.number
+        savedata[19] = lsb(ship.cash)
+        savedata[20] = msb(ship.cash)
+        savedata[21] = ship.Max_cargo
+        savedata[22] = ship.fuel
+        sys.memcopy(ship.cargohold, &savedata + 2, len(ship.cargohold))
 
         txt.print("\nSaving universe...")
         diskio.delete(8, Savegame)

@@ -44,7 +44,6 @@ syn region prog8ArrayType matchgroup=prog8Type
             \ transparent
 syn keyword prog8StorageClass const
 syn match prog8StorageClass "\(^\|\s\)@zp\>"
-syn keyword prog8Structure struct
 
 syn region prog8Block start="{" end="}" transparent
 syn region prog8Expression start="(" end=")" transparent

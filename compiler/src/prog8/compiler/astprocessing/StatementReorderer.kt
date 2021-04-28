@@ -1,7 +1,12 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.IFunctionCall
+import prog8.ast.Module
+import prog8.ast.Node
+import prog8.ast.Program
+import prog8.ast.base.ArrayDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -18,7 +23,6 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     // - in every block and module, most directives and vardecls are moved to the top. (not in subroutines!)
     // - the 'start' subroutine is moved to the top.
     // - (syntax desugaring) a vardecl with a non-const initializer value is split into a regular vardecl and an assignment statement.
-    // - (syntax desugaring) struct value assignment is expanded into several struct member assignments.
     // - in-place assignments are reordered a bit so that they are mostly of the form A = A <operator> <rest>
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc).
@@ -200,39 +204,9 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         return noModifications
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        val declValue = decl.value
-        if(declValue!=null && decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
-            val declConstValue = declValue.constValue(program)
-            if(declConstValue==null) {
-                val subroutine = decl.definingSubroutine() as? INameScope
-                if(subroutine!=null) {
-                    // move the vardecl (without value) to the scope of the defining subroutine and put a regular assignment in its place here.
-                    decl.value = null
-                    decl.allowInitializeWithZero = false
-                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                    val assign = Assignment(target, declValue, decl.position)
-                    return listOf(
-                        IAstModification.ReplaceNode(decl, assign, parent),
-                        IAstModification.InsertFirst(decl, subroutine)
-                    )
-                }
-            }
-        }
-        return noModifications
-    }
-
     override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program)
-
-        if(targetType.istype(DataType.STRUCT) && (valueType.istype(DataType.STRUCT) || valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes )) {
-            if (assignment.value is ArrayLiteralValue) {
-                errors.err("cannot assign array literal here, use separate assignment per field", assignment.position)
-            } else {
-                return copyStructValue(assignment)
-            }
-        }
 
         if(targetType.typeOrElse(DataType.STRUCT) in ArrayDatatypes && valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes ) {
             if (assignment.value is ArrayLiteralValue) {
@@ -330,73 +304,4 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         )
         return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
     }
-
-    private fun copyStructValue(structAssignment: Assignment): List<IAstModification> {
-        val identifier = structAssignment.target.identifier!!
-        val targetVar = identifier.targetVarDecl(program)!!
-        val struct = targetVar.struct!!
-        when (structAssignment.value) {
-            is IdentifierReference -> {
-                val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program)!!
-                val memsize = struct.memsize(program.memsizer)
-                when {
-                    sourceVar.struct!=null -> {
-                        // struct memberwise copy
-                        val sourceStruct = sourceVar.struct!!
-                        if(sourceStruct!==targetVar.struct) {
-                            errors.err("struct type mismatch", structAssignment.position)
-                            return listOf()
-                        }
-                        if(struct.statements.size!=sourceStruct.statements.size) {
-                            errors.err("struct element count mismatch", structAssignment.position)
-                            return listOf()
-                        }
-                        if(memsize!=sourceStruct.memsize(program.memsizer)) {
-                            errors.err("memory size mismatch", structAssignment.position)
-                            return listOf()
-                        }
-                        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), structAssignment.position),
-                            mutableListOf(
-                                AddressOf(structAssignment.value as IdentifierReference, structAssignment.position),
-                                AddressOf(identifier, structAssignment.position),
-                                NumericLiteralValue.optimalInteger(memsize, structAssignment.position)
-                            ),
-                            true,
-                            structAssignment.position
-                        )
-                        return listOf(IAstModification.ReplaceNode(structAssignment, memcopy, structAssignment.parent))
-                    }
-                    sourceVar.isArray -> {
-                        val array = sourceVar.value as ArrayLiteralValue
-                        if(struct.statements.size!=array.value.size) {
-                            errors.err("struct element count mismatch", structAssignment.position)
-                            return listOf()
-                        }
-                        if(memsize!=array.memsize(program.memsizer)) {
-                            errors.err("memory size mismatch", structAssignment.position)
-                            return listOf()
-                        }
-                        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), structAssignment.position),
-                            mutableListOf(
-                                AddressOf(structAssignment.value as IdentifierReference, structAssignment.position),
-                                AddressOf(identifier, structAssignment.position),
-                                NumericLiteralValue.optimalInteger(memsize, structAssignment.position)
-                            ),
-                            true,
-                            structAssignment.position
-                        )
-                        return listOf(IAstModification.ReplaceNode(structAssignment, memcopy, structAssignment.parent))
-                    }
-                    else -> {
-                        throw FatalAstException("can only assign arrays or structs to structs")
-                    }
-                }
-            }
-            is ArrayLiteralValue -> {
-                throw IllegalArgumentException("not going to do a structLv assignment here")
-            }
-            else -> throw FatalAstException("strange struct value")
-        }
-    }
-
 }

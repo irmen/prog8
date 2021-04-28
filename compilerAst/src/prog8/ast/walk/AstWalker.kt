@@ -111,7 +111,6 @@ abstract class AstWalker {
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(structDecl: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
@@ -152,7 +151,6 @@ abstract class AstWalker {
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(structDecl: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
@@ -235,7 +233,6 @@ abstract class AstWalker {
         track(before(decl, parent), decl, parent)
         decl.value?.accept(this, decl)
         decl.arraysize?.accept(this, decl)
-        decl.struct?.accept(this, decl)
         track(after(decl, parent), decl, parent)
     }
 
@@ -434,12 +431,6 @@ abstract class AstWalker {
         whenChoice.values?.forEach { it.accept(this, whenChoice) }
         whenChoice.statements.accept(this, whenChoice)
         track(after(whenChoice, parent), whenChoice, parent)
-    }
-
-    fun visit(structDecl: StructDecl, parent: Node) {
-        track(before(structDecl, parent), structDecl, parent)
-        structDecl.statements.forEach { it.accept(this, structDecl) }
-        track(after(structDecl, parent), structDecl, parent)
     }
 }
 

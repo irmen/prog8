@@ -52,7 +52,7 @@ internal class UnusedCodeRemover(private val program: Program,
 
     private fun reportUnreachable(stmt: Statement, parent: INameScope) {
         when(val next = parent.nextSibling(stmt)) {
-            null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine, is StructDecl -> {}
+            null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine -> {}
             else -> errors.warn("unreachable code", next.position)
         }
     }

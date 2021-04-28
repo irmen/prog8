@@ -86,21 +86,9 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             DataType.ARRAY_UW -> "uword["
             DataType.ARRAY_W -> "word["
             DataType.ARRAY_F -> "float["
-            DataType.STRUCT -> ""       // the name of the struct is enough
+            DataType.STRUCT -> ""       // TODO STRUCT DOESN'T EXIST ANYMORE
             else -> "?????"
         }
-    }
-
-    override fun visit(structDecl: StructDecl) {
-        outputln("struct ${structDecl.name} {")
-        scopelevel++
-        for(decl in structDecl.statements) {
-            outputi("")
-            decl.accept(this)
-            output("\n")
-        }
-        scopelevel--
-        outputlni("}")
     }
 
     override fun visit(decl: VarDecl) {
@@ -115,9 +103,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             VarDeclType.CONST -> output("const ")
             VarDeclType.MEMORY -> output("&")
         }
-
-        if(decl.datatype==DataType.STRUCT && decl.struct!=null)
-            output(decl.struct!!.name)
 
         output(datatypeString(decl.datatype))
         if(decl.arraysize!=null) {

@@ -1,13 +1,11 @@
 package prog8.optimizer
 
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.ArrayIndex
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.ForLoop
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.IErrorReporter
@@ -30,6 +28,28 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
             errors.err(x.message, x.position)
         }
 
+        // move a vardecl to the scope of the defining subroutine and put a regular assignment in its place here (if it has a value)
+        if(decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
+            val subroutine = decl.definingSubroutine() as? INameScope
+            if(subroutine!=null) {
+                val declValue = decl.value
+                decl.value = null
+                decl.allowInitializeWithZero = false
+                return if(declValue==null) {
+                    listOf(
+                        IAstModification.Remove(decl, parent as INameScope),
+                        IAstModification.InsertFirst(decl, subroutine)
+                    )
+                } else {
+                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                    val assign = Assignment(target, declValue, decl.position)
+                    listOf(
+                        IAstModification.ReplaceNode(decl, assign, parent),
+                        IAstModification.InsertFirst(decl, subroutine)
+                    )
+                }
+            }
+        }
         return noModifications
     }
 }
@@ -189,7 +209,6 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 }
                 else -> {
                     // nothing to do for this type
-                    // this includes strings and structs
                 }
             }
         }

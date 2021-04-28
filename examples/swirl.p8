@@ -6,21 +6,18 @@
 main {
     const uword screenwidth = txt.DEFAULT_WIDTH
     const uword screenheight = txt.DEFAULT_HEIGHT
-    struct Ball {
-        uword anglex
-        uword angley
-        ubyte color
-    }
+    uword anglex
+    uword angley
+    ubyte color
 
     sub start()  {
-        Ball ball
         repeat {
-            ubyte x = msb(sin8u(msb(ball.anglex)) * screenwidth)
-            ubyte y = msb(cos8u(msb(ball.angley)) * screenheight)
-            txt.setcc(x, y, 81, ball.color)
-            ball.anglex+=366
-            ball.angley+=291
-            ball.color++
+            ubyte x = msb(sin8u(msb(anglex)) * screenwidth)
+            ubyte y = msb(cos8u(msb(angley)) * screenheight)
+            txt.setcc(x, y, 81, color)
+            anglex+=366
+            angley+=291
+            color++
         }
     }
 }
