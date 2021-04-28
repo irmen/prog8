@@ -552,8 +552,6 @@ _done
         ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
         ubyte[4] mask4c = [%00111111, %11001111, %11110011, %11111100]
         ubyte[4] shift4c = [6,4,2,0]
-        uword addr
-        cx16.r0L = lsb(x) & 7       ; xbits
 
         when active_mode {
             1 -> {
@@ -565,6 +563,7 @@ _done
                     and  #1
                 }}
                 if_nz {
+                    cx16.r0L = lsb(x) & 7       ; xbits
                     x /= 8
                     x += y*(320/8)
                     %asm {{
@@ -611,15 +610,25 @@ _done
                     and  #1
                 }}
                 if_nz {
-                    ; TODO get rid of all the vpoke calls to optimize all plot() ?
-                    addr = x/8 + y*(640/8)
-                    ubyte value = bits[lsb(x)&7]
-                    if color
-                        cx16.vpoke_or(0, addr, value)
-                    else {
-                        value = ~value
-                        cx16.vpoke_and(0, addr, value)
-                    }
+                    cx16.r0L = lsb(x) & 7       ; xbits
+                    x /= 8
+                    x += y*(640/8)
+                    %asm {{
+                        stz  cx16.VERA_CTRL
+                        stz  cx16.VERA_ADDR_H
+                        lda  x+1
+                        sta  cx16.VERA_ADDR_M
+                        lda  x
+                        sta  cx16.VERA_ADDR_L
+                        ldy  cx16.r0L           ; xbits
+                        lda  bits,y
+                        ldy  color
+                        beq  +
+                        tsb  cx16.VERA_DATA0
+                        bra  ++
++                       trb  cx16.VERA_DATA0
++
+                    }}
                 }
             }
             6 -> {

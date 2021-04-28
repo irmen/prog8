@@ -5,7 +5,7 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(4)     ; lo res 256c
+        gfx2.screen_mode(6)     ; highres 4c
         gfx2.text_charset(3)
         gfx2.text(10, 10, 1, @"Hello!")
 
@@ -14,11 +14,21 @@ main {
         ubyte yy
         uword rw
 
-        ;480 jiffies (highres mono) / 442 jiffies (lores 4c)
-        repeat 50000 {
+        ; 520 jiffies (hires 4c)
+        repeat 20000 {
             rw = rndw()
             yy = (lsb(rw) & 127) + 20
             gfx2.plot(msb(rw), yy, 1)
+        }
+        repeat 20000 {
+            rw = rndw()
+            yy = (lsb(rw) & 127) + 20
+            gfx2.plot(msb(rw), yy, 2)
+        }
+        repeat 20000 {
+            rw = rndw()
+            yy = (lsb(rw) & 127) + 20
+            gfx2.plot(msb(rw), yy, 3)
         }
         repeat 50000 {
             rw = rndw()
