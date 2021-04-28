@@ -22,6 +22,9 @@
 ;   mode 6 = bitmap 640 x 480 x 4c
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
+
+; TODO use   trb / tsb  instructions more for and/or bit manipulations?
+
 ; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
 gfx2 {
@@ -550,9 +553,8 @@ _done
         ubyte[4] mask4c = [%00111111, %11001111, %11110011, %11111100]
         ubyte[4] shift4c = [6,4,2,0]
         uword addr
-        ubyte value
+        cx16.r0L = lsb(x) & 7       ; xbits
 
-        ; TODO get rid of all the vpoke calls to optimize all plot() ?
         when active_mode {
             1 -> {
                 ; lores monochrome
@@ -563,19 +565,30 @@ _done
                     and  #1
                 }}
                 if_nz {
-                    addr = x/8 + y*(320/8)
-                    value = bits[lsb(x)&7]
-                    if color
-                        cx16.vpoke_or(0, addr, value)
-                    else {
-                        value = ~value
-                        cx16.vpoke_and(0, addr, value)
-                    }
+                    x /= 8
+                    x += y*(320/8)
+                    %asm {{
+                        stz  cx16.VERA_CTRL
+                        stz  cx16.VERA_ADDR_H
+                        lda  x+1
+                        sta  cx16.VERA_ADDR_M
+                        lda  x
+                        sta  cx16.VERA_ADDR_L
+                        ldy  cx16.r0L       ; xbits
+                        lda  bits,y
+                        ldy  color
+                        beq  +
+                        tsb  cx16.VERA_DATA0
+                        bra  ++
++                       trb  cx16.VERA_DATA0
++
+                    }}
                 }
             }
             ; TODO mode 2,3
             4 -> {
                 ; lores 256c
+                ; TODO get rid of all the vpoke calls to optimize all plot() ?
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.vpoke(lsb(cx16.r1), cx16.r0, color)
                 ; activate vera auto-increment mode so next_pixel() can be used after this
@@ -591,8 +604,9 @@ _done
                     and  #1
                 }}
                 if_nz {
+                    ; TODO get rid of all the vpoke calls to optimize all plot() ?
                     addr = x/8 + y*(640/8)
-                    value = bits[lsb(x)&7]
+                    ubyte value = bits[lsb(x)&7]
                     if color
                         cx16.vpoke_or(0, addr, value)
                     else {
@@ -604,13 +618,13 @@ _done
             6 -> {
                 ; highres 4c
                 ; TODO also mostly usable for lores 4c?
+                ; TODO get rid of all the vpoke calls to optimize all plot() ?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 color &= 3
                 color <<= shift4c[lsb(x) & 3]
-                ; TODO optimize the vera memory manipulation in pure assembly
                 cx16.VERA_ADDR_H &= %00000111   ; no auto advance
-                value = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask4c[lsb(x) & 3] | color
-                cx16.vpoke(lsb(cx16.r1), cx16.r0, value)
+                ubyte value2 = cx16.vpeek(lsb(cx16.r1), cx16.r0) & mask4c[lsb(x) & 3] | color
+                cx16.vpoke(lsb(cx16.r1), cx16.r0, value2)
             }
         }
     }
