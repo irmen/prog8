@@ -70,6 +70,7 @@ fun compileProgram(filepath: Path,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
                    compilationTarget: String,
+                   libdirs: List<String>,
                    outputDir: Path): CompilationResult {
     var programName = ""
     lateinit var programAst: Program
@@ -89,7 +90,7 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget)
+            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, libdirs)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             compilationOptions.optimize = optimize
             programAst = ast
@@ -165,14 +166,15 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         builtinFunctionReturnType(name, args, program)
 }
 
-private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICompilationTarget): Triple<Program, CompilationOptions, List<Path>> {
+private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICompilationTarget, libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     val compilationTargetName = compTarget.name
     println("Compiler target: $compilationTargetName. Parsing...")
-    val importer = ModuleImporter()
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf, compTarget)
     bf.program = programAst
-    importer.importModule(programAst, filepath, compTarget, compilationTargetName)
+
+    val importer = ModuleImporter(programAst, compTarget, compilationTargetName, libdirs)
+    importer.importModule(filepath)
     errors.report()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
@@ -182,11 +184,11 @@ private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICo
 
     // depending on the machine and compiler options we may have to include some libraries
     for(lib in compTarget.machine.importLibs(compilerOptions, compilationTargetName))
-        importer.importLibraryModule(programAst, lib, compTarget, compilationTargetName)
+        importer.importLibraryModule(lib)
 
     // always import prog8_lib and math
-    importer.importLibraryModule(programAst, "math", compTarget, compilationTargetName)
-    importer.importLibraryModule(programAst, "prog8_lib", compTarget, compilationTargetName)
+    importer.importLibraryModule("math")
+    importer.importLibraryModule("prog8_lib")
     errors.report()
     return Triple(programAst, compilerOptions, importedFiles)
 }

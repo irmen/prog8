@@ -117,11 +117,11 @@ They are embedded into the packaged release version of the compiler so you don't
 where they are, but their names are still reserved.
 
 
-User defined library files
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+User defined library files and -location
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You can create library files yourself too that can be shared among programs.
-You can tell the compiler where it should look for these files, by setting the java command line property ``prog8.libdir``
-or by setting the ``PROG8_LIBDIR`` environment variable to the correct directory.
+You can tell the compiler where it should look for these files, by using
+the libdirs command line option.
 
 
 .. _debugging:

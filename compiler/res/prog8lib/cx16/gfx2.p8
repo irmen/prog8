@@ -23,8 +23,6 @@
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
 
-; TODO use   trb / tsb  instructions more for and/or bit manipulations?
-
 ; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
 gfx2 {

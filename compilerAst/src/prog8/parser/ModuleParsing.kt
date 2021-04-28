@@ -25,9 +25,9 @@ fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 internal fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
 
 
-class ModuleImporter {
+class ModuleImporter(val program: Program, val encoder: IStringEncoding, val compilationTargetName: String, val libdirs: List<String>) {
 
-    fun importModule(program: Program, filePath: Path, encoder: IStringEncoding, compilationTargetName: String): Module {
+    fun importModule(filePath: Path): Module {
         print("importing '${moduleName(filePath.fileName)}'")
         if(filePath.parent!=null) {
             var importloc = filePath.toString()
@@ -42,15 +42,14 @@ class ModuleImporter {
             throw ParsingFailedError("No such file: $filePath")
 
         val content = filePath.toFile().readText().replace("\r\n", "\n")
-        return importModule(program, CharStreams.fromString(content), filePath, false, encoder, compilationTargetName)
+        return importModule(CharStreams.fromString(content), filePath, false)
     }
 
-    fun importLibraryModule(program: Program, name: String,
-                                     encoder: IStringEncoding, compilationTargetName: String): Module? {
+    fun importLibraryModule(name: String): Module? {
         val import = Directive("%import", listOf(
                 DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0, 0))
         ), Position("<<<implicit-import>>>", 0, 0, 0))
-        return executeImportDirective(program, import, Paths.get(""), encoder, compilationTargetName)
+        return executeImportDirective(import, Paths.get(""))
     }
 
     private class MyErrorListener: ConsoleErrorListener() {
@@ -67,8 +66,7 @@ class ModuleImporter {
         }
     }
 
-    private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean,
-                             encoder: IStringEncoding, compilationTargetName: String): Module {
+    private fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
         val moduleName = moduleName(modulePath.fileName)
         val lexer = CustomLexer(modulePath, stream)
         lexer.removeErrorListeners()
@@ -97,14 +95,13 @@ class ModuleImporter {
         lines.asSequence()
                 .mapIndexed { i, it -> i to it }
                 .filter { (it.second as? Directive)?.directive == "%import" }
-                .forEach { executeImportDirective(program, it.second as Directive, modulePath, encoder, compilationTargetName) }
+                .forEach { executeImportDirective(it.second as Directive, modulePath) }
 
         moduleAst.statements = lines
         return moduleAst
     }
 
-    private fun executeImportDirective(program: Program, import: Directive, source: Path,
-                                       encoder: IStringEncoding, compilationTargetName: String): Module? {
+    private fun executeImportDirective(import: Directive, source: Path): Module? {
         if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
             throw SyntaxError("invalid import directive", import.position)
         val moduleName = import.args[0].name!!
@@ -123,12 +120,11 @@ class ModuleImporter {
                     resource.use {
                         println("importing '$moduleName' (library)")
                         val content = it.reader().readText().replace("\r\n", "\n")
-                        importModule(program, CharStreams.fromString(content), Paths.get("@embedded@/$resourcePath"),
-                            true, encoder, compilationTargetName)
+                        importModule(CharStreams.fromString(content), Paths.get("@embedded@/$resourcePath"), true)
                     }
                 } else {
                     val modulePath = tryGetModuleFromFile(moduleName, source, import.position)
-                    importModule(program, modulePath, encoder, compilationTargetName)
+                    importModule(modulePath)
                 }
 
         removeDirectivesFromImportedModule(importedModule)
@@ -160,15 +156,10 @@ class ModuleImporter {
 
     private fun tryGetModuleFromFile(name: String, source: Path, position: Position?): Path {
         val fileName = "$name.p8"
-        val locations = if(source.toString().isEmpty()) mutableListOf<Path>() else mutableListOf(source.parent ?: Path.of("."))
-
-        val propPath = System.getProperty("prog8.libdir")
-        if(propPath!=null)
-            locations.add(pathFrom(propPath))
-        val envPath = System.getenv("PROG8_LIBDIR")
-        if(envPath!=null)
-            locations.add(pathFrom(envPath))
-        locations.add(Paths.get(Paths.get("").toAbsolutePath().toString(), "prog8lib"))
+        val libpaths = libdirs.map {Path.of(it)}
+        val locations =
+            (if(source.toString().isEmpty()) libpaths else libpaths.drop(1) + (source.parent ?: Path.of("."))) +
+                Paths.get(Paths.get("").toAbsolutePath().toString(), "prog8lib")
 
         locations.forEach {
             val file = pathFrom(it.toString(), fileName)
