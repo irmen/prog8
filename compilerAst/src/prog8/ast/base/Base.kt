@@ -17,7 +17,7 @@ enum class DataType {
     ARRAY_UW,           // pass by reference
     ARRAY_W,            // pass by reference
     ARRAY_F,            // pass by reference
-    STRUCT;             // pass by reference
+    UNDEFINED;
 
     /**
      * is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
@@ -140,7 +140,7 @@ val IterableDatatypes = setOf(
     DataType.ARRAY_F
 )
 val PassByValueDatatypes = NumericDatatypes
-val PassByReferenceDatatypes = IterableDatatypes.plus(DataType.STRUCT)
+val PassByReferenceDatatypes = IterableDatatypes
 val ArrayElementTypes = mapOf(
         DataType.STR to DataType.UBYTE,
         DataType.ARRAY_B to DataType.BYTE,

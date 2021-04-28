@@ -57,7 +57,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val idt = left.inferType(program)
         if(!idt.isKnown)
             throw AssemblyError("unknown dt")
-        val dt = idt.typeOrElse(DataType.STRUCT)
+        val dt = idt.typeOrElse(DataType.UNDEFINED)
         when (operator) {
             "==" -> {
                 // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
@@ -1625,7 +1625,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateExpression(typecast: TypecastExpression) {
         translateExpression(typecast.expression)
-        when(typecast.expression.inferType(program).typeOrElse(DataType.STRUCT)) {
+        when(typecast.expression.inferType(program).typeOrElse(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
@@ -1756,7 +1756,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
     private fun translateExpression(expr: IdentifierReference) {
         val varname = asmgen.asmVariableName(expr)
-        when(expr.inferType(program).typeOrElse(DataType.STRUCT)) {
+        when(expr.inferType(program).typeOrElse(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("  lda  $varname  |  sta  P8ESTACK_LO,x  |  dex")
             }
@@ -1780,8 +1780,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(!leftIDt.isKnown || !rightIDt.isKnown)
             throw AssemblyError("can't infer type of both expression operands")
 
-        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
-        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
+        val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
+        val rightDt = rightIDt.typeOrElse(DataType.UNDEFINED)
         // see if we can apply some optimized routines
         // TODO avoid using evaluation on stack everywhere
         when(expr.operator) {
@@ -2107,7 +2107,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val itype = expr.inferType(program)
         if(!itype.isKnown)
             throw AssemblyError("unknown dt")
-        val type = itype.typeOrElse(DataType.STRUCT)
+        val type = itype.typeOrElse(DataType.UNDEFINED)
         when(expr.operator) {
             "+" -> {}
             "-" -> {
@@ -2145,7 +2145,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val elementIDt = arrayExpr.inferType(program)
         if(!elementIDt.isKnown)
             throw AssemblyError("unknown dt")
-        val elementDt = elementIDt.typeOrElse(DataType.STRUCT)
+        val elementDt = elementIDt.typeOrElse(DataType.UNDEFINED)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
         val constIndexNum = arrayExpr.indexer.constIndex()
         if(constIndexNum!=null) {

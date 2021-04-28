@@ -25,7 +25,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
             if(!valueDt.istype(decl.datatype)) {
 
                 // don't add a typecast on an array initializer value
-                if(valueDt.typeOrElse(DataType.STRUCT) in IntegerDatatypes && decl.datatype in ArrayDatatypes)
+                if(valueDt.typeOrElse(DataType.UNDEFINED) in IntegerDatatypes && decl.datatype in ArrayDatatypes)
                     return noModifications
 
                 // don't add a typecast if the initializer value is inherently not assignable
@@ -47,7 +47,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
         val rightDt = expr.right.inferType(program)
         if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
             // determine common datatype and add typecast as required to make left and right equal types
-            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.typeOrElse(DataType.STRUCT), rightDt.typeOrElse(DataType.STRUCT), expr.left, expr.right)
+            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.typeOrElse(DataType.UNDEFINED), rightDt.typeOrElse(DataType.UNDEFINED), expr.left, expr.right)
             if(toFix!=null) {
                 return when {
                     toFix===expr.left -> listOf(IAstModification.ReplaceNode(
@@ -66,8 +66,8 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
         val valueItype = assignment.value.inferType(program)
         val targetItype = assignment.target.inferType(program)
         if(targetItype.isKnown && valueItype.isKnown) {
-            val targettype = targetItype.typeOrElse(DataType.STRUCT)
-            val valuetype = valueItype.typeOrElse(DataType.STRUCT)
+            val targettype = targetItype.typeOrElse(DataType.UNDEFINED)
+            val valuetype = valueItype.typeOrElse(DataType.UNDEFINED)
             if (valuetype != targettype) {
                 if (valuetype isAssignableTo targettype) {
                     if(valuetype in IterableDatatypes && targettype==DataType.UWORD)
@@ -126,7 +126,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                 sub.parameters.zip(call.args).forEachIndexed { index, pair ->
                     val argItype = pair.second.inferType(program)
                     if(argItype.isKnown) {
-                        val argtype = argItype.typeOrElse(DataType.STRUCT)
+                        val argtype = argItype.typeOrElse(DataType.UNDEFINED)
                         val requiredType = pair.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
@@ -159,7 +159,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                 func.parameters.zip(call.args).forEachIndexed { index, pair ->
                     val argItype = pair.second.inferType(program)
                     if (argItype.isKnown) {
-                        val argtype = argItype.typeOrElse(DataType.STRUCT)
+                        val argtype = argItype.typeOrElse(DataType.UNDEFINED)
                         if (pair.first.possibleDatatypes.all { argtype != it }) {
                             for (possibleType in pair.first.possibleDatatypes) {
                                 if (argtype isAssignableTo possibleType) {

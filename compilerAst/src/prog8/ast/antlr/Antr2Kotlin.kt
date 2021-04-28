@@ -62,7 +62,7 @@ private fun prog8Parser.VariabledeclarationContext.toAst(encoding: IStringEncodi
         val vd = it.vardecl()
         return VarDecl(
                 VarDeclType.VAR,
-                vd.datatype()?.toAst() ?: DataType.STRUCT,
+                vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(encoding),
                 vd.varname.text,
@@ -78,7 +78,7 @@ private fun prog8Parser.VariabledeclarationContext.toAst(encoding: IStringEncodi
         val vd = cvarinit.vardecl()
         return VarDecl(
                 VarDeclType.CONST,
-                vd.datatype()?.toAst() ?: DataType.STRUCT,
+                vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(encoding),
                 vd.varname.text,
@@ -94,7 +94,7 @@ private fun prog8Parser.VariabledeclarationContext.toAst(encoding: IStringEncodi
         val vd = mvarinit.vardecl()
         return VarDecl(
                 VarDeclType.MEMORY,
-                vd.datatype()?.toAst() ?: DataType.STRUCT,
+                vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(encoding),
                 vd.varname.text,
@@ -255,7 +255,7 @@ private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
         = asmsub_param().map {
     val vardecl = it.vardecl()
-    val datatype = vardecl.datatype()?.toAst() ?: DataType.STRUCT
+    val datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
     val register = it.register().text
     var registerorpair: RegisterOrPair? = null
     var statusregister: Statusflag? = null
@@ -321,7 +321,7 @@ private fun prog8Parser.Sub_return_partContext.toAst(): List<DataType> {
 
 private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
-            val datatype = it.datatype()?.toAst() ?: DataType.STRUCT
+            val datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
             SubroutineParameter(it.varname.text, datatype, it.toPosition())
         }
 
@@ -594,7 +594,7 @@ private fun prog8Parser.When_choiceContext.toAst(encoding: IStringEncoding): Whe
 private fun prog8Parser.VardeclContext.toAst(encoding: IStringEncoding): VarDecl {
     return VarDecl(
             VarDeclType.VAR,
-            datatype()?.toAst() ?: DataType.STRUCT,
+            datatype()?.toAst() ?: DataType.UNDEFINED,
             if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
             arrayindex()?.toAst(encoding),
             varname.text,

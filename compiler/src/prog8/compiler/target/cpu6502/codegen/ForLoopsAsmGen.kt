@@ -21,13 +21,13 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
             is RangeExpr -> {
                 val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()
                 if(range==null) {
-                    translateForOverNonconstRange(stmt, iterableDt.typeOrElse(DataType.STRUCT), stmt.iterable as RangeExpr)
+                    translateForOverNonconstRange(stmt, iterableDt.typeOrElse(DataType.UNDEFINED), stmt.iterable as RangeExpr)
                 } else {
-                    translateForOverConstRange(stmt, iterableDt.typeOrElse(DataType.STRUCT), range)
+                    translateForOverConstRange(stmt, iterableDt.typeOrElse(DataType.UNDEFINED), range)
                 }
             }
             is IdentifierReference -> {
-                translateForOverIterableVar(stmt, iterableDt.typeOrElse(DataType.STRUCT), stmt.iterable as IdentifierReference)
+                translateForOverIterableVar(stmt, iterableDt.typeOrElse(DataType.UNDEFINED), stmt.iterable as IdentifierReference)
             }
             else -> throw AssemblyError("can't iterate over ${stmt.iterable.javaClass} - should have been replaced by a variable")
         }
@@ -588,5 +588,5 @@ $loopLabel""")
     }
 
     private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) =
-        asmgen.assignExpressionToVariable(range.from, asmgen.asmVariableName(stmt.loopVar), stmt.loopVarDt(program).typeOrElse(DataType.STRUCT), stmt.definingSubroutine())
+        asmgen.assignExpressionToVariable(range.from, asmgen.asmVariableName(stmt.loopVar), stmt.loopVarDt(program).typeOrElse(DataType.UNDEFINED), stmt.definingSubroutine())
 }

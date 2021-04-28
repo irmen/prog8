@@ -38,7 +38,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
             val arrayDt = array.guessDatatype(program)
             if(arrayDt.isKnown) {
                 // this array literal is part of an expression, turn it into an identifier reference
-                val litval2 = array.cast(arrayDt.typeOrElse(DataType.STRUCT))
+                val litval2 = array.cast(arrayDt.typeOrElse(DataType.UNDEFINED))
                 if(litval2!=null) {
                     val vardecl2 = VarDecl.createAuto(litval2)
                     val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)

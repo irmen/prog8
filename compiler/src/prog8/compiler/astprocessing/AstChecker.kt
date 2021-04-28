@@ -78,7 +78,7 @@ internal class AstChecker(private val program: Program,
             if(!valueDt.isKnown) {
                 errors.err("return value type mismatch or unknown symbol", returnStmt.value!!.position)
             } else {
-                if (expectedReturnValues[0] != valueDt.typeOrElse(DataType.STRUCT))
+                if (expectedReturnValues[0] != valueDt.typeOrElse(DataType.UNDEFINED))
                     errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}", returnStmt.value!!.position)
             }
         }
@@ -86,7 +86,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifStatement: IfStatement) {
-        if(ifStatement.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
+        if(ifStatement.condition.inferType(program).typeOrElse(DataType.UNDEFINED) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", ifStatement.condition.position)
         super.visit(ifStatement)
     }
@@ -386,13 +386,13 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        if(untilLoop.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
+        if(untilLoop.condition.inferType(program).typeOrElse(DataType.UNDEFINED) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", untilLoop.condition.position)
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(whileLoop.condition.inferType(program).typeOrElse(DataType.STRUCT) !in IntegerDatatypes)
+        if(whileLoop.condition.inferType(program).typeOrElse(DataType.UNDEFINED) !in IntegerDatatypes)
             errors.err("condition value should be an integer type", whileLoop.condition.position)
         super.visit(whileLoop)
     }
@@ -421,7 +421,7 @@ internal class AstChecker(private val program: Program,
         val targetDt = assignment.target.inferType(program)
         val valueDt = assignment.value.inferType(program)
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
-            if(targetDt.typeOrElse(DataType.STRUCT) in IterableDatatypes)
+            if(targetDt.typeOrElse(DataType.UNDEFINED) in IterableDatatypes)
                 errors.err("cannot assign value to string or array", assignment.value.position)
             else if(!(valueDt.istype(DataType.STR) && targetDt.istype(DataType.UWORD)))
                 errors.err("type of value doesn't match target", assignment.value.position)
@@ -735,11 +735,11 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(array: ArrayLiteralValue) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && array.type.typeOrElse(DataType.STRUCT) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            if (!compilerOptions.floats && array.type.typeOrElse(DataType.UNDEFINED) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
-            checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.STRUCT), arrayspec, array)
+            checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.UNDEFINED), arrayspec, array)
         }
 
         fun isPassByReferenceElement(e: Expression): Boolean {
@@ -771,7 +771,7 @@ internal class AstChecker(private val program: Program,
         if(!idt.isKnown)
             return  // any error should be reported elsewhere
 
-        val dt = idt.typeOrElse(DataType.STRUCT)
+        val dt = idt.typeOrElse(DataType.UNDEFINED)
         if(expr.operator=="-") {
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 errors.err("can only take negative of a signed number type", expr.position)
@@ -796,8 +796,8 @@ internal class AstChecker(private val program: Program,
         if(!leftIDt.isKnown || !rightIDt.isKnown)
             return     // hopefully this error will be detected elsewhere
 
-        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
-        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
+        val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
+        val rightDt = rightIDt.typeOrElse(DataType.UNDEFINED)
 
         when(expr.operator){
             "/", "%" -> {
@@ -998,7 +998,7 @@ internal class AstChecker(private val program: Program,
                     errors.err("swap requires 2 variables, not constant value(s)", position)
                 else if(args[0] isSameAs args[1])
                     errors.err("swap should have 2 different args", position)
-                else if(dt1.typeOrElse(DataType.STRUCT) !in NumericDatatypes)
+                else if(dt1.typeOrElse(DataType.UNDEFINED) !in NumericDatatypes)
                     errors.err("swap requires args of numerical type", position)
             }
             else if(target.name=="all" || target.name=="any") {
@@ -1103,7 +1103,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whenStatement: WhenStatement) {
-        val conditionType = whenStatement.condition.inferType(program).typeOrElse(DataType.STRUCT)
+        val conditionType = whenStatement.condition.inferType(program).typeOrElse(DataType.UNDEFINED)
         if(conditionType !in IntegerDatatypes)
             errors.err("when condition must be an integer value", whenStatement.position)
         val tally = mutableSetOf<Int>()
@@ -1135,7 +1135,7 @@ internal class AstChecker(private val program: Program,
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
-                    constvalue.type != conditionType.typeOrElse(DataType.STRUCT) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    constvalue.type != conditionType.typeOrElse(DataType.UNDEFINED) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
                 }
             }
         } else {

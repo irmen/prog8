@@ -57,8 +57,7 @@ object InferredTypes {
             DataType.ARRAY_B to InferredType.known(DataType.ARRAY_B),
             DataType.ARRAY_UW to InferredType.known(DataType.ARRAY_UW),
             DataType.ARRAY_W to InferredType.known(DataType.ARRAY_W),
-            DataType.ARRAY_F to InferredType.known(DataType.ARRAY_F),
-            DataType.STRUCT to InferredType.known(DataType.STRUCT)
+            DataType.ARRAY_F to InferredType.known(DataType.ARRAY_F)
     )
 
     fun void() = voidInstance

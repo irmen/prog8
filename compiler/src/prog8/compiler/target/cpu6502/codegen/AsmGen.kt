@@ -290,7 +290,6 @@ internal class AsmGen(private val program: Program,
             DataType.UWORD -> out("$name\t.word  0")
             DataType.WORD -> out("$name\t.sint  0")
             DataType.FLOAT -> out("$name\t.byte  0,0,0,0,0  ; float")
-            DataType.STRUCT -> {}       // is flattened
             DataType.STR -> {
                 val str = decl.value as StringLiteralValue
                 outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0))
@@ -990,7 +989,7 @@ internal class AsmGen(private val program: Program,
                 val dt = stmt.iterations!!.inferType(program)
                 if(!dt.isKnown)
                     throw AssemblyError("unknown dt")
-                when (dt.typeOrElse(DataType.STRUCT)) {
+                when (dt.typeOrElse(DataType.UNDEFINED)) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.A)
                         repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)

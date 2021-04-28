@@ -134,8 +134,8 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             ))
         }
 
-        val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
-        val rightDt = rightIDt.typeOrElse(DataType.STRUCT)
+        val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
+        val rightDt = rightIDt.typeOrElse(DataType.UNDEFINED)
 
         if (expr.operator == "+" || expr.operator == "-"
                 && leftVal == null && rightVal == null
@@ -489,7 +489,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     val idt = expr.inferType(program)
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
-                    return NumericLiteralValue(idt.typeOrElse(DataType.STRUCT), 0, expr.position)
+                    return NumericLiteralValue(idt.typeOrElse(DataType.UNDEFINED), 0, expr.position)
                 } else if (cv in powersOfTwo) {
                     expr.operator = "&"
                     expr.right = NumericLiteralValue.optimalInteger(cv!!.toInt()-1, expr.position)
@@ -513,7 +513,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             val leftIDt = expr.left.inferType(program)
             if (!leftIDt.isKnown)
                 return null
-            val leftDt = leftIDt.typeOrElse(DataType.STRUCT)
+            val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
             when (cv) {
                 -1.0 -> {
                     //  '/' -> -left
@@ -590,14 +590,14 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     return expr2.left
                 }
                 in powersOfTwo -> {
-                    if (leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
+                    if (leftValue.inferType(program).typeOrElse(DataType.UNDEFINED) in IntegerDatatypes) {
                         // times a power of two => shift left
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr2.left, "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
                 in negativePowersOfTwo -> {
-                    if (leftValue.inferType(program).typeOrElse(DataType.STRUCT) in IntegerDatatypes) {
+                    if (leftValue.inferType(program).typeOrElse(DataType.UNDEFINED) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
                         val numshifts = log2(-cv).toInt()
                         return BinaryExpression(PrefixExpression("-", expr2.left, expr.position), "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
@@ -621,7 +621,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         val targetIDt = expr.left.inferType(program)
         if(!targetIDt.isKnown)
             throw FatalAstException("unknown dt")
-        when (val targetDt = targetIDt.typeOrElse(DataType.STRUCT)) {
+        when (val targetDt = targetIDt.typeOrElse(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue(targetDt, 0, expr.position)
@@ -656,7 +656,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         val idt = expr.left.inferType(program)
         if(!idt.isKnown)
             throw FatalAstException("unknown dt")
-        when (idt.typeOrElse(DataType.STRUCT)) {
+        when (idt.typeOrElse(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)

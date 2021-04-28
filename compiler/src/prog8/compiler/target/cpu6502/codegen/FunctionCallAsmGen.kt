@@ -244,7 +244,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val valueIDt = value.inferType(program)
         if(!valueIDt.isKnown)
             throw AssemblyError("unknown dt")
-        val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
+        val valueDt = valueIDt.typeOrElse(DataType.UNDEFINED)
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
@@ -257,7 +257,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val valueIDt = value.inferType(program)
         if(!valueIDt.isKnown)
             throw AssemblyError("unknown dt")
-        val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
+        val valueDt = valueIDt.typeOrElse(DataType.UNDEFINED)
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 

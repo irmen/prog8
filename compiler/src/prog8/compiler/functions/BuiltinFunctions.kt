@@ -164,7 +164,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 
     fun datatypeFromIterableArg(arglist: Expression): DataType {
         if(arglist is ArrayLiteralValue) {
-            val dt = arglist.value.map {it.inferType(program).typeOrElse(DataType.STRUCT)}.toSet()
+            val dt = arglist.value.map {it.inferType(program).typeOrElse(DataType.UNDEFINED)}.toSet()
             if(dt.any { it !in NumericDatatypes }) {
                 throw FatalAstException("fuction $function only accepts array of numeric values")
             }
@@ -178,7 +178,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
             val idt = arglist.inferType(program)
             if(!idt.isKnown)
                 throw FatalAstException("couldn't determine type of iterable $arglist")
-            return when(val dt = idt.typeOrElse(DataType.STRUCT)) {
+            return when(val dt = idt.typeOrElse(DataType.UNDEFINED)) {
                 DataType.STR, in NumericDatatypes -> dt
                 in ArrayDatatypes -> ArrayElementTypes.getValue(dt)
                 else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
@@ -195,7 +195,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
     return when (function) {
         "abs" -> {
             val dt = args.single().inferType(program)
-            return if(dt.typeOrElse(DataType.STRUCT) in NumericDatatypes)
+            return if(dt.typeOrElse(DataType.UNDEFINED) in NumericDatatypes)
                 dt
             else
                 InferredTypes.InferredType.unknown()
@@ -300,13 +300,13 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
         return when {
-            dt.typeOrElse(DataType.STRUCT) in ArrayDatatypes -> {
+            dt.typeOrElse(DataType.UNDEFINED) in ArrayDatatypes -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
-                val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.STRUCT))
+                val elementDt = ArrayElementTypes.getValue(dt.typeOrElse(DataType.UNDEFINED))
                 numericLiteral(memsizer.memorySize(elementDt) * length, position)
             }
             dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
-            else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.typeOrElse(DataType.STRUCT)), position)
+            else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.typeOrElse(DataType.UNDEFINED)), position)
         }
     } else {
         throw SyntaxError("sizeof invalid argument type", position)

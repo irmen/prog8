@@ -333,7 +333,7 @@ internal class StatementOptimizer(private val program: Program,
             throw FatalAstException("can't infer type of assignment target")
 
         // optimize binary expressions a bit
-        val targetDt = targetIDt.typeOrElse(DataType.STRUCT)
+        val targetDt = targetIDt.typeOrElse(DataType.UNDEFINED)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
             val rightCv = bexpr.right.constValue(program)?.number?.toDouble()

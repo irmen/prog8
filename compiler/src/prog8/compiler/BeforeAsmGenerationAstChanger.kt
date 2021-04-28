@@ -147,7 +147,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // see if we can remove superfluous typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword
         // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of.
-        val sourceDt = typecast.expression.inferType(program).typeOrElse(DataType.STRUCT)
+        val sourceDt = typecast.expression.inferType(program).typeOrElse(DataType.UNDEFINED)
         if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
                 || typecast.type in WordDatatypes && sourceDt in WordDatatypes) {
             if(typecast.parent !is Expression) {
@@ -225,7 +225,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
     }
 
 //    private fun addIfOperandVar(sub: Subroutine, side: String, operand: Expression): Triple<VarDecl, Boolean, Assignment> {
-//        val dt = operand.inferType(program).typeOrElse(DataType.STRUCT)
+//        val dt = operand.inferType(program).typeOrElse(DataType.UNDEFINED)
 //        val varname = "prog8_ifvar_${side}_${dt.name.toLowerCase()}"
 //        val tgt = AssignTarget(IdentifierReference(listOf(varname), operand.position), null, null, operand.position)
 //        val assign = Assignment(tgt, operand, operand.position)
@@ -267,8 +267,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.
             val arg1 = functionCallStatement.args[0]
             val arg2 = functionCallStatement.args[1]
-            val dt1 = arg1.inferType(program).typeOrElse(DataType.STRUCT)
-            val dt2 = arg2.inferType(program).typeOrElse(DataType.STRUCT)
+            val dt1 = arg1.inferType(program).typeOrElse(DataType.UNDEFINED)
+            val dt2 = arg2.inferType(program).typeOrElse(DataType.UNDEFINED)
             if(dt1 in ByteDatatypes) {
                 if(dt2 in ByteDatatypes)
                     return noModifications

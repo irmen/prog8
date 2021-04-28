@@ -86,7 +86,6 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
             DataType.ARRAY_UW -> "uword["
             DataType.ARRAY_W -> "word["
             DataType.ARRAY_F -> "float["
-            DataType.STRUCT -> ""       // TODO STRUCT DOESN'T EXIST ANYMORE
             else -> "?????"
         }
     }

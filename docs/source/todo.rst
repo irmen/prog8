@@ -2,10 +2,8 @@
 TODO
 ====
 
-- get rid of Datatype.STRUCT
 - fix problem that unused vars are no longer properly removed
 - BeforeAsmGenerationAstChanger no longer needs to move vardecls??
-
 
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
@@ -14,6 +12,7 @@ TODO
 
 Low prio
 ^^^^^^^^
+- see if we can improve the ".typeOrElse(DataType.UNDEFINED)" to not depend on the DEFINED anymore or at least less
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
 - add a flood fill routine to gfx2?

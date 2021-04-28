@@ -217,7 +217,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     val returntype = builtinFunctionReturnType(sub.name, value.args, program)
                                     if(!returntype.isKnown)
                                         throw AssemblyError("unknown dt")
-                                    when(returntype.typeOrElse(DataType.STRUCT)) {
+                                    when(returntype.typeOrElse(DataType.UNDEFINED)) {
                                         in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                                         in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
                                         DataType.STR -> {
@@ -299,7 +299,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val valueIDt = value.inferType(program)
         if(!valueIDt.isKnown)
             throw AssemblyError("unknown dt")
-        val valueDt = valueIDt.typeOrElse(DataType.STRUCT)
+        val valueDt = valueIDt.typeOrElse(DataType.UNDEFINED)
         if(valueDt==targetDt)
             throw AssemblyError("type cast to identical dt should have been removed")
 
@@ -359,7 +359,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
         // special case optimizations
         if(target.kind== TargetStorageKind.VARIABLE) {
-            if(value is IdentifierReference && valueDt != DataType.STRUCT)
+            if(value is IdentifierReference && valueDt != DataType.UNDEFINED)
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
             when (valueDt) {

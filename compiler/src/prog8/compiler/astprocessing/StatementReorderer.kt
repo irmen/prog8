@@ -124,7 +124,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                 is Assignment -> {
                     val targetDt = parent.target.inferType(program)
                     if(leftDt != targetDt) {
-                        val cast = TypecastExpression(expr.left, targetDt.typeOrElse(DataType.STRUCT), true, parent.position)
+                        val cast = TypecastExpression(expr.left, targetDt.typeOrElse(DataType.UNDEFINED), true, parent.position)
                         return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                     }
                 }
@@ -208,7 +208,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program)
 
-        if(targetType.typeOrElse(DataType.STRUCT) in ArrayDatatypes && valueType.typeOrElse(DataType.STRUCT) in ArrayDatatypes ) {
+        if(targetType.typeOrElse(DataType.UNDEFINED) in ArrayDatatypes && valueType.typeOrElse(DataType.UNDEFINED) in ArrayDatatypes ) {
             if (assignment.value is ArrayLiteralValue) {
                 errors.err("cannot assign array literal here, use separate assignment per element", assignment.position)
             } else {
