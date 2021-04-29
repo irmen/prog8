@@ -1,7 +1,7 @@
 package prog8.compiler.target.cpu6502.codegen
 
 import prog8.ast.Program
-import prog8.ast.base.ArrayElementTypes
+import prog8.ast.base.ArrayToElementTypes
 import prog8.ast.base.DataType
 import prog8.ast.base.RegisterOrPair
 import prog8.ast.expressions.IdentifierReference
@@ -56,8 +56,8 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.loopVar)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayElementTypes.getValue(iterableDt), null)
-                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt), null)
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.body)
                     asmgen.out("""
@@ -74,8 +74,8 @@ $modifiedLabel          cmp  #0         ; modified
 
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.loopVar)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayElementTypes.getValue(iterableDt), null)
-                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt), null)
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.body)
                     if(stepsize>0) {

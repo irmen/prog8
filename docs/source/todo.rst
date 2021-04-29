@@ -11,7 +11,7 @@ TODO
 
 Low prio
 ^^^^^^^^
-- see if we can improve the ".typeOrElse(DataType.UNDEFINED)" to not depend on the DEFINED anymore or at least less
+- see if we can remove more ".typeOrElse(DataType.UNDEFINED)"
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
 - add a flood fill routine to gfx2?

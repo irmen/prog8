@@ -1321,7 +1321,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcMsb(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
-        if (arg.inferType(program).typeOrElse(DataType.UNDEFINED) !in WordDatatypes)
+        if (!arg.inferType(program).isWords())
             throw AssemblyError("msb required word argument")
         if (arg is NumericLiteralValue)
             throw AssemblyError("msb(const) should have been const-folded away")
@@ -1365,7 +1365,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcLsb(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
-        if (arg.inferType(program).typeOrElse(DataType.UNDEFINED) !in WordDatatypes)
+        if (!arg.inferType(program).isWords())
             throw AssemblyError("lsb required word argument")
         if (arg is NumericLiteralValue)
             throw AssemblyError("lsb(const) should have been const-folded away")

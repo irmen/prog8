@@ -590,14 +590,14 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     return expr2.left
                 }
                 in powersOfTwo -> {
-                    if (leftValue.inferType(program).typeOrElse(DataType.UNDEFINED) in IntegerDatatypes) {
+                    if (leftValue.inferType(program).isInteger()) {
                         // times a power of two => shift left
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr2.left, "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
                 in negativePowersOfTwo -> {
-                    if (leftValue.inferType(program).typeOrElse(DataType.UNDEFINED) in IntegerDatatypes) {
+                    if (leftValue.inferType(program).isInteger()) {
                         // times a negative power of two => negate, then shift left
                         val numshifts = log2(-cv).toInt()
                         return BinaryExpression(PrefixExpression("-", expr2.left, expr.position), "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)

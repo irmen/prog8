@@ -1,6 +1,6 @@
 package prog8.ast.expressions
 
-import prog8.ast.base.DataType
+import prog8.ast.base.*
 import java.util.*
 
 
@@ -42,6 +42,17 @@ object InferredTypes {
                 isKnown && (datatype!! isAssignableTo targetDt)
         infix fun isNotAssignableTo(targetDt: InferredType): Boolean = !this.isAssignableTo(targetDt)
         infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
+
+        fun isBytes() = datatype in ByteDatatypes
+        fun isWords() = datatype in WordDatatypes
+        fun isInteger() = datatype in IntegerDatatypes
+        fun isNumeric() = datatype in NumericDatatypes
+        fun isArray() = datatype in ArrayDatatypes
+        fun isString() = datatype in StringlyDatatypes
+        fun isIterable() = datatype in IterableDatatypes
+        fun isPassByReference() = datatype in PassByReferenceDatatypes
+        fun isPassByValue() = datatype in PassByValueDatatypes
+        fun isArrayElement() = datatype in ElementToArrayTypes
     }
 
     private val unknownInstance = InferredType.unknown()

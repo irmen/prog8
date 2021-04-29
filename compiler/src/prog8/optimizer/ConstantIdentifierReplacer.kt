@@ -172,7 +172,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                             else -> {}
                         }
                         // create the array itself, filled with the fillvalue.
-                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayElementTypes.getValue(decl.datatype), it, numericLv.position) }.toTypedArray<Expression>()
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayToElementTypes.getValue(decl.datatype), it, numericLv.position) }.toTypedArray<Expression>()
                         val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
                     }

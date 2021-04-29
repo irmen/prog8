@@ -268,7 +268,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         if (target is VarDecl) {
             return when (target.datatype) {
                 DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
-                in ArrayDatatypes -> InferredTypes.knownFor(ArrayElementTypes.getValue(target.datatype))
+                in ArrayDatatypes -> InferredTypes.knownFor(ArrayToElementTypes.getValue(target.datatype))
                 else -> InferredTypes.unknown()
             }
         }
@@ -567,7 +567,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 
     fun memsize(memsizer: IMemSizer): Int {
         if(type.isKnown) {
-            val eltType = ArrayElementTypes.getValue(type.typeOrElse(DataType.UNDEFINED))
+            val eltType = ArrayToElementTypes.getValue(type.typeOrElse(DataType.UNDEFINED))
             return memsizer.memorySize(eltType) * value.size
         }
         else throw IllegalArgumentException("array datatype is not yet known")
@@ -580,10 +580,10 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         if(forloop != null)  {
             val loopvarDt = forloop.loopVarDt(program)
             if(loopvarDt.isKnown) {
-                return if(loopvarDt.typeOrElse(DataType.UNDEFINED) !in ElementArrayTypes)
+                return if(!loopvarDt.isArrayElement())
                     InferredTypes.InferredType.unknown()
                 else
-                    InferredTypes.InferredType.known(ElementArrayTypes.getValue(loopvarDt.typeOrElse(DataType.UNDEFINED)))
+                    InferredTypes.InferredType.known(ElementToArrayTypes.getValue(loopvarDt.typeOrElse(DataType.UNDEFINED)))
             }
         }
 
@@ -611,7 +611,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         if(type.istype(targettype))
             return this
         if(targettype in ArrayDatatypes) {
-            val elementType = ArrayElementTypes.getValue(targettype)
+            val elementType = ArrayToElementTypes.getValue(targettype)
             val castArray = value.map{
                 val num = it as? NumericLiteralValue
                 if(num==null) {
@@ -679,9 +679,9 @@ class RangeExpr(var from: Expression,
                 val fdt = fromDt.typeOrElse(DataType.UNDEFINED)
                 val tdt = toDt.typeOrElse(DataType.UNDEFINED)
                 if(fdt largerThan tdt)
-                    InferredTypes.knownFor(ElementArrayTypes.getValue(fdt))
+                    InferredTypes.knownFor(ElementToArrayTypes.getValue(fdt))
                 else
-                    InferredTypes.knownFor(ElementArrayTypes.getValue(tdt))
+                    InferredTypes.knownFor(ElementToArrayTypes.getValue(tdt))
             }
         }
     }

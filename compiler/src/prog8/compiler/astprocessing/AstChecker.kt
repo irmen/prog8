@@ -86,7 +86,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifStatement: IfStatement) {
-        if(ifStatement.condition.inferType(program).typeOrElse(DataType.UNDEFINED) !in IntegerDatatypes)
+        if(!ifStatement.condition.inferType(program).isInteger())
             errors.err("condition value should be an integer type", ifStatement.condition.position)
         super.visit(ifStatement)
     }
@@ -386,13 +386,13 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        if(untilLoop.condition.inferType(program).typeOrElse(DataType.UNDEFINED) !in IntegerDatatypes)
+        if(!untilLoop.condition.inferType(program).isInteger())
             errors.err("condition value should be an integer type", untilLoop.condition.position)
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(whileLoop.condition.inferType(program).typeOrElse(DataType.UNDEFINED) !in IntegerDatatypes)
+        if(!whileLoop.condition.inferType(program).isInteger())
             errors.err("condition value should be an integer type", whileLoop.condition.position)
         super.visit(whileLoop)
     }
@@ -421,7 +421,7 @@ internal class AstChecker(private val program: Program,
         val targetDt = assignment.target.inferType(program)
         val valueDt = assignment.value.inferType(program)
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
-            if(targetDt.typeOrElse(DataType.UNDEFINED) in IterableDatatypes)
+            if(targetDt.isIterable())
                 errors.err("cannot assign value to string or array", assignment.value.position)
             else if(!(valueDt.istype(DataType.STR) && targetDt.istype(DataType.UWORD)))
                 errors.err("type of value doesn't match target", assignment.value.position)
@@ -998,7 +998,7 @@ internal class AstChecker(private val program: Program,
                     errors.err("swap requires 2 variables, not constant value(s)", position)
                 else if(args[0] isSameAs args[1])
                     errors.err("swap should have 2 different args", position)
-                else if(dt1.typeOrElse(DataType.UNDEFINED) !in NumericDatatypes)
+                else if(!dt1.isNumeric())
                     errors.err("swap requires args of numerical type", position)
             }
             else if(target.name=="all" || target.name=="any") {
@@ -1103,8 +1103,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whenStatement: WhenStatement) {
-        val conditionType = whenStatement.condition.inferType(program).typeOrElse(DataType.UNDEFINED)
-        if(conditionType !in IntegerDatatypes)
+        if(!whenStatement.condition.inferType(program).isInteger())
             errors.err("when condition must be an integer value", whenStatement.position)
         val tally = mutableSetOf<Int>()
         for((choices, choiceNode) in whenStatement.choiceValues(program)) {

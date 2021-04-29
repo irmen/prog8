@@ -25,7 +25,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
             if(!valueDt.istype(decl.datatype)) {
 
                 // don't add a typecast on an array initializer value
-                if(valueDt.typeOrElse(DataType.UNDEFINED) in IntegerDatatypes && decl.datatype in ArrayDatatypes)
+                if(valueDt.isInteger() && decl.datatype in ArrayDatatypes)
                     return noModifications
 
                 // don't add a typecast if the initializer value is inherently not assignable
