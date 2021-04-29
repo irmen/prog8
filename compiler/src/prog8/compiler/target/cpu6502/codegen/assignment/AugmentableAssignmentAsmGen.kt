@@ -110,7 +110,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val ident = value as? IdentifierReference
         val memread = value as? DirectMemoryRead
 
-        when(target.kind) {
+        when (target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
                     in ByteDatatypes -> {
@@ -204,7 +204,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     when {
                         indexNum!=null -> {
                             val targetVarName = "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
-                            when(target.datatype) {
+                            when (target.datatype) {
                                 in ByteDatatypes -> {
                                     when {
                                         valueLv != null -> inplaceModification_byte_litval_to_variable(targetVarName, target.datatype, operator, valueLv.toInt())
@@ -244,7 +244,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                         indexVar!=null -> {
-                            when(target.datatype) {
+                            when (target.datatype) {
                                 in ByteDatatypes -> {
                                     val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.A, null, program, asmgen)
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
@@ -672,7 +672,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_byte_memread_to_variable(name: String, dt: DataType, operator: String, memread: DirectMemoryRead) {
-        when(operator) {
+        when (operator) {
             "+" -> {
                 exprAsmGen.translateDirectMemReadExpression(memread, false)
                 asmgen.out("""
@@ -689,6 +689,18 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sbc  P8ZP_SCRATCH_B1
                     sta  $name""")
             }
+            "|", "or" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("  ora  $name  |  sta  $name")
+            }
+            "&", "and" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("  and  $name  |  sta  $name")
+            }
+            "^", "xor" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("  eor  $name  |  sta  $name")
+            }
             // TODO: tuned code for more operators
             else -> {
                 inplaceModification_byte_value_to_variable(name, dt, operator, memread)
@@ -697,7 +709,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_word_memread_to_variable(name: String, dt: DataType, operator: String, memread: DirectMemoryRead) {
-        when(operator) {
+        when (operator) {
             "+" -> {
                 exprAsmGen.translateDirectMemReadExpression(memread, false)
                 asmgen.out("""
@@ -719,6 +731,24 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     bcc  +
                     dec  $name+1
 +""")
+            }
+            "|", "or" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("  ora  $name  |  sta  $name")
+            }
+            "&", "and" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("  and  $name  |  sta  $name")
+                if(dt in WordDatatypes) {
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        asmgen.out("  stz  $name+1")
+                    else
+                        asmgen.out("  lda  #0 |  sta  $name+1")
+                }
+            }
+            "^", "xor" -> {
+                exprAsmGen.translateDirectMemReadExpression(memread, false)
+                asmgen.out("  eor  $name  |  sta  $name")
             }
             // TODO: tuned code for more operators
             else -> {
@@ -1274,7 +1304,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             """)
         }
 
-        when(valueDt) {
+        when (valueDt) {
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
@@ -1671,7 +1701,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 DataType.UWORD, DataType.WORD -> {
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {
-                            when(target.kind) {
+                            when (target.kind) {
                                 TargetStorageKind.VARIABLE -> {
                                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                         asmgen.out(" stz  ${target.asmVarname}+1")
@@ -1715,7 +1745,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceBooleanNot(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.UBYTE -> {
-                when(target.kind) {
+                when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmVarname}
@@ -1765,7 +1795,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             DataType.UWORD -> {
-                when(target.kind) {
+                when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmVarname}
@@ -1790,7 +1820,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceInvert(target: AsmAssignTarget, dt: DataType) {
         when (dt) {
             DataType.UBYTE -> {
-                when(target.kind) {
+                when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmVarname}
@@ -1831,7 +1861,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             DataType.UWORD -> {
-                when(target.kind) {
+                when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmVarname}
@@ -1869,7 +1899,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             DataType.WORD -> {
-                when(target.kind) {
+                when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  #0
@@ -1887,7 +1917,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             DataType.FLOAT -> {
-                when(target.kind) {
+                when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         // simply flip the sign bit in the float
                         asmgen.out("""

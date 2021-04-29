@@ -3,18 +3,23 @@ main {
 
     sub start() {
 
-        repeat {
-            ubyte xx
-            ubyte yy=xx
-            ubyte aa
-            ubyte bb
-            ubyte cc
-            ubyte dd
-        }
+        ubyte xx
 
-        repeat {
-            xx=1
-            yy=xx
-        }
+        xx |= 44
+        xx &= 44
+        xx ^= 44
+
+        xx |= @($d020)
+        xx &= @($d020)
+        xx ^= @($d020)
+
+        uword ww
+
+        ww |= $4433
+        ww &= $4433
+        ww ^= $4433
+        ww |= @($d020)
+        ww &= @($d020)
+        ww ^= @($d020)
     }
 }

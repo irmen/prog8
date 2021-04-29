@@ -2,6 +2,8 @@
 TODO
 ====
 
+- test all examples before release of the new version
+
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - get rid of all other TODO's in the code ;-)
