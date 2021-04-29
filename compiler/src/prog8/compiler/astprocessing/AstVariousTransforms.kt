@@ -2,11 +2,12 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.DataType
+import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.StringLiteralValue
-import prog8.ast.statements.ParameterVarDecl
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 
@@ -65,6 +66,10 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         return noModifications
     }
 
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        return replacePointerVarIndexWithMemread(program, arrayIndexedExpression, parent)
+    }
+
     private fun concatString(expr: BinaryExpression): StringLiteralValue? {
         val rightStrval = expr.right as? StringLiteralValue
         val leftStrval = expr.left as? StringLiteralValue
@@ -90,4 +95,26 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
             else -> null
         }
     }
+}
+
+
+
+internal fun replacePointerVarIndexWithMemread(program: Program, arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+    val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+    if(arrayVar!=null && arrayVar.datatype ==  DataType.UWORD) {
+        // rewrite   pointervar[index]  into  @(pointervar+index)
+        val indexer = arrayIndexedExpression.indexer
+        val add = BinaryExpression(arrayIndexedExpression.arrayvar, "+", indexer.indexExpr, arrayIndexedExpression.position)
+        return if(parent is AssignTarget) {
+            // we're part of the target of an assignment, we have to actually change the assign target itself
+            val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
+            val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
+            listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
+        } else {
+            val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
+            listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+        }
+    }
+
+    return emptyList()
 }

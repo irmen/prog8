@@ -4,7 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.ArrayDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
@@ -87,24 +86,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-
-        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
-        if(arrayVar!=null && arrayVar.datatype ==  DataType.UWORD) {
-            // rewrite   pointervar[index]  into  @(pointervar+index)
-            val indexer = arrayIndexedExpression.indexer
-            val add = BinaryExpression(arrayIndexedExpression.arrayvar, "+", indexer.indexExpr, arrayIndexedExpression.position)
-            return if(parent is AssignTarget) {
-                // we're part of the target of an assignment, we have to actually change the assign target itself
-                val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
-                val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
-                listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
-            } else {
-                val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-                listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
-            }
-        }
-
-        return noModifications
+        return replacePointerVarIndexWithMemread(program, arrayIndexedExpression, parent)
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {

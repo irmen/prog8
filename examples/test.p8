@@ -3,23 +3,12 @@ main {
 
     sub start() {
 
-        ubyte xx
+        uword enemyRef = $2000
+        ubyte cur
 
-        xx |= 44
-        xx &= 44
-        xx ^= 44
+        cur = enemyRef[1]
+            + enemyRef[2]
+            + enemyRef[3]
 
-        xx |= @($d020)
-        xx &= @($d020)
-        xx ^= @($d020)
-
-        uword ww
-
-        ww |= $4433
-        ww &= $4433
-        ww ^= $4433
-        ww |= @($d020)
-        ww &= @($d020)
-        ww ^= @($d020)
     }
 }
