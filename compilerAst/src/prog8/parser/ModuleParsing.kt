@@ -158,8 +158,8 @@ class ModuleImporter(val program: Program, val encoder: IStringEncoding, val com
         val fileName = "$name.p8"
         val libpaths = libdirs.map {Path.of(it)}
         val locations =
-            (if(source.toString().isEmpty()) libpaths else libpaths.drop(1) + (source.parent ?: Path.of("."))) +
-                Paths.get(Paths.get("").toAbsolutePath().toString(), "prog8lib")
+            (if(source.toString().isEmpty()) libpaths else libpaths.drop(1) + listOf(source.parent ?: Path.of("."))) +
+                listOf(Paths.get(Paths.get("").toAbsolutePath().toString(), "prog8lib"))
 
         locations.forEach {
             val file = pathFrom(it.toString(), fileName)
