@@ -492,7 +492,7 @@ galaxy {
         ubyte current_planet = planet.number
         ubyte px = planet.x
         ubyte py = planet.y
-        uword current_name = planet.name
+        uword current_name = &planet.name
         ubyte pn = 0
         uword scaling = 8
         if local

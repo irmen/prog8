@@ -28,14 +28,14 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
             errors.err(x.message, x.position)
         }
 
-        // move a vardecl to the scope of the defining subroutine and put a regular assignment in its place here (if it has a value)
-        if(decl.type== VarDeclType.VAR && decl.datatype in NumericDatatypes) {
+        // move vardecl to the containing subroutine and add initialization assignment in its place if needed
+        if(decl.type == VarDeclType.VAR && decl.datatype in NumericDatatypes) {
             val subroutine = decl.definingSubroutine() as? INameScope
-            if(subroutine!=null) {
+            if(subroutine!=null && subroutine!==parent) {
                 val declValue = decl.value
                 decl.value = null
                 decl.allowInitializeWithZero = false
-                return if(declValue==null) {
+                return if (declValue == null) {
                     listOf(
                         IAstModification.Remove(decl, parent as INameScope),
                         IAstModification.InsertFirst(decl, subroutine)
