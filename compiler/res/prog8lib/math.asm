@@ -774,6 +774,13 @@ stack_mul_word_320	.proc
 		rts
 		.pend
 
+stack_mul_word_640	.proc
+		; stackW = (stackLo * 2 * 320)    (stackHi doesn't matter)
+		asl  P8ESTACK_LO+1,x
+		jmp  stack_mul_word_320
+		.pend
+
+
 ; ----------- optimized multiplications (in-place A (byte) and ?? (word)) : ---------
 mul_byte_3	.proc
 		; A = A + A*2
@@ -1263,6 +1270,13 @@ mul_word_320	.proc
 		pla
 		rts
 		.pend
+
+mul_word_640	.proc
+		; AY = (A * 2 * 320) (msb in Y doesn't matter)
+		asl  a
+		jmp  mul_word_320
+		.pend
+
 
 ; ----------- end optimized multiplications -----------
 

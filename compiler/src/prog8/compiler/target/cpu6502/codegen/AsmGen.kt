@@ -30,7 +30,7 @@ internal class AsmGen(private val program: Program,
 
     // for expressions and augmented assignments:
     val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
-    val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320)
+    val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     private val callGraph = CallGraph(program)
 
     private val assemblyLines = mutableListOf<String>()
