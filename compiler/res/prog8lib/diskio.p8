@@ -336,6 +336,45 @@ _end        rts
     }
 
 
+    ; ----- iterative file saver functions (uses io channel 14) -----
+
+    sub f_open_w(ubyte drivenumber, uword filenameptr) -> ubyte {
+        ; -- open a file for iterative writing with f_write
+        f_close_w()
+
+        c64.SETNAM(string.length(filenameptr), filenameptr)
+        c64.SETLFS(14, drivenumber, 1)
+        void c64.OPEN()          ; open 14,8,1,"filename"
+        if_cc {
+            void c64.CHKOUT(14)        ; use #14 as input channel
+            return not c64.READST()
+        }
+        f_close_w()
+        return false
+    }
+
+    sub f_write(uword bufferpointer, uword num_bytes) -> ubyte {
+        ; -- write the given umber of bytes to the currently open file
+        if num_bytes!=0 {
+            void c64.CHKOUT(14)        ; use #14 as input channel again
+            repeat num_bytes {
+                c64.CHROUT(@(bufferpointer))
+                bufferpointer++
+            }
+            return not c64.READST()
+        }
+        return true
+    }
+
+    sub f_close_w() {
+        ; -- end an iterative file writing session (close channels).
+        c64.CLRCHN()
+        c64.CLOSE(14)
+    }
+
+
+    ; ---- other functions ----
+
     sub status(ubyte drivenumber) -> uword {
         ; -- retrieve the disk drive's current status message
         uword messageptr = &filename
@@ -363,7 +402,6 @@ io_error:
         filename = "?disk error"
         goto done
     }
-
 
     sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> ubyte {
         c64.SETNAM(string.length(filenameptr), filenameptr)
