@@ -353,11 +353,15 @@ _end        rts
             messageptr++
         }
 
-io_error:
         @(messageptr) = 0
+done:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(15)
         return filename
+
+io_error:
+        filename = "?disk error"
+        goto done
     }
 
 

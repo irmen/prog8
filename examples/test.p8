@@ -1,9 +1,19 @@
 %import textio
+%import diskio
 %zeropage basicsafe
 
 main {
 
     sub start() {
+
+        txt.print(diskio.status(8))
+        txt.nl()
+        txt.print(diskio.status(9))
+        txt.nl()
+;        txt.print(diskio.status(10))
+;        txt.nl()
+;        txt.print(diskio.status(11))
+;        txt.nl()
 
         uword x=22
         x*=320

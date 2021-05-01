@@ -128,7 +128,7 @@ internal class AsmGen(private val program: Program,
                 out("* = ${program.actualLoadAddress.toHex()}")
                 val year = LocalDate.now().year
                 out("  .word  (+), $year")
-                out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
+                out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
                 if(!options.noSysInit)
