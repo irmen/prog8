@@ -10,7 +10,7 @@ object InferredTypes {
             require(!(datatype!=null && (isUnknown || isVoid))) { "invalid combination of args" }
         }
 
-        val isKnown = datatype!=null
+        val isKnown = datatype!=null && datatype!=DataType.UNDEFINED
         fun typeOrElse(alternative: DataType) = if(isUnknown || isVoid) alternative else datatype!!
         infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type
 
