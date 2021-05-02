@@ -7,9 +7,6 @@ Prog8 - Structured Programming Language for 8-bit 6502/65c02 microprocessors
 
 *Written by Irmen de Jong (irmen@razorvine.net)*
 
-*Software license: GNU GPL 3.0, see file LICENSE*
-
-
 This is a structured programming language for the 8-bit 6502/6510/65c02 microprocessor from the late 1970's and 1980's
 as used in many home computers from that era. It is a medium to low level programming language,
 which aims to provide many conveniences over raw assembly code (even when using a macro assembler).
@@ -18,6 +15,13 @@ Documentation
 -------------
 Full documentation (syntax reference, how to use the language and the compiler, etc.) can be found at:
 https://prog8.readthedocs.io/
+
+Software license
+----------------
+GNU GPL 3.0, see file LICENSE
+
+- prog8 (the compiler + libraries) is licensed under GNU GPL 3.0
+- *exception:* the resulting files created by running the compiler are free to use in whatever way desired.
 
 
 What does Prog8 provide?
