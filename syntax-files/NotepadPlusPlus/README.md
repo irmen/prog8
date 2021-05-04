@@ -1,5 +1,8 @@
 Prog8 syntax highlighting file for [Notepad++](https://notepad-plus-plus.org/).
 
+Created by meisl on Github. Thanks!
+
+
 To install:
 
 * Open Notepad++

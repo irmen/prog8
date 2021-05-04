@@ -1,5 +1,6 @@
 Vim syntax highlighting definitions.
-Created by Elektron72 on github
+
+Created by Elektron72 on github. Thanks!
 
 
 To install:
