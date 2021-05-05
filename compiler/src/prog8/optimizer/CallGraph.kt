@@ -3,7 +3,6 @@ package prog8.optimizer
 import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.AddressOf

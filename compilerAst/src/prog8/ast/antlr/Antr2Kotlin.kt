@@ -13,6 +13,7 @@ import prog8.parser.prog8Parser
 import java.io.CharConversionException
 import java.io.File
 import java.nio.file.Path
+import java.util.*
 
 
 /***************** Antlr Extension methods to create AST ****************/
@@ -340,7 +341,7 @@ private fun prog8Parser.ClobberContext.toAst() : Set<CpuRegister> {
     return names.map { CpuRegister.valueOf(it) }.toSet()
 }
 
-private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
+private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.uppercase())
 
 private fun prog8Parser.ArrayindexContext.toAst(encoding: IStringEncoding) : ArrayIndex =
         ArrayIndex(expression().toAst(encoding), toPosition())
@@ -536,7 +537,9 @@ private fun prog8Parser.Branch_stmtContext.toAst(encoding: IStringEncoding): Bra
     return BranchStatement(branchcondition, trueScope, elseScope, toPosition())
 }
 
-private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())
+private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf(
+    text.substringAfter('_').uppercase()
+)
 
 private fun prog8Parser.ForloopContext.toAst(encoding: IStringEncoding): ForLoop {
     val loopvar = identifier().toAst()

@@ -16,6 +16,7 @@ import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import java.io.File
+import java.util.*
 
 internal class AstChecker(private val program: Program,
                           private val compilerOptions: CompilationOptions,
@@ -1029,7 +1030,7 @@ internal class AstChecker(private val program: Program,
                             ident = fcall.args[0] as? IdentifierReference
                     }
                     if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {
-                        val reg = RegisterOrPair.valueOf(ident.nameInSource[1].toUpperCase())
+                        val reg = RegisterOrPair.valueOf(ident.nameInSource[1].uppercase())
                         val same = params.filter { it.value.registerOrPair==reg }
                         for(s in same) {
                             if(s.index!=arg.index) {
@@ -1355,10 +1356,15 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot assign word to byte, use msb() or lsb()?", position)
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
-            errors.err("cannot assign float to ${targetDatatype.name.toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
+            errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else {
             if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes)
-                errors.err("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}", position)
+                errors.err(
+                    "cannot assign ${sourceDatatype.name.lowercase()} to ${
+                        targetDatatype.name.lowercase(
+                            Locale.getDefault()
+                        )
+                    }", position)
         }
 
 

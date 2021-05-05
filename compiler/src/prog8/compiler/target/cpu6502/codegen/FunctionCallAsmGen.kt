@@ -175,21 +175,31 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     when (sub.parameters[argi.index].type) {
                         in ByteDatatypes -> {
                             // only load the lsb of the virtual register
-                            asmgen.out("""
+                            asmgen.out(
+                                """
                                 lda  P8ESTACK_LO$plusIdxStr,x
-                                sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
+                                sta  cx16.${argi.value.second.registerOrPair.toString().lowercase()}
                             """)
                             if (asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out("  stz  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
+                                asmgen.out(
+                                    "  stz  cx16.${
+                                        argi.value.second.registerOrPair.toString().lowercase()
+                                    }+1")
                             else
-                                asmgen.out("  lda  #0 |  sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1")
+                                asmgen.out(
+                                    "  lda  #0 |  sta  cx16.${
+                                        argi.value.second.registerOrPair.toString().lowercase()
+                                    }+1")
                         }
                         in WordDatatypes, in IterableDatatypes ->
-                            asmgen.out("""
+                            asmgen.out(
+                                """
                                 lda  P8ESTACK_LO$plusIdxStr,x
-                                sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}
+                                sta  cx16.${argi.value.second.registerOrPair.toString().lowercase()}
                                 lda  P8ESTACK_HI$plusIdxStr,x
-                                sta  cx16.${argi.value.second.registerOrPair.toString().toLowerCase()}+1
+                                sta  cx16.${
+                                    argi.value.second.registerOrPair.toString().lowercase()
+                                }+1
                             """)
                         else -> throw AssemblyError("weird dt")
                     }

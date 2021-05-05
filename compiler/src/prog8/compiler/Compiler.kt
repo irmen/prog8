@@ -196,51 +196,52 @@ private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICo
 private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
     val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
-            as? Directive)?.args?.single()?.name?.toUpperCase()
+            as? Directive)?.args?.single()?.name?.uppercase()
     val launcherType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
-            as? Directive)?.args?.single()?.name?.toUpperCase()
+            as? Directive)?.args?.single()?.name?.uppercase()
     val zpoption: String? = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
-            as? Directive)?.args?.single()?.name?.toUpperCase()
-    val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
+            as? Directive)?.args?.single()?.name?.uppercase()
+    val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }
+        .flatMap { (it as Directive).args }.toSet()
     val floatsEnabled = allOptions.any { it.name == "enable_floats" }
     val noSysInit = allOptions.any { it.name == "no_sysinit" }
     var zpType: ZeropageType =
-            if (zpoption == null)
-                if(floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
-            else
-                try {
-                    ZeropageType.valueOf(zpoption)
-                } catch (x: IllegalArgumentException) {
-                    ZeropageType.KERNALSAFE
-                    // error will be printed by the astchecker
-                }
+        if (zpoption == null)
+            if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
+        else
+            try {
+                ZeropageType.valueOf(zpoption)
+            } catch (x: IllegalArgumentException) {
+                ZeropageType.KERNALSAFE
+                // error will be printed by the astchecker
+            }
 
-    if (zpType==ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.name) {
+    if (zpType == ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.name) {
         System.err.println("Warning: zp option floatsafe changed to basicsafe for cx16 target")
         zpType = ZeropageType.BASICSAFE
     }
 
     val zpReserved = mainModule.statements
-            .asSequence()
-            .filter { it is Directive && it.directive == "%zpreserved" }
-            .map { (it as Directive).args }
-            .map { it[0].int!!..it[1].int!! }
-            .toList()
+        .asSequence()
+        .filter { it is Directive && it.directive == "%zpreserved" }
+        .map { (it as Directive).args }
+        .map { it[0].int!!..it[1].int!! }
+        .toList()
 
-    if(outputType!=null && !OutputType.values().any {it.name==outputType}) {
+    if (outputType != null && !OutputType.values().any { it.name == outputType }) {
         System.err.println("invalid output type $outputType")
         exitProcess(1)
     }
-    if(launcherType!=null && !LauncherType.values().any {it.name==launcherType}) {
+    if (launcherType != null && !LauncherType.values().any { it.name == launcherType }) {
         System.err.println("invalid launcher type $launcherType")
         exitProcess(1)
     }
 
     return CompilationOptions(
-            if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
-            if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-            zpType, zpReserved, floatsEnabled, noSysInit,
-            compTarget
+        if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
+        if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
+        zpType, zpReserved, floatsEnabled, noSysInit,
+        compTarget
     )
 }
 

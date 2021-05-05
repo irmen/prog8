@@ -135,9 +135,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val dt = value.inferType(program).typeOrElse(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
-                    if(dt==DataType.UWORD && varName.toLowerCase().startsWith("cx16.r")) {
-                        val regStr = varName.toLowerCase().substring(5)
-                        val reg = RegisterOrPair.valueOf(regStr.toUpperCase())
+                    if(dt == DataType.UWORD && varName.lowercase().startsWith("cx16.r")) {
+                        val regStr = varName.lowercase().substring(5)
+                        val reg = RegisterOrPair.valueOf(regStr.uppercase())
                         AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, dt, register = reg)
                     } else {
                         AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, dt, variableAsmName = varName)

@@ -1260,7 +1260,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 RegisterOrPair.AY -> {}
                 RegisterOrPair.AX -> asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG")
                 RegisterOrPair.XY -> asmgen.out("  tax")
-                in Cx16VirtualRegisters -> asmgen.out("  sta  cx16.${resultRegister.toString().toLowerCase()} |  sty  cx16.${resultRegister.toString().toLowerCase()}+1")
+                in Cx16VirtualRegisters -> asmgen.out(
+                    "  sta  cx16.${
+                        resultRegister.toString().lowercase()
+                    } |  sty  cx16.${resultRegister.toString().lowercase()}+1")
                 else -> throw AssemblyError("invalid reg")
             }
         }
@@ -1310,9 +1313,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 }
                 in Cx16VirtualRegisters -> {
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                    asmgen.out("  sta  cx16.${reg.toString().toLowerCase()}")
+                    asmgen.out("  sta  cx16.${reg.toString().lowercase()}")
                     asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // msb
-                    asmgen.out("  sta  cx16.${reg.toString().toLowerCase()}+1")
+                    asmgen.out("  sta  cx16.${reg.toString().lowercase()}+1")
                 }
                 else -> throw AssemblyError("invalid mkword target reg")
             }

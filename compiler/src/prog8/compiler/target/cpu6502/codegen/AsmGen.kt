@@ -351,6 +351,9 @@ internal class AsmGen(private val program: Program,
                 for (f in array.zip(floatFills))
                     out("  .byte  ${f.second}  ; float ${f.first}")
             }
+            else -> {
+                throw AssemblyError("weird dt")
+            }
         }
     }
 
@@ -498,8 +501,8 @@ internal class AsmGen(private val program: Program,
         fixNameSymbols(identifier.nameInSource.joinToString("."))
 
     internal fun asmSymbolName(regs: RegisterOrPair): String =
-        if(regs in Cx16VirtualRegisters)
-            "cx16." + regs.toString().toLowerCase()
+        if (regs in Cx16VirtualRegisters)
+            "cx16." + regs.toString().lowercase()
         else
             throw AssemblyError("no symbol name for register $regs")
 
@@ -689,14 +692,16 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    internal fun loadScaledArrayIndexIntoRegister(expr: ArrayIndexedExpression,
-                                                  elementDt: DataType,
-                                                  register: CpuRegister,
-                                                  addOneExtra: Boolean=false) {
-        val reg = register.toString().toLowerCase()
+    internal fun loadScaledArrayIndexIntoRegister(
+        expr: ArrayIndexedExpression,
+        elementDt: DataType,
+        register: CpuRegister,
+        addOneExtra: Boolean = false
+    ) {
+        val reg = register.toString().lowercase()
         val indexnum = expr.indexer.constIndex()
-        if(indexnum!=null) {
-            val indexValue = indexnum * compTarget.memorySize(elementDt) + if(addOneExtra) 1 else 0
+        if (indexnum != null) {
+            val indexValue = indexnum * compTarget.memorySize(elementDt) + if (addOneExtra) 1 else 0
             out("  ld$reg  #$indexValue")
             return
         }
@@ -705,35 +710,40 @@ internal class AsmGen(private val program: Program,
             ?: throw AssemblyError("array indexer should have been replaced with a temp var @ ${expr.indexer.position}")
 
         val indexName = asmVariableName(indexVar)
-        if(addOneExtra) {
+        if (addOneExtra) {
             // add 1 to the result
-            when(elementDt) {
+            when (elementDt) {
                 in ByteDatatypes -> {
                     out("  ldy  $indexName |  iny")
-                    when(register) {
+                    when (register) {
                         CpuRegister.A -> out(" tya")
                         CpuRegister.X -> out(" tyx")
-                        CpuRegister.Y -> {}
+                        CpuRegister.Y -> {
+                        }
                     }
                 }
                 in WordDatatypes -> {
                     out("  lda  $indexName |  sec |  rol a")
-                    when(register) {
-                        CpuRegister.A -> {}
+                    when (register) {
+                        CpuRegister.A -> {
+                        }
                         CpuRegister.X -> out(" tax")
                         CpuRegister.Y -> out(" tay")
                     }
                 }
                 DataType.FLOAT -> {
-                    require(compTarget.memorySize(DataType.FLOAT)==5)
-                    out("""
+                    require(compTarget.memorySize(DataType.FLOAT) == 5)
+                    out(
+                        """
                                 lda  $indexName
                                 asl  a
                                 asl  a
                                 sec
-                                adc  $indexName""")
-                    when(register) {
-                        CpuRegister.A -> {}
+                                adc  $indexName"""
+                    )
+                    when (register) {
+                        CpuRegister.A -> {
+                        }
                         CpuRegister.X -> out(" tax")
                         CpuRegister.Y -> out(" tay")
                     }
@@ -741,26 +751,30 @@ internal class AsmGen(private val program: Program,
                 else -> throw AssemblyError("weird dt")
             }
         } else {
-            when(elementDt) {
+            when (elementDt) {
                 in ByteDatatypes -> out("  ld$reg  $indexName")
                 in WordDatatypes -> {
                     out("  lda  $indexName |  asl a")
-                    when(register) {
-                        CpuRegister.A -> {}
+                    when (register) {
+                        CpuRegister.A -> {
+                        }
                         CpuRegister.X -> out(" tax")
                         CpuRegister.Y -> out(" tay")
                     }
                 }
                 DataType.FLOAT -> {
-                    require(compTarget.memorySize(DataType.FLOAT)==5)
-                    out("""
+                    require(compTarget.memorySize(DataType.FLOAT) == 5)
+                    out(
+                        """
                                 lda  $indexName
                                 asl  a
                                 asl  a
                                 clc
-                                adc  $indexName""")
-                    when(register) {
-                        CpuRegister.A -> {}
+                                adc  $indexName"""
+                    )
+                    when (register) {
+                        CpuRegister.A -> {
+                        }
                         CpuRegister.X -> out(" tax")
                         CpuRegister.Y -> out(" tay")
                     }

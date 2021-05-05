@@ -153,7 +153,7 @@ fun builtinMax(array: List<Number>): Number = array.maxByOrNull { it.toDouble() 
 
 fun builtinMin(array: List<Number>): Number = array.minByOrNull { it.toDouble() }!!
 
-fun builtinSum(array: List<Number>): Number = array.sumByDouble { it.toDouble() }
+fun builtinSum(array: List<Number>): Number = array.sumOf { it.toDouble() }
 
 fun builtinAny(array: List<Number>): Number = if(array.any { it.toDouble()!=0.0 }) 1 else 0
 

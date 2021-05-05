@@ -1069,11 +1069,11 @@ object Petscii {
                 '\u0000' -> 0.toShort()
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
-                    (chr.toInt() - 0x8000).toShort()
+                    (chr.code - 0x8000).toShort()
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Petscii character for '$chr' (${chr.toShort()})")
+                    throw CharConversionException("no ${case}Petscii character for '$chr' (${chr.code})")
                 }
             }
         }
@@ -1106,11 +1106,11 @@ object Petscii {
                 '\u0000' -> 0.toShort()
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
-                    (chr.toInt() - 0x8000).toShort()
+                    (chr.code - 0x8000).toShort()
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Screencode character for '$chr' (${chr.toShort()})")
+                    throw CharConversionException("no ${case}Screencode character for '$chr' (${chr.code})")
                 }
             }
         }

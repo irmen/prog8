@@ -7,6 +7,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import java.util.*
 
 
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
@@ -78,9 +79,9 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     private fun datatypeString(dt: DataType): String {
-        return when(dt) {
-            in NumericDatatypes -> dt.toString().toLowerCase()
-            DataType.STR -> dt.toString().toLowerCase()
+        return when (dt) {
+            in NumericDatatypes -> dt.toString().lowercase()
+            DataType.STR -> dt.toString().lowercase()
             DataType.ARRAY_UB -> "ubyte["
             DataType.ARRAY_B -> "byte["
             DataType.ARRAY_UW -> "uword["
@@ -235,7 +236,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(branchStatement: BranchStatement) {
-        output("if_${branchStatement.condition.toString().toLowerCase()} ")
+        output("if_${branchStatement.condition.toString().lowercase()} ")
         branchStatement.truepart.accept(this)
         if(branchStatement.elsepart.statements.isNotEmpty()) {
             output(" else ")
