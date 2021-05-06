@@ -2,8 +2,10 @@
 TODO
 ====
 
-- mark vardecls 'shared' to indicate they should not be optimized away because they're shared with assembly code??
-- github issue: make strings no longer immutable? fixes weird optimization issue. Deduplication via command line switch?
+- possible idea: option to mark vardecls 'shared' to indicate they should not be optimized away because they're shared with assembly code?
+  However: who even needs variables declared in prog8 code that are only used by assembly???
+- github issue: make strings no longer immutable? Deduplication selectable via command line switch?
+
 - test all examples before release of the new version
 
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203

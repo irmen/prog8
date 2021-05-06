@@ -563,8 +563,9 @@ internal class AstChecker(private val program: Program,
                 }
             }
             VarDeclType.MEMORY -> {
-                if(decl.arraysize!=null) {
-                    val arraySize = decl.arraysize!!.constIndex() ?: 1
+                val arraysize = decl.arraysize
+                if(arraysize!=null) {
+                    val arraySize = arraysize.constIndex() ?: 1
                     when(decl.datatype) {
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)
@@ -578,10 +579,9 @@ internal class AstChecker(private val program: Program,
                         else -> {}
                     }
                 }
-
-                if(decl.value is NumericLiteralValue) {
-                    val value = decl.value as NumericLiteralValue
-                    if (value.type !in IntegerDatatypes || value.number.toInt() < 0 || value.number.toInt() > 65535) {
+                val numvalue = decl.value as? NumericLiteralValue
+                if(numvalue!=null) {
+                    if (numvalue.type !in IntegerDatatypes || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
                         err("memory address must be valid integer 0..\$ffff", decl.value?.position)
                     }
                 } else {
@@ -599,9 +599,9 @@ internal class AstChecker(private val program: Program,
 
         // array length limits and constant lenghts
         if(decl.isArray) {
-            val length = decl.arraysize!!.constIndex()
+            val length = decl.arraysize?.constIndex()
             if(length==null)
-                err("array length must be a constant")
+                err("array length must be known at compile-time")
             else {
                 when (decl.datatype) {
                     DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
