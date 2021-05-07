@@ -6,7 +6,7 @@
 ; TODO: something
 ; FIXME #31
 main {
-	str   input = "string literal"
+	str   input = "string literal\r\n\"\\"
 	ubyte c = 'x' ; character literal in bold
 	ubyte decimal = 0 + 1 - 2 * 3
 	float pi = 3.1415
@@ -16,7 +16,7 @@ main {
 	inline asmsub foo(ubyte char @A) clobbers(Y) {
 		asm {{
 			a_label:
-						nop
+						nop			; comment inside asm
 						bcc _done
 						sec
 			_done:		rts
