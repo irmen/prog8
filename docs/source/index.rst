@@ -57,7 +57,7 @@ Language features
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Floating point math also supported if the target system provides floating point library routines (C64 and Cx16 both do).
-- Strings can contain excaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest petscii equivalents.
+- Strings can contain escaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest petscii equivalents.
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
