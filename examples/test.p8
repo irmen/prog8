@@ -1,23 +1,27 @@
-%import textio
-%zeropage basicsafe
-%option no_sysinit
+ 	%import textio ; txt.*
+ 	main {
+ 		sub start() {
+ 			; ATTENTION: uncomment only one problematic line at a time!
 
-main {
+ 			; Normal string literals, i.e. PETSCII encoding
+ 			; ---------------------------------------------
+ 			txt.print("\"")	; fine
+ 			txt.print("\n")	; fine
+ 			txt.print("\r")	; fine
+ 			; txt.print("\\")	; yields CharConversionException
+ 			; txt.print("xyz\\")	; yields prog8.compiler.AssemblyError
 
-	byte[] xs1 = "foo1" ; <<<<<<<<<<<<
-	str xs2 = "foo2" ; <<<<<<<<<<<<
-	sub start() {
-	    txt.print(xs1)
-            stringopt()
-	}
+ 			; @-strings, i.e. translated into
+ 			; the alternate character encoding (Screencodes/pokes)
+ 			; ----------------------------------------------------
+ 			txt.print(@"\"")	; fine
+ 			txt.print(@"\n")	; yields CharConversionException
+ 			; txt.print(@"xyz\n")	; yields prog8.compiler.AssemblyError
+ 			; txt.print(@"\r")	; yields CharConversionException
+ 			; txt.print(@"xyz\r")	; yields prog8.compiler.AssemblyError
+ 			; txt.print(@"\\")	; yields CharConversionException
+ 			; txt.print(@"\\")	; yields prog8.compiler.AssemblyError
 
-        sub stringopt() {
-            str  message = "a"
-
-            txt.print(message)
-            txt.nl()
-            message[0] = '@'
-            txt.print(message)
-            txt.nl()
-        }
-}
+ 			; there may be more...
+ 		}
+ 	}

@@ -1,5 +1,6 @@
 package prog8.compiler.target.cbm
 
+import prog8.ast.antlr.escape
 import java.io.CharConversionException
 
 object Petscii {
@@ -1073,7 +1074,7 @@ object Petscii {
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Petscii character for '$chr' (${chr.code})")
+                    throw CharConversionException("no ${case}Petscii character for '${escape(chr.toString())}' (${chr.code})")
                 }
             }
         }
@@ -1110,7 +1111,7 @@ object Petscii {
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Screencode character for '$chr' (${chr.code})")
+                    throw CharConversionException("no ${case}Screencode character for '${escape(chr.toString())}' (${chr.code})")
                 }
             }
         }

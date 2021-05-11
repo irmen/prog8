@@ -10,9 +10,9 @@ fun escape(str: String): String {
             '\n' -> "\\n"
             '\r' -> "\\r"
             '"' -> "\\\""
-            in '\u8000'..'\u80ff' -> "\\x" + (it.toInt() - 0x8000).toString(16).padStart(2, '0')
+            in '\u8000'..'\u80ff' -> "\\x" + (it.code - 0x8000).toString(16).padStart(2, '0')
             in '\u0000'..'\u00ff' -> it.toString()
-            else -> "\\u" + it.toInt().toString(16).padStart(4, '0')
+            else -> "\\u" + it.code.toString(16).padStart(4, '0')
         }
     }
     return es.joinToString("")
