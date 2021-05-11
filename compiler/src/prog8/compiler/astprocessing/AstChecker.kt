@@ -15,6 +15,7 @@ import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
+import java.io.CharConversionException
 import java.io.File
 import java.util.*
 
@@ -764,6 +765,13 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(string: StringLiteralValue) {
         checkValueTypeAndRangeString(DataType.STR, string)
+
+        try {
+            compTarget.encodeString(string.value, string.altEncoding)
+        } catch (cx: CharConversionException) {
+            errors.err(cx.message ?: "can't encode string", string.position)
+        }
+
         super.visit(string)
     }
 

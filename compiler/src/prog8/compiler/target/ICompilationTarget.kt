@@ -7,7 +7,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.AssignTarget
-import prog8.compiler.AssemblyError
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
 import prog8.compiler.Zeropage
@@ -75,13 +74,13 @@ internal object C64Target: ICompilationTarget {
         try {
             if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         } catch (x: CharConversionException) {
-            throw AssemblyError("There was a problem converting a string to the target machine's char encoding: ${x.message}")
+            throw CharConversionException("can't convert string to target machine's char encoding: ${x.message}")
         }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
         try {
             if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
         } catch (x: CharConversionException) {
-            throw AssemblyError("There was a problem decoding to a string: ${x.message}")
+            throw CharConversionException("can't decode string: ${x.message}")
         }
 
     override fun memorySize(dt: DataType): Int {
@@ -102,13 +101,13 @@ internal object Cx16Target: ICompilationTarget {
         try {
             if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         } catch (x: CharConversionException) {
-            throw AssemblyError("There was a problem converting a string to the target machine's char encoding: ${x.message}")
+            throw CharConversionException("can't convert string to target machine's char encoding: ${x.message}")
         }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
         try {
             if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
         } catch (x: CharConversionException) {
-            throw AssemblyError("There was a problem decoding to a string: ${x.message}")
+            throw CharConversionException("can't decode string: ${x.message}")
         }
 
     override fun memorySize(dt: DataType): Int {
