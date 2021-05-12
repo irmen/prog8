@@ -293,8 +293,7 @@ class Program(val name: String,
             )
             internedStringsBlock.statements.add(decl)
             decl.linkParents(internedStringsBlock)
-            val scopedName = listOf(internedStringsModuleName, decl.name)
-            return scopedName
+            return listOf(internedStringsModuleName, decl.name)
         }
 
         val key = Pair(string.value, string.altEncoding)

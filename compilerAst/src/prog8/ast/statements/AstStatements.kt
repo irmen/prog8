@@ -537,7 +537,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
 
 class AnonymousScope(override var statements: MutableList<Statement>,
                      override val position: Position) : INameScope, Statement() {
-    override val name: String
+    override val name: String = "<anon-$sequenceNumber>"
     override lateinit var parent: Node
 
     companion object {
@@ -545,7 +545,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
     }
 
     init {
-        name = "<anon-$sequenceNumber>"     // make sure it's an invalid soruce code identifier so user source code can never produce it
+        // make sure it's an invalid soruce code identifier so user source code can never produce it
         sequenceNumber++
     }
 

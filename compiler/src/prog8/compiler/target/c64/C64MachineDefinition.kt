@@ -39,7 +39,7 @@ internal object C64MachineDefinition: IMachineDefinition {
         for(emulator in listOf("x64sc", "x64")) {
             println("\nStarting C-64 emulator $emulator...")
             val cmdline = listOf(emulator, "-silent", "-moncommands", "$programName.vice-mon-list",
-                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", programName + ".prg")
+                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", "$programName.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()
             val process: Process
             try {

@@ -25,7 +25,10 @@ fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 internal fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
 
 
-class ModuleImporter(val program: Program, val encoder: IStringEncoding, val compilationTargetName: String, val libdirs: List<String>) {
+class ModuleImporter(private val program: Program,
+                     private val encoder: IStringEncoding,
+                     private val compilationTargetName: String,
+                     private val libdirs: List<String>) {
 
     fun importModule(filePath: Path): Module {
         print("importing '${moduleName(filePath.fileName)}'")

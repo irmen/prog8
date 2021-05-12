@@ -175,7 +175,7 @@ abstract class AstWalker {
     fun applyModifications(): Int {
         // check if there are double removes, keep only the last one
         val removals = modifications.filter { it.first is IAstModification.Remove }
-        if(removals.size>0) {
+        if(removals.isNotEmpty()) {
             val doubles = removals.groupBy { (it.first as IAstModification.Remove).node }.filter { it.value.size>1 }
             doubles.forEach {
                 for(doubleRemove in it.value.dropLast(1)) {
