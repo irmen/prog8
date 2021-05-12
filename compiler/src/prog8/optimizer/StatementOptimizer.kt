@@ -47,6 +47,51 @@ internal class StatementOptimizer(private val program: Program,
             }
         }
 
+        // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
+        if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
+            val arg = functionCallStatement.args.single()
+            val stringVar: IdentifierReference? = if(arg is AddressOf) {
+                arg.identifier
+            } else {
+                arg as? IdentifierReference
+            }
+            if(stringVar!=null) {
+
+                // TODO: only do this optimization if the arg is a known-constant string literal instead of a user defined variable. We can't see the difference here yet.
+
+                val vardecl = stringVar.targetVarDecl(program)!!
+                val string = vardecl.value as? StringLiteralValue
+                if(string!=null) {
+                    val pos = functionCallStatement.position
+                    if (string.value.length == 1) {
+                        val firstCharEncoded = compTarget.encodeString(string.value, string.altEncoding)[0]
+                        val chrout = FunctionCallStatement(
+                            IdentifierReference(listOf("txt", "chrout"), pos),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
+                            functionCallStatement.void, pos
+                        )
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
+                    } else if (string.value.length == 2) {
+                        val firstTwoCharsEncoded = compTarget.encodeString(string.value.take(2), string.altEncoding)
+                        val chrout1 = FunctionCallStatement(
+                            IdentifierReference(listOf("txt", "chrout"), pos),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
+                            functionCallStatement.void, pos
+                        )
+                        val chrout2 = FunctionCallStatement(
+                            IdentifierReference(listOf("txt", "chrout"), pos),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toInt(), pos)),
+                            functionCallStatement.void, pos
+                        )
+                        return listOf(
+                            IAstModification.InsertBefore(functionCallStatement, chrout1, parent as INameScope),
+                            IAstModification.ReplaceNode(functionCallStatement, chrout2, parent)
+                        )
+                    }
+                }
+            }
+        }
+
         // if the first instruction in the called subroutine is a return statement, remove the jump altogeter
         val subroutine = functionCallStatement.target.targetSubroutine(program)
         if(subroutine!=null) {
