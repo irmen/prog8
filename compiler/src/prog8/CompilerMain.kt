@@ -42,6 +42,7 @@ private fun compileMain(args: Array<String>) {
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
     val libDirs by cli.option(ArgType.String, fullName="libdirs", description = "list of extra paths to search in for imported modules").multiple().delimiter(File.pathSeparator)
+    val stringDedup by cli.option(ArgType.Boolean, fullName="strdedup", description = "deduplicate identical string literals").default(false)
 
     try {
         cli.parse(args)
@@ -69,7 +70,7 @@ private fun compileMain(args: Array<String>) {
             val results = mutableListOf<CompilationResult>()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, libdirs, outputPath)
+                val compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, stringDedup, compilationTarget, libdirs, outputPath)
                 results.add(compilationResult)
             }
 
@@ -106,7 +107,7 @@ private fun compileMain(args: Array<String>) {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, libdirs, outputPath)
+                compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, stringDedup, compilationTarget, libdirs, outputPath)
                 if(!compilationResult.success)
                     exitProcess(1)
             } catch (x: ParsingFailedError) {

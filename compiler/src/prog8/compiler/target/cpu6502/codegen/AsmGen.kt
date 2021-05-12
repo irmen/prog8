@@ -381,18 +381,14 @@ internal class AsmGen(private val program: Program,
         out("\n; non-zeropage variables")
         val vars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
 
-        // special treatment for string types: merge strings that are identical
         val encodedstringVars = vars
                 .filter {it.datatype == DataType.STR }
                 .map {
                     val str = it.value as StringLiteralValue
                     it to compTarget.encodeString(str.value, str.altEncoding).plus(0)
                 }
-                .groupBy({it.second}, {it.first})
-        for((encoded, variables) in encodedstringVars) {
-            variables.dropLast(1).forEach { out(it.name) }
-            val lastvar = variables.last()
-            outputStringvar(lastvar, encoded)
+        for((decl, variables) in encodedstringVars) {
+            outputStringvar(decl, variables)
         }
 
         // non-string variables
@@ -402,11 +398,11 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    private fun outputStringvar(lastvar: VarDecl, encoded: List<Short>) {
-        val sv = lastvar.value as StringLiteralValue
+    private fun outputStringvar(strdecl: VarDecl, bytes: List<Short>) {
+        val sv = strdecl.value as StringLiteralValue
         val altEncoding = if(sv.altEncoding) "@" else ""
-        out("${lastvar.name}\t; ${lastvar.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
-        val outputBytes = encoded.map { "$" + it.toString(16).padStart(2, '0') }
+        out("${strdecl.name}\t; ${strdecl.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
+        val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
             out("  .byte  " + chunk.joinToString())
     }

@@ -7,7 +7,6 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import java.util.*
 
 
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {

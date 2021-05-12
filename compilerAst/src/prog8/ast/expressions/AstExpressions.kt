@@ -6,7 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import java.util.Objects
+import java.util.*
 import kotlin.math.abs
 
 

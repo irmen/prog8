@@ -29,7 +29,7 @@ class RequestParser : Take {
         val form = RqFormBase(request)
         val names = form.names()
         val a = form.param("a").single()
-        val compilationResult = compileProgram(Path.of(a), true, true, true, "c64", emptyList<String>(), Path.of("."))
+        val compilationResult = compileProgram(Path.of(a), true, true, true, false, "c64", emptyList<String>(), Path.of("."))
         return RsJson(Jsonding())
     }
 }

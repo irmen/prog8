@@ -13,7 +13,6 @@ import prog8.parser.prog8Parser
 import java.io.CharConversionException
 import java.io.File
 import java.nio.file.Path
-import java.util.*
 
 
 /***************** Antlr Extension methods to create AST ****************/

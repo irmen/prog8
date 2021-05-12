@@ -50,6 +50,7 @@ data class CompilationOptions(val output: OutputType,
                               val zpReserved: List<IntRange>,
                               val floats: Boolean,
                               val noSysInit: Boolean,
+                              val stringDedup: Boolean,
                               val compTarget: ICompilationTarget) {
     var slowCodegenWarnings = false
     var optimize = false
@@ -69,6 +70,7 @@ fun compileProgram(filepath: Path,
                    optimize: Boolean,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
+                   stringDedup: Boolean,
                    compilationTarget: String,
                    libdirs: List<String>,
                    outputDir: Path): CompilationResult {
@@ -90,7 +92,7 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, libdirs)
+            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, stringDedup, libdirs)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             compilationOptions.optimize = optimize
             programAst = ast
@@ -166,7 +168,11 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         builtinFunctionReturnType(name, args, program)
 }
 
-private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICompilationTarget, libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
+private fun parseImports(filepath: Path,
+                         errors: IErrorReporter,
+                         compTarget: ICompilationTarget,
+                         stringDedup: Boolean,
+                         libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     val compilationTargetName = compTarget.name
     println("Compiler target: $compilationTargetName. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
@@ -178,7 +184,7 @@ private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICo
     errors.report()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
-    val compilerOptions = determineCompilationOptions(programAst, compTarget)
+    val compilerOptions = determineCompilationOptions(programAst, stringDedup, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
@@ -193,7 +199,7 @@ private fun parseImports(filepath: Path, errors: IErrorReporter, compTarget: ICo
     return Triple(programAst, compilerOptions, importedFiles)
 }
 
-private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
+private fun determineCompilationOptions(program: Program, stringDedup: Boolean, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
     val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.uppercase()
@@ -240,7 +246,7 @@ private fun determineCompilationOptions(program: Program, compTarget: ICompilati
     return CompilationOptions(
         if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
         if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-        zpType, zpReserved, floatsEnabled, noSysInit,
+        zpType, zpReserved, floatsEnabled, noSysInit, stringDedup,
         compTarget
     )
 }
@@ -248,7 +254,7 @@ private fun determineCompilationOptions(program: Program, compTarget: ICompilati
 private fun processAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
-    programAst.checkIdentifiers(errors, compilerOptions.compTarget)
+    programAst.checkIdentifiers(errors, compilerOptions)
     errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)
     errors.report()
@@ -260,7 +266,7 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     errors.report()
     programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)
     errors.report()
-    programAst.checkIdentifiers(errors, compilerOptions.compTarget)
+    programAst.checkIdentifiers(errors, compilerOptions)
     errors.report()
 }
 

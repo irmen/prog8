@@ -5,6 +5,7 @@ TODO
 - possible idea: option to mark vardecls 'shared' to indicate they should not be optimized away because they're shared with assembly code?
   However: who even needs variables declared in prog8 code that are only used by assembly???
 - github issue: make strings no longer immutable? Deduplication selectable via command line switch?
+    IMPROVE DOCUMENTATION ABOUT STRINGS AND DEDUP.
 
 - test all examples before release of the new version
 

@@ -44,16 +44,16 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.checkIdentifiers(errors: IErrorReporter, compTarget: ICompilationTarget) {
+internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {
 
-    val checker2 = AstIdentifiersChecker(this, errors, compTarget)
+    val checker2 = AstIdentifiersChecker(this, errors, options.compTarget)
     checker2.visit(this)
 
     if(errors.noErrors()) {
         val transforms = AstVariousTransforms(this)
         transforms.visit(this)
         transforms.applyModifications()
-        val lit2decl = LiteralsToAutoVars(this)
+        val lit2decl = LiteralsToAutoVars(this, options)
         lit2decl.visit(this)
         lit2decl.applyModifications()
     }
