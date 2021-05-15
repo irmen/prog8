@@ -142,15 +142,15 @@ Directives
     The optional offset and length can be used to select a particular piece of the file.
     The file is located relative to the current working directory!
 
-.. data:: %asminclude "<filename>", "scopelabel"
+.. data:: %asminclude "<filename>"
 
     Level: block.
     This directive can only be used inside a block.
     The assembler will include the file as raw assembly source text at this point,
-    prog8 will not process this at all, with one exception: the labels.
-    The scopelabel argument will be used as a prefix to access the labels from the included source code,
-    otherwise you would risk symbol redefinitions or duplications.
-    If you know what you are doing you can leave it as an empty string to not have a scope prefix.
+    prog8 will not process this at all. Symbols defined in the included assembly can not be referenced
+    from prog8 code. However they can be referenced from other assembly code if properly prefixed.
+    Be careful: you risk symbol redefinitions or duplications if you include a piece of
+    assembly into a prog8 block that already defines symbols itself.
     The compiler first looks for the file relative to the same directory as the module containing this statement is in,
     if the file can't be found there it is searched relative to the current directory.
 

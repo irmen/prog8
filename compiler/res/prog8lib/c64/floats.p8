@@ -195,7 +195,7 @@ sub  print_f  (float value) {
 	}}
 }
 
-%asminclude "library:c64/floats.asm", ""
-%asminclude "library:c64/floats_funcs.asm", ""
+%asminclude "library:c64/floats.asm"
+%asminclude "library:c64/floats_funcs.asm"
 
 }

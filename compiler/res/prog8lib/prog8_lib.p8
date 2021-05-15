@@ -3,8 +3,8 @@
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 prog8_lib {
-	%asminclude "library:prog8_lib.asm", ""
-	%asminclude "library:prog8_funcs.asm", ""
+	%asminclude "library:prog8_lib.asm"
+	%asminclude "library:prog8_funcs.asm"
 
 	uword @zp retval_interm_uw      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
 	word @zp retval_interm_w        ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)

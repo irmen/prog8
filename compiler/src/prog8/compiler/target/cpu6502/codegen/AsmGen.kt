@@ -1236,12 +1236,7 @@ $repeatLabel    lda  $counterVar
         when(stmt.directive) {
             "%asminclude" -> {
                 val sourcecode = loadAsmIncludeFile(stmt.args[0].str!!, stmt.definingModule().source)
-                val scopeprefix = stmt.args[1].str ?: ""
-                if(scopeprefix.isNotBlank())
-                    out("$scopeprefix\t.proc")
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
-                if(scopeprefix.isNotBlank())
-                    out("  .pend\n")
             }
             "%asmbinary" -> {
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
