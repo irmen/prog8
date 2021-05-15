@@ -59,8 +59,7 @@ internal class StatementOptimizer(private val program: Program,
 
                 // TODO: only do this optimization if the arg is a known-constant string literal instead of a user defined variable. We can't see the difference here yet.
 
-                val vardecl = stringVar.targetVarDecl(program)!!
-                val string = vardecl.value as? StringLiteralValue
+                val string = stringVar.targetVarDecl(program)?.value as? StringLiteralValue
                 if(string!=null) {
                     val pos = functionCallStatement.position
                     if (string.value.length == 1) {

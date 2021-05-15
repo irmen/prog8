@@ -493,8 +493,11 @@ internal class AsmGen(private val program: Program,
         return newName
     }
 
-    internal fun asmSymbolName(identifier: IdentifierReference) =
-        fixNameSymbols(identifier.nameInSource.joinToString("."))
+    internal fun asmSymbolName(identifier: IdentifierReference): String {
+        val target = identifier.targetStatement(program)
+        val prefix = if(target is Label) "_" else ""
+        return fixNameSymbols(prefix+identifier.nameInSource.joinToString("."))
+    }
 
     internal fun asmSymbolName(regs: RegisterOrPair): String =
         if (regs in Cx16VirtualRegisters)
@@ -1264,14 +1267,7 @@ $label              nop""")
         val label = jump.generatedLabel
         val addr = jump.address
         return when {
-            ident!=null -> {
-                val target = ident.targetStatement(program)
-                val asmName = asmSymbolName(ident)
-                if(target is Label)
-                    "_$asmName"  // prefix with underscore to jump to local label
-                else
-                    asmName
-            }
+            ident!=null -> asmSymbolName(ident)
             label!=null -> label
             addr!=null -> addr.toHex()
             else -> "????"
