@@ -1,9 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.INameScope
-import prog8.ast.Module
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.FunctionCall
@@ -65,7 +62,7 @@ internal class UnusedCodeRemover(private val program: Program,
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars()) {
-                if(block.name != program.internedStringsModuleName)
+                if(block.name != internedStringsModuleName)
                     errors.warn("removing unused block '${block.name}'", block.position)
                 return listOf(IAstModification.Remove(block, parent as INameScope))
             }

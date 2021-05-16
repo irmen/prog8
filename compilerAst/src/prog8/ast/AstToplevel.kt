@@ -8,6 +8,8 @@ import prog8.ast.walk.IAstVisitor
 import java.nio.file.Path
 import kotlin.math.abs
 
+const val internedStringsModuleName = "prog8_interned_strings"
+
 interface IStringEncoding {
     fun encodeString(str: String, altEncoding: Boolean): List<Short>
     fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
@@ -257,7 +259,6 @@ class Program(val name: String,
 
     var actualLoadAddress: Int = 0
     private val internedStringsUnique = mutableMapOf<Pair<String, Boolean>, List<String>>()
-    val internedStringsModuleName = "prog8_interned_strings"
 
     init {
         // insert a container module for all interned strings later

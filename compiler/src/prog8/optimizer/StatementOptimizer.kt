@@ -48,6 +48,7 @@ internal class StatementOptimizer(private val program: Program,
         }
 
         // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
+        // only do this optimization if the arg is a known-constant string literal instead of a user defined variable.
         if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference? = if(arg is AddressOf) {
@@ -55,10 +56,7 @@ internal class StatementOptimizer(private val program: Program,
             } else {
                 arg as? IdentifierReference
             }
-            if(stringVar!=null) {
-
-                // TODO: only do this optimization if the arg is a known-constant string literal instead of a user defined variable. We can't see the difference here yet.
-
+            if(stringVar!=null && stringVar.wasStringLiteral(program)) {
                 val string = stringVar.targetVarDecl(program)?.value as? StringLiteralValue
                 if(string!=null) {
                     val pos = functionCallStatement.position

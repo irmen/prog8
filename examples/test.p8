@@ -1,24 +1,26 @@
 %import textio ; txt.*
 %zeropage basicsafe
 main {
+
     sub start() {
 
-        str string1 = "stringvalue"
-        str string2 = "stringvalue"
-        str string3 = "stringvalue"
+        str string1 = "stringvalue\n"
+        str string2 = "stringvalue\n"
+        str string3 = "stringvalue\n"
+        str string4 = "a"
+        str string5 = "bb"
 
         txt.print("a")
         txt.print("a")
+        txt.print(string4)
         txt.print("bb")
         txt.print("bb")
+        txt.print(string5)
         txt.print("\n")
         txt.print("\n\n")
         txt.print(string1)
-        txt.nl()
         txt.print(string2)
-        txt.nl()
         txt.print(string3)
-        txt.nl()
         txt.print("hello\n")
         txt.print("hello\n")
         txt.print("hello\n")
