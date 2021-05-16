@@ -108,7 +108,7 @@ Directives
 
 .. data:: %import <name>
 
-	Level: module, block.
+	Level: module.
 	This reads and compiles the named module source file as part of your current program.
 	Symbols from the imported module become available in your code,
 	without a module or filename prefix.
@@ -136,7 +136,7 @@ Directives
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
-    Level: block.
+    Level: not at module scope.
     This directive can only be used inside a block.
     The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
     The optional offset and length can be used to select a particular piece of the file.
@@ -144,7 +144,7 @@ Directives
 
 .. data:: %asminclude "<filename>"
 
-    Level: block.
+    Level: not at module scope.
     This directive can only be used inside a block.
     The assembler will include the file as raw assembly source text at this point,
     prog8 will not process this at all. Symbols defined in the included assembly can not be referenced
@@ -156,12 +156,12 @@ Directives
 
 .. data:: %breakpoint
 
-	Level: block, subroutine.
+    Level: not at module scope.
 	Defines a debugging breakpoint at this location. See :ref:`debugging`
 
 .. data:: %asm {{ ... }}
 
-	Level: block, subroutine.
+    Level: not at module scope.
 	Declares that there is *inline assembly code* in the lines enclosed by the curly braces.
 	This code will be written as-is into the generated output file.
 	The assembler syntax used should be for the 3rd party cross assembler tool that Prog8 uses.

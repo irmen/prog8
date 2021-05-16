@@ -684,20 +684,20 @@ internal class AstChecker(private val program: Program,
             }
             "%breakpoint" -> {
                 if(directive.parent !is INameScope || directive.parent is Module)
-                    err("this directive may only occur in a block")
+                    err("this directive can't be used here")
                 if(directive.args.isNotEmpty())
                     err("invalid breakpoint directive, expected no arguments")
             }
             "%asminclude" -> {
                 if(directive.parent !is INameScope || directive.parent is Module)
-                    err("this directive may only occur in a block")
+                    err("this directive can't be used here")
                 if(directive.args.size!=1 || directive.args[0].str==null)
                     err("invalid asminclude directive, expected argument: \"filename\"")
                 checkFileExists(directive, directive.args[0].str!!)
             }
             "%asmbinary" -> {
                 if(directive.parent !is INameScope || directive.parent is Module)
-                    err("this directive may only occur in a block")
+                    err("this directive can't be used here")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
                 else if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)

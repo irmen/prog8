@@ -67,8 +67,6 @@ Label
     This is a named position in your code where you can jump to from another place.
     You can jump to it with a jump statement elsewhere. It is also possible to use a
     subroutine call to a label (but without parameters and return value).
-    Labels can only be defined in a block or in another subroutine, so you can't define a label
-    inside a loop statement block for instance.
 
 Scope
 	Also known as 'namespace', this is a named box around the symbols defined in it.
