@@ -759,28 +759,28 @@ sys {
         }}
     }
 
-    sub wait(uword jiffies) {
-        ; --- wait approximately the given number of jiffies (1/60th seconds)
-        repeat jiffies {
-            ubyte jiff = lsb(c64.RDTIM16())
-            while jiff==lsb(c64.RDTIM16()) {
-                ; wait until 1 jiffy has passed
-            }
-        }
+    asmsub wait(uword jiffies @AY) {
+        ; --- wait approximately the given number of jiffies (1/60th seconds) (N or N+1)
+        ;     note: regular system vsync irq handler must be running, and no nother irqs
+        %asm {{
+-           wai             ; wait for irq (assume it was vsync)
+            cmp  #0
+            bne  +
+            dey
++           dec  a
+            bne  -
+            cpy  #0
+            bne  -
+            rts
+        }}
     }
 
-    asmsub waitvsync() clobbers(A, X, Y) {
-        ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-        ;     note: system vsync irq handler has to be active for this routine to work.
-        ;     note 2: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
+    inline asmsub waitvsync()  {
+        ; --- suspend execution until the next vsync has occurred, without depending on custom irq handling.
+        ;     note: system vsync irq handler has to be active for this routine to work (and no other irqs).
+        ;     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
         %asm {{
-            jsr  c64.RDTIM
-            sta  _mod + 1
-            inc  _mod + 1
-_loop       jsr  c64.RDTIM
-_mod        cmp  #255       ; modified
-            bne  _loop
-            rts
+            wai
         }}
     }
 
