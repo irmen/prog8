@@ -1361,21 +1361,21 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     "*" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
-                        // TODO use an optimized word * byte multiplication routine
+                        // TODO use an optimized word * byte multiplication routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.signExtendAYlsb(valueDt)
                         multiplyVarByWordInAY()
                     }
                     "/" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
-                        // TODO use an optimized word / byte divmod routine
+                        // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.signExtendAYlsb(valueDt)
                         divideVarByWordInAY()
                     }
                     "%" -> {
                         // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
-                        // TODO use an optimized word / byte divmod routine
+                        // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.signExtendAYlsb(valueDt)
                         remainderVarByWordInAY()

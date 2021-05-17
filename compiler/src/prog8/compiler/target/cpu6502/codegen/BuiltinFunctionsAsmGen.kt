@@ -750,7 +750,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         // optimized simple case: swap two memory locations
         if(first is DirectMemoryRead && second is DirectMemoryRead) {
-            // TODO optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+1), @(ptr+2))
+            // TODO optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+i1), @(ptr+i2))
             val addr1 = (first.addressExpression as? NumericLiteralValue)?.number?.toHex()
             val addr2 = (second.addressExpression as? NumericLiteralValue)?.number?.toHex()
             val name1 = if(first.addressExpression is IdentifierReference) asmgen.asmVariableName(first.addressExpression as IdentifierReference) else null
