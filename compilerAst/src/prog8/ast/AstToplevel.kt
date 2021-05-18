@@ -281,7 +281,7 @@ class Program(val name: String,
         return mainBlocks[0].subScope("start") as Subroutine
     }
 
-    fun internString(string: StringLiteralValue, dedup: Boolean): List<String> {
+    fun internString(string: StringLiteralValue): List<String> {
         // Move a string literal into the internal, deduplicated, string pool
         // replace it with a variable declaration that points to the entry in the pool.
 
@@ -305,18 +305,13 @@ class Program(val name: String,
         }
 
         val key = Pair(string.value, string.altEncoding)
-        if(dedup) {
-            val existing = internedStringsUnique[key]
-            if (existing != null)
-                return existing
+        val existing = internedStringsUnique[key]
+        if (existing != null)
+            return existing
 
-            val scopedName = getScopedName(string)
-            internedStringsUnique[key] = scopedName
-            return scopedName
-        } else {
-            // don't deduplicate string literals
-            return getScopedName(string)
-        }
+        val scopedName = getScopedName(string)
+        internedStringsUnique[key] = scopedName
+        return scopedName
     }
 
 

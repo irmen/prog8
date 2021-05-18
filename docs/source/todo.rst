@@ -6,7 +6,6 @@ TODO
   However: who even needs variables declared in prog8 code that are only used by assembly???
 
 - github issue about strings and their immutability:
-    Can we make deduplication the default again? (only string literals are considered...) remove cli option for it again?
     IMPROVE DOCUMENTATION ABOUT STRINGS AND DEDUP and (NON)IMMUTABILITY.
 
 - test all examples (including imgviewer, assembler and petaxian) before release of the new version

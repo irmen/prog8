@@ -50,7 +50,6 @@ data class CompilationOptions(val output: OutputType,
                               val zpReserved: List<IntRange>,
                               val floats: Boolean,
                               val noSysInit: Boolean,
-                              val stringDedup: Boolean,
                               val compTarget: ICompilationTarget) {
     var slowCodegenWarnings = false
     var optimize = false
@@ -70,7 +69,6 @@ fun compileProgram(filepath: Path,
                    optimize: Boolean,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
-                   stringDedup: Boolean,
                    compilationTarget: String,
                    libdirs: List<String>,
                    outputDir: Path): CompilationResult {
@@ -92,7 +90,7 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, stringDedup, libdirs)
+            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, libdirs)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             compilationOptions.optimize = optimize
             programAst = ast
@@ -171,7 +169,6 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 private fun parseImports(filepath: Path,
                          errors: IErrorReporter,
                          compTarget: ICompilationTarget,
-                         stringDedup: Boolean,
                          libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     val compilationTargetName = compTarget.name
     println("Compiler target: $compilationTargetName. Parsing...")
@@ -184,7 +181,7 @@ private fun parseImports(filepath: Path,
     errors.report()
 
     val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
-    val compilerOptions = determineCompilationOptions(programAst, stringDedup, compTarget)
+    val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
@@ -199,7 +196,7 @@ private fun parseImports(filepath: Path,
     return Triple(programAst, compilerOptions, importedFiles)
 }
 
-private fun determineCompilationOptions(program: Program, stringDedup: Boolean, compTarget: ICompilationTarget): CompilationOptions {
+private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
     val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.uppercase()
@@ -246,7 +243,7 @@ private fun determineCompilationOptions(program: Program, stringDedup: Boolean, 
     return CompilationOptions(
         if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
         if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-        zpType, zpReserved, floatsEnabled, noSysInit, stringDedup,
+        zpType, zpReserved, floatsEnabled, noSysInit,
         compTarget
     )
 }

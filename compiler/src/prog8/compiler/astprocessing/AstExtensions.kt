@@ -53,7 +53,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
         val transforms = AstVariousTransforms(this)
         transforms.visit(this)
         transforms.applyModifications()
-        val lit2decl = LiteralsToAutoVars(this, options)
+        val lit2decl = LiteralsToAutoVars(this)
         lit2decl.visit(this)
         lit2decl.applyModifications()
     }

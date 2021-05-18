@@ -10,15 +10,14 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.CompilationOptions
 
 
-internal class LiteralsToAutoVars(private val program: Program, private val options: CompilationOptions) : AstWalker() {
+internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
 
     override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {
             // replace the literal string by a identifier reference to the interned string
-            val scopedName = program.internString(string, options.stringDedup)
+            val scopedName = program.internString(string)
             val identifier = IdentifierReference(scopedName, string.position)
             return listOf(IAstModification.ReplaceNode(string, identifier, parent))
         }
