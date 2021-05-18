@@ -318,14 +318,22 @@ read the syntax reference on strings.
     For regular assignments you still need to use an explicit ``&`` (address-of) to take
     the address of the string or array.
 
-.. caution::
-    It's probably best to avoid changing the contents in strings and treat them as static.
-    This includes changing certain letters by index, or by assigning a new value, or by
-    modifying the string via other means for example ``substr`` function and its cousins.
-    This is because the changes persist in memory. If your program exits and is restarted
-    (without reloading it from disk), it will then start working with the modified strings
-    instead of the original ones!
-    The same is true for arrays! So be careful to (re)initialize them if needed.
+.. note:: Strings and their (im)mutability
+
+    *String literals outside of a string variable's initialization value*,
+    are considered to be "constant", i.e. the string isn't going to change
+    during the execution of the program. The compiler takes advantage of this in certain
+    ways. For instance, multiple identical occurrences of a string literal are folded into
+    just one string allocation in memory. Examples of such strings are the string literals
+    passed to a subroutine as arguments.
+
+    *Strings that aren't such string literals are considered to be unique*, even if they
+    are the same as a string defined elsewhere. This includes the strings assigned to
+    a string variable in its declaration! These kind of strings are not deduplicated and
+    are just copied into the program in their own unique part of memory. This means that
+    it is okay to treat those strings as mutable; you can safely change the contents
+    of such a string without destroying other occurrences (as long as you stay within
+    the size of the allocated string!)
 
 
 Special types: const and memory-mapped
