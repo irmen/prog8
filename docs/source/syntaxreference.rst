@@ -235,9 +235,11 @@ for them. You can give them an initial value as well. That value can be a simple
 or an expression. If you don't provide an intial value yourself, zero will be used.
 You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
 when selecting variables to be put into zeropage.
+You can add a ``@shared`` shared-tag, to tell the compiler that the variable is shared
+with some assembly code and that it should not be optimized away if not used elsewhere.
 The syntax is::
 
-	<datatype>  [ @zp ]  <variable name>   [ = <initial value> ]
+	<datatype>  [ @shared ] [ @zp ]  <variable name>   [ = <initial value> ]
 
 Various examples::
 
@@ -252,7 +254,8 @@ Various examples::
     byte[5]     values                  ; array of 5 bytes, initially set to zero
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
-    word  @zp   zpword = 9999           ; prioritize this when selecting vars for zeropage storage
+    word  @zp     zpword = 9999         ; prioritize this when selecting vars for zeropage storage
+    word  @shared asmvar                ; variable is used in assembly code but not elsewhere
 
 
 Data types

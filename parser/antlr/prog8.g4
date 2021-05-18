@@ -62,10 +62,13 @@ ZEROPAGE :
     '@zp'
     ;
 
+SHARED :
+    '@shared'
+    ;
+
 ARRAYSIG :
     '[]'
     ;
-
 
 cpuregister: 'A' | 'X' | 'Y';
 register: 'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pz' | 'Pn' | 'Pv' | 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'R8' | 'R9' | 'R10' | 'R11' | 'R12' | 'R13' | 'R14' | 'R15';
@@ -134,7 +137,7 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
+vardecl: datatype SHARED? ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
 
 varinitializer : vardecl '=' expression ;
 

@@ -69,6 +69,7 @@ private fun prog8Parser.VariabledeclarationContext.toAst(encoding: IStringEncodi
                 it.expression().toAst(encoding),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
+                vd.SHARED()!=null,
                 it.toPosition()
         )
     }
@@ -85,6 +86,7 @@ private fun prog8Parser.VariabledeclarationContext.toAst(encoding: IStringEncodi
                 cvarinit.expression().toAst(encoding),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
+                vd.SHARED() != null,
                 cvarinit.toPosition()
         )
     }
@@ -101,6 +103,7 @@ private fun prog8Parser.VariabledeclarationContext.toAst(encoding: IStringEncodi
                 mvarinit.expression().toAst(encoding),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
+                vd.SHARED()!=null,
                 mvarinit.toPosition()
         )
     }
@@ -603,6 +606,7 @@ private fun prog8Parser.VardeclContext.toAst(encoding: IStringEncoding): VarDecl
             null,
             ARRAYSIG() != null || arrayindex() != null,
             false,
+            SHARED()!=null,
             toPosition()
     )
 }

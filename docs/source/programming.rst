@@ -202,6 +202,16 @@ Example::
     byte  @zp  zeropageCounter = 42
 
 
+*shared tag:*
+If you add the ``@shared`` tag to the variable declaration, the compiler will know that this variable
+is a prog8 variable shared with some assembly code elsewhere. This means that the assembly code can
+refer to the variable even if it's otherwise not used in prog8 code itself.
+(usually, these kinds of 'unused' variables are optimized away by the compiler, resulting in an error
+when assembling the rest of the code). Example::
+
+    byte  @shared  assemblyVariable = 42
+
+
 Integers
 ^^^^^^^^
 

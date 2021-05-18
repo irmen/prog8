@@ -2,8 +2,7 @@
 TODO
 ====
 
-- possible idea: option to mark vardecls 'shared' to indicate they should not be optimized away because they're shared with assembly code?
-  However: who even needs variables declared in prog8 code that are only used by assembly???
+- should give error when passing invalid command line arguments
 
 - test all examples (including imgviewer, assembler and petaxian) before release of the new version
 
