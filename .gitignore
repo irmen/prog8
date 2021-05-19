@@ -30,4 +30,4 @@ parsetab.py
 .gradle
 /prog8compiler.jar
 sd*.img
-
+*.d64
