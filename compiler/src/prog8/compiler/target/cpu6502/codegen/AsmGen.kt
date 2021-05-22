@@ -975,11 +975,11 @@ internal class AsmGen(private val program: Program,
                     iterations == 0 -> {}
                     iterations <= 256 -> {
                         out("  lda  #${iterations and 255}")
-                        repeatByteCountInA(iterations, repeatLabel, endLabel, stmt.body)
+                        repeatByteCountInA(iterations, repeatLabel, endLabel, stmt)
                     }
                     else -> {
                         out("  lda  #<${iterations} |  ldy  #>${iterations}")
-                        repeatWordCountInAY(iterations, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountInAY(iterations, repeatLabel, endLabel, stmt)
                     }
                 }
             }
@@ -989,11 +989,11 @@ internal class AsmGen(private val program: Program,
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
                         assignVariableToRegister(name, RegisterOrPair.A)
-                        repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
+                        repeatByteCountInA(null, repeatLabel, endLabel, stmt)
                     }
                     DataType.UWORD, DataType.WORD -> {
                         assignVariableToRegister(name, RegisterOrPair.AY)
-                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
                 }
@@ -1005,11 +1005,11 @@ internal class AsmGen(private val program: Program,
                 when (dt.typeOrElse(DataType.UNDEFINED)) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.A)
-                        repeatByteCountInA(null, repeatLabel, endLabel, stmt.body)
+                        repeatByteCountInA(null, repeatLabel, endLabel, stmt)
                     }
                     in WordDatatypes -> {
                         assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.AY)
-                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt.body)
+                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype $dt")
                 }
@@ -1019,13 +1019,13 @@ internal class AsmGen(private val program: Program,
         loopEndLabels.pop()
     }
 
-    private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+    private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, stmt: RepeatLoop) {
         // note: A/Y must have been loaded with the number of iterations!
         if(constIterations==0)
             return
         // no need to explicitly test for 0 iterations as this is done in the count down logic below
 
-        val counterVar = makeLabel("repeatcounter")
+        val (counterVar: String, declareCounterVarLocally: Boolean) = createRepeatCounterVar(DataType.UWORD, constIterations, stmt)
         out("""
                 sta  $counterVar
                 sty  $counterVar+1
@@ -1038,44 +1038,47 @@ $repeatLabel    lda  $counterVar
                 dec  $counterVar+1
 +               dec  $counterVar
 """)
-        translate(body)
+        translate(stmt.body)
         jmp(repeatLabel)
-
-        if(constIterations!=null && constIterations>=16 && zeropage.available() > 1) {
-            // allocate count var on ZP  TODO can be shared with countervars from other subroutines
-            val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, body.position, errors)
-            out("$counterVar = $zpAddr  ; auto zp UWORD")
-        } else {
+        if(declareCounterVarLocally)
             out("$counterVar    .word  0")
-        }
 
         out(endLabel)
     }
 
-    private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, body: AnonymousScope) {
+    private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, stmt: RepeatLoop) {
         // note: A must have been loaded with the number of iterations!
         if(constIterations==0)
             return
+
         if(constIterations==null)
             out("  beq  $endLabel   ; skip loop if zero iters")
-        val counterVar = makeLabel("repeatcounter")
+        val (counterVar: String, declareCounterVarLocally: Boolean) = createRepeatCounterVar(DataType.UBYTE, constIterations, stmt)
         out("  sta  $counterVar")
         out(repeatLabel)
-        translate(body)
+        translate(stmt.body)
         out("""
              dec  $counterVar
              bne  $repeatLabel
              beq  $endLabel""")
-
-        if(constIterations!=null && constIterations>=16 && zeropage.available() > 0) {
-            // allocate count var on ZP  TODO can be shared with countervars from other subroutines
-            val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, body.position, errors)
-            out("$counterVar = $zpAddr  ; auto zp UBYTE")
-        } else {
+        if(declareCounterVarLocally)
             out("$counterVar    .byte  0")
-        }
 
         out(endLabel)
+    }
+
+    private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): Pair<String, Boolean> {
+        // TODO share counter variables between subroutines or even between repeat loops as long as they're not nested
+        val counterVar = makeLabel("repeatcounter")
+        val zpAvail = if(dt==DataType.UWORD) 2 else 1
+        return if(constIterations!=null && constIterations>=16 && zeropage.available() >= zpAvail) {
+            // allocate count var on ZP
+            val zpAddr = zeropage.allocate(counterVar, dt, stmt.position, errors)
+            out("$counterVar = $zpAddr  ; auto zp $dt")
+            Pair(counterVar, false)
+        } else {
+            Pair(counterVar, true)
+        }
     }
 
     private fun translate(stmt: WhileLoop) {
