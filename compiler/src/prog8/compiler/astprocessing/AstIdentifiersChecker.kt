@@ -89,7 +89,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 
-            // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters
+            // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters. Blocks are okay.
             val symbolsInSub = subroutine.allDefinedSymbols()
             val namesInSub = symbolsInSub.map{ it.first }.toSet()
             val paramNames = subroutine.parameters.map { it.name }.toSet()
@@ -101,9 +101,6 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
                 val sub = subroutine.statements.firstOrNull { it is Subroutine && it.name==name}
                 if(sub!=null)
                     nameError(name, subroutine.position, sub)
-                val block = program.allBlocks().firstOrNull { it.name==name }
-                if(block!=null)
-                    nameError(name, subroutine.position, block)
             }
 
             if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {
