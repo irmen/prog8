@@ -70,6 +70,14 @@ palette {
         }
     }
 
+    inline sub set_all_black() {
+        set_monochrome($000, $000)
+    }
+
+    inline sub set_all_white() {
+        set_monochrome($fff, $fff)
+    }
+
     sub set_grayscale() {
         vera_palette_ptr = $fa00
         repeat 16 {
