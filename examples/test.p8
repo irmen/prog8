@@ -1,17 +1,42 @@
 %import textio ; txt.*
-%zeropage basicsafe
+%zeropage kernalsafe
+
 main {
 
     sub start() {
 
-        ubyte @shared xx=99
-        uword @shared asmvar
-        %asm {{
-            inc  xx
-            lda  asmvar
-            ldy  asmvar+1
-        }}
-        txt.nl()
+        ubyte xx
+
+        repeat 10 {
+            xx++
+        }
+        repeat 10 {
+            xx++
+        }
+        repeat 10 {
+            xx++
+        }
+        repeat 10 {
+            xx++
+        }
+        repeat 10 {
+            xx++
+        }
+        repeat 1000 {
+            xx++
+        }
+        repeat 1000 {
+            xx++
+        }
+        repeat 1000 {
+            xx++
+        }
+        repeat 1000 {
+            xx++
+        }
+        repeat 1000 {
+            xx++
+        }
 
         str string1 = "stringvalue\n"
         str string2 = "stringvalue\n"
