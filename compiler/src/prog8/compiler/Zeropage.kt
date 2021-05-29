@@ -19,7 +19,29 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     val allowedDatatypes = NumericDatatypes
 
-    fun available() = if(options.zeropage==ZeropageType.DONTUSE) 0 else free.size
+    fun availableBytes() = if(options.zeropage==ZeropageType.DONTUSE) 0 else free.size
+    fun hasByteAvailable() = if(options.zeropage==ZeropageType.DONTUSE) false else free.isNotEmpty()
+    fun availableWords(): Int {
+        if(options.zeropage==ZeropageType.DONTUSE)
+            return 0
+
+        val words = free.windowed(2).filter { it[0] == it[1]-1 }
+        var nonOverlappingWordsCount = 0
+        var prevMsbLoc = -1
+        for(w in words) {
+            if(w[0]!=prevMsbLoc) {
+                nonOverlappingWordsCount++
+                prevMsbLoc = w[1]
+            }
+        }
+        return nonOverlappingWordsCount
+    }
+    fun hasWordAvailable(): Boolean {
+        if(options.zeropage==ZeropageType.DONTUSE)
+            return false
+
+        return free.windowed(2).any { it[0] == it[1] - 1 }
+    }
 
     fun allocate(scopedname: String, datatype: DataType, position: Position?, errors: IErrorReporter): Int {
         assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}

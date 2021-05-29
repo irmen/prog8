@@ -1070,14 +1070,31 @@ $repeatLabel    lda  $counterVar
     private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): Pair<String, Boolean> {
         // TODO share counter variables between subroutines or even between repeat loops as long as they're not nested
         val counterVar = makeLabel("repeatcounter")
-        val zpAvail = if(dt==DataType.UWORD) 2 else 1
-        return if(constIterations!=null && constIterations>=16 && zeropage.available() >= zpAvail) {
-            // allocate count var on ZP
-            val zpAddr = zeropage.allocate(counterVar, dt, stmt.position, errors)
-            out("$counterVar = $zpAddr  ; auto zp $dt")
-            Pair(counterVar, false)
-        } else {
-            Pair(counterVar, true)
+
+//        println("REPEATCOUNTERVAR $counterVar SIZE $dt   CTX ${stmt.definingSubroutine()}")
+
+        when(dt) {
+            DataType.UBYTE -> {
+                return if(constIterations!=null && constIterations>=16 && zeropage.hasByteAvailable()) {
+                    // allocate count var on ZP
+                    val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, stmt.position, errors)
+                    out("$counterVar = $zpAddr  ; auto zp byte")
+                    Pair(counterVar, false)
+                } else {
+                    Pair(counterVar, true)
+                }
+            }
+            DataType.UWORD -> {
+                return if(constIterations!=null && constIterations>=16 && zeropage.hasWordAvailable()) {
+                    // allocate count var on ZP
+                    val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, stmt.position, errors)
+                    out("$counterVar = $zpAddr  ; auto zp word")
+                    Pair(counterVar, false)
+                } else {
+                    Pair(counterVar, true)
+                }
+            }
+            else -> throw AssemblyError("invalidt dt")
         }
     }
 
