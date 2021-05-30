@@ -880,7 +880,16 @@ internal class AsmGen(private val program: Program,
             }
 
             out("; variables")
-            out("; register saves")
+            for((name, addr) in sub.asmGenInfo.extraVarsZP) {
+                out("$name = $addr")
+            }
+            for((dt, name) in sub.asmGenInfo.extraVars) {
+                when(dt) {
+                    DataType.UBYTE -> out("$name    .byte  0")
+                    DataType.UWORD -> out("$name    .word  0")
+                    else -> throw AssemblyError("weird dt")
+                }
+            }
             if(sub.asmGenInfo.usedRegsaveA)
                 out("_prog8_regsaveA     .byte  0")
             if(sub.asmGenInfo.usedRegsaveX)
@@ -888,9 +897,9 @@ internal class AsmGen(private val program: Program,
             if(sub.asmGenInfo.usedRegsaveY)
                 out("_prog8_regsaveY     .byte  0")
             if(sub.asmGenInfo.usedFloatEvalResultVar1)
-                out("$subroutineFloatEvalResultVar1    .byte 0,0,0,0,0")
+                out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
             if(sub.asmGenInfo.usedFloatEvalResultVar2)
-                out("$subroutineFloatEvalResultVar2    .byte 0,0,0,0,0")
+                out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
             vardecls2asm(sub.statements)
             out("  .pend\n")
         }
@@ -1025,7 +1034,7 @@ internal class AsmGen(private val program: Program,
             return
         // no need to explicitly test for 0 iterations as this is done in the count down logic below
 
-        val (counterVar: String, declareCounterVarLocally: Boolean) = createRepeatCounterVar(DataType.UWORD, constIterations, stmt)
+        val counterVar: String = createRepeatCounterVar(DataType.UWORD, constIterations, stmt)
         out("""
                 sta  $counterVar
                 sty  $counterVar+1
@@ -1040,9 +1049,6 @@ $repeatLabel    lda  $counterVar
 """)
         translate(stmt.body)
         jmp(repeatLabel)
-        if(declareCounterVarLocally)
-            out("$counterVar    .word  0")
-
         out(endLabel)
     }
 
@@ -1053,49 +1059,48 @@ $repeatLabel    lda  $counterVar
 
         if(constIterations==null)
             out("  beq  $endLabel   ; skip loop if zero iters")
-        val (counterVar: String, declareCounterVarLocally: Boolean) = createRepeatCounterVar(DataType.UBYTE, constIterations, stmt)
+        val counterVar = createRepeatCounterVar(DataType.UBYTE, constIterations, stmt)
         out("  sta  $counterVar")
         out(repeatLabel)
         translate(stmt.body)
-        out("""
-             dec  $counterVar
-             bne  $repeatLabel
-             beq  $endLabel""")
-        if(declareCounterVarLocally)
-            out("$counterVar    .byte  0")
-
-        out(endLabel)
+        out("  dec  $counterVar |  bne  $repeatLabel")
+        if(constIterations==null)
+            out(endLabel)
     }
 
-    private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): Pair<String, Boolean> {
+    private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): String {
         // TODO share counter variables between subroutines or even between repeat loops as long as they're not nested
+//        var parent = stmt.parent
+//        while(parent !is ParentSentinel) {
+//            if(parent is RepeatLoop)
+//                break
+//            parent = parent.parent
+//        }
+//        val isNested = parent is RepeatLoop
         val counterVar = makeLabel("repeatcounter")
-
-//        println("REPEATCOUNTERVAR $counterVar SIZE $dt   CTX ${stmt.definingSubroutine()}")
-
+        val asmInfo = stmt.definingSubroutine()!!.asmGenInfo
         when(dt) {
             DataType.UBYTE -> {
-                return if(constIterations!=null && constIterations>=16 && zeropage.hasByteAvailable()) {
+                if(constIterations!=null && constIterations>=16 && zeropage.hasByteAvailable()) {
                     // allocate count var on ZP
                     val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, stmt.position, errors)
-                    out("$counterVar = $zpAddr  ; auto zp byte")
-                    Pair(counterVar, false)
+                    asmInfo.extraVarsZP.add(Pair(counterVar, zpAddr))
                 } else {
-                    Pair(counterVar, true)
+                    asmInfo.extraVars.add(Pair(DataType.UBYTE, counterVar))
                 }
             }
             DataType.UWORD -> {
-                return if(constIterations!=null && constIterations>=16 && zeropage.hasWordAvailable()) {
+                if(constIterations!=null && constIterations>=16 && zeropage.hasWordAvailable()) {
                     // allocate count var on ZP
                     val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, stmt.position, errors)
-                    out("$counterVar = $zpAddr  ; auto zp word")
-                    Pair(counterVar, false)
+                    asmInfo.extraVarsZP.add(Pair(counterVar, zpAddr))
                 } else {
-                    Pair(counterVar, true)
+                    asmInfo.extraVars.add(Pair(DataType.UWORD, counterVar))
                 }
             }
             else -> throw AssemblyError("invalidt dt")
         }
+        return counterVar
     }
 
     private fun translate(stmt: WhileLoop) {
