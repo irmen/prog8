@@ -1,11 +1,10 @@
-%import textio ; txt.*
+%import textio
 %zeropage basicsafe
 
 main {
 
     ; test program for the optimization of repeat var allocation (asmgen.createRepeatCounterVar)
     ; output must be:  60  6164  6224  12328
-    ; original program size: $046b
 
     uword xx
 

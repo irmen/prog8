@@ -880,11 +880,10 @@ internal class AsmGen(private val program: Program,
             }
 
             out("; variables")
-            for((name, addr) in sub.asmGenInfo.extraVarsZP) {
-                out("$name = $addr")
-            }
-            for((dt, name) in sub.asmGenInfo.extraVars) {
-                when(dt) {
+            for((dt, name, addr) in sub.asmGenInfo.extraVars) {
+                if(addr!=null)
+                    out("$name = $addr")
+                else when(dt) {
                     DataType.UBYTE -> out("$name    .byte  0")
                     DataType.UWORD -> out("$name    .word  0")
                     else -> throw AssemblyError("weird dt")
@@ -1069,33 +1068,40 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): String {
-        // TODO share counter variables between subroutines or even between repeat loops as long as they're not nested
-//        var parent = stmt.parent
-//        while(parent !is ParentSentinel) {
-//            if(parent is RepeatLoop)
-//                break
-//            parent = parent.parent
-//        }
-//        val isNested = parent is RepeatLoop
-        val counterVar = makeLabel("repeatcounter")
         val asmInfo = stmt.definingSubroutine()!!.asmGenInfo
+        var parent = stmt.parent
+        while(parent !is ParentSentinel) {
+            if(parent is RepeatLoop)
+                break
+            parent = parent.parent
+        }
+        val isNested = parent is RepeatLoop
+
+        if(!isNested) {
+            // we can re-use a counter var from the subroutine if it already has one for that datatype
+            val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt }
+            if(existingVar!=null)
+                return existingVar.second
+        }
+
+        val counterVar = makeLabel("repeatcounter")
         when(dt) {
             DataType.UBYTE -> {
                 if(constIterations!=null && constIterations>=16 && zeropage.hasByteAvailable()) {
                     // allocate count var on ZP
                     val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, stmt.position, errors)
-                    asmInfo.extraVarsZP.add(Pair(counterVar, zpAddr))
+                    asmInfo.extraVars.add(Triple(DataType.UBYTE, counterVar, zpAddr))
                 } else {
-                    asmInfo.extraVars.add(Pair(DataType.UBYTE, counterVar))
+                    asmInfo.extraVars.add(Triple(DataType.UBYTE, counterVar, null))
                 }
             }
             DataType.UWORD -> {
                 if(constIterations!=null && constIterations>=16 && zeropage.hasWordAvailable()) {
                     // allocate count var on ZP
                     val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, stmt.position, errors)
-                    asmInfo.extraVarsZP.add(Pair(counterVar, zpAddr))
+                    asmInfo.extraVars.add(Triple(DataType.UWORD, counterVar, zpAddr))
                 } else {
-                    asmInfo.extraVars.add(Pair(DataType.UWORD, counterVar))
+                    asmInfo.extraVars.add(Triple(DataType.UWORD, counterVar, null))
                 }
             }
             else -> throw AssemblyError("invalidt dt")

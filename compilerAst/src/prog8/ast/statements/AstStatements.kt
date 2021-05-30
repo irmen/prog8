@@ -589,8 +589,7 @@ class AsmGenInfo {
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
 
-    val extraVars = mutableListOf<Pair<DataType, String>>()
-    val extraVarsZP = mutableListOf<Pair<String, Int>>()
+    val extraVars = mutableListOf<Triple<DataType, String, Int?>>()
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
