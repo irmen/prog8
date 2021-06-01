@@ -2,6 +2,9 @@
 TODO
 ====
 
+- fix asm symbol name scoping bug and complete the unit tests for this
+- add or document example for %asminclude and %asmbinary on how to refer to its contents via label or w/e
+
 - test all examples (including imgviewer, assembler and petaxian) before release of the new version
 
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203

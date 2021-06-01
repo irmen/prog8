@@ -1,109 +1,44 @@
 %import textio
 %zeropage basicsafe
 
+; TODO FIX ASM SYMBOL NAME SCOPING BUGS
+; TODO make unit tests for this
+
+
 main {
 
-    ; test program for the optimization of repeat var allocation (asmgen.createRepeatCounterVar)
-    ; output must be:  60  6164  6224  12328
-
-    uword xx
-
+label:
     sub start() {
 
-        xx=0
-
-        repeat 10 {
-            xx++
-        }
-        repeat 10 {
-            xx++
-        }
-        repeat 10 {
-            xx++
-        }
-        repeat 10 {
-            xx++
-        }
-        repeat 5 {
-            repeat 4 {
-                xx++
-            }
-        }
-        txt.print_uw(xx)
+        sub2(&label)
+        sub2(&label_local)
+        sub2(&main.sub2.label_in_sub2)
+        uword xx = &label_local
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &label
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &main.label
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &main.sub2.label_in_sub2
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = main.sub2.sub2var
+        txt.print_uwhex(xx, true)
         txt.nl()
 
-        repeat 1000 {
-            xx++
-        }
-        repeat 1000 {
-            xx++
-        }
-        repeat 1000 {
-            xx++
-        }
-        repeat 260 {
-            repeat 4 {
-                xx++
-            }
-        }
-        repeat 260 {
-            repeat 260 {
-                xx++
-            }
-        }
-        txt.print_uw(xx)
-        txt.nl()
-
-        sub2()
-
-        if xx!=12328
-            txt.print("\n!fail!\n")
-        else
-            txt.print("\nok\n")
+label_local:
+        return
     }
 
-    sub sub2() {
+    sub sub2(uword ad) {
+        uword sub2var = 42
 
-        repeat 10 {
-            xx++
-        }
-        repeat 10 {
-            xx++
-        }
-        repeat 10 {
-            xx++
-        }
-        repeat 10 {
-            xx++
-        }
-        repeat 5 {
-            repeat 4 {
-                xx++
-            }
-        }
-        txt.print_uw(xx)
+        txt.print_uwhex(ad,true)
         txt.nl()
-
-        repeat 1000 {
-            xx++
-        }
-        repeat 1000 {
-            xx++
-        }
-        repeat 1000 {
-            xx++
-        }
-        repeat 260 {
-            repeat 4 {
-                xx++
-            }
-        }
-        repeat 260 {
-            repeat 260 {
-                xx++
-            }
-        }
-        txt.print_uw(xx)
+label_in_sub2:
         txt.nl()
     }
 }
