@@ -1274,7 +1274,7 @@ $repeatLabel    lda  $counterVar
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
                 val includedSourcePath = stmt.definingModule().source.resolveSibling(stmt.args[0].str)
                 val relPath = Paths.get("").relativize(includedSourcePath)
-                out("  .binary \"./$relPath\" $offset $length")
+                out("  .binary \"$relPath\" $offset $length")
             }
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
