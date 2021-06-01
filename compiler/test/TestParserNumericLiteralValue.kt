@@ -14,13 +14,13 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 
-private fun sameValueAndType(lv1: NumericLiteralValue, lv2: NumericLiteralValue): Boolean {
-    return lv1.type==lv2.type && lv1==lv2
-}
-
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestParserNumericLiteralValue {
+
+    private fun sameValueAndType(lv1: NumericLiteralValue, lv2: NumericLiteralValue): Boolean {
+        return lv1.type==lv2.type && lv1==lv2
+    }
 
     private val dummyPos = Position("test", 0, 0, 0)
 
