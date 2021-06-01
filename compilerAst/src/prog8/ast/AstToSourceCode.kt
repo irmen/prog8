@@ -33,7 +33,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
 
     override fun visit(block: Block) {
         val addr = if(block.address!=null) block.address.toHex() else ""
-        outputln("~ ${block.name} $addr {")
+        outputln("${block.name} $addr {")
         scopelevel++
         for(stmt in block.statements) {
             outputi("")
