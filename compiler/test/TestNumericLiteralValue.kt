@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestParserNumericLiteralValue {
+class TestNumericLiteralValue {
 
     private fun sameValueAndType(lv1: NumericLiteralValue, lv2: NumericLiteralValue): Boolean {
         return lv1.type==lv2.type && lv1==lv2
