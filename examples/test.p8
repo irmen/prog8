@@ -1,5 +1,5 @@
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
 
 ; TODO FIX ASM SYMBOL NAME SCOPING BUGS
 ; TODO make unit tests for this
