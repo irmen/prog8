@@ -16,7 +16,7 @@ Then you can choose a few ways to get a compiler:
 #. download a recent "fat-jar" (called something like "prog8compiler-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
 #. run the compiler with "java -jar prog8compiler-all.jar" to see how you can use it.
 
-**using the Gradle build system to make it yourself:**
+**Using the Gradle build system to build it yourself:**
 
 The Gradle build system is used to build the compiler.
 The most interesting gradle commands to run are probably:
@@ -42,9 +42,10 @@ of that build task, you can start the compiler with:
 (You should probably make an alias...)
 
 .. hint::
-    Development and testing is done on Linux, but the compiler should run on most
-    operating systems. If you do have trouble building or running
-    the compiler on another operating system, please let me know!
+    Development and testing is done on Linux using the IntelliJ IDEA IDE,
+    but the compiler should run on most operating systems that provide a fairly modern
+    java runtime. If you do have trouble building or running the compiler on your
+    operating system, please let me know!
 
 
 

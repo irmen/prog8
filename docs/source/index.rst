@@ -130,11 +130,18 @@ when the exact same program is compiled for the Commander X16 target, and run on
     :alt: result when run on CX16 emulator
 
 
+Getting the compiler
+--------------------
+
+Usually you just download a fat jar of an official released version, but you can also build
+it yourself from source.
+Detailed instructions on how to obtain a version of the compiler are in :ref:`building_compiler`.
+
 
 .. _requirements:
 
-Required tools
---------------
+Required additional tools
+-------------------------
 
 `64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
 It's very easy to compile yourself.
@@ -152,16 +159,6 @@ In C64 mode, thhe compiler assumes the presence of the `Vice emulator <http://vi
 If you're targeting the CommanderX16 instead, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
 Make sure you use cx16 emulator and roms **V39 or newer**! Starting from version 6.5, prog8 targets that system version.
 Your program may work on V38 but that will only be by luck.
-
-.. important::
-    **Building the compiler itself:** (*Only needed if you have not downloaded a pre-built 'fat-jar'*)
-
-    (Re)building the compiler itself requires a recent Kotlin SDK.
-    The compiler is developed using `IntelliJ IDEA <https://www.jetbrains.com/idea/>`_ ,
-    but only a Kotlin SDK installation should work as well, because the gradle tool is
-    used to compile everything from the commandline.
-
-    Instructions on how to obtain a prebuilt compiler are in :ref:`building_compiler`.
 
 
 .. toctree::

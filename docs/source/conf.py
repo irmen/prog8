@@ -33,7 +33,7 @@ release = version
 
 def setup(app):
     # add custom css
-    app.add_stylesheet("css/customize.css")
+    app.add_css_file("css/customize.css")
 
 
 # -- General configuration ---------------------------------------------------
