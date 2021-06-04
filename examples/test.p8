@@ -1,9 +1,6 @@
 %import textio
 %zeropage dontuse
 
-; TODO FIX ASM SYMBOL NAME SCOPING BUGS
-; TODO make unit tests for this
-
 
 main {
 
@@ -26,6 +23,9 @@ label:
         txt.print_uwhex(xx, true)
         txt.nl()
         xx = main.sub2.sub2var
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &main.start.label_local
         txt.print_uwhex(xx, true)
         txt.nl()
 

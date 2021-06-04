@@ -2,7 +2,6 @@
 TODO
 ====
 
-- fix asm symbol name scoping bug and complete the unit tests for this (testSymbolNameFromLabelIdentifier)
 - add example in documentation for %asminclude and %asmbinary on how to refer to its contents via label or w/e
 
 - test all examples (including imgviewer, assembler and petaxian) before release of the new version

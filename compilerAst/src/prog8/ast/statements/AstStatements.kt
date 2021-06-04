@@ -537,7 +537,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
 }
 
 class AnonymousScope(override var statements: MutableList<Statement>,
-                     override val position: Position) : INameScope, Statement() {
+                     override val position: Position) : INameScope, Statement() {           // TODO this isn't really a namescope...(names are scoped to the subroutine level)
     override val name: String = "<anon-$sequenceNumber>"
     override lateinit var parent: Node
 

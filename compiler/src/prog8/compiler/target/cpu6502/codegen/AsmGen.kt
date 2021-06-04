@@ -494,9 +494,47 @@ internal class AsmGen(private val program: Program,
     }
 
     internal fun asmSymbolName(identifier: IdentifierReference): String {
-        val target = identifier.targetStatement(program)
-        val prefix = if(target is Label) "_" else ""
-        return fixNameSymbols(prefix+identifier.nameInSource.joinToString("."))
+        if(identifier.nameInSource.size==2 && identifier.nameInSource[0]=="prog8_slabs")
+            return identifier.nameInSource.joinToString(".")
+
+        val tgt2 = identifier.targetStatement(program)
+        if(tgt2==null && (identifier.nameInSource[0].startsWith("_prog8") || identifier.nameInSource[0].startsWith("prog8")))
+            return identifier.nameInSource.joinToString(".")
+
+        val target = identifier.targetStatement(program)!!
+        val targetScope = target.definingSubroutine()
+        val identScope = identifier.definingSubroutine()
+        return if(targetScope !== identScope) {
+            val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
+            if(target is Label) {
+                val last = scopedName.removeLast()
+                scopedName.add("_$last")
+            }
+            fixNameSymbols(scopedName.joinToString("."))
+        } else {
+            if(target is Label) {
+                val scopedName = identifier.nameInSource.toMutableList()
+                val last = scopedName.removeLast()
+                scopedName.add("_$last")
+                fixNameSymbols(scopedName.joinToString("."))
+            }
+            else fixNameSymbols(identifier.nameInSource.joinToString("."))
+        }
+    }
+
+    internal fun asmVariableName(identifier: IdentifierReference) =
+        fixNameSymbols(identifier.nameInSource.joinToString("."))
+
+    private fun getScopedSymbolNameForTarget(actualName: String, target: Statement): MutableList<String> {
+        val scopedName = mutableListOf(actualName)
+        var node: Node = target
+        while (node !is Block) {
+            node = node.parent
+            if(node is INameScope) {
+                scopedName.add(0, node.name)
+            }
+        }
+        return scopedName
     }
 
     internal fun asmSymbolName(regs: RegisterOrPair): String =
@@ -504,9 +542,6 @@ internal class AsmGen(private val program: Program,
             "cx16." + regs.toString().lowercase()
         else
             throw AssemblyError("no symbol name for register $regs")
-
-    internal fun asmVariableName(identifier: IdentifierReference) =
-        fixNameSymbols(identifier.nameInSource.joinToString("."))
 
     internal fun asmSymbolName(name: String) = fixNameSymbols(name)
     internal fun asmVariableName(name: String) = fixNameSymbols(name)

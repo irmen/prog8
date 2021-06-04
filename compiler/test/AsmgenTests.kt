@@ -47,8 +47,13 @@ locallabel:
         tgt = &locallabel
         tgt = &var_outside
         tgt = &label_outside
+        tgt = &main.start.localvar
+        tgt = &main.start.locallabel
+        tgt = &main.var_outside
+        tgt = &main.label_outside
     }
 }
+
          */
         val varInSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteralValue.optimalInteger(1234, Position.DUMMY), false, false, false, Position.DUMMY)
         val var2InSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", null, false, false, false, Position.DUMMY)
@@ -59,8 +64,12 @@ locallabel:
         val assign2 = Assignment(tgt, AddressOf(IdentifierReference(listOf("locallabel"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val assign3 = Assignment(tgt, AddressOf(IdentifierReference(listOf("var_outside"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val assign4 = Assignment(tgt, AddressOf(IdentifierReference(listOf("label_outside"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val assign5 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","start","localvar"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val assign6 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","start","locallabel"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val assign7 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","var_outside"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
+        val assign8 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","label_outside"), Position.DUMMY), Position.DUMMY), Position.DUMMY)
 
-        val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4)
+        val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
         val subroutine = Subroutine("start", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, statements, Position.DUMMY)
         val labelInBlock = Label("label_outside", Position.DUMMY)
         val varInBlock = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, false, Position.DUMMY)
@@ -69,6 +78,7 @@ locallabel:
         val module = Module("test", mutableListOf(block), Position.DUMMY, false, Path.of(""))
         module.linkParents(ParentSentinel)
         val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
+        module.program = program
         return program
     }
 
@@ -85,8 +95,6 @@ locallabel:
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
 
-        printAst(program)       // TODO weg
-
         assertThat(asmgen.asmSymbolName("name"), equalTo("name"))
         assertThat(asmgen.asmSymbolName("<name>"), equalTo("prog8_name"))
         assertThat(asmgen.asmSymbolName(RegisterOrPair.R15), equalTo("cx16.r15"))
@@ -96,24 +104,6 @@ locallabel:
         assertThat(asmgen.asmVariableName(listOf("a", "b", "name")), equalTo("a.b.name"))
     }
 
-    /*
-main  {
-
-label_outside:
-    uword var_outside
-
-    sub start () {
-        uword localvar = 1234
-        uword tgt
-
-locallabel:
-        tgt = localvar
-        tgt = &locallabel
-        tgt = &var_outside
-        tgt = &label_outside
-    }
-}
-     */
     @Test
     fun testSymbolNameFromVarIdentifier() {
         val program = createTestProgram()
@@ -124,16 +114,21 @@ locallabel:
         val localvarIdent = sub.statements.filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
         assertThat(asmgen.asmSymbolName(localvarIdent), equalTo("localvar"))
         assertThat(asmgen.asmVariableName(localvarIdent), equalTo("localvar"))
+        val localvarIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "start", "localvar") }.value as AddressOf).identifier
+        assertThat(asmgen.asmSymbolName(localvarIdentScoped), equalTo("main.start.localvar"))
+        assertThat(asmgen.asmVariableName(localvarIdentScoped), equalTo("main.start.localvar"))
 
-        // variable from outer scope (note that for Variables, no scoping prefixes are required,
+        // variable from outer scope (note that for Variables, no scoping prefix symbols are required,
         //   because they're not outputted as locally scoped symbols for the assembler
         val scopedVarIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("var_outside") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(scopedVarIdent), equalTo("var_outside"))
+        assertThat(asmgen.asmSymbolName(scopedVarIdent), equalTo("main.var_outside"))
         assertThat(asmgen.asmVariableName(scopedVarIdent), equalTo("var_outside"))
+        val scopedVarIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "var_outside") }.value as AddressOf).identifier
+        assertThat(asmgen.asmSymbolName(scopedVarIdentScoped), equalTo("main.var_outside"))
+        assertThat(asmgen.asmVariableName(scopedVarIdentScoped), equalTo("main.var_outside"))
     }
 
     @Test
-    @Disabled("fails until bug is fixed")
     fun testSymbolNameFromLabelIdentifier() {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
@@ -143,11 +138,16 @@ locallabel:
         val localLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
         assertThat(asmgen.asmSymbolName(localLabelIdent), equalTo("_locallabel"))
         assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(localLabelIdent), equalTo("locallabel"))
+        val localLabelIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","start","locallabel") }.value as AddressOf).identifier
+        assertThat(asmgen.asmSymbolName(localLabelIdentScoped), equalTo("main.start._locallabel"))
+        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(localLabelIdentScoped), equalTo("main.start.locallabel"))
 
         // label from outer scope needs sope prefixes because it is outputted as a locally scoped symbol for the assembler
-        // TODO fix this; these both fail now!
         val scopedLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
         assertThat(asmgen.asmSymbolName(scopedLabelIdent), equalTo("main._label_outside"))
-        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(scopedLabelIdent), equalTo("main.label_outside"))
+        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(scopedLabelIdent), equalTo("label_outside"))
+        val scopedLabelIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
+        assertThat(asmgen.asmSymbolName(scopedLabelIdentScoped), equalTo("main._label_outside"))
+        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(scopedLabelIdentScoped), equalTo("main.label_outside"))
     }
 }
