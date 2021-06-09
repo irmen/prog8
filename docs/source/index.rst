@@ -68,6 +68,16 @@ Language features
 Code example
 ------------
 
+Here is a hello world program::
+
+    %import textio
+
+    main {
+        sub start() {
+            txt.print("hello world i ♥ prog8\n")
+        }
+    }
+
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
     %import textio

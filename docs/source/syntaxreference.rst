@@ -141,6 +141,8 @@ Directives
     The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
     The optional offset and length can be used to select a particular piece of the file.
     The file is located relative to the current working directory!
+    To reference the contents of the included binary data, you can put a label in your prog8 code
+    just before the %asmbinary. An example program for this can be found below at the description of %asminclude.
 
 .. data:: %asminclude "<filename>"
 
@@ -149,10 +151,47 @@ Directives
     The assembler will include the file as raw assembly source text at this point,
     prog8 will not process this at all. Symbols defined in the included assembly can not be referenced
     from prog8 code. However they can be referenced from other assembly code if properly prefixed.
+    You can ofcourse use a label in your prog8 code just before the %asminclude directive, and reference
+    that particular label to get to (the start of) the included assembly.
     Be careful: you risk symbol redefinitions or duplications if you include a piece of
     assembly into a prog8 block that already defines symbols itself.
     The compiler first looks for the file relative to the same directory as the module containing this statement is in,
     if the file can't be found there it is searched relative to the current directory.
+    Here is a small example program to show how to use labels to reference the included contents from prog8 code::
+
+        %import textio
+        %zeropage basicsafe
+
+        main {
+
+            sub start() {
+                txt.print("first three bytes of included asm:\n")
+                uword included_addr = &included_asm
+                txt.print_ub(@(included_addr))
+                txt.spc()
+                txt.print_ub(@(included_addr+1))
+                txt.spc()
+                txt.print_ub(@(included_addr+2))
+
+                txt.print("\nfirst three bytes of included binary:\n")
+                included_addr = &included_bin
+                txt.print_ub(@(included_addr))
+                txt.spc()
+                txt.print_ub(@(included_addr+1))
+                txt.spc()
+                txt.print_ub(@(included_addr+2))
+                txt.nl()
+                return
+
+        included_asm:
+                %asminclude "inc.asm"
+
+        included_bin:
+                %asmbinary "inc.bin"
+
+            }
+        }
+
 
 .. data:: %breakpoint
 

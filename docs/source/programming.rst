@@ -39,7 +39,7 @@ Variable declarations
     The compiler allocates the required memory for them.
     There is *no dynamic memory allocation*. The storage size of all variables
     is fixed and is determined at compile time.
-    Variable declarations tend to appear at the top of the code block that uses them.
+    Variable declarations tend to appear at the top of the code block that uses them, but this is not mandatory.
     They define the name and type of the variable, and its initial value.
     Prog8 supports a small list of data types, including special 'memory mapped' types
     that don't allocate storage but instead point to a fixed location in the address space.
@@ -62,6 +62,7 @@ Subroutine
     Their contents is scoped accordingly.
     Nested subroutines can access the variables from outer scopes.
     This removes the need and overhead to pass everything via parameters.
+    Subroutines do not have to be declared before they can be called.
 
 Label
     This is a named position in your code where you can jump to from another place.
@@ -69,17 +70,20 @@ Label
     subroutine call to a label (but without parameters and return value).
 
 Scope
-	Also known as 'namespace', this is a named box around the symbols defined in it.
-	This prevents name collisions (or 'namespace pollution'), because the name of the scope
-	is needed as prefix to be able to access the symbols in it.
-	Anything *inside* the scope can refer to symbols in the same scope without using a prefix.
-	There are three scopes in Prog8:
+    Also known as 'namespace', this is a named box around the symbols defined in it.
+    This prevents name collisions (or 'namespace pollution'), because the name of the scope
+    is needed as prefix to be able to access the symbols in it.
+    Anything *inside* the scope can refer to symbols in the same scope without using a prefix.
+    There are three scope levels in Prog8:
 
-	- global (no prefix)
-	- code block
-	- subroutine
+    - global (no prefix)
+    - code block
+    - subroutine
 
-	Modules are *not* a scope! Everything defined in a module is merged into the global scope.
+    While Modules are separate files, they are *not* separate scopes!
+    Everything defined in a module is merged into the global scope.
+    This is different from most other languages that have modules.
+    The global scope can only contain blocks and some directives, while the others can contain variables and subroutines too.
 
 
 .. _blocks:

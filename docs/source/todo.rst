@@ -2,7 +2,9 @@
 TODO
 ====
 
-- add example in documentation for %asminclude and %asmbinary on how to refer to its contents via label or w/e
+- fix scope compilation errors for sub with same name as block (kefrenbars example, 'irq')
+
+- add example in documentation for %asminclude and %asmbinary on how to refer to its contents via label or whatever
 
 - test all examples (including imgviewer, assembler and petaxian) before release of the new version
 
