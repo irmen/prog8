@@ -551,38 +551,48 @@ internal class AsmGen(private val program: Program,
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
         // returns if the pointer is already on the ZP itself or not (in the latter case SCRATCH_W1 is used as intermediary)
-        val sourceName = asmVariableName(pointervar)
-        val vardecl = pointervar.targetVarDecl(program)!!
-        val scopedName = vardecl.makeScopedName(vardecl.name)
-        if (isTargetCpu(CpuType.CPU65c02)) {
-            return if (isZpVar(scopedName)) {
-                // pointervar is already in the zero page, no need to copy
-                out("  lda  ($sourceName)")
-                Pair(true, sourceName)
-            } else {
-                out("""
-                    lda  $sourceName
-                    ldy  $sourceName+1
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  (P8ZP_SCRATCH_W1)""")
-                Pair(false, sourceName)
+        val target = pointervar.targetStatement(program)
+        when (target) {
+            is Label -> {
+                val sourceName = asmSymbolName(pointervar)
+                out("  lda  $sourceName")
+                return Pair(true, sourceName)
             }
-        } else {
-            return if (isZpVar(scopedName)) {
-                // pointervar is already in the zero page, no need to copy
-                out("  ldy  #0 |  lda  ($sourceName),y")
-                Pair(true, sourceName)
-            } else {
-                out("""
-                    lda  $sourceName
-                    ldy  $sourceName+1
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    ldy  #0
-                    lda  (P8ZP_SCRATCH_W1),y""")
-                Pair(false, sourceName)
+            is VarDecl -> {
+                val sourceName = asmVariableName(pointervar)
+                val scopedName = target.makeScopedName(target.name)
+                if (isTargetCpu(CpuType.CPU65c02)) {
+                    return if (isZpVar(scopedName)) {
+                        // pointervar is already in the zero page, no need to copy
+                        out("  lda  ($sourceName)")
+                        Pair(true, sourceName)
+                    } else {
+                        out("""
+                            lda  $sourceName
+                            ldy  $sourceName+1
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  (P8ZP_SCRATCH_W1)""")
+                        Pair(false, sourceName)
+                    }
+                } else {
+                    return if (isZpVar(scopedName)) {
+                        // pointervar is already in the zero page, no need to copy
+                        out("  ldy  #0 |  lda  ($sourceName),y")
+                        Pair(true, sourceName)
+                    } else {
+                        out("""
+                            lda  $sourceName
+                            ldy  $sourceName+1
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  #0
+                            lda  (P8ZP_SCRATCH_W1),y""")
+                        Pair(false, sourceName)
+                    }
+                }
             }
+            else -> throw AssemblyError("invalid pointervar")
         }
     }
 
@@ -1470,38 +1480,49 @@ $label              nop""")
             val ptrAndIndex = pointerViaIndexRegisterPossible(expr)
             if(ptrAndIndex!=null) {
                 val pointervar = ptrAndIndex.first as? IdentifierReference
-                if(write) {
-                    if(pointervar!=null && isZpVar(pointervar)) {
-                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
-                        if(saveA)
-                            out("  pha")
+                val target = pointervar?.targetStatement(program)
+                when(target) {
+                    is Label -> {
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        if(saveA)
-                            out("  pla")
-                        out("  sta  (${asmSymbolName(pointervar)}),y")
-                    } else {
-                        // copy the pointer var to zp first
-                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
-                        if(saveA)
-                            out("  pha")
-                        assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        if(saveA)
-                            out("  pla")
-                        out("  sta  (P8ZP_SCRATCH_W2),y")
+                        out("  lda  ${asmSymbolName(pointervar)},y")
+                        return true
                     }
-                } else {
-                    if(pointervar!=null && isZpVar(pointervar)) {
-                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        out("  lda  (${asmSymbolName(pointervar)}),y")
-                    } else {
-                        // copy the pointer var to zp first
-                        assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
-                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        out("  lda  (P8ZP_SCRATCH_W2),y")
+                    is VarDecl, null -> {
+                        if(write) {
+                            if(pointervar!=null && isZpVar(pointervar)) {
+                                val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
+                                if(saveA)
+                                    out("  pha")
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                if(saveA)
+                                    out("  pla")
+                                out("  sta  (${asmSymbolName(pointervar)}),y")
+                            } else {
+                                // copy the pointer var to zp first
+                                val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
+                                if(saveA)
+                                    out("  pha")
+                                assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                if(saveA)
+                                    out("  pla")
+                                out("  sta  (P8ZP_SCRATCH_W2),y")
+                            }
+                        } else {
+                            if(pointervar!=null && isZpVar(pointervar)) {
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                out("  lda  (${asmSymbolName(pointervar)}),y")
+                            } else {
+                                // copy the pointer var to zp first
+                                assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                out("  lda  (P8ZP_SCRATCH_W2),y")
+                            }
+                        }
+                        return true
                     }
+                    else -> throw AssemblyError("invalid pointervar")
                 }
-                return true
             }
         }
         return false
