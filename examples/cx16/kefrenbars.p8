@@ -26,7 +26,7 @@ main {
         cx16.screen_set_mode(128)   ; low-res bitmap 256 colors
         cx16.FB_init()
         cx16.VERA_DC_VSCALE = 0   ; display trick spoiler.......: stretch display all the way to the bottom
-        cx16.set_rasterirq(&irq.irq, 0)
+        cx16.set_rasterirq(&irq.irqhandler, 0)
 
         repeat {
             ; don't exit
@@ -44,7 +44,7 @@ irq {
 
     ubyte[32] pixels = 0 to 31
 
-    sub irq() {
+    sub irqhandler() {
         next_irq_line += 6
         anim1 += 4
         anim2 += 6

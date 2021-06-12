@@ -38,7 +38,7 @@ main {
             c64.SPRPTR[i] = $0a00/64
         }
         c64.SPENA = 255                 ; enable all sprites
-        c64.set_rasterirq(&irq.irq, 230, true)     ; enable animation
+        c64.set_rasterirq(&irq.irqhandler, 230, true)     ; enable animation
     }
 }
 
@@ -46,7 +46,7 @@ main {
 irq {
     ubyte angle
 
-    sub irq() {
+    sub irqhandler() {
         angle++
         c64.MSIGX=0
         ubyte @zp spri

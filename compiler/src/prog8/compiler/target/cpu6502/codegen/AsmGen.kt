@@ -1502,7 +1502,7 @@ $label              nop""")
                                 val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
                                 if(saveA)
                                     out("  pha")
-                                assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                                assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                                 assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                 if(saveA)
                                     out("  pla")
@@ -1514,7 +1514,7 @@ $label              nop""")
                                 out("  lda  (${asmSymbolName(pointervar)}),y")
                             } else {
                                 // copy the pointer var to zp first
-                                assignExpressionToVariable(ptrAndIndex.first, asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                                assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                                 assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                 out("  lda  (P8ZP_SCRATCH_W2),y")
                             }

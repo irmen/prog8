@@ -1,7 +1,6 @@
 %import textio
 %zeropage dontuse
 
-
 main {
 
 label:

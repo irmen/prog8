@@ -319,10 +319,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             register!!
             if(requiredDt largerThan valueDt) {
                 // we need to sign extend the source, do this via temporary word variable
-                val scratchVar = asmgen.asmVariableName("P8ZP_SCRATCH_W1")
-                asmgen.assignExpressionToVariable(value, scratchVar, DataType.UBYTE, sub)
-                asmgen.signExtendVariableLsb(scratchVar, valueDt)
-                asmgen.assignVariableToRegister(scratchVar, register)
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE, sub)
+                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", valueDt)
+                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register)
             } else {
                 val target: AsmAssignTarget =
                     if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))

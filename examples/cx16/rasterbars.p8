@@ -13,7 +13,7 @@ main {
         txt.plot(14,14)
         txt.print("raster bars!")
 
-        cx16.set_rasterirq(&irq.irq, 0)
+        cx16.set_rasterirq(&irq.irqhandler, 0)
 
         repeat {
             ; don't exit
@@ -39,7 +39,7 @@ irq {
     ubyte yanim = 0
     const ubyte barheight = 4
 
-    sub irq() {
+    sub irqhandler() {
         uword c = colors[color_idx]
         color_idx++
         color_idx &= 31
