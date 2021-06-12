@@ -45,8 +45,6 @@ class ModuleImporter(private val program: Program,
             throw ParsingFailedError("No such file: $filePath")
 
         var content = filePath.toFile().readText().replace("\r\n", "\n")    // normalize line endings
-        if(content.last()!='\n')
-            content+='\n'   // grammar requires blocks (and thus module files) to end in an EOL
 
         return importModule(CharStreams.fromString(content), filePath, false)
     }
