@@ -2,75 +2,42 @@
 %zeropage dontuse
 
 main {
+
+label:
     sub start() {
-        irq.irq()
+
+        sub2(&label)
+        sub2(&label_local)
+        sub2(&main.sub2.label_in_sub2)
+        uword xx = &label_local
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &label
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &main.label
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &main.sub2.label_in_sub2
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = main.sub2.sub2var
+        txt.print_uwhex(xx, true)
+        txt.nl()
+        xx = &main.start.label_local
+        txt.print_uwhex(xx, true)
+        txt.nl()
+
+label_local:
+        return
+    }
+
+    sub sub2(uword ad) {
+        uword sub2var = 42
+
+        txt.print_uwhex(ad,true)
+        txt.nl()
+label_in_sub2:
+        txt.nl()
     }
 }
-
-
-; TODO FIX SCOPE ERRORS (caused by sub with same name as block)
-
-irq {
-    ubyte[32] pixels
-
-    sub irq() {
-        ubyte xx
-;        if xx > 4 {
-;            xx++
-;        } else {
-            xx = pixels[2]  ; OK
-            calc(pixels[2]) ; FAIL on 'calc'
-            calc2(pixels)   ; FAIL on 'pixels' and 'calc2'
-;        }
-    }
-
-    sub calc2(uword adr) {
-        adr++
-    }
-
-    sub calc(ubyte aa) {
-        aa++
-    }
-}
-
-
-;main {
-;
-;label:
-;    sub start() {
-;
-;        sub2(&label)
-;        sub2(&label_local)
-;        sub2(&main.sub2.label_in_sub2)
-;        uword xx = &label_local
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &label
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &main.label
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &main.sub2.label_in_sub2
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = main.sub2.sub2var
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &main.start.label_local
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;
-;label_local:
-;        return
-;    }
-;
-;    sub sub2(uword ad) {
-;        uword sub2var = 42
-;
-;        txt.print_uwhex(ad,true)
-;        txt.nl()
-;label_in_sub2:
-;        txt.nl()
-;    }
-;}

@@ -2,8 +2,6 @@
 TODO
 ====
 
-- fix scope compilation errors for sub with same name as block (kefrenbars example, 'irq')
-
 - test all examples (including imgviewer, assembler and petaxian) before release of the new version
 
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203

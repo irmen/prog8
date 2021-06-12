@@ -23,7 +23,7 @@ main {
 
         c64.SCROLX &= %11110111     ; 38 column mode
 
-        c64.set_rasterirq(&irq.irq, 200, false)     ; enable animation via raster interrupt
+        c64.set_rasterirq(&irq.irqhandler, 200, false)     ; enable animation via raster interrupt
 
         ubyte target_height = 10
         ubyte active_height = 24
@@ -130,7 +130,7 @@ spritedata $0f00 {
 
 irq {
     ubyte smoothx=0
-    sub irq() {
+    sub irqhandler() {
         smoothx = (smoothx-1) & 7
         main.perform_scroll = smoothx==7
         c64.SCROLX = (c64.SCROLX & %11111000) | smoothx

@@ -1696,7 +1696,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     internal fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
 
         fun assignViaExprEval() {
-            asmgen.assignExpressionToVariable(expr.addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+            asmgen.assignExpressionToVariable(expr.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
             if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                 if (pushResultOnEstack) {
                     asmgen.out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")

@@ -106,6 +106,12 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {
                 errors.err("asmsub can only contain inline assembly (%asm)", subroutine.position)
             }
+
+            if(subroutine.name == subroutine.definingBlock().name) {
+                // subroutines cannot have the same name as their enclosing block,
+                // because this causes symbol scoping issues in the resulting assembly source
+                nameError(subroutine.name, subroutine.position, subroutine.definingBlock())
+            }
         }
 
         super.visit(subroutine)

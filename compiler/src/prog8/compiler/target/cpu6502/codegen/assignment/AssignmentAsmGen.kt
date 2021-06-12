@@ -115,7 +115,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             SourceStorageKind.MEMORY -> {
                 fun assignViaExprEval(expression: Expression) {
-                    assignExpressionToVariable(expression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, assign.target.scope)
+                    assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD, assign.target.scope)
                     if (asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
                     else
@@ -320,7 +320,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 if(targetDt in WordDatatypes) {
 
                     fun assignViaExprEval(addressExpression: Expression) {
-                        asmgen.assignExpressionToVariable(addressExpression, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                         if (asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
                         else
@@ -2089,7 +2089,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         fun storeViaExprEval() {
             when(addressExpr) {
                 is NumericLiteralValue, is IdentifierReference -> {
-                    assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                    assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                     if (asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
                     else
@@ -2098,7 +2098,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 else -> {
                     // same as above but we need to save the A register
                     asmgen.out("  pha")
-                    assignExpressionToVariable(addressExpr, asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD, null)
+                    assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                     asmgen.out("  pla")
                     if (asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  sta  (P8ZP_SCRATCH_W2)")

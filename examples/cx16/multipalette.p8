@@ -31,7 +31,7 @@ main {
         palette.set_color(0, 0)
         palette.set_color(16, 0)
 
-        cx16.set_rasterirq(&irq.irq, 0)
+        cx16.set_rasterirq(&irq.irqhandler, 0)
 
         repeat {
             ; don't exit
@@ -45,7 +45,7 @@ irq {
     uword next_rasterline = 0
     const ubyte increment = 4           ; 4 scanlines = 2 lores pixels per color swap  (2 scanlines is too tight)
 
-    sub irq() {
+    sub irqhandler() {
         if phase & 1 == 0 {
             %asm {{
                 lda  #0     ; activate palette #0  (first set of colors)
