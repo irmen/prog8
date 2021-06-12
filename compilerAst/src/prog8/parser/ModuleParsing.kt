@@ -44,9 +44,7 @@ class ModuleImporter(private val program: Program,
         if(!Files.isReadable(filePath))
             throw ParsingFailedError("No such file: $filePath")
 
-        var content = filePath.toFile().readText().replace("\r\n", "\n")    // normalize line endings
-
-        return importModule(CharStreams.fromString(content), filePath, false)
+        return importModule(CharStreams.fromPath(filePath), filePath, false)
     }
 
     fun importLibraryModule(name: String): Module? {

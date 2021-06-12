@@ -15,10 +15,10 @@ grammar prog8;
 package prog8.parser;
 }
 
-LINECOMMENT : [\n][ \t]* COMMENT -> channel(HIDDEN);
-COMMENT :  ';' ~[\n]* -> channel(HIDDEN) ;
+LINECOMMENT : ('\r'? '\n' | '\r') [ \t]* COMMENT -> channel(HIDDEN);
+COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
 WS :  [ \t] -> skip ;
-EOL :  [\n]+ ;
+EOL :  ('\r'? '\n' | '\r')+ ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
 NAME :  [a-zA-Z][a-zA-Z0-9_]* ;
