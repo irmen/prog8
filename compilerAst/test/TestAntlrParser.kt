@@ -68,7 +68,30 @@ class TestAntlrParser {
         val parseTree = parseModule(srcGood)
         assertEquals(parseTree.block().size, 2)
     }
-    
+
+    @Test
+    fun testWindowsAndMacNewlinesAreAlsoFine() {
+        val nlWin = "\r\n"
+        val nlUnix = "\n"
+        val nlMac = "\r"
+
+        // a good mix of all kinds of newlines:
+        val srcText =
+            "foo {" +
+            nlWin +
+            "}" +
+            nlUnix +
+            nlMac +     // both these newlines should be "eaten up" by just one EOL token
+            "bar {" +
+            nlMac +
+            nlWin +
+            nlUnix +   // all three should be "eaten up" by just one EOL token
+            "}"
+
+        val parseTree = parseModule(srcText)
+        assertEquals(parseTree.block().size, 2)
+    }
+
     @Test
     fun testProg8Ast() {
         // can create charstreams from many other sources as well;
