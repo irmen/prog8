@@ -17,6 +17,15 @@ class TestAntlrParser {
         }
     }
 
+    private fun parseModule(srcText: String): prog8Parser.ModuleContext {
+        val lexer = prog8Lexer(CharStreams.fromString(srcText))
+        val tokens = CommonTokenStream(lexer)
+        val parser = prog8Parser(tokens)
+        //parser.errorHandler = BailErrorStrategy()
+        parser.addErrorListener(MyErrorListener())
+        return parser.module()
+    }
+
     object TestStringEncoding: IStringEncoding {
         override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
             TODO("Not yet implemented")
@@ -28,24 +37,30 @@ class TestAntlrParser {
     }
 
     @Test
-    fun testAntlrTree() {
-        // can create charstreams from many other sources as well;
-        val charstream = CharStreams.fromString("""
+    fun testModuleFileNeedNotEndWithNewline() {
+        val srcText = """
+main {
+    sub start() {
+        return
+    }
+}""" // file ends with '}' (= NO newline, issue #40)
+
+        // before the fix, prog8Parser would have reported (thrown) "missing <EOL> at '<EOF>'"
+        val parseTree = parseModule(srcText)
+        assertEquals(parseTree.block().size, 1)
+    }
+
+    @Test
+    fun testModuleFileMayEndWithNewline() {
+        val srcText = """
 main {
     sub start() {
         return
     }
 }
-""")
-        val lexer = prog8Lexer(charstream)
-        val tokens = CommonTokenStream(lexer)
-        val parser = prog8Parser(tokens)
-        parser.errorHandler = BailErrorStrategy()
-//        parser.removeErrorListeners()
-//        parser.addErrorListener(MyErrorListener())
-        val nodes = parser.module()
-        val blockName = nodes.block(0).identifier().NAME().text
-        assertEquals(blockName, "main")
+""" // file does end with a newline (issue #40)
+        val parseTree = parseModule(srcText)
+        assertEquals(parseTree.block().size, 1)
     }
 
     @Test
