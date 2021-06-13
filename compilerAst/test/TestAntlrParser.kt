@@ -37,13 +37,9 @@ class TestAntlrParser {
     }
 
     @Test
-    fun testModuleFileNeedNotEndWithNewline() {
-        val srcText = """
-main {
-    sub start() {
-        return
-    }
-}""" // file ends with '}' (= NO newline, issue #40)
+    fun testModuleSourceNeedNotEndWithNewline() {
+        val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
+        val srcText = "foo {" + nl + "}"   // source ends with '}' (= NO newline, issue #40)
 
         // before the fix, prog8Parser would have reported (thrown) "missing <EOL> at '<EOF>'"
         val parseTree = parseModule(srcText)
@@ -51,14 +47,9 @@ main {
     }
 
     @Test
-    fun testModuleFileMayEndWithNewline() {
-        val srcText = """
-main {
-    sub start() {
-        return
-    }
-}
-""" // file does end with a newline (issue #40)
+    fun testModuleSourceMayEndWithNewline() {
+        val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
+        val srcText = "foo {" + nl + "}" + nl  // source does end with a newline (issue #40)
         val parseTree = parseModule(srcText)
         assertEquals(parseTree.block().size, 1)
     }
