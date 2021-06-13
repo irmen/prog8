@@ -2,8 +2,8 @@
 plugins {
     id 'java'
     id 'application'
-    id "org.jetbrains.kotlin.jvm" version "1.5.10"
-    id 'com.github.johnrengelman.shadow' version '6.1.0'
+    id "org.jetbrains.kotlin.jvm"
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
 }
 
 targetCompatibility = 11
@@ -30,6 +30,12 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
 }
+
+configurations.all {
+    exclude group: 'com.ibm.icu', module: 'icu4j'
+    exclude group: "org.antlr", module: "antlr4"
+}
+
 
 compileKotlin {
     kotlinOptions {
@@ -65,8 +71,7 @@ startScripts.enabled = true
 
 application {
     mainClass = 'prog8.http.TestHttpKt'
-    mainClassName = 'prog8.http.TestHttpKt' // deprecated
-    applicationName = 'testhttp'
+    applicationName = 'prog8compilerservicehttp'
 }
 
 artifacts {
@@ -92,8 +97,4 @@ test {
     testLogging {
         events "skipped", "failed"
     }
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '6.7'
 }
