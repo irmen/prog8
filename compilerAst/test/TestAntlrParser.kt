@@ -55,6 +55,21 @@ class TestAntlrParser {
     }
 
     @Test
+    fun testAllBlocksButLastMustEndWithNewline() {
+        val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
+
+        // BAD: 2nd block `bar` does NOT start on new line; however, there's is a nl at the very end
+        val srcBad = "foo {" + nl + "}" + " bar {" + nl + "}" + nl
+
+        // GOOD: 2nd block `bar` does start on a new line; however, a nl at the very end ain't needed
+        val srcGood = "foo {" + nl + "}" + nl + "bar {" + nl + "}"
+
+        assertFailsWith<ParsingFailedError> { parseModule(srcBad) }
+        val parseTree = parseModule(srcGood)
+        assertEquals(parseTree.block().size, 2)
+    }
+    
+    @Test
     fun testProg8Ast() {
         // can create charstreams from many other sources as well;
         val charstream = CharStreams.fromString("""
