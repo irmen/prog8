@@ -5,7 +5,6 @@ NOTES:
 
 - whitespace is ignored. (tabs/spaces)
 - every position can be empty, be a comment, or contain ONE statement.
-- input is assumed to be a text file with UNIX line endings (\n).
 
 */
 
