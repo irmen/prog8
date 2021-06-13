@@ -74,8 +74,7 @@ register: 'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pz' | 'Pn' | 'Pv' | 'R0
 
 module :  (directive | block | EOL)* EOF ;
 
-//block:	identifier integerliteral? '{' EOL (block_statement | EOL) * '}' (EOL | EOF) ;
-block:	identifier integerliteral? '{' EOL (block_statement | EOL) * '}' EOL ;
+block:	identifier integerliteral? '{' EOL (block_statement | EOL) * '}' (EOL | EOF) ;
 
 
 block_statement:
