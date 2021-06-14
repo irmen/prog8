@@ -14,15 +14,9 @@ grammar prog8;
 package prog8.parser;
 }
 
-//FIXME: why isn't testWindowsAndMacNewlinesAreAlsoFine *failing* with this old stuff?!
-//      note: when we build the whole thing with it, then non-Unix newlines actually DO NOT work with it...?!
-LINECOMMENT : '\n' [ \t]* COMMENT -> channel(HIDDEN);
-COMMENT :  ';' ~[\n]* -> channel(HIDDEN) ;
-EOL :  '\n'+ ;
-
-//LINECOMMENT : ('\r'? '\n' | '\r') [ \t]* COMMENT -> channel(HIDDEN);
-//COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
-//EOL :  ('\r'? '\n' | '\r')+ ;
+LINECOMMENT : ('\r'? '\n' | '\r') [ \t]* COMMENT -> channel(HIDDEN);
+COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
+EOL :  ('\r'? '\n' | '\r')+ ;
 
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
