@@ -1,11 +1,14 @@
 package prog8tests
 
 import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.misc.ParseCancellationException
 import org.junit.jupiter.api.Test
 import prog8.ast.IStringEncoding
 import prog8.ast.antlr.toAst
 import prog8.ast.statements.Block
-import prog8.parser.*
+import prog8.parser.ParsingFailedError
+import prog8.parser.prog8Lexer
+import prog8.parser.prog8Parser
 import java.nio.file.Path
 import kotlin.test.*
 
@@ -13,16 +16,43 @@ class TestAntlrParser {
 
     class MyErrorListener: ConsoleErrorListener() {
         override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
-            throw ParsingFailedError(msg)
+            throw ParsingFailedError("line $line:$charPositionInLine $msg")
+        }
+    }
+
+    class MyErrorStrategy: BailErrorStrategy() {
+        override fun recover(recognizer: Parser?, e: RecognitionException?) {
+            try {
+                // let it fill in e in all the contexts
+                super.recover(recognizer, e)
+            } catch (pce: ParseCancellationException) {
+                reportError(recognizer, e)
+            }
+        }
+
+        override fun recoverInline(recognizer: Parser?): Token {
+            throw InputMismatchException(recognizer)
         }
     }
 
     private fun parseModule(srcText: String): prog8Parser.ModuleContext {
-        val lexer = prog8Lexer(CharStreams.fromString(srcText))
+        return parseModule(CharStreams.fromString(srcText))
+    }
+
+    private fun parseModule(srcFile: Path): prog8Parser.ModuleContext {
+        return parseModule(CharStreams.fromPath(srcFile))
+    }
+
+    private fun parseModule(srcStream: CharStream): prog8Parser.ModuleContext {
+        val errorListener = MyErrorListener()
+        val lexer = prog8Lexer(srcStream)
+        lexer.removeErrorListeners()
+        lexer.addErrorListener(errorListener)
         val tokens = CommonTokenStream(lexer)
         val parser = prog8Parser(tokens)
-        //parser.errorHandler = BailErrorStrategy()
-        parser.addErrorListener(MyErrorListener())
+        parser.errorHandler = MyErrorStrategy()
+        parser.removeErrorListeners()
+        parser.addErrorListener(errorListener)
         return parser.module()
     }
 
@@ -75,18 +105,23 @@ class TestAntlrParser {
         val nlUnix = "\n"
         val nlMac = "\r"
 
+        //parseModule(Paths.get("test", "fixtures", "mac_newlines.p8").toAbsolutePath())
+
         // a good mix of all kinds of newlines:
         val srcText =
             "foo {" +
-            nlWin +
-            "}" +
-            nlUnix +
-            nlMac +     // both these newlines should be "eaten up" by just one EOL token
-            "bar {" +
             nlMac +
             nlWin +
-            nlUnix +   // all three should be "eaten up" by just one EOL token
-            "}"
+            "}" +
+            nlMac +     // <-- do test a single \r (!) where an EOL is expected
+            "bar {" +
+            nlUnix +
+            "}" +
+            nlUnix + nlMac   // both should be "eaten up" by just one EOL token
+            "combi {" +
+            nlMac + nlWin + nlUnix   // all three should be "eaten up" by just one EOL token
+            "}" +
+            nlUnix      // end with newline (see testModuleSourceNeedNotEndWithNewline)
 
         val parseTree = parseModule(srcText)
         assertEquals(parseTree.block().size, 2)
