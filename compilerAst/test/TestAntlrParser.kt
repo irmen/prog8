@@ -3,12 +3,18 @@ package prog8tests
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.ParseCancellationException
 import org.junit.jupiter.api.Test
+import prog8.ast.IBuiltinFunctions
+import prog8.ast.IMemSizer
 import prog8.ast.IStringEncoding
+import prog8.ast.Program
 import prog8.ast.antlr.toAst
+import prog8.ast.base.DataType
+import prog8.ast.base.Position
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.InferredTypes
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Block
-import prog8.parser.ParsingFailedError
-import prog8.parser.prog8Lexer
-import prog8.parser.prog8Parser
+import prog8.parser.*
 import java.nio.file.Path
 import kotlin.test.*
 
@@ -56,7 +62,7 @@ class TestAntlrParser {
         return parser.module()
     }
 
-    object TestStringEncoding: IStringEncoding {
+    object DummyEncoding: IStringEncoding {
         override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
             TODO("Not yet implemented")
         }
@@ -64,6 +70,17 @@ class TestAntlrParser {
         override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
             TODO("Not yet implemented")
         }
+    }
+
+    object DummyFunctions: IBuiltinFunctions {
+        override val names: Set<String> = emptySet()
+        override val purefunctionNames: Set<String> = emptySet()
+        override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? = null
+        override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
+    }
+
+    object DummyMemsizer: IMemSizer {
+        override fun memorySize(dt: DataType): Int = 0
     }
 
     @Test
@@ -128,6 +145,94 @@ class TestAntlrParser {
     }
 
     @Test
+    fun testInterleavedEolAndCommentBeforeFirstBlock() {
+        // issue: #47
+        val srcText = """
+            ; comment
+            
+            ; comment
+            
+            blockA {            
+            }
+"""
+        val parseTree = parseModule(srcText)
+        assertEquals(parseTree.block().size, 1)
+    }
+
+    @Test
+    fun testInterleavedEolAndCommentBetweenBlocks() {
+        // issue: #47
+        val srcText = """
+            blockA {
+            }
+            ; comment
+            
+            ; comment
+            
+            blockB {            
+            }
+"""
+        val parseTree = parseModule(srcText)
+        assertEquals(parseTree.block().size, 2)
+    }
+
+    @Test
+    fun testInterleavedEolAndCommentAfterLastBlock() {
+        // issue: #47
+        val srcText = """
+            blockA {            
+            }
+            ; comment
+            
+            ; comment
+            
+"""
+        val parseTree = parseModule(srcText)
+        assertEquals(parseTree.block().size, 1)
+    }
+
+    @Test
+    fun testNewlineBetweenTwoBlocksOrDirectivesStillRequired() {
+        // issue: #47
+
+        // block and block
+        assertFailsWith<ParsingFailedError>{ parseModule("""
+            blockA {
+            } blockB {            
+            }            
+        """) }
+
+        // block and directive
+        assertFailsWith<ParsingFailedError>{ parseModule("""
+            blockB {            
+            } %import textio            
+        """) }
+
+        // The following two are bogus due to directive *args* expected to follow the directive name.
+        // Leaving them in anyways.
+
+        // dir and block
+        assertFailsWith<ParsingFailedError>{ parseModule("""
+            %import textio blockB {            
+            }            
+        """) }
+
+        assertFailsWith<ParsingFailedError>{ parseModule("""
+            %import textio %import syslib            
+        """) }
+    }
+
+    /*
+    @Test
+    fun testImportLibraryModule() {
+        val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+        val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
+
+        //assertFailsWith<ParsingFailedError>(){ importer.importLibraryModule("import_file_with_syntax_error") }
+    }
+    */
+
+    @Test
     fun testProg8Ast() {
         // can create charstreams from many other sources as well;
         val charstream = CharStreams.fromString("""
@@ -144,7 +249,7 @@ main {
 //        parser.removeErrorListeners()
 //        parser.addErrorListener(MyErrorListener())
 
-        val ast = parser.module().toAst("test", false, Path.of(""), TestStringEncoding)
+        val ast = parser.module().toAst("test", false, Path.of(""), DummyEncoding)
         assertIs<Block>(ast.statements.first())
         assertEquals((ast.statements.first() as Block).name, "main")
     }
