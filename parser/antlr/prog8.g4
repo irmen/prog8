@@ -5,7 +5,6 @@ NOTES:
 
 - whitespace is ignored. (tabs/spaces)
 - every position can be empty, be a comment, or contain ONE statement.
-- input is assumed to be a text file with UNIX line endings (\n).
 
 */
 
@@ -15,10 +14,11 @@ grammar prog8;
 package prog8.parser;
 }
 
-LINECOMMENT : [\n][ \t]* COMMENT -> channel(HIDDEN);
-COMMENT :  ';' ~[\n]* -> channel(HIDDEN) ;
+LINECOMMENT : ('\r'? '\n' | '\r') [ \t]* COMMENT -> channel(HIDDEN);
+COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
+EOL :  ('\r'? '\n' | '\r')+ ;
+
 WS :  [ \t] -> skip ;
-EOL :  [\n]+ ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
 NAME :  [a-zA-Z][a-zA-Z0-9_]* ;
@@ -73,9 +73,12 @@ ARRAYSIG :
 cpuregister: 'A' | 'X' | 'Y';
 register: 'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pz' | 'Pn' | 'Pv' | 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'R8' | 'R9' | 'R10' | 'R11' | 'R12' | 'R13' | 'R14' | 'R15';
 
-module :  (directive | block | EOL)* EOF ;
+// A module (file) consists of zero or more directives or blocks, in any order.
+// If there are more than one, then they must be separated by EOL (one or more newlines).
+// However, trailing EOL is NOT required.
+module: EOL? ((directive | block) (EOL (directive | block))*)? EOL? EOF;
 
-block:	identifier integerliteral? '{' EOL (block_statement | EOL) * '}' EOL ;
+block: identifier integerliteral? '{' EOL (block_statement | EOL)* '}';
 
 
 block_statement:
