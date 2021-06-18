@@ -76,7 +76,8 @@ register: 'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pz' | 'Pn' | 'Pv' | 'R0
 // A module (file) consists of zero or more directives or blocks, in any order.
 // If there are more than one, then they must be separated by EOL (one or more newlines).
 // However, trailing EOL is NOT required.
-module: EOL? ((directive | block) (EOL (directive | block))*)? EOL? EOF;
+// Note: the parser may see *several* consecutive EOLs - this happens when EOL and comments are interleaved (see #47)
+module: EOL* ((directive | block) (EOL+ (directive | block))*)? EOL* EOF;
 
 block: identifier integerliteral? '{' EOL (block_statement | EOL)* '}';
 
