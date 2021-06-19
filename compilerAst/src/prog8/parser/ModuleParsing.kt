@@ -4,7 +4,6 @@ import org.antlr.v4.runtime.*
 import prog8.ast.IStringEncoding
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.antlr.toAst
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
@@ -41,10 +40,21 @@ class ModuleImporter(private val program: Program,
         if(!Files.isReadable(filePath))
             throw ParsingFailedError("No such file: $filePath")
 
-        val content = filePath.toFile().readText()
-        val cs = CharStreams.fromString(content)
+        val module = Prog8Parser.parseModule(filePath)
 
-        return importModule(cs, filePath)
+        module.program = program
+        module.linkParents(program.namespace)
+        program.modules.add(module)
+
+        // accept additional imports
+        val lines = module.statements.toMutableList()
+        lines.asSequence()
+            .mapIndexed { i, it -> i to it }
+            .filter { (it.second as? Directive)?.directive == "%import" }
+            .forEach { executeImportDirective(it.second as Directive, filePath) }
+
+        module.statements = lines
+        return module
     }
 
     fun importLibraryModule(name: String): Module? {
