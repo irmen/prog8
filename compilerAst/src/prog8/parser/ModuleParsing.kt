@@ -37,8 +37,6 @@ class ModuleImporter(private val program: Program,
         }
         else
             println("")
-        if(!Files.isReadable(filePath))
-            throw ParsingFailedError("No such file: $filePath")
 
         val module = Prog8Parser.parseModule(filePath)
 
