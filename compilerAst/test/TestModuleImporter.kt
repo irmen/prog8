@@ -14,7 +14,7 @@ import prog8.parser.ParseError
 import java.nio.file.Path
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.io.path.isRegularFile
+import kotlin.io.path.*
 import kotlin.test.*
 
 
@@ -42,6 +42,43 @@ class TestModuleImporter {
         override fun memorySize(dt: DataType): Int = 0
     }
 
+
+    @Test
+    fun testImportModuleWithNonExistingPath() {
+        val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+        val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
+
+        val srcPath = Path.of("test", "fixtures", "i_do_not_exist")
+
+        assertFalse(srcPath.exists(), "sanity check: file should not exist")
+        assertFailsWith<java.nio.file.NoSuchFileException> { importer.importModule(srcPath) }
+    }
+
+    @Test
+    fun testImportModuleWithDirectoryPath() {
+        val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+        val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
+
+        val srcPath = Path.of("test", "fixtures")
+
+        assertTrue(srcPath.isDirectory(), "sanity check: should be a directory")
+
+        // fn importModule(Path) used to check *.isReadable()*, but NOT .isRegularFile():
+        assertTrue(srcPath.isReadable(), "sanity check: should still be readable")
+
+        assertFailsWith<java.nio.file.AccessDeniedException> { importer.importModule(srcPath) }
+    }
+
+    @Test
+    fun testImportLibraryModuleWithNonExistingPath() {
+        val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+        val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
+
+        val srcPath = Path.of("i_do_not_exist.p8")
+
+        assertFalse(srcPath.exists(), "sanity check: file should not exist")
+        assertFailsWith<java.nio.file.NoSuchFileException> { importer.importLibraryModule(srcPath.nameWithoutExtension) }
+    }
 
     @Test
     fun testImportModuleWithSyntaxError() {
