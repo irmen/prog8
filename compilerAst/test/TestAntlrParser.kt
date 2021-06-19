@@ -29,8 +29,11 @@ class TestAntlrParser {
     class MyErrorStrategy: BailErrorStrategy() {
         override fun recover(recognizer: Parser?, e: RecognitionException?) {
             try {
-                // let it fill in e in all the contexts
-                super.recover(recognizer, e)
+                // let it
+                super.recover(recognizer, e) // fills in exception e in all the contexts
+                // ...then throws ParseCancellationException, which is
+                // *deliberately* not a RecognitionException. However, we don't try any
+                // error recovery, therefore report an error in this case, too.
             } catch (pce: ParseCancellationException) {
                 reportError(recognizer, e)
             }
@@ -41,21 +44,21 @@ class TestAntlrParser {
         }
     }
 
-    private fun parseModule(srcText: String): prog8Parser.ModuleContext {
+    private fun parseModule(srcText: String): Prog8ANTLRParser.ModuleContext {
         return parseModule(CharStreams.fromString(srcText))
     }
 
-    private fun parseModule(srcFile: Path): prog8Parser.ModuleContext {
+    private fun parseModule(srcFile: Path): Prog8ANTLRParser.ModuleContext {
         return parseModule(CharStreams.fromPath(srcFile))
     }
 
-    private fun parseModule(srcStream: CharStream): prog8Parser.ModuleContext {
+    private fun parseModule(srcStream: CharStream): Prog8ANTLRParser.ModuleContext {
         val errorListener = MyErrorListener()
-        val lexer = prog8Lexer(srcStream)
+        val lexer = Prog8ANTLRLexer(srcStream)
         lexer.removeErrorListeners()
         lexer.addErrorListener(errorListener)
         val tokens = CommonTokenStream(lexer)
-        val parser = prog8Parser(tokens)
+        val parser = Prog8ANTLRParser(tokens)
         parser.errorHandler = MyErrorStrategy()
         parser.removeErrorListeners()
         parser.addErrorListener(errorListener)
@@ -88,7 +91,7 @@ class TestAntlrParser {
         val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
         val srcText = "foo {" + nl + "}"   // source ends with '}' (= NO newline, issue #40)
 
-        // before the fix, prog8Parser would have reported (thrown) "missing <EOL> at '<EOF>'"
+        // before the fix, Prog8ANTLRParser would have reported (thrown) "missing <EOL> at '<EOF>'"
         val parseTree = parseModule(srcText)
         assertEquals(parseTree.block().size, 1)
     }
@@ -234,22 +237,14 @@ class TestAntlrParser {
 
     @Test
     fun testProg8Ast() {
-        // can create charstreams from many other sources as well;
-        val charstream = CharStreams.fromString("""
+        val parseTree = parseModule("""
 main {
     sub start() {
         return
     }
 }
 """)
-        val lexer = prog8Lexer(charstream)
-        val tokens = CommonTokenStream(lexer)
-        val parser = prog8Parser(tokens)
-        parser.errorHandler = BailErrorStrategy()
-//        parser.removeErrorListeners()
-//        parser.addErrorListener(MyErrorListener())
-
-        val ast = parser.module().toAst("test", Path.of(""), DummyEncoding)
+        val ast = parseTree.toAst("test", Path.of(""), DummyEncoding)
         assertIs<Block>(ast.statements.first())
         assertEquals((ast.statements.first() as Block).name, "main")
     }
