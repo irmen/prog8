@@ -13,9 +13,12 @@ import prog8.parser.ModuleImporter
 import prog8.parser.ParseError
 import java.nio.file.Path
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import kotlin.io.path.isRegularFile
 import kotlin.test.*
 
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestModuleImporter {
 
     object DummyEncoding: IStringEncoding {
@@ -39,6 +42,7 @@ class TestModuleImporter {
         override fun memorySize(dt: DataType): Int = 0
     }
 
+
     @Test
     fun testImportModuleWithSyntaxError() {
         val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
@@ -59,7 +63,53 @@ class TestModuleImporter {
     }
 
     @Test
-    fun testImportLibraryModuleImportingBadModule() {
+    fun testImportModuleWithImportingModuleWithSyntaxError() {
+        val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+        val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
+
+        val importing = Path.of("test", "fixtures", "import_file_with_syntax_error.p8")
+        val imported = Path.of("test", "fixtures", "file_with_syntax_error.p8")
+
+        val act = { importer.importModule(importing) }
+
+        assertTrue(importing.isRegularFile(), "sanity check: should be regular file")
+        assertFailsWith<ParseError> { act() }
+        try {
+            act()
+        } catch (e: ParseError) {
+            assertEquals(imported.fileName.toString(), e.position.file, "provenance; should be the importED file's filename, incl. extension '.p8'")
+            assertEquals(2, e.position.line, "line; should be 1-based")
+            assertEquals(6, e.position.startCol, "startCol; should be 0-based" )
+            assertEquals(6, e.position.endCol, "endCol; should be 0-based")
+        }
+    }
+
+
+    @Test
+    fun testImportLibraryModuleWithSyntaxError() {
+        val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+        val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
+
+        val filename = "file_with_syntax_error"
+        val act = { importer.importLibraryModule(filename) }
+
+        assertFailsWith<ParseError> { act() }
+        try {
+            act()
+        } catch (e: ParseError) {
+            assertEquals(
+                filename + ".p8",
+                e.position.file,
+                "provenance; should be the path's filename, incl. extension '.p8'"
+            )
+            assertEquals(2, e.position.line, "line; should be 1-based")
+            assertEquals(6, e.position.startCol, "startCol; should be 0-based")
+            assertEquals(6, e.position.endCol, "endCol; should be 0-based")
+        }
+    }
+
+    @Test
+    fun testImportLibraryModuleWithImportingBadModule() {
         val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
         val importer = ModuleImporter(program, DummyEncoding, "blah", listOf("./test/fixtures"))
 
@@ -71,9 +121,13 @@ class TestModuleImporter {
         try {
             act()
         } catch (e: ParseError) {
-            assertEquals(imported + ".p8", e.position.file, "provenance; should be the importED file's name, incl. extension '.p8'")
+            assertEquals(
+                imported + ".p8",
+                e.position.file,
+                "provenance; should be the importED file's name, incl. extension '.p8'"
+            )
             assertEquals(2, e.position.line, "line; should be 1-based")
-            assertEquals(6, e.position.startCol, "startCol; should be 0-based" )
+            assertEquals(6, e.position.startCol, "startCol; should be 0-based")
             assertEquals(6, e.position.endCol, "endCol; should be 0-based")
         }
     }

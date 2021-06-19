@@ -3,8 +3,13 @@ package prog8tests
 import org.junit.jupiter.api.Test
 import prog8.ast.statements.Block
 import prog8.parser.ParseError
+import prog8.parser.Prog8Parser
 import prog8.parser.Prog8Parser.parseModule
 import java.nio.file.Path
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.isReadable
+import kotlin.io.path.isRegularFile
 import kotlin.test.*
 
 class TestProg8Parser {
@@ -146,6 +151,43 @@ class TestProg8Parser {
         assertFailsWith<ParseError>{ parseModule("""
             %import textio %import syslib            
         """) }
+    }
+
+    @Test
+    fun testParseModuleWithDirectoryPath() {
+        val srcPath = Path.of("test", "fixtures")
+        assertTrue(srcPath.isDirectory(), "sanity check: should be a directory")
+        assertFailsWith<java.nio.file.AccessDeniedException> { Prog8Parser.parseModule(srcPath) }
+    }
+
+    @Test
+    fun testParseModuleWithNonExistingPath() {
+        val srcPath = Path.of("test", "fixtures", "i_do_not_exist")
+        assertFalse(srcPath.exists(), "sanity check: file should not exist")
+        assertFailsWith<java.nio.file.NoSuchFileException> { Prog8Parser.parseModule(srcPath) }
+    }
+
+    @Test
+    fun testParseModuleWithPathMissingExtension_p8() {
+        val srcPathWithoutExt = Path.of("test", "fixtures", "file_with_syntax_error")
+        val srcPathWithExt = Path.of(srcPathWithoutExt.toString() + ".p8")
+        assertTrue(srcPathWithExt.isRegularFile(), "sanity check: should be normal file")
+        assertTrue(srcPathWithExt.isReadable(), "sanity check: should be readable")
+        assertFailsWith<java.nio.file.NoSuchFileException> { Prog8Parser.parseModule(srcPathWithoutExt) }
+    }
+
+    @Test
+    fun testParseModuleWithStringShouldNotLookAtImports() {
+        val srcText = "%import i_do_not_exist"
+        val module = Prog8Parser.parseModule(srcText)
+        assertEquals(1, module.statements.size)
+    }
+
+    @Test
+    fun testParseModuleWithPathShouldNotLookAtImports() {
+        val srcPath = Path.of("test", "fixtures", "import_nonexisting.p8")
+        val module = Prog8Parser.parseModule(srcPath)
+        assertEquals(1, module.statements.size)
     }
 
     @Test
