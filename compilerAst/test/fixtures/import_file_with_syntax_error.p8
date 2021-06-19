@@ -1,0 +1,1 @@
+%import file_with_syntax_error

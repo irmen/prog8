@@ -1,47 +1,50 @@
 package prog8.parser
 
 import org.antlr.v4.runtime.*
-import org.antlr.v4.runtime.misc.ParseCancellationException
-import prog8.ast.antlr.toAst
 import prog8.ast.Module
+import prog8.ast.antlr.toAst
+import prog8.ast.base.Position
+import java.nio.file.Path
 
 
-class Prog8ErrorStrategy: BailErrorStrategy() {
-    override fun recover(recognizer: Parser?, e: RecognitionException?) {
-        try {
-            // let it
-            super.recover(recognizer, e) // fills in exception e in all the contexts
-            // ...then throws ParseCancellationException, which is
-            // *deliberately* not a RecognitionException. However, we don't try any
-            // error recovery, therefore report an error in this case, too.
-        } catch (pce: ParseCancellationException) {
-            reportError(recognizer, e)
-        }
-    }
+open class ParsingFailedError(override var message: String) : Exception(message)
 
-    override fun recoverInline(recognizer: Parser?): Token {
-        throw InputMismatchException(recognizer)
+class ParseError(override var message: String, val position: Position, cause: RuntimeException)
+    : ParsingFailedError("${position.toClickableStr()}$message") {
+    init {
+        initCause(cause)
     }
 }
 
-object ThrowErrorListener: BaseErrorListener() {
-    override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
-        throw ParsingFailedError("$e: $msg")
-    }
+private fun RecognitionException.getPosition(provenance: String) : Position {
+    val offending = this.offendingToken
+    val line = offending.line
+    val beginCol = offending.charPositionInLine
+    val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token?
+    val pos = Position(provenance, line, beginCol, endCol)
+    return pos
 }
 
-class Prog8Parser(private val errorListener: ANTLRErrorListener = ThrowErrorListener) {
+object Prog8Parser {
 
-    fun parseModule(sourceText: String): Module {
-        val chars = CharStreams.fromString(sourceText)
+    fun parseModule(srcPath: Path): Module {
+        return parseModule(CharStreams.fromPath(srcPath), srcPath.fileName.toString())
+    }
+
+    fun parseModule(srcText: String): Module {
+        return parseModule(CharStreams.fromString(srcText), "<String@${System.identityHashCode(srcText).toString(16)}>")
+    }
+
+    private fun parseModule(chars: CharStream, provenance: String): Module {
+        val antlrErrorListener = AntlrErrorListener(provenance)
         val lexer = Prog8ANTLRLexer(chars)
         lexer.removeErrorListeners()
-        lexer.addErrorListener(errorListener)
+        lexer.addErrorListener(antlrErrorListener)
         val tokens = CommonTokenStream(lexer)
         val parser = Prog8ANTLRParser(tokens)
-        parser.errorHandler = Prog8ErrorStrategy()
+        parser.errorHandler = Prog8ErrorStrategy
         parser.removeErrorListeners()
-        parser.addErrorListener(errorListener)
+        parser.addErrorListener(antlrErrorListener)
 
         val parseTree = parser.module()
         val moduleName = "anonymous"
@@ -54,4 +57,42 @@ class Prog8Parser(private val errorListener: ANTLRErrorListener = ThrowErrorList
     }
         return module
     }
+
+    private object Prog8ErrorStrategy: BailErrorStrategy() {
+        private fun fillIn(e: RecognitionException?, ctx: ParserRuleContext?) {
+            var context = ctx
+            while (context != null) {
+                context.exception = e
+                context = context.getParent()
+            }
+        }
+
+        override fun reportInputMismatch(recognizer: Parser?, e: InputMismatchException?) {
+            super.reportInputMismatch(recognizer, e)
+        }
+
+        override fun recover(recognizer: Parser?, e: RecognitionException?) {
+            fillIn(e, recognizer!!.context)
+            reportError(recognizer, e)
+        }
+
+        override fun recoverInline(recognizer: Parser?): Token {
+            val e = InputMismatchException(recognizer)
+            fillIn(e, recognizer!!.context)
+            reportError(recognizer, e)
+            throw e
+        }
+    }
+
+    private class AntlrErrorListener(val sourceCodeProvenance: String): BaseErrorListener() {
+        override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
+            if (e == null) {
+                TODO("no RecognitionException - create your own ParseError")
+                //throw ParseError()
+            } else {
+                throw ParseError(msg, e.getPosition(sourceCodeProvenance), e)
+            }
+        }
+    }
+
 }
