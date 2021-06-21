@@ -98,7 +98,6 @@ class TestAstToSourceCode {
     }
 
     @Test
-    @Disabled("TODO: char literals should be kept until code gen - step 4, 'introduce AST node CharLiteral'")
     fun testCharLiteral_noAlt() {
         val orig = SourceCode.of("""
             main {
@@ -111,7 +110,6 @@ class TestAstToSourceCode {
     }
 
     @Test
-    @Disabled("TODO: char literals should be kept until code gen - step 4, 'introduce AST node CharLiteral'")
     fun testCharLiteral_withAlt() {
         val orig = SourceCode.of("""
             main {

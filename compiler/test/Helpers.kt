@@ -48,6 +48,7 @@ fun assumeReadable(path: Path) {
 }
 
 fun assumeReadableFile(path: Path) {
+    assumeReadable(path)
     assertTrue(path.isRegularFile(), "sanity check: should be normal file: ${path.absolute()}")
 }
 
@@ -66,7 +67,6 @@ fun sanityCheckDirectories(workingDirName: String? = null) {
     assumeDirectory(fixturesDir)
     assumeDirectory(resourcesDir)
     assumeDirectory(outputDir)
-
 }
 
 
@@ -96,6 +96,4 @@ val DummyFunctions = object : IBuiltinFunctions {
 val DummyMemsizer = object : IMemSizer {
     override fun memorySize(dt: DataType): Int = 0
 }
-
-
 

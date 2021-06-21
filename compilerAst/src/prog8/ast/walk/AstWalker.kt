@@ -110,6 +110,7 @@ abstract class AstWalker {
     open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -150,6 +151,7 @@ abstract class AstWalker {
     open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -298,6 +300,11 @@ abstract class AstWalker {
     fun visit(numLiteral: NumericLiteralValue, parent: Node) {
         track(before(numLiteral, parent), numLiteral, parent)
         track(after(numLiteral, parent), numLiteral, parent)
+    }
+
+    fun visit(char: CharLiteral, parent: Node) {
+        track(before(char, parent), char, parent)
+        track(after(char, parent), char, parent)
     }
 
     fun visit(string: StringLiteralValue, parent: Node) {

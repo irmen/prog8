@@ -435,15 +435,7 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) 
                 }
                 litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
                 litval.stringliteral()!=null -> litval.stringliteral().toAst()
-                litval.charliteral()!=null -> {
-                    try {
-                        NumericLiteralValue(DataType.UBYTE, encoding.encodeString(
-                                unescape(litval.charliteral().SINGLECHAR().text, litval.toPosition()),
-                                litval.charliteral().ALT_STRING_ENCODING()!=null)[0], litval.toPosition())
-                    } catch (ce: CharConversionException) {
-                        throw SyntaxError(ce.message ?: ce.toString(), litval.toPosition())
-                    }
-                }
+                litval.charliteral()!=null -> litval.charliteral().toAst()
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral().toAst(encoding)
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
@@ -490,6 +482,9 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) 
 
     throw FatalAstException(text)
 }
+
+private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral =
+    CharLiteral(unescape(this.SINGLECHAR().text, toPosition())[0], this.ALT_STRING_ENCODING() != null, toPosition())
 
 private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue =
     StringLiteralValue(unescape(this.STRING().text, toPosition()), ALT_STRING_ENCODING()!=null, toPosition())

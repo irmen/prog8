@@ -11,9 +11,10 @@ import kotlin.io.path.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8.ast.Node
-import prog8.ast.base.Position
+import prog8.ast.*
 import prog8.ast.statements.*
+import prog8.ast.base.Position
+import prog8.ast.expressions.CharLiteral
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -336,4 +337,98 @@ class TestProg8Parser {
         assertPositionOf(whenStmt.choices[2], mpf, 9, 12)  // TODO: endCol wrong!
     }
 
+    @Test
+    fun testCharLitAsArg() {
+        val src = SourceCode.of("""
+             main {
+                sub start() {
+                    chrout('\n')
+                }
+            }
+        """)
+        val module = parseModule(src)
+
+        val startSub = module
+            .statements.filterIsInstance<Block>()[0]
+            .statements.filterIsInstance<Subroutine>()[0]
+        val funCall = startSub.statements.filterIsInstance<IFunctionCall>().first()
+
+        assertIs<CharLiteral>(funCall.args[0])
+        val char = funCall.args[0] as CharLiteral
+        assertEquals('\n', char.value)
+    }
+
+    @Test
+    fun testBlockLevelVarDeclWithCharLiteral_noAltEnc() {
+        val src = SourceCode.of("""
+            main {
+                ubyte c = 'x'
+            }
+        """)
+        val module = parseModule(src)
+        val decl = module
+            .statements.filterIsInstance<Block>()[0]
+            .statements.filterIsInstance<VarDecl>()[0]
+
+        val rhs = decl.value as CharLiteral
+        assertEquals('x', rhs.value, "char literal's .value")
+        assertEquals(false, rhs.altEncoding, "char literal's .altEncoding")
+    }
+
+    @Test
+    fun testBlockLevelConstDeclWithCharLiteral_withAltEnc() {
+        val src = SourceCode.of("""
+            main {
+                const ubyte c = @'x'
+            }
+        """)
+        val module = parseModule(src)
+        val decl = module
+            .statements.filterIsInstance<Block>()[0]
+            .statements.filterIsInstance<VarDecl>()[0]
+
+        val rhs = decl.value as CharLiteral
+        assertEquals('x', rhs.value, "char literal's .value")
+        assertEquals(true, rhs.altEncoding, "char literal's .altEncoding")
+    }
+
+    @Test
+    fun testSubRoutineLevelVarDeclWithCharLiteral_noAltEnc() {
+        val src = SourceCode.of("""
+            main {
+                sub start() {
+                    ubyte c = 'x'
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val decl = module
+            .statements.filterIsInstance<Block>()[0]
+            .statements.filterIsInstance<Subroutine>()[0]
+            .statements.filterIsInstance<VarDecl>()[0]
+
+        val rhs = decl.value as CharLiteral
+        assertEquals('x', rhs.value, "char literal's .value")
+        assertEquals(false, rhs.altEncoding, "char literal's .altEncoding")
+    }
+
+    @Test
+    fun testSubRoutineLevelConstDeclWithCharLiteral_withAltEnc() {
+        val src = SourceCode.of("""
+            main {
+                sub start() {
+                    const ubyte c = @'x'
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val decl = module
+            .statements.filterIsInstance<Block>()[0]
+            .statements.filterIsInstance<Subroutine>()[0]
+            .statements.filterIsInstance<VarDecl>()[0]
+
+        val rhs = decl.value as CharLiteral
+        assertEquals('x', rhs.value, "char literal's .value")
+        assertEquals(true, rhs.altEncoding, "char literal's .altEncoding")
+    }
 }

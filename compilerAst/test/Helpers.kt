@@ -1,6 +1,5 @@
 package prog8tests.helpers
 
-import org.junit.jupiter.api.Test
 import kotlin.test.*
 import kotlin.io.path.*
 
@@ -25,6 +24,7 @@ fun assumeReadable(path: Path) {
 }
 
 fun assumeReadableFile(path: Path) {
+    assumeReadable(path)
     assertTrue(path.isRegularFile(), "sanity check: should be normal file: ${path.absolute()}")
 }
 
@@ -43,7 +43,6 @@ fun sanityCheckDirectories(workingDirName: String? = null) {
     assumeDirectory(fixturesDir)
     assumeDirectory(resourcesDir)
     assumeDirectory(outputDir)
-
 }
 
 
