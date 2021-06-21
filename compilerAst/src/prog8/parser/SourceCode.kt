@@ -29,13 +29,9 @@ abstract class SourceCode() {
 
     /**
      * Deliberately does NOT return the actual text.
-     * Use [getCharStream].
+     * For this - if at all - use [getCharStream].
      */
-    final override fun toString() = super.toString()
-
-
-
-
+    final override fun toString() = "${this.javaClass.name}[${this.origin}]"
 
     // "static" factory methods
     companion object {
