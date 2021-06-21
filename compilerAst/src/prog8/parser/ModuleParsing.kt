@@ -8,12 +8,12 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
-import java.io.InputStream
+import kotlin.io.FileSystemException
+import java.net.URL
 import java.nio.file.FileSystems
 import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-
+import java.nio.file.Path   // TODO: use kotlin.io.paths.Path instead
+import java.nio.file.Paths  // TODO: use kotlin.io.paths.Path instead
 
 
 fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
@@ -38,7 +38,7 @@ class ModuleImporter(private val program: Program,
         else
             println("")
 
-        val module = Prog8Parser.parseModule(filePath)
+        val module = Prog8Parser.parseModule(SourceCode.fromPath(filePath))
 
         module.program = program
         module.linkParents(program.namespace)
@@ -65,7 +65,7 @@ class ModuleImporter(private val program: Program,
     private fun importModule(stream: CharStream, modulePath: Path): Module {
         val parser = Prog8Parser
         val sourceText = stream.toString()
-        val moduleAst = parser.parseModule(sourceText)
+        val moduleAst = parser.parseModule(SourceCode.of(sourceText))
         moduleAst.program = program
         moduleAst.linkParents(program.namespace)
         program.modules.add(moduleAst)
@@ -92,16 +92,13 @@ class ModuleImporter(private val program: Program,
         if(existing!=null)
             return null
 
-        val rsc = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
+        val srcCode = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
         val importedModule =
-                if(rsc!=null) {
+            if (srcCode != null) { // found in resources
                     // load the module from the embedded resource
-                    val (resource, resourcePath) = rsc
-                    resource.use {
-                        println("importing '$moduleName' (library)")
-                        val content = it.reader().readText().replace("\r\n", "\n")
-                        importModule(CharStreams.fromString(content), Module.pathForResource(resourcePath))
-                    }
+                println("importing '$moduleName' (library): ${srcCode.origin}")
+                val path = Path.of(URL(srcCode.origin).file)
+                importModule(srcCode.getCharStream(), path)
                 } else {
                     val modulePath = tryGetModuleFromFile(moduleName, source, import.position)
                     importModule(modulePath)
@@ -120,17 +117,16 @@ class ModuleImporter(private val program: Program,
         importedModule.statements.addAll(0, directives)
     }
 
-    private fun tryGetModuleFromResource(name: String, compilationTargetName: String): Pair<InputStream, String>? {
-        val targetSpecificPath = "/prog8lib/$compilationTargetName/$name"
-        val targetSpecificResource = object{}.javaClass.getResourceAsStream(targetSpecificPath)
-        if(targetSpecificResource!=null)
-            return Pair(targetSpecificResource, targetSpecificPath)
-
-        val generalPath = "/prog8lib/$name"
-        val generalResource = object{}.javaClass.getResourceAsStream(generalPath)
-        if(generalResource!=null)
-            return Pair(generalResource, generalPath)
-
+    private fun tryGetModuleFromResource(name: String, compilationTargetName: String): SourceCode? {
+        // try target speficic first
+        try {
+            return SourceCode.fromResources("/prog8lib/$compilationTargetName/$name")
+        } catch (e: FileSystemException) {
+        }
+        try {
+            return SourceCode.fromResources("/prog8lib/$name")
+        } catch (e: FileSystemException) {
+        }
         return null
     }
 

@@ -1,26 +1,24 @@
 package prog8tests
 
 import org.junit.jupiter.api.Test
+import kotlin.test.*
+import java.nio.file.Path   // TODO: use kotlin.io.path.Path instead
+import kotlin.io.path.*
 import prog8.ast.statements.Block
 import prog8.parser.ParseError
-import prog8.parser.Prog8Parser
 import prog8.parser.Prog8Parser.parseModule
-import java.nio.file.Path
-import kotlin.io.path.exists
-import kotlin.io.path.isDirectory
-import kotlin.io.path.isReadable
-import kotlin.io.path.isRegularFile
-import kotlin.test.*
+import prog8.parser.SourceCode
+
 
 class TestProg8Parser {
 
     @Test
     fun testModuleSourceNeedNotEndWithNewline() {
         val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
-        val srcText = "foo {" + nl + "}"   // source ends with '}' (= NO newline, issue #40)
+        val src = SourceCode.of("foo {" + nl + "}")   // source ends with '}' (= NO newline, issue #40)
 
         // #45: Prog8ANTLRParser would report (throw) "missing <EOL> at '<EOF>'"
-        val module = parseModule(srcText)
+        val module = parseModule(src)
         assertEquals(1, module.statements.size)
     }
 
@@ -28,7 +26,7 @@ class TestProg8Parser {
     fun testModuleSourceMayEndWithNewline() {
         val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
         val srcText = "foo {" + nl + "}" + nl  // source does end with a newline (issue #40)
-        val module = parseModule(srcText)
+        val module = parseModule(SourceCode.of(srcText))
         assertEquals(1, module.statements.size)
     }
 
@@ -42,8 +40,8 @@ class TestProg8Parser {
         // GOOD: 2nd block `bar` does start on a new line; however, a nl at the very end ain't needed
         val srcGood = "foo {" + nl + "}" + nl + "bar {" + nl + "}"
 
-        assertFailsWith<ParseError> { parseModule(srcBad) }
-        val module = parseModule(srcGood)
+        assertFailsWith<ParseError> { parseModule(SourceCode.of(srcBad)) }
+        val module = parseModule(SourceCode.of(srcGood))
         assertEquals(2, module.statements.size)
     }
 
@@ -71,7 +69,7 @@ class TestProg8Parser {
             "}" +
             nlUnix      // end with newline (see testModuleSourceNeedNotEndWithNewline)
 
-        val module = parseModule(srcText)
+        val module = parseModule(SourceCode.of(srcText))
         assertEquals(2, module.statements.size)
     }
 
@@ -86,7 +84,7 @@ class TestProg8Parser {
             blockA {            
             }
 """
-        val module = parseModule(srcText)
+        val module = parseModule(SourceCode.of(srcText))
         assertEquals(1, module.statements.size)
     }
 
@@ -103,7 +101,7 @@ class TestProg8Parser {
             blockB {            
             }
 """
-        val module = parseModule(srcText)
+        val module = parseModule(SourceCode.of(srcText))
         assertEquals(2, module.statements.size)
     }
 
@@ -118,7 +116,7 @@ class TestProg8Parser {
             ; comment
             
 """
-        val module = parseModule(srcText)
+        val module = parseModule(SourceCode.of(srcText))
         assertEquals(1, module.statements.size)
     }
 
@@ -127,66 +125,43 @@ class TestProg8Parser {
         // issue: #47
 
         // block and block
-        assertFailsWith<ParseError>{ parseModule("""
+        assertFailsWith<ParseError>{ parseModule(SourceCode.of("""
             blockA {
             } blockB {            
             }            
-        """) }
+        """)) }
 
         // block and directive
-        assertFailsWith<ParseError>{ parseModule("""
+        assertFailsWith<ParseError>{ parseModule(SourceCode.of("""
             blockB {            
             } %import textio            
-        """) }
+        """)) }
 
         // The following two are bogus due to directive *args* expected to follow the directive name.
         // Leaving them in anyways.
 
         // dir and block
-        assertFailsWith<ParseError>{ parseModule("""
+        assertFailsWith<ParseError>{ parseModule(SourceCode.of("""
             %import textio blockB {            
             }            
-        """) }
+        """)) }
 
-        assertFailsWith<ParseError>{ parseModule("""
+        assertFailsWith<ParseError>{ parseModule(SourceCode.of("""
             %import textio %import syslib            
-        """) }
+        """)) }
     }
 
     @Test
-    fun testParseModuleWithDirectoryPath() {
-        val srcPath = Path.of("test", "fixtures")
-        assertTrue(srcPath.isDirectory(), "sanity check: should be a directory")
-        assertFailsWith<java.nio.file.AccessDeniedException> { Prog8Parser.parseModule(srcPath) }
-    }
+    fun parseModuleShouldNotLookAtImports() {
+        val imported = "i_do_not_exist"
+        val pathNoExt = Path.of(imported).absolute()
+        val pathWithExt = Path.of("${pathNoExt}.p8")
+        val text = "%import $imported"
 
-    @Test
-    fun testParseModuleWithNonExistingPath() {
-        val srcPath = Path.of("test", "fixtures", "i_do_not_exist")
-        assertFalse(srcPath.exists(), "sanity check: file should not exist")
-        assertFailsWith<java.nio.file.NoSuchFileException> { Prog8Parser.parseModule(srcPath) }
-    }
+        assertFalse(pathNoExt.exists(), "sanity check: file should not exist: $pathNoExt")
+        assertFalse(pathWithExt.exists(), "sanity check: file should not exist: $pathWithExt")
 
-    @Test
-    fun testParseModuleWithPathMissingExtension_p8() {
-        val srcPathWithoutExt = Path.of("test", "fixtures", "file_with_syntax_error")
-        val srcPathWithExt = Path.of(srcPathWithoutExt.toString() + ".p8")
-        assertTrue(srcPathWithExt.isRegularFile(), "sanity check: should be normal file")
-        assertTrue(srcPathWithExt.isReadable(), "sanity check: should be readable")
-        assertFailsWith<java.nio.file.NoSuchFileException> { Prog8Parser.parseModule(srcPathWithoutExt) }
-    }
-
-    @Test
-    fun testParseModuleWithStringShouldNotLookAtImports() {
-        val srcText = "%import i_do_not_exist"
-        val module = Prog8Parser.parseModule(srcText)
-        assertEquals(1, module.statements.size)
-    }
-
-    @Test
-    fun testParseModuleWithPathShouldNotLookAtImports() {
-        val srcPath = Path.of("test", "fixtures", "import_nonexisting.p8")
-        val module = Prog8Parser.parseModule(srcPath)
+        val module = parseModule(SourceCode.of(text))
         assertEquals(1, module.statements.size)
     }
 
@@ -194,9 +169,9 @@ class TestProg8Parser {
     fun testErrorLocationForSourceFromString() {
         val srcText = "bad * { }\n"
 
-        assertFailsWith<ParseError> { parseModule(srcText) }
+        assertFailsWith<ParseError> { parseModule(SourceCode.of(srcText)) }
         try {
-            parseModule(srcText)
+            parseModule(SourceCode.of(srcText))
         } catch (e: ParseError) {
             // Note: assertContains expects *actual* value first
             assertContains(e.position.file, Regex("^<String@[0-9a-f]+>$"))
@@ -211,11 +186,11 @@ class TestProg8Parser {
         val filename = "file_with_syntax_error.p8"
         val path = Path.of("test", "fixtures", filename)
 
-        assertFailsWith<ParseError> { parseModule(path) }
+        assertFailsWith<ParseError> { parseModule(SourceCode.fromPath(path)) }
         try {
-            parseModule(path)
+            parseModule(SourceCode.fromPath(path))
         } catch (e: ParseError) {
-            assertEquals(filename, e.position.file, "provenance; should be the path's filename, incl. extension '.p8'")
+            assertEquals(path.absolutePathString(), e.position.file, "provenance; should be the path's filename, incl. extension '.p8'")
             assertEquals(2, e.position.line, "line; should be 1-based")
             assertEquals(6, e.position.startCol, "startCol; should be 0-based" )
             assertEquals(6, e.position.endCol, "endCol; should be 0-based")
@@ -224,13 +199,13 @@ class TestProg8Parser {
 
     @Test
     fun testProg8Ast() {
-        val module = parseModule("""
-main {
-    sub start() {
-        return
-    }
-}
-""")
+        val module = parseModule(SourceCode.of("""
+        main {
+            sub start() {
+                return
+            }
+        }
+        """))
         assertIs<Block>(module.statements.first())
         assertEquals((module.statements.first() as Block).name, "main")
     }

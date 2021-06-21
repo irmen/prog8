@@ -27,17 +27,9 @@ private fun RecognitionException.getPosition(provenance: String) : Position {
 
 object Prog8Parser {
 
-    fun parseModule(srcPath: Path): Module {
-        return parseModule(CharStreams.fromPath(srcPath), srcPath.fileName.toString())
-    }
-
-    fun parseModule(srcText: String): Module {
-        return parseModule(CharStreams.fromString(srcText), "<String@${System.identityHashCode(srcText).toString(16)}>")
-    }
-
-    private fun parseModule(chars: CharStream, provenance: String): Module {
-        val antlrErrorListener = AntlrErrorListener(provenance)
-        val lexer = Prog8ANTLRLexer(chars)
+    fun parseModule(src: SourceCode): Module {
+        val antlrErrorListener = AntlrErrorListener(src.origin)
+        val lexer = Prog8ANTLRLexer(src.getCharStream())
         lexer.removeErrorListeners()
         lexer.addErrorListener(antlrErrorListener)
         val tokens = CommonTokenStream(lexer)
