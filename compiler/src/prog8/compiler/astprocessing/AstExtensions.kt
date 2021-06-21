@@ -58,8 +58,24 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
         lit2decl.applyModifications()
     }
 
-    if (modules.map { it.name }.toSet().size != modules.size) {
-        throw FatalAstException("modules should all be unique")
+    // Check if each module has a unique name.
+    // If not report those that haven't.
+    // TODO: move check for unique module names to earlier stage and/or to unit tests
+    val namesToModules = mapOf<String, MutableList<prog8.ast.Module>>().toMutableMap()
+    for (m in modules) {
+        var others = namesToModules[m.name]
+        if (others == null) {
+            namesToModules.put(m.name, listOf(m).toMutableList())
+        } else {
+            others.add(m)
+        }
+    }
+    val nonUniqueNames = namesToModules.keys
+        .map { Pair(it, namesToModules[it]!!.size) }
+        .filter { it.second > 1 }
+        .map { "\"${it.first}\" (x${it.second})"}
+    if (nonUniqueNames.size > 0) {
+        throw FatalAstException("modules must have unique names; of the ttl ${modules.size} these have not: $nonUniqueNames")
     }
 }
 
