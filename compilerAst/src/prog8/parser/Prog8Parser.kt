@@ -39,9 +39,19 @@ object Prog8Parser {
         parser.addErrorListener(antlrErrorListener)
 
         val parseTree = parser.module()
-        val moduleName = "anonymous"
 
-        val module = parseTree.toAst(moduleName, Path(""), PetsciiEncoding)
+        // FIXME: hacking together a name for the module:
+        var moduleName = src.origin
+        if (moduleName.startsWith("<res:")) {
+            moduleName = Path(moduleName.substring(5, moduleName.length - 1))
+                .fileName.toString()
+        } else if (!moduleName.startsWith("<")) {
+            moduleName = Path(moduleName).fileName.toString()
+        }
+        moduleName = moduleName.substringBeforeLast('.')
+
+        val module = parseTree.toAst(moduleName, source = Path(""), PetsciiEncoding)
+
         // TODO: use Module ctor directly
 
         for (statement in module.statements) {
