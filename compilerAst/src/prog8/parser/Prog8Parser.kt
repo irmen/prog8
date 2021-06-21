@@ -4,7 +4,7 @@ import org.antlr.v4.runtime.*
 import prog8.ast.Module
 import prog8.ast.antlr.toAst
 import prog8.ast.base.Position
-import java.nio.file.Path
+import kotlin.io.path.Path
 
 
 open class ParsingFailedError(override var message: String) : Exception(message)
@@ -41,7 +41,7 @@ object Prog8Parser {
         val parseTree = parser.module()
         val moduleName = "anonymous"
 
-        val module = parseTree.toAst(moduleName, pathFrom(""), PetsciiEncoding)
+        val module = parseTree.toAst(moduleName, Path(""), PetsciiEncoding)
         // TODO: use Module ctor directly
 
         for (statement in module.statements) {
