@@ -168,17 +168,18 @@ Finally: an **emulator** (or a real machine ofcourse) to test and run your progr
 In C64 mode, the compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
 If you're targeting the CommanderX16 instead, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
 
-.. attention:: **Commander-X16 V38 vs V39**
-    Starting with Prog8 7.0 the Commander-X16 support targets the upcoming v39 version of the emulator
-    and roms, which reflects the current state of the hardware design.
-    Unfortunately, these have not yet been officially released (at the time of writing, v38 is still
-    the latest official release). So you have to either compile them from source yourself
+.. attention:: **Commander-X16 V38 versus V39**
+
+    Starting with Prog8 7.0 the CX16 compilation target is configured for the upcoming v39 version of the emulator
+    and roms, that are most accurately reflecting the current state of the hardware design of the CX16.
+    Unfortunately, v39 has not yet been officially released. At the time of writing, v38 is still
+    the latest official release. So, you have to either compile the v39 emulator+roms from the source in git yourself
     or obtain a precompiled version from someone else.
-    Your cx16 program compiled by prog8 7.0 is meant for v39 but *may* still work on the older v38 release of the emulator.
+    A cx16 program compiled by prog8 7.0 is meant for v39 but *may* still work on the older v38 release of the emulator!
     For this to work you should make sure that the program is not using floating point, nor the ram/rom bank switching logic provided by the libraries.
     You can also choose to just stick with Prog8 6.4 (which still targets cx16 v38) and wait it out till
     the emulator v39 is officially released - but you won't be able to benefit from the compiler improvements
-    made for prog 7.0 this way.
+    made since the previous release of prog8.
 
 
 

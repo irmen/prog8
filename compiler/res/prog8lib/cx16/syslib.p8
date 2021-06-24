@@ -777,7 +777,7 @@ sys {
 
     inline asmsub waitvsync()  {
         ; --- suspend execution until the next vsync has occurred, without depending on custom irq handling.
-        ;     note: system vsync irq handler has to be active for this routine to work (and no other irqs).
+        ;     note: system vsync irq handler has to be active for this routine to work (and no other irqs-- which is the default).
         ;     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
         %asm {{
             wai
