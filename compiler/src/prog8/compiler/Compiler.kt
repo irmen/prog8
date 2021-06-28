@@ -1,9 +1,6 @@
 package prog8.compiler
 
-import prog8.ast.AstToSourceCode
-import prog8.ast.IBuiltinFunctions
-import prog8.ast.IMemSizer
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
@@ -267,6 +264,9 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
     programAst.checkIdentifiers(errors, compilerOptions)
+    errors.report()
+    // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
+    programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget as IStringEncoding)
     errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)
     errors.report()

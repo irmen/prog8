@@ -40,7 +40,7 @@ class TestCompilerOnCharLit {
             "char literal should have been replaced by ubyte literal")
         val arg = funCall.args[0] as NumericLiteralValue
         assertEquals(DataType.UBYTE, arg.type)
-        assertEquals(platform.encodeString("\n", false)[0], arg.number)
+        assertEquals(platform.encodeString("\n", false)[0], arg.number.toShort()) // TODO: short/int/UBYTE - which should it be?
     }
 
     @Test
@@ -67,7 +67,7 @@ class TestCompilerOnCharLit {
             "char literal should have been replaced by ubyte literal")
         val initializerValue = decl.value as NumericLiteralValue
         assertEquals(DataType.UBYTE, initializerValue.type)
-        assertEquals(platform.encodeString("\n", false)[0], initializerValue.number)
+        assertEquals(platform.encodeString("\n", false)[0], initializerValue.number.toShort()) // TODO: short/int/UBYTE - which should it be?
     }
 
     @Test
@@ -87,12 +87,12 @@ class TestCompilerOnCharLit {
                 assertEquals(DataType.UBYTE, decl.datatype)
                 assertEquals(
                     platform.encodeString("\n", false)[0],
-                    (decl.value as NumericLiteralValue).number)
+                    (decl.value as NumericLiteralValue).number.toShort()) // TODO: short/int/UBYTE - which should it be?
             }
             is NumericLiteralValue -> {
                 assertEquals(
                     platform.encodeString("\n", false)[0],
-                    arg.number)
+                    arg.number.toShort()) // TODO: short/int/UBYTE - which should it be?
             }
             else -> assertIs<IdentifierReference>(funCall.args[0]) // make test fail
         }
