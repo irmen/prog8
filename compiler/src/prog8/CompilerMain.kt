@@ -16,22 +16,20 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-    printSoftwareHeader("compiler")
-
-    compileMain(args)
-}
-
-internal fun printSoftwareHeader(what: String) {
     val buildVersion = object {}.javaClass.getResource("/version.txt").readText().trim()
-    println("\nProg8 $what v$buildVersion by Irmen de Jong (irmen@razorvine.net)")
+    println("\nProg8 compiler v$buildVersion by Irmen de Jong (irmen@razorvine.net)")
     println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+
+    val succes = compileMain(args)
+    if(!succes)
+        exitProcess(1)
 }
 
 
 fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
 
 
-private fun compileMain(args: Array<String>) {
+private fun compileMain(args: Array<String>): Boolean {
     val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
     val startEmulator by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
@@ -47,19 +45,19 @@ private fun compileMain(args: Array<String>) {
         cli.parse(args)
     } catch (e: IllegalStateException) {
         System.err.println(e.message)
-        exitProcess(1)
+        return false
     }
 
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
         System.err.println("Output path doesn't exist")
-        exitProcess(1)
+        return false
     }
 
     val faultyOption = moduleFiles.firstOrNull { it.startsWith('-') }
     if(faultyOption!=null) {
         System.err.println("Unknown command line option given: $faultyOption")
-        exitProcess(1)
+        return false
     }
 
     val libdirs = libDirs.toMutableList()
@@ -114,11 +112,11 @@ private fun compileMain(args: Array<String>) {
             try {
                 compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, libdirs, outputPath)
                 if(!compilationResult.success)
-                    exitProcess(1)
+                    return false
             } catch (x: ParsingFailedError) {
-                exitProcess(1)
+                return false
             } catch (x: AstException) {
-                exitProcess(1)
+                return false
             }
 
             if (startEmulator==true) {
@@ -130,4 +128,6 @@ private fun compileMain(args: Array<String>) {
             }
         }
     }
+
+    return true
 }

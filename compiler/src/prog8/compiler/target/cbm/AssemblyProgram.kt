@@ -5,7 +5,6 @@ import prog8.compiler.OutputType
 import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.generatedLabelPrefix
 import java.nio.file.Path
-import kotlin.system.exitProcess
 
 class AssemblyProgram(override val name: String, outputDir: Path, private val compTarget: String) : IAssemblyProgram {
     private val assemblyFile = outputDir.resolve("$name.asm")
@@ -13,7 +12,7 @@ class AssemblyProgram(override val name: String, outputDir: Path, private val co
     private val binFile = outputDir.resolve("$name.bin")
     private val viceMonListFile = outputDir.resolve("$name.vice-mon-list")
 
-    override fun assemble(options: CompilationOptions) {
+    override fun assemble(options: CompilationOptions): Int {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                 "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
@@ -35,13 +34,11 @@ class AssemblyProgram(override val name: String, outputDir: Path, private val co
 
         val proc = ProcessBuilder(command).inheritIO().start()
         val result = proc.waitFor()
-        if (result != 0) {
-            System.err.println("assembler failed with returncode $result")
-            exitProcess(result)
+        if (result == 0) {
+            removeGeneratedLabelsFromMonlist()
+            generateBreakpointList()
         }
-
-        removeGeneratedLabelsFromMonlist()
-        generateBreakpointList()
+        return result
     }
 
     private fun removeGeneratedLabelsFromMonlist() {

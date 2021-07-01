@@ -2,17 +2,19 @@ package prog8tests
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.test.*
-import kotlin.io.path.*
-
 import prog8.ast.IFunctionCall
 import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.compiler.target.Cx16Target
-
 import prog8.compiler.compileProgram
+import prog8.compiler.target.Cx16Target
+import kotlin.io.path.Path
+import kotlin.io.path.absolute
+import kotlin.io.path.isDirectory
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 
 /**

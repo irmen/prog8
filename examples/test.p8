@@ -5,7 +5,6 @@ main {
 
 label:
     sub start() {
-
         sub2(&label)
         sub2(&label_local)
         sub2(&main.sub2.label_in_sub2)

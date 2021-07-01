@@ -22,7 +22,6 @@ import prog8.parser.moduleName
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
-import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 
@@ -81,10 +80,7 @@ fun compileProgram(filepath: Path,
         when(compilationTarget) {
             C64Target.name -> C64Target
             Cx16Target.name -> Cx16Target
-            else -> {
-                System.err.println("invalid compilation target")
-                exitProcess(1)
-            }
+            else -> throw IllegalArgumentException("invalid compilation target")
         }
 
     try {
@@ -102,8 +98,15 @@ fun compileProgram(filepath: Path,
 
             // printAst(programAst)
 
-            if(writeAssembly)
-                programName = writeAssembly(programAst, errors, outputDir, compilationOptions)
+            if(writeAssembly) {
+                val (success, message) = writeAssembly(programAst, errors, outputDir, compilationOptions)
+                if(success)
+                    programName = message
+                else {
+                    System.err.println(message)
+                    return CompilationResult(false, programAst, programName, compTarget, importedFiles)
+                }
+            }
         }
         System.out.flush()
         System.err.flush()
@@ -198,10 +201,10 @@ private fun parseImports(filepath: Path,
 
 private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
-    val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
-            as? Directive)?.args?.single()?.name?.uppercase()
-    val launcherType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
-            as? Directive)?.args?.single()?.name?.uppercase()
+    val outputDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
+    val launcherDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
+    val outputTypeStr = outputDirective?.args?.single()?.name?.uppercase()
+    val launcherTypeStr = launcherDirective?.args?.single()?.name?.uppercase()
     val zpoption: String? = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.uppercase()
     val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }
@@ -231,18 +234,26 @@ private fun determineCompilationOptions(program: Program, compTarget: ICompilati
         .map { it[0].int!!..it[1].int!! }
         .toList()
 
-    if (outputType != null && !OutputType.values().any { it.name == outputType }) {
-        System.err.println("invalid output type $outputType")
-        exitProcess(1)
+    val outputType = if (outputTypeStr == null) OutputType.PRG else {
+        try {
+            OutputType.valueOf(outputTypeStr)
+        } catch (x: IllegalArgumentException) {
+            // set default value; actual check and error handling of invalid option is handled in the AstChecker later
+            OutputType.PRG
+        }
     }
-    if (launcherType != null && !LauncherType.values().any { it.name == launcherType }) {
-        System.err.println("invalid launcher type $launcherType")
-        exitProcess(1)
+    val launcherType = if (launcherTypeStr == null) LauncherType.BASIC else {
+        try {
+            LauncherType.valueOf(launcherTypeStr)
+        } catch (x: IllegalArgumentException) {
+            // set default value; actual check and error handling of invalid option is handled in the AstChecker later
+            LauncherType.BASIC
+        }
     }
 
     return CompilationOptions(
-        if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
-        if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
+        outputType,
+        launcherType,
         zpType, zpReserved, floatsEnabled, noSysInit,
         compTarget
     )
@@ -316,7 +327,7 @@ private fun postprocessAst(programAst: Program, errors: IErrorReporter, compiler
 private fun writeAssembly(programAst: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
-                          compilerOptions: CompilationOptions): String {
+                          compilerOptions: CompilationOptions): Pair<Boolean, String> {
     // asm generation directly from the Ast
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.report()
@@ -330,9 +341,13 @@ private fun writeAssembly(programAst: Program,
             compilerOptions.compTarget.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly()
-    assembly.assemble(compilerOptions)
-    errors.report()
-    return assembly.name
+    val assemblerReturnStatus = assembly.assemble(compilerOptions)
+    return if(assemblerReturnStatus!=0)
+        Pair(false, "assembler step failed with return code $assemblerReturnStatus")
+    else {
+        errors.report()
+        Pair(true, assembly.name)
+    }
 }
 
 fun printAst(programAst: Program) {
