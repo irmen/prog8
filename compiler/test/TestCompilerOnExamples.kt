@@ -46,7 +46,8 @@ class TestCompilerOnExamples {
             libdirs = listOf(),
             outputDir
         )
-        assertTrue(result.success, "${platform.name}, optimize=$optimize: \"$filepath\"")
+        assertTrue(result.success,
+            "compilation should succeed; ${platform.name}, optimize=$optimize: \"$filepath\"")
     }
 
 

@@ -51,7 +51,7 @@ class TestCompilerOnCharLit {
             libdirs = listOf(),
             outputDir
         )
-        assertTrue(result.success, "compilation successful")
+        assertTrue(result.success, "compilation should succeed")
 
         val program = result.programAst
         val startSub = program.entrypoint()
@@ -77,7 +77,7 @@ class TestCompilerOnCharLit {
             libdirs = listOf(),
             outputDir
         )
-        assertTrue(result.success, "compilation successful")
+        assertTrue(result.success, "compilation should succeed")
         val program = result.programAst
         val startSub = program.entrypoint()
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
@@ -113,7 +113,7 @@ class TestCompilerOnCharLit {
             libdirs = listOf(),
             outputDir
         )
-        assertTrue(result.success, "compilation successful")
+        assertTrue(result.success, "compilation should succeed")
         val program = result.programAst
         val startSub = program.entrypoint()
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
