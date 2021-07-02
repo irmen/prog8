@@ -16,9 +16,6 @@ import kotlin.test.assertTrue
  * ATTENTION: this is just kludge!
  * They are not really unit tests, but rather tests of the whole process,
  * from source file loading all the way through to running 64tass.
- * What's more: in case of failure (to compile and assemble) - which is when tests should help you -
- * these tests will actually be ignored (ie. NOT fail),
- * because in the code there are calls to Process.exit, making it essentially untestable.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnExamples {
