@@ -7,6 +7,7 @@
 
 #### Problems with `compilerAst`:
 * `ModuleImporter.kt`, doing (Prog8-) module resolution. That's not the parser's job.
+* `ParsingFailedError` (in `ModuleParsing.kt`): this exception (it is actually *not* a `java.lang.Error`...) is thrown in a number of places, where other exceptions would make more sense. For example: not finding a file should just yield a `NoSuchFileException`, not this one. The other problem with it is that it does not provide any additional information about the source of parsing error, in particular a `Position`.
 * During parsing, character literals are turned into UBYTEs (since there is no basic type e.g. CHAR). That's bad because it depends on a specific character encoding (`IStringEncoding` in `compilerAst/src/prog8/ast/AstToplevel.kt`) of/for some target platform. Note that *strings* are indeed encoded later, in the `compiler` module.
 * The same argument applies to `IMemSizer`, and - not entirely sure about that - `IBuiltinFunctions`.
 
@@ -15,15 +16,17 @@
    - from the local file system (use case: user programs)
    - from resources (prog8lib)
    - from plain strings (for testing)
-2. introduce a minimal interface to the outside, input: `SourceCode`, output: a tree with a `Module` node as the root
+2. add subclass `ParseError : ParsingFailedError` which adds information about the *source of parsing error* (`SourceCode` and `Position`). We cannot just replace `ParsingFailedError`  right away because it is so widely used (even in the `compiler` module). Therefore we'll just subclass for the time being, add more and more tests requiring the new one to be thrown (or, resp., NOT to be thrown), and gradually transition.
+3. introduce a minimal interface to the outside, input: `SourceCode`, output: a tree with a `Module` node as the root
    - this will be the Kotlin singleton `Prog8Parser` with the main method `parseModule`
    - plus, optionally, method's for registering/unregistering a listener with the parser
+   - the *only* exception ever thrown / reported to listeners (TBD) will be `ParseError`
    - anything related to the lexer, error strategies, character/token streams is hidden from the outside
    - to make a clear distinction between the *generated* parser (and lexer) vs. `Prog8Parser`, and to discourage directly using the generated stuff, we'll rename the existing `prog8Parser`/`prog8Lexer` to `Prog8ANTLRParser` and `Prog8ANTLRLexer` and move them to package `prog8.parser.generated`
-3. introduce AST node `CharLiteral` and keep them until after identifier resolution and type checking; insert there an AST transformation step that turns them in UBYTE constants (literals)
-4. remove uses of `IStringEncoding` from module `compilerAst` - none should be necessary anymore
-5. move `IStringEncoding` to module `compiler`
-6. same with `ModuleImporter`, then rewrite that (addressing #46)
-7. refactor AST nodes and grammar: less generated parse tree nodes (`XyzContext`), less intermediary stuff (private classes in `Antr2Kotlin.kt` [sic]), more compact code. Also: nicer names such as simply `StringLiteral` instead of `StringLiteralValue`
-8. re-think `IStringEncoding` to address #38
+4. introduce AST node `CharLiteral` and keep them until after identifier resolution and type checking; insert there an AST transformation step that turns them in UBYTE constants (literals)
+5. remove uses of `IStringEncoding` from module `compilerAst` - none should be necessary anymore
+6. move `IStringEncoding` to module `compiler`
+7. same with `ModuleImporter`, then rewrite that (addressing #46)
+8. refactor AST nodes and grammar: less generated parse tree nodes (`XyzContext`), less intermediary stuff (private classes in `Antr2Kotlin.kt` [sic]), more compact code. Also: nicer names such as simply `StringLiteral` instead of `StringLiteralValue`
+9. re-think `IStringEncoding` to address #38
 
