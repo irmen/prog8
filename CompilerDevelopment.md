@@ -11,7 +11,7 @@
 * During parsing, character literals are turned into UBYTEs (since there is no basic type e.g. CHAR). That's bad because it depends on a specific character encoding (`IStringEncoding` in `compilerAst/src/prog8/ast/AstToplevel.kt`) of/for some target platform. Note that *strings* are indeed encoded later, in the `compiler` module.
 * The same argument applies to `IMemSizer`, and - not entirely sure about that - `IBuiltinFunctions`.
 
-#### Steps to take, in order:
+#### Steps to take, in conceptual (!) order:
 1. introduce an abstraction `SourceCode` that encapsulates the origin and actual loading of Prog8 source code
    - from the local file system (use case: user programs)
    - from resources (prog8lib)
@@ -27,6 +27,6 @@
 5. remove uses of `IStringEncoding` from module `compilerAst` - none should be necessary anymore
 6. move `IStringEncoding` to module `compiler`
 7. same with `ModuleImporter`, then rewrite that (addressing #46)
-8. refactor AST nodes and grammar: less generated parse tree nodes (`XyzContext`), less intermediary stuff (private classes in `Antr2Kotlin.kt` [sic]), more compact code. Also: nicer names such as simply `StringLiteral` instead of `StringLiteralValue`
+8. refactor AST nodes and grammar: less generated parse tree nodes (`XyzContext`), less intermediary stuff (private classes in `Antrl2Kotlin.kt`), more compact code. Also: nicer names such as simply `StringLiteral` instead of `StringLiteralValue`
 9. re-think `IStringEncoding` to address #38
 
