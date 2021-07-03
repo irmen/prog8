@@ -4,19 +4,7 @@ import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.ParseCancellationException
 import prog8.ast.antlr.toAst
 import prog8.ast.Module
-import prog8.ast.base.Position
-import prog8.ast.IStringEncoding
 
-
-object DummyEncoding: IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
-        TODO("move StringEncoding out of compilerAst")
-    }
-
-    override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
-        TODO("move StringEncoding out of compilerAst")
-    }
-}
 
 class Prog8ErrorStrategy: BailErrorStrategy() {
     override fun recover(recognizer: Parser?, e: RecognitionException?) {
@@ -56,10 +44,14 @@ class Prog8Parser(private val errorListener: ANTLRErrorListener = ThrowErrorList
         parser.addErrorListener(errorListener)
 
         val parseTree = parser.module()
+        val moduleName = "anonymous"
 
+        val module = parseTree.toAst(moduleName, pathFrom(""), PetsciiEncoding)
         // TODO: use Module ctor directly
-        val moduleAst = parseTree.toAst("anonymous", pathFrom(""), DummyEncoding)
 
-        return moduleAst
+        for (statement in module.statements) {
+            statement.linkParents(module)
+    }
+        return module
     }
 }
