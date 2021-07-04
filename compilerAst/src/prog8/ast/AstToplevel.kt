@@ -339,7 +339,7 @@ class Program(val name: String,
     }
 }
 
-class Module(override val name: String,
+open class Module(override val name: String,
              override var statements: MutableList<Statement>,
              override val position: Position,
              val source: Path) : Node, INameScope {

@@ -41,7 +41,7 @@ private fun ParserRuleContext.toPosition() : Position {
     return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
 }
 
-private fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean, encoding: IStringEncoding) : Statement {
+internal fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean, encoding: IStringEncoding) : Block {
     val blockstatements = block_statement().map {
         when {
             it.variabledeclaration()!=null -> it.variabledeclaration().toAst(encoding)
@@ -351,7 +351,7 @@ private fun Prog8ANTLRParser.DatatypeContext.toAst() = DataType.valueOf(text.upp
 private fun Prog8ANTLRParser.ArrayindexContext.toAst(encoding: IStringEncoding) : ArrayIndex =
         ArrayIndex(expression().toAst(encoding), toPosition())
 
-private fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
+internal fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
         Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
 
 private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {

@@ -1,16 +1,27 @@
 package prog8tests
 
 import org.junit.jupiter.api.Test
+import prog8.ast.Node
+import prog8.ast.base.Position
 import kotlin.test.*
 import java.nio.file.Path   // TODO: use kotlin.io.path.Path instead
 import kotlin.io.path.*
 import prog8.ast.statements.Block
+import prog8.ast.statements.Directive
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
 
 
 class TestProg8Parser {
+    val workingDir = Path("").absolute()    // Note: Path(".") does NOT work..!
+    val fixturesDir = workingDir.resolve("test/fixtures")
+
+    @Test
+    fun testDirectoriesSanityCheck() {
+        assertEquals("compilerAst", workingDir.fileName.toString())
+        assertTrue(fixturesDir.isDirectory(), "sanity check; should be directory: $fixturesDir")
+    }
 
     @Test
     fun testModuleSourceNeedNotEndWithNewline() {
@@ -165,6 +176,51 @@ class TestProg8Parser {
         assertEquals(1, module.statements.size)
     }
 
+
+    @Test
+    fun testModuleNameForSourceFromString() {
+        val srcText = """
+            main {
+            }
+        """.trimIndent()
+        val module = parseModule(SourceCode.of(srcText))
+
+        // Note: assertContains has *actual* as first param
+        assertContains(module.name, Regex("^anonymous_[0-9a-f]+$"))
+    }
+
+    @Test
+    fun testModuleNameForSourceFromPath() {
+        val path = fixturesDir.resolve("simple_main.p8")
+
+        val module = parseModule(SourceCode.fromPath(path))
+
+        assertEquals(path.nameWithoutExtension, module.name)
+    }
+
+
+    fun assertPosition(actual: Position, expFile: String, expLine: Int, expStartCol: Int, expEndCol: Int) {
+        assertEquals(expLine, actual.line, ".position.line (1-based)")
+        assertEquals(expStartCol, actual.startCol, ".position.startCol (0-based)" )
+        assertEquals(expEndCol, actual.endCol, ".position.endCol (0-based)")
+        assertEquals(expFile, actual.file, ".position.file")
+    }
+
+    fun assertPosition(actual: Position, expFile: Regex, expLine: Int, expStartCol: Int, expEndCol: Int) {
+        assertEquals(expLine, actual.line, ".position.line (1-based)")
+        assertEquals(expStartCol, actual.startCol, ".position.startCol (0-based)" )
+        assertEquals(expEndCol, actual.endCol, ".position.endCol (0-based)")
+        // Note: assertContains expects *actual* value first
+        assertContains(actual.file, expFile, ".position.file")
+    }
+
+    fun assertPositionOf(actual: Node, expFile: String, expLine: Int, expStartCol: Int, expEndCol: Int) =
+        assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol)
+
+    fun assertPositionOf(actual: Node, expFile: Regex, expLine: Int, expStartCol: Int, expEndCol: Int) =
+        assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol)
+
+
     @Test
     fun testErrorLocationForSourceFromString() {
         val srcText = "bad * { }\n"
@@ -173,30 +229,41 @@ class TestProg8Parser {
         try {
             parseModule(SourceCode.of(srcText))
         } catch (e: ParseError) {
-            // Note: assertContains expects *actual* value first
-            assertContains(e.position.file, Regex("^<String@[0-9a-f]+>$"))
-            assertEquals(1, e.position.line, "line; should be 1-based")
-            assertEquals(4, e.position.startCol, "startCol; should be 0-based" )
-            assertEquals(4, e.position.endCol, "endCol; should be 0-based")
+            assertPosition(e.position, Regex("^<String@[0-9a-f]+>$"), 1, 4, 4)
     }
     }
 
     @Test
     fun testErrorLocationForSourceFromPath() {
-        val filename = "file_with_syntax_error.p8"
-        val path = Path.of("test", "fixtures", filename)
+        val path = fixturesDir.resolve("file_with_syntax_error.p8")
 
         assertFailsWith<ParseError> { parseModule(SourceCode.fromPath(path)) }
         try {
             parseModule(SourceCode.fromPath(path))
         } catch (e: ParseError) {
-            assertEquals(path.absolutePathString(), e.position.file, "provenance; should be the path's filename, incl. extension '.p8'")
-            assertEquals(2, e.position.line, "line; should be 1-based")
-            assertEquals(6, e.position.startCol, "startCol; should be 0-based" )
-            assertEquals(6, e.position.endCol, "endCol; should be 0-based")
+            assertPosition(e.position, path.absolutePathString(), 2, 6, 6)
         }
     }
 
+    @Test
+    fun testModulePositionForSourceFromString() {
+        val srcText = """
+            main {
+            }
+        """.trimIndent()
+        val module = parseModule(SourceCode.of(srcText))
+        assertPositionOf(module, Regex("^<String@[0-9a-f]+>$"), 1, 0, 0)
+    }
+
+    @Test
+    fun testModulePositionForSourceFromPath() {
+        val path = fixturesDir.resolve("simple_main.p8")
+
+        val module = parseModule(SourceCode.fromPath(path))
+        assertPositionOf(module, path.absolutePathString(), 1, 0, 0)
+    }
+
+    
     @Test
     fun testProg8Ast() {
         val module = parseModule(SourceCode.of("""

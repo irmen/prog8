@@ -4,6 +4,8 @@ import org.antlr.v4.runtime.*
 import prog8.ast.Module
 import prog8.ast.antlr.toAst
 import prog8.ast.base.Position
+import prog8.ast.statements.Block
+import prog8.ast.statements.Directive
 import kotlin.io.path.Path
 
 
@@ -16,19 +18,10 @@ class ParseError(override var message: String, val position: Position, cause: Ru
     }
 }
 
-private fun RecognitionException.getPosition(provenance: String) : Position {
-    val offending = this.offendingToken
-    val line = offending.line
-    val beginCol = offending.charPositionInLine
-    val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token?
-    val pos = Position(provenance, line, beginCol, endCol)
-    return pos
-}
-
 object Prog8Parser {
 
     fun parseModule(src: SourceCode): Module {
-        val antlrErrorListener = AntlrErrorListener(src.origin)
+        val antlrErrorListener = AntlrErrorListener(src)
         val lexer = Prog8ANTLRLexer(src.getCharStream())
         lexer.removeErrorListeners()
         lexer.addErrorListener(antlrErrorListener)
@@ -40,24 +33,55 @@ object Prog8Parser {
 
         val parseTree = parser.module()
 
-        // FIXME: hacking together a name for the module:
-        var moduleName = src.origin
-        if (moduleName.startsWith("<res:")) {
-            moduleName = Path(moduleName.substring(5, moduleName.length - 1))
-                .fileName.toString()
-        } else if (!moduleName.startsWith("<")) {
-            moduleName = Path(moduleName).fileName.toString()
-        }
-        moduleName = moduleName.substringBeforeLast('.')
+        val module = ParsedModule(src)
 
-        val module = parseTree.toAst(moduleName, source = Path(""), PetsciiEncoding)
+        // .linkParents called in ParsedModule.add
+        parseTree.directive().forEach { module.add(it.toAst()) }
+        // TODO: remove Encoding
+        parseTree.block().forEach { module.add(it.toAst(module.isLibrary(), PetsciiEncoding)) }
 
-        // TODO: use Module ctor directly
-
-        for (statement in module.statements) {
-            statement.linkParents(module)
-    }
         return module
+        }
+
+    // FIXME: hacking together a path string:
+    private fun SourceCode.pathString() =
+        origin
+            .substringAfter("<res:")
+            .substringAfter("<")
+            .substringBeforeLast(">")
+
+    private class ParsedModule(src: SourceCode) : Module(
+        // FIXME: hacking together a name for the module:
+        name = src.pathString()
+            .substringBeforeLast(".")
+            .substringAfterLast("/")
+            .substringAfterLast("\\")
+            .replace("String@", "anonymous_"),
+        // FIXME: hacking together a path
+        source = Path(src.pathString()),
+        statements = mutableListOf(),
+        position = Position(src.origin, 1, 0, 0)
+        ) {
+        val provenance = Pair(src, Triple(1, 0, 0))
+
+        /**
+         * Adds a [Directive] to [statements] and
+         * sets this Module as its [parent].
+         * Note: you can only add [Directive]s or [Block]s to a Module.
+         */
+        fun add(child: Directive) {
+            child.linkParents(this)
+            statements.add(child)
+    }
+        /**
+         * Adds a [Block] to [statements] and
+         * sets this Module as its [parent].
+         * Note: you can only add [Directive]s or [Block]s to a Module.
+         */
+        fun add(child: Block) {
+            child.linkParents(this)
+            statements.add(child)
+    }
     }
 
     private object Prog8ErrorStrategy: BailErrorStrategy() {
@@ -86,15 +110,24 @@ object Prog8Parser {
         }
     }
 
-    private class AntlrErrorListener(val sourceCodeProvenance: String): BaseErrorListener() {
+    private class AntlrErrorListener(val src: SourceCode): BaseErrorListener() {
         override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
             if (e == null) {
                 TODO("no RecognitionException - create your own ParseError")
                 //throw ParseError()
             } else {
-                throw ParseError(msg, e.getPosition(sourceCodeProvenance), e)
+                throw ParseError(msg, e.getPosition(src.origin), e)
             }
         }
+    }
+
+    private fun RecognitionException.getPosition(file: String) : Position {
+        val offending = this.offendingToken
+        val line = offending.line
+        val beginCol = offending.charPositionInLine
+        val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token?
+        val pos = Position(file, line, beginCol, endCol)
+        return pos
     }
 
 }
