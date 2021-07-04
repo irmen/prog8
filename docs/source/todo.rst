@@ -4,6 +4,11 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 
+- rename libdirs option to srcdirs?
+- can we derive module.name from module.source (taking just the filename base)?
+- can Position.file be a Path- making the source variable for nodes unnecessary?
+
+
 - refactor code to improve testability and other things, see [CompilerDevelopment](CompilerDevelopment.md)
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
   (I hope this will still be included into the final v39 roms release for the cx16)
