@@ -31,7 +31,8 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 private fun compileMain(args: Array<String>): Boolean {
     val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
-    val startEmulator by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
+    val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
+    val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
@@ -119,13 +120,17 @@ private fun compileMain(args: Array<String>): Boolean {
                 return false
             }
 
-            if (startEmulator==true) {
-                if (compilationResult.programName.isEmpty())
+            if(startEmulator1==true || startEmulator2==true) {
+                if (compilationResult.programName.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
-                else {
-                    compilationResult.compTarget.machine.launchEmulator(compilationResult.programName)
+                    return true
                 }
             }
+
+            if (startEmulator1==true)
+                compilationResult.compTarget.machine.launchEmulator(1, compilationResult.programName)
+            else if (startEmulator2==true)
+                compilationResult.compTarget.machine.launchEmulator(2, compilationResult.programName)
         }
     }
 

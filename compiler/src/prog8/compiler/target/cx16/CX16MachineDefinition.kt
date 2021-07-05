@@ -32,8 +32,17 @@ internal object CX16MachineDefinition: IMachineDefinition {
             emptyList()
     }
 
-    override fun launchEmulator(programName: String) {
-        for(emulator in listOf("x16emu")) {
+    override fun launchEmulator(selectedEmulator: Int, programName: String) {
+        val emulatorName: String = when(selectedEmulator) {
+            1 -> "x16emu"
+            2 -> "box16"
+            else -> {
+                System.err.println("Cx16 target only supports x16emu and box16 emulators.")
+                return
+            }
+        }
+
+        for(emulator in listOf(emulatorName)) {
             println("\nStarting Commander X16 emulator $emulator...")
             val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "$programName.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()

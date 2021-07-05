@@ -166,7 +166,9 @@ For MacOS you can use the Homebrew system to install a recent version of OpenJDK
 
 Finally: an **emulator** (or a real machine ofcourse) to test and run your programs on.
 In C64 mode, the compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
-If you're targeting the CommanderX16 instead, there's the `x16emu <https://github.com/commanderx16/x16-emulator>`_.
+If you're targeting the CommanderX16 instead, there's a choice of the official `x16emu <https://github.com/commanderx16/x16-emulator>`_
+and the unofficial `box16 <https://github.com/indigodarkwolf/box16>`_  (you can select which one you want to launch
+using the ``-emu`` or ``-emu2`` command line options)
 
 .. attention:: **Commander-X16 V38 versus V39**
 

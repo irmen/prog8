@@ -35,7 +35,12 @@ internal object C64MachineDefinition: IMachineDefinition {
             emptyList()
     }
 
-    override fun launchEmulator(programName: String) {
+    override fun launchEmulator(selectedEmulator: Int, programName: String) {
+        if(selectedEmulator!=1) {
+            System.err.println("The c64 target only supports the main emulator (Vice).")
+            return
+        }
+
         for(emulator in listOf("x64sc", "x64")) {
             println("\nStarting C-64 emulator $emulator...")
             val cmdline = listOf(emulator, "-silent", "-moncommands", "$programName.vice-mon-list",

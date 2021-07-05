@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-
+- add -sym vicemonlist support when launching box16 emulator (requires box16 bugfix to not freeze)
 - rename libdirs option to srcdirs?
 - can we derive module.name from module.source (taking just the filename base)?
 - can Position.file be a Path- making the source variable for nodes unnecessary?
@@ -29,6 +29,9 @@ Future
 - refactor the compiler optimizers into own project submodule
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
+  Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
+  (but we lose the optimizing aspect of the assembler where it strips out unused code.
+  There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
 - introduce byte-index operator to avoid index multiplications in loops over arrays?
   see https://www.reddit.com/r/programming/comments/alhj59/creating_a_programming_language_and_cross/eg898b9?utm_source=share&utm_medium=web2x&context=3
 
