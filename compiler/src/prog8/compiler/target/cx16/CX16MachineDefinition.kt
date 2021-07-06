@@ -4,6 +4,7 @@ import prog8.compiler.*
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.cbm.viceMonListPostfix
 import java.io.IOException
 
 internal object CX16MachineDefinition: IMachineDefinition {
@@ -33,9 +34,18 @@ internal object CX16MachineDefinition: IMachineDefinition {
     }
 
     override fun launchEmulator(selectedEmulator: Int, programName: String) {
-        val emulatorName: String = when(selectedEmulator) {
-            1 -> "x16emu"
-            2 -> "box16"
+        val emulatorName: String
+        val extraArgs: List<String>
+
+        when(selectedEmulator) {
+            1 -> {
+                emulatorName = "x16emu"
+                extraArgs = emptyList()
+            }
+            2 -> {
+                emulatorName = "box16"
+                extraArgs = listOf("-sym", "$programName.$viceMonListPostfix")
+            }
             else -> {
                 System.err.println("Cx16 target only supports x16emu and box16 emulators.")
                 return
@@ -44,7 +54,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
         for(emulator in listOf(emulatorName)) {
             println("\nStarting Commander X16 emulator $emulator...")
-            val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "$programName.prg")
+            val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "$programName.prg") + extraArgs
             val processb = ProcessBuilder(cmdline).inheritIO()
             val process: Process
             try {

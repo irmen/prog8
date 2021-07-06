@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add -sym vicemonlist support when launching box16 emulator (requires box16 bugfix to not freeze)
 - rename libdirs option to srcdirs?
 - can we derive module.name from module.source (taking just the filename base)?
 - can Position.file be a Path- making the source variable for nodes unnecessary?
