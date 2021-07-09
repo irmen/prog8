@@ -9,6 +9,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.parser.Prog8ANTLRParser
+import prog8.parser.SourceCode
 import java.io.CharConversionException
 import java.io.File
 import java.nio.file.Path
@@ -18,10 +19,10 @@ import java.nio.file.Path
 
 private data class NumericLiteral(val number: Number, val datatype: DataType)
 
-internal fun Prog8ANTLRParser.ModuleContext.toAst(name: String, source: Path, encoding: IStringEncoding) : Module {
+internal fun Prog8ANTLRParser.ModuleContext.toAst(name: String, source: SourceCode, encoding: IStringEncoding) : Module {
     val nameWithoutSuffix = if(name.endsWith(".p8")) name.substringBeforeLast('.') else name
     val directives = this.directive().map { it.toAst() }
-    val blocks = this.block().map { it.toAst(Module.isLibrary(source), encoding) }
+    val blocks = this.block().map { it.toAst(isInLibrary = source.isFromResources, encoding) }
     return Module(nameWithoutSuffix, (directives + blocks).toMutableList(), toPosition(), source)
 }
 

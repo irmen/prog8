@@ -19,6 +19,12 @@ abstract class SourceCode {
     internal abstract fun getCharStream(): CharStream
 
     /**
+     * Whether this [SourceCode] instance was created by
+     * factory method [fromResources]
+     */
+    abstract val isFromResources: Boolean
+
+    /**
      * Where this [SourceCode] instance came from.
      * This can be one of the following:
      * * a normal string representation of a [java.nio.file.Path], if it originates from a file (see [fromPath])
@@ -58,6 +64,7 @@ abstract class SourceCode {
          */
         fun of(text: String): SourceCode {
             return object : SourceCode() {
+                override val isFromResources = false
                 override val origin = "<String@${System.identityHashCode(text).toString(16)}>"
                 override fun getCharStream(): CharStream {
                     return CharStreams.fromString(text)
@@ -86,6 +93,7 @@ abstract class SourceCode {
                 throw AccessDeniedException(path.toFile(), reason = "Is not readable")
             val normalized = path.normalize()
             return object : SourceCode() {
+                override val isFromResources = false
                 override val origin = normalized.absolutePathString()
                 override fun getCharStream(): CharStream {
                     return CharStreams.fromPath(normalized)
@@ -108,6 +116,7 @@ abstract class SourceCode {
                     reason = "looked in resources rooted at $rscRoot")
             }
             return object : SourceCode() {
+                override val isFromResources = true
                 override val origin = "@embedded@$normalized"
                 override fun getCharStream(): CharStream {
                     val inpStr = object{}.javaClass.getResourceAsStream(normalized)

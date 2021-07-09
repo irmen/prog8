@@ -1311,13 +1311,17 @@ $repeatLabel    lda  $counterVar
     private fun translate(stmt: Directive) {
         when(stmt.directive) {
             "%asminclude" -> {
-                val sourcecode = loadAsmIncludeFile(stmt.args[0].str!!, stmt.definingModule().source)
+                // TODO: handle %asminclude with SourceCode
+                val sourcePath = Path.of(stmt.definingModule().source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
+                val sourcecode = loadAsmIncludeFile(stmt.args[0].str!!, sourcePath)
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
             }
             "%asmbinary" -> {
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val includedSourcePath = stmt.definingModule().source.resolveSibling(stmt.args[0].str)
+                // TODO: handle %asmbinary with SourceCode
+                val sourcePath = Path.of(stmt.definingModule().source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
+                val includedSourcePath = sourcePath.resolveSibling(stmt.args[0].str)
                 val relPath = Paths.get("").relativize(includedSourcePath)
                 out("  .binary \"$relPath\" $offset $length")
             }

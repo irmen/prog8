@@ -6,7 +6,6 @@ import prog8.ast.antlr.toAst
 import prog8.ast.base.Position
 import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
-import kotlin.io.path.Path
 
 
 open class ParsingFailedError(override var message: String) : Exception(message)
@@ -43,19 +42,18 @@ object Prog8Parser {
         return module
     }
 
-    private class ParsedModule(src: SourceCode) : Module(
+    private class ParsedModule(source: SourceCode) : Module(
         // FIXME: hacking together a name for the module:
-        name = src.pathString()
+        name = source.pathString()
             .substringBeforeLast(".") // must also work with an origin = "<String@123beef>"
             .substringAfterLast("/")
             .substringAfterLast("\\")
             .replace("String@", "anonymous_"),
-        // FIXME: hacking together a path
-        source = Path(src.pathString()),
         statements = mutableListOf(),
-        position = Position(src.origin, 1, 0, 0)
+        position = Position(source.origin, 1, 0, 0),
+        source
         ) {
-        val provenance = Pair(src, Triple(1, 0, 0))
+        val provenance = Pair(source, Triple(1, 0, 0))
 
         /**
          * Adds a [Directive] to [statements] and

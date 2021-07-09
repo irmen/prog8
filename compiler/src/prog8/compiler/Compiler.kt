@@ -22,6 +22,7 @@ import prog8.parser.moduleName
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.system.measureTimeMillis
 
 
@@ -183,7 +184,10 @@ private fun parseImports(filepath: Path,
     importer.importModule(filepath)
     errors.report()
 
-    val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
+    val importedFiles = programAst.modules
+        .mapNotNull { it.source }
+        .filter { !it.isFromResources } // TODO: parseImports/importedFiles - maybe rather `source.isFromFilesystem`?
+        .map { Path(it.pathString()) }
     val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
@@ -357,14 +361,14 @@ fun printAst(programAst: Program) {
     println()
 }
 
-fun loadAsmIncludeFile(filename: String, source: Path): String {
-    return if (filename.startsWith("library:")) {
+fun loadAsmIncludeFile(filename: String, sourcePath: Path): String {
+    return if (filename.startsWith("library:")) {   // FIXME: is the prefix "library:" or is it "@embedded@"?
         val resource = tryGetEmbeddedResource(filename.substring(8))
             ?: throw IllegalArgumentException("library file '$filename' not found")
         resource.bufferedReader().use { it.readText() }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
-        val sib = source.resolveSibling(filename)
+        val sib = sourcePath.resolveSibling(filename)
         if (sib.toFile().isFile)
             sib.toFile().readText()
         else
@@ -372,6 +376,9 @@ fun loadAsmIncludeFile(filename: String, source: Path): String {
     }
 }
 
+/**
+ * Handle via SourceCode
+ */
 internal fun tryGetEmbeddedResource(name: String): InputStream? {
     return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
 }

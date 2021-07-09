@@ -5,6 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.parser.SourceCode
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.name
@@ -265,7 +266,7 @@ class Program(val name: String,
     init {
         // insert a container module for all interned strings later
         if(modules.firstOrNull()?.name != internedStringsModuleName) {
-            val internedStringsModule = Module(internedStringsModuleName, mutableListOf(), Position.DUMMY, Path.of(""))
+            val internedStringsModule = Module(internedStringsModuleName, mutableListOf(), Position.DUMMY, null)
             modules.add(0, internedStringsModule)
             val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
             internedStringsModule.statements.add(block)
@@ -342,7 +343,7 @@ class Program(val name: String,
 open class Module(override val name: String,
              override var statements: MutableList<Statement>,
              override val position: Position,
-             val source: Path) : Node, INameScope {
+             val source: SourceCode?) : Node, INameScope {
 
     override lateinit var parent: Node
     lateinit var program: Program
@@ -370,15 +371,7 @@ open class Module(override val name: String,
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    companion object {
-        fun pathForResource(resourcePath: String): Path {
-            return Paths.get("@embedded@/$resourcePath")
-        }
-
-        fun isLibrary(source: Path) = source.name=="" || source.startsWith("@embedded@/")
-    }
-
-    fun isLibrary() = isLibrary(source)
+    fun isLibrary() = (source == null) || source.isFromResources
 }
 
 
