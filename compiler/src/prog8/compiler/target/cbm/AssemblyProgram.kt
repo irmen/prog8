@@ -6,11 +6,14 @@ import prog8.compiler.target.IAssemblyProgram
 import prog8.compiler.target.generatedLabelPrefix
 import java.nio.file.Path
 
+
+internal const val viceMonListPostfix = "vice-mon-list"
+
 class AssemblyProgram(override val name: String, outputDir: Path, private val compTarget: String) : IAssemblyProgram {
     private val assemblyFile = outputDir.resolve("$name.asm")
     private val prgFile = outputDir.resolve("$name.prg")
     private val binFile = outputDir.resolve("$name.bin")
-    private val viceMonListFile = outputDir.resolve("$name.vice-mon-list")
+    private val viceMonListFile = outputDir.resolve("$name.$viceMonListPostfix")
 
     override fun assemble(options: CompilationOptions): Int {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)

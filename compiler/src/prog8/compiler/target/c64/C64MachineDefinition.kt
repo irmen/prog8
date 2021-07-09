@@ -4,6 +4,7 @@ import prog8.compiler.*
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.IMachineDefinition
 import prog8.compiler.target.IMachineFloat
+import prog8.compiler.target.cbm.viceMonListPostfix
 import java.io.IOException
 import kotlin.math.absoluteValue
 import kotlin.math.pow
@@ -35,10 +36,15 @@ internal object C64MachineDefinition: IMachineDefinition {
             emptyList()
     }
 
-    override fun launchEmulator(programName: String) {
+    override fun launchEmulator(selectedEmulator: Int, programName: String) {
+        if(selectedEmulator!=1) {
+            System.err.println("The c64 target only supports the main emulator (Vice).")
+            return
+        }
+
         for(emulator in listOf("x64sc", "x64")) {
             println("\nStarting C-64 emulator $emulator...")
-            val cmdline = listOf(emulator, "-silent", "-moncommands", "$programName.vice-mon-list",
+            val cmdline = listOf(emulator, "-silent", "-moncommands", "$programName.$viceMonListPostfix",
                     "-autostartprgmode", "1", "-autostart-warp", "-autostart", "$programName.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()
             val process: Process

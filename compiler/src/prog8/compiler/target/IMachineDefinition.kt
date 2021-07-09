@@ -32,6 +32,6 @@ interface IMachineDefinition {
     fun getFloat(num: Number): IMachineFloat
 
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
-    fun launchEmulator(programName: String)
+    fun launchEmulator(selectedEmulator: Int, programName: String)
     fun isRegularRAMaddress(address: Int): Boolean
 }

@@ -24,7 +24,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(module: Module) {
-        if(!module.isLibraryModule) {
+        if(!module.isLibrary()) {
             outputln("; ----------- module: ${module.name} -----------")
             super.visit(module)
         }

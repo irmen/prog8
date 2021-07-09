@@ -44,7 +44,7 @@ class ModuleImporter(private val program: Program,
         if(!Files.isReadable(filePath))
             throw ParsingFailedError("No such file: $filePath")
 
-        return importModule(CharStreams.fromPath(filePath), filePath, false)
+        return importModule(CharStreams.fromPath(filePath), filePath)
     }
 
     fun importLibraryModule(name: String): Module? {
@@ -68,7 +68,7 @@ class ModuleImporter(private val program: Program,
         }
     }
 
-    private fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
+    private fun importModule(stream: CharStream, modulePath: Path): Module {
         val moduleName = moduleName(modulePath.fileName)
         val lexer = CustomLexer(modulePath, stream)
         lexer.removeErrorListeners()
@@ -87,7 +87,7 @@ class ModuleImporter(private val program: Program,
         // tokens.commentTokens().forEach { println(it) }
 
         // convert to Ast
-        val moduleAst = parseTree.toAst(moduleName, isLibrary, modulePath, encoder)
+        val moduleAst = parseTree.toAst(moduleName, modulePath, encoder)
         moduleAst.program = program
         moduleAst.linkParents(program.namespace)
         program.modules.add(moduleAst)
@@ -122,7 +122,7 @@ class ModuleImporter(private val program: Program,
                     resource.use {
                         println("importing '$moduleName' (library)")
                         val content = it.reader().readText().replace("\r\n", "\n")
-                        importModule(CharStreams.fromString(content), Paths.get("@embedded@/$resourcePath"), true)
+                        importModule(CharStreams.fromString(content), Module.pathForResource(resourcePath))
                     }
                 } else {
                     val modulePath = tryGetModuleFromFile(moduleName, source, import.position)

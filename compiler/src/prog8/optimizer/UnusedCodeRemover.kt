@@ -20,7 +20,7 @@ internal class UnusedCodeRemover(private val program: Program,
     private val callgraph = CallGraph(program)
 
     override fun before(module: Module, parent: Node): Iterable<IAstModification> {
-        return if (!module.isLibraryModule && (module.containsNoCodeNorVars() || callgraph.unused(module)))
+        return if (!module.isLibrary() && (module.containsNoCodeNorVars() || callgraph.unused(module)))
             listOf(IAstModification.Remove(module, module.definingScope()))
         else
             noModifications
@@ -80,12 +80,12 @@ internal class UnusedCodeRemover(private val program: Program,
         val forceOutput = "force_output" in subroutine.definingBlock().options()
         if (subroutine !== program.entrypoint() && !forceOutput && !subroutine.inline && !subroutine.isAsmSubroutine) {
             if(callgraph.unused(subroutine)) {
-                if(!subroutine.definingModule().isLibraryModule)
+                if(!subroutine.definingModule().isLibrary())
                     errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
                 return listOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
             }
             if(subroutine.containsNoCodeNorVars()) {
-                if(!subroutine.definingModule().isLibraryModule)
+                if(!subroutine.definingModule().isLibrary())
                     errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
                 val removals = mutableListOf(IAstModification.Remove(subroutine, subroutine.definingScope()))
                 callgraph.calledBy[subroutine]?.let {

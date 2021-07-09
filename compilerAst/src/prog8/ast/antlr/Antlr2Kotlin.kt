@@ -19,11 +19,11 @@ import java.nio.file.Path
 
 private data class NumericLiteral(val number: Number, val datatype: DataType)
 
-internal fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, source: Path, encoding: IStringEncoding) : Module {
+internal fun prog8Parser.ModuleContext.toAst(name: String, source: Path, encoding: IStringEncoding) : Module {
     val nameWithoutSuffix = if(name.endsWith(".p8")) name.substringBeforeLast('.') else name
     val directives = this.directive().map { it.toAst() }
-    val blocks = this.block().map { it.toAst(isLibrary, encoding) }
-    return Module(nameWithoutSuffix, (directives + blocks).toMutableList(), toPosition(), isLibrary, source)
+    val blocks = this.block().map { it.toAst(Module.isLibrary(source), encoding) }
+    return Module(nameWithoutSuffix, (directives + blocks).toMutableList(), toPosition(), source)
 }
 
 private fun ParserRuleContext.toPosition() : Position {

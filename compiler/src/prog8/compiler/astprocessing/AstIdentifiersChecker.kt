@@ -1,6 +1,5 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.expressions.StringLiteralValue
@@ -17,28 +16,19 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         errors.err("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position)
     }
 
-    override fun visit(module: Module) {
-        blocks.clear()  // blocks may be redefined within a different module
-
-        super.visit(module)
-    }
-
     override fun visit(block: Block) {
         if(block.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${block.name}'", block.position)
 
         val existing = blocks[block.name]
-        if(existing!=null)
-            nameError(block.name, block.position, existing)
+        if(existing!=null) {
+            if(block.isInLibrary)
+                nameError(existing.name, existing.position, block)
+            else
+                nameError(block.name, block.position, existing)
+        }
         else
             blocks[block.name] = block
-
-        if(!block.isInLibrary) {
-            val libraries = program.modules.filter { it.isLibraryModule }
-            val libraryBlockNames = libraries.flatMap { it.statements.filterIsInstance<Block>().map { b -> b.name } }
-            if(block.name in libraryBlockNames)
-                errors.err("block is already defined in an included library module", block.position)
-        }
 
         super.visit(block)
     }

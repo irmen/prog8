@@ -249,7 +249,7 @@ main {
 //        parser.removeErrorListeners()
 //        parser.addErrorListener(MyErrorListener())
 
-        val ast = parser.module().toAst("test", false, Path.of(""), DummyEncoding)
+        val ast = parser.module().toAst("test", Path.of(""), DummyEncoding)
         assertIs<Block>(ast.statements.first())
         assertEquals((ast.statements.first() as Block).name, "main")
     }
