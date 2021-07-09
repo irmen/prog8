@@ -41,19 +41,12 @@ object Prog8Parser {
         parseTree.block().forEach { module.add(it.toAst(module.isLibrary(), PetsciiEncoding)) }
 
         return module
-        }
-
-    // FIXME: hacking together a path string:
-    private fun SourceCode.pathString() =
-        origin
-            .substringAfter("<res:")
-            .substringAfter("<")
-            .substringBeforeLast(">")
+    }
 
     private class ParsedModule(src: SourceCode) : Module(
         // FIXME: hacking together a name for the module:
         name = src.pathString()
-            .substringBeforeLast(".")
+            .substringBeforeLast(".") // must also work with an origin = "<String@123beef>"
             .substringAfterLast("/")
             .substringAfterLast("\\")
             .replace("String@", "anonymous_"),

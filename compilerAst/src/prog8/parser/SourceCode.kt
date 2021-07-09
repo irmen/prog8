@@ -10,16 +10,32 @@ import kotlin.io.path.*
  * Encapsulates - and ties together - actual source code (=text)
  * and its [origin].
  */
-abstract class SourceCode() {
+abstract class SourceCode {
+
+    /**
+     * To be used *only* by the parser (as input to a TokenStream).
+     * DO NOT mess around with!
+     */
+    internal abstract fun getCharStream(): CharStream
+
     /**
      * Where this [SourceCode] instance came from.
      * This can be one of the following:
      * * a normal string representation of a [java.nio.file.Path], if it originates from a file (see [fromPath])
      * * `<String@44c56085>` if was created via [of]
-     * * `<res:/x/y/z.ext>` if it came from resources (see [fromResources])
+     * * `@embedded@/x/y/z.ext` if it came from resources (see [fromResources])
      */
     abstract val origin: String
-    abstract fun getCharStream(): CharStream
+
+
+    /**
+     * FIXME: hacking together a [SourceCode]'s "path string"
+     * This is really just [origin] with any stuff removed that would render it an invalid path name.
+     * (Note: a *valid* path name does NOT mean that the denoted file or folder *exists*)
+     */
+    fun pathString() =
+        origin
+            .substringAfter("<").substringBeforeLast(">") // or from plain string?
 
     /**
      * The source code as plain string.
@@ -92,7 +108,7 @@ abstract class SourceCode() {
                     reason = "looked in resources rooted at $rscRoot")
             }
             return object : SourceCode() {
-                override val origin = "<res:$normalized>"
+                override val origin = "@embedded@$normalized"
                 override fun getCharStream(): CharStream {
                     val inpStr = object{}.javaClass.getResourceAsStream(normalized)
                     val chars = CharStreams.fromStream(inpStr)
