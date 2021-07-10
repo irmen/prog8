@@ -2,6 +2,9 @@ package prog8tests
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import kotlin.io.path.*
+import kotlin.test.*
+
 import prog8.ast.IFunctionCall
 import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
@@ -9,12 +12,6 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.compiler.compileProgram
 import prog8.compiler.target.Cx16Target
-import kotlin.io.path.Path
-import kotlin.io.path.absolute
-import kotlin.io.path.isDirectory
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 
 /**
@@ -29,7 +26,7 @@ class TestCompilerOnCharLit {
     val outputDir = workingDir.resolve("build/tmp/test")
 
     @Test
-    fun testDirectoriesSanityCheck() {
+    fun sanityCheckDirectories() {
         assertEquals("compiler", workingDir.fileName.toString())
         assertTrue(fixturesDir.isDirectory(), "sanity check; should be directory: $fixturesDir")
         assertTrue(outputDir.isDirectory(), "sanity check; should be directory: $outputDir")
