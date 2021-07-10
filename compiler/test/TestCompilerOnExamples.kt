@@ -2,15 +2,13 @@ package prog8tests
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import kotlin.test.*
+import kotlin.io.path.*
+
 import prog8.compiler.compileProgram
+import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
-import kotlin.io.path.Path
-import kotlin.io.path.absolute
-import kotlin.io.path.isDirectory
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-
 
 /**
  * ATTENTION: this is just kludge!
@@ -23,8 +21,9 @@ class TestCompilerOnExamples {
     val examplesDir = workingDir.resolve("../examples")
     val outputDir = workingDir.resolve("build/tmp/test")
 
+
     @Test
-    fun testDirectoriesSanityCheck() {
+    fun sanityCheckDirectories() {
         assertEquals("compiler", workingDir.fileName.toString())
         assertTrue(examplesDir.isDirectory(), "sanity check; should be directory: $examplesDir")
         assertTrue(outputDir.isDirectory(), "sanity check; should be directory: $outputDir")
@@ -49,30 +48,88 @@ class TestCompilerOnExamples {
 
 
     @Test
-    fun test_cxLogo_noopt() {
+    fun test_cxLogo_cx16_noopt() {
         testExample("cxlogo", Cx16Target, false)
     }
     @Test
-    fun test_cxLogo_opt() {
+    fun test_cxLogo_cx16_opt() {
         testExample("cxlogo", Cx16Target, true)
+    }
+    @Test
+    fun test_cxLogo_c64_noopt() {
+        testExample("cxlogo", C64Target, false)
+    }
+    @Test
+    fun test_cxLogo_c64_opt() {
+        testExample("cxlogo", C64Target, true)
     }
 
     @Test
-    fun test_swirl_noopt() {
+    fun test_swirl_cx16_noopt() {
         testExample("swirl", Cx16Target, false)
     }
     @Test
-    fun test_swirl_opt() {
+    fun test_swirl_cx16_opt() {
         testExample("swirl", Cx16Target, true)
+    }
+    @Test
+    fun test_swirl_c64_noopt() {
+        testExample("swirl", C64Target, false)
+    }
+    @Test
+    fun test_swirl_c64_opt() {
+        testExample("swirl", C64Target, true)
     }
 
     @Test
-    fun test_animals_noopt() {
+    fun test_animals_cx16_noopt() {
         testExample("animals", Cx16Target, false)
     }
     @Test
-    fun test_animals_opt() {
+    fun test_animals_cx16_opt() {
         testExample("animals", Cx16Target, true)
     }
+    @Test
+    fun test_animals_c64_noopt() {
+        testExample("animals", C64Target, false)
+    }
+    @Test
+    fun test_animals_c64_opt() {
+        testExample("animals", C64Target, true)
+    }
 
+    @Test
+    fun test_tehtriz_cx16_noopt() {
+        testExample("cx16/tehtriz", Cx16Target, false)
+    }
+    @Test
+    fun test_tehtriz_cx16_opt() {
+        testExample("cx16/tehtriz", Cx16Target, true)
+    }
+    @Test
+    fun test_tehtriz_c64_noopt() {
+        testExample("tehtriz", C64Target, false)
+    }
+    @Test
+    fun test_tehtriz_c64_opt() {
+        testExample("tehtriz", C64Target, true)
+    }
+
+    // textelite.p8 is the largest example (~36KB)
+    @Test
+    fun test_textelite_cx16_noopt() {
+        testExample("textelite", Cx16Target, false)
+    }
+    @Test
+    fun test_textelite_cx16_opt() {
+        testExample("textelite", Cx16Target, true)
+    }
+    @Test
+    fun test_textelite_c64_noopt() {
+        testExample("textelite", C64Target, false)
+    }
+    @Test
+    fun test_textelite_c64_opt() {
+        testExample("textelite", C64Target, true)
+    }
 }
