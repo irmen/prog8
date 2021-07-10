@@ -177,6 +177,21 @@ class TestProg8Parser {
 
 
     @Test
+    fun testParseModuleWithEmptyString() {
+        val module = parseModule(SourceCode.of(""))
+        assertEquals(0, module.statements.size)
+    }
+
+    @Test
+    fun testParseModuleWithEmptyFile() {
+        val path = fixturesDir.resolve("empty.p8")
+        assertTrue(path.isRegularFile(), "sanity check: should be regular file: $path")
+
+        val module = parseModule(SourceCode.fromPath(path))
+        assertEquals(0, module.statements.size)
+    }
+
+    @Test
     fun testModuleNameForSourceFromString() {
         val srcText = """
             main {
