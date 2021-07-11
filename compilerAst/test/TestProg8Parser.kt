@@ -1,15 +1,16 @@
 package prog8tests
 
 import org.junit.jupiter.api.Test
-import prog8.ast.Node
-import prog8.ast.base.Position
-import prog8.ast.statements.*
 import kotlin.test.*
 import java.nio.file.Path   // TODO: use kotlin.io.path.Path instead
 import kotlin.io.path.*
+
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
+import prog8.ast.Node
+import prog8.ast.base.Position
+import prog8.ast.statements.*
 
 
 class TestProg8Parser {
