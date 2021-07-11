@@ -1,19 +1,14 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
+import kotlin.test.*
+
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
-
-
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestNumericLiteralValue {

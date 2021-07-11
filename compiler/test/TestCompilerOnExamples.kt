@@ -1,9 +1,8 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
 import kotlin.test.*
-import kotlin.io.path.*
+import prog8tests.helpers.*
 
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
@@ -17,21 +16,17 @@ import prog8.compiler.target.ICompilationTarget
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnExamples {
-    val workingDir = Path("").absolute()    // Note: Path(".") does NOT work..!
-    val examplesDir = workingDir.resolve("../examples")
-    val outputDir = workingDir.resolve("build/tmp/test")
+    private val examplesDir = workingDir.resolve("../examples")
 
-
-    @Test
-    fun sanityCheckDirectories() {
-        assertEquals("compiler", workingDir.fileName.toString())
-        assertTrue(examplesDir.isDirectory(), "sanity check; should be directory: $examplesDir")
-        assertTrue(outputDir.isDirectory(), "sanity check; should be directory: $outputDir")
+    @BeforeAll
+    fun setUp() {
+        sanityCheckDirectories("compiler")
+        assumeDirectory(examplesDir)
     }
 
     // TODO: make assembly stage testable - in case of failure (eg of 64tass) it Process.exit s
 
-    fun testExample(nameWithoutExt: String, platform: ICompilationTarget, optimize: Boolean) {
+    private fun testExample(nameWithoutExt: String, platform: ICompilationTarget, optimize: Boolean) {
         val filepath = examplesDir.resolve("$nameWithoutExt.p8")
         val result = compileProgram(
             filepath,

@@ -1,15 +1,15 @@
 package prog8tests
 
+import org.junit.jupiter.api.*
+import kotlin.test.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
 import prog8.compiler.target.cbm.Petscii
-import kotlin.test.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

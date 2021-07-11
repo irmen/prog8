@@ -1,8 +1,8 @@
 package prog8tests.helpers
 
-import org.junit.jupiter.api.Test
 import kotlin.test.*
 import kotlin.io.path.*
+import java.nio.file.Path
 
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IMemSizer
@@ -12,8 +12,31 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
-import java.nio.file.Path
+import prog8.compiler.CompilationResult
+import prog8.compiler.compileProgram
+import prog8.compiler.target.ICompilationTarget
 
+// TODO: find a way to share with compiler/test/Helpers.kt, while still being able to amend it (-> compileFixture(..))
+
+internal fun compileFixture(
+    filename: String,
+    platform: ICompilationTarget,
+    optimize: Boolean = false
+) : CompilationResult {
+    val filepath = fixturesDir.resolve(filename)
+    assumeReadableFile(filepath)
+    val result = compileProgram(
+        filepath,
+        optimize,
+        writeAssembly = true,
+        slowCodegenWarnings = false,
+        platform.name,
+        libdirs = listOf(),
+        outputDir
+    )
+    assertTrue(result.success, "compilation should succeed")
+    return result
+}
 
 val workingDir = Path("").absolute()    // Note: Path(".") does NOT work..!
 val fixturesDir = workingDir.resolve("test/fixtures")
@@ -47,7 +70,7 @@ inline fun sanityCheckDirectories(workingDirName: String? = null) {
 }
 
 
- val DummyEncoding = object : IStringEncoding {
+val DummyEncoding = object : IStringEncoding {
     override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
         TODO("Not yet implemented")
     }
@@ -73,4 +96,6 @@ val DummyFunctions = object : IBuiltinFunctions {
 val DummyMemsizer = object : IMemSizer {
     override fun memorySize(dt: DataType): Int = 0
 }
+
+
 

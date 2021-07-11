@@ -1,9 +1,8 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import kotlin.io.path.*
+import org.junit.jupiter.api.*
 import kotlin.test.*
+import prog8tests.helpers.*
 
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
@@ -12,6 +11,7 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
 import prog8.compiler.compileProgram
 import prog8.compiler.target.Cx16Target
+import kotlin.io.path.name
 
 
 /**
@@ -21,36 +21,21 @@ import prog8.compiler.target.Cx16Target
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnImportsAndIncludes {
-    val workingDir = Path("").absolute()    // Note: Path(".") does NOT work..!
-    val fixturesDir = workingDir.resolve("test/fixtures")
-    val outputDir = workingDir.resolve("build/tmp/test")
 
-    @Test
-    fun sanityCheckDirectories() {
-        assertEquals("compiler", workingDir.fileName.toString())
-        assertTrue(fixturesDir.isDirectory(), "sanity check; should be directory: $fixturesDir")
-        assertTrue(outputDir.isDirectory(), "sanity check; should be directory: $outputDir")
+    @BeforeAll
+    fun setUp() {
+        sanityCheckDirectories("compiler")
     }
 
     @Test
     fun testImportFromSameFolder() {
         val filepath = fixturesDir.resolve("importFromSameFolder.p8")
         val imported = fixturesDir.resolve("foo_bar.p8")
+        assumeReadableFile(filepath)
+        assumeReadableFile(imported)
 
-        assertTrue(filepath.isRegularFile(), "sanity check; should be regular file: $filepath")
-        assertTrue(imported.isRegularFile(), "sanity check; should be regular file: $imported")
-
-        val compilationTarget = Cx16Target
-        val result = compileProgram(
-            filepath,
-            optimize = false,
-            writeAssembly = true,
-            slowCodegenWarnings = false,
-            compilationTarget.name,
-            libdirs = listOf(),
-            outputDir
-        )
-        assertTrue(result.success, "compilation should succeed")
+        val platform = Cx16Target
+        val result = compileFixture(filepath.name, platform)
 
         val program = result.programAst
         val startSub = program.entrypoint()
@@ -69,21 +54,11 @@ class TestCompilerOnImportsAndIncludes {
     fun testAsmIncludeFromSameFolder() {
         val filepath = fixturesDir.resolve("asmIncludeFromSameFolder.p8")
         val included = fixturesDir.resolve("foo_bar.asm")
+        assumeReadableFile(filepath)
+        assumeReadableFile(included)
 
-        assertTrue(filepath.isRegularFile(), "sanity check; should be regular file: $filepath")
-        assertTrue(included.isRegularFile(), "sanity check; should be regular file: $included")
-
-        val compilationTarget = Cx16Target
-        val result = compileProgram(
-            filepath,
-            optimize = false,
-            writeAssembly = true,
-            slowCodegenWarnings = false,
-            compilationTarget.name,
-            libdirs = listOf(),
-            outputDir
-        )
-        assertTrue(result.success, "compilation should succeed")
+        val platform = Cx16Target
+        val result = compileFixture(filepath.name, platform)
 
         val program = result.programAst
         val startSub = program.entrypoint()
