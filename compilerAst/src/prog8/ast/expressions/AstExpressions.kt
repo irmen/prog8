@@ -499,6 +499,37 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 }
 
+class CharLiteral(val value: Char,
+                 val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
+                 override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+
+    override val isSimple = true
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
+    }
+
+    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun constValue(program: Program): NumericLiteralValue? = null  // TODO: CharLiteral.constValue can't be NumericLiteralValue...
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(walker: AstWalker, parent: Node) = walker.visit(this, parent)
+
+    override fun toString(): String = "'${escape(value.toString())}'"
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UNDEFINED) // FIXME: CharLiteral.inferType
+    operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
+    override fun hashCode(): Int = Objects.hash(value, altEncoding)
+    override fun equals(other: Any?): Boolean {
+        if (other == null || other !is CharLiteral)
+            return false
+        return value == other.value && altEncoding == other.altEncoding
+    }
+}
+
 class StringLiteralValue(val value: String,
                          val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
                          override val position: Position) : Expression() {

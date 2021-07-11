@@ -45,14 +45,14 @@ sourceSets {
     main {
         java {
             srcDirs = ["${project.projectDir}/src"]
-        }
-        resources {
-            srcDirs = ["${project.projectDir}/res"]
-        }
+        } 
     }
     test {
         java {
             srcDirs = ["${project.projectDir}/test"]
+        }
+        resources {
+            srcDirs = ["${project.projectDir}/res"]
         }
     }
 }

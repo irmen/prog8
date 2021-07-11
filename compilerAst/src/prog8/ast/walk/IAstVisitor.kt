@@ -79,6 +79,9 @@ interface IAstVisitor {
     fun visit(numLiteral: NumericLiteralValue) {
     }
 
+    fun visit(char: CharLiteral) {
+    }
+
     fun visit(string: StringLiteralValue) {
     }
 

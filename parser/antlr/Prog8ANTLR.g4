@@ -8,7 +8,9 @@ NOTES:
 
 */
 
-grammar prog8;
+// -> java classes Prog8ANTLRParser and Prog8ANTLRLexer, 
+// both NOT to be used from Kotlin code, but ONLY through Kotlin class Prog8Parser
+grammar Prog8ANTLR;
 
 @header {
 package prog8.parser;

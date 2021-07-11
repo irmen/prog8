@@ -24,6 +24,8 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     override fun encodeString(str: String, altEncoding: Boolean): List<Short>
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
 
+    // TODO: rename param target, and also AST node AssignTarget - *different meaning of "target"!*
+    // TODO: remove param program - can be obtained from AST node
     fun isInRegularRAM(target: AssignTarget, program: Program): Boolean {
         val memAddr = target.memoryAddress
         val arrayIdx = target.arrayindexed
