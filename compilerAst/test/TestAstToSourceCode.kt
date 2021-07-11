@@ -1,16 +1,10 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.*
 import kotlin.test.*
+import prog8tests.helpers.*
 
 import prog8.ast.*
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.InferredTypes
-import prog8.ast.expressions.NumericLiteralValue
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
 
@@ -20,17 +14,6 @@ import prog8.parser.ParseError
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestAstToSourceCode {
-
-    object DummyFunctions: IBuiltinFunctions {
-        override val names: Set<String> = emptySet()
-        override val purefunctionNames: Set<String> = emptySet()
-        override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? = null
-        override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
-    }
-
-    object DummyMemsizer: IMemSizer {
-        override fun memorySize(dt: DataType): Int = 0
-    }
 
     fun generateP8(module: Module) : String {
         val program = Program("test", mutableListOf(module), DummyFunctions, DummyMemsizer)
@@ -50,7 +33,7 @@ class TestAstToSourceCode {
             val parsedAgain = parseModule(SourceCode.of(generatedText))
             return Pair(generatedText, parsedAgain)
         } catch (e: ParseError) {
-            assert(false, { "should produce valid Prog8 but threw $e" })
+            assert(false) { "should produce valid Prog8 but threw $e" }
             throw e
         }
     }
@@ -113,6 +96,7 @@ class TestAstToSourceCode {
     }
 
     @Test
+    @Disabled
     fun testCharLiteral_noAlt() {
         val orig = SourceCode.of("""
             main {
@@ -125,6 +109,7 @@ class TestAstToSourceCode {
     }
 
     @Test
+    @Disabled
     fun testCharLiteral_withAlt() {
         val orig = SourceCode.of("""
             main {

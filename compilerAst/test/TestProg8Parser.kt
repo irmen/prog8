@@ -1,8 +1,8 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import kotlin.test.*
-import java.nio.file.Path   // TODO: use kotlin.io.path.Path instead
+import prog8tests.helpers.*
 import kotlin.io.path.*
 
 import prog8.parser.ParseError
@@ -13,14 +13,12 @@ import prog8.ast.base.Position
 import prog8.ast.statements.*
 
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestProg8Parser {
-    val workingDir = Path("").absolute()    // Note: Path(".") does NOT work..!
-    val fixturesDir = workingDir.resolve("test/fixtures")
 
-    @Test
-    fun testDirectoriesSanityCheck() {
-        assertEquals("compilerAst", workingDir.fileName.toString())
-        assertTrue(fixturesDir.isDirectory(), "sanity check; should be directory: $fixturesDir")
+    @BeforeAll
+    fun setUp() {
+        sanityCheckDirectories("compilerAst")
     }
 
     @Test
@@ -164,15 +162,14 @@ class TestProg8Parser {
 
     @Test
     fun parseModuleShouldNotLookAtImports() {
-        val imported = "i_do_not_exist"
-        val pathNoExt = Path.of(imported).absolute()
-        val pathWithExt = Path.of("${pathNoExt}.p8")
-        val text = "%import $imported"
+        val importedNoExt = fixturesDir.resolve("i_do_not_exist")
+        val importedWithExt = fixturesDir.resolve("i_do_not_exist.p8")
+        assumeNotExists(importedNoExt)
+        assumeNotExists(importedWithExt)
 
-        assertFalse(pathNoExt.exists(), "sanity check: file should not exist: $pathNoExt")
-        assertFalse(pathWithExt.exists(), "sanity check: file should not exist: $pathWithExt")
-
+        val text = "%import ${importedNoExt.name}"
         val module = parseModule(SourceCode.of(text))
+
         assertEquals(1, module.statements.size)
     }
 
@@ -186,7 +183,7 @@ class TestProg8Parser {
     @Test
     fun testParseModuleWithEmptyFile() {
         val path = fixturesDir.resolve("empty.p8")
-        assertTrue(path.isRegularFile(), "sanity check: should be regular file: $path")
+        assumeReadableFile(path)
 
         val module = parseModule(SourceCode.fromPath(path))
         assertEquals(0, module.statements.size)
@@ -298,6 +295,7 @@ class TestProg8Parser {
      * TODO: this test is testing way too much at once
      */
     @Test
+    @Disabled
     fun testInnerNodePositionsForSourceFromString() {
         val srcText = """
             %target 16, "abc" ; DirectiveArg directly inherits from Node - neither an Expression nor a Statement..?
@@ -335,17 +333,4 @@ class TestProg8Parser {
         assertPositionOf(whenStmt.choices[2], mpf, 9, 12)  // TODO: endCol wrong!
     }
 
-
-    @Test
-    fun testProg8Ast() {
-        val module = parseModule(SourceCode.of("""
-        main {
-            sub start() {
-                return
-            }
-        }
-        """))
-        assertIs<Block>(module.statements.first())
-        assertEquals("main", (module.statements.first() as Block).name)
-    }
 }

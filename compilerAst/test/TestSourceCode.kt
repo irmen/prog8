@@ -1,28 +1,20 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.*
 import kotlin.test.*
+import prog8tests.helpers.*
 import kotlin.io.path.*
 
 import prog8.parser.SourceCode
 
 
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSourceCode {
-    val workingDir = Path("").absolute()    // Note: Path(".") does NOT work..!
-    val fixturesDir = workingDir.resolve("test/fixtures")
-    val resourcesDir = workingDir.resolve("res")
-    val outputDir = workingDir.resolve("build/tmp/test")
 
-    @Test
-    fun sanityCheckDirectories() {
-        assertEquals("compilerAst", workingDir.fileName.toString())
-        assertTrue(workingDir.isDirectory(), "sanity check; should be directory: $workingDir")
-        assertTrue(fixturesDir.isDirectory(), "sanity check; should be directory: $fixturesDir")
-        assertTrue(resourcesDir.isDirectory(), "sanity check; should be directory: $resourcesDir")
-        assertTrue(outputDir.isDirectory(), "sanity check; should be directory: $outputDir")
+    @BeforeAll
+    fun setUp() {
+        sanityCheckDirectories("compilerAst")
     }
 
     @Test
@@ -41,8 +33,7 @@ class TestSourceCode {
     fun testFromPathWithNonExistingPath() {
         val filename = "i_do_not_exist.p8"
         val path = fixturesDir.resolve(filename)
-
-        assertFalse(path.exists(), "sanity check: file should not exist: ${path.absolute()}")
+        assumeNotExists(path)
         assertFailsWith<NoSuchFileException> { SourceCode.fromPath(path) }
     }
 
@@ -50,9 +41,7 @@ class TestSourceCode {
     fun testFromPathWithMissingExtension_p8() {
         val pathWithoutExt = fixturesDir.resolve("simple_main")
         val pathWithExt = Path(pathWithoutExt.toString() + ".p8")
-
-        assertTrue(pathWithExt.isRegularFile(), "sanity check: should be normal file: ${pathWithExt.absolute()}")
-        assertTrue(pathWithExt.isReadable(), "sanity check: should be readable: ${pathWithExt.absolute()}")
+        assumeReadableFile(pathWithExt)
         assertFailsWith<NoSuchFileException> { SourceCode.fromPath(pathWithoutExt) }
     }
 
@@ -108,7 +97,7 @@ class TestSourceCode {
 
         assertEquals("@embedded@$pathString", src.origin)
 
-        val expectedSrcText = resourcesDir.resolve(pathString.substringAfter("/")).toFile().readText()
+        val expectedSrcText = resourcesDir.resolve(pathString.substring(1)).toFile().readText()
         val actualSrcText = src.asString()
         assertEquals(expectedSrcText, actualSrcText)
     }
@@ -133,7 +122,7 @@ class TestSourceCode {
 
         assertEquals("@embedded@$pathString", src.origin)
 
-        val expectedSrcText = resourcesDir.resolve(pathString.substringAfter("/")).toFile().readText()
+        val expectedSrcText = resourcesDir.resolve(pathString.substring(1)).toFile().readText()
         val actualSrcText = src.asString()
         assertEquals(expectedSrcText, actualSrcText)
     }
@@ -145,7 +134,7 @@ class TestSourceCode {
 
         assertEquals("@embedded@/prog8lib/math.p8", src.origin)
 
-        val expectedSrcText = Path( "res", pathString).toFile().readText()
+        val expectedSrcText = resourcesDir.resolve(pathString.substring(1)).toFile().readText()
         val actualSrcText = src.asString()
         assertEquals(expectedSrcText, actualSrcText)
         assertTrue(src.isFromResources, ".isFromResources")
@@ -155,15 +144,15 @@ class TestSourceCode {
     @Test
     fun testFromResourcesWithNonExistingFile_withLeadingSlash() {
         val pathString = "/prog8lib/i_do_not_exist"
-        val resPath = resourcesDir.resolve(pathString.substringAfter("/"))
-        assertFalse(resPath.exists(), "sanity check: should not exist: $resPath")
+        val resPath = resourcesDir.resolve(pathString.substring(1))
+        assumeNotExists(resPath)
         assertThrows<NoSuchFileException> { SourceCode.fromResources(pathString) }
     }
     @Test
     fun testFromResourcesWithNonExistingFile_withoutLeadingSlash() {
         val pathString = "prog8lib/i_do_not_exist"
         val resPath = resourcesDir.resolve(pathString)
-        assertFalse(resPath.exists(), "sanity check: should not exist: $resPath")
+        assumeNotExists(resPath)
         assertThrows<NoSuchFileException> { SourceCode.fromResources(pathString) }
     }
 
