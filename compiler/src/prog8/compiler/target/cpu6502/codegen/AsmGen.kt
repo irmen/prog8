@@ -1308,6 +1308,9 @@ $repeatLabel    lda  $counterVar
         }
     }
 
+    /**
+     * TODO: %asminclude and %asmbinary should be done earlier than code gen (-> put content into AST)
+     */
     private fun translate(stmt: Directive) {
         when(stmt.directive) {
             "%asminclude" -> {
