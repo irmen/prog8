@@ -9,6 +9,11 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 
 
+/**
+ * Produces Prog8 source text from a [Program] (AST node),
+ * passing it as a String to the specified receiver function.
+ * TODO: rename/refactor to make proper sense in the presence of class [prog8.SourceCode]
+ */
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
     private var scopelevel = 0
 
@@ -18,9 +23,9 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     private fun outputi(s: Any) = output(indent(s.toString()))
 
     override fun visit(program: Program) {
-        outputln("============= PROGRAM ${program.name} (FROM AST) ===============")
+        outputln("; ============ PROGRAM ${program.name} (FROM AST) ==============")
         super.visit(program)
-        outputln("============= END PROGRAM ${program.name} (FROM AST) ===========")
+        outputln("; =========== END PROGRAM ${program.name} (FROM AST) ===========")
     }
 
     override fun visit(module: Module) {
@@ -262,6 +267,8 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
     }
 
     override fun visit(string: StringLiteralValue) {
+        if (string.altEncoding)
+            output("@")
         output("\"${escape(string.value)}\"")
     }
 
