@@ -1,6 +1,7 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
 import kotlin.test.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo

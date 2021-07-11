@@ -1,11 +1,10 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
 import kotlin.test.*
 import prog8tests.helpers.*
 
-import java.nio.file.Path   // TODO: use kotlin.io.path.Path instead
 import kotlin.io.path.*
 
 import prog8.ast.Program

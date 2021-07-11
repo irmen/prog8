@@ -1,6 +1,7 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
 import kotlin.test.*
 import prog8tests.helpers.*
 
@@ -13,6 +14,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
+
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestMemory {

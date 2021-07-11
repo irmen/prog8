@@ -1,7 +1,10 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeAll
 import kotlin.test.*
+import kotlin.io.path.*
 import prog8tests.helpers.*
 
 import prog8.ast.expressions.AddressOf
@@ -9,9 +12,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
-import prog8.compiler.compileProgram
 import prog8.compiler.target.Cx16Target
-import kotlin.io.path.name
 
 
 /**

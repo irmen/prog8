@@ -1,6 +1,9 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import kotlin.test.*
 import prog8tests.helpers.*
 
@@ -14,6 +17,7 @@ import prog8.compiler.target.ICompilationTarget
  * They are not really unit tests, but rather tests of the whole process,
  * from source file loading all the way through to running 64tass.
  */
+//@Disabled("to save some time")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnExamples {
     private val examplesDir = workingDir.resolve("../examples")

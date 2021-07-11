@@ -1,6 +1,8 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Disabled
 import kotlin.test.*
 import prog8tests.helpers.*
 
@@ -15,7 +17,7 @@ import prog8.parser.ParseError
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestAstToSourceCode {
 
-    fun generateP8(module: Module) : String {
+    private fun generateP8(module: Module) : String {
         val program = Program("test", mutableListOf(module), DummyFunctions, DummyMemsizer)
         module.linkParents(program)
         module.program = program
@@ -27,7 +29,7 @@ class TestAstToSourceCode {
         return generatedText
     }
 
-    fun roundTrip(module: Module): Pair<String, Module> {
+    private fun roundTrip(module: Module): Pair<String, Module> {
         val generatedText = generateP8(module)
         try {
             val parsedAgain = parseModule(SourceCode.of(generatedText))
@@ -41,7 +43,7 @@ class TestAstToSourceCode {
     @Test
     fun testMentionsInternedStringsModule() {
         val orig = SourceCode.of("\n")
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex(";.*$internedStringsModuleName"))
     }
@@ -49,7 +51,7 @@ class TestAstToSourceCode {
     @Test
     fun testTargetDirectiveAndComment() {
         val orig = SourceCode.of("%target 42  ; invalid arg - shouldn't matter\n")
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("%target +42"))
     }
@@ -57,7 +59,7 @@ class TestAstToSourceCode {
     @Test
     fun testImportDirectiveWithLib() {
         val orig = SourceCode.of("%import textio\n")
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("%import +textio"))
     }
@@ -65,7 +67,7 @@ class TestAstToSourceCode {
     @Test
     fun testImportDirectiveWithUserModule() {
         val orig = SourceCode.of("%import my_own_stuff\n")
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("%import +my_own_stuff"))
     }
@@ -78,7 +80,7 @@ class TestAstToSourceCode {
                 str s = "fooBar\n"
             }
         """)
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("str +s += +\"fooBar\\\\n\""))
     }
@@ -90,33 +92,33 @@ class TestAstToSourceCode {
                 str sAlt = @"fooBar\n"
             }
         """)
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("str +sAlt += +@\"fooBar\\\\n\""))
     }
 
     @Test
-    @Disabled
+    @Disabled("TODO: char literals should be kept until code gen - step 4, 'introduce AST node CharLiteral'")
     fun testCharLiteral_noAlt() {
         val orig = SourceCode.of("""
             main {
                 ubyte c = 'x'
             }
         """)
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("ubyte +c += +'x'"), "char literal")
     }
 
     @Test
-    @Disabled
+    @Disabled("TODO: char literals should be kept until code gen - step 4, 'introduce AST node CharLiteral'")
     fun testCharLiteral_withAlt() {
         val orig = SourceCode.of("""
             main {
                 ubyte cAlt = @'x'
             }
         """)
-        val (txt, module) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("ubyte +cAlt += +@'x'"), "alt char literal")
     }

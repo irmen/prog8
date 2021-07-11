@@ -1,6 +1,9 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.BeforeAll
 import kotlin.test.*
 import prog8tests.helpers.*
 import kotlin.io.path.*
@@ -295,7 +298,7 @@ class TestProg8Parser {
      * TODO: this test is testing way too much at once
      */
     @Test
-    @Disabled
+    @Disabled("TODO: fix .position of nodes below Module - step 8, 'refactor AST gen'")
     fun testInnerNodePositionsForSourceFromString() {
         val srcText = """
             %target 16, "abc" ; DirectiveArg directly inherits from Node - neither an Expression nor a Statement..?

@@ -20,23 +20,23 @@ val fixturesDir = workingDir.resolve("test/fixtures")
 val resourcesDir = workingDir.resolve("res")
 val outputDir = workingDir.resolve("build/tmp/test")
 
-inline fun assumeReadable(path: Path) {
+fun assumeReadable(path: Path) {
     assertTrue(path.isReadable(), "sanity check: should be readable: ${path.absolute()}")
 }
 
-inline fun assumeReadableFile(path: Path) {
+fun assumeReadableFile(path: Path) {
     assertTrue(path.isRegularFile(), "sanity check: should be normal file: ${path.absolute()}")
 }
 
-inline fun assumeDirectory(path: Path) {
+fun assumeDirectory(path: Path) {
     assertTrue(path.isDirectory(), "sanity check; should be directory: $path")
 }
 
-inline fun assumeNotExists(path: Path) {
+fun assumeNotExists(path: Path) {
     assertFalse(path.exists(), "sanity check: should not exist: ${path.absolute()}")
 }
 
-inline fun sanityCheckDirectories(workingDirName: String? = null) {
+fun sanityCheckDirectories(workingDirName: String? = null) {
     if (workingDirName != null)
         assertEquals(workingDirName, workingDir.fileName.toString(), "name of current working dir")
     assumeDirectory(workingDir)

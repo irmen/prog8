@@ -1,12 +1,14 @@
 package prog8tests
 
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.*
 import kotlin.test.*
 import prog8tests.helpers.*
 import kotlin.io.path.*
 
 import prog8.parser.SourceCode
-
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -156,10 +158,8 @@ class TestSourceCode {
         assertThrows<NoSuchFileException> { SourceCode.fromResources(pathString) }
     }
 
-    /**
-     * TODO("inside resources: cannot tell apart a folder from a file")
-     */
-    //@Test
+    @Test
+    @Disabled("TODO: inside resources: cannot tell apart a folder from a file")
     fun testFromResourcesWithDirectory() {
         val pathString = "/prog8lib"
         assertThrows<AccessDeniedException> { SourceCode.fromResources(pathString) }
