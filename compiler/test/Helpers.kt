@@ -6,7 +6,6 @@ import java.nio.file.Path
 
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IMemSizer
-import prog8.ast.IStringEncoding
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
@@ -126,16 +125,6 @@ fun <A, B, C, D, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, dim3: 
                         yield(combine4(a, b, c, d))
     }.toList()
 
-
-val DummyEncoding = object : IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
-        throw Exception("just a dummy - should not be called")
-    }
-
-    override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
-        throw Exception("just a dummy - should not be called")
-    }
-}
 
 val DummyFunctions = object : IBuiltinFunctions {
     override val names: Set<String> = emptySet()

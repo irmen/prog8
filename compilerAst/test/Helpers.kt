@@ -5,7 +5,6 @@ import kotlin.io.path.*
 
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IMemSizer
-import prog8.ast.IStringEncoding
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
@@ -45,16 +44,6 @@ fun sanityCheckDirectories(workingDirName: String? = null) {
     assumeDirectory(outputDir)
 }
 
-
- val DummyEncoding = object : IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
-        TODO("Not yet implemented")
-    }
-}
 
 val DummyFunctions = object : IBuiltinFunctions {
     override val names: Set<String> = emptySet()

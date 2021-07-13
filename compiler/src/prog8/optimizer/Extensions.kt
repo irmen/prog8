@@ -21,7 +21,7 @@ internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilati
             if(errors.noErrors()) {
                 valuetypefixer.applyModifications()
 
-                val optimizer = ConstantFoldingOptimizer(this, compTarget)
+                val optimizer = ConstantFoldingOptimizer(this)
                 optimizer.visit(this)
                 while (errors.noErrors() && optimizer.applyModifications() > 0) {
                     optimizer.visit(this)

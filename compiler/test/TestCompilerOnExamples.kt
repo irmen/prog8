@@ -54,7 +54,7 @@ class TestCompilerOnExamples {
     }
 
     @TestFactory
-    @Disabled
+//    @Disabled
     fun bothCx16AndC64() = mapCombinations(
         dim1 = listOf(
             "animals",

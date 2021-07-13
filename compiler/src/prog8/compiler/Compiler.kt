@@ -1,6 +1,9 @@
 package prog8.compiler
 
-import prog8.ast.*
+import prog8.ast.AstToSourceCode
+import prog8.ast.IBuiltinFunctions
+import prog8.ast.IMemSizer
+import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
@@ -171,13 +174,12 @@ private fun parseImports(filepath: Path,
                          errors: IErrorReporter,
                          compTarget: ICompilationTarget,
                          libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
-    val compilationTargetName = compTarget.name
-    println("Compiler target: $compilationTargetName. Parsing...")
+    println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf, compTarget)
     bf.program = programAst
 
-    val importer = ModuleImporter(programAst, compTarget, compilationTargetName, libdirs)
+    val importer = ModuleImporter(programAst, compTarget.name, libdirs)
     importer.importModule(filepath)
     errors.report()
 
@@ -190,7 +192,7 @@ private fun parseImports(filepath: Path,
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the machine and compiler options we may have to include some libraries
-    for(lib in compTarget.machine.importLibs(compilerOptions, compilationTargetName))
+    for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
         importer.importLibraryModule(lib)
 
     // always import prog8_lib and math
@@ -266,7 +268,7 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     programAst.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
-    programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget as IStringEncoding)
+    programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget)
     errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)
     errors.report()
