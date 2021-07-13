@@ -14,7 +14,7 @@ import prog8.parser.SourceCode
 import prog8.ast.*
 import prog8.ast.statements.*
 import prog8.ast.base.Position
-import prog8.ast.expressions.CharLiteral
+import prog8.ast.expressions.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -430,5 +430,54 @@ class TestProg8Parser {
         val rhs = decl.value as CharLiteral
         assertEquals('x', rhs.value, "char literal's .value")
         assertEquals(true, rhs.altEncoding, "char literal's .altEncoding")
+    }
+
+
+    @Test
+    fun testForloop() {
+        val module = parseModule(SourceCode.of("""
+            main {
+                sub start() {
+                    ubyte ub
+                    for ub in "start" downto "end" {    ; #0
+                    }
+                    for ub in "something" {             ; #1
+                    }
+                    for ub in @'a' to 'f' {             ; #2
+                    }
+                    for ub in false to true {           ; #3
+                    }
+                    for ub in 9 to 1 {                  ; #4 - yes, *parser* should NOT check!
+                    }
+                }
+            }
+        """))
+        val iterables = module
+            .statements.filterIsInstance<Block>()[0]
+            .statements.filterIsInstance<Subroutine>()[0]
+            .statements.filterIsInstance<ForLoop>()
+            .map { it.iterable }
+
+        assertEquals(5, iterables.size)
+
+        val it0 = iterables[0] as RangeExpr
+        assertIs<StringLiteralValue>(it0.from, "parser should leave it as is")
+        assertIs<StringLiteralValue>(it0.to, "parser should leave it as is")
+
+        val it1 = iterables[1] as StringLiteralValue
+        assertEquals("something", it1.value, "parser should leave it as is")
+
+        val it2 = iterables[2] as RangeExpr
+        assertIs<CharLiteral>(it2.from, "parser should leave it as is")
+        assertIs<CharLiteral>(it2.to, "parser should leave it as is")
+
+        val it3 = iterables[3] as RangeExpr
+        // TODO: intro BoolLiteral
+        assertIs<NumericLiteralValue>(it3.from, "parser should leave it as is")
+        assertIs<NumericLiteralValue>(it3.to, "parser should leave it as is")
+
+        val it4 = iterables[4] as RangeExpr
+        assertIs<NumericLiteralValue>(it4.from, "parser should leave it as is")
+        assertIs<NumericLiteralValue>(it4.to, "parser should leave it as is")
     }
 }
