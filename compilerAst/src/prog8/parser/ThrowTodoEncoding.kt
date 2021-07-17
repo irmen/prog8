@@ -3,7 +3,7 @@ package prog8.parser
 import prog8.ast.IStringEncoding
 
 /**
- * TODO: remove once [IStringEncoding] has been to compiler module
+ * TODO: remove once [IStringEncoding] has been moved to compiler module
  */
 object ThrowTodoEncoding: IStringEncoding {
     override fun encodeString(str: String, altEncoding: Boolean): List<Short> {

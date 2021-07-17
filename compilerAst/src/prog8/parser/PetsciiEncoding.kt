@@ -5,7 +5,7 @@ import java.io.CharConversionException
 
 
 /**
- * TODO: remove once [IStringEncoding] has been to compiler module
+ * TODO: remove once [IStringEncoding] has been moved to compiler module
  */
 object PetsciiEncoding : IStringEncoding {
     override fun encodeString(str: String, altEncoding: Boolean) =

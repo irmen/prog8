@@ -5,8 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.expressions.CharLiteral
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.*
 import prog8.ast.statements.Directive
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -14,6 +13,53 @@ import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
 import prog8.compiler.target.ICompilationTarget
+import kotlin.math.abs
+
+
+fun RangeExpr.size(encoding: IStringEncoding): Int? {
+    val fromLv = (from as? NumericLiteralValue)
+    val toLv = (to as? NumericLiteralValue)
+    if(fromLv==null || toLv==null)
+        return null
+    return toConstantIntegerRange(encoding)?.count()
+}
+
+fun RangeExpr.toConstantIntegerRange(encoding: IStringEncoding): IntProgression? {
+    val fromVal: Int
+    val toVal: Int
+    val fromString = from as? StringLiteralValue
+    val toString = to as? StringLiteralValue
+    if(fromString!=null && toString!=null ) {
+        // string range -> int range over character values
+        fromVal = encoding.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
+        toVal = encoding.encodeString(toString.value, fromString.altEncoding)[0].toInt()
+    } else {
+        val fromLv = from as? NumericLiteralValue
+        val toLv = to as? NumericLiteralValue
+        if(fromLv==null || toLv==null)
+            return null         // non-constant range
+        // integer range
+        fromVal = fromLv.number.toInt()
+        toVal = toLv.number.toInt()
+    }
+    val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
+    return makeRange(fromVal, toVal, stepVal)
+}
+
+private fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
+    return when {
+        fromVal <= toVal -> when {
+            stepVal <= 0 -> IntRange.EMPTY
+            stepVal == 1 -> fromVal..toVal
+            else -> fromVal..toVal step stepVal
+        }
+        else -> when {
+            stepVal >= 0 -> IntRange.EMPTY
+            stepVal == -1 -> fromVal downTo toVal
+            else -> fromVal downTo toVal step abs(stepVal)
+        }
+    }
+}
 
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: IErrorReporter, compTarget: ICompilationTarget) {

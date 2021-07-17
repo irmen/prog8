@@ -7,7 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import java.util.*
-import kotlin.math.abs
 
 
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
@@ -719,51 +718,8 @@ class RangeExpr(var from: Expression,
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
 
-    fun size(encoding: IStringEncoding): Int? {
-        val fromLv = (from as? NumericLiteralValue)
-        val toLv = (to as? NumericLiteralValue)
-        if(fromLv==null || toLv==null)
-            return null
-        return toConstantIntegerRange(encoding)?.count()
-    }
-
-    fun toConstantIntegerRange(encoding: IStringEncoding): IntProgression? {
-        val fromVal: Int
-        val toVal: Int
-        val fromString = from as? StringLiteralValue
-        val toString = to as? StringLiteralValue
-        if(fromString!=null && toString!=null ) {
-            // string range -> int range over character values
-            fromVal = encoding.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
-            toVal = encoding.encodeString(toString.value, fromString.altEncoding)[0].toInt()
-        } else {
-            val fromLv = from as? NumericLiteralValue
-            val toLv = to as? NumericLiteralValue
-            if(fromLv==null || toLv==null)
-                return null         // non-constant range
-            // integer range
-            fromVal = fromLv.number.toInt()
-            toVal = toLv.number.toInt()
-        }
-        val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
-        return makeRange(fromVal, toVal, stepVal)
-    }
 }
 
-internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
-    return when {
-        fromVal <= toVal -> when {
-            stepVal <= 0 -> IntRange.EMPTY
-            stepVal == 1 -> fromVal..toVal
-            else -> fromVal..toVal step stepVal
-        }
-        else -> when {
-            stepVal >= 0 -> IntRange.EMPTY
-            stepVal == -1 -> fromVal downTo toVal
-            else -> fromVal downTo toVal step abs(stepVal)
-        }
-    }
-}
 
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node

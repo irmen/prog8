@@ -11,6 +11,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
+import prog8.compiler.astprocessing.size
 import prog8.compiler.target.ICompilationTarget
 import kotlin.math.floor
 

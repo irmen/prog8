@@ -9,6 +9,7 @@ import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.ForLoop
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compiler.astprocessing.toConstantIntegerRange
 import kotlin.math.absoluteValue
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {

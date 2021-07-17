@@ -14,6 +14,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
+import prog8.compiler.astprocessing.size
+import prog8.compiler.astprocessing.toConstantIntegerRange
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 
