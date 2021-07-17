@@ -6,61 +6,18 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.parser.SourceCode
-import kotlin.math.abs
 
 const val internedStringsModuleName = "prog8_interned_strings"
 
-interface IStringEncoding {
-    fun encodeString(str: String, altEncoding: Boolean): List<Short>
-    fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
-}
 
-interface Node {
-    val position: Position
-    var parent: Node             // will be linked correctly later (late init)
-    fun linkParents(parent: Node)
-
-    fun definingModule(): Module {
-        if(this is Module)
-            return this
-        return findParentNode<Module>(this)!!
-    }
-
-    fun definingSubroutine(): Subroutine?  = findParentNode<Subroutine>(this)
-
-    fun definingScope(): INameScope {
-        val scope = findParentNode<INameScope>(this)
-        if(scope!=null) {
-            return scope
-        }
-        if(this is Label && this.name.startsWith("builtin::")) {
-            return BuiltinFunctionScopePlaceholder
-        }
-        if(this is GlobalNamespace)
-            return this
-        throw FatalAstException("scope missing from $this")
-    }
-
-    fun definingBlock(): Block {
-        if(this is Block)
-            return this
-        return findParentNode<Block>(this)!!
-    }
-
-    fun containingStatement(): Statement {
-        if(this is Statement)
-            return this
-        return findParentNode<Statement>(this)!!
-    }
-
-    fun replaceChildNode(node: Node, replacement: Node)
+interface IAssignable {
+    // just a tag for now
 }
 
 interface IFunctionCall {
     var target: IdentifierReference
     var args: MutableList<Expression>
 }
-
 
 interface INameScope {
     val name: String
@@ -227,24 +184,50 @@ interface INameScope {
     }
 }
 
-interface IAssignable {
-    // just a tag for now
+
+interface Node {
+    val position: Position
+    var parent: Node             // will be linked correctly later (late init)
+    fun linkParents(parent: Node)
+
+    fun definingModule(): Module {
+        if(this is Module)
+            return this
+        return findParentNode<Module>(this)!!
+    }
+
+    fun definingSubroutine(): Subroutine?  = findParentNode<Subroutine>(this)
+
+    fun definingScope(): INameScope {
+        val scope = findParentNode<INameScope>(this)
+        if(scope!=null) {
+            return scope
+        }
+        if(this is Label && this.name.startsWith("builtin::")) {
+            return BuiltinFunctionScopePlaceholder
+        }
+        if(this is GlobalNamespace)
+            return this
+        throw FatalAstException("scope missing from $this")
+    }
+
+    fun definingBlock(): Block {
+        if(this is Block)
+            return this
+        return findParentNode<Block>(this)!!
+    }
+
+    fun containingStatement(): Statement {
+        if(this is Statement)
+            return this
+        return findParentNode<Statement>(this)!!
+    }
+
+    fun replaceChildNode(node: Node, replacement: Node)
 }
 
-interface IMemSizer {
-    fun memorySize(dt: DataType): Int
-}
-
-interface IBuiltinFunctions {
-    val names: Set<String>
-    val purefunctionNames: Set<String>
-    fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue?
-    fun returnType(name: String, args: MutableList<Expression>): InferredTypes.InferredType
-}
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
-
-
 
 class Program(val name: String,
               val modules: MutableList<Module>,
@@ -419,18 +402,3 @@ object BuiltinFunctionScopePlaceholder : INameScope {
 }
 
 
-fun Number.toHex(): String {
-    //  0..15 -> "0".."15"
-    //  16..255 -> "$10".."$ff"
-    //  256..65536 -> "$0100".."$ffff"
-    // negative values are prefixed with '-'.
-    val integer = this.toInt()
-    if(integer<0)
-        return '-' + abs(integer).toHex()
-    return when (integer) {
-        in 0 until 16 -> integer.toString()
-        in 0 until 0x100 -> "$"+integer.toString(16).padStart(2,'0')
-        in 0 until 0x10000 -> "$"+integer.toString(16).padStart(4,'0')
-        else -> throw IllegalArgumentException("number too large for 16 bits $this")
-    }
-}
