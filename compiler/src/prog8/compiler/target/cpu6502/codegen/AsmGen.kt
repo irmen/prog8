@@ -18,6 +18,7 @@ import java.nio.file.Paths
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
+import kotlin.io.path.absolute
 import kotlin.math.absoluteValue
 
 
@@ -1315,11 +1316,14 @@ $repeatLabel    lda  $counterVar
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
             }
             "%asmbinary" -> {
+                val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val includedSourcePath = stmt.definingModule().source.resolveSibling(stmt.args[0].str)
-                val relPath = Paths.get("").relativize(includedSourcePath)
-                out("  .binary \"$relPath\" $offset $length")
+                val includedPath = stmt.definingModule().source.resolveSibling(includedName)
+                val pathForAssembler = Paths.get("")
+                    .absolute()               // avoid IllegalArgumentExc in case non-absolute path .relativize(absolute path)
+                    .relativize(includedPath)
+                out("  .binary \"$pathForAssembler\" $offset $length")
             }
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
