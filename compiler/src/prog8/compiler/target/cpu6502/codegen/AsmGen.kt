@@ -14,10 +14,10 @@ import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.optimizer.CallGraph
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
+import kotlin.io.path.*
 import kotlin.math.absoluteValue
 
 
@@ -1315,18 +1315,23 @@ $repeatLabel    lda  $counterVar
         when(stmt.directive) {
             "%asminclude" -> {
                 // TODO: handle %asminclude with SourceCode
-                val sourcePath = Path.of(stmt.definingModule().source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
-                val sourcecode = loadAsmIncludeFile(stmt.args[0].str!!, sourcePath)
+                val includedName = stmt.args[0].str!!
+                val sourcePath = Path(stmt.definingModule().source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
+                val sourcecode = loadAsmIncludeFile(includedName, sourcePath)
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
             }
             "%asmbinary" -> {
+                val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                // TODO: handle %asmbinary with SourceCode
-                val sourcePath = Path.of(stmt.definingModule().source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
-                val includedSourcePath = sourcePath.resolveSibling(stmt.args[0].str)
-                val relPath = Paths.get("").relativize(includedSourcePath)
-                out("  .binary \"$relPath\" $offset $length")
+                val sourcePath = Path(stmt.definingModule().source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
+                val includedPath = sourcePath.resolveSibling(includedName)
+                val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
+                    .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)
+                    .relativize(includedPath)
+                    .normalize() // avoid assembler warnings (-Wportable; only some, not all)
+                    .toString().replace('\\', '/')
+                out("  .binary \"$pathForAssembler\" $offset $length")
             }
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"

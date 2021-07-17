@@ -1,16 +1,19 @@
 package prog8tests
 
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Disabled
-import kotlin.test.*
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.DynamicTest.dynamicTest
 import prog8tests.helpers.*
+import kotlin.io.path.*
 
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
+
 
 /**
  * ATTENTION: this is just kludge!
@@ -30,105 +33,95 @@ class TestCompilerOnExamples {
 
     // TODO: make assembly stage testable - in case of failure (eg of 64tass) it Process.exit s
 
-    private fun testExample(nameWithoutExt: String, platform: ICompilationTarget, optimize: Boolean) {
-        val filepath = examplesDir.resolve("$nameWithoutExt.p8")
-        val result = compileProgram(
-            filepath,
-            optimize,
-            writeAssembly = true,
-            slowCodegenWarnings = false,
-            compilationTarget = platform.name,
-            libdirs = listOf(),
-            outputDir
-        )
-        assertTrue(result.success,
-            "compilation should succeed; ${platform.name}, optimize=$optimize: \"$filepath\"")
+    private fun makeDynamicCompilerTest(name: String, platform: ICompilationTarget, optimize: Boolean) : DynamicTest {
+        val searchIn = mutableListOf(examplesDir)
+        if (platform == Cx16Target) {
+            searchIn.add(0, examplesDir.resolve("cx16"))
+        }
+        val filepath = searchIn.map { it.resolve("$name.p8") }.first { it.exists() }
+        val displayName = "${examplesDir.relativize(filepath)}: ${platform.name}, optimize=$optimize"
+        return dynamicTest(displayName) {
+            compileProgram(
+                filepath,
+                optimize,
+                writeAssembly = true,
+                slowCodegenWarnings = false,
+                compilationTarget = platform.name,
+                libdirs = listOf(),
+                outputDir
+            ).assertSuccess("; $displayName")
+        }
     }
 
+    @TestFactory
+    @Disabled
+    fun bothCx16AndC64() = mapCombinations(
+        dim1 = listOf(
+            "animals",
+            "balls",
+            "cube3d",
+            "cube3d-float",
+            "cube3d-gfx",
+            "cxlogo",
+            "dirlist",
+            "fibonacci",
+            "line-circle-gfx",
+            "line-circle-txt",
+            "mandelbrot",
+            "mandelbrot-gfx",
+            "numbergame",
+            "primes",
+            "rasterbars",
+            "screencodes",
+            "sorting",
+            "swirl",
+            "swirl-float",
+            "tehtriz",
+            "test",
+            "textelite",
+        ),
+        dim2 = listOf(Cx16Target, C64Target),
+        dim3 = listOf(false, true),
+        combine3 = ::makeDynamicCompilerTest
+    )
 
-    @Test
-    fun test_cxLogo_cx16_noopt() {
-        testExample("cxlogo", Cx16Target, false)
-    }
-    @Test
-    fun test_cxLogo_cx16_opt() {
-        testExample("cxlogo", Cx16Target, true)
-    }
-    @Test
-    fun test_cxLogo_c64_noopt() {
-        testExample("cxlogo", C64Target, false)
-    }
-    @Test
-    fun test_cxLogo_c64_opt() {
-        testExample("cxlogo", C64Target, true)
-    }
+    @TestFactory
+//    @Disabled
+    fun onlyC64() = mapCombinations(
+        dim1 = listOf(
+            "balloonflight",
+            "bdmusic",
+            "bdmusic-irq",
+            "charset",
+            "cube3d-sprites",
+            "plasma",
+            "sprites",
+            "turtle-gfx",
+            "wizzine",
+        ),
+        dim2 = listOf(C64Target),
+        dim3 = listOf(false, true),
+        combine3 = ::makeDynamicCompilerTest
+    )
 
-    @Test
-    fun test_swirl_cx16_noopt() {
-        testExample("swirl", Cx16Target, false)
-    }
-    @Test
-    fun test_swirl_cx16_opt() {
-        testExample("swirl", Cx16Target, true)
-    }
-    @Test
-    fun test_swirl_c64_noopt() {
-        testExample("swirl", C64Target, false)
-    }
-    @Test
-    fun test_swirl_c64_opt() {
-        testExample("swirl", C64Target, true)
-    }
-
-    @Test
-    fun test_animals_cx16_noopt() {
-        testExample("animals", Cx16Target, false)
-    }
-    @Test
-    fun test_animals_cx16_opt() {
-        testExample("animals", Cx16Target, true)
-    }
-    @Test
-    fun test_animals_c64_noopt() {
-        testExample("animals", C64Target, false)
-    }
-    @Test
-    fun test_animals_c64_opt() {
-        testExample("animals", C64Target, true)
-    }
-
-    @Test
-    fun test_tehtriz_cx16_noopt() {
-        testExample("cx16/tehtriz", Cx16Target, false)
-    }
-    @Test
-    fun test_tehtriz_cx16_opt() {
-        testExample("cx16/tehtriz", Cx16Target, true)
-    }
-    @Test
-    fun test_tehtriz_c64_noopt() {
-        testExample("tehtriz", C64Target, false)
-    }
-    @Test
-    fun test_tehtriz_c64_opt() {
-        testExample("tehtriz", C64Target, true)
-    }
-
-    // textelite.p8 is the largest example (~36KB)
-    @Test
-    fun test_textelite_cx16_noopt() {
-        testExample("textelite", Cx16Target, false)
-    }
-    @Test
-    fun test_textelite_cx16_opt() {
-        testExample("textelite", Cx16Target, true)
-    }
-    @Test
-    fun test_textelite_c64_noopt() {
-        testExample("textelite", C64Target, false)
-    }
-    @Test
-    fun test_textelite_c64_opt() {
-        testExample("textelite", C64Target, true)
-    }
+    @TestFactory
+//    @Disabled
+    fun onlyCx16() = mapCombinations(
+        dim1 = listOf(
+            "vtui/testvtui",
+            "amiga",
+            "bobs",
+            "cobramk3-gfx",
+            "colorbars",
+            "datetime",
+            "highresbitmap",
+            "kefrenbars",
+            "mandelbrot-gfx-colors",
+            "multipalette",
+            "testgfx2",
+        ),
+        dim2 = listOf(Cx16Target),
+        dim3 = listOf(false, true),
+        combine3 = ::makeDynamicCompilerTest
+    )
 }

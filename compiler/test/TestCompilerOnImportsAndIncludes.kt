@@ -3,6 +3,9 @@ package prog8tests
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.TestFactory
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.DynamicTest.dynamicTest
 import kotlin.test.*
 import kotlin.io.path.*
 import prog8tests.helpers.*
@@ -36,7 +39,8 @@ class TestCompilerOnImportsAndIncludes {
         assumeReadableFile(imported)
 
         val platform = Cx16Target
-        val result = compileFixture(filepath.name, platform)
+        val result = compileFile(platform, false, fixturesDir, filepath.name)
+            .assertSuccess()
 
         val program = result.programAst
         val startSub = program.entrypoint()
@@ -59,7 +63,8 @@ class TestCompilerOnImportsAndIncludes {
         assumeReadableFile(included)
 
         val platform = Cx16Target
-        val result = compileFixture(filepath.name, platform)
+        val result = compileFile(platform, false, fixturesDir, filepath.name)
+            .assertSuccess()
 
         val program = result.programAst
         val startSub = program.entrypoint()
@@ -76,4 +81,55 @@ class TestCompilerOnImportsAndIncludes {
         assertEquals("foo_bar", lbl1.name)
         assertEquals("start", lbl1.definingScope().name)
     }
-}
+
+    @Test
+    fun testAsmbinaryDirectiveWithNonExistingFile() {
+        val p8Path = fixturesDir.resolve("asmbinaryNonExisting.p8")
+        val binPath = fixturesDir.resolve("i_do_not_exist.bin")
+        assumeReadableFile(p8Path)
+        assumeNotExists(binPath)
+
+        compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+            .assertFailure()
+    }
+
+    @Test
+    fun testAsmbinaryDirectiveWithNonReadableFile() {
+        val p8Path = fixturesDir.resolve("asmbinaryNonReadable.p8")
+        val binPath = fixturesDir.resolve("subFolder")
+        assumeReadableFile(p8Path)
+        assumeDirectory(binPath)
+
+        compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+            .assertFailure()
+    }
+
+    @TestFactory
+    fun asmbinaryDirectiveWithExistingBinFile(): Iterable<DynamicTest> =
+        listOf(
+            Triple("same ", "asmBinaryFromSameFolder.p8", "do_nothing1.bin"),
+            Triple("sub", "asmBinaryFromSubFolder.p8", "subFolder/do_nothing2.bin"),
+        ).map {
+            val (where, p8Str, binStr) = it
+            val p8Path = fixturesDir.resolve(p8Str)
+            val binPath = fixturesDir.resolve(binStr)
+            val displayName = "%asmbinary from ${where}folder"
+            dynamicTest(displayName) {
+                assumeReadableFile(p8Path)
+                assumeReadableFile(binPath)
+                assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workinDir
+                    workingDir.normalize().toAbsolutePath(),
+                    outputDir.normalize().toAbsolutePath(),
+                    "sanity check: workingDir and outputDir should not be the same folder")
+
+                compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+                    .assertSuccess(
+                        "argument to assembler directive .binary " +
+                                "should be relative to the generated .asm file (in output dir), " +
+                                "NOT relative to .p8 neither current working dir"
+                    )
+            }
+        }
+
+    }
+

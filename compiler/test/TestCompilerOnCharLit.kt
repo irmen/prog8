@@ -30,7 +30,8 @@ class TestCompilerOnCharLit {
     @Test
     fun testCharLitAsRomsubArg() {
         val platform = Cx16Target
-        val result = compileFixture("charLitAsRomsubArg.p8", platform)
+        val result = compileFile(platform, optimize = false, fixturesDir, "charLitAsRomsubArg.p8")
+            .assertSuccess()
 
         val program = result.programAst
         val startSub = program.entrypoint()
@@ -46,7 +47,8 @@ class TestCompilerOnCharLit {
     @Test
     fun testCharVarAsRomsubArg() {
         val platform = Cx16Target
-        val result = compileFixture("charVarAsRomsubArg.p8", platform)
+        val result = compileFile(platform, optimize = false, fixturesDir, "charVarAsRomsubArg.p8")
+            .assertSuccess()
 
         val program = result.programAst
         val startSub = program.entrypoint()
@@ -73,7 +75,8 @@ class TestCompilerOnCharLit {
     @Test
     fun testCharConstAsRomsubArg() {
         val platform = Cx16Target
-        val result = compileFixture("charConstAsRomsubArg.p8", platform)
+        val result = compileFile(platform, optimize = false, fixturesDir,"charConstAsRomsubArg.p8")
+            .assertSuccess()
 
         val program = result.programAst
         val startSub = program.entrypoint()
