@@ -61,7 +61,7 @@ class TestCompilerOnRanges {
     }
 
     @Test
-//    @Disabled("bug in ConstantIdentifierReplacer.before(VarDecl)@decl.datatype==ARRAY_F")
+    @Disabled("#55: bug in ConstantIdentifierReplacer.before(VarDecl)@decl.datatype==ARRAY_F")
     fun testFloatArrayInitializerWithRange_char_to_char() {
         val platform = C64Target
         val result = compileText(platform, optimize = false, """
@@ -109,6 +109,7 @@ class TestCompilerOnRanges {
 
 
     @TestFactory
+    @Disabled("#55")
     fun floatArrayInitializerWithRange() = mapCombinations(
         dim1 = listOf("", "42", "41"),                 // sizeInDecl
         dim2 = listOf("%option enable_floats", ""),    // optEnableFloats
