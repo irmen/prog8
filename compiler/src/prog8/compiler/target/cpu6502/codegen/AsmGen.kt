@@ -1309,19 +1309,26 @@ $repeatLabel    lda  $counterVar
         }
     }
 
+    /**
+     * TODO: %asminclude and %asmbinary should be done earlier than code gen (-> put content into AST)
+     */
     private fun translate(stmt: Directive) {
         when(stmt.directive) {
             "%asminclude" -> {
-                val sourcecode = loadAsmIncludeFile(stmt.args[0].str!!, stmt.definingModule().source)
+                val includedName = stmt.args[0].str!!
+                val sourcePath = stmt.definingModule().source // FIXME: %asminclude inside non-library, non-filesystem module
+                val sourcecode = loadAsmIncludeFile(includedName, sourcePath)
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
             }
             "%asmbinary" -> {
                 val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val includedPath = stmt.definingModule().source.resolveSibling(includedName)
-                val pathForAssembler = Paths.get("")
-                    .absolute()               // avoid IllegalArgumentExc in case non-absolute path .relativize(absolute path)
+                val sourcePath = stmt.definingModule().source // FIXME: %asmbinary inside non-library, non-filesystem module
+                val includedPath = sourcePath.resolveSibling(includedName)
+
+                val pathForAssembler = outputDir // 64tass needs the path *relative to the .asm file*
+                    .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)
                     .relativize(includedPath)
                 out("  .binary \"$pathForAssembler\" $offset $length")
             }
