@@ -1327,9 +1327,11 @@ $repeatLabel    lda  $counterVar
                 val sourcePath = stmt.definingModule().source // FIXME: %asmbinary inside non-library, non-filesystem module
                 val includedPath = sourcePath.resolveSibling(includedName)
 
-                val pathForAssembler = outputDir // 64tass needs the path *relative to the .asm file*
+                val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
                     .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)
                     .relativize(includedPath)
+                    .normalize() // avoid assembler warnings (-Wportable; only some, not all)
+                    .toString().replace('\\', '/')
                 out("  .binary \"$pathForAssembler\" $offset $length")
             }
             "%breakpoint" -> {

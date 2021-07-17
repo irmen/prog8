@@ -117,7 +117,7 @@ class TestCompilerOnImportsAndIncludes {
             dynamicTest(displayName) {
                 assumeReadableFile(p8Path)
                 assumeReadableFile(binPath)
-                assertNotEquals( // the bug we're testing for (#??) was hidden if outputDir == workinDir
+                assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workinDir
                     workingDir.normalize().toAbsolutePath(),
                     outputDir.normalize().toAbsolutePath(),
                     "sanity check: workingDir and outputDir should not be the same folder")
