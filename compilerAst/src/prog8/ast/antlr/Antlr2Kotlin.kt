@@ -1,6 +1,5 @@
 package prog8.ast.antlr
 
-import org.antlr.v4.runtime.IntStream
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.ast.IStringEncoding
@@ -10,9 +9,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.parser.Prog8ANTLRParser
 import prog8.parser.SourceCode
-import java.io.CharConversionException
-import java.io.File
-import java.nio.file.Path
 
 
 /***************** Antlr Extension methods to create AST ****************/
@@ -462,7 +458,7 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) 
     if (rangefrom!=null && rangeto!=null) {
         val defaultstep = if(rto.text == "to") 1 else -1
         val step = rangestep?.toAst(encoding) ?: NumericLiteralValue(DataType.UBYTE, defaultstep, toPosition())
-        return RangeExpr(rangefrom.toAst(encoding), rangeto.toAst(encoding), step, encoding, toPosition())
+        return RangeExpr(rangefrom.toAst(encoding), rangeto.toAst(encoding), step, toPosition())
     }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
@@ -581,7 +577,7 @@ private fun Prog8ANTLRParser.UntilloopContext.toAst(encoding: IStringEncoding): 
 
 private fun Prog8ANTLRParser.WhenstmtContext.toAst(encoding: IStringEncoding): WhenStatement {
     val condition = expression().toAst(encoding)
-    val choices = this.when_choice()?.map { it.toAst(encoding) }?.toMutableList() ?: mutableListOf()
+    val choices = this.when_choice()?.map { it.toAst(encoding) }?.toMutableList() ?: mutableListOf<WhenChoice>()
     return WhenStatement(condition, choices, toPosition())
 }
 

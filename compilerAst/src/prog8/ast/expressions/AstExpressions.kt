@@ -667,7 +667,6 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 class RangeExpr(var from: Expression,
                 var to: Expression,
                 var step: Expression,
-                private val encoding: IStringEncoding,
                 override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -720,15 +719,15 @@ class RangeExpr(var from: Expression,
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
 
-    fun size(): Int? {
+    fun size(encoding: IStringEncoding): Int? {
         val fromLv = (from as? NumericLiteralValue)
         val toLv = (to as? NumericLiteralValue)
         if(fromLv==null || toLv==null)
             return null
-        return toConstantIntegerRange()?.count()
+        return toConstantIntegerRange(encoding)?.count()
     }
 
-    fun toConstantIntegerRange(): IntProgression? {
+    fun toConstantIntegerRange(encoding: IStringEncoding): IntProgression? {
         val fromVal: Int
         val toVal: Int
         val fromString = from as? StringLiteralValue

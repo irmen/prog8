@@ -6,9 +6,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.parser.SourceCode
-import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.name
 import kotlin.math.abs
 
 const val internedStringsModuleName = "prog8_interned_strings"

@@ -223,7 +223,7 @@ internal class ConstantFoldingOptimizer(private val program: Program, private va
                     range.step
                 }
 
-            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, compTarget, range.position)
+            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.
