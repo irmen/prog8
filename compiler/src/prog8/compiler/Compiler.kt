@@ -18,11 +18,10 @@ import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
 import prog8.parser.ModuleImporter
 import prog8.parser.ParsingFailedError
-import prog8.parser.moduleName
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
-import kotlin.io.path.Path
+import kotlin.io.path.*
 import kotlin.system.measureTimeMillis
 
 
@@ -176,7 +175,7 @@ private fun parseImports(filepath: Path,
                          libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf, compTarget)
+    val programAst = Program(filepath.nameWithoutExtension, mutableListOf(), bf, compTarget)
     bf.program = programAst
 
     val importer = ModuleImporter(programAst, compTarget.name, libdirs)

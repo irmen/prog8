@@ -7,12 +7,9 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import java.io.File
+import java.nio.file.Path
 import kotlin.io.FileSystemException
-import java.nio.file.Path   // TODO: use kotlin.io.paths.Path instead
-import java.nio.file.Paths  // TODO: use kotlin.io.paths.Path instead
-
-
-fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
+import kotlin.io.path.*
 
 
 class ModuleImporter(private val program: Program,
@@ -20,10 +17,10 @@ class ModuleImporter(private val program: Program,
                      private val libdirs: List<String>) {
 
     fun importModule(filePath: Path): Module {
-        print("importing '${moduleName(filePath.fileName)}'")
+        print("importing '${filePath.nameWithoutExtension}'")
         if (filePath.parent != null) { // TODO: use Path.relativize
             var importloc = filePath.toString()
-            val curdir = Paths.get("").toAbsolutePath().toString()
+            val curdir = Path("").absolutePathString()
             if(importloc.startsWith(curdir))
                 importloc = "." + importloc.substring(curdir.length)
             println(" (from '$importloc')")
@@ -124,22 +121,22 @@ class ModuleImporter(private val program: Program,
 
     private fun tryGetModuleFromFile(name: String, importingModule: Module?): SourceCode? {
         val fileName = "$name.p8"
-        val libpaths = libdirs.map { Path.of(it) }
+        val libpaths = libdirs.map { Path(it) }
         val locations =
             if (importingModule == null) { // <=> imported from library module
                 libpaths
             } else {
                 libpaths.drop(1) +  // TODO: why drop the first?
                 // FIXME: won't work until Prog8Parser is fixed s.t. it fully initialzes the modules it returns
-                listOf(Path.of(importingModule.position.file).parent ?: Path.of(".")) +
-                listOf(Path.of(".", "prog8lib"))
+                listOf(Path(importingModule.position.file).parent ?: Path("")) +
+                listOf(Path(".", "prog8lib"))
             }
 
         locations.forEach {
             try {
                 return SourceCode.fromPath(it.resolve(fileName))
             } catch (e: NoSuchFileException) {
-        }
+            }
         }
 
         //throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: embedded libs and $locations)")
