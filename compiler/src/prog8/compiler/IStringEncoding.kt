@@ -1,4 +1,4 @@
-package prog8.ast
+package prog8.compiler
 
 interface IStringEncoding {
     fun encodeString(str: String, altEncoding: Boolean): List<Short>

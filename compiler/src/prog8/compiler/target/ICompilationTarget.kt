@@ -1,7 +1,7 @@
 package prog8.compiler.target
 
 import prog8.ast.IMemSizer
-import prog8.ast.IStringEncoding
+import prog8.compiler.IStringEncoding
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference

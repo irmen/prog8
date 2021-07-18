@@ -1,6 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IStringEncoding
+import prog8.compiler.IStringEncoding
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
