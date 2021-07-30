@@ -15,8 +15,6 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compiler.target.ICompilationTarget
 
-// TODO: find a way to share with compilerAst/test/Helpers.kt, while still being able to amend it (-> compileFile(..))
-
 internal fun CompilationResult.assertSuccess(description: String = ""): CompilationResult {
     assertTrue(success, "expected successful compilation but failed $description")
     return this
@@ -68,39 +66,6 @@ internal fun compileText(
 }
 
 
-
-val workingDir : Path = Path("").absolute()    // Note: Path(".") does NOT work..!
-val fixturesDir : Path = workingDir.resolve("test/fixtures")
-val resourcesDir : Path = workingDir.resolve("res")
-val outputDir : Path = workingDir.resolve("build/tmp/test")
-
-fun assumeReadable(path: Path) {
-    assertTrue(path.isReadable(), "sanity check: should be readable: ${path.absolute()}")
-}
-
-fun assumeReadableFile(path: Path) {
-    assumeReadable(path)
-    assertTrue(path.isRegularFile(), "sanity check: should be normal file: ${path.absolute()}")
-}
-
-fun assumeDirectory(path: Path) {
-    assertTrue(path.isDirectory(), "sanity check; should be directory: $path")
-}
-
-fun assumeNotExists(path: Path) {
-    assertFalse(path.exists(), "sanity check: should not exist: ${path.absolute()}")
-}
-
-fun sanityCheckDirectories(workingDirName: String? = null) {
-    if (workingDirName != null)
-        assertEquals(workingDirName, workingDir.fileName.toString(), "name of current working dir")
-    assumeDirectory(workingDir)
-    assumeDirectory(fixturesDir)
-    assumeDirectory(resourcesDir)
-    assumeDirectory(outputDir)
-}
-
-
 fun <A, B, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, combine2: (A, B) -> R) =
     sequence {
         for (a in dim1)
@@ -124,22 +89,3 @@ fun <A, B, C, D, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, dim3: 
                     for (d in dim4)
                         yield(combine4(a, b, c, d))
     }.toList()
-
-
-val DummyFunctions = object : IBuiltinFunctions {
-    override val names: Set<String> = emptySet()
-    override val purefunctionNames: Set<String> = emptySet()
-    override fun constValue(
-        name: String,
-        args: List<Expression>,
-        position: Position,
-        memsizer: IMemSizer
-    ): NumericLiteralValue? = null
-
-    override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
-}
-
-val DummyMemsizer = object : IMemSizer {
-    override fun memorySize(dt: DataType): Int = 0
-}
-
