@@ -4,16 +4,10 @@ import kotlin.test.*
 import kotlin.io.path.*
 import java.nio.file.Path
 
-import prog8.ast.IBuiltinFunctions
-import prog8.ast.IMemSizer
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.InferredTypes
-import prog8.ast.expressions.NumericLiteralValue
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compiler.target.ICompilationTarget
+
 
 internal fun CompilationResult.assertSuccess(description: String = ""): CompilationResult {
     assertTrue(success, "expected successful compilation but failed $description")
@@ -64,28 +58,3 @@ internal fun compileText(
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name)
 }
-
-
-fun <A, B, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, combine2: (A, B) -> R) =
-    sequence {
-        for (a in dim1)
-            for (b in dim2)
-                yield(combine2(a, b))
-    }.toList()
-
-fun <A, B, C, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, dim3: Iterable<C>, combine3: (A, B, C) -> R) =
-    sequence {
-        for (a in dim1)
-            for (b in dim2)
-                for (c in dim3)
-                    yield(combine3(a, b, c))
-    }.toList()
-
-fun <A, B, C, D, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, dim3: Iterable<C>, dim4: Iterable<D>, combine4: (A, B, C, D) -> R) =
-    sequence {
-        for (a in dim1)
-            for (b in dim2)
-                for (c in dim3)
-                    for (d in dim4)
-                        yield(combine4(a, b, c, d))
-    }.toList()
