@@ -24,11 +24,6 @@ import prog8.compiler.target.Cx16Target
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnCharLit {
 
-    @BeforeAll
-    fun setUp() {
-        sanityCheckDirectories("compiler")
-    }
-
     @Test
     fun testCharLitAsRomsubArg() {
         val platform = Cx16Target

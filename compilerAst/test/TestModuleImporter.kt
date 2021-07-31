@@ -20,9 +20,7 @@ class TestModuleImporter {
         val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
         val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
-
-        val srcPath = fixturesDir.resolve("i_do_not_exist")
-        assumeNotExists(srcPath)
+        val srcPath = assumeNotExists(fixturesDir, "i_do_not_exist")
 
         assertFailsWith<NoSuchFileException> { importer.importModule(srcPath) }
     }
@@ -33,8 +31,7 @@ class TestModuleImporter {
         val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
 
-        val srcPath = fixturesDir
-        assumeDirectory(srcPath)
+        val srcPath = assumeDirectory(fixturesDir)
 
         // fn importModule(Path) used to check *.isReadable()*, but NOT .isRegularFile():
         assumeReadable(srcPath)
@@ -49,7 +46,7 @@ class TestModuleImporter {
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
 
         val filename = "file_with_syntax_error.p8"
-        val path = fixturesDir.resolve(filename)
+        val path = assumeReadableFile(fixturesDir, filename)
         val act = { importer.importModule(path) }
 
         assertFailsWith<ParseError> { act() }
@@ -69,10 +66,8 @@ class TestModuleImporter {
         val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
 
-        val importing = fixturesDir.resolve("import_file_with_syntax_error.p8")
-        val imported = fixturesDir.resolve("file_with_syntax_error.p8")
-        assumeReadableFile(importing)
-        assumeReadableFile(imported)
+        val importing = assumeReadableFile(fixturesDir, "import_file_with_syntax_error.p8")
+        val imported = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
         val act = { importer.importModule(importing) }
 
@@ -93,12 +88,8 @@ class TestModuleImporter {
         val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
         val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
-        val filenameNoExt = "i_do_not_exist"
-        val filenameWithExt = filenameNoExt + ".p8"
-        val srcPathNoExt = fixturesDir.resolve(filenameNoExt)
-        val srcPathWithExt = fixturesDir.resolve(filenameWithExt)
-        assumeNotExists(srcPathNoExt)
-        assumeNotExists(srcPathWithExt)
+        val filenameNoExt = assumeNotExists(fixturesDir, "i_do_not_exist").name
+        val filenameWithExt = assumeNotExists(fixturesDir, "i_do_not_exist.p8").name
 
         assertFailsWith<NoSuchFileException> { importer.importLibraryModule(filenameNoExt) }
         assertFailsWith<NoSuchFileException> { importer.importLibraryModule(filenameWithExt) }
@@ -109,8 +100,7 @@ class TestModuleImporter {
         val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
         val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
-        val srcPath = fixturesDir.resolve("file_with_syntax_error.p8")
-        assumeReadableFile(srcPath)
+        val srcPath = assumeReadableFile(fixturesDir,"file_with_syntax_error.p8")
 
         val act = { importer.importLibraryModule(srcPath.nameWithoutExtension) }
 
@@ -132,10 +122,8 @@ class TestModuleImporter {
         val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
         val importer = ModuleImporter(program, "blah", listOf(searchIn))
 
-        val importing = fixturesDir.resolve("import_file_with_syntax_error.p8")
-        val imported = fixturesDir.resolve("file_with_syntax_error.p8")
-        assumeReadableFile(importing)
-        assumeReadableFile(imported)
+        val importing = assumeReadableFile(fixturesDir, "import_file_with_syntax_error.p8")
+        val imported = assumeReadableFile(fixturesDir,"file_with_syntax_error.p8")
 
         val act = { importer.importLibraryModule(importing.nameWithoutExtension) }
 

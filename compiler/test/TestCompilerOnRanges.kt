@@ -28,11 +28,6 @@ import prog8.compiler.target.Cx16Target
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnRanges {
 
-    @BeforeAll
-    fun setUp() {
-        sanityCheckDirectories("compiler")
-    }
-
     @Test
     fun testUByteArrayInitializerWithRange_char_to_char() {
         val platform = Cx16Target
@@ -91,7 +86,7 @@ class TestCompilerOnRanges {
         assertEquals(expectedEnd - expectedStart + 1, rhsValues.size, "rangeExpr.size()")
     }
 
-    inline fun Subroutine.decl(varName: String): VarDecl {
+    fun Subroutine.decl(varName: String): VarDecl {
         return statements.filterIsInstance<VarDecl>()
             .first { it.name == varName }
     }
@@ -231,7 +226,7 @@ class TestCompilerOnRanges {
 
     @Test
     fun testForLoopWithRange_str_downto_str() {
-        val result = compileText(Cx16Target, true, """
+        compileText(Cx16Target, true, """
             main {
                 sub start() {
                     ubyte i

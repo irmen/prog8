@@ -23,20 +23,14 @@ import prog8.compiler.target.ICompilationTarget
 //@Disabled("to save some time")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnExamples {
-    private val examplesDir = workingDir.resolve("../examples")
-
-    @BeforeAll
-    fun setUp() {
-        sanityCheckDirectories("compiler")
-        assumeDirectory(examplesDir)
-    }
+    private val examplesDir = assumeDirectory(workingDir, "../examples")
 
     // TODO: make assembly stage testable - in case of failure (eg of 64tass) it Process.exit s
 
     private fun makeDynamicCompilerTest(name: String, platform: ICompilationTarget, optimize: Boolean) : DynamicTest {
         val searchIn = mutableListOf(examplesDir)
         if (platform == Cx16Target) {
-            searchIn.add(0, examplesDir.resolve("cx16"))
+            searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
         }
         val filepath = searchIn.map { it.resolve("$name.p8") }.first { it.exists() }
         val displayName = "${examplesDir.relativize(filepath)}: ${platform.name}, optimize=$optimize"

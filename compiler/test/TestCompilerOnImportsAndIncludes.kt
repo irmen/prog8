@@ -26,17 +26,10 @@ import prog8.compiler.target.Cx16Target
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnImportsAndIncludes {
 
-    @BeforeAll
-    fun setUp() {
-        sanityCheckDirectories("compiler")
-    }
-
     @Test
     fun testImportFromSameFolder() {
-        val filepath = fixturesDir.resolve("importFromSameFolder.p8")
-        val imported = fixturesDir.resolve("foo_bar.p8")
-        assumeReadableFile(filepath)
-        assumeReadableFile(imported)
+        val filepath = assumeReadableFile(fixturesDir, "importFromSameFolder.p8")
+        assumeReadableFile(fixturesDir, "foo_bar.p8")
 
         val platform = Cx16Target
         val result = compileFile(platform, false, fixturesDir, filepath.name)
@@ -57,10 +50,8 @@ class TestCompilerOnImportsAndIncludes {
 
     @Test
     fun testAsmIncludeFromSameFolder() {
-        val filepath = fixturesDir.resolve("asmIncludeFromSameFolder.p8")
-        val included = fixturesDir.resolve("foo_bar.asm")
-        assumeReadableFile(filepath)
-        assumeReadableFile(included)
+        val filepath = assumeReadableFile(fixturesDir, "asmIncludeFromSameFolder.p8")
+        assumeReadableFile(fixturesDir,"foo_bar.asm")
 
         val platform = Cx16Target
         val result = compileFile(platform, false, fixturesDir, filepath.name)
@@ -84,10 +75,8 @@ class TestCompilerOnImportsAndIncludes {
 
     @Test
     fun testAsmbinaryDirectiveWithNonExistingFile() {
-        val p8Path = fixturesDir.resolve("asmbinaryNonExisting.p8")
-        val binPath = fixturesDir.resolve("i_do_not_exist.bin")
-        assumeReadableFile(p8Path)
-        assumeNotExists(binPath)
+        val p8Path = assumeReadableFile(fixturesDir, "asmbinaryNonExisting.p8")
+        assumeNotExists(fixturesDir,"i_do_not_exist.bin")
 
         compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
             .assertFailure()
@@ -95,10 +84,8 @@ class TestCompilerOnImportsAndIncludes {
 
     @Test
     fun testAsmbinaryDirectiveWithNonReadableFile() {
-        val p8Path = fixturesDir.resolve("asmbinaryNonReadable.p8")
-        val binPath = fixturesDir.resolve("subFolder")
-        assumeReadableFile(p8Path)
-        assumeDirectory(binPath)
+        val p8Path = assumeReadableFile(fixturesDir, "asmbinaryNonReadable.p8")
+        assumeDirectory(fixturesDir, "subFolder")
 
         compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
             .assertFailure()
@@ -111,8 +98,8 @@ class TestCompilerOnImportsAndIncludes {
             Triple("sub", "asmBinaryFromSubFolder.p8", "subFolder/do_nothing2.bin"),
         ).map {
             val (where, p8Str, binStr) = it
-            val p8Path = fixturesDir.resolve(p8Str)
-            val binPath = fixturesDir.resolve(binStr)
+            val p8Path = fixturesDir.div(p8Str) // sanity check below, *inside dynamicTest*
+            val binPath = fixturesDir.div(binStr)
             val displayName = "%asmbinary from ${where}folder"
             dynamicTest(displayName) {
                 assumeReadableFile(p8Path)

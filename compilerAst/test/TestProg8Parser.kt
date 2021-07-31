@@ -1,11 +1,10 @@
 package prog8tests
 
+import prog8tests.helpers.*
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.BeforeAll
 import kotlin.test.*
-import prog8tests.helpers.*
 import kotlin.io.path.*
 
 import prog8.parser.ParseError
@@ -19,11 +18,6 @@ import prog8.ast.expressions.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestProg8Parser {
-
-    @BeforeAll
-    fun setUp() {
-        sanityCheckDirectories("compilerAst")
-    }
 
     @Test
     fun testModuleSourceNeedNotEndWithNewline() {
@@ -166,11 +160,8 @@ class TestProg8Parser {
 
     @Test
     fun parseModuleShouldNotLookAtImports() {
-        val importedNoExt = fixturesDir.resolve("i_do_not_exist")
-        val importedWithExt = fixturesDir.resolve("i_do_not_exist.p8")
-        assumeNotExists(importedNoExt)
-        assumeNotExists(importedWithExt)
-
+        val importedNoExt = assumeNotExists(fixturesDir, "i_do_not_exist")
+        assumeNotExists(fixturesDir, "i_do_not_exist.p8")
         val text = "%import ${importedNoExt.name}"
         val module = parseModule(SourceCode.of(text))
 
@@ -186,9 +177,7 @@ class TestProg8Parser {
 
     @Test
     fun testParseModuleWithEmptyFile() {
-        val path = fixturesDir.resolve("empty.p8")
-        assumeReadableFile(path)
-
+        val path = assumeReadableFile(fixturesDir,"empty.p8")
         val module = parseModule(SourceCode.fromPath(path))
         assertEquals(0, module.statements.size)
     }
@@ -207,10 +196,8 @@ class TestProg8Parser {
 
     @Test
     fun testModuleNameForSourceFromPath() {
-        val path = fixturesDir.resolve("simple_main.p8")
-
+        val path = assumeReadableFile(fixturesDir,"simple_main.p8")
         val module = parseModule(SourceCode.fromPath(path))
-
         assertEquals(path.nameWithoutExtension, module.name)
     }
 
@@ -253,7 +240,7 @@ class TestProg8Parser {
 
     @Test
     fun testErrorLocationForSourceFromPath() {
-        val path = fixturesDir.resolve("file_with_syntax_error.p8")
+        val path = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
         assertFailsWith<ParseError> { parseModule(SourceCode.fromPath(path)) }
         try {
@@ -275,7 +262,7 @@ class TestProg8Parser {
 
     @Test
     fun testModulePositionForSourceFromPath() {
-        val path = fixturesDir.resolve("simple_main.p8")
+        val path = assumeReadableFile(fixturesDir,"simple_main.p8")
 
         val module = parseModule(SourceCode.fromPath(path))
         assertPositionOf(module, path.absolutePathString(), 1, 0) // TODO: endCol wrong
@@ -283,7 +270,7 @@ class TestProg8Parser {
 
     @Test
     fun testInnerNodePositionsForSourceFromPath() {
-        val path = fixturesDir.resolve("simple_main.p8")
+        val path = assumeReadableFile(fixturesDir,"simple_main.p8")
 
         val module = parseModule(SourceCode.fromPath(path))
         val mpf = module.position.file
