@@ -32,8 +32,12 @@ class TestCompilerOnExamples {
         if (platform == Cx16Target) {
             searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
         }
-        val filepath = searchIn.map { it.resolve("$name.p8") }.first { it.exists() }
-        val displayName = "${examplesDir.relativize(filepath)}: ${platform.name}, optimize=$optimize"
+        val filepath = searchIn
+            .map { it.resolve("$name.p8") }
+            .map { it.normalize().absolute() }
+            .map { workingDir.relativize(it) }
+            .first { it.exists() }
+        val displayName = "${examplesDir.relativize(filepath.absolute())}: ${platform.name}, optimize=$optimize"
         return dynamicTest(displayName) {
             compileProgram(
                 filepath,

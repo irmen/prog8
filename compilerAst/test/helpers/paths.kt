@@ -46,6 +46,6 @@ fun assumeDirectory(path: Path, other: String): Path = assumeDirectory(path.div(
 
 @Deprecated("Directories are checked automatically at init.",
     ReplaceWith("/* nothing */"))
-@Suppress("unused")
+@Suppress("UNUSED_PARAMETER")
 fun sanityCheckDirectories(workingDirName: String? = null) {
 }
