@@ -1,10 +1,12 @@
 package prog8tests
 
 import prog8tests.helpers.*
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.containsString
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.assertThrows
@@ -14,11 +16,25 @@ import prog8.ast.Program
 import prog8.parser.ParseError
 
 import prog8.parser.ModuleImporter
+import kotlin.test.assertContains
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestModuleImporter {
     private val count = listOf("1st", "2nd", "3rd", "4th", "5th")
+
+    lateinit var program: Program
+    @BeforeEach
+    fun beforeEach() {
+        program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
+    }
+
+    private fun makeImporter(vararg searchIn: String): ModuleImporter = makeImporter(searchIn.asList())
+
+    private fun makeImporter(searchIn: Iterable<String>) = ModuleImporter(
+        program,
+        "blah",
+        searchIn.toList())
 
     @Nested
     inner class Constructor {
@@ -43,10 +59,8 @@ class TestModuleImporter {
         inner class WithInvalidPath {
             @Test
             fun testNonexisting() {
-                val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
                 val dirRel = assumeDirectory(".", workingDir.relativize(fixturesDir))
-                val searchIn = dirRel.invariantSeparatorsPathString
-                val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                val importer = makeImporter(dirRel.invariantSeparatorsPathString)
                 val srcPathRel = assumeNotExists(dirRel, "i_do_not_exist")
                 val srcPathAbs = srcPathRel.absolute()
 
@@ -54,33 +68,34 @@ class TestModuleImporter {
                     .let {
                         assertThat(
                             ".file should be normalized",
-                            "${it.file}", `is`("${it.file.normalize()}")
+                            "${it.file}", equalTo("${it.file.normalize()}")
                         )
                         assertThat(
                             ".file should point to specified path",
-                            it.file.absolutePath, `is`("${srcPathAbs.normalize()}")
+                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
                         )
                     }
+                assertThat(program.modules.size, equalTo(1))
 
                 assertThrows<NoSuchFileException> { importer.importModule(srcPathAbs) }
                     .let {
                         assertThat(
                             ".file should be normalized",
-                            "${it.file}", `is`("${it.file.normalize()}")
+                            "${it.file}", equalTo("${it.file.normalize()}")
                         )
                         assertThat(
                             ".file should point to specified path",
-                            it.file.absolutePath, `is`("${srcPathAbs.normalize()}")
+                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
                         )
                     }
+                assertThat(program.modules.size, equalTo(1))
             }
 
             @Test
             fun testDirectory() {
-                val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
                 val dirRel = assumeDirectory(workingDir.relativize(fixturesDir))
                 val searchIn = Path(".", "$dirRel").invariantSeparatorsPathString
-                val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                val importer = makeImporter(searchIn)
                 val srcPathRel = dirRel
                 val srcPathAbs = srcPathRel.absolute()
 
@@ -88,25 +103,27 @@ class TestModuleImporter {
                     .let {
                         assertThat(
                             ".file should be normalized",
-                            "${it.file}", `is`("${it.file.normalize()}")
+                            "${it.file}", equalTo("${it.file.normalize()}")
                         )
                         assertThat(
                             ".file should point to specified path",
-                            it.file.absolutePath, `is`("${srcPathAbs.normalize()}")
+                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
                         )
                     }
+                assertThat(program.modules.size, equalTo(1))
 
                 assertThrows<AccessDeniedException> { importer.importModule(srcPathAbs) }
                     .let {
                         assertThat(
                             ".file should be normalized",
-                            "${it.file}", `is`("${it.file.normalize()}")
+                            "${it.file}", equalTo("${it.file.normalize()}")
                         )
                         assertThat(
                             ".file should point to specified path",
-                            it.file.absolutePath, `is`("${srcPathAbs.normalize()}")
+                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
                         )
                     }
+                assertThat(program.modules.size, equalTo(1))
             }
         }
 
@@ -115,46 +132,49 @@ class TestModuleImporter {
 
             @Test
             fun testAbsolute() {
-                val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
                 val searchIn = listOf(
                     Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
-                val importer = ModuleImporter(program, "blah", searchIn)
+                val importer = makeImporter(searchIn)
                 val fileName = "simple_main.p8"
                 val path = assumeReadableFile(searchIn[0], fileName)
 
                 val module = importer.importModule(path.absolute())
-                assertThat(module.program, `is`(program))
+                assertThat(program.modules.size, equalTo(2))
+                assertContains(program.modules, module)
+                assertThat(module.program, equalTo(program))
             }
 
             @Test
             fun testRelativeToWorkingDir() {
-                val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
                 val searchIn = listOf(
                     Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
-                val importer = ModuleImporter(program, "blah", searchIn)
+                val importer = makeImporter(searchIn)
                 val fileName = "simple_main.p8"
                 val path = assumeReadableFile(searchIn[0], fileName)
-                assertThat("sanity check: path should NOT be absolute", path.isAbsolute, `is`(false))
+                assertThat("sanity check: path should NOT be absolute", path.isAbsolute, equalTo(false))
 
                 val module = importer.importModule(path)
-                assertThat(module.program, `is`(program))
+                assertThat(program.modules.size, equalTo(2))
+                assertContains(program.modules, module)
+                assertThat(module.program, equalTo(program))
             }
 
             @Test
             fun testRelativeTo1stDirInSearchList() {
-                val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
-                val searchIn = listOf(
-                    Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
-                ).map { it.invariantSeparatorsPathString }
-                val importer = ModuleImporter(program, "blah", searchIn)
+                val searchIn = Path(".")
+                    .div(workingDir.relativize(fixturesDir))
+                    .invariantSeparatorsPathString
+                val importer = makeImporter(searchIn)
                 val fileName = "simple_main.p8"
                 val path = Path(".", fileName)
-                assumeReadableFile(searchIn[0], path)
+                assumeReadableFile(searchIn, path)
 
                 val module = importer.importModule(path)
-                assertThat(module.program, `is`(program))
+                assertThat(program.modules.size, equalTo(2))
+                assertContains(program.modules, module)
+                assertThat(module.program, equalTo(program))
             }
 
             @Test
@@ -169,28 +189,27 @@ class TestModuleImporter {
             inner class WithBadFile {
                 @Test
                 fun testWithSyntaxError() {
-                    val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
-                    val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
-                    val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
+                    val importer = makeImporter(searchIn.invariantSeparatorsPathString)
                     val srcPath = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
                     val act = { importer.importModule(srcPath) }
 
                     repeat(2) { n ->
                         assertThrows<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, `is`(srcPath.absolutePathString()))
-                            assertThat("line; should be 1-based", it.position.line, `is`(2))
-                            assertThat("startCol; should be 0-based", it.position.startCol, `is`(6))
-                            assertThat("endCol; should be 0-based", it.position.endCol, `is`(6))
+                            assertThat(it.position.file, equalTo(srcPath.absolutePathString()))
+                            assertThat("line; should be 1-based", it.position.line, equalTo(2))
+                            assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
+                            assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
+                        assertThat(program.modules.size, equalTo(1))
                     }
                 }
 
                 @Test
                 fun testImportingFileWithSyntaxError() {
-                    val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
-                    val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
-                    val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
+                    val importer = makeImporter(searchIn.invariantSeparatorsPathString)
                     val importing = assumeReadableFile(fixturesDir, "import_file_with_syntax_error.p8")
                     val imported = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
@@ -198,11 +217,12 @@ class TestModuleImporter {
 
                     repeat(2) { n ->
                         assertThrows<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, `is`(imported.absolutePathString()))
-                            assertThat("line; should be 1-based", it.position.line, `is`(2))
-                            assertThat("startCol; should be 0-based", it.position.startCol, `is`(6))
-                            assertThat("endCol; should be 0-based", it.position.endCol, `is`(6))
+                            assertThat(it.position.file, equalTo(imported.absolutePathString()))
+                            assertThat("line; should be 1-based", it.position.line, equalTo(2))
+                            assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
+                            assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
+//                        TODO("assertThat(program.modules.size, equalTo(2))")
                     }
                 }
             }
@@ -216,9 +236,8 @@ class TestModuleImporter {
         inner class WithInvalidName {
             @Test
             fun testWithNonExistingName() {
-                val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
-                val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
-                val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
+                val importer = makeImporter(searchIn.invariantSeparatorsPathString)
                 val filenameNoExt = assumeNotExists(fixturesDir, "i_do_not_exist").name
                 val filenameWithExt = assumeNotExists(fixturesDir, "i_do_not_exist.p8").name
 
@@ -227,10 +246,13 @@ class TestModuleImporter {
                     { importer.importLibraryModule(filenameNoExt) }.let {
                         assertThat(it.message!!, containsString(filenameWithExt))
                     }
+                    assertThat(program.modules.size, equalTo(1))
+
                     assertThrows<NoSuchFileException>(count[n] + " call / with .p8 extension")
                     { importer.importLibraryModule(filenameWithExt) }.let {
                         assertThat(it.message!!, containsString(filenameWithExt))
                     }
+                    assertThat(program.modules.size, equalTo(1))
                 }
             }
         }
@@ -241,27 +263,26 @@ class TestModuleImporter {
             inner class WithBadFile {
                 @Test
                 fun testWithSyntaxError() {
-                    val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
-                    val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
-                    val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
+                    val importer = makeImporter(searchIn.invariantSeparatorsPathString)
                     val srcPath = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
                     repeat(2) { n ->
                         assertThrows<ParseError>(count[n] + " call")
-                        { importer.importLibraryModule(srcPath.nameWithoutExtension) }.let {
-                            assertThat(it.position.file, `is`(srcPath.absolutePathString()))
-                            assertThat("line; should be 1-based", it.position.line, `is`(2))
-                            assertThat("startCol; should be 0-based", it.position.startCol, `is`(6))
-                            assertThat("endCol; should be 0-based", it.position.endCol, `is`(6))
-                        }
+                            { importer.importLibraryModule(srcPath.nameWithoutExtension) }.let {
+                                assertThat(it.position.file, equalTo(srcPath.absolutePathString()))
+                                assertThat("line; should be 1-based", it.position.line, equalTo(2))
+                                assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
+                                assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
+                            }
+                        assertThat(program.modules.size, equalTo(1))
                     }
                 }
 
 
                 private fun doTestImportingFileWithSyntaxError(repetitions: Int) {
-                    val program = Program("foo", mutableListOf(), DummyFunctions, DummyMemsizer)
-                    val searchIn = "./" + workingDir.relativize(fixturesDir).toString().replace("\\", "/")
-                    val importer = ModuleImporter(program, "blah", listOf(searchIn))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
+                    val importer = makeImporter(searchIn.invariantSeparatorsPathString)
                     val importing = assumeReadableFile(fixturesDir, "import_file_with_syntax_error.p8")
                     val imported = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
@@ -269,11 +290,12 @@ class TestModuleImporter {
 
                     repeat(repetitions) { n ->
                         assertThrows<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, `is`(imported.normalize().absolutePathString()))
-                            assertThat("line; should be 1-based", it.position.line, `is`(2))
-                            assertThat("startCol; should be 0-based", it.position.startCol, `is`(6))
-                            assertThat("endCol; should be 0-based", it.position.endCol, `is`(6))
+                            assertThat(it.position.file, equalTo(imported.normalize().absolutePathString()))
+                            assertThat("line; should be 1-based", it.position.line, equalTo(2))
+                            assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
+                            assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
+//                        TODO("assertThat(program.modules.size, equalTo(1))")
                     }
                 }
 
