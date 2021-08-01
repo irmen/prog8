@@ -42,6 +42,8 @@ fun assumeDirectory(path: Path): Path {
 
 fun assumeDirectory(pathStr: String): Path = assumeDirectory(Path(pathStr))
 fun assumeDirectory(path: Path, other: String): Path = assumeDirectory(path.div(other))
+fun assumeDirectory(pathStr: String, other: String): Path = assumeDirectory(Path(pathStr).div(other))
+fun assumeDirectory(pathStr: String, other: Path): Path = assumeDirectory(Path(pathStr).div(other))
 
 
 @Deprecated("Directories are checked automatically at init.",

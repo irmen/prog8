@@ -85,13 +85,14 @@ abstract class SourceCode {
          * @throws AccessDeniedException if the given path points to a directory or the file is non-readable for some other reason
          */
         fun fromPath(path: Path): SourceCode {
-            if (!path.exists())
-                throw NoSuchFileException(path.toFile())
-            if (path.isDirectory())
-                throw AccessDeniedException(path.toFile(), reason = "Not a file but a directory")
-            if (!path.isReadable())
-                throw AccessDeniedException(path.toFile(), reason = "Is not readable")
             val normalized = path.normalize()
+            val file = normalized.toFile()
+            if (!path.exists())
+                throw NoSuchFileException(file)
+            if (path.isDirectory())
+                throw AccessDeniedException(file, reason = "Not a file but a directory")
+            if (!path.isReadable())
+                throw AccessDeniedException(file, reason = "Is not readable")
             return object : SourceCode() {
                 override val isFromResources = false
                 override val origin = normalized.absolutePathString()

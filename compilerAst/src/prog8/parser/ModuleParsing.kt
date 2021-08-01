@@ -14,21 +14,31 @@ import kotlin.io.path.*
 
 class ModuleImporter(private val program: Program,
                      private val compilationTargetName: String,
-                     private val libdirs: List<String>) {
+                     libdirs: List<String>) {
+
+    private val libpaths: List<Path> = libdirs.map { Path(it) }
 
     fun importModule(filePath: Path): Module {
-        print("importing '${filePath.nameWithoutExtension}'")
-        if (filePath.parent != null) { // TODO: use Path.relativize
-            var importloc = filePath.toString()
-            val curdir = Path("").absolutePathString()
-            if(importloc.startsWith(curdir))
-                importloc = "." + importloc.substring(curdir.length)
-            println(" (from '$importloc')")
-        }
-        else
-            println("")
+        val currentDir = Path("").absolute()
+        val searchIn = listOf(currentDir) + libpaths
+        val candidates = searchIn
+            .map { it.absolute().div(filePath).normalize().absolute() }
+            .filter { it.exists() }
+            .map { currentDir.relativize(it) }
+            .map { if (it.isAbsolute) it else Path(".", "$it") }
 
-        val module = Prog8Parser.parseModule(SourceCode.fromPath(filePath))
+        val srcPath = when (candidates.size) {
+            0 -> throw NoSuchFileException(
+                    file = filePath.normalize().toFile(),
+                    reason = "searched in $searchIn")
+            1 -> candidates.first()
+            else -> candidates.first()  // TODO: report error if more than 1 candidate?
+        }
+
+        var logMsg = "importing '${filePath.nameWithoutExtension}' (from $srcPath)"
+        println(logMsg)
+
+        val module = Prog8Parser.parseModule(SourceCode.fromPath(srcPath))
 
         module.program = program
         module.linkParents(program.namespace)
@@ -121,7 +131,6 @@ class ModuleImporter(private val program: Program,
 
     private fun tryGetModuleFromFile(name: String, importingModule: Module?): SourceCode? {
         val fileName = "$name.p8"
-        val libpaths = libdirs.map { Path(it) }
         val locations =
             if (importingModule == null) { // <=> imported from library module
                 libpaths

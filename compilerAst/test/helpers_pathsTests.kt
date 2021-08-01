@@ -178,6 +178,58 @@ class PathsHelpersTests {
                 )
             }
         }
+
+        @Nested
+        inner class WithStringAndStringArgs {
+            @Test
+            fun testOnNonExistingPath() {
+                assertThrows<AssertionError> {
+                    assumeDirectory("$fixturesDir", "i_do_not_exist")
+                }
+            }
+
+            @Test
+            fun testOnExistingFile() {
+                assertThrows<AssertionError> {
+                    assumeDirectory("$fixturesDir", "simple_main.p8")
+                }
+            }
+
+            @Test
+            fun testOnExistingDirectory() {
+                val path = workingDir.div("..")
+                assertThat(
+                    "should return resulting path",
+                    assumeDirectory("$workingDir", ".."), `is`(path)
+                )
+            }
+        }
+
+        @Nested
+        inner class WithStringAndPathArgs {
+            @Test
+            fun testOnNonExistingPath() {
+                assertThrows<AssertionError> {
+                    assumeDirectory("$fixturesDir", Path("i_do_not_exist"))
+                }
+            }
+
+            @Test
+            fun testOnExistingFile() {
+                assertThrows<AssertionError> {
+                    assumeDirectory("$fixturesDir", Path("simple_main.p8"))
+                }
+            }
+
+            @Test
+            fun testOnExistingDirectory() {
+                val path = workingDir.div("..")
+                assertThat(
+                    "should return resulting path",
+                    assumeDirectory("$workingDir", Path("..")), `is`(path)
+                )
+            }
+        }
     }
 
     @Nested
