@@ -38,21 +38,7 @@ class ModuleImporter(private val program: Program,
         var logMsg = "importing '${filePath.nameWithoutExtension}' (from $srcPath)"
         println(logMsg)
 
-        val module = Prog8Parser.parseModule(SourceCode.fromPath(srcPath))
-
-        module.program = program
-        module.linkParents(program.namespace)
-        program.modules.add(module)
-
-        // accept additional imports
-        val lines = module.statements.toMutableList()
-        lines.asSequence()
-            .mapIndexed { i, it -> i to it }
-            .filter { (it.second as? Directive)?.directive == "%import" }
-            .forEach { executeImportDirective(it.second as Directive, module) }
-
-        module.statements = lines
-        return module
+        return importModule(SourceCode.fromPath(srcPath))
     }
 
     fun importLibraryModule(name: String): Module? {
@@ -88,7 +74,7 @@ class ModuleImporter(private val program: Program,
             throw SyntaxError("cannot import self", import.position)
 
         val existing = program.modules.singleOrNull { it.name == moduleName }
-        if(existing!=null)
+        if (existing!=null)
             return null // TODO: why return null instead of Module instance?
 
         var srcCode = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
