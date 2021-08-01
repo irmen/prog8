@@ -18,9 +18,8 @@ import prog8.parser.ParseError
 class TestAstToSourceCode {
 
     private fun generateP8(module: Module) : String {
-        val program = Program("test", mutableListOf(module), DummyFunctions, DummyMemsizer)
-        module.linkParents(program)
-        module.program = program
+        val program = Program("test", DummyFunctions, DummyMemsizer)
+            .addModule(module)
 
         var generatedText = ""
         val it = AstToSourceCode({ str -> generatedText += str }, program)

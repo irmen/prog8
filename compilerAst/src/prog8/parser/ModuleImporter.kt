@@ -51,9 +51,7 @@ class ModuleImporter(private val program: Program,
     //private fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
     private fun importModule(src: SourceCode) : Module {
         val moduleAst = Prog8Parser.parseModule(src)
-        moduleAst.program = program
-        moduleAst.linkParents(program.namespace)
-        program.modules.add(moduleAst)
+        program.addModule(moduleAst)
 
         // accept additional imports
         val lines = moduleAst.statements.toMutableList()

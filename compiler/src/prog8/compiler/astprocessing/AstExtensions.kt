@@ -163,9 +163,7 @@ internal fun Program.moveMainAndStartToFirst() {
     val start = this.entrypoint()
     val mod = start.definingModule()
     val block = start.definingBlock()
-    if(!modules.remove(mod))
-        throw FatalAstException("module wrong")
-    modules.add(0, mod)
+    moveModuleToFront(mod)
     mod.remove(block)
     var afterDirective = mod.statements.indexOfFirst { it !is Directive }
     if(afterDirective<0)

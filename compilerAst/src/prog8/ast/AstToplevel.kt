@@ -230,39 +230,60 @@ interface Node {
 /*********** Everything starts from here, the Program; zero or more modules *************/
 
 class Program(val name: String,
-              val modules: MutableList<Module>,
               val builtinFunctions: IBuiltinFunctions,
               val memsizer: IMemSizer): Node {
-    val namespace = GlobalNamespace(modules, builtinFunctions.names)
+    private val _modules = mutableListOf<Module>()
 
-    val mainModule: Module
+    val modules: List<Module> = _modules
+    val namespace: GlobalNamespace = GlobalNamespace(modules, builtinFunctions.names)
+
+    init {
+        // insert a container module for all interned strings later
+        val internedStringsModule = Module(internedStringsModuleName, mutableListOf(), Position.DUMMY, null)
+        val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
+        internedStringsModule.statements.add(block)
+
+        _modules.add(0, internedStringsModule)
+        internedStringsModule.linkParents(namespace) // TODO: was .linkParents(this) - probably wrong?!
+        internedStringsModule.program = this
+    }
+
+    fun addModule(module: Module): Program {
+        require(null == _modules.firstOrNull { it.name == module.name })
+            { "module '${module.name}' already present" }
+        _modules.add(0, module)
+        module.linkParents(namespace)
+        module.program = this
+        return this
+    }
+
+    fun moveModuleToFront(module: Module): Program {
+        require(_modules.contains(module))
+            { "Not a module of this program: '${module.name}'"}
+        _modules.remove(module)
+        _modules.add(0, module)
+        return this
+    }
+
+    fun allBlocks(): List<Block> = modules.flatMap { it.statements.filterIsInstance<Block>() }
+
+    fun entrypoint(): Subroutine {
+        val mainBlocks = allBlocks().filter { it.name=="main" }
+        return when (mainBlocks.size) {
+            0 -> throw FatalAstException("no 'main' block")
+            1 -> mainBlocks[0].subScope("start") as Subroutine
+            else -> throw FatalAstException("more than one 'main' block")
+        }
+    }
+
+    val mainModule: Module // TODO: rename Program.mainModule - it's NOT necessarily the one containing the main *block*!
         get() = modules.first { it.name!=internedStringsModuleName }
+
     val definedLoadAddress: Int
         get() = mainModule.loadAddress
 
     var actualLoadAddress: Int = 0
     private val internedStringsUnique = mutableMapOf<Pair<String, Boolean>, List<String>>()
-
-    init {
-        // insert a container module for all interned strings later
-        if(modules.firstOrNull()?.name != internedStringsModuleName) {
-            val internedStringsModule = Module(internedStringsModuleName, mutableListOf(), Position.DUMMY, null)
-            modules.add(0, internedStringsModule)
-            val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
-            internedStringsModule.statements.add(block)
-            internedStringsModule.linkParents(this)
-            internedStringsModule.program = this
-        }
-    }
-
-    fun entrypoint(): Subroutine {
-        val mainBlocks = allBlocks().filter { it.name=="main" }
-        if(mainBlocks.size > 1)
-            throw FatalAstException("more than one 'main' block")
-        if(mainBlocks.isEmpty())
-            throw FatalAstException("no 'main' block")
-        return mainBlocks[0].subScope("start") as Subroutine
-    }
 
     fun internString(string: StringLiteralValue): List<String> {
         // Move a string literal into the internal, deduplicated, string pool
@@ -297,10 +318,6 @@ class Program(val name: String,
         return scopedName
     }
 
-
-
-    fun allBlocks(): List<Block> = modules.flatMap { it.statements.filterIsInstance<Block>() }
-
     override val position: Position = Position.DUMMY
     override var parent: Node
         get() = throw FatalAstException("program has no parent")
@@ -314,10 +331,11 @@ class Program(val name: String,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Module && replacement is Module)
-        val idx = modules.indexOfFirst { it===node }
-        modules[idx] = replacement
-        replacement.parent = this
+        val idx = _modules.indexOfFirst { it===node }
+        _modules[idx] = replacement
+        replacement.parent = this // TODO: why not replacement.program = this; replacement.linkParents(namespace)?!
     }
+
 }
 
 open class Module(override val name: String,
@@ -355,7 +373,7 @@ open class Module(override val name: String,
 }
 
 
-class GlobalNamespace(val modules: List<Module>, private val builtinFunctionNames: Set<String>): Node, INameScope {
+class GlobalNamespace(val modules: Iterable<Module>, private val builtinFunctionNames: Set<String>): Node, INameScope {
     override val name = "<<<global>>>"
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used

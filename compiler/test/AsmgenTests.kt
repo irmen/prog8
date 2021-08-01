@@ -66,9 +66,9 @@ locallabel:
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module("test", mutableListOf(block), Position.DUMMY, null)
-        module.linkParents(ParentSentinel)
-        val program = Program("test", mutableListOf(module), DummyFunctions, DummyMemsizer)
-        module.program = program
+        val program = Program("test", DummyFunctions, DummyMemsizer)
+            .addModule(module)
+        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program.namespace)?!
         return program
     }
 
