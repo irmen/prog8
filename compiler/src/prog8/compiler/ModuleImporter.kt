@@ -1,4 +1,4 @@
-package prog8.parser
+package prog8.compiler
 
 import prog8.ast.Module
 import prog8.ast.Program
@@ -6,6 +6,8 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.parser.Prog8Parser
+import prog8.parser.SourceCode
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.FileSystemException

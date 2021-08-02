@@ -15,7 +15,7 @@ import kotlin.io.path.*
 import prog8.ast.Program
 import prog8.parser.ParseError
 
-import prog8.parser.ModuleImporter
+import prog8.compiler.ModuleImporter
 import kotlin.test.assertContains
 
 

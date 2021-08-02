@@ -16,7 +16,6 @@ import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
-import prog8.parser.ModuleImporter
 import prog8.parser.ParsingFailedError
 import java.io.File
 import java.io.InputStream
