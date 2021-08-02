@@ -24,9 +24,9 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.2'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
-    testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 }
 
 configurations.all {
