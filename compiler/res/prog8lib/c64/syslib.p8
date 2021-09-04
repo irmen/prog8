@@ -5,8 +5,6 @@
 ;
 ; indent format: TABS, size=8
 
-%target c64
-
 c64 {
         &ubyte  TIME_HI         = $a0       ; software jiffy clock, hi byte
         &ubyte  TIME_MID        = $a1       ;  .. mid byte

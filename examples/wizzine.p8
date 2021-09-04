@@ -1,4 +1,3 @@
-%target c64
 %import syslib
 %zeropage basicsafe
 

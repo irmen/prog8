@@ -33,7 +33,7 @@ syn keyword prog8Repeat for while in do until repeat
 syn match prog8Label "\<\w\+\>:"
 syn keyword prog8Operator and or to downto as void
 
-syn match prog8Directive "\(^\|\s\)%\(target\|output\|launcher\|zeropage\)\>"
+syn match prog8Directive "\(^\|\s\)%\(output\|launcher\|zeropage\)\>"
 syn match prog8Directive "\(^\|\s\)%\(zpreserved\|address\|import\|option\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%asm\>"

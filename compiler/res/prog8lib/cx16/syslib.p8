@@ -5,9 +5,6 @@
 ;
 ; indent format: TABS, size=8
 
-%target cx16
-
-
 c64 {
 
 ; ---- kernal routines, these are the same as on the Commodore-64 (hence the same block name) ----

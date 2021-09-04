@@ -714,14 +714,6 @@ internal class AstChecker(private val program: Program,
                 else if(directive.args.map{it.name in setOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page")}.any { !it })
                     err("invalid option directive argument(s)")
             }
-            "%target" -> {
-                if(directive.parent !is Block && directive.parent !is Module)
-                    err("this directive may only occur in a block or at module level")
-                if(directive.args.size != 1)
-                    err("directive requires one argument")
-                if(directive.args.single().name !in setOf(C64Target.name, Cx16Target.name))
-                    err("invalid compilation target")
-            }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
         super.visit(directive)

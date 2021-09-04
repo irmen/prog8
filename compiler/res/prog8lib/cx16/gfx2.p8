@@ -1,5 +1,3 @@
-%target cx16
-
 ; Bitmap pixel graphics routines for the CommanderX16
 ; Custom routines to use the full-screen 640x480 and 320x240 screen modes.
 ; (These modes are not supported by the documented GRAPH_xxxx kernal routines)

@@ -1,5 +1,3 @@
-%target cx16
-
 ; Manipulate the Commander X16's display color palette.
 ; Should you want to restore the default palette, you have to reinitialize the Vera yourself.
 

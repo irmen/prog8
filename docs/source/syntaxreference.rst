@@ -33,13 +33,6 @@ This makes it easier to understand and relate the generated code. Examples::
 Directives
 -----------
 
-.. data:: %target <target>
-
-    Level: module.
-    Global setting, specifies that this module can only work for the given compiler target.
-    If compiled with a different target, compilation is aborted with an error message.
-
-
 .. data:: %output <type>
 
 	Level: module.

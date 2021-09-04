@@ -1,4 +1,3 @@
-%target c64
 %import floats
 %import graphics
 %import test_stack

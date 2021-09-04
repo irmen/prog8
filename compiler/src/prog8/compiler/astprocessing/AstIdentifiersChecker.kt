@@ -33,16 +33,6 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         super.visit(block)
     }
 
-    override fun visit(directive: Directive) {
-        if(directive.directive=="%target") {
-            val compatibleTarget = directive.args.single().name
-            if (compatibleTarget != compTarget.name)
-                errors.err("module's compilation target ($compatibleTarget) differs from active target (${compTarget.name})", directive.position)
-        }
-
-        super.visit(directive)
-    }
-
     override fun visit(decl: VarDecl) {
         decl.datatypeErrors.forEach { errors.err(it.message, it.position) }
 

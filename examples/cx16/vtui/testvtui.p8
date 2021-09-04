@@ -1,4 +1,3 @@
-%target cx16
 %import textio
 %option no_sysinit
 %zeropage basicsafe
