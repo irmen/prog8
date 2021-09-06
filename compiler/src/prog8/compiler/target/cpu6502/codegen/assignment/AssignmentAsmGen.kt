@@ -1359,8 +1359,10 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister) {
-        // we make an exception in the type check for assigning something to a cx16 virtual register
-        if(target.register !in Cx16VirtualRegisters) {
+        // we make an exception in the type check for assigning something to a cx16 virtual register, or a register pair
+        // these will be correctly typecasted from a byte to a word value
+        if(target.register !in Cx16VirtualRegisters &&
+            target.register!=RegisterOrPair.AX && target.register!=RegisterOrPair.AY && target.register!=RegisterOrPair.XY) {
             if(target.kind==TargetStorageKind.VARIABLE) {
                 val parts = target.asmVarname.split('.')
                 if (parts.size != 2 || parts[0] != "cx16")
