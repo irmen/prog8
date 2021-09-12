@@ -1,42 +1,37 @@
 %import textio
+%import floats
 %zeropage dontuse
 
 main {
 
 label:
     sub start() {
-        sub2(&label)
-        sub2(&label_local)
-        sub2(&main.sub2.label_in_sub2)
-        uword xx = &label_local
-        txt.print_uwhex(xx, true)
+
+        ubyte[6] ubs = 10 to 20 step 2
+        ubyte[] ubs2 = 10 to 20 step 2
+        float[6] fs = 10 to 20 step 2
+        float[] fs2 = 10 to 20 step 2
+
+        txt.print_ub(len(ubs))
         txt.nl()
-        xx = &label
-        txt.print_uwhex(xx, true)
+        txt.print_ub(len(ubs2))
         txt.nl()
-        xx = &main.label
-        txt.print_uwhex(xx, true)
+        txt.print_ub(len(fs))
         txt.nl()
-        xx = &main.sub2.label_in_sub2
-        txt.print_uwhex(xx, true)
-        txt.nl()
-        xx = main.sub2.sub2var
-        txt.print_uwhex(xx, true)
-        txt.nl()
-        xx = &main.start.label_local
-        txt.print_uwhex(xx, true)
+        txt.print_ub(len(fs2))
         txt.nl()
 
-label_local:
-        return
-    }
-
-    sub sub2(uword ad) {
-        uword sub2var = 42
-
-        txt.print_uwhex(ad,true)
+        ubyte ix
+        for ix in 0 to 5 {
+            txt.print_ub(ubs2[ix])
+            txt.spc()
+        }
         txt.nl()
-label_in_sub2:
+        for ix in 0 to 5 {
+            floats.print_f(fs2[ix])
+            txt.spc()
+        }
         txt.nl()
+
     }
 }
