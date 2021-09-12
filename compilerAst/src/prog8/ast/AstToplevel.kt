@@ -251,7 +251,7 @@ class Program(val name: String,
     fun addModule(module: Module): Program {
         require(null == _modules.firstOrNull { it.name == module.name })
             { "module '${module.name}' already present" }
-        _modules.add(0, module)
+        _modules.add(module)
         module.linkParents(namespace)
         module.program = this
         return this

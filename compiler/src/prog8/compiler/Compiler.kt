@@ -168,7 +168,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         builtinFunctionReturnType(name, args, program)
 }
 
-private fun parseImports(filepath: Path,
+fun parseImports(filepath: Path,
                          errors: IErrorReporter,
                          compTarget: ICompilationTarget,
                          libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
@@ -200,7 +200,7 @@ private fun parseImports(filepath: Path,
     return Triple(programAst, compilerOptions, importedFiles)
 }
 
-private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
+fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
     val outputDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
     val launcherDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
