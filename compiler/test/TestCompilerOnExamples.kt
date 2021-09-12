@@ -75,7 +75,6 @@ class TestCompilerOnExamples {
             "swirl",
             "swirl-float",
             "tehtriz",
-            "test",
             "textelite",
         ),
         dim2 = listOf(Cx16Target, C64Target),

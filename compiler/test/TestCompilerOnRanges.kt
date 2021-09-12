@@ -56,14 +56,13 @@ class TestCompilerOnRanges {
     }
 
     @Test
-    @Disabled("#55: bug in ConstantIdentifierReplacer.before(VarDecl)@decl.datatype==ARRAY_F")
     fun testFloatArrayInitializerWithRange_char_to_char() {
         val platform = C64Target
         val result = compileText(platform, optimize = false, """
             %option enable_floats
             main {
                 sub start() {
-                    float[] cs = @'a' to 'z' ; values are computed at compile time 
+                    float[] cs = 'a' to 'z' ; values are computed at compile time 
                     cs[0] = 23 ; keep optimizer from removing it
                 }
             }
@@ -76,7 +75,7 @@ class TestCompilerOnRanges {
         val rhsValues = (decl.value as ArrayLiteralValue)
             .value // Array<Expression>
             .map { (it as NumericLiteralValue).number.toInt() }
-        val expectedStart = platform.encodeString("a", true)[0].toInt()
+        val expectedStart = platform.encodeString("a", false)[0].toInt()
         val expectedEnd = platform.encodeString("z", false)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
