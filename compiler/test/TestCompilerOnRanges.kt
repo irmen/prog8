@@ -4,7 +4,6 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import kotlin.test.*
 import prog8tests.helpers.*
@@ -105,7 +104,6 @@ class TestCompilerOnRanges {
 
 
     @TestFactory
-    @Disabled("#55")
     fun floatArrayInitializerWithRange() = mapCombinations(
         dim1 = listOf("", "42", "41"),                 // sizeInDecl
         dim2 = listOf("%option enable_floats", ""),    // optEnableFloats
@@ -113,6 +111,7 @@ class TestCompilerOnRanges {
         dim4 = listOf(false, true),                    // optimize
         combine4 = { sizeInDecl, optEnableFloats, platform, optimize ->
             val displayName =
+                "test failed for: " +
                 when (sizeInDecl) {
                     "" -> "no"
                     "42" -> "correct"
@@ -130,11 +129,10 @@ class TestCompilerOnRanges {
                         }
                     }
                 """)
-                if ((sizeInDecl == "42") && (optEnableFloats != "")){
+                if (optEnableFloats != "" && (sizeInDecl=="" || sizeInDecl=="42"))
                     result.assertSuccess()
-                } else {
+                else
                     result.assertFailure()
-                }
             }
         }
     )
