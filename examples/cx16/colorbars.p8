@@ -1,6 +1,5 @@
 %import gfx2
 %import palette
-%import textio
 
 
 ; TODO WORK IN PROGRESS...
@@ -9,22 +8,24 @@
 
 main {
     sub start() {
-        palette.set_all_black()
+        ;palette.set_all_black()
         gfx2.screen_mode(4)
 
         ubyte yy
         for yy in 0 to 239
-            gfx2.horizontal_line(0, yy, 320, yy & 31)
+            gfx2.horizontal_line(0, yy, 320, yy)
 
         repeat {
-            colors.random_half_bar()
-            colors.mirror_bar()
-            colors.set_palette()
-            repeat 20
+            yy = 0
+            repeat 8 {
+                colors.random_half_bar()
+                colors.mirror_bar()
+                colors.set_palette(yy)
+                yy+=32
+            }
+
+            repeat 10
                 sys.waitvsync()
-        }
-
-        repeat {
         }
     }
 
@@ -107,11 +108,11 @@ colors {
         }
     }
 
-    sub set_palette() {
+    sub set_palette(ubyte offset) {
         ubyte ix
         for ix in 0 to 31 {
             uword color = mkword(reds[ix], (greens[ix] << 4) | blues[ix] )
-            palette.set_color(ix, color)
+            palette.set_color(ix+offset, color)
         }
     }
 }
