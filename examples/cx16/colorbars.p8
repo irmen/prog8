@@ -38,7 +38,6 @@ colors {
     ubyte[32] reds
     ubyte[32] greens
     ubyte[32] blues
-    ubyte bar_size
 
     sub random_rgb12() {
         do {
