@@ -1,5 +1,5 @@
-%import gfx2
 %import palette
+%import textio
 
 
 ; TODO WORK IN PROGRESS...
@@ -8,28 +8,51 @@
 
 main {
     sub start() {
-        ;palette.set_all_black()
-        gfx2.screen_mode(4)
+        txt.plot(5,5)
+        txt.print("amiga-like raster blinds effect (work in progress)")
 
-        ubyte yy
-        for yy in 0 to 239
-            gfx2.horizontal_line(0, yy, 320, yy)
+        irq.make_new_gradient()
+        cx16.set_rasterirq(&irq.irqhandler, 100)
 
         repeat {
-            yy = 0
-            repeat 8 {
-                colors.random_half_bar()
-                colors.mirror_bar()
-                colors.set_palette(yy)
-                yy+=32
-            }
-
-            repeat 10
-                sys.waitvsync()
         }
     }
 
 }
+
+irq {
+    ubyte color_ix = 0
+    uword next_irq_line = 100
+    ubyte gradient_counter = 0
+
+    sub irqhandler() {
+        palette.set_color(0, colors.get_colorword(color_ix))
+        color_ix++
+
+        if color_ix==32 {
+            next_irq_line = 100
+            color_ix = 0
+
+            ; just arbitrary mechanism for now, to change to a new gradient after a short while
+            gradient_counter++
+            if gradient_counter & 16 {
+                make_new_gradient()
+                gradient_counter = 0
+            }
+
+        } else {
+            next_irq_line += 2      ; code needs 2 scanlines per color transition
+        }
+
+        cx16.set_rasterline(next_irq_line)
+    }
+
+    sub make_new_gradient() {
+        colors.random_half_bar()
+        colors.mirror_bar()
+    }
+}
+
 
 colors {
     ubyte target_red
@@ -107,11 +130,19 @@ colors {
         }
     }
 
-    sub set_palette(ubyte offset) {
-        ubyte ix
-        for ix in 0 to 31 {
-            uword color = mkword(reds[ix], (greens[ix] << 4) | blues[ix] )
-            palette.set_color(ix+offset, color)
-        }
+    asmsub get_colorword(ubyte color_ix @Y) -> uword @AY {
+        ; uword color = mkword(reds[ix], (greens[ix] << 4) | blues[ix] )
+        %asm {{
+            lda  colors.reds,y
+            pha
+            lda  colors.greens,y
+            asl  a
+            asl  a
+            asl  a
+            asl  a
+            ora  colors.blues,y
+            ply
+            rts
+        }}
     }
 }
