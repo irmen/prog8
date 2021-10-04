@@ -1,18 +1,24 @@
-%import palette
 %import textio
 
-
-; TODO WORK IN PROGRESS...
-; want to make Amiga 'copper' bars color cycling effects
+; Amiga 'copper' bars color cycling effect
 
 
 main {
     sub start() {
-        txt.plot(5,5)
-        txt.print("amiga-like raster blinds effect (work in progress)")
+        ; make palette color 1 black so we can print black letters over the background color 0
+        void cx16.screen_set_mode(0)
+        cx16.vpoke(1, $fa02, $0)
+        cx16.vpoke(1, $fa03, $0)
+        txt.color(1)
+        txt.plot(13,12)
+        txt.print("amiga-inspired")
+        txt.plot(10,14)
+        txt.print("raster blinds effect")
+        txt.plot(12,16)
+        txt.print("random gradients")
 
         irq.make_new_gradient()
-        cx16.set_rasterirq(&irq.irqhandler, 100)
+        cx16.set_rasterirq(&irq.irqhandler, irq.top_scanline)
 
         repeat {
         }
@@ -21,28 +27,42 @@ main {
 }
 
 irq {
+    const ubyte top_scanline = 0
+    ubyte blinds_start_ix = 0
     ubyte color_ix = 0
-    uword next_irq_line = 100
-    ubyte gradient_counter = 0
+    uword next_irq_line = top_scanline
+    ubyte shift_counter = 0
+
+    ubyte[32+32+16] blinds_lines_reds
+    ubyte[32+32+16] blinds_lines_greens
+    ubyte[32+32+16] blinds_lines_blues
+
 
     sub irqhandler() {
-        palette.set_color(0, colors.get_colorword(color_ix))
+        set_scanline_color(color_ix)
         color_ix++
 
-        if color_ix==32 {
-            next_irq_line = 100
+        next_irq_line += 2      ; code needs 2 scanlines per color transition
+
+        if next_irq_line == 480 {
+            ; start over at top
+            next_irq_line = top_scanline
+            blinds_start_ix = 0
             color_ix = 0
-
-            ; just arbitrary mechanism for now, to change to a new gradient after a short while
-            gradient_counter++
-            if gradient_counter & 16 {
+            shift_counter++
+            if shift_counter == 32+32+32 {
                 make_new_gradient()
-                gradient_counter = 0
+                shift_counter = 0
+            } else if shift_counter & 1 {
+                shift_gradient()
             }
-
-        } else {
-            next_irq_line += 2      ; code needs 2 scanlines per color transition
+        } else if next_irq_line & 15 == 0  {
+            ; start next blinds
+            blinds_start_ix++
+            color_ix = blinds_start_ix
         }
+
+
 
         cx16.set_rasterline(next_irq_line)
     }
@@ -50,6 +70,44 @@ irq {
     sub make_new_gradient() {
         colors.random_half_bar()
         colors.mirror_bar()
+        sys.memcopy(colors.reds, &blinds_lines_reds+32+16, len(colors.reds))
+        sys.memcopy(colors.greens, &blinds_lines_greens+32+16, len(colors.greens))
+        sys.memcopy(colors.blues, &blinds_lines_blues+32+16, len(colors.blues))
+    }
+
+    sub shift_gradient() {
+        sys.memcopy(&blinds_lines_reds+1, blinds_lines_reds, len(blinds_lines_reds)-1)
+        sys.memcopy(&blinds_lines_greens+1, blinds_lines_greens, len(blinds_lines_greens)-1)
+        sys.memcopy(&blinds_lines_blues+1, blinds_lines_blues, len(blinds_lines_blues)-1)
+    }
+
+    asmsub set_scanline_color(ubyte color_ix @Y) {
+        ; uword color = mkword(reds[ix], (greens[ix] << 4) | blues[ix] )
+        %asm {{
+            lda  blinds_lines_reds,y
+            pha
+            lda  blinds_lines_greens,y
+            asl  a
+            asl  a
+            asl  a
+            asl  a
+            ora  blinds_lines_blues,y
+            tay
+
+            stz  cx16.VERA_CTRL
+            lda  #%00010001
+            sta  cx16.VERA_ADDR_H
+            lda  #$fa
+            sta  cx16.VERA_ADDR_M
+            ; lda  #$02
+            ; sta  cx16.VERA_ADDR_L
+            stz  cx16.VERA_ADDR_L
+            sty  cx16.VERA_DATA0        ; gb
+            pla
+            sta  cx16.VERA_DATA0        ; r
+            stz  cx16.VERA_ADDR_H
+            rts
+        }}
     }
 }
 
@@ -128,21 +186,5 @@ colors {
                 ix++
             }
         }
-    }
-
-    asmsub get_colorword(ubyte color_ix @Y) -> uword @AY {
-        ; uword color = mkword(reds[ix], (greens[ix] << 4) | blues[ix] )
-        %asm {{
-            lda  colors.reds,y
-            pha
-            lda  colors.greens,y
-            asl  a
-            asl  a
-            asl  a
-            asl  a
-            ora  colors.blues,y
-            ply
-            rts
-        }}
     }
 }
