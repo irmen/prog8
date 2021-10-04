@@ -500,11 +500,9 @@ sys {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
         ;     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
         %asm {{
--           lda  c64.RASTER
-            beq  -
--           lda  c64.RASTER
-            bne  -
-            bit  c64.SCROLY
+-           bit  c64.SCROLY
+            bpl  -
+-           bit  c64.SCROLY
             bmi  -
             rts
         }}
