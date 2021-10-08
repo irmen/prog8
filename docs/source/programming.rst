@@ -641,9 +641,13 @@ Subroutines can be defined in a Block, but also nested inside another subroutine
 With ``asmsub`` you can define a low-level subroutine that is implemented in inline assembly and takes any parameters
 in registers directly.
 
-Trivial subroutines can be tagged as ``inline`` to tell the compiler to copy their code
+Trivial ``asmsub`` routines can be tagged as ``inline`` to tell the compiler to copy their code
 in-place to the locations where the subroutine is called, rather than inserting an actual call and return to the
 subroutine. This may increase code size significantly and can only be used in limited scenarios, so YMMV.
+Note that the routine's code is copied verbatim into the place of the subroutine call in this case,
+so pay attention to any jumps and rts instructions in the inlined code!
+
+At this time it is not yet possible to inline regular Prog8 subroutines, this may be added in the future.
 
 
 Calling a subroutine

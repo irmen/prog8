@@ -118,16 +118,14 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             // we do this by copying the subroutine's statements at the call site.
             // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
             // (this condition has been enforced by an ast check earlier)
+
+            // note: for now, this is only reliably supported for asmsubs.
+            if(!sub.isAsmSubroutine)
+                throw AssemblyError("can only reliably inline asmsub routines at this time")
+
             asmgen.out("  \t; inlined routine follows: ${sub.name}")
-            val statements = sub.statements.filter { it !is ParameterVarDecl && it !is Directive }
-            statements.forEach {
-                if(it is Return) {
-                    asmgen.translate(it, false)     // don't use RTS for the inlined return statement
-                } else {
-                    if(!sub.inline || it !is VarDecl)
-                        asmgen.translate(it)
-                }
-            }
+            val assembly = sub.statements.single() as InlineAssembly
+            asmgen.translate(assembly)
             asmgen.out("  \t; inlined routine end: ${sub.name}")
         }
 

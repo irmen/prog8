@@ -269,10 +269,11 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        // scope check
-        if(subroutine.parent !is Block && subroutine.parent !is Subroutine) {
+        if(subroutine.inline && !subroutine.isAsmSubroutine)
+            err("subroutine inlining is currently only supported on asmsub routines")
+
+        if(subroutine.parent !is Block && subroutine.parent !is Subroutine)
             err("subroutines can only be defined in the scope of a block or within another subroutine")
-        }
 
         if(subroutine.isAsmSubroutine) {
             if(subroutine.asmParameterRegisters.size != subroutine.parameters.size)

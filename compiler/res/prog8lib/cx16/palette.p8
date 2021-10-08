@@ -68,11 +68,11 @@ palette {
         }
     }
 
-    inline sub set_all_black() {
+    sub set_all_black() {
         set_monochrome($000, $000)
     }
 
-    inline sub set_all_white() {
+    sub set_all_white() {
         set_monochrome($fff, $fff)
     }
 

@@ -297,17 +297,6 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
             break
     }
 
-    val inliner = SubroutineInliner(programAst, errors, options)
-    inliner.visit(programAst)
-    errors.report()
-    if(errors.noErrors()) {
-        inliner.applyModifications()
-        inliner.fixCallsToInlinedSubroutines()
-        val remover2 = UnusedCodeRemover(programAst, errors, compTarget)
-        remover2.visit(programAst)
-        remover2.applyModifications()
-    }
-
     errors.report()
 }
 
