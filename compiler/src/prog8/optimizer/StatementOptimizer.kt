@@ -39,6 +39,41 @@ internal class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
+    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+        // if the first instruction in the called subroutine is a return statement with a simple value,
+        // remove the jump altogeter and inline the returnvalue directly.
+        val subroutine = functionCall.target.targetSubroutine(program)
+        if(subroutine!=null) {
+            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
+            if(first is Return && first.value?.isSimple==true) {
+                val orig = first.value!!
+                val copy = when(orig) {
+                    is AddressOf -> {
+                        val scoped = scopePrefix(orig.identifier, subroutine)
+                        AddressOf(scoped, orig.position)
+                    }
+                    is DirectMemoryRead -> {
+                        when(val expr = orig.addressExpression) {
+                            is NumericLiteralValue -> DirectMemoryRead(expr.copy(), orig.position)
+                            else -> return noModifications
+                        }
+                    }
+                    is IdentifierReference -> scopePrefix(orig, subroutine)
+                    is NumericLiteralValue -> orig.copy()
+                    is StringLiteralValue -> orig.copy()
+                    else -> return noModifications
+                }
+                return listOf(IAstModification.ReplaceNode(functionCall, copy, parent))
+            }
+        }
+        return noModifications
+    }
+
+    private fun scopePrefix(variable: IdentifierReference, subroutine: Subroutine): IdentifierReference {
+        val scoped = subroutine.makeScopedName(variable.nameInSource.last())
+        return IdentifierReference(scoped.split('.'), variable.position)
+    }
+
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in functions.names) {
             val functionName = functionCallStatement.target.nameInSource[0]
@@ -101,19 +136,19 @@ internal class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-        // if the first instruction in the called subroutine is a return statement with constant value, replace with the constant value
-        val subroutine = functionCall.target.targetSubroutine(program)
-        if(subroutine!=null) {
-            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is Return && first.value!=null) {
-                val constval = first.value?.constValue(program)
-                if(constval!=null)
-                    return listOf(IAstModification.ReplaceNode(functionCall, constval, parent))
-            }
-        }
-        return noModifications
-    }
+//    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+//        // if the first instruction in the called subroutine is a return statement with constant value, replace with the constant value
+//        val subroutine = functionCall.target.targetSubroutine(program)
+//        if(subroutine!=null) {
+//            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
+//            if(first is Return && first.value!=null) {
+//                val constval = first.value?.constValue(program)
+//                if(constval!=null)
+//                    return listOf(IAstModification.ReplaceNode(functionCall, constval, parent))
+//            }
+//        }
+//        return noModifications
+//    }
 
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
         // remove empty if statements
