@@ -750,7 +750,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
         // optimized simple case: swap two memory locations
         if(first is DirectMemoryRead && second is DirectMemoryRead) {
-            // TODO optimize swap of two memread values with index, using the same pointer expression/variable, like swap(@(ptr+i1), @(ptr+i2))
             val addr1 = (first.addressExpression as? NumericLiteralValue)?.number?.toHex()
             val addr2 = (second.addressExpression as? NumericLiteralValue)?.number?.toHex()
             val name1 = if(first.addressExpression is IdentifierReference) asmgen.asmVariableName(first.addressExpression as IdentifierReference) else null
@@ -772,6 +771,50 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 name1!=null && name2!=null -> {
                     asmgen.out("  ldy  $name1 |  lda  $name2 |  sta  $name1 |  sty  $name2")
                     return
+                }
+                addr1==null && addr2==null && name1==null && name2==null -> {
+                    val firstExpr = first.addressExpression as? BinaryExpression
+                    val secondExpr = second.addressExpression as? BinaryExpression
+                    if(firstExpr!=null && secondExpr!=null) {
+                        val pointerVariable = firstExpr.left as? IdentifierReference
+                        val firstOffset = firstExpr.right
+                        val secondOffset = secondExpr.right
+                        if(pointerVariable != null
+                            && pointerVariable isSameAs secondExpr.left
+                            && firstExpr.operator == "+" && secondExpr.operator == "+"
+                            && (firstOffset is NumericLiteralValue || firstOffset is IdentifierReference || firstOffset is TypecastExpression)
+                            && (secondOffset is NumericLiteralValue || secondOffset is IdentifierReference || secondOffset is TypecastExpression)
+                        ) {
+                            val pointerVar = firstExpr.left as IdentifierReference
+                            if(firstOffset is NumericLiteralValue && secondOffset is NumericLiteralValue) {
+                                if(firstOffset!=secondOffset) {
+                                    swapArrayValues(
+                                        DataType.UBYTE,
+                                        asmgen.asmVariableName(pointerVariable), firstOffset,
+                                        asmgen.asmVariableName(pointerVariable), secondOffset
+                                    )
+                                    return
+                                }
+                            } else if(firstOffset is TypecastExpression && secondOffset is TypecastExpression) {
+                                if(firstOffset.type in WordDatatypes && secondOffset.type in WordDatatypes) {
+                                    val firstOffsetVar = firstOffset.expression as? IdentifierReference
+                                    val secondOffsetVar = secondOffset.expression as? IdentifierReference
+                                    if(firstOffsetVar!=null && secondOffsetVar!=null) {
+                                        if(firstOffsetVar!=secondOffsetVar) {
+                                            swapArrayValues(
+                                                DataType.UBYTE,
+                                                asmgen.asmVariableName(pointerVariable), firstOffsetVar,
+                                                asmgen.asmVariableName(pointerVariable), secondOffsetVar
+                                            )
+                                            return
+                                        }
+                                    }
+                                }
+                            } else if(firstOffset is IdentifierReference || secondOffset is IdentifierReference) {
+                                throw AssemblyError("expected a typecast-to-word for index variable at ${firstOffset.position} and/or ${secondOffset.position}")
+                            }
+                        }
+                    }
                 }
             }
         }
