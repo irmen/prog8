@@ -1,47 +1,47 @@
 %import textio
-%zeropage dontuse
+%import floats
+%import test_stack
+%zeropage basicsafe
 
 main {
 
 label:
     sub start() {
 
-        txt.print("hey\n")
-        %breakpoint
-        txt.print("hey2\n")
+        ubyte ub1
+        ubyte ub2
+        uword uw1
+        uword uw2
+        float fl1
+        float fl2
+        ubyte[10] ubarr
+        uword[10] uwarr
+        float[10] flarr
 
-;        sub2(&label)
-;        sub2(&label_local)
-;        sub2(&main.sub2.label_in_sub2)
-;        uword xx = &label_local
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &label
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &main.label
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &main.sub2.label_in_sub2
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = main.sub2.sub2var
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
-;        xx = &main.start.label_local
-;        txt.print_uwhex(xx, true)
-;        txt.nl()
+        swap(ub1, ub2)
+        swap(uw1, uw2)
+        swap(fl1, fl2)
+        swap(ubarr[1], ubarr[2])
+        swap(uwarr[1], uwarr[2])
+        swap(flarr[1], flarr[2])
 
-label_local:
-        return
+        ubyte ix1
+        ubyte ix2
+
+        swap(ubarr[ix1], ubarr[ix2])
+        swap(uwarr[ix1], uwarr[ix2])
+        swap(flarr[ix1], flarr[ix2])
+        swap(flarr[ix1], flarr[2])
+        swap(flarr[2], flarr[ix2])
+
+        swap(ubarr[ix1], ubarr[ix1+2])
+        swap(uwarr[ix1], uwarr[ix1+2])
+        swap(flarr[ix1], flarr[ix1+2])
+
+        uword ptr = $c000
+        swap(@(ptr+1), @(ptr+2))
+        swap(@(ptr+ub1), @(ptr+ub2))
+
+        test_stack.test()
     }
-
-;    sub sub2(uword ad) {
-;        uword sub2var = 42
-;
-;        txt.print_uwhex(ad,true)
-;        txt.nl()
-;label_in_sub2:
-;        txt.nl()
-;    }
 }

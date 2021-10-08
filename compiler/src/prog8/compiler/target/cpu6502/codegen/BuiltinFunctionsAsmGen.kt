@@ -888,7 +888,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     lda  #>(${arrayVarName2}+$index2)
                     sta  P8ZP_SCRATCH_W2+1
-                    jsr  floats.swap_floats
+                    jsr  floats.func_swap_f
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
@@ -961,7 +961,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     bcc  +
                     inc  P8ZP_SCRATCH_W2+1
-+                   jsr  floats.swap_floats                                   
++                   jsr  floats.func_swap_f                                   
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
@@ -1019,7 +1019,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W1
                     bcc  +
                     inc  P8ZP_SCRATCH_W1+1
-+                   jsr  floats.swap_floats
++                   jsr  floats.func_swap_f
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
@@ -1077,7 +1077,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     sta  P8ZP_SCRATCH_W2
                     lda  #>(${arrayVarName2}+$index2)
                     sta  P8ZP_SCRATCH_W2+1
-                    jsr  floats.swap_floats
+                    jsr  floats.func_swap_f
                 """)
             }
             else -> throw AssemblyError("invalid aray elt type")
