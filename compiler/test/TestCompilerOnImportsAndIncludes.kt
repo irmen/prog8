@@ -84,7 +84,7 @@ class TestCompilerOnImportsAndIncludes {
 
     @Test
     fun testAsmbinaryDirectiveWithNonExistingFile() {
-        val p8Path = fixturesDir.resolve("asmbinaryNonExisting.p8")
+        val p8Path = fixturesDir.resolve("asmBinaryNonExisting.p8")
         val binPath = fixturesDir.resolve("i_do_not_exist.bin")
         assumeReadableFile(p8Path)
         assumeNotExists(binPath)
@@ -95,7 +95,7 @@ class TestCompilerOnImportsAndIncludes {
 
     @Test
     fun testAsmbinaryDirectiveWithNonReadableFile() {
-        val p8Path = fixturesDir.resolve("asmbinaryNonReadable.p8")
+        val p8Path = fixturesDir.resolve("asmBinaryNonReadable.p8")
         val binPath = fixturesDir.resolve("subFolder")
         assumeReadableFile(p8Path)
         assumeDirectory(binPath)
