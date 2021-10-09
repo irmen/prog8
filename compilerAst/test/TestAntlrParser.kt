@@ -14,8 +14,8 @@ import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Block
 import prog8.parser.ParsingFailedError
-import prog8.parser.prog8Lexer
-import prog8.parser.prog8Parser
+import prog8.parser.Prog8ANTLRLexer
+import prog8.parser.Prog8ANTLRParser
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -44,21 +44,21 @@ class TestAntlrParser {
         }
     }
 
-    private fun parseModule(srcText: String): prog8Parser.ModuleContext {
+    private fun parseModule(srcText: String): Prog8ANTLRParser.ModuleContext {
         return parseModule(CharStreams.fromString(srcText))
     }
 
-    private fun parseModule(srcFile: Path): prog8Parser.ModuleContext {
+    private fun parseModule(srcFile: Path): Prog8ANTLRParser.ModuleContext {
         return parseModule(CharStreams.fromPath(srcFile))
     }
 
-    private fun parseModule(srcStream: CharStream): prog8Parser.ModuleContext {
+    private fun parseModule(srcStream: CharStream): Prog8ANTLRParser.ModuleContext {
         val errorListener = MyErrorListener()
-        val lexer = prog8Lexer(srcStream)
+        val lexer = Prog8ANTLRLexer(srcStream)
         lexer.removeErrorListeners()
         lexer.addErrorListener(errorListener)
         val tokens = CommonTokenStream(lexer)
-        val parser = prog8Parser(tokens)
+        val parser = Prog8ANTLRParser(tokens)
         parser.errorHandler = MyErrorStrategy()
         parser.removeErrorListeners()
         parser.addErrorListener(errorListener)
@@ -245,9 +245,9 @@ main {
     }
 }
 """)
-        val lexer = prog8Lexer(charstream)
+        val lexer = Prog8ANTLRLexer(charstream)
         val tokens = CommonTokenStream(lexer)
-        val parser = prog8Parser(tokens)
+        val parser = Prog8ANTLRParser(tokens)
         parser.errorHandler = BailErrorStrategy()
 //        parser.removeErrorListeners()
 //        parser.addErrorListener(MyErrorListener())

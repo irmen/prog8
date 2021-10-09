@@ -18,7 +18,7 @@ import java.nio.file.Paths
 
 class ParsingFailedError(override var message: String) : Exception(message)
 
-internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexer(input)
+internal class CustomLexer(val modulePath: Path, input: CharStream?) : Prog8ANTLRLexer(input)
 
 fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 
@@ -60,7 +60,7 @@ class ModuleImporter(private val program: Program,
             numberOfErrors++
             when (recognizer) {
                 is CustomLexer -> System.err.println("${recognizer.modulePath}:$line:$charPositionInLine: $msg")
-                is prog8Parser -> System.err.println("${recognizer.inputStream.sourceName}:$line:$charPositionInLine: $msg")
+                is Prog8ANTLRParser -> System.err.println("${recognizer.inputStream.sourceName}:$line:$charPositionInLine: $msg")
                 else -> System.err.println("$line:$charPositionInLine $msg")
             }
             if(numberOfErrors>=5)
@@ -75,7 +75,7 @@ class ModuleImporter(private val program: Program,
         val lexerErrors = MyErrorListener()
         lexer.addErrorListener(lexerErrors)
         val tokens = CommentHandlingTokenStream(lexer)
-        val parser = prog8Parser(tokens)
+        val parser = Prog8ANTLRParser(tokens)
         parser.removeErrorListeners()
         parser.addErrorListener(MyErrorListener())
         val parseTree = parser.module()

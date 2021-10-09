@@ -9,7 +9,7 @@ internal class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexe
 
     fun commentTokens() : List<Comment> {
         // extract the comments
-        val commentTokenChannel = prog8Lexer.channelNames.indexOf("HIDDEN")
+        val commentTokenChannel = Prog8ANTLRLexer.channelNames.indexOf("HIDDEN")
         val theLexer = tokenSource as Lexer
         return get(0, size())
                 .asSequence()
