@@ -48,14 +48,6 @@ class TestAstToSourceCode {
     }
 
     @Test
-    fun testTargetDirectiveAndComment() {
-        val orig = SourceCode.of("%target 42  ; invalid arg - shouldn't matter\n")
-        val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("%target +42"))
-    }
-
-    @Test
     fun testImportDirectiveWithLib() {
         val orig = SourceCode.of("%import textio\n")
         val (txt, _) = roundTrip(parseModule(orig))
