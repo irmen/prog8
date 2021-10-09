@@ -1,4 +1,3 @@
-%target cx16
 %import syslib
 %import textio
 

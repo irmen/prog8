@@ -864,7 +864,7 @@ internal class AsmGen(private val program: Program,
 
         if(sub.inline) {
             if(options.optimize) {
-                if(sub.isAsmSubroutine ||callGraph.unused(sub))
+                if(sub.isAsmSubroutine || callGraph.unused(sub))
                     return
 
                 // from an inlined subroutine only the local variables are generated,
@@ -873,7 +873,7 @@ internal class AsmGen(private val program: Program,
                 onlyVariables = true
             }
             else if(sub.amountOfRtsInAsm()==0) {
-                // make sure the NOT INLINED subroutine actually does an rts at the end
+                // make sure the NOT INLINED subroutine actually does a rts at the end
                 sub.statements.add(Return(null, Position.DUMMY))
             }
         }

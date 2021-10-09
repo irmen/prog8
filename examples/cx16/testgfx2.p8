@@ -1,4 +1,3 @@
-%target cx16
 %import gfx2
 %import textio
 %import test_stack

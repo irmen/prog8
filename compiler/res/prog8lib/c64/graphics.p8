@@ -1,4 +1,3 @@
-%target c64
 %import textio
 
 ; bitmap pixel graphics module for the C64

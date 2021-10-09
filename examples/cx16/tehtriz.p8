@@ -8,7 +8,6 @@
 ;   simplistic sound effects (Vera PSG)
 
 
-%target cx16
 %import syslib
 %import textio
 %import test_stack

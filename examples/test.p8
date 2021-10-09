@@ -3,40 +3,68 @@
 
 main {
 
-label:
     sub start() {
-        sub2(&label)
-        sub2(&label_local)
-        sub2(&main.sub2.label_in_sub2)
-        uword xx = &label_local
-        txt.print_uwhex(xx, true)
+        uword v
+        v = test.get_value1()
+        txt.print_uw(v)
         txt.nl()
-        xx = &label
-        txt.print_uwhex(xx, true)
+        v = test.get_value2()
+        txt.print_uw(v)
         txt.nl()
-        xx = &main.label
-        txt.print_uwhex(xx, true)
+        v = test.get_value3()
+        txt.print_uw(v)
         txt.nl()
-        xx = &main.sub2.label_in_sub2
-        txt.print_uwhex(xx, true)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
+        v = test.get_value4()
+        txt.print_uw(v)
         txt.nl()
-        xx = main.sub2.sub2var
-        txt.print_uwhex(xx, true)
+        v = test.get_value5()
+        txt.print_uw(v)
         txt.nl()
-        xx = &main.start.label_local
-        txt.print_uwhex(xx, true)
+        v = test.get_value6()
+        txt.print_uw(v)
         txt.nl()
-
-label_local:
-        return
     }
+}
 
-    sub sub2(uword ad) {
-        uword sub2var = 42
 
-        txt.print_uwhex(ad,true)
-        txt.nl()
-label_in_sub2:
-        txt.nl()
+test {
+    uword[] arr = [1111,2222,3333]
+    uword value = 9999
+
+    sub get_value1() -> uword {
+        return &value
+    }
+    sub get_value2() -> uword {
+        return arr[2]
+    }
+    sub get_value3() -> ubyte {
+        return @($c000)
+    }
+    sub get_value4() -> uword {
+        return value
+    }
+    sub get_value5() -> uword {
+        return $c000
+    }
+    sub get_value6() -> uword {
+        return "string"
     }
 }

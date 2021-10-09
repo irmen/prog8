@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IMemSizer
 import prog8.ast.IStringEncoding
-import prog8.ast.Program
 import prog8.ast.antlr.toAst
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
@@ -14,9 +13,13 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Block
-import prog8.parser.*
+import prog8.parser.ParsingFailedError
+import prog8.parser.prog8Lexer
+import prog8.parser.prog8Parser
 import java.nio.file.Path
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 
 class TestAntlrParser {
 
