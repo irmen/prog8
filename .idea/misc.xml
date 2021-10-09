@@ -4,7 +4,7 @@
     <option name="perGrammarGenerationSettings">
       <list>
         <PerGrammarGenerationSettings>
-          <option name="fileName" value="$PROJECT_DIR$/parser/antlr/prog8.g4" />
+          <option name="fileName" value="$PROJECT_DIR$/parser/antlr/Prog8ANTLR.g4" />
           <option name="autoGen" value="true" />
           <option name="outputDir" value="$PROJECT_DIR$/parser/src/prog8/parser" />
           <option name="libDir" value="" />
@@ -16,7 +16,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="false" project-jdk-name="Kotlin SDK" project-jdk-type="KotlinSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="Kotlin SDK" project-jdk-type="KotlinSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
