@@ -1,15 +1,17 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.AfterAll
-import prog8tests.helpers.*
-import kotlin.io.path.*
-import java.nio.file.Path
-
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import prog8.compiler.compileProgram
-import prog8.compiler.target.*
+import prog8.compiler.target.Cx16Target
+import prog8tests.helpers.*
+import java.nio.file.Path
+import kotlin.io.path.absolute
+import kotlin.io.path.createTempFile
+import kotlin.io.path.deleteExisting
+import kotlin.io.path.writeText
 
 /**
  * ATTENTION: this is just kludge!

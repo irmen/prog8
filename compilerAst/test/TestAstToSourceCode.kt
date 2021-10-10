@@ -1,17 +1,17 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Disabled
-import kotlin.test.*
-import prog8tests.helpers.*
-
-import prog8.ast.*
+import org.junit.jupiter.api.TestInstance
+import prog8.ast.AstToSourceCode
+import prog8.ast.Module
+import prog8.ast.Program
+import prog8.ast.internedStringsModuleName
+import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-
-import prog8.ast.AstToSourceCode
-import prog8.parser.ParseError
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import kotlin.test.assertContains
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -1,19 +1,17 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.BeforeAll
-import kotlin.test.*
-import prog8tests.helpers.*
-
+import org.junit.jupiter.api.TestInstance
 import prog8.ast.IFunctionCall
 import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.RangeExpr
-import prog8.ast.statements.ForLoop
 import prog8.compiler.target.Cx16Target
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileText
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 
 /**

@@ -1,13 +1,17 @@
 package prog8tests
 
-import prog8tests.helpers.*
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.*
-import kotlin.test.*
-import kotlin.io.path.*
-
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import prog8.parser.SourceCode
+import prog8tests.helpers.*
+import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

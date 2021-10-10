@@ -1,21 +1,20 @@
 package prog8tests
 
-import prog8tests.helpers.*
+
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.*
-
-
-import prog8.ast.Program
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import prog8.ast.Module
+import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.internedStringsModuleName
-import java.lang.IllegalArgumentException
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
 import kotlin.test.assertContains
-import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 
 

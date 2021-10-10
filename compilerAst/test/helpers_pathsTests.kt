@@ -1,15 +1,14 @@
 package prog8tests
 
-import prog8tests.helpers.*
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.`is`
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.*
-
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.assertThrows
-
-import kotlin.io.path.*
+import prog8tests.helpers.*
+import kotlin.io.path.Path
+import kotlin.io.path.div
 
 
 // Do not move into folder helpers/!

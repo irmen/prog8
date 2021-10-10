@@ -1,21 +1,14 @@
 package prog8tests
 
-import prog8tests.helpers.*
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.containsString
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.assertThrows
-import kotlin.io.path.*
-
+import org.hamcrest.Matchers.equalTo
+import org.junit.jupiter.api.*
 import prog8.ast.Program
-import prog8.parser.ParseError
-
 import prog8.compiler.ModuleImporter
+import prog8.parser.ParseError
+import prog8tests.helpers.*
+import kotlin.io.path.*
 import kotlin.test.assertContains
 
 

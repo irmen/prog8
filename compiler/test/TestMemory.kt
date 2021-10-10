@@ -1,24 +1,28 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
-import kotlin.test.*
-import prog8tests.helpers.*
-
+import org.junit.jupiter.api.TestInstance
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.*
+import prog8.ast.expressions.ArrayIndexedExpression
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestMemory {
-    
+
     @Test
     fun testInValidRamC64_memory_addresses() {
 

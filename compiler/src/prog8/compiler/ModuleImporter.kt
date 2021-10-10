@@ -10,7 +10,6 @@ import prog8.parser.Prog8Parser
 import prog8.parser.SourceCode
 import java.io.File
 import java.nio.file.Path
-import kotlin.io.FileSystemException
 import kotlin.io.path.*
 
 

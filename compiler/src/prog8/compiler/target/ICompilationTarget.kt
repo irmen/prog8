@@ -1,7 +1,6 @@
 package prog8.compiler.target
 
 import prog8.ast.IMemSizer
-import prog8.compiler.IStringEncoding
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
@@ -9,6 +8,7 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.AssignTarget
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
+import prog8.compiler.IStringEncoding
 import prog8.compiler.Zeropage
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.Petscii

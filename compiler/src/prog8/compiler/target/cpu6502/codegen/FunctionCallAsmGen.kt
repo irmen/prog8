@@ -5,7 +5,10 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.ast.statements.InlineAssembly
+import prog8.ast.statements.RegisterOrStatusflag
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.SubroutineParameter
 import prog8.compiler.AssemblyError
 import prog8.compiler.target.CpuType
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource

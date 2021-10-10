@@ -1,20 +1,22 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Test
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
-import prog8tests.helpers.*
-
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.*
-import prog8.ast.expressions.*
+import prog8.ast.expressions.AddressOf
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
 import java.nio.file.Path
 
 

@@ -1,20 +1,30 @@
 package prog8tests
 
-import prog8tests.helpers.*
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
-import kotlin.test.*
-import kotlin.io.path.*
-
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import prog8.ast.IFunctionCall
+import prog8.ast.Node
+import prog8.ast.base.Position
+import prog8.ast.expressions.CharLiteral
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.RangeExpr
+import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.statements.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8.ast.*
-import prog8.ast.statements.*
-import prog8.ast.base.Position
-import prog8.ast.expressions.*
+import prog8tests.helpers.assumeNotExists
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.name
+import kotlin.io.path.nameWithoutExtension
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

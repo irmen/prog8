@@ -1,12 +1,12 @@
 package prog8tests.helpers
 
-import kotlin.test.*
-import kotlin.io.path.*
-import java.nio.file.Path
-
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compiler.target.ICompilationTarget
+import java.nio.file.Path
+import kotlin.io.path.name
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 internal fun CompilationResult.assertSuccess(description: String = ""): CompilationResult {

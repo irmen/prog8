@@ -4,7 +4,10 @@ import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
 import java.io.File
 import java.nio.file.Path
-import kotlin.io.path.*
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.isReadable
 
 /**
  * Encapsulates - and ties together - actual source code (=text)

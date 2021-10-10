@@ -1,15 +1,17 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Test
-import kotlin.test.*
-
+import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.cx16.CX16MachineDefinition.CX16Zeropage
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -20,7 +20,8 @@ import prog8.parser.ParsingFailedError
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
-import kotlin.io.path.*
+import kotlin.io.path.Path
+import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
 
 

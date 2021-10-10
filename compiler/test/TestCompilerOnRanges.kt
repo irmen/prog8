@@ -1,13 +1,9 @@
 package prog8tests
 
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.DynamicTest.dynamicTest
-import kotlin.test.*
-import prog8tests.helpers.*
-
+import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
@@ -17,6 +13,11 @@ import prog8.compiler.astprocessing.size
 import prog8.compiler.astprocessing.toConstantIntegerRange
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
+import prog8tests.helpers.assertFailure
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileText
+import prog8tests.helpers.mapCombinations
+import kotlin.test.assertEquals
 
 
 /**
