@@ -70,7 +70,7 @@ locallabel:
         val module = Module("test", mutableListOf(block), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program.namespace)?!
+        module.linkParents(program.namespace)
         return program
     }
 

@@ -71,29 +71,28 @@ class TestMemory {
 
     @Test
     fun testInValidRamC64_memory_identifiers() {
-        var target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.VAR)
         val program = Program("test", DummyFunctions, DummyMemsizer)
+        var target = createTestProgramForMemoryRefViaVar(program, 0x1000, VarDeclType.VAR)
 
         assertTrue(C64Target.isInRegularRAM(target, program))
-        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.VAR)
+        target = createTestProgramForMemoryRefViaVar(program, 0xd020, VarDeclType.VAR)
         assertFalse(C64Target.isInRegularRAM(target, program))
-        target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.CONST)
+        target = createTestProgramForMemoryRefViaVar(program, 0x1000, VarDeclType.CONST)
         assertTrue(C64Target.isInRegularRAM(target, program))
-        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.CONST)
+        target = createTestProgramForMemoryRefViaVar(program, 0xd020, VarDeclType.CONST)
         assertFalse(C64Target.isInRegularRAM(target, program))
-        target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.MEMORY)
+        target = createTestProgramForMemoryRefViaVar(program, 0x1000, VarDeclType.MEMORY)
         assertFalse(C64Target.isInRegularRAM(target, program))
     }
 
-    @Test
-    private fun createTestProgramForMemoryRefViaVar(address: Int, vartype: VarDeclType): AssignTarget {
+    private fun createTestProgramForMemoryRefViaVar(program: Program, address: Int, vartype: VarDeclType): AssignTarget {
         val decl = VarDecl(vartype, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, false, Position.DUMMY)
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
-        module.linkParents(ParentSentinel)
+        module.linkParents(program.namespace)
         return target
     }
 
@@ -114,7 +113,7 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program) or .linkParents(program.namespace)?
+        module.linkParents(program.namespace)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
 
@@ -128,7 +127,7 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program) or .linkParents(program.namespace)?
+        module.linkParents(program.namespace)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
 
@@ -142,7 +141,7 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program) or .linkParents(program.namespace)?
+        module.linkParents(program.namespace)
         assertFalse(C64Target.isInRegularRAM(target, program))
     }
 
@@ -156,7 +155,7 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program) or .linkParents(program.namespace)?
+        module.linkParents(program.namespace)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
 
@@ -171,7 +170,7 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program) or .linkParents(program.namespace)?
+        module.linkParents(program.namespace)
         assertTrue(C64Target.isInRegularRAM(target, program))
     }
 
@@ -186,7 +185,7 @@ class TestMemory {
         val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program) or .linkParents(program.namespace)?
+        module.linkParents(program.namespace)
         assertFalse(C64Target.isInRegularRAM(target, program))
     }
 }

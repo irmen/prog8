@@ -251,7 +251,7 @@ class Program(val name: String,
         internedStringsModule.statements.add(block)
 
         _modules.add(0, internedStringsModule)
-        internedStringsModule.linkParents(namespace) // TODO: was .linkParents(this) - probably wrong?!
+        internedStringsModule.linkParents(namespace)
         internedStringsModule.program = this
     }
 
@@ -361,6 +361,7 @@ open class Module(override val name: String,
     }
 
     override fun linkParents(parent: Node) {
+        require(parent is GlobalNamespace)
         this.parent = parent
         statements.forEach {it.linkParents(this)}
     }

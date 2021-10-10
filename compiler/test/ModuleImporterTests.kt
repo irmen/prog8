@@ -222,7 +222,7 @@ class TestModuleImporter {
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
-//                        TODO("assertThat(program.modules.size, equalTo(2))")
+                        assertThat(program.modules.size, equalTo(2))
                     }
                 }
             }
@@ -295,7 +295,7 @@ class TestModuleImporter {
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
-//                        TODO("assertThat(program.modules.size, equalTo(1))")
+                        assertThat(program.modules.size, equalTo(2))
                     }
                 }
 

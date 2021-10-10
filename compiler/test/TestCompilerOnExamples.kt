@@ -23,8 +23,6 @@ import kotlin.io.path.exists
 class TestCompilerOnExamples {
     private val examplesDir = assumeDirectory(workingDir, "../examples")
 
-    // TODO: make assembly stage testable - in case of failure (eg of 64tass) it Process.exit s
-
     private fun makeDynamicCompilerTest(name: String, platform: ICompilationTarget, optimize: Boolean) : DynamicTest {
         val searchIn = mutableListOf(examplesDir)
         if (platform == Cx16Target) {
