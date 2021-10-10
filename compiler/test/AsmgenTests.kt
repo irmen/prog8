@@ -1,11 +1,11 @@
 package prog8tests
 
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import prog8.ast.IBuiltinFunctions
-import prog8.ast.IMemSizer
+import prog8tests.helpers.*
+
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -17,18 +17,9 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import java.nio.file.Path
 
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestAsmGen6502 {
-    private class DummyFunctions: IBuiltinFunctions {
-        override val names: Set<String> = emptySet()
-        override val purefunctionNames: Set<String> = emptySet()
-        override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? = null
-        override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
-    }
-
-    private class DummyMemsizer: IMemSizer {
-        override fun memorySize(dt: DataType): Int = 0
-    }
 
     private fun createTestProgram(): Program {
         /*
@@ -74,10 +65,10 @@ locallabel:
         val varInBlock = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, false, Position.DUMMY)
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
-        val module = Module("test", mutableListOf(block), Position.DUMMY, Path.of(""))
-        module.linkParents(ParentSentinel)
-        val program = Program("test", mutableListOf(module), DummyFunctions(), DummyMemsizer())
-        module.program = program
+        val module = Module("test", mutableListOf(block), Position.DUMMY, null)
+        val program = Program("test", DummyFunctions, DummyMemsizer)
+            .addModule(module)
+        module.linkParents(ParentSentinel) // TODO: why not module.linkParents(program.namespace)?!
         return program
     }
 

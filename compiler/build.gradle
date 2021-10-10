@@ -70,7 +70,8 @@ sourceSets {
     }
     test {
         java {
-            srcDirs = ["${project.projectDir}/test"]
+            srcDir "${project.projectDir}/test"
+            srcDir "${project(':compilerAst').projectDir}/test/helpers"
         }
     }
 }

@@ -9,6 +9,7 @@ import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.ForLoop
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compiler.astprocessing.toConstantIntegerRange
 import kotlin.math.absoluteValue
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -19,7 +20,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
             throw AssemblyError("unknown dt")
         when(stmt.iterable) {
             is RangeExpr -> {
-                val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()
+                val range = (stmt.iterable as RangeExpr).toConstantIntegerRange(asmgen.options.compTarget)
                 if(range==null) {
                     translateForOverNonconstRange(stmt, iterableDt.typeOrElse(DataType.UNDEFINED), stmt.iterable as RangeExpr)
                 } else {

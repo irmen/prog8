@@ -1,32 +1,20 @@
 package prog8.ast.antlr
 
-import org.antlr.v4.runtime.IntStream
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.ast.IStringEncoding
-import prog8.ast.Module
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.parser.CustomLexer
 import prog8.parser.Prog8ANTLRParser
-import java.io.CharConversionException
-import java.io.File
-import java.nio.file.Path
 
 
 /***************** Antlr Extension methods to create AST ****************/
 
 private data class NumericLiteral(val number: Number, val datatype: DataType)
 
-internal fun Prog8ANTLRParser.ModuleContext.toAst(name: String, source: Path, encoding: IStringEncoding) : Module {
-    val nameWithoutSuffix = if(name.endsWith(".p8")) name.substringBeforeLast('.') else name
-    val directives = this.directive().map { it.toAst() }
-    val blocks = this.block().map { it.toAst(Module.isLibrary(source), encoding) }
-    return Module(nameWithoutSuffix, (directives + blocks).toMutableList(), toPosition(), source)
-}
 
 private fun ParserRuleContext.toPosition() : Position {
+    /*
     val customTokensource = this.start.tokenSource as? CustomLexer
     val filename =
             when {
@@ -34,15 +22,18 @@ private fun ParserRuleContext.toPosition() : Position {
                 start.tokenSource.sourceName == IntStream.UNKNOWN_SOURCE_NAME -> "@internal@"
                 else -> File(start.inputStream.sourceName).name
             }
+    */
+    val filename = start.inputStream.sourceName
+
     // note: be ware of TAB characters in the source text, they count as 1 column...
     return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
 }
 
-private fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean, encoding: IStringEncoding) : Statement {
+internal fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean) : Block {
     val blockstatements = block_statement().map {
         when {
-            it.variabledeclaration()!=null -> it.variabledeclaration().toAst(encoding)
-            it.subroutinedeclaration()!=null -> it.subroutinedeclaration().toAst(encoding)
+            it.variabledeclaration()!=null -> it.variabledeclaration().toAst()
+            it.subroutinedeclaration()!=null -> it.subroutinedeclaration().toAst()
             it.directive()!=null -> it.directive().toAst()
             it.inlineasm()!=null -> it.inlineasm().toAst()
             it.labeldef()!=null -> it.labeldef().toAst()
@@ -52,11 +43,11 @@ private fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean, encoding: 
     return Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), blockstatements.toMutableList(), isInLibrary, toPosition())
 }
 
-private fun Prog8ANTLRParser.Statement_blockContext.toAst(encoding: IStringEncoding): MutableList<Statement> =
-        statement().asSequence().map { it.toAst(encoding) }.toMutableList()
+private fun Prog8ANTLRParser.Statement_blockContext.toAst(): MutableList<Statement> =
+        statement().asSequence().map { it.toAst() }.toMutableList()
 
-private fun Prog8ANTLRParser.VariabledeclarationContext.toAst(encoding: IStringEncoding) : Statement {
-    vardecl()?.let { return it.toAst(encoding) }
+private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
+    vardecl()?.let { return it.toAst() }
 
     varinitializer()?.let {
         val vd = it.vardecl()
@@ -64,9 +55,9 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst(encoding: IStringE
                 VarDeclType.VAR,
                 vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-                vd.arrayindex()?.toAst(encoding),
+                vd.arrayindex()?.toAst(),
                 vd.varname.text,
-                it.expression().toAst(encoding),
+                it.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
                 vd.SHARED()!=null,
@@ -81,9 +72,9 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst(encoding: IStringE
                 VarDeclType.CONST,
                 vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-                vd.arrayindex()?.toAst(encoding),
+                vd.arrayindex()?.toAst(),
                 vd.varname.text,
-                cvarinit.expression().toAst(encoding),
+                cvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
                 vd.SHARED() != null,
@@ -98,9 +89,9 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst(encoding: IStringE
                 VarDeclType.MEMORY,
                 vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-                vd.arrayindex()?.toAst(encoding),
+                vd.arrayindex()?.toAst(),
                 vd.varname.text,
-                mvarinit.expression().toAst(encoding),
+                mvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
                 vd.SHARED()!=null,
@@ -111,33 +102,33 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst(encoding: IStringE
     throw FatalAstException("weird variable decl $this")
 }
 
-private fun Prog8ANTLRParser.SubroutinedeclarationContext.toAst(encoding: IStringEncoding) : Subroutine {
+private fun Prog8ANTLRParser.SubroutinedeclarationContext.toAst() : Subroutine {
     return when {
-        subroutine()!=null -> subroutine().toAst(encoding)
-        asmsubroutine()!=null -> asmsubroutine().toAst(encoding)
+        subroutine()!=null -> subroutine().toAst()
+        asmsubroutine()!=null -> asmsubroutine().toAst()
         romsubroutine()!=null -> romsubroutine().toAst()
         else -> throw FatalAstException("weird subroutine decl $this")
     }
 }
 
-private fun Prog8ANTLRParser.StatementContext.toAst(encoding: IStringEncoding) : Statement {
-    val vardecl = variabledeclaration()?.toAst(encoding)
+private fun Prog8ANTLRParser.StatementContext.toAst() : Statement {
+    val vardecl = variabledeclaration()?.toAst()
     if(vardecl!=null) return vardecl
 
     assignment()?.let {
-        return Assignment(it.assign_target().toAst(encoding), it.expression().toAst(encoding), it.toPosition())
+        return Assignment(it.assign_target().toAst(), it.expression().toAst(), it.toPosition())
     }
 
     augassignment()?.let {
         // replace A += X  with  A = A + X
-        val target = it.assign_target().toAst(encoding)
+        val target = it.assign_target().toAst()
         val oper = it.operator.text.substringBefore('=')
-        val expression = BinaryExpression(target.toExpression(), oper, it.expression().toAst(encoding), it.expression().toPosition())
-        return Assignment(it.assign_target().toAst(encoding), expression, it.toPosition())
+        val expression = BinaryExpression(target.toExpression(), oper, it.expression().toAst(), it.expression().toPosition())
+        return Assignment(it.assign_target().toAst(), expression, it.toPosition())
     }
 
     postincrdecr()?.let {
-        return PostIncrDecr(it.assign_target().toAst(encoding), it.operator.text, it.toPosition())
+        return PostIncrDecr(it.assign_target().toAst(), it.operator.text, it.toPosition())
     }
 
     val directive = directive()?.toAst()
@@ -149,49 +140,49 @@ private fun Prog8ANTLRParser.StatementContext.toAst(encoding: IStringEncoding) :
     val jump = unconditionaljump()?.toAst()
     if(jump!=null) return jump
 
-    val fcall = functioncall_stmt()?.toAst(encoding)
+    val fcall = functioncall_stmt()?.toAst()
     if(fcall!=null) return fcall
 
-    val ifstmt = if_stmt()?.toAst(encoding)
+    val ifstmt = if_stmt()?.toAst()
     if(ifstmt!=null) return ifstmt
 
-    val returnstmt = returnstmt()?.toAst(encoding)
+    val returnstmt = returnstmt()?.toAst()
     if(returnstmt!=null) return returnstmt
 
-    val subroutine = subroutinedeclaration()?.toAst(encoding)
+    val subroutine = subroutinedeclaration()?.toAst()
     if(subroutine!=null) return subroutine
 
     val asm = inlineasm()?.toAst()
     if(asm!=null) return asm
 
-    val branchstmt = branch_stmt()?.toAst(encoding)
+    val branchstmt = branch_stmt()?.toAst()
     if(branchstmt!=null) return branchstmt
 
-    val forloop = forloop()?.toAst(encoding)
+    val forloop = forloop()?.toAst()
     if(forloop!=null) return forloop
 
-    val untilloop = untilloop()?.toAst(encoding)
+    val untilloop = untilloop()?.toAst()
     if(untilloop!=null) return untilloop
 
-    val whileloop = whileloop()?.toAst(encoding)
+    val whileloop = whileloop()?.toAst()
     if(whileloop!=null) return whileloop
 
-    val repeatloop = repeatloop()?.toAst(encoding)
+    val repeatloop = repeatloop()?.toAst()
     if(repeatloop!=null) return repeatloop
 
     val breakstmt = breakstmt()?.toAst()
     if(breakstmt!=null) return breakstmt
 
-    val whenstmt = whenstmt()?.toAst(encoding)
+    val whenstmt = whenstmt()?.toAst()
     if(whenstmt!=null) return whenstmt
 
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
-private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(encoding: IStringEncoding): Subroutine {
+private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
     val inline = this.inline()!=null
     val subdecl = asmsub_decl().toAst()
-    val statements = statement_block()?.toAst(encoding) ?: mutableListOf()
+    val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, null, true, inline, statements, toPosition())
@@ -272,28 +263,28 @@ private fun Prog8ANTLRParser.Asmsub_paramsContext.toAst(): List<AsmSubroutinePar
     AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister, toPosition())
 }
 
-private fun Prog8ANTLRParser.Functioncall_stmtContext.toAst(encoding: IStringEncoding): Statement {
+private fun Prog8ANTLRParser.Functioncall_stmtContext.toAst(): Statement {
     val void = this.VOID() != null
     val location = scoped_identifier().toAst()
     return if(expression_list() == null)
         FunctionCallStatement(location, mutableListOf(), void, toPosition())
     else
-        FunctionCallStatement(location, expression_list().toAst(encoding).toMutableList(), void, toPosition())
+        FunctionCallStatement(location, expression_list().toAst().toMutableList(), void, toPosition())
 }
 
-private fun Prog8ANTLRParser.FunctioncallContext.toAst(encoding: IStringEncoding): FunctionCall {
+private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCall {
     val location = scoped_identifier().toAst()
     return if(expression_list() == null)
         FunctionCall(location, mutableListOf(), toPosition())
     else
-        FunctionCall(location, expression_list().toAst(encoding).toMutableList(), toPosition())
+        FunctionCall(location, expression_list().toAst().toMutableList(), toPosition())
 }
 
 private fun Prog8ANTLRParser.InlineasmContext.toAst() =
         InlineAssembly(INLINEASMBLOCK().text, toPosition())
 
-private fun Prog8ANTLRParser.ReturnstmtContext.toAst(encoding: IStringEncoding) : Return {
-    return Return(expression()?.toAst(encoding), toPosition())
+private fun Prog8ANTLRParser.ReturnstmtContext.toAst() : Return {
+    return Return(expression()?.toAst(), toPosition())
 }
 
 private fun Prog8ANTLRParser.UnconditionaljumpContext.toAst(): Jump {
@@ -305,14 +296,14 @@ private fun Prog8ANTLRParser.UnconditionaljumpContext.toAst(): Jump {
 private fun Prog8ANTLRParser.LabeldefContext.toAst(): Statement =
         Label(children[0].text, toPosition())
 
-private fun Prog8ANTLRParser.SubroutineContext.toAst(encoding: IStringEncoding) : Subroutine {
+private fun Prog8ANTLRParser.SubroutineContext.toAst() : Subroutine {
     // non-asm subroutine
     val inline = inline()!=null
     val returntypes = sub_return_part()?.toAst() ?: emptyList()
     return Subroutine(identifier().text,
             sub_params()?.toAst() ?: emptyList(),
             returntypes,
-            statement_block()?.toAst(encoding) ?: mutableListOf(),
+            statement_block()?.toAst() ?: mutableListOf(),
             inline,
             toPosition())
 }
@@ -328,12 +319,12 @@ private fun Prog8ANTLRParser.Sub_paramsContext.toAst(): List<SubroutineParameter
             SubroutineParameter(it.varname.text, datatype, it.toPosition())
         }
 
-private fun Prog8ANTLRParser.Assign_targetContext.toAst(encoding: IStringEncoding) : AssignTarget {
+private fun Prog8ANTLRParser.Assign_targetContext.toAst() : AssignTarget {
     val identifier = scoped_identifier()
     return when {
         identifier!=null -> AssignTarget(identifier.toAst(), null, null, toPosition())
-        arrayindexed()!=null -> AssignTarget(null, arrayindexed().toAst(encoding), null, toPosition())
-        directmemory()!=null -> AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(encoding), toPosition()), toPosition())
+        arrayindexed()!=null -> AssignTarget(null, arrayindexed().toAst(), null, toPosition())
+        directmemory()!=null -> AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), toPosition()), toPosition())
         else -> AssignTarget(scoped_identifier()?.toAst(), null, null, toPosition())
     }
 }
@@ -345,16 +336,16 @@ private fun Prog8ANTLRParser.ClobberContext.toAst() : Set<CpuRegister> {
 
 private fun Prog8ANTLRParser.DatatypeContext.toAst() = DataType.valueOf(text.uppercase())
 
-private fun Prog8ANTLRParser.ArrayindexContext.toAst(encoding: IStringEncoding) : ArrayIndex =
-        ArrayIndex(expression().toAst(encoding), toPosition())
+private fun Prog8ANTLRParser.ArrayindexContext.toAst() : ArrayIndex =
+        ArrayIndex(expression().toAst(), toPosition())
 
-private fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
+internal fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
         Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
 
 private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()
     if(str?.ALT_STRING_ENCODING() != null)
-        throw AstException("${toPosition()} can't use alternate string encodings for directive arguments")
+        throw AstException("${toPosition()} can't use alternate string s for directive arguments")
 
     return DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toInt(), toPosition())
 }
@@ -410,7 +401,7 @@ private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
     }
 }
 
-private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) : Expression {
+private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
 
     val litval = literalvalue()
     if(litval!=null) {
@@ -431,17 +422,9 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) 
                 }
                 litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
                 litval.stringliteral()!=null -> litval.stringliteral().toAst()
-                litval.charliteral()!=null -> {
-                    try {
-                        NumericLiteralValue(DataType.UBYTE, encoding.encodeString(
-                                unescape(litval.charliteral().SINGLECHAR().text, litval.toPosition()),
-                                litval.charliteral().ALT_STRING_ENCODING()!=null)[0], litval.toPosition())
-                    } catch (ce: CharConversionException) {
-                        throw SyntaxError(ce.message ?: ce.toString(), litval.toPosition())
-                    }
-                }
+                litval.charliteral()!=null -> litval.charliteral().toAst()
                 litval.arrayliteral()!=null -> {
-                    val array = litval.arrayliteral().toAst(encoding)
+                    val array = litval.arrayliteral().toAst()
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
                     // the ConstantFold takes care of that and converts the type if needed.
                     ArrayLiteralValue(InferredTypes.InferredType.unknown(), array, position = litval.toPosition())
@@ -455,31 +438,31 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) 
         return scoped_identifier().toAst()
 
     if(bop!=null)
-        return BinaryExpression(left.toAst(encoding), bop.text, right.toAst(encoding), toPosition())
+        return BinaryExpression(left.toAst(), bop.text, right.toAst(), toPosition())
 
     if(prefix!=null)
-        return PrefixExpression(prefix.text, expression(0).toAst(encoding), toPosition())
+        return PrefixExpression(prefix.text, expression(0).toAst(), toPosition())
 
-    val funcall = functioncall()?.toAst(encoding)
+    val funcall = functioncall()?.toAst()
     if(funcall!=null) return funcall
 
     if (rangefrom!=null && rangeto!=null) {
         val defaultstep = if(rto.text == "to") 1 else -1
-        val step = rangestep?.toAst(encoding) ?: NumericLiteralValue(DataType.UBYTE, defaultstep, toPosition())
-        return RangeExpr(rangefrom.toAst(encoding), rangeto.toAst(encoding), step, encoding, toPosition())
+        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, defaultstep, toPosition())
+        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
-        return expression(0).toAst(encoding)        // expression within ( )
+        return expression(0).toAst()        // expression within ( )
 
     if(arrayindexed()!=null)
-        return arrayindexed().toAst(encoding)
+        return arrayindexed().toAst()
 
     if(typecast()!=null)
-        return TypecastExpression(expression(0).toAst(encoding), typecast().datatype().toAst(), false, toPosition())
+        return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), false, toPosition())
 
     if(directmemory()!=null)
-        return DirectMemoryRead(directmemory().expression().toAst(encoding), toPosition())
+        return DirectMemoryRead(directmemory().expression().toAst(), toPosition())
 
     if(addressof()!=null)
         return AddressOf(addressof().scoped_identifier().toAst(), toPosition())
@@ -487,16 +470,19 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst(encoding: IStringEncoding) 
     throw FatalAstException(text)
 }
 
+private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral =
+    CharLiteral(unescape(this.SINGLECHAR().text, toPosition())[0], this.ALT_STRING_ENCODING() != null, toPosition())
+
 private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue =
     StringLiteralValue(unescape(this.STRING().text, toPosition()), ALT_STRING_ENCODING()!=null, toPosition())
 
-private fun Prog8ANTLRParser.ArrayindexedContext.toAst(encoding: IStringEncoding): ArrayIndexedExpression {
+private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
     return ArrayIndexedExpression(scoped_identifier().toAst(),
-            arrayindex().toAst(encoding),
+            arrayindex().toAst(),
             toPosition())
 }
 
-private fun Prog8ANTLRParser.Expression_listContext.toAst(encoding: IStringEncoding) = expression().map{ it.toAst(encoding) }
+private fun Prog8ANTLRParser.Expression_listContext.toAst() = expression().map{ it.toAst() }
 
 private fun Prog8ANTLRParser.IdentifierContext.toAst() : IdentifierReference =
         IdentifierReference(listOf(text), toPosition())
@@ -512,27 +498,27 @@ private fun Prog8ANTLRParser.BooleanliteralContext.toAst() = when(text) {
     else -> throw FatalAstException(text)
 }
 
-private fun Prog8ANTLRParser.ArrayliteralContext.toAst(encoding: IStringEncoding) : Array<Expression> =
-        expression().map { it.toAst(encoding) }.toTypedArray()
+private fun Prog8ANTLRParser.ArrayliteralContext.toAst() : Array<Expression> =
+        expression().map { it.toAst() }.toTypedArray()
 
-private fun Prog8ANTLRParser.If_stmtContext.toAst(encoding: IStringEncoding): IfStatement {
-    val condition = expression().toAst(encoding)
-    val trueStatements = statement_block()?.toAst(encoding) ?: mutableListOf(statement().toAst(encoding))
-    val elseStatements = else_part()?.toAst(encoding) ?: mutableListOf()
+private fun Prog8ANTLRParser.If_stmtContext.toAst(): IfStatement {
+    val condition = expression().toAst()
+    val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val elseStatements = else_part()?.toAst() ?: mutableListOf()
     val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition()
             ?: statement().toPosition())
     val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
     return IfStatement(condition, trueScope, elseScope, toPosition())
 }
 
-private fun Prog8ANTLRParser.Else_partContext.toAst(encoding: IStringEncoding): MutableList<Statement> {
-    return statement_block()?.toAst(encoding) ?: mutableListOf(statement().toAst(encoding))
+private fun Prog8ANTLRParser.Else_partContext.toAst(): MutableList<Statement> {
+    return statement_block()?.toAst() ?: mutableListOf(statement().toAst())
 }
 
-private fun Prog8ANTLRParser.Branch_stmtContext.toAst(encoding: IStringEncoding): BranchStatement {
+private fun Prog8ANTLRParser.Branch_stmtContext.toAst(): BranchStatement {
     val branchcondition = branchcondition().toAst()
-    val trueStatements = statement_block()?.toAst(encoding) ?: mutableListOf(statement().toAst(encoding))
-    val elseStatements = else_part()?.toAst(encoding) ?: mutableListOf()
+    val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val elseStatements = else_part()?.toAst() ?: mutableListOf()
     val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition()
             ?: statement().toPosition())
     val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
@@ -543,65 +529,65 @@ private fun Prog8ANTLRParser.BranchconditionContext.toAst() = BranchCondition.va
     text.substringAfter('_').uppercase()
 )
 
-private fun Prog8ANTLRParser.ForloopContext.toAst(encoding: IStringEncoding): ForLoop {
+private fun Prog8ANTLRParser.ForloopContext.toAst(): ForLoop {
     val loopvar = identifier().toAst()
-    val iterable = expression()!!.toAst(encoding)
+    val iterable = expression()!!.toAst()
     val scope =
             if(statement()!=null)
-                AnonymousScope(mutableListOf(statement().toAst(encoding)), statement().toPosition())
+                AnonymousScope(mutableListOf(statement().toAst()), statement().toPosition())
             else
-                AnonymousScope(statement_block().toAst(encoding), statement_block().toPosition())
+                AnonymousScope(statement_block().toAst(), statement_block().toPosition())
     return ForLoop(loopvar, iterable, scope, toPosition())
 }
 
 private fun Prog8ANTLRParser.BreakstmtContext.toAst() = Break(toPosition())
 
-private fun Prog8ANTLRParser.WhileloopContext.toAst(encoding: IStringEncoding): WhileLoop {
-    val condition = expression().toAst(encoding)
-    val statements = statement_block()?.toAst(encoding) ?: mutableListOf(statement().toAst(encoding))
+private fun Prog8ANTLRParser.WhileloopContext.toAst(): WhileLoop {
+    val condition = expression().toAst()
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
     return WhileLoop(condition, scope, toPosition())
 }
 
-private fun Prog8ANTLRParser.RepeatloopContext.toAst(encoding: IStringEncoding): RepeatLoop {
-    val iterations = expression()?.toAst(encoding)
-    val statements = statement_block()?.toAst(encoding) ?: mutableListOf(statement().toAst(encoding))
+private fun Prog8ANTLRParser.RepeatloopContext.toAst(): RepeatLoop {
+    val iterations = expression()?.toAst()
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
     return RepeatLoop(iterations, scope, toPosition())
 }
 
-private fun Prog8ANTLRParser.UntilloopContext.toAst(encoding: IStringEncoding): UntilLoop {
-    val untilCondition = expression().toAst(encoding)
-    val statements = statement_block()?.toAst(encoding) ?: mutableListOf(statement().toAst(encoding))
+private fun Prog8ANTLRParser.UntilloopContext.toAst(): UntilLoop {
+    val untilCondition = expression().toAst()
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
     return UntilLoop(scope, untilCondition, toPosition())
 }
 
-private fun Prog8ANTLRParser.WhenstmtContext.toAst(encoding: IStringEncoding): WhenStatement {
-    val condition = expression().toAst(encoding)
-    val choices = this.when_choice()?.map { it.toAst(encoding) }?.toMutableList() ?: mutableListOf()
+private fun Prog8ANTLRParser.WhenstmtContext.toAst(): WhenStatement {
+    val condition = expression().toAst()
+    val choices = this.when_choice()?.map { it.toAst() }?.toMutableList() ?: mutableListOf()
     return WhenStatement(condition, choices, toPosition())
 }
 
-private fun Prog8ANTLRParser.When_choiceContext.toAst(encoding: IStringEncoding): WhenChoice {
-    val values = expression_list()?.toAst(encoding)
-    val stmt = statement()?.toAst(encoding)
-    val stmtBlock = statement_block()?.toAst(encoding)?.toMutableList() ?: mutableListOf()
+private fun Prog8ANTLRParser.When_choiceContext.toAst(): WhenChoice {
+    val values = expression_list()?.toAst()
+    val stmt = statement()?.toAst()
+    val stmtBlock = statement_block()?.toAst()?.toMutableList() ?: mutableListOf()
     if(stmt!=null)
         stmtBlock.add(stmt)
     val scope = AnonymousScope(stmtBlock, toPosition())
     return WhenChoice(values?.toMutableList(), scope, toPosition())
 }
 
-private fun Prog8ANTLRParser.VardeclContext.toAst(encoding: IStringEncoding): VarDecl {
+private fun Prog8ANTLRParser.VardeclContext.toAst(): VarDecl {
     return VarDecl(
             VarDeclType.VAR,
             datatype()?.toAst() ?: DataType.UNDEFINED,
             if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-            arrayindex()?.toAst(encoding),
+            arrayindex()?.toAst(),
             varname.text,
             null,
             ARRAYSIG() != null || arrayindex() != null,

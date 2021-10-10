@@ -7,7 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import java.util.*
-import kotlin.math.abs
 
 
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
@@ -498,6 +497,37 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 }
 
+class CharLiteral(val value: Char,
+                 val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
+                 override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+
+    override val isSimple = true
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace here")
+    }
+
+    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun constValue(program: Program): NumericLiteralValue? = null  // TODO: CharLiteral.constValue can't be NumericLiteralValue...
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(walker: AstWalker, parent: Node) = walker.visit(this, parent)
+
+    override fun toString(): String = "'${escape(value.toString())}'"
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UNDEFINED) // FIXME: CharLiteral.inferType
+    operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
+    override fun hashCode(): Int = Objects.hash(value, altEncoding)
+    override fun equals(other: Any?): Boolean {
+        if (other == null || other !is CharLiteral)
+            return false
+        return value == other.value && altEncoding == other.altEncoding
+    }
+}
+
 class StringLiteralValue(val value: String,
                          val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
                          override val position: Position) : Expression() {
@@ -636,7 +666,6 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 class RangeExpr(var from: Expression,
                 var to: Expression,
                 var step: Expression,
-                private val encoding: IStringEncoding,
                 override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -689,51 +718,8 @@ class RangeExpr(var from: Expression,
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
 
-    fun size(): Int? {
-        val fromLv = (from as? NumericLiteralValue)
-        val toLv = (to as? NumericLiteralValue)
-        if(fromLv==null || toLv==null)
-            return null
-        return toConstantIntegerRange()?.count()
-    }
-
-    fun toConstantIntegerRange(): IntProgression? {
-        val fromVal: Int
-        val toVal: Int
-        val fromString = from as? StringLiteralValue
-        val toString = to as? StringLiteralValue
-        if(fromString!=null && toString!=null ) {
-            // string range -> int range over character values
-            fromVal = encoding.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
-            toVal = encoding.encodeString(toString.value, fromString.altEncoding)[0].toInt()
-        } else {
-            val fromLv = from as? NumericLiteralValue
-            val toLv = to as? NumericLiteralValue
-            if(fromLv==null || toLv==null)
-                return null         // non-constant range
-            // integer range
-            fromVal = fromLv.number.toInt()
-            toVal = toLv.number.toInt()
-        }
-        val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
-        return makeRange(fromVal, toVal, stepVal)
-    }
 }
 
-internal fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
-    return when {
-        fromVal <= toVal -> when {
-            stepVal <= 0 -> IntRange.EMPTY
-            stepVal == 1 -> fromVal..toVal
-            else -> fromVal..toVal step stepVal
-        }
-        else -> when {
-            stepVal >= 0 -> IntRange.EMPTY
-            stepVal == -1 -> fromVal downTo toVal
-            else -> fromVal downTo toVal step abs(stepVal)
-        }
-    }
-}
 
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
     override lateinit var parent: Node

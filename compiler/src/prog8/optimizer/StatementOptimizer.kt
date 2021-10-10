@@ -11,6 +11,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.IErrorReporter
+import prog8.compiler.astprocessing.size
 import prog8.compiler.target.ICompilationTarget
 import kotlin.math.floor
 
@@ -197,7 +198,7 @@ internal class StatementOptimizer(private val program: Program,
 
         val range = forLoop.iterable as? RangeExpr
         if(range!=null) {
-            if(range.size()==1) {
+            if (range.size(compTarget) == 1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)

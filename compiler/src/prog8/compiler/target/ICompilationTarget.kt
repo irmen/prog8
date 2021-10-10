@@ -1,7 +1,7 @@
 package prog8.compiler.target
 
 import prog8.ast.IMemSizer
-import prog8.ast.IStringEncoding
+import prog8.compiler.IStringEncoding
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
@@ -24,6 +24,8 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     override fun encodeString(str: String, altEncoding: Boolean): List<Short>
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String
 
+    // TODO: rename param target, and also AST node AssignTarget - *different meaning of "target"!*
+    // TODO: remove param program - can be obtained from AST node
     fun isInRegularRAM(target: AssignTarget, program: Program): Boolean {
         val memAddr = target.memoryAddress
         val arrayIdx = target.arrayindexed

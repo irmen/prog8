@@ -1,17 +1,17 @@
 package prog8tests
 
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Test
+import kotlin.test.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+
 import prog8.ast.toHex
 import prog8.compiler.CompilerException
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestNumbers {

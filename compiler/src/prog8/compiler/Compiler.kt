@@ -16,12 +16,11 @@ import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
-import prog8.parser.ModuleImporter
 import prog8.parser.ParsingFailedError
-import prog8.parser.moduleName
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
+import kotlin.io.path.*
 import kotlin.system.measureTimeMillis
 
 
@@ -135,7 +134,7 @@ fun compileProgram(filepath: Path,
         throw x
     }
 
-    val failedProgram = Program("failed", mutableListOf(), BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
+    val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
     return CompilationResult(false, failedProgram, programName, compTarget, emptyList())
 }
 
@@ -169,27 +168,29 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         builtinFunctionReturnType(name, args, program)
 }
 
-private fun parseImports(filepath: Path,
+fun parseImports(filepath: Path,
                          errors: IErrorReporter,
                          compTarget: ICompilationTarget,
                          libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
-    val compilationTargetName = compTarget.name
-    println("Compiler target: $compilationTargetName. Parsing...")
+    println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val programAst = Program(moduleName(filepath.fileName), mutableListOf(), bf, compTarget)
+    val programAst = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = programAst
 
-    val importer = ModuleImporter(programAst, compTarget, compilationTargetName, libdirs)
+    val importer = ModuleImporter(programAst, compTarget.name, libdirs)
     importer.importModule(filepath)
     errors.report()
 
-    val importedFiles = programAst.modules.filter { !it.source.startsWith("@embedded@") }.map { it.source }
+    val importedFiles = programAst.modules
+        .mapNotNull { it.source }
+        .filter { !it.isFromResources } // TODO: parseImports/importedFiles - maybe rather `source.isFromFilesystem`?
+        .map { Path(it.pathString()) }
     val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
 
     // depending on the machine and compiler options we may have to include some libraries
-    for(lib in compTarget.machine.importLibs(compilerOptions, compilationTargetName))
+    for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
         importer.importLibraryModule(lib)
 
     // always import prog8_lib and math
@@ -199,7 +200,7 @@ private fun parseImports(filepath: Path,
     return Triple(programAst, compilerOptions, importedFiles)
 }
 
-private fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
+fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val mainModule = program.mainModule
     val outputDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
     val launcherDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
@@ -263,6 +264,9 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
     programAst.checkIdentifiers(errors, compilerOptions)
+    errors.report()
+    // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
+    programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget)
     errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)
     errors.report()
@@ -346,14 +350,14 @@ fun printAst(programAst: Program) {
     println()
 }
 
-fun loadAsmIncludeFile(filename: String, source: Path): String {
-    return if (filename.startsWith("library:")) {
+fun loadAsmIncludeFile(filename: String, sourcePath: Path): String {
+    return if (filename.startsWith("library:")) {   // FIXME: is the prefix "library:" or is it "@embedded@"?
         val resource = tryGetEmbeddedResource(filename.substring(8))
             ?: throw IllegalArgumentException("library file '$filename' not found")
         resource.bufferedReader().use { it.readText() }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
-        val sib = source.resolveSibling(filename)
+        val sib = sourcePath.resolveSibling(filename)
         if (sib.toFile().isFile)
             sib.toFile().readText()
         else
@@ -361,6 +365,9 @@ fun loadAsmIncludeFile(filename: String, source: Path): String {
     }
 }
 
+/**
+ * Handle via SourceCode
+ */
 internal fun tryGetEmbeddedResource(name: String): InputStream? {
     return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
 }

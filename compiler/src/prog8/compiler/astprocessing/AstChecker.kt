@@ -17,6 +17,7 @@ import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import java.io.CharConversionException
 import java.io.File
+import kotlin.io.path.*
 import java.util.*
 
 internal class AstChecker(private val program: Program,
@@ -721,11 +722,23 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkFileExists(directive: Directive, filename: String) {
-        var definingModule = directive.parent
+        if (File(filename).isFile)
+            return
+
+        var definingModule = directive.parent   // TODO: why not just use directive.definingModule() here?
         while (definingModule !is Module)
             definingModule = definingModule.parent
-        if (!(filename.startsWith("library:") || definingModule.source.resolveSibling(filename).toFile().isFile || File(filename).isFile))
-            errors.err("included file not found: $filename", directive.position)
+        if (definingModule.isLibrary())
+            return
+
+        val s = definingModule.source?.pathString()
+        if (s != null) {
+            val sourceFileCandidate = Path(s).resolveSibling(filename).toFile()
+            if (sourceFileCandidate.isFile)
+                return
+        }
+
+        errors.err("included file not found: $filename", directive.position)
     }
 
     override fun visit(array: ArrayLiteralValue) {
@@ -756,10 +769,20 @@ internal class AstChecker(private val program: Program,
         super.visit(array)
     }
 
+    override fun visit(char: CharLiteral) {
+        try {  // just *try* if it can be encoded, don't actually do it
+            compTarget.encodeString(char.value.toString(), char.altEncoding)
+        } catch (cx: CharConversionException) {
+            errors.err(cx.message ?: "can't encode character", char.position)
+        }
+
+        super.visit(char)
+    }
+
     override fun visit(string: StringLiteralValue) {
         checkValueTypeAndRangeString(DataType.STR, string)
 
-        try {
+        try {  // just *try* if it can be encoded, don't actually do it
             compTarget.encodeString(string.value, string.altEncoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode string", string.position)
