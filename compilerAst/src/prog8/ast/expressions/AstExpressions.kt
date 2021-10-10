@@ -347,7 +347,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
         this.addressExpression.linkParents(this)
     }
 
-    override val isSimple = true
+    override val isSimple = addressExpression is NumericLiteralValue || addressExpression is IdentifierReference
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===addressExpression)
@@ -365,8 +365,6 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
     }
-
-    fun copy() =  DirectMemoryRead(addressExpression, position)
 }
 
 class NumericLiteralValue(val type: DataType,    // only numerical types allowed
@@ -375,6 +373,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     override lateinit var parent: Node
 
     override val isSimple = true
+    fun copy() = NumericLiteralValue(type, number, position)
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
@@ -539,6 +538,7 @@ class StringLiteralValue(val value: String,
     }
 
     override val isSimple = true
+    fun copy() = StringLiteralValue(value, altEncoding, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("can't replace here")

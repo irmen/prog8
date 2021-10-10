@@ -1,6 +1,5 @@
 ; CommanderX16 text datetime example!
 
-%target cx16
 %import textio
 %zeropage basicsafe
 

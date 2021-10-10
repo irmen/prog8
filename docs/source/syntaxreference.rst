@@ -33,13 +33,6 @@ This makes it easier to understand and relate the generated code. Examples::
 Directives
 -----------
 
-.. data:: %target <target>
-
-    Level: module.
-    Global setting, specifies that this module can only work for the given compiler target.
-    If compiled with a different target, compilation is aborted with an error message.
-
-
 .. data:: %output <type>
 
 	Level: module.
@@ -403,7 +396,7 @@ The following names are reserved, they have a special meaning::
 Range expression
 ^^^^^^^^^^^^^^^^
 
-A special value is the *range expression* which represents a range of numbers or characters,
+A special value is the *range expression* which represents a range of integer numbers or characters,
 from the starting value to (and including) the ending value::
 
     <start>  to  <end>   [ step  <step> ]
@@ -413,7 +406,7 @@ You an provide a step value if you need something else than the default incremen
 in case of downto, a decrement of one).   Because a step of minus one is so common you can just use
 the downto variant to avoid having to specify the step as well.
 
-If used in the place of a literal value, it expands into the actual array of values::
+If used in the place of a literal value, it expands into the actual array of integer values::
 
 	byte[] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
 
@@ -559,7 +552,7 @@ Subroutine definitions
 
 The syntax is::
 
-        [inline]  sub   <identifier>  ( [parameters] )  [ -> returntype ]  {
+        sub   <identifier>  ( [parameters] )  [ -> returntype ]  {
                 ... statements ...
         }
 
@@ -572,9 +565,6 @@ The open curly brace must immediately follow the subroutine result specification
 and can have nothing following it. The close curly brace must be on its own line as well.
 The parameters is a (possibly empty) comma separated list of "<datatype> <parametername>" pairs specifying the input parameters.
 The return type has to be specified if the subroutine returns a value.
-The ``inline`` keyword makes their code copied in-place to the locations where the subroutine is called,
-rather than having an actual call and return to the subroutine. This is meant for very small subroutines only
-as it can increase code size significantly.
 
 
 Assembly /  ROM subroutines

@@ -8,7 +8,6 @@
 ;   some simple sound effects
 
 
-%target c64
 %import syslib
 %import textio
 %import test_stack

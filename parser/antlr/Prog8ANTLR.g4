@@ -8,7 +8,7 @@ NOTES:
 
 */
 
-// -> java classes Prog8ANTLRParser and Prog8ANTLRLexer, 
+// -> java classes Prog8ANTLRParser and Prog8ANTLRLexer,
 // both NOT to be used from Kotlin code, but ONLY through Kotlin class Prog8Parser
 grammar Prog8ANTLR;
 
@@ -137,7 +137,7 @@ unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%address' | '%import' |
-                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%target' )
+                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' )
         (directivearg? | directivearg (',' directivearg)*)
         ;
 

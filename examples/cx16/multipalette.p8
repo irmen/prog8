@@ -1,4 +1,3 @@
-%target cx16
 %import palette
 %import gfx2
 %option no_sysinit

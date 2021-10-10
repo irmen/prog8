@@ -14,6 +14,7 @@ import prog8.compiler.astprocessing.toConstantIntegerRange
 import prog8.compiler.target.ICompilationTarget
 
 // Fix up the literal value's type to match that of the vardecl
+//   (also check range literal operands types before they get expanded to arrays for instance)
 internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -52,6 +53,35 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
                 }
             }
         }
+        return noModifications
+    }
+
+    override fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> {
+        val from = range.from.constValue(program)?.number?.toDouble()
+        val to = range.to.constValue(program)?.number?.toDouble()
+        val step = range.step.constValue(program)?.number?.toDouble()
+
+        if(from==null) {
+            if(!range.from.inferType(program).isInteger())
+                errors.err("range expression from value must be integer", range.from.position)
+        } else if(from-from.toInt()>0) {
+            errors.err("range expression from value must be integer", range.from.position)
+        }
+
+        if(to==null) {
+            if(!range.to.inferType(program).isInteger())
+                errors.err("range expression to value must be integer", range.to.position)
+        } else if(to-to.toInt()>0) {
+            errors.err("range expression to value must be integer", range.to.position)
+        }
+
+        if(step==null) {
+            if(!range.step.inferType(program).isInteger())
+                errors.err("range expression step value must be integer", range.step.position)
+        } else if(step-step.toInt()>0) {
+            errors.err("range expression step value must be integer", range.step.position)
+        }
+
         return noModifications
     }
 }

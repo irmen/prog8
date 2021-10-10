@@ -12,6 +12,14 @@ import prog8.parser.Prog8ANTLRParser
 
 private data class NumericLiteral(val number: Number, val datatype: DataType)
 
+// TODO [merge conflict]: not sure if this should be kept?? Is it double??
+internal fun Prog8ANTLRParser.ModuleContext.toAst(name: String, source: Path, encoding: IStringEncoding) : Module {
+    val nameWithoutSuffix = if(name.endsWith(".p8")) name.substringBeforeLast('.') else name
+    val directives = this.directive().map { it.toAst() }
+    val blocks = this.block().map { it.toAst(Module.isLibrary(source), encoding) }
+    return Module(nameWithoutSuffix, (directives + blocks).toMutableList(), toPosition(), source)
+}
+
 private fun ParserRuleContext.toPosition() : Position {
     /*
     val customTokensource = this.start.tokenSource as? CustomLexer

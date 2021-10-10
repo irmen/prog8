@@ -1,5 +1,3 @@
-%target cx16
-
 ; Manipulate the Commander X16's display color palette.
 ; Should you want to restore the default palette, you have to reinitialize the Vera yourself.
 
@@ -9,7 +7,7 @@ palette {
     ubyte c
 
     sub set_color(ubyte index, uword color) {
-        vera_palette_ptr = $fa00+index*2
+        vera_palette_ptr = $fa00+(index as uword * 2)
         cx16.vpoke(1, vera_palette_ptr, lsb(color))
         vera_palette_ptr++
         cx16.vpoke(1, vera_palette_ptr, msb(color))
@@ -70,11 +68,11 @@ palette {
         }
     }
 
-    inline sub set_all_black() {
+    sub set_all_black() {
         set_monochrome($000, $000)
     }
 
-    inline sub set_all_white() {
+    sub set_all_white() {
         set_monochrome($fff, $fff)
     }
 
