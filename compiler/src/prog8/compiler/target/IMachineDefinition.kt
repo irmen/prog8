@@ -2,6 +2,7 @@ package prog8.compiler.target
 
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
+import java.nio.file.Path
 
 
 interface IMachineFloat {
@@ -32,6 +33,6 @@ interface IMachineDefinition {
     fun getFloat(num: Number): IMachineFloat
 
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
-    fun launchEmulator(selectedEmulator: Int, programName: String)
+    fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
     fun isRegularRAMaddress(address: Int): Boolean
 }

@@ -127,10 +127,12 @@ private fun compileMain(args: Array<String>): Boolean {
                 }
             }
 
+            val programNameInPath = outputPath.resolve(compilationResult.programName)
+
             if (startEmulator1==true)
-                compilationResult.compTarget.machine.launchEmulator(1, compilationResult.programName)
+                compilationResult.compTarget.machine.launchEmulator(1, programNameInPath)
             else if (startEmulator2==true)
-                compilationResult.compTarget.machine.launchEmulator(2, compilationResult.programName)
+                compilationResult.compTarget.machine.launchEmulator(2, programNameInPath)
         }
     }
 
