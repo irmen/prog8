@@ -43,16 +43,16 @@ object InferredTypes {
         infix fun isNotAssignableTo(targetDt: InferredType): Boolean = !this.isAssignableTo(targetDt)
         infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
 
-        fun isBytes() = datatype in ByteDatatypes
-        fun isWords() = datatype in WordDatatypes
-        fun isInteger() = datatype in IntegerDatatypes
-        fun isNumeric() = datatype in NumericDatatypes
-        fun isArray() = datatype in ArrayDatatypes
-        fun isString() = datatype in StringlyDatatypes
-        fun isIterable() = datatype in IterableDatatypes
-        fun isPassByReference() = datatype in PassByReferenceDatatypes
-        fun isPassByValue() = datatype in PassByValueDatatypes
-        fun isArrayElement() = datatype in ElementToArrayTypes
+        val isBytes get() = datatype in ByteDatatypes
+        val isWords get() = datatype in WordDatatypes
+        val isInteger get() = datatype in IntegerDatatypes
+        val isNumeric get() = datatype in NumericDatatypes
+        val isArray get() = datatype in ArrayDatatypes
+        val isString get() = datatype in StringlyDatatypes
+        val isIterable get() = datatype in IterableDatatypes
+        val isPassByReference get() = datatype in PassByReferenceDatatypes
+        val isPassByValue get() = datatype in PassByValueDatatypes
+        val isArrayElement get() = datatype in ElementToArrayTypes
     }
 
     private val unknownInstance = InferredType.unknown()

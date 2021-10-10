@@ -17,7 +17,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         // For non-kernal subroutines and non-asm parameters:
         // inject subroutine params as local variables (if they're not there yet).
-        val symbolsInSub = subroutine.allDefinedSymbols()
+        val symbolsInSub = subroutine.allDefinedSymbols
         val namesInSub = symbolsInSub.map{ it.first }.toSet()
         if(subroutine.asmAddress==null) {
             if(subroutine.asmParameterRegisters.isEmpty() && subroutine.parameters.isNotEmpty()) {

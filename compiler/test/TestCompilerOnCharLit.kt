@@ -37,7 +37,7 @@ class TestCompilerOnCharLit {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
         assertIs<NumericLiteralValue>(funCall.args[0],
@@ -61,7 +61,7 @@ class TestCompilerOnCharLit {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
         assertIs<IdentifierReference>(funCall.args[0])
@@ -96,7 +96,7 @@ class TestCompilerOnCharLit {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
         // Now, both is ok for the arg: a) still the IdRef or b) replaced by numeric literal

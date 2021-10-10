@@ -36,11 +36,11 @@ interface INameScope {
                 is WhileLoop -> if(stmt.body.name==name) return stmt.body
                 is BranchStatement -> {
                     if(stmt.truepart.name==name) return stmt.truepart
-                    if(stmt.elsepart.containsCodeOrVars() && stmt.elsepart.name==name) return stmt.elsepart
+                    if(stmt.elsepart.containsCodeOrVars && stmt.elsepart.name==name) return stmt.elsepart
                 }
                 is IfStatement -> {
                     if(stmt.truepart.name==name) return stmt.truepart
-                    if(stmt.elsepart.containsCodeOrVars() && stmt.elsepart.name==name) return stmt.elsepart
+                    if(stmt.elsepart.containsCodeOrVars && stmt.elsepart.name==name) return stmt.elsepart
                 }
                 is WhenStatement -> {
                     val scope = stmt.choices.firstOrNull { it.statements.name==name }
@@ -69,23 +69,24 @@ interface INameScope {
         return null
     }
 
-    fun allDefinedSymbols(): List<Pair<String, Statement>>  {
-        return statements.mapNotNull {
-            when (it) {
-                is Label -> it.name to it
-                is VarDecl -> it.name to it
-                is Subroutine -> it.name to it
-                is Block -> it.name to it
-                else -> null
+    val allDefinedSymbols: List<Pair<String, Statement>>
+        get() {
+            return statements.mapNotNull {
+                when (it) {
+                    is Label -> it.name to it
+                    is VarDecl -> it.name to it
+                    is Subroutine -> it.name to it
+                    is Block -> it.name to it
+                    else -> null
+                }
             }
         }
-    }
 
     fun lookup(scopedName: List<String>, localContext: Node) : Statement? {
         if(scopedName.size>1) {
             // a scoped name refers to a name in another module.
             // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
-            for(module in localContext.definingModule().program.modules) {
+            for(module in localContext.definingModule.program.modules) {
                 var scope: INameScope? = module
                 for(name in scopedName.dropLast(1)) {
                     scope = scope?.subScope(name)
@@ -112,7 +113,7 @@ interface INameScope {
             // find the scope the localContext is in, look in that first
             var statementScope = localContext
             while(statementScope !is ParentSentinel) {
-                val localScope = statementScope.definingScope()
+                val localScope = statementScope.definingScope
                 val result = localScope.getLabelOrVariable(scopedName[0])
                 if (result != null)
                     return result
@@ -126,8 +127,8 @@ interface INameScope {
         }
     }
 
-    fun containsCodeOrVars() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm"}
-    fun containsNoCodeNorVars() = !containsCodeOrVars()
+    val containsCodeOrVars get() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm" }
+    val containsNoCodeNorVars get() = !containsCodeOrVars
 
     fun remove(stmt: Statement) {
         if(!statements.remove(stmt))
@@ -190,38 +191,42 @@ interface Node {
     var parent: Node             // will be linked correctly later (late init)
     fun linkParents(parent: Node)
 
-    fun definingModule(): Module {
-        if(this is Module)
-            return this
-        return findParentNode<Module>(this)!!
-    }
-
-    fun definingSubroutine(): Subroutine?  = findParentNode<Subroutine>(this)
-
-    fun definingScope(): INameScope {
-        val scope = findParentNode<INameScope>(this)
-        if(scope!=null) {
-            return scope
+    val definingModule: Module
+        get() {
+            if (this is Module)
+                return this
+            return findParentNode<Module>(this)!!
         }
-        if(this is Label && this.name.startsWith("builtin::")) {
-            return BuiltinFunctionScopePlaceholder
+
+    val definingSubroutine: Subroutine? get() = findParentNode<Subroutine>(this)
+
+    val definingScope: INameScope
+        get() {
+            val scope = findParentNode<INameScope>(this)
+            if (scope != null) {
+                return scope
+            }
+            if (this is Label && this.name.startsWith("builtin::")) {
+                return BuiltinFunctionScopePlaceholder
+            }
+            if (this is GlobalNamespace)
+                return this
+            throw FatalAstException("scope missing from $this")
         }
-        if(this is GlobalNamespace)
-            return this
-        throw FatalAstException("scope missing from $this")
-    }
 
-    fun definingBlock(): Block {
-        if(this is Block)
-            return this
-        return findParentNode<Block>(this)!!
-    }
+    val definingBlock: Block
+        get() {
+            if (this is Block)
+                return this
+            return findParentNode<Block>(this)!!
+        }
 
-    fun containingStatement(): Statement {
-        if(this is Statement)
-            return this
-        return findParentNode<Statement>(this)!!
-    }
+    val containingStatement: Statement
+        get() {
+            if (this is Statement)
+                return this
+            return findParentNode<Statement>(this)!!
+        }
 
     fun replaceChildNode(node: Node, replacement: Node)
 }
@@ -265,16 +270,18 @@ class Program(val name: String,
         return this
     }
 
-    fun allBlocks(): List<Block> = modules.flatMap { it.statements.filterIsInstance<Block>() }
+    val allBlocks: List<Block>
+        get() = modules.flatMap { it.statements.filterIsInstance<Block>() }
 
-    fun entrypoint(): Subroutine {
-        val mainBlocks = allBlocks().filter { it.name=="main" }
-        return when (mainBlocks.size) {
-            0 -> throw FatalAstException("no 'main' block")
-            1 -> mainBlocks[0].subScope("start") as Subroutine
-            else -> throw FatalAstException("more than one 'main' block")
+    val entrypoint: Subroutine
+        get() {
+            val mainBlocks = allBlocks.filter { it.name == "main" }
+            return when (mainBlocks.size) {
+                0 -> throw FatalAstException("no 'main' block")
+                1 -> mainBlocks[0].subScope("start") as Subroutine
+                else -> throw FatalAstException("more than one 'main' block")
+            }
         }
-    }
 
     val mainModule: Module // TODO: rename Program.mainModule - it's NOT necessarily the one containing the main *block*!
         get() = modules.first { it.name!=internedStringsModuleName }
@@ -356,7 +363,8 @@ open class Module(override val name: String,
         statements.forEach {it.linkParents(this)}
     }
 
-    override fun definingScope(): INameScope = program.namespace
+    override val definingScope: INameScope
+        get() = program.namespace
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Statement && replacement is Statement)
         val idx = statements.indexOfFirst { it===node }
@@ -364,12 +372,12 @@ open class Module(override val name: String,
         replacement.parent = this
     }
 
-    override fun toString() = "Module(name=$name, pos=$position, lib=${isLibrary()})"
+    override fun toString() = "Module(name=$name, pos=$position, lib=${isLibrary})"
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    fun isLibrary() = (source == null) || source.isFromResources
+    val isLibrary get() = (source == null) || source.isFromResources
 }
 
 
@@ -403,7 +411,7 @@ class GlobalNamespace(val modules: Iterable<Module>, private val builtinFunction
         }
 
         // lookup something from the module.
-        return when (val stmt = localContext.definingModule().lookup(scopedName, localContext)) {
+        return when (val stmt = localContext.definingModule.lookup(scopedName, localContext)) {
             is Label, is VarDecl, is Block, is Subroutine -> stmt
             null -> null
             else -> throw SyntaxError("invalid identifier target type", stmt.position)

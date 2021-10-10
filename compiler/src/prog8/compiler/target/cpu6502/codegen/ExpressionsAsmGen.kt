@@ -197,7 +197,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_less_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            val subroutine = left.definingSubroutine()!!
+            val subroutine = left.definingSubroutine!!
             subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
             asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
@@ -242,7 +242,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_lesseq_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            val subroutine = left.definingSubroutine()!!
+            val subroutine = left.definingSubroutine!!
             subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
             asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
@@ -287,7 +287,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_less_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            val subroutine = left.definingSubroutine()!!
+            val subroutine = left.definingSubroutine!!
             subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
             asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
@@ -332,7 +332,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_lesseq_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            val subroutine = left.definingSubroutine()!!
+            val subroutine = left.definingSubroutine!!
             subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
             asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
@@ -1339,7 +1339,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_equal_f
                 beq  $jumpIfFalseLabel""")
         } else {
-            val subroutine = left.definingSubroutine()!!
+            val subroutine = left.definingSubroutine!!
             subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
             asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
@@ -1424,7 +1424,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 jsr  floats.vars_equal_f
                 bne  $jumpIfFalseLabel""")
         } else {
-            val subroutine = left.definingSubroutine()!!
+            val subroutine = left.definingSubroutine!!
             subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
             asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)

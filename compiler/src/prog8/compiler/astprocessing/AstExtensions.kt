@@ -160,9 +160,9 @@ internal fun Program.moveMainAndStartToFirst() {
     // and finally the entrypoint subroutine "start" itself is moved to the top in that block.
 
     val directives = modules[0].statements.filterIsInstance<Directive>()
-    val start = this.entrypoint()
-    val mod = start.definingModule()
-    val block = start.definingBlock()
+    val start = this.entrypoint
+    val mod = start.definingModule
+    val block = start.definingBlock
     moveModuleToFront(mod)
     mod.remove(block)
     var afterDirective = mod.statements.indexOfFirst { it !is Directive }

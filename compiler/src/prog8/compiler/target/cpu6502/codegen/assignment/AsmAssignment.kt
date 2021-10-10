@@ -61,9 +61,9 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 throw AssemblyError("unknown dt")
             val dt = idt.typeOrElse(DataType.UNDEFINED)
             when {
-                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine(), variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
-                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine(), array = arrayindexed, origAstTarget =  this)
-                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine(), memory =  memoryAddress, origAstTarget =  this)
+                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
+                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
                 else -> throw AssemblyError("weird target")
             }
         }

@@ -190,7 +190,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program)
 
-        if(targetType.isArray() && valueType.isArray() ) {
+        if(targetType.isArray && valueType.isArray) {
             if (assignment.value is ArrayLiteralValue) {
                 errors.err("cannot assign array literal here, use separate assignment per element", assignment.position)
             } else {

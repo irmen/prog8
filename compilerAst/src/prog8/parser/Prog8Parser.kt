@@ -37,7 +37,7 @@ object Prog8Parser {
         // .linkParents called in ParsedModule.add
         parseTree.directive().forEach { module.add(it.toAst()) }
         // TODO: remove Encoding
-        parseTree.block().forEach { module.add(it.toAst(module.isLibrary())) }
+        parseTree.block().forEach { module.add(it.toAst(module.isLibrary)) }
 
         return module
     }

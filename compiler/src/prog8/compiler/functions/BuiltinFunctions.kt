@@ -195,7 +195,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
     return when (function) {
         "abs" -> {
             val dt = args.single().inferType(program)
-            return if(dt.isNumeric())
+            return if(dt.isNumeric)
                 dt
             else
                 InferredTypes.InferredType.unknown()
@@ -300,7 +300,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 ?: throw CannotEvaluateException("sizeof", "no target")
 
         return when {
-            dt.isArray() -> {
+            dt.isArray -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayToElementTypes.getValue(dt.typeOrElse(DataType.UNDEFINED))
                 numericLiteral(memsizer.memorySize(elementDt) * length, position)

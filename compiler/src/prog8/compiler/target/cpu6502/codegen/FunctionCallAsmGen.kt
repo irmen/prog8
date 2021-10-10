@@ -31,7 +31,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             if(regSaveOnStack)
                 asmgen.saveRegisterStack(CpuRegister.X, keepAonEntry)
             else
-                asmgen.saveRegisterLocal(CpuRegister.X, (stmt as Node).definingSubroutine()!!)
+                asmgen.saveRegisterLocal(CpuRegister.X, (stmt as Node).definingSubroutine!!)
         }
     }
 

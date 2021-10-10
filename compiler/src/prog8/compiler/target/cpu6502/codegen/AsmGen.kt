@@ -55,10 +55,10 @@ internal class AsmGen(private val program: Program,
         println("Generating assembly code... ")
 
         header()
-        val allBlocks = program.allBlocks()
+        val allBlocks = program.allBlocks
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
-        for(b in program.allBlocks())
+        for(b in program.allBlocks)
             block2asm(b)
 
         for(removal in removals.toList()) {
@@ -229,7 +229,7 @@ internal class AsmGen(private val program: Program,
 
     private fun assignInitialValueToVar(decl: VarDecl, variableName: List<String>) {
         val asmName = asmVariableName(variableName)
-        assignmentAsmGen.assignExpressionToVariable(decl.value!!, asmName, decl.datatype, decl.definingSubroutine())
+        assignmentAsmGen.assignExpressionToVariable(decl.value!!, asmName, decl.datatype, decl.definingSubroutine)
     }
 
     private var generatedLabelSequenceNumber: Int = 0
@@ -502,8 +502,8 @@ internal class AsmGen(private val program: Program,
             return identifier.nameInSource.joinToString(".")
 
         val target = identifier.targetStatement(program)!!
-        val targetScope = target.definingSubroutine()
-        val identScope = identifier.definingSubroutine()
+        val targetScope = target.definingSubroutine
+        val identScope = identifier.definingSubroutine
         return if(targetScope !== identScope) {
             val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
             if(target is Label) {
@@ -896,10 +896,10 @@ internal class AsmGen(private val program: Program,
             memdefs2asm(sub.statements)
 
             // the main.start subroutine is the program's entrypoint and should perform some initialization logic
-            if(sub.name=="start" && sub.definingBlock().name=="main") {
+            if(sub.name=="start" && sub.definingBlock.name=="main") {
                 out("; program startup initialization")
                 out("  cld")
-                program.allBlocks().forEach {
+                program.allBlocks.forEach {
                     if(it.statements.filterIsInstance<VarDecl>().any { vd->vd.value!=null && vd.type==VarDeclType.VAR && vd.datatype in NumericDatatypes})
                         out("  jsr  ${it.name}.prog8_init_vars")
                 }
@@ -981,7 +981,7 @@ internal class AsmGen(private val program: Program,
 //        if(!booleanCondition.left.isSimple || !booleanCondition.right.isSimple)
 //            throw AssemblyError("both operands for if comparison expression should have been simplified")
 
-        if (stmt.elsepart.containsNoCodeNorVars()) {
+        if (stmt.elsepart.containsNoCodeNorVars) {
             // empty else
             val endLabel = makeLabel("if_end")
             expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
@@ -1112,7 +1112,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): String {
-        val asmInfo = stmt.definingSubroutine()!!.asmGenInfo
+        val asmInfo = stmt.definingSubroutine!!.asmGenInfo
         var parent = stmt.parent
         while(parent !is ParentSentinel) {
             if(parent is RepeatLoop)
@@ -1234,7 +1234,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: BranchStatement) {
-        if(stmt.truepart.containsNoCodeNorVars() && stmt.elsepart.containsCodeOrVars())
+        if(stmt.truepart.containsNoCodeNorVars && stmt.elsepart.containsCodeOrVars)
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
         val jump = stmt.truepart.statements.first() as? Jump
@@ -1246,7 +1246,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val truePartIsJustBreak = stmt.truepart.statements.firstOrNull() is Break
             val elsePartIsJustBreak = stmt.elsepart.statements.firstOrNull() is Break
-            if(stmt.elsepart.containsNoCodeNorVars()) {
+            if(stmt.elsepart.containsNoCodeNorVars) {
                 if(truePartIsJustBreak) {
                     // branch with just a break (jump out of loop)
                     val instruction = branchInstruction(stmt.condition, false)
@@ -1290,8 +1290,8 @@ $repeatLabel    lda  $counterVar
         if(stmt.value!=null && stmt.type==VarDeclType.VAR && stmt.datatype in NumericDatatypes) {
             // generate an assignment statement to (re)initialize the variable's value.
             // if the vardecl is not in a subroutine however, we have to initialize it globally.
-            if(stmt.definingSubroutine()==null) {
-                val block = stmt.definingBlock()
+            if(stmt.definingSubroutine ==null) {
+                val block = stmt.definingBlock
                 var inits = blockLevelVarInits[block]
                 if(inits==null) {
                     inits = mutableSetOf()
@@ -1315,7 +1315,7 @@ $repeatLabel    lda  $counterVar
             "%asminclude" -> {
                 // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
-                val sourcePath = Path(stmt.definingModule().source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
+                val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
                 val sourcecode = loadAsmIncludeFile(includedName, sourcePath)
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
             }
@@ -1323,7 +1323,7 @@ $repeatLabel    lda  $counterVar
                 val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val sourcePath = Path(stmt.definingModule().source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
+                val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
                     .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)
@@ -1358,7 +1358,7 @@ $label              nop""")
 
     internal fun translate(ret: Return, withRts: Boolean=true) {
         ret.value?.let { returnvalue ->
-            val sub = ret.definingSubroutine()!!
+            val sub = ret.definingSubroutine!!
             val returnType = sub.returntypes.single()
             val returnReg = sub.asmReturnvaluesRegisters.single()
             if(returnReg.registerOrPair==null)

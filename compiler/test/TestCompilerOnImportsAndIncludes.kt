@@ -40,7 +40,7 @@ class TestCompilerOnImportsAndIncludes {
                 .assertSuccess()
 
             val program = result.programAst
-            val startSub = program.entrypoint()
+            val startSub = program.entrypoint
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
                 .map { it.args[0] as IdentifierReference }
@@ -48,8 +48,8 @@ class TestCompilerOnImportsAndIncludes {
 
             assertEquals("main.bar", strLits[0].value)
             assertEquals("foo.bar", strLits[1].value)
-            assertEquals("main", strLits[0].definingScope().name)
-            assertEquals("foo", strLits[1].definingScope().name)
+            assertEquals("main", strLits[0].definingScope.name)
+            assertEquals("foo", strLits[1].definingScope.name)
         }
 
         @Test
@@ -63,7 +63,7 @@ class TestCompilerOnImportsAndIncludes {
                 .assertSuccess()
 
             val program = result.programAst
-            val startSub = program.entrypoint()
+            val startSub = program.entrypoint
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
                 .map { it.args[0] as IdentifierReference }
@@ -71,8 +71,8 @@ class TestCompilerOnImportsAndIncludes {
 
             assertEquals("main.bar", strLits[0].value)
             assertEquals("foo.bar", strLits[1].value)
-            assertEquals("main", strLits[0].definingScope().name)
-            assertEquals("foo", strLits[1].definingScope().name)
+            assertEquals("main", strLits[0].definingScope.name)
+            assertEquals("foo", strLits[1].definingScope.name)
         }
     }
 
@@ -88,19 +88,19 @@ class TestCompilerOnImportsAndIncludes {
                 .assertSuccess()
 
             val program = result.programAst
-            val startSub = program.entrypoint()
+            val startSub = program.entrypoint
             val args = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
                 .map { it.args[0] }
 
             val str0 = (args[0] as IdentifierReference).targetVarDecl(program)!!.value as StringLiteralValue
             assertEquals("main.bar", str0.value)
-            assertEquals("main", str0.definingScope().name)
+            assertEquals("main", str0.definingScope.name)
 
             val id1 = (args[1] as AddressOf).identifier
             val lbl1 = id1.targetStatement(program) as Label
             assertEquals("foo_bar", lbl1.name)
-            assertEquals("start", lbl1.definingScope().name)
+            assertEquals("start", lbl1.definingScope.name)
         }
     }
 

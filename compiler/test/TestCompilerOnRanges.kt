@@ -40,7 +40,7 @@ class TestCompilerOnRanges {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
         val rhsValues = (decl.value as ArrayLiteralValue)
@@ -69,7 +69,7 @@ class TestCompilerOnRanges {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
         val rhsValues = (decl.value as ArrayLiteralValue)
@@ -151,7 +151,7 @@ class TestCompilerOnRanges {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val iterable = startSub
             .statements.filterIsInstance<ForLoop>()
             .map { it.iterable }[0]
@@ -182,7 +182,7 @@ class TestCompilerOnRanges {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val rangeExpr = startSub
             .statements.filterIsInstance<ForLoop>()
             .map { it.iterable }
@@ -209,7 +209,7 @@ class TestCompilerOnRanges {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val rangeExpr = startSub
             .statements.filterIsInstance<ForLoop>()
             .map { it.iterable }
@@ -250,7 +250,7 @@ class TestCompilerOnRanges {
         """).assertSuccess()
 
         val program = result.programAst
-        val startSub = program.entrypoint()
+        val startSub = program.entrypoint
         val iterable = startSub
             .statements.filterIsInstance<ForLoop>()
             .map { it.iterable }

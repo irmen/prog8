@@ -33,7 +33,7 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
 
         // move vardecl to the containing subroutine and add initialization assignment in its place if needed
         if(decl.type == VarDeclType.VAR && decl.datatype in NumericDatatypes) {
-            val subroutine = decl.definingSubroutine() as? INameScope
+            val subroutine = decl.definingSubroutine as? INameScope
             if(subroutine!=null && subroutine!==parent) {
                 val declValue = decl.value
                 decl.value = null
@@ -62,21 +62,21 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
         val step = range.step.constValue(program)?.number?.toDouble()
 
         if(from==null) {
-            if(!range.from.inferType(program).isInteger())
+            if(!range.from.inferType(program).isInteger)
                 errors.err("range expression from value must be integer", range.from.position)
         } else if(from-from.toInt()>0) {
             errors.err("range expression from value must be integer", range.from.position)
         }
 
         if(to==null) {
-            if(!range.to.inferType(program).isInteger())
+            if(!range.to.inferType(program).isInteger)
                 errors.err("range expression to value must be integer", range.to.position)
         } else if(to-to.toInt()>0) {
             errors.err("range expression to value must be integer", range.to.position)
         }
 
         if(step==null) {
-            if(!range.step.inferType(program).isInteger())
+            if(!range.step.inferType(program).isInteger)
                 errors.err("range expression step value must be integer", range.step.position)
         } else if(step-step.toInt()>0) {
             errors.err("range expression step value must be integer", range.step.position)

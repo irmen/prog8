@@ -25,7 +25,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
             if(!valueDt.istype(decl.datatype)) {
 
                 // don't add a typecast on an array initializer value
-                if(valueDt.isInteger() && decl.datatype in ArrayDatatypes)
+                if(valueDt.isInteger && decl.datatype in ArrayDatatypes)
                     return noModifications
 
                 // don't add a typecast if the initializer value is inherently not assignable
@@ -214,7 +214,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
         // add a typecast to the return type if it doesn't match the subroutine's signature
         val returnValue = returnStmt.value
         if(returnValue!=null) {
-            val subroutine = returnStmt.definingSubroutine()!!
+            val subroutine = returnStmt.definingSubroutine!!
             if(subroutine.returntypes.size==1) {
                 val subReturnType = subroutine.returntypes.first()
                 if (returnValue.inferType(program).istype(subReturnType))

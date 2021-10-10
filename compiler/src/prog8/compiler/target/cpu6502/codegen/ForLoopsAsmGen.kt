@@ -589,5 +589,5 @@ $loopLabel""")
     }
 
     private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) =
-        asmgen.assignExpressionToVariable(range.from, asmgen.asmVariableName(stmt.loopVar), stmt.loopVarDt(program).typeOrElse(DataType.UNDEFINED), stmt.definingSubroutine())
+        asmgen.assignExpressionToVariable(range.from, asmgen.asmVariableName(stmt.loopVar), stmt.loopVarDt(program).typeOrElse(DataType.UNDEFINED), stmt.definingSubroutine)
 }

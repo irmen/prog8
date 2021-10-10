@@ -98,7 +98,7 @@ locallabel:
     fun testSymbolNameFromVarIdentifier() {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
-        val sub = program.entrypoint()
+        val sub = program.entrypoint
 
         // local variable
         val localvarIdent = sub.statements.filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
@@ -122,7 +122,7 @@ locallabel:
     fun testSymbolNameFromLabelIdentifier() {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
-        val sub = program.entrypoint()
+        val sub = program.entrypoint
 
         // local label
         val localLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier

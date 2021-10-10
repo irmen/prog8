@@ -46,10 +46,10 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
-        if(decl.definingBlock().name==decl.name)
-            nameError(decl.name, decl.position, decl.definingBlock())
-        if(decl.definingSubroutine()?.name==decl.name)
-            nameError(decl.name, decl.position, decl.definingSubroutine()!!)
+        if(decl.definingBlock.name==decl.name)
+            nameError(decl.name, decl.position, decl.definingBlock)
+        if(decl.definingSubroutine?.name==decl.name)
+            nameError(decl.name, decl.position, decl.definingSubroutine!!)
 
         super.visit(decl)
     }
@@ -70,7 +70,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
                 nameError(subroutine.name, subroutine.position, existing)
 
             // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters. Blocks are okay.
-            val symbolsInSub = subroutine.allDefinedSymbols()
+            val symbolsInSub = subroutine.allDefinedSymbols
             val namesInSub = symbolsInSub.map{ it.first }.toSet()
             val paramNames = subroutine.parameters.map { it.name }.toSet()
             val paramsToCheck = paramNames.intersect(namesInSub)
@@ -87,10 +87,10 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
                 errors.err("asmsub can only contain inline assembly (%asm)", subroutine.position)
             }
 
-            if(subroutine.name == subroutine.definingBlock().name) {
+            if(subroutine.name == subroutine.definingBlock.name) {
                 // subroutines cannot have the same name as their enclosing block,
                 // because this causes symbol scoping issues in the resulting assembly source
-                nameError(subroutine.name, subroutine.position, subroutine.definingBlock())
+                nameError(subroutine.name, subroutine.position, subroutine.definingBlock)
             }
         }
 
@@ -105,7 +105,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             // the builtin functions can't be redefined
             errors.err("builtin function cannot be redefined", label.position)
         } else {
-            val existing = label.definingSubroutine()?.getAllLabels(label.name) ?: emptyList()
+            val existing = label.definingSubroutine?.getAllLabels(label.name) ?: emptyList()
             for(el in existing) {
                 if(el === label || el.name != label.name)
                     continue

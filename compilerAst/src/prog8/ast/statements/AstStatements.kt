@@ -39,7 +39,8 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override fun linkParents(parent: Node) {}
     override fun accept(visitor: IAstVisitor) = throw FatalAstException("should not iterate over this node")
     override fun accept(visitor: AstWalker, parent: Node) = throw FatalAstException("should not iterate over this node")
-    override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
+    override val definingScope: INameScope
+        get() = BuiltinFunctionScopePlaceholder
     override fun replaceChildNode(node: Node, replacement: Node) {
         replacement.parent = this
     }
