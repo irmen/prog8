@@ -165,7 +165,7 @@ val Cx16VirtualRegisters = listOf(
 
 
 // find the parent node of a specific type or interface
-// (useful to figure out in what namespace/block something is defined, etc)
+// (useful to figure out in what namespace/block something is defined, etc.)
 inline fun <reified T> findParentNode(node: Node): T? {
     var candidate = node.parent
     while(candidate !is T && candidate !is ParentSentinel)

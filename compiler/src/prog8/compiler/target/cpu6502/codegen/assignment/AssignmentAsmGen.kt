@@ -398,7 +398,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.A,
                 RegisterOrPair.X,
                 RegisterOrPair.Y -> {
-                    // 'cast' a ubyte value to a byte register; no cast needed at all
+                    // 'cast' an ubyte value to a byte register; no cast needed at all
                     return assignExpressionToRegister(value, target.register)
                 }
                 RegisterOrPair.AX,

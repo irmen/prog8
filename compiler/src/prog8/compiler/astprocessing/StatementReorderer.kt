@@ -24,7 +24,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     // - (syntax desugaring) a vardecl with a non-const initializer value is split into a regular vardecl and an assignment statement.
     // - in-place assignments are reordered a bit so that they are mostly of the form A = A <operator> <rest>
     // - sorts the choices in when statement.
-    // - insert AddressOf (&) expression where required (string params to a UWORD function param etc).
+    // - insert AddressOf (&) expression where required (string params to a UWORD function param etc.).
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
@@ -93,7 +93,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
 
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
-        //  but the current assembly code generator for IF statements now also depends on it so we do it here regardless of optimization.)
+        //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
         if (expr.left.constValue(program) != null && expr.operator in associativeOperators && expr.right.constValue(program) == null)
             return listOf(IAstModification.SwapOperands(expr))
 

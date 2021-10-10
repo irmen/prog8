@@ -551,8 +551,7 @@ internal class AsmGen(private val program: Program,
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
         // returns if the pointer is already on the ZP itself or not (in the latter case SCRATCH_W1 is used as intermediary)
-        val target = pointervar.targetStatement(program)
-        when (target) {
+        when (val target = pointervar.targetStatement(program)) {
             is Label -> {
                 val sourceName = asmSymbolName(pointervar)
                 out("  lda  $sourceName")
@@ -1076,7 +1075,7 @@ internal class AsmGen(private val program: Program,
         // note: A/Y must have been loaded with the number of iterations!
         if(constIterations==0)
             return
-        // no need to explicitly test for 0 iterations as this is done in the count down logic below
+        // no need to explicitly test for 0 iterations as this is done in the countdown logic below
 
         val counterVar: String = createRepeatCounterVar(DataType.UWORD, constIterations, stmt)
         out("""
@@ -1097,7 +1096,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, stmt: RepeatLoop) {
-        // note: A must have been loaded with the number of iterations!
+        // note: A must be loaded with the number of iterations!
         if(constIterations==0)
             return
 
@@ -1458,7 +1457,7 @@ $label              nop""")
                 if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
                     return Pair(pointerOffsetExpr.left, NumericLiteralValue(DataType.UBYTE, constIdx.number, constIdx.position))
                 }
-                // could be that the index was type casted into uword, check that
+                // could be that the index was typecasted into uword, check that
                 val rightTc = pointerOffsetExpr.right as? TypecastExpression
                 if(rightTc!=null && rightTc.expression.inferType(program).istype(DataType.UBYTE))
                     return Pair(pointerOffsetExpr.left, rightTc.expression)
@@ -1492,8 +1491,7 @@ $label              nop""")
             val ptrAndIndex = pointerViaIndexRegisterPossible(expr)
             if(ptrAndIndex!=null) {
                 val pointervar = ptrAndIndex.first as? IdentifierReference
-                val target = pointervar?.targetStatement(program)
-                when(target) {
+                when(pointervar?.targetStatement(program)) {
                     is Label -> {
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                         out("  lda  ${asmSymbolName(pointervar)},y")

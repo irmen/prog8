@@ -49,7 +49,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     }
 
     internal fun translateFunctionCall(stmt: IFunctionCall) {
-        // Output only the code to setup the parameters and perform the actual call
+        // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)

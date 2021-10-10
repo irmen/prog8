@@ -340,7 +340,7 @@ class Program(val name: String,
 
 open class Module(override val name: String,
              override var statements: MutableList<Statement>,
-             override val position: Position,
+             final override val position: Position,
              val source: SourceCode?) : Node, INameScope {
 
     override lateinit var parent: Node

@@ -1051,7 +1051,7 @@ object Petscii {
     private val encodingScreencodeUppercase = decodingScreencodeUppercase.withIndex().associate{it.value to it.index}
 
     private fun replaceSpecial(chr: Char): Char =
-        // characters often used in C like source code can be translated with a little bit of fantasy:
+        // characters often used in C like source code can be translated with a little fantasy:
         when(chr) {
             '^' -> '↑'
             '_' -> '▁'

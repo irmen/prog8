@@ -858,8 +858,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         }
 
-        val datatype = first.inferType(program).typeOrElse(DataType.UNDEFINED)
-        when(datatype) {
+        when(val datatype: DataType = first.inferType(program).typeOrElse(DataType.UNDEFINED)) {
             in ByteDatatypes, in WordDatatypes -> {
                 asmgen.assignExpressionToVariable(first, "P8ZP_SCRATCH_W1", datatype, null)
                 asmgen.assignExpressionToVariable(second, "P8ZP_SCRATCH_W2", datatype, null)

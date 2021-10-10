@@ -25,7 +25,7 @@ private fun ParserRuleContext.toPosition() : Position {
     */
     val filename = start.inputStream.sourceName
 
-    // note: be ware of TAB characters in the source text, they count as 1 column...
+    // note: beware of TAB characters in the source text, they count as 1 column...
     return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
 }
 

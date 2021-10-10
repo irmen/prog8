@@ -315,7 +315,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
 
 @Suppress("UNUSED_PARAMETER")
 private fun builtinLen(args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer): NumericLiteralValue {
-    // note: in some cases the length is > 255 and then we have to return a UWORD type instead of a UBYTE.
+    // note: in some cases the length is > 255, and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
 

@@ -37,7 +37,7 @@ class ModuleImporter(private val program: Program,
             else -> candidates.first()  // TODO: report error if more than 1 candidate?
         }
 
-        var logMsg = "importing '${filePath.nameWithoutExtension}' (from $srcPath)"
+        val logMsg = "importing '${filePath.nameWithoutExtension}' (from $srcPath)"
         println(logMsg)
 
         return importModule(SourceCode.fromPath(srcPath))

@@ -113,7 +113,7 @@ internal object C64MachineDefinition: IMachineDefinition {
                 }
 
                 if (options.zeropage == ZeropageType.FLOATSAFE) {
-                    // remove the zero page locations used for floating point operations from the free list
+                    // remove the zeropage locations used for floating point operations from the free list
                     free.removeAll(listOf(
                             0x22, 0x23, 0x24, 0x25,
                             0x10, 0x11, 0x12, 0x26, 0x27, 0x28, 0x29, 0x2a,

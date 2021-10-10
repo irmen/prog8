@@ -12,7 +12,7 @@ import prog8.ast.walk.IAstVisitor
 /**
  * Produces Prog8 source text from a [Program] (AST node),
  * passing it as a String to the specified receiver function.
- * TODO: rename/refactor to make proper sense in the presence of class [prog8.SourceCode]
+ * TODO: rename/refactor to make proper sense in the presence of class [prog8.parser.SourceCode]
  */
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
     private var scopelevel = 0

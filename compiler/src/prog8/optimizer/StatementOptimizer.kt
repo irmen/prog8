@@ -47,8 +47,7 @@ internal class StatementOptimizer(private val program: Program,
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return && first.value?.isSimple==true) {
-                val orig = first.value!!
-                val copy = when(orig) {
+                val copy = when(val orig = first.value!!) {
                     is AddressOf -> {
                         val scoped = scopePrefix(orig.identifier, subroutine)
                         AddressOf(scoped, orig.position)

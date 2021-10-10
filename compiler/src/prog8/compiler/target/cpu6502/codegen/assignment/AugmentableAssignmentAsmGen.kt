@@ -1010,8 +1010,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, ident: IdentifierReference) {
         val otherName = asmgen.asmVariableName(ident)
-        val valueDt = ident.targetVarDecl(program)!!.datatype
-        when (valueDt) {
+        when (val valueDt = ident.targetVarDecl(program)!!.datatype) {
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
@@ -1697,7 +1696,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         if (innerCastDt == null) {
             // simple typecast where the value is the target
             when (target.datatype) {
-                DataType.UBYTE, DataType.BYTE -> { /* byte target can't be casted to anything else at all */ }
+                DataType.UBYTE, DataType.BYTE -> { /* byte target can't be typecasted to anything else at all */ }
                 DataType.UWORD, DataType.WORD -> {
                     when (outerCastDt) {
                         DataType.UBYTE, DataType.BYTE -> {

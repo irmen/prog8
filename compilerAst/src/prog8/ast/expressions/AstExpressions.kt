@@ -515,7 +515,7 @@ class CharLiteral(val value: Char,
     override fun referencesIdentifier(vararg scopedName: String) = false
     override fun constValue(program: Program): NumericLiteralValue? = null  // TODO: CharLiteral.constValue can't be NumericLiteralValue...
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(walker: AstWalker, parent: Node) = walker.visit(this, parent)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String = "'${escape(value.toString())}'"
     override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UNDEFINED) // FIXME: CharLiteral.inferType
@@ -645,7 +645,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
             val castArray = value.map{
                 val num = it as? NumericLiteralValue
                 if(num==null) {
-                    // an array of UWORDs could possibly also contain AddressOfs, other stuff can't be casted
+                    // an array of UWORDs could possibly also contain AddressOfs, other stuff can't be typecasted
                     if (elementType != DataType.UWORD || it !is AddressOf)
                         return null  // can't cast a value of  the array, abort
                     it

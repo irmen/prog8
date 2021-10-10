@@ -120,9 +120,8 @@ abstract class SourceCode {
                 override val isFromResources = true
                 override val origin = "@embedded@$normalized"
                 override fun getCharStream(): CharStream {
-                    val inpStr = object{}.javaClass.getResourceAsStream(normalized)
-                    val chars = CharStreams.fromStream(inpStr)
-                    return chars
+                    val inpStr = object {}.javaClass.getResourceAsStream(normalized)
+                    return CharStreams.fromStream(inpStr)
                 }
             }
         }

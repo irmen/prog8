@@ -53,7 +53,6 @@ object Prog8Parser {
         position = Position(source.origin, 1, 0, 0),
         source
         ) {
-        val provenance = Pair(source, Triple(1, 0, 0))
 
         /**
          * Adds a [Directive] to [statements] and
@@ -112,13 +111,12 @@ object Prog8Parser {
         }
     }
 
-    private fun RecognitionException.getPosition(file: String) : Position {
+    private fun RecognitionException.getPosition(file: String): Position {
         val offending = this.offendingToken
         val line = offending.line
         val beginCol = offending.charPositionInLine
         val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token?
-        val pos = Position(file, line, beginCol, endCol)
-        return pos
+        return Position(file, line, beginCol, endCol)
     }
 
 }

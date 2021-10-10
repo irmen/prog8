@@ -4,10 +4,10 @@ import org.takes.Request
 import org.takes.Response
 import org.takes.Take
 import org.takes.facets.fork.FkMethods
-import org.takes.http.Exit;
-import org.takes.http.FtBasic;
-import org.takes.facets.fork.FkRegex;
-import org.takes.facets.fork.TkFork;
+import org.takes.http.Exit
+import org.takes.http.FtBasic
+import org.takes.facets.fork.FkRegex
+import org.takes.facets.fork.TkFork
 import org.takes.rq.form.RqFormBase
 import org.takes.rs.RsJson
 import org.takes.tk.TkSlf4j
@@ -29,7 +29,14 @@ class RequestParser : Take {
         val form = RqFormBase(request)
         val names = form.names()
         val a = form.param("a").single()
-        val compilationResult = compileProgram(Path.of(a), true, true, true, "c64", emptyList<String>(), Path.of("."))
+        val compilationResult = compileProgram(Path.of(a),
+            optimize = true,
+            writeAssembly = true,
+            slowCodegenWarnings = true,
+            compilationTarget = "c64",
+            libdirs = emptyList(),
+            outputDir = Path.of(".")
+        )
         return RsJson(Jsonding())
     }
 }

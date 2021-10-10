@@ -290,7 +290,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
                 if (valueDt.istype(DataType.BYTE) || valueDt.istype(DataType.UBYTE)) {
-                    // useless lsb() of byte value that was casted to word
+                    // useless lsb() of byte value that was typecasted to word
                     return listOf(IAstModification.ReplaceNode(functionCall, arg.expression, parent))
                 }
             } else {
@@ -306,7 +306,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
                 if (valueDt.istype(DataType.BYTE) || valueDt.istype(DataType.UBYTE)) {
-                    // useless msb() of byte value that was casted to word, replace with 0
+                    // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,
                             NumericLiteralValue(valueDt.typeOrElse(DataType.UBYTE), 0, arg.expression.position),

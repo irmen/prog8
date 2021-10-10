@@ -130,9 +130,9 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
     // TODO: move check for unique module names to earlier stage and/or to unit tests
     val namesToModules = mapOf<String, MutableList<prog8.ast.Module>>().toMutableMap()
     for (m in modules) {
-        var others = namesToModules[m.name]
+        val others = namesToModules[m.name]
         if (others == null) {
-            namesToModules.put(m.name, listOf(m).toMutableList())
+            namesToModules[m.name] = listOf(m).toMutableList()
         } else {
             others.add(m)
         }
@@ -141,7 +141,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
         .map { Pair(it, namesToModules[it]!!.size) }
         .filter { it.second > 1 }
         .map { "\"${it.first}\" (x${it.second})"}
-    if (nonUniqueNames.size > 0) {
+    if (nonUniqueNames.isNotEmpty()) {
         throw FatalAstException("modules must have unique names; of the ttl ${modules.size} these have not: $nonUniqueNames")
     }
 }

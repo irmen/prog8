@@ -12,8 +12,6 @@ import prog8.compiler.IErrorReporter
 import prog8.compiler.ZeropageType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
-import prog8.compiler.target.C64Target
-import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import java.io.CharConversionException
 import java.io.File
@@ -1014,7 +1012,7 @@ internal class AstChecker(private val program: Program,
 
         if(target is BuiltinFunctionStatementPlaceholder) {
             if(target.name=="swap") {
-                // swap() is a bit weird because this one is translated into a operations directly, instead of being a function call
+                // swap() is a bit weird because this one is translated into an operations directly, instead of being a function call
                 val dt1 = args[0].inferType(program)
                 val dt2 = args[1].inferType(program)
                 if (dt1 != dt2)
@@ -1170,13 +1168,11 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
-        val targetStatement = target.targetStatement(program)
-        if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
-            return targetStatement
-        else if(targetStatement==null)
-            errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position)
-        else
-            errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", statement.position)
+        when (val targetStatement = target.targetStatement(program)) {
+            is Label, is Subroutine, is BuiltinFunctionStatementPlaceholder -> return targetStatement
+            null -> errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position)
+            else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", statement.position)
+        }
         return null
     }
 
