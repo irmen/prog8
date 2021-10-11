@@ -87,7 +87,11 @@ internal class AsmGen(private val program: Program,
             }
         }
 
-        return AssemblyProgram(program.name, outputDir, compTarget.name)
+        return if(errors.noErrors())
+            AssemblyProgram(true, program.name, outputDir, compTarget.name)
+        else {
+            AssemblyProgram(false, "<error>", outputDir, compTarget.name)
+        }
     }
 
     internal fun isTargetCpu(cpu: CpuType) = compTarget.machine.cpu == cpu
@@ -1317,8 +1321,10 @@ $repeatLabel    lda  $counterVar
                 // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
                 val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
-                val sourcecode = loadAsmIncludeFile(includedName, sourcePath).getOrThrow()
-                assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
+                loadAsmIncludeFile(includedName, sourcePath).fold(
+                    onSuccess = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
+                    onFailure = { errors.err(it.toString(), stmt.position) }
+                )
             }
             "%asmbinary" -> {
                 val includedName = stmt.args[0].str!!

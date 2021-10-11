@@ -11,6 +11,7 @@ internal const val subroutineFloatEvalResultVar1 = "_prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "_prog8_float_eval_result2"
 
 internal interface IAssemblyProgram {
+    val valid: Boolean
     val name: String
     fun assemble(options: CompilationOptions): Int
 }

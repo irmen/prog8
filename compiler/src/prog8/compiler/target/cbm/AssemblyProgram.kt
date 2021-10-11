@@ -9,7 +9,12 @@ import java.nio.file.Path
 
 internal const val viceMonListPostfix = "vice-mon-list"
 
-class AssemblyProgram(override val name: String, outputDir: Path, private val compTarget: String) : IAssemblyProgram {
+class AssemblyProgram(
+        override val valid: Boolean,
+        override val name: String,
+        outputDir: Path,
+        private val compTarget: String) : IAssemblyProgram {
+
     private val assemblyFile = outputDir.resolve("$name.asm")
     private val prgFile = outputDir.resolve("$name.prg")
     private val binFile = outputDir.resolve("$name.bin")

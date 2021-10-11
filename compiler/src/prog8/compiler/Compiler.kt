@@ -335,12 +335,18 @@ private fun writeAssembly(programAst: Program,
             compilerOptions.compTarget.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly()
-    val assemblerReturnStatus = assembly.assemble(compilerOptions)
-    return if(assemblerReturnStatus!=0)
-        Pair(false, "assembler step failed with return code $assemblerReturnStatus")
-    else {
+
+    return if(assembly.valid && errors.noErrors()) {
+        val assemblerReturnStatus = assembly.assemble(compilerOptions)
+        if(assemblerReturnStatus!=0)
+            Pair(false, "assembler step failed with return code $assemblerReturnStatus")
+        else {
+            errors.report()
+            Pair(true, assembly.name)
+        }
+    } else {
         errors.report()
-        Pair(true, assembly.name)
+        Pair(false, "compiler failed with errors")
     }
 }
 
