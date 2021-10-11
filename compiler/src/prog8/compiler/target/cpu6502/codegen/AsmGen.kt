@@ -1317,7 +1317,7 @@ $repeatLabel    lda  $counterVar
                 // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
                 val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
-                val sourcecode = loadAsmIncludeFile(includedName, sourcePath)
+                val sourcecode = loadAsmIncludeFile(includedName, sourcePath).getOrThrow()
                 assemblyLines.add(sourcecode.trimEnd().trimStart('\n'))
             }
             "%asmbinary" -> {

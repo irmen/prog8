@@ -178,7 +178,7 @@ fun parseImports(filepath: Path,
     val programAst = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = programAst
 
-    val importer = ModuleImporter(programAst, compTarget.name, libdirs)
+    val importer = ModuleImporter(programAst, compTarget.name, errors, libdirs)
     importer.importModule(filepath)
     errors.report()
 
@@ -351,24 +351,39 @@ fun printAst(programAst: Program) {
     println()
 }
 
-internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): String {
-    return if (filename.startsWith("library:")) {
-        val resource = tryGetEmbeddedResource(filename.substring(8))
-            ?: throw IllegalArgumentException("library file '$filename' not found")
-        resource.bufferedReader().use { it.readText() }
+internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<String> {
+    if (filename.startsWith("library:")) {
+        val resource = getEmbeddedResource(filename.substring(8))
+        resource.fold(
+            onSuccess = { resource ->
+                val text = resource.bufferedReader().use { it.readText() }
+                return Result.success(text)
+            },
+            onFailure = {
+                return Result.failure(IllegalArgumentException("library file '$filename' not found")) // TODO FileNotFoundException instead?
+            }
+        )
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
         val sib = sourcePath.resolveSibling(filename)
-        if (sib.toFile().isFile)
-            sib.toFile().readText()
+        return if (sib.toFile().isFile)
+            Result.success(sib.toFile().readText())
         else
-            File(filename).readText()
+            Result.success(File(filename).readText())
     }
 }
 
 /**
  * Handle via SourceCode
  */
-internal fun tryGetEmbeddedResource(name: String): InputStream? {
-    return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
+internal fun getEmbeddedResource(name: String): Result<InputStream> {
+    return try {
+        val stream = object {}.javaClass.getResourceAsStream("/prog8lib/$name")
+        if(stream!=null)
+            Result.success(stream)
+        else
+            Result.failure(NoSuchFileException(File(name)))
+    } catch(ex: Exception) {
+        Result.failure(ex)
+    }
 }

@@ -5,6 +5,7 @@ import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.*
 import prog8.ast.Program
+import prog8.compiler.ErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8tests.helpers.*
@@ -25,7 +26,7 @@ class TestModuleImporter {
     private fun makeImporter(vararg searchIn: String): ModuleImporter = makeImporter(searchIn.asList())
 
     private fun makeImporter(searchIn: Iterable<String>) =
-        ModuleImporter(program, "blah", searchIn.toList())
+        ModuleImporter(program, "blah", ErrorReporter(), searchIn.toList())
 
     @Nested
     inner class Constructor {

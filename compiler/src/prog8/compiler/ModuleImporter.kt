@@ -15,6 +15,7 @@ import kotlin.io.path.*
 
 class ModuleImporter(private val program: Program,
                      private val compilationTargetName: String,
+                     private val errors: IErrorReporter,
                      libdirs: List<String>) {
 
     private val libpaths: List<Path> = libdirs.map { Path(it) }
@@ -83,8 +84,11 @@ class ModuleImporter(private val program: Program,
                 importModule(srcCode)
             } else {
                 srcCode = tryGetModuleFromFile(moduleName, importingModule)
-                if (srcCode == null)
-                    throw NoSuchFileException(File("$moduleName.p8"))
+                if (srcCode == null) {
+                    errors.err("imported file not found: $moduleName.p8", import.position)
+                    return null
+                    //throw NoSuchFileException(File("$moduleName.p8"))
+                }
                 importModule(srcCode)
             }
 
