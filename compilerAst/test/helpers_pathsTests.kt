@@ -5,10 +5,10 @@ import org.hamcrest.Matchers.`is`
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
 import prog8tests.helpers.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
+import kotlin.test.assertFailsWith
 
 
 // Do not move into folder helpers/!
@@ -33,14 +33,14 @@ class PathsHelpersTests {
 
             @Test
             fun `on existing file`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir.div("simple_main.p8"))
                 }
             }
 
             @Test
             fun `on existing directory`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir)
                 }
             }
@@ -59,14 +59,14 @@ class PathsHelpersTests {
             @Test
             fun `on existing file`() {
                 val path = fixturesDir.div("simple_main.p8")
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeNotExists("$path")
                 }
             }
 
             @Test
             fun `on existing directory`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeNotExists("$fixturesDir")
                 }
             }
@@ -84,14 +84,14 @@ class PathsHelpersTests {
 
             @Test
             fun `on existing file`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir, "simple_main.p8")
                 }
             }
 
             @Test
             fun `on existing directory`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir, "..")
                 }
             }
@@ -106,7 +106,7 @@ class PathsHelpersTests {
             @Test
             fun `on non-existing path`() {
                 val path = fixturesDir.div("i_do_not_exist")
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory(path)
                 }
             }
@@ -114,7 +114,7 @@ class PathsHelpersTests {
             @Test
             fun `on existing file`() {
                 val path = fixturesDir.div("simple_main.p8")
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory(path)
                 }
             }
@@ -131,7 +131,7 @@ class PathsHelpersTests {
             @Test
             fun `on non-existing path`() {
                 val path = fixturesDir.div("i_do_not_exist")
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory("$path")
                 }
             }
@@ -139,7 +139,7 @@ class PathsHelpersTests {
             @Test
             fun `on existing file`() {
                 val path = fixturesDir.div("simple_main.p8")
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory("$path")
                 }
             }
@@ -156,14 +156,14 @@ class PathsHelpersTests {
         inner class WithPathAndStringArgs {
             @Test
             fun `on non-existing path`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory(fixturesDir, "i_do_not_exist")
                 }
             }
 
             @Test
             fun `on existing file`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory(fixturesDir, "simple_main.p8")
                 }
             }
@@ -182,14 +182,14 @@ class PathsHelpersTests {
         inner class WithStringAndStringArgs {
             @Test
             fun `on non-existing path`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory("$fixturesDir", "i_do_not_exist")
                 }
             }
 
             @Test
             fun `on existing file`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory("$fixturesDir", "simple_main.p8")
                 }
             }
@@ -208,14 +208,14 @@ class PathsHelpersTests {
         inner class WithStringAndPathArgs {
             @Test
             fun `on non-existing path`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory("$fixturesDir", Path("i_do_not_exist"))
                 }
             }
 
             @Test
             fun `on existing file`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeDirectory("$fixturesDir", Path("simple_main.p8"))
                 }
             }
@@ -240,7 +240,7 @@ class PathsHelpersTests {
             @Test
             fun `on non-existing path`() {
                 val path = fixturesDir.div("i_do_not_exist")
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile(path)
                 }
             }
@@ -254,7 +254,7 @@ class PathsHelpersTests {
 
             @Test
             fun `on directory`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile(fixturesDir)
                 }
             }
@@ -266,7 +266,7 @@ class PathsHelpersTests {
             @Test
             fun `on non-existing path`() {
                 val path = fixturesDir.div("i_do_not_exist")
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile("$path")
                 }
             }
@@ -280,7 +280,7 @@ class PathsHelpersTests {
 
             @Test
             fun `on directory`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile("$fixturesDir")
                 }
             }
@@ -290,7 +290,7 @@ class PathsHelpersTests {
         inner class WithPathAndStringArgs {
             @Test
             fun `on non-existing path`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeReadableFile(fixturesDir, "i_do_not_exist")
                 }
             }
@@ -304,7 +304,7 @@ class PathsHelpersTests {
 
             @Test
             fun `on directory`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile(fixturesDir, "..")
                 }
             }
@@ -314,7 +314,7 @@ class PathsHelpersTests {
         inner class WithPathAndPathArgs {
             @Test
             fun `on non-existing path`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeReadableFile(fixturesDir, Path("i_do_not_exist"))
                 }
             }
@@ -328,7 +328,7 @@ class PathsHelpersTests {
 
             @Test
             fun `on directory`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile(fixturesDir, Path(".."))
                 }
             }
@@ -338,7 +338,7 @@ class PathsHelpersTests {
         inner class WithStringAndStringArgs {
             @Test
             fun `on non-existing path`() {
-                assertThrows<java.lang.AssertionError> {
+                assertFailsWith<java.lang.AssertionError> {
                     assumeReadableFile("$fixturesDir", "i_do_not_exist")
                 }
             }
@@ -353,7 +353,7 @@ class PathsHelpersTests {
 
             @Test
             fun `on directory`() {
-                assertThrows<AssertionError> {
+                assertFailsWith<AssertionError> {
                     assumeReadableFile("$fixturesDir", "..")
                 }
             }

@@ -8,14 +8,13 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.parser.Prog8Parser
 import prog8.parser.SourceCode
-import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.*
 
 
 class ModuleImporter(private val program: Program,
                      private val compilationTargetName: String,
-                     private val errors: IErrorReporter,
+                     val errors: IErrorReporter,
                      libdirs: List<String>) {
 
     private val libpaths: List<Path> = libdirs.map { Path(it) }

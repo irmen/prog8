@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.ast
 
 
 import org.hamcrest.MatcherAssert.assertThat
@@ -7,7 +7,6 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.Position
@@ -15,6 +14,7 @@ import prog8.ast.internedStringsModuleName
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import kotlin.test.assertContains
+import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 
 
@@ -49,11 +49,11 @@ class ProgramTests {
             assertSame(program, m1.program)
             assertSame(program.namespace, m1.parent)
 
-            assertThrows<IllegalArgumentException> { program.addModule(m1) }
+            assertFailsWith<IllegalArgumentException> { program.addModule(m1) }
                 .let { assertThat(it.message, containsString(m1.name)) }
 
             val m2 = Module(m1.name, mutableListOf(), m1.position, m1.source)
-            assertThrows<IllegalArgumentException> { program.addModule(m2) }
+            assertFailsWith<IllegalArgumentException> { program.addModule(m2) }
                 .let { assertThat(it.message, containsString(m2.name)) }
         }
     }
@@ -75,7 +75,7 @@ class ProgramTests {
             val program = Program("foo", DummyFunctions, DummyMemsizer)
             val m = Module("bar", mutableListOf(), Position.DUMMY, null)
 
-            assertThrows<IllegalArgumentException> { program.moveModuleToFront(m) }
+            assertFailsWith<IllegalArgumentException> { program.moveModuleToFront(m) }
         }
         @Test
         fun withFirstOfPreviouslyAddedModules() {

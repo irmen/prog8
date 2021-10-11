@@ -3,7 +3,6 @@ package prog8tests
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
 import prog8.parser.SourceCode
 import prog8tests.helpers.*
 import kotlin.io.path.Path
@@ -129,14 +128,14 @@ class TestSourceCode {
         val pathString = "/prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString.substring(1))
 
-        assertThrows<NoSuchFileException> { SourceCode.fromResources(pathString) }
+        assertFailsWith<NoSuchFileException> { SourceCode.fromResources(pathString) }
     }
     @Test
     fun testFromResourcesWithNonExistingFile_withoutLeadingSlash() {
         val pathString = "prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString)
 
-        assertThrows<NoSuchFileException> { SourceCode.fromResources(pathString) }
+        assertFailsWith<NoSuchFileException> { SourceCode.fromResources(pathString) }
     }
 
     @Test
@@ -144,7 +143,7 @@ class TestSourceCode {
     fun testFromResourcesWithDirectory() {
         val pathString = "/prog8lib"
         assumeDirectory(resourcesDir, pathString.substring(1))
-        assertThrows<AccessDeniedException> { SourceCode.fromResources(pathString) }
+        assertFailsWith<AccessDeniedException> { SourceCode.fromResources(pathString) }
     }
 
 }
