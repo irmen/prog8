@@ -17,8 +17,8 @@ import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
 import prog8.parser.ParsingFailedError
+import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import java.io.File
-import java.io.InputStream
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
@@ -352,38 +352,19 @@ fun printAst(programAst: Program) {
 }
 
 internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<String> {
-    if (filename.startsWith("library:")) {
-        val resource = getEmbeddedResource(filename.substring(8))
-        resource.fold(
-            onSuccess = { resource ->
-                val text = resource.bufferedReader().use { it.readText() }
-                return Result.success(text)
-            },
-            onFailure = {
-                return Result.failure(IllegalArgumentException("library file '$filename' not found")) // TODO FileNotFoundException instead?
-            }
-        )
+    return if (filename.startsWith(libraryFilePrefix)) {
+        runCatching {
+            val stream = object {}.javaClass.getResourceAsStream("/prog8lib/${filename.substring(libraryFilePrefix.length)}") // TODO handle via SourceCode
+            stream ?: throw NoSuchFileException(File(filename))
+        }.mapCatching {
+            it.bufferedReader().use { r -> r.readText() }
+        }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
         val sib = sourcePath.resolveSibling(filename)
-        return if (sib.toFile().isFile)
+        if (sib.toFile().isFile)
             Result.success(sib.toFile().readText())
         else
             Result.success(File(filename).readText())
-    }
-}
-
-/**
- * Handle via SourceCode
- */
-internal fun getEmbeddedResource(name: String): Result<InputStream> {
-    return try {
-        val stream = object {}.javaClass.getResourceAsStream("/prog8lib/$name")
-        if(stream!=null)
-            Result.success(stream)
-        else
-            Result.failure(NoSuchFileException(File(name)))
-    } catch(ex: Exception) {
-        Result.failure(ex)
     }
 }

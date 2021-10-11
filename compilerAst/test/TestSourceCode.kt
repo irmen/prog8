@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.parser.SourceCode
+import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import prog8tests.helpers.*
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
@@ -76,7 +77,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("library:/$pathString", src.origin)
+        assertEquals("$libraryFilePrefix/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }
 
@@ -86,7 +87,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("library:$pathString", src.origin)
+        assertEquals("$libraryFilePrefix$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }
 
@@ -96,7 +97,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("library:/$pathString", src.origin)
+        assertEquals("$libraryFilePrefix/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
         assertTrue(src.isFromResources, ".isFromResources")
     }
@@ -107,7 +108,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("library:$pathString", src.origin)
+        assertEquals("$libraryFilePrefix$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }
 
@@ -117,7 +118,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("library:/prog8lib/math.p8", src.origin)
+        assertEquals("$libraryFilePrefix/prog8lib/math.p8", src.origin)
         assertEquals(srcFile.readText(), src.asString())
         assertTrue(src.isFromResources, ".isFromResources")
     }

@@ -62,6 +62,11 @@ abstract class SourceCode {
     companion object {
 
         /**
+         * filename prefix to designate library files that will be retreived from internal resources rather than disk
+         */
+        const val libraryFilePrefix = "library:"
+
+        /**
          * Turn a plain String into a [SourceCode] object.
          * [origin] will be something like `<String@44c56085>`.
          */
@@ -121,7 +126,7 @@ abstract class SourceCode {
             }
             return object : SourceCode() {
                 override val isFromResources = true
-                override val origin = "library:$normalized"
+                override val origin = "$libraryFilePrefix$normalized"
                 override fun getCharStream(): CharStream {
                     val inpStr = object {}.javaClass.getResourceAsStream(normalized)
                     return CharStreams.fromStream(inpStr)
