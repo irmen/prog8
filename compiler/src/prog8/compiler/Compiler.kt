@@ -351,8 +351,8 @@ fun printAst(programAst: Program) {
     println()
 }
 
-fun loadAsmIncludeFile(filename: String, sourcePath: Path): String {
-    return if (filename.startsWith("library:")) {   // FIXME: is the prefix "library:" or is it "@embedded@"?
+internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): String {
+    return if (filename.startsWith("library:")) {
         val resource = tryGetEmbeddedResource(filename.substring(8))
             ?: throw IllegalArgumentException("library file '$filename' not found")
         resource.bufferedReader().use { it.readText() }

@@ -36,7 +36,7 @@ class ModuleImporter(private val program: Program,
             else -> candidates.first()  // TODO: report error if more than 1 candidate?
         }
 
-        val logMsg = "importing '${filePath.nameWithoutExtension}' (from $srcPath)"
+        val logMsg = "importing '${filePath.nameWithoutExtension}' (from file $srcPath)"
         println(logMsg)
 
         return importModule(SourceCode.fromPath(srcPath))
@@ -79,7 +79,7 @@ class ModuleImporter(private val program: Program,
         var srcCode = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
         val importedModule =
             if (srcCode != null) {
-                println("importing '$moduleName' (library): ${srcCode.origin}")
+                println("importing '$moduleName' (from internal ${srcCode.origin})")
                 importModule(srcCode)
             } else {
                 srcCode = tryGetModuleFromFile(moduleName, importingModule)

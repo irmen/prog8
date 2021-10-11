@@ -32,7 +32,7 @@ abstract class SourceCode {
      * This can be one of the following:
      * * a normal string representation of a [java.nio.file.Path], if it originates from a file (see [fromPath])
      * * `<String@44c56085>` if was created via [of]
-     * * `@embedded@/x/y/z.ext` if it came from resources (see [fromResources])
+     * * `library:/x/y/z.ext` if it is a library file that was loaded from resources (see [fromResources])
      */
     abstract val origin: String
 
@@ -106,7 +106,7 @@ abstract class SourceCode {
         }
 
         /**
-         * [origin]: `<res:/x/y/z.p8>` for a given `pathString` of "x/y/z.p8"
+         * [origin]: `<library:/x/y/z.p8>` for a given `pathString` of "x/y/z.p8"
          */
         fun fromResources(pathString: String): SourceCode {
             val path = Path.of(pathString).normalize()
@@ -121,7 +121,7 @@ abstract class SourceCode {
             }
             return object : SourceCode() {
                 override val isFromResources = true
-                override val origin = "@embedded@$normalized"
+                override val origin = "library:$normalized"
                 override fun getCharStream(): CharStream {
                     val inpStr = object {}.javaClass.getResourceAsStream(normalized)
                     return CharStreams.fromStream(inpStr)

@@ -77,7 +77,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("@embedded@/$pathString", src.origin)
+        assertEquals("library:/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }
 
@@ -87,7 +87,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("@embedded@$pathString", src.origin)
+        assertEquals("library:$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }
 
@@ -97,7 +97,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("@embedded@/$pathString", src.origin)
+        assertEquals("library:/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
         assertTrue(src.isFromResources, ".isFromResources")
     }
@@ -108,7 +108,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("@embedded@$pathString", src.origin)
+        assertEquals("library:$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }
 
@@ -118,7 +118,7 @@ class TestSourceCode {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.fromResources(pathString)
 
-        assertEquals("@embedded@/prog8lib/math.p8", src.origin)
+        assertEquals("library:/prog8lib/math.p8", src.origin)
         assertEquals(srcFile.readText(), src.asString())
         assertTrue(src.isFromResources, ".isFromResources")
     }
