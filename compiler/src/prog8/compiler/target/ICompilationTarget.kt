@@ -72,12 +72,13 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
 internal object C64Target: ICompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition
-    override fun encodeString(str: String, altEncoding: Boolean) =
-        try {
-            if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
-        } catch (x: CharConversionException) {
-            throw CharConversionException("can't convert string to target machine's char encoding: ${x.message}")
-        }
+    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
+        val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        return coded.fold(
+            { throw it },
+            { it }
+        )
+    }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
         try {
             if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
@@ -99,12 +100,13 @@ internal object C64Target: ICompilationTarget {
 internal object Cx16Target: ICompilationTarget {
     override val name = "cx16"
     override val machine = CX16MachineDefinition
-    override fun encodeString(str: String, altEncoding: Boolean) =
-        try {
-            if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
-        } catch (x: CharConversionException) {
-            throw CharConversionException("can't convert string to target machine's char encoding: ${x.message}")
-        }
+    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
+        val coded= if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        return coded.fold(
+            { throw it },
+            { it}
+        )
+    }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
         try {
             if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)

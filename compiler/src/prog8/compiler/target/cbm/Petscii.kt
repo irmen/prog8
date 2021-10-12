@@ -1,6 +1,9 @@
 package prog8.compiler.target.cbm
 
+import prog8.Either
 import prog8.ast.antlr.escape
+import prog8.left
+import prog8.right
 import java.io.CharConversionException
 
 object Petscii {
@@ -1062,7 +1065,7 @@ object Petscii {
             else -> chr
         }
 
-    fun encodePetscii(text: String, lowercase: Boolean = false): List<Short> {
+    fun encodePetscii(text: String, lowercase: Boolean = false): Either<CharConversionException, List<Short>> {
         fun encodeChar(chr3: Char, lowercase: Boolean): Short {
             val chr = replaceSpecial(chr3)
             val screencode = if(lowercase) encodingPetsciiLowercase[chr] else encodingPetsciiUppercase[chr]
@@ -1079,12 +1082,16 @@ object Petscii {
             }
         }
 
-        return text.map{
-            try {
-                encodeChar(it, lowercase)
-            } catch (x: CharConversionException) {
-                encodeChar(it, !lowercase)
-            }
+        return try {
+            right(text.map {
+                try {
+                    encodeChar(it, lowercase)
+                } catch (x: CharConversionException) {
+                    encodeChar(it, !lowercase)
+                }
+            })
+        } catch(cx: CharConversionException) {
+            left(cx)
         }
     }
 
@@ -1094,12 +1101,13 @@ object Petscii {
             try {
                 if(lowercase) decodingPetsciiLowercase[code] else decodingPetsciiUppercase[code]
             } catch(x: CharConversionException) {
+                // TODO this CharConversionException can never occur?? also clean up ICompilationTarget.decodeString?
                 if(lowercase) decodingPetsciiUppercase[code] else decodingPetsciiLowercase[code]
             }
         }.joinToString("")
     }
 
-    fun encodeScreencode(text: String, lowercase: Boolean = false): List<Short> {
+    fun encodeScreencode(text: String, lowercase: Boolean = false): Either<CharConversionException, List<Short>> {
         fun encodeChar(chr3: Char, lowercase: Boolean): Short {
             val chr = replaceSpecial(chr3)
             val screencode = if(lowercase) encodingScreencodeLowercase[chr] else encodingScreencodeUppercase[chr]
@@ -1116,12 +1124,16 @@ object Petscii {
             }
         }
 
-        return text.map{
-            try {
-                encodeChar(it, lowercase)
-            } catch (x: CharConversionException) {
-                encodeChar(it, !lowercase)
-            }
+        return try {
+            right(text.map {
+                try {
+                    encodeChar(it, lowercase)
+                } catch (x: CharConversionException) {
+                    encodeChar(it, !lowercase)
+                }
+            })
+        } catch(cx: CharConversionException) {
+            left(cx)
         }
     }
 
@@ -1131,12 +1143,13 @@ object Petscii {
             try {
                 if (lowercase) decodingScreencodeLowercase[code] else decodingScreencodeUppercase[code]
             } catch (x: CharConversionException) {
+                // TODO this CharConversionException can never occur?? also clean up ICompilationTarget.decodeString?
                 if (lowercase) decodingScreencodeUppercase[code] else decodingScreencodeLowercase[code]
             }
         }.joinToString("")
     }
 
-    fun petscii2scr(petscii_code: Short, inverseVideo: Boolean): Short {
+    fun petscii2scr(petscii_code: Short, inverseVideo: Boolean): Either<CharConversionException, Short> {
         val code = when {
             petscii_code <= 0x1f -> petscii_code + 128
             petscii_code <= 0x3f -> petscii_code.toInt()
@@ -1146,14 +1159,14 @@ object Petscii {
             petscii_code <= 0xbf -> petscii_code - 64
             petscii_code <= 0xfe -> petscii_code - 128
             petscii_code == 255.toShort() -> 95
-            else -> throw CharConversionException("petscii code out of range")
+            else -> return left(CharConversionException("petscii code out of range"))
         }
         if(inverseVideo)
-            return (code or 0x80).toShort()
-        return code.toShort()
+            return right((code or 0x80).toShort())
+        return right(code.toShort())
     }
 
-    fun scr2petscii(screencode: Short): Short {
+    fun scr2petscii(screencode: Short): Either<CharConversionException, Short> {
         val petscii = when {
             screencode <= 0x1f -> screencode + 64
             screencode <= 0x3f -> screencode.toInt()
@@ -1164,8 +1177,8 @@ object Petscii {
             screencode <= 0xbf -> screencode - 128
             screencode <= 0xfe -> screencode - 64
             screencode == 255.toShort() -> 191
-            else -> throw CharConversionException("screencode out of range")
+            else -> return left(CharConversionException("screencode out of range"))
         }
-        return petscii.toShort()
+        return right(petscii.toShort())
     }
 }
