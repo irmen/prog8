@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm"
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
 targetCompatibility = 11
@@ -21,7 +21,7 @@ dependencies {
     implementation project(':compilerAst')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'

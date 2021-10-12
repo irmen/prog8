@@ -3,7 +3,7 @@ plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm"
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
 targetCompatibility = 11
@@ -18,7 +18,7 @@ repositories {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
     implementation "com.github.hypfvieh:dbus-java:3.2.4"
     implementation "org.slf4j:slf4j-simple:1.7.30"
 
