@@ -1,0 +1,19 @@
+<component name="libraryTable">
+  <library name="antlr.antlr4" type="repository">
+    <properties maven-id="org.antlr:antlr4:4.9.2">
+      <exclude>
+        <dependency maven-id="com.ibm.icu:icu4j" />
+      </exclude>
+    </properties>
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/antlr/antlr4/4.9.2/antlr4-4.9.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/antlr/antlr4-runtime/4.9.2/antlr4-runtime-4.9.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/antlr/ST4/4.3/ST4-4.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/glassfish/javax.json/1.0.4/javax.json-1.0.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -9,7 +9,7 @@
     <orderEntry type="jdk" jdkName="openjdk-11" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="library" name="kotlinx-cli-jvm" level="project" />
-    <orderEntry type="library" name="dbus-java-3.2.4" level="project" />
+    <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
+    <orderEntry type="library" name="github.hypfvieh.dbus.java" level="project" />
   </component>
 </module>

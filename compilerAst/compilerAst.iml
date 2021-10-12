@@ -12,7 +12,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="parser" />
-    <orderEntry type="library" name="antlr-runtime-4.9" level="project" />
-    <orderEntry type="library" scope="TEST" name="unittest-libs" level="project" />
+    <orderEntry type="library" name="antlr.antlr4" level="project" />
+    <orderEntry type="library" name="hamcrest" level="project" />
+    <orderEntry type="library" name="junit.jupiter" level="project" />
   </component>
 </module>

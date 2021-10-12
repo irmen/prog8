@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="takes" type="repository">
+    <properties maven-id="org.takes:takes:1.19" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/takes/takes/1.19/takes-1.19.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/cactoos/cactoos/0.42/cactoos-0.42.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-text/1.4/commons-text-1.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-lang3/3.7/commons-lang3-3.7.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

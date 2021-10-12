@@ -26,6 +26,7 @@ parser.out
 parsetab.py
 .pytest_cache/
 .attach_pid*
+compiler/lib/
 
 .gradle
 /prog8compiler.jar

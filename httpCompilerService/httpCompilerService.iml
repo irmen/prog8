@@ -9,9 +9,10 @@
     <orderEntry type="jdk" jdkName="openjdk-11" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="library" name="takes-http" level="project" />
-    <orderEntry type="library" name="javax.json-api-1.1.4" level="project" />
     <orderEntry type="module" module-name="compiler" />
-    <orderEntry type="library" name="slf4j-api-1.7.30" level="project" />
+    <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
+    <orderEntry type="library" name="glassfish.javax.json" level="project" />
+    <orderEntry type="library" name="takes" level="project" />
+    <orderEntry type="library" name="slf4j.simple" level="project" />
   </component>
 </module>

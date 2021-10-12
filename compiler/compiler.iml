@@ -16,9 +16,10 @@
     <orderEntry type="jdk" jdkName="openjdk-11" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="library" name="unittest-libs" level="project" />
-    <orderEntry type="library" name="kotlinx-cli-jvm" level="project" />
     <orderEntry type="module" module-name="compilerAst" />
     <orderEntry type="library" name="Python 3.9 interpreter library" level="application" />
+    <orderEntry type="library" name="hamcrest" level="project" />
+    <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
+    <orderEntry type="library" name="junit.jupiter" level="project" />
   </component>
 </module>
