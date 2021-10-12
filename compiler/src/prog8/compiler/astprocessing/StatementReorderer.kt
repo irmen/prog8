@@ -106,7 +106,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                 is Assignment -> {
                     val targetDt = parent.target.inferType(program)
                     if(leftDt != targetDt) {
-                        val cast = TypecastExpression(expr.left, targetDt.typeOrElse(DataType.UNDEFINED), true, parent.position)
+                        val cast = TypecastExpression(expr.left, targetDt.getOr(DataType.UNDEFINED), true, parent.position)
                         return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                     }
                 }

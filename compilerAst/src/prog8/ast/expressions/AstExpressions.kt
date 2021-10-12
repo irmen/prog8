@@ -88,14 +88,14 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         return when(operator) {
             "+" -> inferred
             "~", "not" -> {
-                when(inferred.typeOrElse(DataType.UNDEFINED)) {
+                when(inferred.getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
                     in WordDatatypes -> InferredTypes.knownFor(DataType.UWORD)
                     else -> inferred
                 }
             }
             "-" -> {
-                when(inferred.typeOrElse(DataType.UNDEFINED)) {
+                when(inferred.getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> InferredTypes.knownFor(DataType.BYTE)
                     in WordDatatypes -> InferredTypes.knownFor(DataType.WORD)
                     else -> inferred
@@ -155,8 +155,8 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
                     try {
                         InferredTypes.knownFor(
                             commonDatatype(
-                                leftDt.typeOrElse(DataType.BYTE),
-                                rightDt.typeOrElse(DataType.BYTE),
+                                leftDt.getOr(DataType.BYTE),
+                                rightDt.getOr(DataType.BYTE),
                                 null, null
                             ).first
                         )
@@ -597,7 +597,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
 
     fun memsize(memsizer: IMemSizer): Int {
         if(type.isKnown) {
-            val eltType = ArrayToElementTypes.getValue(type.typeOrElse(DataType.UNDEFINED))
+            val eltType = ArrayToElementTypes.getValue(type.getOr(DataType.UNDEFINED))
             return memsizer.memorySize(eltType) * value.size
         }
         else throw IllegalArgumentException("array datatype is not yet known")
@@ -613,14 +613,14 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
                 return if(!loopvarDt.isArrayElement)
                     InferredTypes.InferredType.unknown()
                 else
-                    InferredTypes.InferredType.known(ElementToArrayTypes.getValue(loopvarDt.typeOrElse(DataType.UNDEFINED)))
+                    InferredTypes.InferredType.known(ElementToArrayTypes.getValue(loopvarDt.getOr(DataType.UNDEFINED)))
             }
         }
 
         // otherwise, select the "biggegst" datatype based on the elements in the array.
         val datatypesInArray = value.map { it.inferType(program) }
         require(datatypesInArray.isNotEmpty() && datatypesInArray.all { it.isKnown }) { "can't determine type of empty array" }
-        val dts = datatypesInArray.map { it.typeOrElse(DataType.UNDEFINED) }
+        val dts = datatypesInArray.map { it.getOr(DataType.UNDEFINED) }
         return when {
             DataType.FLOAT in dts -> InferredTypes.InferredType.known(DataType.ARRAY_F)
             DataType.STR in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
@@ -705,8 +705,8 @@ class RangeExpr(var from: Expression,
             fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.ARRAY_W)
             fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.ARRAY_B)
             else -> {
-                val fdt = fromDt.typeOrElse(DataType.UNDEFINED)
-                val tdt = toDt.typeOrElse(DataType.UNDEFINED)
+                val fdt = fromDt.getOr(DataType.UNDEFINED)
+                val tdt = toDt.getOr(DataType.UNDEFINED)
                 if(fdt largerThan tdt)
                     InferredTypes.knownFor(ElementToArrayTypes.getValue(fdt))
                 else

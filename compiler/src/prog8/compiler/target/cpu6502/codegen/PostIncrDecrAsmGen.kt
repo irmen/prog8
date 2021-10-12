@@ -19,7 +19,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
         when {
             targetIdent!=null -> {
                 val what = asmgen.asmVariableName(targetIdent)
-                when (stmt.target.inferType(program).typeOrElse(DataType.UNDEFINED)) {
+                when (stmt.target.inferType(program).getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> asmgen.out(if (incr) "  inc  $what" else "  dec  $what")
                     in WordDatatypes -> {
                         if(incr)
@@ -65,7 +65,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
             }
             targetArrayIdx!=null -> {
                 val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.arrayvar)
-                val elementDt = targetArrayIdx.inferType(program).typeOrElse(DataType.UNDEFINED)
+                val elementDt = targetArrayIdx.inferType(program).getOr(DataType.UNDEFINED)
                 val constIndex = targetArrayIdx.indexer.constIndex()
                 if(constIndex!=null) {
                     val indexValue = constIndex * program.memsizer.memorySize(elementDt)

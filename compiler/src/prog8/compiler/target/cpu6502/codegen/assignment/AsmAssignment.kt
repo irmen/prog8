@@ -59,7 +59,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             val idt = inferType(program)
             if(!idt.isKnown)
                 throw AssemblyError("unknown dt")
-            val dt = idt.typeOrElse(DataType.UNDEFINED)
+            val dt = idt.getOr(DataType.UNDEFINED)
             when {
                 identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                 arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
@@ -132,7 +132,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is StringLiteralValue -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {
-                    val dt = value.inferType(program).typeOrElse(DataType.UNDEFINED)
+                    val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
                     if(dt == DataType.UWORD && varName.lowercase().startsWith("cx16.r")) {
@@ -147,7 +147,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
                 }
                 is ArrayIndexedExpression -> {
-                    val dt = value.inferType(program).typeOrElse(DataType.UNDEFINED)
+                    val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, dt, array = value)
                 }
                 is FunctionCall -> {
@@ -162,7 +162,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                             val returnType = value.inferType(program)
                             if(!returnType.isKnown)
                                 throw AssemblyError("unknown dt")
-                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.typeOrElse(DataType.UNDEFINED), expression = value)
+                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.getOr(DataType.UNDEFINED), expression = value)
                         }
                         else -> {
                             throw AssemblyError("weird call")
@@ -173,7 +173,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val dt = value.inferType(program)
                     if(!dt.isKnown)
                         throw AssemblyError("unknown dt")
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt.typeOrElse(DataType.UNDEFINED), expression = value)
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt.getOr(DataType.UNDEFINED), expression = value)
                 }
             }
         }

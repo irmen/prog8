@@ -177,8 +177,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcCmp(fcall: IFunctionCall) {
         val arg1 = fcall.args[0]
         val arg2 = fcall.args[1]
-        val dt1 = arg1.inferType(program).typeOrElse(DataType.UNDEFINED)
-        val dt2 = arg2.inferType(program).typeOrElse(DataType.UNDEFINED)
+        val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
+        val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
         if(dt1 in ByteDatatypes) {
             if(dt2 in ByteDatatypes) {
                 when (arg2) {
@@ -368,7 +368,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcRor2(fcall: IFunctionCall) {
         val what = fcall.args.single()
         val dt = what.inferType(program)
-        when (dt.typeOrElse(DataType.UNDEFINED)) {
+        when (dt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
@@ -411,7 +411,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcRor(fcall: IFunctionCall) {
         val what = fcall.args.single()
         val dt = what.inferType(program)
-        when (dt.typeOrElse(DataType.UNDEFINED)) {
+        when (dt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
@@ -469,7 +469,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcRol2(fcall: IFunctionCall) {
         val what = fcall.args.single()
         val dt = what.inferType(program)
-        when (dt.typeOrElse(DataType.UNDEFINED)) {
+        when (dt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
@@ -512,7 +512,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcRol(fcall: IFunctionCall) {
         val what = fcall.args.single()
         val dt = what.inferType(program)
-        when (dt.typeOrElse(DataType.UNDEFINED)) {
+        when (dt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 when (what) {
                     is ArrayIndexedExpression -> {
@@ -586,7 +586,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         translateArguments(fcall.args, func, scope)
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_stack")
                 DataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_stack")
                 DataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_stack")
@@ -595,7 +595,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
                 DataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
                 DataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
@@ -611,14 +611,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_stack")
                 DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_stack")
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_stack")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A")
                 DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_A")
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_into_A")
@@ -632,7 +632,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_stack")
                 DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_stack")
                 DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_stack")
@@ -641,7 +641,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.ARRAY_UB, DataType.STR -> {
                     asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_into_A")
                     assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, scope, program, asmgen), CpuRegister.A)
@@ -671,7 +671,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().inferType(program)
         if(resultToStack) {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub_stack")
                 DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b_stack")
                 DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw_stack")
@@ -680,7 +680,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
-            when (dt.typeOrElse(DataType.UNDEFINED)) {
+            when (dt.getOr(DataType.UNDEFINED)) {
                 DataType.ARRAY_UB, DataType.STR -> {
                     asmgen.out("  jsr  prog8_lib.func_sum_ub_into_AY")
                     assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, scope, program, asmgen), RegisterOrPair.AY)
@@ -825,7 +825,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             val elementIDt = first.inferType(program)
             if(!elementIDt.isKnown)
                 throw AssemblyError("unknown dt")
-            val elementDt = elementIDt.typeOrElse(DataType.UNDEFINED)
+            val elementDt = elementIDt.getOr(DataType.UNDEFINED)
 
             val firstNum = first.indexer.indexExpr as? NumericLiteralValue
             val firstVar = first.indexer.indexExpr as? IdentifierReference
@@ -858,7 +858,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
         }
 
-        when(val datatype: DataType = first.inferType(program).typeOrElse(DataType.UNDEFINED)) {
+        when(val datatype: DataType = first.inferType(program).getOr(DataType.UNDEFINED)) {
             in ByteDatatypes, in WordDatatypes -> {
                 asmgen.assignExpressionToVariable(first, "P8ZP_SCRATCH_W1", datatype, null)
                 asmgen.assignExpressionToVariable(second, "P8ZP_SCRATCH_W2", datatype, null)
@@ -1128,7 +1128,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     private fun funcAbs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         translateArguments(fcall.args, func, scope)
-        val dt = fcall.args.single().inferType(program).typeOrElse(DataType.UNDEFINED)
+        val dt = fcall.args.single().inferType(program).getOr(DataType.UNDEFINED)
         if(resultToStack) {
             when (dt) {
                 in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_stack")
@@ -1474,7 +1474,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun translateArguments(args: MutableList<Expression>, signature: FSignature, scope: Subroutine?) {
-        val callConv = signature.callConvention(args.map { it.inferType(program).typeOrElse(DataType.UNDEFINED) })
+        val callConv = signature.callConvention(args.map { it.inferType(program).getOr(DataType.UNDEFINED) })
 
         fun getSourceForFloat(value: Expression): AsmAssignSource {
             return when (value) {

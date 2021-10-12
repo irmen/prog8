@@ -134,8 +134,8 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             ))
         }
 
-        val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
-        val rightDt = rightIDt.typeOrElse(DataType.UNDEFINED)
+        val leftDt = leftIDt.getOr(DataType.UNDEFINED)
+        val rightDt = rightIDt.getOr(DataType.UNDEFINED)
 
         if (expr.operator == "+" || expr.operator == "-"
                 && leftVal == null && rightVal == null
@@ -309,7 +309,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,
-                            NumericLiteralValue(valueDt.typeOrElse(DataType.UBYTE), 0, arg.expression.position),
+                            NumericLiteralValue(valueDt.getOr(DataType.UBYTE), 0, arg.expression.position),
                             parent))
                 }
             } else {
@@ -318,7 +318,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,
-                            NumericLiteralValue(argDt.typeOrElse(DataType.UBYTE), 0, arg.position),
+                            NumericLiteralValue(argDt.getOr(DataType.UBYTE), 0, arg.position),
                             parent))
                 }
             }
@@ -489,7 +489,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                     val idt = expr.inferType(program)
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
-                    return NumericLiteralValue(idt.typeOrElse(DataType.UNDEFINED), 0, expr.position)
+                    return NumericLiteralValue(idt.getOr(DataType.UNDEFINED), 0, expr.position)
                 } else if (cv in powersOfTwo) {
                     expr.operator = "&"
                     expr.right = NumericLiteralValue.optimalInteger(cv!!.toInt()-1, expr.position)
@@ -513,7 +513,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             val leftIDt = expr.left.inferType(program)
             if (!leftIDt.isKnown)
                 return null
-            val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
+            val leftDt = leftIDt.getOr(DataType.UNDEFINED)
             when (cv) {
                 -1.0 -> {
                     //  '/' -> -left
@@ -621,7 +621,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         val targetIDt = expr.left.inferType(program)
         if(!targetIDt.isKnown)
             throw FatalAstException("unknown dt")
-        when (val targetDt = targetIDt.typeOrElse(DataType.UNDEFINED)) {
+        when (val targetDt = targetIDt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue(targetDt, 0, expr.position)
@@ -656,7 +656,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
         val idt = expr.left.inferType(program)
         if(!idt.isKnown)
             throw FatalAstException("unknown dt")
-        when (idt.typeOrElse(DataType.UNDEFINED)) {
+        when (idt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)

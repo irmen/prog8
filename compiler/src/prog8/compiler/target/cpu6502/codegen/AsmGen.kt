@@ -1061,7 +1061,7 @@ internal class AsmGen(private val program: Program,
                 val dt = stmt.iterations!!.inferType(program)
                 if(!dt.isKnown)
                     throw AssemblyError("unknown dt")
-                when (dt.typeOrElse(DataType.UNDEFINED)) {
+                when (dt.getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.A)
                         repeatByteCountInA(null, repeatLabel, endLabel, stmt)
@@ -1193,7 +1193,7 @@ $repeatLabel    lda  $counterVar
         val conditionDt = stmt.condition.inferType(program)
         if(!conditionDt.isKnown)
             throw AssemblyError("unknown condition dt")
-        if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes)
+        if(conditionDt.getOr(DataType.BYTE) in ByteDatatypes)
             assignExpressionToRegister(stmt.condition, RegisterOrPair.A)
         else
             assignExpressionToRegister(stmt.condition, RegisterOrPair.AY)
@@ -1208,7 +1208,7 @@ $repeatLabel    lda  $counterVar
                 choiceBlocks.add(choiceLabel to choice.statements)
                 for (cv in choice.values!!) {
                     val value = (cv as NumericLiteralValue).number.toInt()
-                    if(conditionDt.typeOrElse(DataType.BYTE) in ByteDatatypes) {
+                    if(conditionDt.getOr(DataType.BYTE) in ByteDatatypes) {
                         out("  cmp  #${value.toHex()} |  beq  $choiceLabel")
                     } else {
                         out("""

@@ -146,7 +146,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // see if we can remove superfluous typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword
         // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of.
-        val sourceDt = typecast.expression.inferType(program).typeOrElse(DataType.UNDEFINED)
+        val sourceDt = typecast.expression.inferType(program).getOr(DataType.UNDEFINED)
         if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
                 || typecast.type in WordDatatypes && sourceDt in WordDatatypes) {
             if(typecast.parent !is Expression) {
@@ -266,8 +266,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.
             val arg1 = functionCallStatement.args[0]
             val arg2 = functionCallStatement.args[1]
-            val dt1 = arg1.inferType(program).typeOrElse(DataType.UNDEFINED)
-            val dt2 = arg2.inferType(program).typeOrElse(DataType.UNDEFINED)
+            val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
+            val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
             if(dt1 in ByteDatatypes) {
                 if(dt2 in ByteDatatypes)
                     return noModifications

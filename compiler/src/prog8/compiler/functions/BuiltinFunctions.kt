@@ -164,7 +164,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
 
     fun datatypeFromIterableArg(arglist: Expression): DataType {
         if(arglist is ArrayLiteralValue) {
-            val dt = arglist.value.map {it.inferType(program).typeOrElse(DataType.UNDEFINED)}.toSet()
+            val dt = arglist.value.map {it.inferType(program).getOr(DataType.UNDEFINED)}.toSet()
             if(dt.any { it !in NumericDatatypes }) {
                 throw FatalAstException("fuction $function only accepts array of numeric values")
             }
@@ -178,7 +178,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
             val idt = arglist.inferType(program)
             if(!idt.isKnown)
                 throw FatalAstException("couldn't determine type of iterable $arglist")
-            return when(val dt = idt.typeOrElse(DataType.UNDEFINED)) {
+            return when(val dt = idt.getOr(DataType.UNDEFINED)) {
                 DataType.STR, in NumericDatatypes -> dt
                 in ArrayDatatypes -> ArrayToElementTypes.getValue(dt)
                 else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
@@ -302,11 +302,11 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
         return when {
             dt.isArray -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
-                val elementDt = ArrayToElementTypes.getValue(dt.typeOrElse(DataType.UNDEFINED))
+                val elementDt = ArrayToElementTypes.getValue(dt.getOr(DataType.UNDEFINED))
                 numericLiteral(memsizer.memorySize(elementDt) * length, position)
             }
             dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
-            else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.typeOrElse(DataType.UNDEFINED)), position)
+            else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.getOr(DataType.UNDEFINED)), position)
         }
     } else {
         throw SyntaxError("sizeof invalid argument type", position)

@@ -44,7 +44,7 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
             if(firstUnknownDt>=0)
                 return "argument ${firstUnknownDt+1} invalid argument type"
-            val argtypes = argITypes.map { it.typeOrElse(DataType.UNDEFINED) }
+            val argtypes = argITypes.map { it.getOr(DataType.UNDEFINED) }
             val target = call.target.targetStatement(program)
             if (target is Subroutine) {
                 if(call.args.size != target.parameters.size)

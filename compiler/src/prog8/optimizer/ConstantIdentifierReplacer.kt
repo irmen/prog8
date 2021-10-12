@@ -164,7 +164,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                             errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
                         val constRange = rangeExpr.toConstantIntegerRange(compTarget)
                         if(constRange!=null) {
-                            val eltType = rangeExpr.inferType(program).typeOrElse(DataType.UBYTE)
+                            val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
                             val newValue = if(eltType in ByteDatatypes) {
                                 ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
                                         constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),

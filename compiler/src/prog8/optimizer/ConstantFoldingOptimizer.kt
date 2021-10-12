@@ -105,7 +105,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
             // optimize various simple cases of ** :
             //  optimize away 1 ** x into just 1 and 0 ** x into just 0
             //  optimize 2 ** x into (1<<x)  if both operands are integer.
-            val leftDt = leftconst.inferType(program).typeOrElse(DataType.UNDEFINED)
+            val leftDt = leftconst.inferType(program).getOr(DataType.UNDEFINED)
             when (leftconst.number.toDouble()) {
                 0.0 -> {
                     val value = NumericLiteralValue(leftDt, 0, expr.position)
@@ -120,11 +120,11 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
                         val value = NumericLiteralValue(leftDt, 2.0.pow(rightconst.number.toDouble()), expr.position)
                         modifications += IAstModification.ReplaceNode(expr, value, parent)
                     } else {
-                        val rightDt = expr.right.inferType(program).typeOrElse(DataType.UNDEFINED)
+                        val rightDt = expr.right.inferType(program).getOr(DataType.UNDEFINED)
                         if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
                             val targetDt =
                                 when (parent) {
-                                    is Assignment -> parent.target.inferType(program).typeOrElse(DataType.UNDEFINED)
+                                    is Assignment -> parent.target.inferType(program).getOr(DataType.UNDEFINED)
                                     is VarDecl -> parent.datatype
                                     else -> leftDt
                                 }
@@ -186,7 +186,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         } else {
             val arrayDt = array.guessDatatype(program)
             if (arrayDt.isKnown) {
-                val newArray = array.cast(arrayDt.typeOrElse(DataType.UNDEFINED))
+                val newArray = array.cast(arrayDt.getOr(DataType.UNDEFINED))
                 if (newArray != null && newArray != array)
                     return listOf(IAstModification.ReplaceNode(array, newArray, parent))
             }

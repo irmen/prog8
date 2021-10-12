@@ -25,7 +25,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 val itype = value.inferType(program)
                 if(!itype.isKnown)
                     throw AssemblyError("unknown dt")
-                val type = itype.typeOrElse(DataType.UNDEFINED)
+                val type = itype.getOr(DataType.UNDEFINED)
                 when (value.operator) {
                     "+" -> {}
                     "-" -> inplaceNegate(assign.target, type)
@@ -280,7 +280,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             val childIDt = value.expression.inferType(program)
             if(!childIDt.isKnown)
                 throw AssemblyError("unknown dt")
-            val childDt = childIDt.typeOrElse(DataType.UNDEFINED)
+            val childDt = childIDt.getOr(DataType.UNDEFINED)
             if (value.type!=DataType.FLOAT && (value.type.equalsSize(childDt) || value.type.largerThan(childDt))) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
                 // (works for integer types, not for float.)
@@ -1218,7 +1218,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val valueiDt = value.inferType(program)
         if(!valueiDt.isKnown)
             throw AssemblyError("unknown dt")
-        val valueDt = valueiDt.typeOrElse(DataType.UNDEFINED)
+        val valueDt = valueiDt.getOr(DataType.UNDEFINED)
 
         fun multiplyVarByWordInAY() {
             asmgen.out("""

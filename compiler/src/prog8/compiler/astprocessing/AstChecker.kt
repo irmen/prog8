@@ -79,7 +79,7 @@ internal class AstChecker(private val program: Program,
             if(!valueDt.isKnown) {
                 errors.err("return value type mismatch or unknown symbol", returnStmt.value!!.position)
             } else {
-                if (expectedReturnValues[0] != valueDt.typeOrElse(DataType.UNDEFINED))
+                if (expectedReturnValues[0] != valueDt.getOr(DataType.UNDEFINED))
                     errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}", returnStmt.value!!.position)
             }
         }
@@ -105,7 +105,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val iterableDt = forLoop.iterable.inferType(program).typeOrElse(DataType.BYTE)
+        val iterableDt = forLoop.iterable.inferType(program).getOr(DataType.BYTE)
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
@@ -414,7 +414,7 @@ internal class AstChecker(private val program: Program,
                 if(!idt.isKnown) {
                      errors.err("return type mismatch", assignment.value.position)
                 }
-                if(stmt.returntypes.isEmpty() || (stmt.returntypes.size == 1 && stmt.returntypes.single() isNotAssignableTo idt.typeOrElse(DataType.BYTE))) {
+                if(stmt.returntypes.isEmpty() || (stmt.returntypes.size == 1 && stmt.returntypes.single() isNotAssignableTo idt.getOr(DataType.BYTE))) {
                     errors.err("return type mismatch", assignment.value.position)
                 }
             }
@@ -479,15 +479,15 @@ internal class AstChecker(private val program: Program,
             if (targetDatatype.isKnown) {
                 val constVal = assignment.value.constValue(program)
                 if (constVal != null) {
-                    checkValueTypeAndRange(targetDatatype.typeOrElse(DataType.BYTE), constVal)
+                    checkValueTypeAndRange(targetDatatype.getOr(DataType.BYTE), constVal)
                 } else {
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
                         if (assignment.value !is FunctionCall)
                             errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
                     } else {
-                        checkAssignmentCompatible(targetDatatype.typeOrElse(DataType.BYTE), assignTarget,
-                                sourceDatatype.typeOrElse(DataType.BYTE), assignment.value, assignment.position)
+                        checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE), assignTarget,
+                                sourceDatatype.getOr(DataType.BYTE), assignment.value, assignment.position)
                     }
                 }
             }
@@ -741,11 +741,11 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(array: ArrayLiteralValue) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && array.type.typeOrElse(DataType.UNDEFINED) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            if (!compilerOptions.floats && array.type.getOr(DataType.UNDEFINED) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
-            checkValueTypeAndRangeArray(array.type.typeOrElse(DataType.UNDEFINED), arrayspec, array)
+            checkValueTypeAndRangeArray(array.type.getOr(DataType.UNDEFINED), arrayspec, array)
         }
 
         fun isPassByReferenceElement(e: Expression): Boolean {
@@ -794,7 +794,7 @@ internal class AstChecker(private val program: Program,
         if(!idt.isKnown)
             return  // any error should be reported elsewhere
 
-        val dt = idt.typeOrElse(DataType.UNDEFINED)
+        val dt = idt.getOr(DataType.UNDEFINED)
         if(expr.operator=="-") {
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 errors.err("can only take negative of a signed number type", expr.position)
@@ -819,8 +819,8 @@ internal class AstChecker(private val program: Program,
         if(!leftIDt.isKnown || !rightIDt.isKnown)
             return     // hopefully this error will be detected elsewhere
 
-        val leftDt = leftIDt.typeOrElse(DataType.UNDEFINED)
-        val rightDt = rightIDt.typeOrElse(DataType.UNDEFINED)
+        val leftDt = leftIDt.getOr(DataType.UNDEFINED)
+        val rightDt = rightIDt.getOr(DataType.UNDEFINED)
 
         when(expr.operator){
             "/", "%" -> {
@@ -1028,7 +1028,7 @@ internal class AstChecker(private val program: Program,
                 if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR) {
                     errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
                 }
-                if(args[0].inferType(program).typeOrElse(DataType.STR) == DataType.STR) {
+                if(args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
                     errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
                 }
             }
@@ -1157,7 +1157,7 @@ internal class AstChecker(private val program: Program,
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
-                    constvalue.type != conditionType.typeOrElse(DataType.UNDEFINED) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    constvalue.type != conditionType.getOr(DataType.UNDEFINED) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
                 }
             }
         } else {

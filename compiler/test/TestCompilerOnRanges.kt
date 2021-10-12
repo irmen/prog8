@@ -257,7 +257,7 @@ class TestCompilerOnRanges {
             .map { it.iterable }
             .filterIsInstance<IdentifierReference>()[0]
 
-        assertEquals(DataType.STR, iterable.inferType(program).typeOrElse(DataType.UNDEFINED))
+        assertEquals(DataType.STR, iterable.inferType(program).getOr(DataType.UNDEFINED))
     }
 
 }

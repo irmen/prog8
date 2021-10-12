@@ -181,7 +181,7 @@ open class VarDecl(val type: VarDeclType,
                 if(!array.type.isKnown)
                     throw FatalAstException("unknown dt")
                 else
-                    array.type.typeOrElse(DataType.UNDEFINED)
+                    array.type.getOr(DataType.UNDEFINED)
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
