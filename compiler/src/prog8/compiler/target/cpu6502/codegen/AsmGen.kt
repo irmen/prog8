@@ -555,13 +555,14 @@ internal class AsmGen(private val program: Program,
     internal fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
 
 
-    internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): Pair<Boolean, String> {
-        // returns if the pointer is already on the ZP itself or not (in the latter case SCRATCH_W1 is used as intermediary)
+    internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): String {
+        // returns the source name of the zero page pointervar if it's already in the ZP,
+        // otherwise returns "P8ZP_SCRATCH_W1" which is the intermediary
         when (val target = pointervar.targetStatement(program)) {
             is Label -> {
                 val sourceName = asmSymbolName(pointervar)
                 out("  lda  $sourceName")
-                return Pair(true, sourceName)
+                return sourceName
             }
             is VarDecl -> {
                 val sourceName = asmVariableName(pointervar)
@@ -570,7 +571,7 @@ internal class AsmGen(private val program: Program,
                     return if (isZpVar(scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
-                        Pair(true, sourceName)
+                        sourceName
                     } else {
                         out("""
                             lda  $sourceName
@@ -578,13 +579,13 @@ internal class AsmGen(private val program: Program,
                             sta  P8ZP_SCRATCH_W1
                             sty  P8ZP_SCRATCH_W1+1
                             lda  (P8ZP_SCRATCH_W1)""")
-                        Pair(false, sourceName)
+                        "P8ZP_SCRATCH_W1"
                     }
                 } else {
                     return if (isZpVar(scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  ldy  #0 |  lda  ($sourceName),y")
-                        Pair(true, sourceName)
+                        sourceName
                     } else {
                         out("""
                             lda  $sourceName
@@ -593,7 +594,7 @@ internal class AsmGen(private val program: Program,
                             sty  P8ZP_SCRATCH_W1+1
                             ldy  #0
                             lda  (P8ZP_SCRATCH_W1),y""")
-                        Pair(false, sourceName)
+                        "P8ZP_SCRATCH_W1"
                     }
                 }
             }

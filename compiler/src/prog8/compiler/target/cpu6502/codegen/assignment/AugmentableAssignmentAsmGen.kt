@@ -293,7 +293,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_byte_value_to_pointer(pointervar: IdentifierReference, operator: String, value: Expression) {
         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
@@ -324,15 +323,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^", "xor" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
-        if(ptrOnZp)
-            asmgen.out("  sta  ($sourceName),y")
-        else
-            asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+        asmgen.out("  sta  ($sourceName),y")
     }
 
     private fun inplaceModification_byte_variable_to_pointer(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
         val otherName = asmgen.asmVariableName(value)
-        val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
 
         when (operator) {
             // note: ** (power) operator requires floats.
@@ -364,105 +361,72 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^", "xor" -> asmgen.out(" eor  $otherName")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
-        if(ptrOnZp)
-            asmgen.out("  sta  ($sourceName),y")
-        else
-            asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+        asmgen.out("  sta  ($sourceName),y")
     }
 
     private fun inplaceModification_byte_litval_to_pointer(pointervar: IdentifierReference, operator: String, value: Int) {
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" clc |  adc  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  clc |  adc  #$value")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "-" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" sec |  sbc  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  sec |  sbc  #$value")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "*" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value in asmgen.optimizedByteMultiplications)
                     asmgen.out("  jsr  math.mul_byte_${value}")
                 else
                     asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes |  ldy  #0")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "/" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
                 asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "%" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
                 asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  ldy  #0")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "<<" -> {
                 if (value > 0) {
-                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     repeat(value) { asmgen.out(" asl  a") }
-                    if(ptrOnZp)
-                        asmgen.out("  sta  ($sourceName),y")
-                    else
-                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                    asmgen.out("  sta  ($sourceName),y")
                 }
             }
             ">>" -> {
                 if (value > 0) {
-                    val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     repeat(value) { asmgen.out(" lsr  a") }
-                    if(ptrOnZp)
-                        asmgen.out("  sta  ($sourceName),y")
-                    else
-                        asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                    asmgen.out("  sta  ($sourceName),y")
                 }
             }
             "&", "and" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" and  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  and  #$value")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "|", "or" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" ora  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  ora  #$value")
+                asmgen.out("  sta  ($sourceName),y")
             }
             "^", "xor" -> {
-                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out(" eor  #$value")
-                if(ptrOnZp)
-                    asmgen.out("  sta  ($sourceName),y")
-                else
-                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  eor  #$value")
+                asmgen.out("  sta  ($sourceName),y")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -1766,15 +1730,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  $addr""")
                             }
                             is IdentifierReference -> {
-                                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(mem.addressExpression as IdentifierReference)
+                                val sourceName = asmgen.loadByteFromPointerIntoA(mem.addressExpression as IdentifierReference)
                                 asmgen.out("""
                                     beq  +
                                     lda  #1
 +                                   eor  #1""")
-                                if(ptrOnZp)
-                                    asmgen.out("  sta  ($sourceName),y")
-                                else
-                                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                                asmgen.out("  sta  ($sourceName),y")
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(mem.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
@@ -1837,12 +1798,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sta  $addr""")
                             }
                             is IdentifierReference -> {
-                                val (ptrOnZp, sourceName) = asmgen.loadByteFromPointerIntoA(memory.addressExpression as IdentifierReference)
+                                val sourceName = asmgen.loadByteFromPointerIntoA(memory.addressExpression as IdentifierReference)
                                 asmgen.out("  eor  #255")
-                                if(ptrOnZp)
-                                    asmgen.out("  sta  ($sourceName),y")
-                                else
-                                    asmgen.out("  sta  (P8ZP_SCRATCH_W1),y")
+                                asmgen.out("  sta  ($sourceName),y")
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(memory.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
