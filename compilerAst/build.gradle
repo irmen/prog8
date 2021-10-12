@@ -13,6 +13,7 @@ repositories {
 
 dependencies {
     implementation 'org.antlr:antlr4-runtime:4.9.2'
+    implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.12"
     implementation project(':parser')
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
@@ -45,7 +46,7 @@ sourceSets {
     main {
         java {
             srcDirs = ["${project.projectDir}/src"]
-        } 
+        }
     }
     test {
         java {

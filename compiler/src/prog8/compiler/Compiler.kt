@@ -1,5 +1,6 @@
 package prog8.compiler
 
+import com.github.michaelbull.result.*
 import prog8.ast.AstToSourceCode
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IMemSizer
@@ -357,20 +358,19 @@ fun printAst(programAst: Program) {
     println()
 }
 
-internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<String> {
+internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<String, NoSuchFileException> {
     return if (filename.startsWith(libraryFilePrefix)) {
-        runCatching {
+        return runCatching {
             val stream = object {}.javaClass.getResourceAsStream("/prog8lib/${filename.substring(libraryFilePrefix.length)}") // TODO handle via SourceCode
-            stream ?: throw NoSuchFileException(File(filename))
-        }.mapCatching {
-            it.bufferedReader().use { r -> r.readText() }
-        }
+            stream!!.bufferedReader().use { r -> r.readText() }
+        }.mapError { NoSuchFileException(File(filename)) }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
         val sib = sourcePath.resolveSibling(filename)
+
         if (sib.toFile().isFile)
-            Result.success(sib.toFile().readText())
+            Ok(sib.toFile().readText())
         else
-            Result.success(File(filename).readText())
+            Ok(File(filename).readText())
     }
 }

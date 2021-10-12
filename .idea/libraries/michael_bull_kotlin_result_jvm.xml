@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="michael.bull.kotlin.result.jvm" type="repository">
+    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.12" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.12/kotlin-result-jvm-1.1.12.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.5.10/kotlin-stdlib-jdk8-1.5.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.5.10/kotlin-stdlib-1.5.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.5.10/kotlin-stdlib-jdk7-1.5.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.5.10/kotlin-stdlib-common-1.5.10.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

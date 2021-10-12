@@ -21,5 +21,6 @@
     <orderEntry type="library" name="hamcrest" level="project" />
     <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
     <orderEntry type="library" name="junit.jupiter" level="project" />
+    <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
   </component>
 </module>

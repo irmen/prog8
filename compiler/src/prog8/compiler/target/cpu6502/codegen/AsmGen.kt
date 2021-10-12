@@ -1,5 +1,6 @@
 package prog8.compiler.target.cpu6502.codegen
 
+import com.github.michaelbull.result.*
 import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
@@ -1322,8 +1323,8 @@ $repeatLabel    lda  $counterVar
                 val includedName = stmt.args[0].str!!
                 val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
                 loadAsmIncludeFile(includedName, sourcePath).fold(
-                    onSuccess = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
-                    onFailure = { errors.err(it.toString(), stmt.position) }
+                    success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
+                    failure = { errors.err(it.toString(), stmt.position) }
                 )
             }
             "%asmbinary" -> {

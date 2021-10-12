@@ -1,4 +1,4 @@
-%import textio2
+%import textio
 %import test_stack
 %zeropage basicsafe
 
