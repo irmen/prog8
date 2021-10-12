@@ -513,12 +513,14 @@ internal class AsmGen(private val program: Program,
         return if(targetScope !== identScope) {
             val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
             if(target is Label) {
+                // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
                 val last = scopedName.removeLast()
                 scopedName.add("_$last")
             }
             fixNameSymbols(scopedName.joinToString("."))
         } else {
             if(target is Label) {
+                // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
                 val scopedName = identifier.nameInSource.toMutableList()
                 val last = scopedName.removeLast()
                 scopedName.add("_$last")
@@ -1232,7 +1234,8 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: Label) {
-        out("_${stmt.name}")        // underscore prefix to make sure it's a local label
+        // underscore prefix to make sure it's a local label. Is slightly problematic, see github issue #62
+        out("_${stmt.name}")
     }
 
     private fun translate(scope: AnonymousScope) {

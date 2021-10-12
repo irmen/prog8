@@ -1,12 +1,14 @@
 %import textio
-%import test_stack
-%zeropage basicsafe
 
 main {
-    sub start() {
-        %asminclude "fozsdfsdf.asm"
+    str myBar = "main.bar"
 
-        txt.print("ok")
-        test_stack.test()
-    }
+foo_bar:
+    %asminclude "compiler/test/fixtures/foo_bar.asm"   ; FIXME: should be accessible from inside start() but give assembler error
+
+	sub start() {
+	    txt.print(myBar)
+	    txt.print(&foo_bar)
+	    return
+	}
 }

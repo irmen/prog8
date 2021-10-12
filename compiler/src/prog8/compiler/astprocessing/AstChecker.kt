@@ -137,6 +137,9 @@ internal class AstChecker(private val program: Program,
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
                     DataType.FLOAT -> {
+                        // Looping over float variables is very inefficient because the loopvar is going to
+                        // get copied over with new values all the time. We don't support this for now.
+                        // Loop with an integer index variable if you really need to... or write different code.
                         errors.err("for loop only supports integers", forLoop.position)
                     }
                     else -> errors.err("loop variable must be numeric type", forLoop.position)
