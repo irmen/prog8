@@ -2,9 +2,14 @@ package prog8.ast.base
 
 import prog8.ast.expressions.IdentifierReference
 
+/**
+ * A severe problem in the Ast (such as internal inconsistency or failed invariant)
+ * It is not useful to continue processing, this aborts the compiler immediately
+ */
 open class FatalAstException (override var message: String) : Exception(message)
 
-open class AstException (override var message: String) : Exception(message)
+
+abstract class AstException (override var message: String) : Exception(message)
 
 open class SyntaxError(override var message: String, val position: Position) : AstException(message) {
     override fun toString() = "${position.toClickableStr()} Syntax error: $message"

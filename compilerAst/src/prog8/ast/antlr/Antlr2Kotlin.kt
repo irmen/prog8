@@ -345,7 +345,7 @@ internal fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
 private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()
     if(str?.ALT_STRING_ENCODING() != null)
-        throw AstException("${toPosition()} can't use alternate string s for directive arguments")
+        throw SyntaxError("can't use alternate string s for directive arguments", toPosition())
 
     return DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toInt(), toPosition())
 }
@@ -359,7 +359,7 @@ private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
                 integer = try {
                     text.toInt()
                 } catch(x: NumberFormatException) {
-                    throw AstException("${toPosition()} invalid decimal literal ${x.message}")
+                    throw SyntaxError("invalid decimal literal ${x.message}", toPosition())
                 }
                 datatype = when(integer) {
                     in 0..255 -> DataType.UBYTE
@@ -375,7 +375,7 @@ private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
                 try {
                     integer = text.toInt(2)
                 } catch(x: NumberFormatException) {
-                    throw AstException("${toPosition()} invalid binary literal ${x.message}")
+                    throw SyntaxError("invalid binary literal ${x.message}", toPosition())
                 }
             }
             16 -> {
@@ -384,7 +384,7 @@ private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
                 try {
                     integer = text.toInt(16)
                 } catch(x: NumberFormatException) {
-                    throw AstException("${toPosition()} invalid hexadecimal literal ${x.message}")
+                    throw SyntaxError("invalid hexadecimal literal ${x.message}", toPosition())
                 }
             }
             else -> throw FatalAstException("invalid radix")
