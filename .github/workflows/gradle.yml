@@ -5,9 +5,9 @@ name: CI with Gradle
 
 on:
   push:
-    branches: [ master v7.1 ]
+    branches: [ master, v7.1 ]
   pull_request:
-    branches: [ master v7.1 ]
+    branches: [ master, v7.1 ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
