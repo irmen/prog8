@@ -100,12 +100,13 @@ fun compileProgram(filepath: Path,
             // printAst(programAst)
 
             if(writeAssembly) {
-                val (success, message) = writeAssembly(programAst, errors, outputDir, compilationOptions)
-                if(success)
-                    programName = message
-                else {
-                    System.err.println(message)
-                    return CompilationResult(false, programAst, programName, compTarget, importedFiles)
+                val result = writeAssembly(programAst, errors, outputDir, compilationOptions)
+                when(result) {
+                    is WriteAssemblyResult.Ok -> programName = result.filename
+                    is WriteAssemblyResult.Fail -> {
+                        System.err.println(result.error)
+                        return CompilationResult(false, programAst, programName, compTarget, importedFiles)
+                    }
                 }
             }
         }
@@ -319,10 +320,15 @@ private fun postprocessAst(programAst: Program, errors: IErrorReporter, compiler
     programAst.moveMainAndStartToFirst()
 }
 
+private sealed class WriteAssemblyResult {
+    class Ok(val filename: String): WriteAssemblyResult()
+    class Fail(val error: String): WriteAssemblyResult()
+}
+
 private fun writeAssembly(programAst: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
-                          compilerOptions: CompilationOptions): Pair<Boolean, String> {
+                          compilerOptions: CompilationOptions): WriteAssemblyResult {
     // asm generation directly from the Ast
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.report()
@@ -340,14 +346,14 @@ private fun writeAssembly(programAst: Program,
     return if(assembly.valid && errors.noErrors()) {
         val assemblerReturnStatus = assembly.assemble(compilerOptions)
         if(assemblerReturnStatus!=0)
-            Pair(false, "assembler step failed with return code $assemblerReturnStatus")
+            WriteAssemblyResult.Fail("assembler step failed with return code $assemblerReturnStatus")
         else {
             errors.report()
-            Pair(true, assembly.name)
+            WriteAssemblyResult.Ok(assembly.name)
         }
     } else {
         errors.report()
-        Pair(false, "compiler failed with errors")
+        WriteAssemblyResult.Fail("compiler failed with errors")
     }
 }
 

@@ -30,9 +30,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(sub.shouldSaveX()) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-            val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
             if(regSaveOnStack)
-                asmgen.saveRegisterStack(CpuRegister.X, keepAonEntry)
+                asmgen.saveRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnEntry)
             else
                 asmgen.saveRegisterLocal(CpuRegister.X, (stmt as Node).definingSubroutine!!)
         }
@@ -42,10 +41,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(sub.shouldSaveX()) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-            val (keepAonEntry: Boolean, keepAonReturn: Boolean) = sub.shouldKeepA()
-
             if(regSaveOnStack)
-                asmgen.restoreRegisterStack(CpuRegister.X, keepAonReturn)
+                asmgen.restoreRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnReturn)
             else
                 asmgen.restoreRegisterLocal(CpuRegister.X)
         }
