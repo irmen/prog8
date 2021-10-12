@@ -1,5 +1,8 @@
 package prog8.compiler
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.Position
@@ -19,7 +22,7 @@ class ModuleImporter(private val program: Program,
 
     private val libpaths: List<Path> = libdirs.map { Path(it) }
 
-    fun importModule(filePath: Path): Module {
+    fun importModule(filePath: Path): Result<Module, NoSuchFileException> {
         val currentDir = Path("").absolute()
         val searchIn = listOf(currentDir) + libpaths
         val candidates = searchIn
@@ -29,9 +32,9 @@ class ModuleImporter(private val program: Program,
             .map { if (it.isAbsolute) it else Path(".", "$it") }
 
         val srcPath = when (candidates.size) {
-            0 -> throw NoSuchFileException(
+            0 -> return Err(NoSuchFileException(
                     file = filePath.normalize().toFile(),
-                    reason = "searched in $searchIn")
+                    reason = "searched in $searchIn"))
             1 -> candidates.first()
             else -> candidates.first()  // TODO: report error if more than 1 candidate?
         }
@@ -39,7 +42,7 @@ class ModuleImporter(private val program: Program,
         val logMsg = "importing '${filePath.nameWithoutExtension}' (from file $srcPath)"
         println(logMsg)
 
-        return importModule(SourceCode.fromPath(srcPath))
+        return Ok(importModule(SourceCode.fromPath(srcPath)))
     }
 
     fun importLibraryModule(name: String): Module? {

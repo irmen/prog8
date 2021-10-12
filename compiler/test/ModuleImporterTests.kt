@@ -1,19 +1,22 @@
 package prog8tests
 
+import kotlin.test.*
+import com.github.michaelbull.result.getErrorOrElse
+import com.github.michaelbull.result.getOrElse
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Disabled
 import prog8.ast.Program
 import prog8.compiler.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8tests.helpers.*
 import kotlin.io.path.*
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -60,31 +63,26 @@ class TestModuleImporter {
                 val importer = makeImporter(null, dirRel.invariantSeparatorsPathString)
                 val srcPathRel = assumeNotExists(dirRel, "i_do_not_exist")
                 val srcPathAbs = srcPathRel.absolute()
-
-                assertFailsWith<NoSuchFileException> { importer.importModule(srcPathRel) }
-                    .let {
-                        assertThat(
-                            ".file should be normalized",
-                            "${it.file}", equalTo("${it.file.normalize()}")
-                        )
-                        assertThat(
-                            ".file should point to specified path",
-                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
-                        )
-                    }
+                val error1 = importer.importModule(srcPathRel).getErrorOrElse { fail("should have import error") }
+                assertThat(
+                    ".file should be normalized",
+                    "${error1.file}", equalTo("${error1.file.normalize()}")
+                )
+                assertThat(
+                    ".file should point to specified path",
+                    error1.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
+                )
                 assertThat(program.modules.size, equalTo(1))
 
-                assertFailsWith<NoSuchFileException> { importer.importModule(srcPathAbs) }
-                    .let {
-                        assertThat(
-                            ".file should be normalized",
-                            "${it.file}", equalTo("${it.file.normalize()}")
-                        )
-                        assertThat(
-                            ".file should point to specified path",
-                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
-                        )
-                    }
+                val error2 = importer.importModule(srcPathAbs).getErrorOrElse { fail("should have import error") }
+                assertThat(
+                    ".file should be normalized",
+                    "${error2.file}", equalTo("${error2.file.normalize()}")
+                )
+                assertThat(
+                    ".file should point to specified path",
+                    error2.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
+                )
                 assertThat(program.modules.size, equalTo(1))
             }
 
@@ -135,7 +133,7 @@ class TestModuleImporter {
                 val fileName = "simple_main.p8"
                 val path = assumeReadableFile(searchIn[0], fileName)
 
-                val module = importer.importModule(path.absolute())
+                val module = importer.importModule(path.absolute()).getOrElse { throw it }
                 assertThat(program.modules.size, equalTo(2))
                 assertContains(program.modules, module)
                 assertThat(module.program, equalTo(program))
@@ -151,7 +149,7 @@ class TestModuleImporter {
                 val path = assumeReadableFile(searchIn[0], fileName)
                 assertThat("sanity check: path should NOT be absolute", path.isAbsolute, equalTo(false))
 
-                val module = importer.importModule(path)
+                val module = importer.importModule(path).getOrElse { throw it }
                 assertThat(program.modules.size, equalTo(2))
                 assertContains(program.modules, module)
                 assertThat(module.program, equalTo(program))
@@ -167,7 +165,7 @@ class TestModuleImporter {
                 val path = Path(".", fileName)
                 assumeReadableFile(searchIn, path)
 
-                val module = importer.importModule(path)
+                val module = importer.importModule(path).getOrElse { throw it }
                 assertThat(program.modules.size, equalTo(2))
                 assertContains(program.modules, module)
                 assertThat(module.program, equalTo(program))

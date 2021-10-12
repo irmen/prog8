@@ -181,7 +181,8 @@ fun parseImports(filepath: Path,
     bf.program = programAst
 
     val importer = ModuleImporter(programAst, compTarget.name, errors, libdirs)
-    importer.importModule(filepath)
+    val importedModuleResult = importer.importModule(filepath)
+    importedModuleResult.onFailure { throw it }
     errors.report()
 
     val importedFiles = programAst.modules
