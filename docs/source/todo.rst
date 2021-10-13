@@ -3,7 +3,7 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix weird error when doing %import textio.p8
+...
 
 
 Blocked by Commander-x16 v39 release

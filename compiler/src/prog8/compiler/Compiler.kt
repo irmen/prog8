@@ -17,6 +17,7 @@ import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
+import prog8.parser.ParseError
 import prog8.parser.ParsingFailedError
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
@@ -95,14 +96,20 @@ fun compileProgram(filepath: Path,
             importedFiles = imported
             processAst(programAst, errors, compilationOptions)
             if (compilationOptions.optimize)
-                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compilationOptions)
+                optimizeAst(
+                    programAst,
+                    errors,
+                    BuiltinFunctionsFacade(BuiltinFunctions),
+                    compTarget,
+                    compilationOptions
+                )
             postprocessAst(programAst, errors, compilationOptions)
 
             // printAst(programAst)
 
-            if(writeAssembly) {
+            if (writeAssembly) {
                 val result = writeAssembly(programAst, errors, outputDir, compilationOptions)
-                when(result) {
+                when (result) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
@@ -115,10 +122,13 @@ fun compileProgram(filepath: Path,
         System.err.flush()
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
         return CompilationResult(true, programAst, programName, compTarget, importedFiles)
-
-    } catch (px: ParsingFailedError) {
+    } catch (px: ParseError) {
         System.err.print("\u001b[91m")  // bright red
-        System.err.println(px.message)
+        System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
+        System.err.print("\u001b[0m")  // reset
+    } catch (pfx: ParsingFailedError) {
+        System.err.print("\u001b[91m")  // bright red
+        System.err.println(pfx.message)
         System.err.print("\u001b[0m")  // reset
     } catch (ax: AstException) {
         System.err.print("\u001b[91m")  // bright red
