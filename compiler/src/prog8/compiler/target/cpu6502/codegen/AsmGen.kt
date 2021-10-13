@@ -1325,7 +1325,7 @@ $repeatLabel    lda  $counterVar
             "%asminclude" -> {
                 // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
-                val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
+                val sourcePath = Path(stmt.definingModule.source.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
                 loadAsmIncludeFile(includedName, sourcePath).fold(
                     success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
                     failure = { errors.err(it.toString(), stmt.position) }
@@ -1335,7 +1335,7 @@ $repeatLabel    lda  $counterVar
                 val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
+                val sourcePath = Path(stmt.definingModule.source.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
                     .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)

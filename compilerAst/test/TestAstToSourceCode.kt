@@ -31,7 +31,7 @@ class TestAstToSourceCode {
     private fun roundTrip(module: Module): Pair<String, Module> {
         val generatedText = generateP8(module)
         try {
-            val parsedAgain = parseModule(SourceCode.of(generatedText))
+            val parsedAgain = parseModule(SourceCode.Text(generatedText))
             return Pair(generatedText, parsedAgain)
         } catch (e: ParseError) {
             assert(false) { "should produce valid Prog8 but threw $e" }
@@ -41,7 +41,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testMentionsInternedStringsModule() {
-        val orig = SourceCode.of("\n")
+        val orig = SourceCode.Text("\n")
         val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex(";.*$internedStringsModuleName"))
@@ -49,7 +49,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testImportDirectiveWithLib() {
-        val orig = SourceCode.of("%import textio\n")
+        val orig = SourceCode.Text("%import textio\n")
         val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("%import +textio"))
@@ -57,7 +57,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testImportDirectiveWithUserModule() {
-        val orig = SourceCode.of("%import my_own_stuff\n")
+        val orig = SourceCode.Text("%import my_own_stuff\n")
         val (txt, _) = roundTrip(parseModule(orig))
         // assertContains has *actual* first!
         assertContains(txt, Regex("%import +my_own_stuff"))
@@ -66,7 +66,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testStringLiteral_noAlt() {
-        val orig = SourceCode.of("""
+        val orig = SourceCode.Text("""
             main {
                 str s = "fooBar\n"
             }
@@ -78,7 +78,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testStringLiteral_withAlt() {
-        val orig = SourceCode.of("""
+        val orig = SourceCode.Text("""
             main {
                 str sAlt = @"fooBar\n"
             }
@@ -90,7 +90,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testCharLiteral_noAlt() {
-        val orig = SourceCode.of("""
+        val orig = SourceCode.Text("""
             main {
                 ubyte c = 'x'
             }
@@ -102,7 +102,7 @@ class TestAstToSourceCode {
 
     @Test
     fun testCharLiteral_withAlt() {
-        val orig = SourceCode.of("""
+        val orig = SourceCode.Text("""
             main {
                 ubyte cAlt = @'x'
             }

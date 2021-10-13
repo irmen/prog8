@@ -246,7 +246,8 @@ class Program(val name: String,
 
     init {
         // insert a container module for all interned strings later
-        val internedStringsModule = Module(internedStringsModuleName, mutableListOf(), Position.DUMMY, null)
+        val internedStringsModule = Module(internedStringsModuleName, mutableListOf(),
+            Position.DUMMY, SourceCode.Generated(internedStringsModuleName))
         val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
         internedStringsModule.statements.add(block)
 
@@ -350,7 +351,7 @@ class Program(val name: String,
 open class Module(override val name: String,
              override var statements: MutableList<Statement>,
              final override val position: Position,
-             val source: SourceCode?) : Node, INameScope {
+             val source: SourceCode) : Node, INameScope {
 
     override lateinit var parent: Node
     lateinit var program: Program
@@ -380,7 +381,7 @@ open class Module(override val name: String,
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    val isLibrary get() = (source == null) || source.isFromResources
+    val isLibrary get() = source.isFromResources
 }
 
 

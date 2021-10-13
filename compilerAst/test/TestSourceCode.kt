@@ -22,7 +22,7 @@ class TestSourceCode {
         val text = """
             main { }
         """.trimIndent()
-        val src = SourceCode.of(text)
+        val src = SourceCode.Text(text)
         val actualText = src.getCharStream().toString()
 
         assertContains(src.origin, Regex("^<String@[0-9a-f]+>$"))
@@ -33,26 +33,26 @@ class TestSourceCode {
     fun testFromPathWithNonExistingPath() {
         val filename = "i_do_not_exist.p8"
         val path = assumeNotExists(fixturesDir, filename)
-        assertFailsWith<NoSuchFileException> { SourceCode.fromPath(path) }
+        assertFailsWith<NoSuchFileException> { SourceCode.File(path) }
     }
 
     @Test
     fun testFromPathWithMissingExtension_p8() {
         val pathWithoutExt = assumeNotExists(fixturesDir,"simple_main")
         assumeReadableFile(fixturesDir,"simple_main.p8")
-        assertFailsWith<NoSuchFileException> { SourceCode.fromPath(pathWithoutExt) }
+        assertFailsWith<NoSuchFileException> { SourceCode.File(pathWithoutExt) }
     }
 
     @Test
     fun testFromPathWithDirectory() {
-        assertFailsWith<AccessDeniedException> { SourceCode.fromPath(fixturesDir) }
+        assertFailsWith<AccessDeniedException> { SourceCode.File(fixturesDir) }
     }
 
     @Test
     fun testFromPathWithExistingPath() {
         val filename = "simple_main.p8"
         val path = assumeReadableFile(fixturesDir, filename)
-        val src = SourceCode.fromPath(path)
+        val src = SourceCode.File(path)
 
         val expectedOrigin = path.normalize().absolutePathString()
         assertEquals(expectedOrigin, src.origin)
@@ -64,7 +64,7 @@ class TestSourceCode {
         val filename = "simple_main.p8"
         val path = Path(".", "test", "..", "test", "fixtures", filename)
         val srcFile = assumeReadableFile(path).toFile()
-        val src = SourceCode.fromPath(path)
+        val src = SourceCode.File(path)
 
         val expectedOrigin = path.normalize().absolutePathString()
         assertEquals(expectedOrigin, src.origin)
@@ -75,7 +75,7 @@ class TestSourceCode {
     fun testFromResourcesWithExistingP8File_withoutLeadingSlash() {
         val pathString = "prog8lib/math.p8"
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
-        val src = SourceCode.fromResources(pathString)
+        val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
@@ -85,7 +85,7 @@ class TestSourceCode {
     fun testFromResourcesWithExistingP8File_withLeadingSlash() {
         val pathString = "/prog8lib/math.p8"
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
-        val src = SourceCode.fromResources(pathString)
+        val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
@@ -95,7 +95,7 @@ class TestSourceCode {
     fun testFromResourcesWithExistingAsmFile_withoutLeadingSlash() {
         val pathString = "prog8lib/math.asm"
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
-        val src = SourceCode.fromResources(pathString)
+        val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
@@ -106,7 +106,7 @@ class TestSourceCode {
     fun testFromResourcesWithExistingAsmFile_withLeadingSlash() {
         val pathString = "/prog8lib/math.asm"
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
-        val src = SourceCode.fromResources(pathString)
+        val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
@@ -116,7 +116,7 @@ class TestSourceCode {
     fun testFromResourcesWithNonNormalizedPath() {
         val pathString = "/prog8lib/../prog8lib/math.p8"
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
-        val src = SourceCode.fromResources(pathString)
+        val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix/prog8lib/math.p8", src.origin)
         assertEquals(srcFile.readText(), src.asString())
@@ -129,14 +129,14 @@ class TestSourceCode {
         val pathString = "/prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString.substring(1))
 
-        assertFailsWith<NoSuchFileException> { SourceCode.fromResources(pathString) }
+        assertFailsWith<NoSuchFileException> { SourceCode.Resource(pathString) }
     }
     @Test
     fun testFromResourcesWithNonExistingFile_withoutLeadingSlash() {
         val pathString = "prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString)
 
-        assertFailsWith<NoSuchFileException> { SourceCode.fromResources(pathString) }
+        assertFailsWith<NoSuchFileException> { SourceCode.Resource(pathString) }
     }
 
     @Test
@@ -144,7 +144,7 @@ class TestSourceCode {
     fun testFromResourcesWithDirectory() {
         val pathString = "/prog8lib"
         assumeDirectory(resourcesDir, pathString.substring(1))
-        assertFailsWith<AccessDeniedException> { SourceCode.fromResources(pathString) }
+        assertFailsWith<AccessDeniedException> { SourceCode.Resource(pathString) }
     }
 
 }

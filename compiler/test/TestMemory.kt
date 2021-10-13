@@ -14,6 +14,7 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
+import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import kotlin.test.assertFalse
@@ -91,7 +92,7 @@ class TestMemory {
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         module.linkParents(program.namespace)
         return target
     }
@@ -110,7 +111,7 @@ class TestMemory {
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)
@@ -124,7 +125,7 @@ class TestMemory {
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)
@@ -138,7 +139,7 @@ class TestMemory {
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)
@@ -152,7 +153,7 @@ class TestMemory {
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)
@@ -167,7 +168,7 @@ class TestMemory {
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)
@@ -182,7 +183,7 @@ class TestMemory {
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", emptyList(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
-        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)

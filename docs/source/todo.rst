@@ -4,7 +4,6 @@ TODO
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 - can we derive module.name from module.source (taking just the filename base)?
-- can Position.file be a Path- making the source variable for nodes unnecessary?
 
 
 Blocked by Commander-x16 v39 release

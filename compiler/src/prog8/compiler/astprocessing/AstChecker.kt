@@ -13,6 +13,7 @@ import prog8.compiler.ZeropageType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.ICompilationTarget
+import prog8.parser.SourceCode
 import java.io.CharConversionException
 import java.io.File
 import java.util.*
@@ -726,20 +727,16 @@ internal class AstChecker(private val program: Program,
         if (File(filename).isFile)
             return
 
-        var definingModule = directive.parent   // TODO: why not just use directive.definingModule() here?
-        while (definingModule !is Module)
-            definingModule = definingModule.parent
-        if (definingModule.isLibrary)
+        val definingModule = directive.definingModule
+        if (definingModule.isLibrary || definingModule.source is SourceCode.Generated)
             return
 
-        val s = definingModule.source?.pathString()
-        if (s != null) {
-            val sourceFileCandidate = Path(s).resolveSibling(filename).toFile()
-            if (sourceFileCandidate.isFile)
-                return
-        }
-
-        errors.err("included file not found: $filename", directive.position)
+        val s = definingModule.source.pathString()
+        val sourceFileCandidate = Path(s).resolveSibling(filename).toFile()
+        if (sourceFileCandidate.isFile)
+            return
+        else
+            errors.err("included file not found: $filename", directive.position)
     }
 
     override fun visit(array: ArrayLiteralValue) {

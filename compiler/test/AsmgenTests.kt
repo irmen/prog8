@@ -15,6 +15,7 @@ import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import java.nio.file.Path
@@ -67,7 +68,7 @@ locallabel:
         val varInBlock = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, false, Position.DUMMY)
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
-        val module = Module("test", mutableListOf(block), Position.DUMMY, null)
+        val module = Module("test", mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)

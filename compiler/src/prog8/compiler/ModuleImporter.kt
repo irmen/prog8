@@ -42,7 +42,7 @@ class ModuleImporter(private val program: Program,
         val logMsg = "importing '${filePath.nameWithoutExtension}' (from file $srcPath)"
         println(logMsg)
 
-        return Ok(importModule(SourceCode.fromPath(srcPath)))
+        return Ok(importModule(SourceCode.File(srcPath)))
     }
 
     fun importLibraryModule(name: String): Module? {
@@ -110,11 +110,11 @@ class ModuleImporter(private val program: Program,
     private fun tryGetModuleFromResource(name: String, compilationTargetName: String): SourceCode? {
         // try target speficic first
         try {
-            return SourceCode.fromResources("/prog8lib/$compilationTargetName/$name")
+            return SourceCode.Resource("/prog8lib/$compilationTargetName/$name")
         } catch (e: FileSystemException) {
         }
         try {
-            return SourceCode.fromResources("/prog8lib/$name")
+            return SourceCode.Resource("/prog8lib/$name")
         } catch (e: FileSystemException) {
         }
         return null
@@ -134,7 +134,7 @@ class ModuleImporter(private val program: Program,
 
         locations.forEach {
             try {
-                return SourceCode.fromPath(it.resolve(fileName))
+                return SourceCode.File(it.resolve(fileName))
             } catch (e: NoSuchFileException) {
             }
         }

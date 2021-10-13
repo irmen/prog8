@@ -18,6 +18,7 @@ import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
 import prog8.parser.ParsingFailedError
+import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import java.io.File
 import java.nio.file.Path
@@ -185,9 +186,8 @@ fun parseImports(filepath: Path,
     importedModuleResult.onFailure { throw it }
     errors.report()
 
-    val importedFiles = programAst.modules
-        .mapNotNull { it.source }
-        .filter { !it.isFromResources } // TODO: parseImports/importedFiles - maybe rather `source.isFromFilesystem`?
+    val importedFiles = programAst.modules.map { it.source }
+        .filter { it !is SourceCode.Generated && !it.isFromResources }  // TODO: parseImports/importedFiles - maybe rather `source.isFromFilesystem`?
         .map { Path(it.pathString()) }
     val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
