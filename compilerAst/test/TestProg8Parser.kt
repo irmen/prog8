@@ -344,7 +344,6 @@ class TestProg8Parser {
          * TODO: this test is testing way too much at once
          */
         @Test
-        //@Disabled("TODO: fix .position of nodes below Module - step 8, 'refactor AST gen'")
         fun `of non-root Nodes parsed from a string`() {
             val srcText = """
                 %zeropage basicsafe ; DirectiveArg directly inherits from Node - neither an Expression nor a Statement..?

@@ -69,8 +69,10 @@ class ModuleImporter(private val program: Program,
     }
 
     private fun executeImportDirective(import: Directive, importingModule: Module?): Module? {
-        if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
+        if(import.directive!="%import" || import.args.size!=1)
             throw SyntaxError("invalid import directive", import.position)
+        if(!import.args[0].str.isNullOrEmpty() || import.args[0].name==null)
+            throw SyntaxError("%import requires unquoted module name", import.position)
         val moduleName = import.args[0].name!!
         if("$moduleName.p8" == import.position.file)
             throw SyntaxError("cannot import self", import.position)
