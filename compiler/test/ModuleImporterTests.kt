@@ -303,6 +303,7 @@ class TestModuleImporter {
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
                         assertThat(program.modules.size, equalTo(2))
+                        importer.errors.report()
                     }
                 }
 

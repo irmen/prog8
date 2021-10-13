@@ -14,6 +14,7 @@ import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.optimizer.CallGraph
+import prog8.parser.SourceCode
 import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -1325,7 +1326,9 @@ $repeatLabel    lda  $counterVar
             "%asminclude" -> {
                 // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
-                val sourcePath = Path(stmt.definingModule.source.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
+                if(stmt.definingModule.source is SourceCode.Generated)
+                    TODO("%asminclude inside non-library, non-filesystem module")
+                val sourcePath = Path(stmt.definingModule.source.pathString())
                 loadAsmIncludeFile(includedName, sourcePath).fold(
                     success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
                     failure = { errors.err(it.toString(), stmt.position) }
@@ -1335,7 +1338,9 @@ $repeatLabel    lda  $counterVar
                 val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val sourcePath = Path(stmt.definingModule.source.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
+                if(stmt.definingModule.source is SourceCode.Generated)
+                    TODO("%asmbinary inside non-library, non-filesystem module")
+                val sourcePath = Path(stmt.definingModule.source.pathString())
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
                     .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)

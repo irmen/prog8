@@ -3,7 +3,9 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-- can we derive module.name from module.source (taking just the filename base)?
+- fix "unknown" reported in resulting .asm as source file of included library modules/resources
+    unittest: "of non-root Nodes parsed from a string"
+
 
 
 Blocked by Commander-x16 v39 release
@@ -14,6 +16,7 @@ Blocked by Commander-x16 v39 release
 
 Future
 ^^^^^^
+- derive module.name from module.source (taking just the filename base)?
 - get rid of all TODO's and FIXME's in the code
 - improve testability further, add more tests, address more questions/issues from the testability discussions.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer

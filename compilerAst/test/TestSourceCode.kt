@@ -138,13 +138,4 @@ class TestSourceCode {
 
         assertFailsWith<NoSuchFileException> { SourceCode.Resource(pathString) }
     }
-
-    @Test
-    @Disabled("TODO: inside resources: cannot tell apart a folder from a file")
-    fun testFromResourcesWithDirectory() {
-        val pathString = "/prog8lib"
-        assumeDirectory(resourcesDir, pathString.substring(1))
-        assertFailsWith<AccessDeniedException> { SourceCode.Resource(pathString) }
-    }
-
 }
