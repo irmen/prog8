@@ -1,8 +1,6 @@
 package prog8.compiler
 
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.Result
+import com.github.michaelbull.result.*
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.Position
@@ -11,6 +9,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.parser.Prog8Parser
 import prog8.parser.SourceCode
+import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.*
 
@@ -20,11 +19,11 @@ class ModuleImporter(private val program: Program,
                      val errors: IErrorReporter,
                      sourceDirs: List<String>) {
 
-    private val libpaths: List<Path> = sourceDirs.map { Path(it) }
+    private val sourcePaths: List<Path> = sourceDirs.map { Path(it) }
 
     fun importModule(filePath: Path): Result<Module, NoSuchFileException> {
         val currentDir = Path("").absolute()
-        val searchIn = listOf(currentDir) + libpaths
+        val searchIn = listOf(currentDir) + sourcePaths
         val candidates = searchIn
             .map { it.absolute().div(filePath).normalize().absolute() }
             .filter { it.exists() }
@@ -81,19 +80,22 @@ class ModuleImporter(private val program: Program,
         if (existing!=null)
             return null // TODO: why return null instead of Module instance?
 
-        var srcCode = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
+        val srcCode = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
         val importedModule =
             if (srcCode != null) {
                 println("importing '$moduleName' (from internal ${srcCode.origin})")
                 importModule(srcCode)
             } else {
-                srcCode = tryGetModuleFromFile(moduleName, importingModule)
-                if (srcCode == null) {
-                    errors.err("imported file not found: $moduleName.p8", import.position)
-                    return null
-                    //throw NoSuchFileException(File("$moduleName.p8"))
-                }
-                importModule(srcCode)
+                val moduleSrc = getModuleFromFile(moduleName, importingModule)
+                moduleSrc.fold(
+                    success = {
+                        importModule(it)
+                    },
+                    failure = {
+                        errors.err("no module found with name $moduleName", import.position)
+                        return null
+                    }
+                )
             }
 
         removeDirectivesFromImportedModule(importedModule)
@@ -122,13 +124,14 @@ class ModuleImporter(private val program: Program,
         return null
     }
 
-    private fun tryGetModuleFromFile(name: String, importingModule: Module?): SourceCode? {
+    private fun getModuleFromFile(name: String, importingModule: Module?): Result<SourceCode, NoSuchFileException> {
         val fileName = "$name.p8"
         val locations =
             if (importingModule == null) { // <=> imported from library module
-                libpaths
+                sourcePaths
             } else {
-                libpaths.drop(1) +  // TODO: why drop the first?
+                val dropCurDir = if(sourcePaths[0].name == ".") 1 else 0
+                sourcePaths.drop(dropCurDir) +
                 // FIXME: won't work until Prog8Parser is fixed s.t. it fully initialzes the modules it returns
                 listOf(Path(importingModule.position.file).parent ?: Path("")) +
                 listOf(Path(".", "prog8lib"))
@@ -136,12 +139,11 @@ class ModuleImporter(private val program: Program,
 
         locations.forEach {
             try {
-                return SourceCode.File(it.resolve(fileName))
+                return Ok(SourceCode.File(it.resolve(fileName)))
             } catch (e: NoSuchFileException) {
             }
         }
 
-        //throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: embedded libs and $locations)")
-        return null
+        return Err(NoSuchFileException(File("name")))
     }
 }
