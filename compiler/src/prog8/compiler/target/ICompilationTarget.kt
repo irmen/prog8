@@ -1,5 +1,6 @@
 package prog8.compiler.target
 
+import com.github.michaelbull.result.fold
 import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -75,8 +76,8 @@ internal object C64Target: ICompilationTarget {
     override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
         val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         return coded.fold(
-            { throw it },
-            { it }
+            failure = { throw it },
+            success = { it }
         )
     }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
@@ -103,8 +104,8 @@ internal object Cx16Target: ICompilationTarget {
     override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
         val coded= if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         return coded.fold(
-            { throw it },
-            { it}
+            failure = { throw it },
+            success = { it }
         )
     }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
