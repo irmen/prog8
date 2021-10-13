@@ -80,26 +80,35 @@ class ModuleImporter(private val program: Program,
         if (existing!=null)
             return null // TODO: why return null instead of Module instance?
 
-        val srcCode = tryGetModuleFromResource("$moduleName.p8", compilationTargetName)
-        val importedModule =
-            if (srcCode != null) {
-                println("importing '$moduleName' (from internal ${srcCode.origin})")
-                importModule(srcCode)
-            } else {
+        // try internal library first
+        val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName)
+        var importedModule: Module? = null
+        moduleResourceSrc.fold(
+            success = {
+                println("importing '$moduleName' (from internal ${it.origin})")
+                importedModule=importModule(it)
+            },
+            failure = {
+                // try filesystem next
                 val moduleSrc = getModuleFromFile(moduleName, importingModule)
                 moduleSrc.fold(
                     success = {
-                        importModule(it)
+                        println("importing '$moduleName' (from file ${it.origin})")
+                        importedModule = importModule(it)
                     },
                     failure = {
                         errors.err("no module found with name $moduleName", import.position)
-                        return null
                     }
                 )
             }
+        )
 
-        removeDirectivesFromImportedModule(importedModule)
-        return importedModule
+        return if(importedModule==null)
+            null
+        else {
+            removeDirectivesFromImportedModule(importedModule!!)
+            importedModule
+        }
     }
 
     private fun removeDirectivesFromImportedModule(importedModule: Module) {
@@ -111,17 +120,12 @@ class ModuleImporter(private val program: Program,
         importedModule.statements.addAll(0, directives)
     }
 
-    private fun tryGetModuleFromResource(name: String, compilationTargetName: String): SourceCode? {
-        // try target speficic first
-        try {
-            return SourceCode.Resource("/prog8lib/$compilationTargetName/$name")
-        } catch (e: FileSystemException) {
-        }
-        try {
-            return SourceCode.Resource("/prog8lib/$name")
-        } catch (e: FileSystemException) {
-        }
-        return null
+    private fun getModuleFromResource(name: String, compilationTargetName: String): Result<SourceCode, NoSuchFileException> {
+        val result =
+            runCatching { SourceCode.Resource("/prog8lib/$compilationTargetName/$name") }
+            .orElse { runCatching { SourceCode.Resource("/prog8lib/$name") }  }
+
+        return result.mapError { NoSuchFileException(File(name)) }
     }
 
     private fun getModuleFromFile(name: String, importingModule: Module?): Result<SourceCode, NoSuchFileException> {
