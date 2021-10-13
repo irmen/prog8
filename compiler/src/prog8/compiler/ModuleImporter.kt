@@ -78,37 +78,34 @@ class ModuleImporter(private val program: Program,
 
         val existing = program.modules.singleOrNull { it.name == moduleName }
         if (existing!=null)
-            return null // TODO: why return null instead of Module instance?
+            return existing
 
         // try internal library first
         val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName)
-        var importedModule: Module? = null
-        moduleResourceSrc.fold(
-            success = {
-                println("importing '$moduleName' (from internal ${it.origin})")
-                importedModule=importModule(it)
-            },
-            failure = {
-                // try filesystem next
-                val moduleSrc = getModuleFromFile(moduleName, importingModule)
-                moduleSrc.fold(
-                    success = {
-                        println("importing '$moduleName' (from file ${it.origin})")
-                        importedModule = importModule(it)
-                    },
-                    failure = {
-                        errors.err("no module found with name $moduleName", import.position)
-                    }
-                )
-            }
-        )
+        val importedModule =
+            moduleResourceSrc.fold(
+                success = {
+                    println("importing '$moduleName' (from internal ${it.origin})")
+                    importModule(it)
+                },
+                failure = {
+                    // try filesystem next
+                    val moduleSrc = getModuleFromFile(moduleName, importingModule)
+                    moduleSrc.fold(
+                        success = {
+                            println("importing '$moduleName' (from file ${it.origin})")
+                            importModule(it)
+                        },
+                        failure = {
+                            errors.err("no module found with name $moduleName", import.position)
+                            return null
+                        }
+                    )
+                }
+            )
 
-        return if(importedModule==null)
-            null
-        else {
-            removeDirectivesFromImportedModule(importedModule!!)
-            importedModule
-        }
+        removeDirectivesFromImportedModule(importedModule)
+        return importedModule
     }
 
     private fun removeDirectivesFromImportedModule(importedModule: Module) {
