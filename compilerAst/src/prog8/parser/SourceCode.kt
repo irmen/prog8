@@ -4,6 +4,9 @@ import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
 import java.io.File
 import java.io.IOException
+import java.nio.channels.Channels
+import java.nio.charset.CodingErrorAction
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
@@ -72,7 +75,7 @@ sealed class SourceCode {
     class Text(val text: String): SourceCode() {
         override val isFromResources = false
         override val origin = "<String@${System.identityHashCode(text).toString(16)}>"
-        override fun getCharStream(): CharStream = CharStreams.fromString(text)
+        override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
     }
 
     /**
@@ -124,8 +127,10 @@ sealed class SourceCode {
         override val isFromResources = true
         override val origin = "$libraryFilePrefix$normalized"
         override fun getCharStream(): CharStream {
-            val inpStr = object {}.javaClass.getResourceAsStream(normalized)
-            return CharStreams.fromStream(inpStr)
+            val inpStr = object {}.javaClass.getResourceAsStream(normalized)!!
+            // CharStreams.fromStream() doesn't allow us to set the stream name properly, so we use a lower level api
+            val channel = Channels.newChannel(inpStr)
+            return CharStreams.fromChannel(channel, StandardCharsets.UTF_8, 4096, CodingErrorAction.REPLACE, origin, -1);
         }
     }
 

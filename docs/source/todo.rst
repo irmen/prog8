@@ -3,9 +3,7 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix "unknown" reported in resulting .asm as source file of included library modules/resources
-    unittest: "of non-root Nodes parsed from a string"
-
+- fix weird error when doing %import textio.p8
 
 
 Blocked by Commander-x16 v39 release

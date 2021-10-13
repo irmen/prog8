@@ -4,7 +4,7 @@ main {
     str myBar = "main.bar"
 
 foo_bar:
-    %asminclude "compiler/test/fixtures/foo_bar.asm22"   ; FIXME: should be accessible from inside start() but give assembler error
+    ; %asminclude "compiler/test/fixtures/foo_bar.asm22"   ; FIXME: should be accessible from inside start() but give assembler error
 
 	sub start() {
 	    txt.print(myBar)
