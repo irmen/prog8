@@ -134,7 +134,7 @@ class ModuleImporter(private val program: Program,
             if (importingModule == null) { // <=> imported from library module
                 sourcePaths
             } else {
-                val dropCurDir = if(sourcePaths[0].name == ".") 1 else 0
+                val dropCurDir = if(sourcePaths.isNotEmpty() && sourcePaths[0].name == ".") 1 else 0
                 sourcePaths.drop(dropCurDir) +
                 // FIXME: won't work until Prog8Parser is fixed s.t. it fully initialzes the modules it returns
                 listOf(Path(importingModule.position.file).parent ?: Path("")) +
