@@ -3,7 +3,6 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-- rename libdirs option to srcdirs?
 - can we derive module.name from module.source (taking just the filename base)?
 - can Position.file be a Path- making the source variable for nodes unnecessary?
 - address more questions/issues from the testability discussions.

@@ -1,14 +1,7 @@
-%import textio
-
+%option enable_floats
 main {
-    str myBar = "main.bar"
-
-foo_bar:
-    %asminclude "compiler/test/fixtures/foo_bar.asm"   ; FIXME: should be accessible from inside start() but give assembler error
-
-	sub start() {
-	    txt.print(myBar)
-	    txt.print(&foo_bar)
-	    return
-	}
+    sub start() {
+        float[] cs = 1 to 42 ; values are computed at compile time
+        cs[0] = 23 ; keep optimizer from removing it
+    }
 }

@@ -38,7 +38,7 @@ internal fun compileFile(
         writeAssembly = true,
         slowCodegenWarnings = false,
         platform.name,
-        libdirs = listOf(),
+        sourceDirs = listOf(),
         outputDir
     )
 }

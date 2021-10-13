@@ -118,11 +118,13 @@ They are embedded into the packaged release version of the compiler so you don't
 where they are, but their names are still reserved.
 
 
-User defined library files and -location
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You can create library files yourself too that can be shared among programs.
-You can tell the compiler where it should look for these files, by using
-the libdirs command line option.
+Importing other source files and specifying search location(s)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+You can create multiple source files yourself to modularize your large programs into
+multiple module files. You can also create "library" modules this way with handy routines,
+that can be shared among programs. By importing those module files, you can use them in other modules.
+It is possible to tell the compiler where it should look for these files, by using
+the ``srcdirs`` command line option.
 
 
 .. _debugging:

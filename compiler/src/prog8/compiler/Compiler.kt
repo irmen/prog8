@@ -70,7 +70,7 @@ fun compileProgram(filepath: Path,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
                    compilationTarget: String,
-                   libdirs: List<String>,
+                   sourceDirs: List<String>,
                    outputDir: Path): CompilationResult {
     var programName = ""
     lateinit var programAst: Program
@@ -87,7 +87,7 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, libdirs)
+            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, sourceDirs)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             compilationOptions.optimize = optimize
             programAst = ast
@@ -172,15 +172,15 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 }
 
 fun parseImports(filepath: Path,
-                         errors: IErrorReporter,
-                         compTarget: ICompilationTarget,
-                         libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
+                 errors: IErrorReporter,
+                 compTarget: ICompilationTarget,
+                 sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val programAst = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = programAst
 
-    val importer = ModuleImporter(programAst, compTarget.name, errors, libdirs)
+    val importer = ModuleImporter(programAst, compTarget.name, errors, sourceDirs)
     val importedModuleResult = importer.importModule(filepath)
     importedModuleResult.onFailure { throw it }
     errors.report()

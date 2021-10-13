@@ -39,7 +39,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
-    val libDirs by cli.option(ArgType.String, fullName="libdirs", description = "list of extra paths to search in for imported modules").multiple().delimiter(File.pathSeparator)
+    val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -61,9 +61,9 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    val libdirs = libDirs.toMutableList()
-    if(libdirs.firstOrNull()!=".")
-        libdirs.add(0, ".")
+    val srcdirs = sourceDirs.toMutableList()
+    if(srcdirs.firstOrNull()!=".")
+        srcdirs.add(0, ".")
 
     if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
@@ -74,7 +74,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val results = mutableListOf<CompilationResult>()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, libdirs, outputPath)
+                val compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, srcdirs, outputPath)
                 results.add(compilationResult)
             }
 
@@ -111,7 +111,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, libdirs, outputPath)
+                compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, srcdirs, outputPath)
                 if(!compilationResult.success)
                     return false
             } catch (x: ParsingFailedError) {

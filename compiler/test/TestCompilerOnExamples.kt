@@ -41,7 +41,7 @@ class TestCompilerOnExamples {
                 writeAssembly = true,
                 slowCodegenWarnings = false,
                 compilationTarget = platform.name,
-                libdirs = listOf(),
+                sourceDirs = listOf(),
                 outputDir
             ).assertSuccess("; $displayName")
         }

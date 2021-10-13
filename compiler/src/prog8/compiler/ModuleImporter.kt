@@ -18,9 +18,9 @@ import kotlin.io.path.*
 class ModuleImporter(private val program: Program,
                      private val compilationTargetName: String,
                      val errors: IErrorReporter,
-                     libdirs: List<String>) {
+                     sourceDirs: List<String>) {
 
-    private val libpaths: List<Path> = libdirs.map { Path(it) }
+    private val libpaths: List<Path> = sourceDirs.map { Path(it) }
 
     fun importModule(filePath: Path): Result<Module, NoSuchFileException> {
         val currentDir = Path("").absolute()
