@@ -5,7 +5,6 @@ For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 - can we derive module.name from module.source (taking just the filename base)?
 - can Position.file be a Path- making the source variable for nodes unnecessary?
-- address more questions/issues from the testability discussions.
 
 
 Blocked by Commander-x16 v39 release
@@ -17,7 +16,7 @@ Blocked by Commander-x16 v39 release
 Future
 ^^^^^^
 - get rid of all TODO's and FIXME's in the code
-- improve testability further, add more tests
+- improve testability further, add more tests, address more questions/issues from the testability discussions.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - see if we can remove more "[InferredType].getOr(DataType.UNDEFINED)"
 - use more of Result<> and Either<> to handle errors/ nulls better
