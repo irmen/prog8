@@ -741,7 +741,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(array: ArrayLiteralValue) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && array.type.getOr(DataType.UNDEFINED) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            if (!compilerOptions.floats && array.type.oneOf(DataType.FLOAT, DataType.ARRAY_F)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
@@ -1157,7 +1157,7 @@ internal class AstChecker(private val program: Program,
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
-                    constvalue.type != conditionType.getOr(DataType.UNDEFINED) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    !conditionType.istype(constvalue.type) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
                 }
             }
         } else {
