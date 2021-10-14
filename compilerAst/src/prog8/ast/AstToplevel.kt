@@ -246,8 +246,7 @@ class Program(val name: String,
 
     init {
         // insert a container module for all interned strings later
-        val internedStringsModule = Module(internedStringsModuleName, mutableListOf(),
-            Position.DUMMY, SourceCode.Generated(internedStringsModuleName))
+        val internedStringsModule = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(internedStringsModuleName))
         val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
         internedStringsModule.statements.add(block)
 
@@ -348,13 +347,19 @@ class Program(val name: String,
 
 }
 
-open class Module(override val name: String,
-             override var statements: MutableList<Statement>,
+open class Module(final override var statements: MutableList<Statement>,
              final override val position: Position,
              val source: SourceCode) : Node, INameScope {
 
     override lateinit var parent: Node
     lateinit var program: Program
+
+    // the module name is derived back from the path of the source
+    override val name = source.pathString()
+            .substringBeforeLast(".")
+            .substringAfterLast("/")
+            .substringAfterLast("\\")
+            .replace("String@", "anonymous_")
 
     val loadAddress: Int by lazy {
         val address = (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int ?: 0

@@ -68,7 +68,7 @@ locallabel:
         val varInBlock = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, false, Position.DUMMY)
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
-        val module = Module("test", mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
+        val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
         module.linkParents(program.namespace)

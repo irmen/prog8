@@ -42,7 +42,6 @@ sealed class SourceCode {
 
 
     /**
-     * FIXME: hacking together a [SourceCode]'s "path string"
      * This is really just [origin] with any stuff removed that would render it an invalid path name.
      * (Note: a *valid* path name does NOT mean that the denoted file or folder *exists*)
      */
