@@ -3,7 +3,7 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-replace certain uses of inferredType.getOr(UNKNOWN) by i.getOrElse({ errorhandler })
+fix github issue #64 about inconsistent absolute path usage
 
 
 Blocked by Commander-x16 v39 release
@@ -16,10 +16,11 @@ Future
 ^^^^^^
 - get rid of all TODO's and FIXME's in the code
 - improve testability further, add more tests, address more questions/issues from the testability discussions.
-- can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
+- replace certain uses of inferredType.getOr(DataType.UNDEFINED) by i.getOrElse({ errorhandler })
 - see if we can remove more "[InferredType].getOr(DataType.UNDEFINED)"
 - use more of Result<> and Either<> to handle errors/ nulls better
 - fix the asm-labels problem (github issue #62)
+- can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
