@@ -24,16 +24,17 @@ enum class DataType {
      */
     infix fun isAssignableTo(targetType: DataType) =
             when(this) {
-                UBYTE -> targetType in setOf(UBYTE, WORD, UWORD, FLOAT)
-                BYTE -> targetType in setOf(BYTE, WORD, FLOAT)
-                UWORD -> targetType in setOf(UWORD, FLOAT)
-                WORD -> targetType in setOf(WORD, FLOAT)
+                UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, FLOAT)
+                BYTE -> targetType.oneOf(BYTE, WORD, FLOAT)
+                UWORD -> targetType.oneOf(UWORD, FLOAT)
+                WORD -> targetType.oneOf(WORD, FLOAT)
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR
                 in ArrayDatatypes -> targetType == this
                 else -> false
             }
 
+    fun oneOf(vararg types: DataType) = this in types
     infix fun isAssignableTo(targetTypes: Set<DataType>) = targetTypes.any { this isAssignableTo it }
     infix fun isNotAssignableTo(targetType: DataType) = !this.isAssignableTo(targetType)
     infix fun isNotAssignableTo(targetTypes: Set<DataType>) = !this.isAssignableTo(targetTypes)

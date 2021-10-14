@@ -3,8 +3,9 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-replace checks against multiple types with .oneOf(...)
+replace checks of InferredType against multiple types with .oneOf(...)
 replace certain uses of inferredType.getOr(UNKNOWN) by i.getOrElse({ errorhandler })
+replace registerOrPair in setOf(..) by .oneOf(..) varargs function
 
 
 Blocked by Commander-x16 v39 release

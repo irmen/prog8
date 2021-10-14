@@ -519,7 +519,7 @@ internal class AstChecker(private val program: Program,
         }
 
         // FLOATS enabled?
-        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
+        if(!compilerOptions.floats && decl.datatype.oneOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
             err("floating point used, but that is not enabled via options")
 
         if(decl.datatype == DataType.FLOAT && (decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE))
