@@ -45,7 +45,7 @@ internal class AstChecker(private val program: Program,
         }
 
         if(compilerOptions.floats) {
-            if (compilerOptions.zeropage !in setOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+            if (compilerOptions.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.mainModule.position)
         }
 
@@ -284,11 +284,11 @@ internal class AstChecker(private val program: Program,
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
                 err("number of return registers is not the isSameAs as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
-                if(param.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                if(param.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE)
                         err("parameter '${param.first.name}' should be (u)byte")
                 }
-                else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
                             && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
                         err("parameter '${param.first.name}' should be (u)word/address")
@@ -299,11 +299,11 @@ internal class AstChecker(private val program: Program,
                 }
             }
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
-                if(pair.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                if(pair.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE)
                         err("return value #${index + 1} should be (u)byte")
                 }
-                else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                else if(pair.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (pair.first != DataType.UWORD && pair.first != DataType.WORD
                             && pair.first != DataType.STR && pair.first !in ArrayDatatypes && pair.first != DataType.FLOAT)
                         err("return value #${index + 1} should be (u)word/address")
@@ -715,7 +715,7 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in setOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page")}.any { !it })
+                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page")}.any { !it })
                     err("invalid option directive argument(s)")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
@@ -990,7 +990,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(functionCallStatement.target.nameInSource.last() in setOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
+        if(functionCallStatement.target.nameInSource.last() in arrayOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
             if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                 errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)

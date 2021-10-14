@@ -97,7 +97,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
 
 
         init {
-            if (options.floats && options.zeropage !in setOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+            if (options.floats && options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 throw CompilerException("when floats are enabled, zero page type should be 'basicsafe' or 'dontuse'")
 
             // the addresses 0x02 to 0x21 (inclusive) are taken for sixteen virtual 16-bit api registers.

@@ -155,7 +155,7 @@ internal class AsmGen(private val program: Program,
             }
         }
 
-        if(options.zeropage !in setOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
+        if(options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
             out("""
                 ; zeropage is clobbered so we need to reset the machine at exit
                 lda  #>sys.reset_system

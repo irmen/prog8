@@ -86,7 +86,7 @@ internal object C64MachineDefinition: IMachineDefinition {
 
 
         init {
-            if (options.floats && options.zeropage !in setOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+            if (options.floats && options.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 throw CompilerException("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'")
 
             if (options.zeropage == ZeropageType.FULL) {

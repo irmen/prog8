@@ -797,7 +797,7 @@ class FunctionCall(override var target: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in setOf("msb", "lsb", "peek", "peekw"))
+    override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw"))
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)

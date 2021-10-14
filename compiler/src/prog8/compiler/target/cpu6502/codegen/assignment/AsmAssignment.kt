@@ -205,7 +205,7 @@ internal class AsmAssignment(val source: AsmAssignSource,
                              val position: Position) {
 
     init {
-        if(target.register !in setOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
+        if(target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
             require(source.datatype != DataType.UNDEFINED) { "must not be placeholder/undefined datatype" }
             require(memsizer.memorySize(source.datatype) <= memsizer.memorySize(target.datatype)) {
                 "source storage size must be less or equal to target datatype storage size"
