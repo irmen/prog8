@@ -153,11 +153,11 @@ internal class AstChecker(private val program: Program,
                         val to = range.to as? NumericLiteralValue
                         if(from != null)
                             checkValueTypeAndRange(loopvar.datatype, from)
-                        else if(!range.from.inferType(program).istype(loopvar.datatype))
+                        else if(range.from.inferType(program) isnot loopvar.datatype)
                             errors.err("range start value is incompatible with loop variable type", range.position)
                         if(to != null)
                             checkValueTypeAndRange(loopvar.datatype, to)
-                        else if(!range.to.inferType(program).istype(loopvar.datatype))
+                        else if(range.to.inferType(program) isnot loopvar.datatype)
                             errors.err("range end value is incompatible with loop variable type", range.position)
                     }
                 }
@@ -429,12 +429,12 @@ internal class AstChecker(private val program: Program,
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
             if(targetDt.isIterable)
                 errors.err("cannot assign value to string or array", assignment.value.position)
-            else if(!(valueDt.istype(DataType.STR) && targetDt.istype(DataType.UWORD)))
+            else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD))
                 errors.err("type of value doesn't match target", assignment.value.position)
         }
 
         if(assignment.value is TypecastExpression) {
-            if(assignment.isAugmentable && targetDt.istype(DataType.FLOAT))
+            if(assignment.isAugmentable && targetDt istype DataType.FLOAT)
                 errors.err("typecasting a float value in-place makes no sense", assignment.value.position)
         }
 
@@ -597,7 +597,7 @@ internal class AstChecker(private val program: Program,
 
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR) {
-            if (!declValue.inferType(program).istype(decl.datatype)) {
+            if (declValue.inferType(program) isnot decl.datatype) {
                 err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
             }
         }
@@ -916,7 +916,7 @@ internal class AstChecker(private val program: Program,
         // warn about sgn(unsigned) this is likely a mistake
         if(functionCall.target.nameInSource.last()=="sgn") {
             val sgnArgType = functionCall.args.first().inferType(program)
-            if(sgnArgType.istype(DataType.UBYTE) || sgnArgType.istype(DataType.UWORD))
+            if(sgnArgType istype DataType.UBYTE  || sgnArgType istype DataType.UWORD)
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCall.args.first().position)
         }
 
@@ -985,7 +985,7 @@ internal class AstChecker(private val program: Program,
         if(functionCallStatement.target.nameInSource.last() == "sort") {
             // sort is not supported on float arrays
             val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
-            if(idref!=null && idref.inferType(program).istype(DataType.ARRAY_F)) {
+            if(idref!=null && idref.inferType(program) istype DataType.ARRAY_F) {
                 errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
             }
         }
@@ -1119,7 +1119,7 @@ internal class AstChecker(private val program: Program,
 
         // check index value 0..255
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
-        if(!dtxNum.istype(DataType.UBYTE) && !dtxNum.istype(DataType.BYTE))
+        if(dtxNum isnot DataType.UBYTE && dtxNum isnot DataType.BYTE)
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
 
         super.visit(arrayIndexedExpression)
@@ -1157,7 +1157,7 @@ internal class AstChecker(private val program: Program,
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
-                    !conditionType.istype(constvalue.type) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    conditionType isnot constvalue.type -> errors.err("choice value datatype differs from condition value", whenChoice.position)
                 }
             }
         } else {
@@ -1201,7 +1201,7 @@ internal class AstChecker(private val program: Program,
             DataType.STR -> return err("string value expected")
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arraysize (of all constant values), or a range
-                if(value.type.istype(targetDt)) {
+                if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.constIndex()
@@ -1220,7 +1220,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word arraysize, or a range
-                if(value.type.istype(targetDt)) {
+                if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.constIndex()
@@ -1239,7 +1239,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arraysize
-                if(value.type.istype(targetDt)) {
+                if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySize = value.value.size

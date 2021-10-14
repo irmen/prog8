@@ -1464,11 +1464,11 @@ $label              nop""")
         if(pointerOffsetExpr is BinaryExpression && pointerOffsetExpr.operator=="+") {
             val leftDt = pointerOffsetExpr.left.inferType(program)
             val rightDt = pointerOffsetExpr.left.inferType(program)
-            if(leftDt.istype(DataType.UWORD) && rightDt.istype(DataType.UBYTE))
+            if(leftDt istype DataType.UWORD && rightDt istype DataType.UBYTE)
                 return Pair(pointerOffsetExpr.left, pointerOffsetExpr.right)
-            if(leftDt.istype(DataType.UBYTE) && rightDt.istype(DataType.UWORD))
+            if(leftDt istype DataType.UBYTE && rightDt istype DataType.UWORD)
                 return Pair(pointerOffsetExpr.right, pointerOffsetExpr.left)
-            if(leftDt.istype(DataType.UWORD) && rightDt.istype(DataType.UWORD)) {
+            if(leftDt istype DataType.UWORD && rightDt istype DataType.UWORD) {
                 // could be that the index was a constant numeric byte but converted to word, check that
                 val constIdx = pointerOffsetExpr.right.constValue(program)
                 if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
@@ -1476,10 +1476,10 @@ $label              nop""")
                 }
                 // could be that the index was typecasted into uword, check that
                 val rightTc = pointerOffsetExpr.right as? TypecastExpression
-                if(rightTc!=null && rightTc.expression.inferType(program).istype(DataType.UBYTE))
+                if(rightTc!=null && rightTc.expression.inferType(program) istype DataType.UBYTE)
                     return Pair(pointerOffsetExpr.left, rightTc.expression)
                 val leftTc = pointerOffsetExpr.left as? TypecastExpression
-                if(leftTc!=null && leftTc.expression.inferType(program).istype(DataType.UBYTE))
+                if(leftTc!=null && leftTc.expression.inferType(program) istype DataType.UBYTE)
                     return Pair(pointerOffsetExpr.right, leftTc.expression)
             }
 
@@ -1492,7 +1492,7 @@ $label              nop""")
 
         fun evalBytevalueWillClobberA(expr: Expression): Boolean {
             val dt = expr.inferType(program)
-            if(!dt.istype(DataType.UBYTE) && !dt.istype(DataType.BYTE))
+            if(dt isnot DataType.UBYTE && dt isnot DataType.BYTE)
                 return true
             return when(expr) {
                 is IdentifierReference -> false

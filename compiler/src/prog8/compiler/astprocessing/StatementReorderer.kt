@@ -111,7 +111,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                     }
                 }
                 is VarDecl -> {
-                    if(!leftDt.istype(parent.datatype)) {
+                    if(leftDt isnot parent.datatype) {
                         val cast = TypecastExpression(expr.left, parent.datatype, true, parent.position)
                         return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                     }

@@ -638,7 +638,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
     }
 
     fun cast(targettype: DataType): ArrayLiteralValue? {
-        if(type.istype(targettype))
+        if(type istype targettype)
             return this
         if(targettype in ArrayDatatypes) {
             val elementType = ArrayToElementTypes.getValue(targettype)

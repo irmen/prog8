@@ -45,7 +45,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 mods += IAstModification.ReplaceNode(typecast.expression, subTypecast.expression, typecast)
             }
         } else {
-            if (typecast.expression.inferType(program).istype(typecast.type)) {
+            if (typecast.expression.inferType(program) istype typecast.type) {
                 // remove duplicate cast
                 mods += IAstModification.ReplaceNode(typecast, typecast.expression, parent)
             }
@@ -289,13 +289,13 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             val arg = functionCall.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
-                if (valueDt.istype(DataType.BYTE) || valueDt.istype(DataType.UBYTE)) {
+                if (valueDt istype DataType.BYTE || valueDt istype DataType.UBYTE) {
                     // useless lsb() of byte value that was typecasted to word
                     return listOf(IAstModification.ReplaceNode(functionCall, arg.expression, parent))
                 }
             } else {
                 val argDt = arg.inferType(program)
-                if (argDt.istype(DataType.BYTE) || argDt.istype(DataType.UBYTE)) {
+                if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
                     // useless lsb() of byte value
                     return listOf(IAstModification.ReplaceNode(functionCall, arg, parent))
                 }
@@ -305,7 +305,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
             val arg = functionCall.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
-                if (valueDt.istype(DataType.BYTE) || valueDt.istype(DataType.UBYTE)) {
+                if (valueDt istype DataType.BYTE || valueDt istype DataType.UBYTE) {
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,
@@ -314,7 +314,7 @@ internal class ExpressionSimplifier(private val program: Program) : AstWalker() 
                 }
             } else {
                 val argDt = arg.inferType(program)
-                if (argDt.istype(DataType.BYTE) || argDt.istype(DataType.UBYTE)) {
+                if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,

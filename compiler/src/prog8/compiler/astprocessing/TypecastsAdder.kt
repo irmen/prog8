@@ -22,7 +22,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
         val declValue = decl.value
         if(decl.type==VarDeclType.VAR && declValue!=null) {
             val valueDt = declValue.inferType(program)
-            if(!valueDt.istype(decl.datatype)) {
+            if(valueDt isnot decl.datatype) {
 
                 // don't add a typecast on an array initializer value
                 if(valueDt.isInteger && decl.datatype in ArrayDatatypes)
@@ -217,7 +217,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
             val subroutine = returnStmt.definingSubroutine!!
             if(subroutine.returntypes.size==1) {
                 val subReturnType = subroutine.returntypes.first()
-                if (returnValue.inferType(program).istype(subReturnType))
+                if (returnValue.inferType(program) istype subReturnType)
                     return noModifications
                 if (returnValue is NumericLiteralValue) {
                     val cast = returnValue.cast(subroutine.returntypes.single())

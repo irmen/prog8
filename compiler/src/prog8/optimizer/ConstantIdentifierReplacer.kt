@@ -21,7 +21,7 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
         try {
             val declConstValue = decl.value?.constValue(program)
             if(declConstValue!=null && (decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST)
-                && !declConstValue.inferType(program).istype(decl.datatype)) {
+                && declConstValue.inferType(program) isnot decl.datatype) {
                 // cast the numeric literal to the appropriate datatype of the variable
                 val cast = declConstValue.cast(decl.datatype)
                 if(cast.isValid)

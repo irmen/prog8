@@ -3,7 +3,6 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-replace uses of inferredType.istype(..) by infix form
 replace checks against multiple types with .oneOf(...)
 replace certain uses of inferredType.getOr(UNKNOWN) by i.getOrElse({ errorhandler })
 

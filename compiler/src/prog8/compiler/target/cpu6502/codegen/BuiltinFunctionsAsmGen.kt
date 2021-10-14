@@ -715,11 +715,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             val firstName = asmgen.asmVariableName(first)
             val secondName = asmgen.asmVariableName(second)
             val dt = first.inferType(program)
-            if(dt.istype(DataType.BYTE) || dt.istype(DataType.UBYTE)) {
+            if(dt istype DataType.BYTE || dt istype DataType.UBYTE) {
                 asmgen.out(" ldy  $firstName |  lda  $secondName |  sta  $firstName |  sty  $secondName")
                 return
             }
-            if(dt.istype(DataType.WORD) || dt.istype(DataType.UWORD)) {
+            if(dt istype DataType.WORD || dt istype DataType.UWORD) {
                 asmgen.out("""
                     ldy  $firstName
                     lda  $secondName
@@ -732,7 +732,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 """)
                 return
             }
-            if(dt.istype(DataType.FLOAT)) {
+            if(dt istype DataType.FLOAT) {
                 asmgen.out("""
                     lda  #<$firstName
                     sta  P8ZP_SCRATCH_W1
