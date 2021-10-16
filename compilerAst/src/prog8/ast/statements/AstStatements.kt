@@ -648,8 +648,8 @@ class Subroutine(override val name: String,
         return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
     }
 
-    fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-    fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
+    fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
+    fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
     fun shouldSaveX() = CpuRegister.X in asmClobbers || regXasResult() || regXasParam()
 
     class KeepAresult(val saveOnEntry: Boolean, val saveOnReturn: Boolean)

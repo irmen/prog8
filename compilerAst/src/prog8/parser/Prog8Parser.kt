@@ -42,17 +42,9 @@ object Prog8Parser {
         return module
     }
 
-    private class ParsedModule(source: SourceCode) : Module(
-        // FIXME: hacking together a name for the module:
-        name = source.pathString()
-            .substringBeforeLast(".") // must also work with an origin = "<String@123beef>"
-            .substringAfterLast("/")
-            .substringAfterLast("\\")
-            .replace("String@", "anonymous_"),
-        statements = mutableListOf(),
-        position = Position(source.origin, 1, 0, 0),
-        source
-        ) {
+    private class ParsedModule(source: SourceCode) :
+        Module(mutableListOf(), Position(source.origin, 1, 0, 0), source)
+    {
 
         /**
          * Adds a [Directive] to [statements] and
@@ -62,7 +54,7 @@ object Prog8Parser {
         fun add(child: Directive) {
             child.linkParents(this)
             statements.add(child)
-    }
+        }
         /**
          * Adds a [Block] to [statements] and
          * sets this Module as its [parent].
@@ -71,7 +63,7 @@ object Prog8Parser {
         fun add(child: Block) {
             child.linkParents(this)
             statements.add(child)
-    }
+        }
     }
 
     private object Prog8ErrorStrategy: BailErrorStrategy() {

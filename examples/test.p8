@@ -1,14 +1,18 @@
 %import textio
 
 main {
-    str myBar = "main.bar"
+    sub start() {
+        ubyte xx
 
-foo_bar:
-    %asminclude "compiler/test/fixtures/foo_bar.asm"   ; FIXME: should be accessible from inside start() but give assembler error
-
-	sub start() {
-	    txt.print(myBar)
-	    txt.print(&foo_bar)
-	    return
-	}
+        when xx {
+            2 -> {
+            }
+            3 -> {
+            }
+            50 -> {
+            }
+            else -> {
+            }
+        }
+    }
 }

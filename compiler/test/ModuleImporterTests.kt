@@ -15,6 +15,7 @@ import prog8.ast.Program
 import prog8.compiler.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
+import prog8.parser.SourceCode
 import prog8tests.helpers.*
 import kotlin.io.path.*
 
@@ -191,7 +192,7 @@ class TestModuleImporter {
 
                     repeat(2) { n ->
                         assertFailsWith<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, equalTo(srcPath.absolutePathString()))
+                            assertThat(it.position.file, equalTo(SourceCode.relative(srcPath).toString()))
                             assertThat("line; should be 1-based", it.position.line, equalTo(2))
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
@@ -221,7 +222,7 @@ class TestModuleImporter {
 
                     repeat(repetitions) { n ->
                         assertFailsWith<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, equalTo(imported.absolutePathString()))
+                            assertThat(it.position.file, equalTo(SourceCode.relative(imported).toString()))
                             assertThat("line; should be 1-based", it.position.line, equalTo(2))
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
@@ -250,14 +251,14 @@ class TestModuleImporter {
                     val result = importer.importLibraryModule(filenameNoExt)
                     assertThat(count[n] + " call / NO .p8 extension", result, Is(nullValue()))
                     assertFalse(errors.noErrors(), count[n] + " call / NO .p8 extension")
-                    assertEquals(errors.errors.single(), "imported file not found: i_do_not_exist.p8")
+                    assertEquals(errors.errors.single(), "no module found with name i_do_not_exist")
                     errors.report()
                     assertThat(program.modules.size, equalTo(1))
 
                     val result2 = importer.importLibraryModule(filenameWithExt)
                     assertThat(count[n] + " call / with .p8 extension", result2, Is(nullValue()))
                     assertFalse(importer.errors.noErrors(), count[n] + " call / with .p8 extension")
-                    assertEquals(errors.errors.single(), "imported file not found: i_do_not_exist.p8.p8")       // TODO don't duplicate the p8 extension in the import logic...
+                    assertEquals(errors.errors.single(), "no module found with name i_do_not_exist.p8")       // TODO don't add a p8 extension in the import logic...
                     errors.report()
                     assertThat(program.modules.size, equalTo(1))
                 }
@@ -277,7 +278,7 @@ class TestModuleImporter {
                     repeat(2) { n ->
                         assertFailsWith<ParseError>(count[n] + " call")
                             { importer.importLibraryModule(srcPath.nameWithoutExtension) }.let {
-                                assertThat(it.position.file, equalTo(srcPath.absolutePathString()))
+                                assertThat(it.position.file, equalTo(SourceCode.relative(srcPath).toString()))
                                 assertThat("line; should be 1-based", it.position.line, equalTo(2))
                                 assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                                 assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
@@ -297,12 +298,13 @@ class TestModuleImporter {
 
                     repeat(repetitions) { n ->
                         assertFailsWith<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, equalTo(imported.normalize().absolutePathString()))
+                            assertThat(it.position.file, equalTo(SourceCode.relative(imported).toString()))
                             assertThat("line; should be 1-based", it.position.line, equalTo(2))
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
                         assertThat(program.modules.size, equalTo(2))
+                        importer.errors.report()
                     }
                 }
 

@@ -14,6 +14,7 @@ import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.optimizer.CallGraph
+import prog8.parser.SourceCode
 import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -154,7 +155,7 @@ internal class AsmGen(private val program: Program,
             }
         }
 
-        if(options.zeropage !in setOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
+        if(options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
             out("""
                 ; zeropage is clobbered so we need to reset the machine at exit
                 lda  #>sys.reset_system
@@ -1325,8 +1326,9 @@ $repeatLabel    lda  $counterVar
             "%asminclude" -> {
                 // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
-                val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asminclude inside non-library, non-filesystem module
-                loadAsmIncludeFile(includedName, sourcePath).fold(
+                if(stmt.definingModule.source is SourceCode.Generated)
+                    TODO("%asminclude inside non-library, non-filesystem module")
+                loadAsmIncludeFile(includedName, stmt.definingModule.source).fold(
                     success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
                     failure = { errors.err(it.toString(), stmt.position) }
                 )
@@ -1335,11 +1337,13 @@ $repeatLabel    lda  $counterVar
                 val includedName = stmt.args[0].str!!
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
-                val sourcePath = Path(stmt.definingModule.source!!.pathString()) // FIXME: %asmbinary inside non-library, non-filesystem module
+                if(stmt.definingModule.source is SourceCode.Generated)
+                    TODO("%asmbinary inside non-library, non-filesystem module")
+                val sourcePath = Path(stmt.definingModule.source.origin)
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
-                    .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)
-                    .relativize(includedPath)
+                    .toAbsolutePath()
+                    .relativize(includedPath.toAbsolutePath())
                     .normalize() // avoid assembler warnings (-Wportable; only some, not all)
                     .toString().replace('\\', '/')
                 out("  .binary \"$pathForAssembler\" $offset $length")
@@ -1459,11 +1463,11 @@ $label              nop""")
         if(pointerOffsetExpr is BinaryExpression && pointerOffsetExpr.operator=="+") {
             val leftDt = pointerOffsetExpr.left.inferType(program)
             val rightDt = pointerOffsetExpr.left.inferType(program)
-            if(leftDt.istype(DataType.UWORD) && rightDt.istype(DataType.UBYTE))
+            if(leftDt istype DataType.UWORD && rightDt istype DataType.UBYTE)
                 return Pair(pointerOffsetExpr.left, pointerOffsetExpr.right)
-            if(leftDt.istype(DataType.UBYTE) && rightDt.istype(DataType.UWORD))
+            if(leftDt istype DataType.UBYTE && rightDt istype DataType.UWORD)
                 return Pair(pointerOffsetExpr.right, pointerOffsetExpr.left)
-            if(leftDt.istype(DataType.UWORD) && rightDt.istype(DataType.UWORD)) {
+            if(leftDt istype DataType.UWORD && rightDt istype DataType.UWORD) {
                 // could be that the index was a constant numeric byte but converted to word, check that
                 val constIdx = pointerOffsetExpr.right.constValue(program)
                 if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
@@ -1471,10 +1475,10 @@ $label              nop""")
                 }
                 // could be that the index was typecasted into uword, check that
                 val rightTc = pointerOffsetExpr.right as? TypecastExpression
-                if(rightTc!=null && rightTc.expression.inferType(program).istype(DataType.UBYTE))
+                if(rightTc!=null && rightTc.expression.inferType(program) istype DataType.UBYTE)
                     return Pair(pointerOffsetExpr.left, rightTc.expression)
                 val leftTc = pointerOffsetExpr.left as? TypecastExpression
-                if(leftTc!=null && leftTc.expression.inferType(program).istype(DataType.UBYTE))
+                if(leftTc!=null && leftTc.expression.inferType(program) istype DataType.UBYTE)
                     return Pair(pointerOffsetExpr.right, leftTc.expression)
             }
 
@@ -1487,7 +1491,7 @@ $label              nop""")
 
         fun evalBytevalueWillClobberA(expr: Expression): Boolean {
             val dt = expr.inferType(program)
-            if(!dt.istype(DataType.UBYTE) && !dt.istype(DataType.BYTE))
+            if(dt isnot DataType.UBYTE && dt isnot DataType.BYTE)
                 return true
             return when(expr) {
                 is IdentifierReference -> false

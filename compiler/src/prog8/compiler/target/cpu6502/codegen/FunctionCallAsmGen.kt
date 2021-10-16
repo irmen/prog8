@@ -157,11 +157,11 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     argForCarry = argi
                 }
                 argi.value.second.statusflag != null -> throw AssemblyError("can only use Carry as status flag parameter")
-                argi.value.second.registerOrPair in setOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) -> {
+                argi.value.second.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) -> {
                     require(argForXregister==null)
                     argForXregister = argi
                 }
-                argi.value.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.AY) -> {
+                argi.value.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.AY) -> {
                     require(argForAregister == null)
                     argForAregister = argi
                 }

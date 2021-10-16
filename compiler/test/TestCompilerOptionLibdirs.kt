@@ -19,7 +19,7 @@ import kotlin.io.path.writeText
  * from source file loading all the way through to running 64tass.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestCompilerOptionLibdirs {
+class TestCompilerOptionSourcedirs {
 
     private lateinit var tempFileInWorkingDir: Path
 
@@ -39,14 +39,14 @@ class TestCompilerOptionLibdirs {
         tempFileInWorkingDir.deleteExisting()
     }
 
-    private fun compileFile(filePath: Path, libdirs: List<String>) =
+    private fun compileFile(filePath: Path, sourceDirs: List<String>) =
         compileProgram(
             filepath = filePath,
             optimize = false,
             writeAssembly = true,
             slowCodegenWarnings = false,
             compilationTarget = Cx16Target.name,
-            libdirs,
+            sourceDirs,
             outputDir
         )
 
@@ -65,7 +65,7 @@ class TestCompilerOptionLibdirs {
     }
 
     @Test
-    fun testFilePathInWorkingDirRelativeTo1stInLibdirs() {
+    fun testFilePathInWorkingDirRelativeTo1stInSourcedirs() {
         val filepath = assumeReadableFile(tempFileInWorkingDir)
         compileFile(filepath.fileName, listOf(workingDir.toString()))
             .assertSuccess()
@@ -86,10 +86,10 @@ class TestCompilerOptionLibdirs {
     }
 
     @Test
-    fun testFilePathOutsideWorkingDirRelativeTo1stInLibdirs() {
+    fun testFilePathOutsideWorkingDirRelativeTo1stInSourcedirs() {
         val filepath = assumeReadableFile(fixturesDir, "simple_main.p8")
-        val libdirs = listOf("$fixturesDir")
-        compileFile(filepath.fileName, libdirs)
+        val sourcedirs = listOf("$fixturesDir")
+        compileFile(filepath.fileName, sourcedirs)
             .assertSuccess()
     }
 

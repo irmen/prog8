@@ -137,7 +137,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
             }
         }
 
-        if(expr.inferType(program).istype(DataType.FLOAT)) {
+        if(expr.inferType(program) istype DataType.FLOAT) {
             val subExpr: BinaryExpression? = when {
                 leftconst != null -> expr.right as? BinaryExpression
                 rightconst != null -> expr.left as? BinaryExpression
@@ -277,7 +277,7 @@ internal class ConstantFoldingOptimizer(private val program: Program) : AstWalke
         val numval = decl.value as? NumericLiteralValue
         if(decl.type== VarDeclType.CONST && numval!=null) {
             val valueDt = numval.inferType(program)
-            if(!valueDt.istype(decl.datatype)) {
+            if(valueDt isnot decl.datatype) {
                 val cast = numval.cast(decl.datatype)
                 if(cast.isValid)
                     return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))

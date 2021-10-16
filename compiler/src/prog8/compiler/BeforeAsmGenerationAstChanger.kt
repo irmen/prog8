@@ -341,7 +341,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         val modifications = mutableListOf<IAstModification>()
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
-        val register = if(dt.istype(DataType.UBYTE) || dt.istype(DataType.BYTE)) "r9L" else "r9"
+        val register = if(dt istype DataType.UBYTE  || dt istype DataType.BYTE ) "r9L" else "r9"
         // replace the indexer with just the variable (simply use a cx16 virtual register r9, that we HOPE is not used for other things in the expression...)
         // assign the indexing expression to the helper variable, but only if that hasn't been done already
         val target = AssignTarget(IdentifierReference(listOf("cx16", register), expr.indexer.position), null, null, expr.indexer.position)

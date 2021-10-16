@@ -46,29 +46,6 @@ class TestCompilerOnImportsAndIncludes {
             assertEquals("main", strLits[0].definingScope.name)
             assertEquals("foo", strLits[1].definingScope.name)
         }
-
-        @Test
-        @Disabled("TODO: why would we not accept string literals as argument to %import?")
-        fun testImportFromSameFolder_strLit() {
-            val filepath = assumeReadableFile(fixturesDir,"importFromSameFolder_strLit.p8")
-            val imported = assumeReadableFile(fixturesDir, "foo_bar.p8")
-
-            val platform = Cx16Target
-            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
-                .assertSuccess()
-
-            val program = result.programAst
-            val startSub = program.entrypoint
-            val strLits = startSub.statements
-                .filterIsInstance<FunctionCallStatement>()
-                .map { it.args[0] as IdentifierReference }
-                .map { it.targetVarDecl(program)!!.value as StringLiteralValue }
-
-            assertEquals("main.bar", strLits[0].value)
-            assertEquals("foo.bar", strLits[1].value)
-            assertEquals("main", strLits[0].definingScope.name)
-            assertEquals("foo", strLits[1].definingScope.name)
-        }
     }
 
     @Nested

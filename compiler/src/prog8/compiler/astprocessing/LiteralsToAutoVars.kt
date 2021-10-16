@@ -29,7 +29,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
         if(vardecl!=null) {
             // adjust the datatype of the array (to an educated guess)
             val arrayDt = array.type
-            if(!arrayDt.istype(vardecl.datatype)) {
+            if(arrayDt isnot vardecl.datatype) {
                 val cast = array.cast(vardecl.datatype)
                 if (cast != null && cast !== array)
                     return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))

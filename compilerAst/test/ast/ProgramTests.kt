@@ -11,6 +11,7 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.internedStringsModuleName
+import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import kotlin.test.assertContains
@@ -39,7 +40,7 @@ class ProgramTests {
         @Test
         fun withEmptyModule() {
             val program = Program("foo", DummyFunctions, DummyMemsizer)
-            val m1 = Module("bar", mutableListOf(), Position.DUMMY, null)
+            val m1 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
 
             val retVal = program.addModule(m1)
 
@@ -52,7 +53,7 @@ class ProgramTests {
             assertFailsWith<IllegalArgumentException> { program.addModule(m1) }
                 .let { assertThat(it.message, containsString(m1.name)) }
 
-            val m2 = Module(m1.name, mutableListOf(), m1.position, m1.source)
+            val m2 = Module(mutableListOf(), m1.position, m1.source)
             assertFailsWith<IllegalArgumentException> { program.addModule(m2) }
                 .let { assertThat(it.message, containsString(m2.name)) }
         }
@@ -73,15 +74,15 @@ class ProgramTests {
         @Test
         fun withForeignModule() {
             val program = Program("foo", DummyFunctions, DummyMemsizer)
-            val m = Module("bar", mutableListOf(), Position.DUMMY, null)
+            val m = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
 
             assertFailsWith<IllegalArgumentException> { program.moveModuleToFront(m) }
         }
         @Test
         fun withFirstOfPreviouslyAddedModules() {
             val program = Program("foo", DummyFunctions, DummyMemsizer)
-            val m1 = Module("bar", mutableListOf(), Position.DUMMY, null)
-            val m2 = Module("qmbl", mutableListOf(), Position.DUMMY, null)
+            val m1 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
+            val m2 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("qmbl"))
             program.addModule(m1)
             program.addModule(m2)
 
@@ -92,8 +93,8 @@ class ProgramTests {
         @Test
         fun withSecondOfPreviouslyAddedModules() {
             val program = Program("foo", DummyFunctions, DummyMemsizer)
-            val m1 = Module("bar", mutableListOf(), Position.DUMMY, null)
-            val m2 = Module("qmbl", mutableListOf(), Position.DUMMY, null)
+            val m1 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
+            val m2 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("qmbl"))
             program.addModule(m1)
             program.addModule(m2)
 

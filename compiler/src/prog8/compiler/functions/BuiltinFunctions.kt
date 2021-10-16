@@ -9,7 +9,7 @@ import prog8.compiler.CompilerException
 import kotlin.math.*
 
 
-class FParam(val name: String, val possibleDatatypes: Set<DataType>)
+class FParam(val name: String, val possibleDatatypes: Array<DataType>)
 
 
 typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program, memsizer: IMemSizer) -> NumericLiteralValue
@@ -90,10 +90,10 @@ class FSignature(val name: String,
 @Suppress("UNUSED_ANONYMOUS_PARAMETER")
 private val functionSignatures: List<FSignature> = listOf(
         // this set of function have no return value and operate in-place:
-    FSignature("rol"         , false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("ror"         , false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("rol2"        , false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("ror2"        , false, listOf(FParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("rol"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("ror"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("rol2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("ror2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
@@ -103,46 +103,46 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("sum"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
     FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
-    FSignature("sizeof"      , true, listOf(FParam("object", DataType.values().toSet())), DataType.UBYTE, ::builtinSizeof),
+    FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), DataType.UBYTE, ::builtinSizeof),
         // normal functions follow:
     FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
-    FSignature("sin"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sin) },
-    FSignature("sin8"        , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
-    FSignature("sin8u"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
-    FSignature("sin16"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
-    FSignature("sin16u"      , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinSin16u ),
-    FSignature("cos"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::cos) },
-    FSignature("cos8"        , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
-    FSignature("cos8u"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinCos8u ),
-    FSignature("cos16"       , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
-    FSignature("cos16u"      , true, listOf(FParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinCos16u ),
-    FSignature("tan"         , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::tan) },
-    FSignature("atan"        , true, listOf(FParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::atan) },
-    FSignature("ln"          , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::log) },
-    FSignature("log2"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, ::log2) },
-    FSignature("sqrt16"      , true, listOf(FParam("value", setOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()).toInt() } },
-    FSignature("sqrt"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sqrt) },
-    FSignature("rad"         , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::toRadians) },
-    FSignature("deg"         , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::toDegrees) },
-    FSignature("round"       , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
-    FSignature("floor"       , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
-    FSignature("ceil"        , true, listOf(FParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
+    FSignature("sin"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sin) },
+    FSignature("sin8"        , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
+    FSignature("sin8u"       , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
+    FSignature("sin16"       , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
+    FSignature("sin16u"      , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.UWORD, ::builtinSin16u ),
+    FSignature("cos"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::cos) },
+    FSignature("cos8"        , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
+    FSignature("cos8u"       , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.UBYTE, ::builtinCos8u ),
+    FSignature("cos16"       , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
+    FSignature("cos16u"      , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.UWORD, ::builtinCos16u ),
+    FSignature("tan"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::tan) },
+    FSignature("atan"        , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::atan) },
+    FSignature("ln"          , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::log) },
+    FSignature("log2"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, ::log2) },
+    FSignature("sqrt16"      , true, listOf(FParam("value", arrayOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()).toInt() } },
+    FSignature("sqrt"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sqrt) },
+    FSignature("rad"         , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::toRadians) },
+    FSignature("deg"         , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::toDegrees) },
+    FSignature("round"       , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
+    FSignature("floor"       , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
+    FSignature("ceil"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
     FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinAny) },
     FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinAll) },
-    FSignature("lsb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 } },
-    FSignature("msb"         , true, listOf(FParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255} },
-    FSignature("mkword"      , true, listOf(FParam("msb", setOf(DataType.UBYTE)), FParam("lsb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
-    FSignature("peek"        , true, listOf(FParam("address", setOf(DataType.UWORD))), DataType.UBYTE),
-    FSignature("peekw"       , true, listOf(FParam("address", setOf(DataType.UWORD))), DataType.UWORD),
-    FSignature("poke"        , false, listOf(FParam("address", setOf(DataType.UWORD)), FParam("value", setOf(DataType.UBYTE))), null),
-    FSignature("pokew"       , false, listOf(FParam("address", setOf(DataType.UWORD)), FParam("value", setOf(DataType.UWORD))), null),
+    FSignature("lsb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 } },
+    FSignature("msb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg, ct -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255} },
+    FSignature("mkword"      , true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
+    FSignature("peek"        , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UBYTE),
+    FSignature("peekw"       , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UWORD),
+    FSignature("poke"        , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
+    FSignature("pokew"       , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UWORD))), null),
     FSignature("rnd"         , false, emptyList(), DataType.UBYTE),
     FSignature("rndw"        , false, emptyList(), DataType.UWORD),
     FSignature("rndf"        , false, emptyList(), DataType.FLOAT),
-    FSignature("memory"      , true, listOf(FParam("name", setOf(DataType.STR)), FParam("size", setOf(DataType.UWORD))), DataType.UWORD),
+    FSignature("memory"      , true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD))), DataType.UWORD),
     FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
-    FSignature("callfar"     , false, listOf(FParam("bank", setOf(DataType.UBYTE)), FParam("address", setOf(DataType.UWORD)), FParam("arg", setOf(DataType.UWORD))), null),
-    FSignature("callrom"     , false, listOf(FParam("bank", setOf(DataType.UBYTE)), FParam("address", setOf(DataType.UWORD)), FParam("arg", setOf(DataType.UWORD))), null),
+    FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
+    FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
 
 )
 
@@ -305,7 +305,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 val elementDt = ArrayToElementTypes.getValue(dt.getOr(DataType.UNDEFINED))
                 numericLiteral(memsizer.memorySize(elementDt) * length, position)
             }
-            dt.istype(DataType.STR) -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
+            dt istype DataType.STR -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
             else -> NumericLiteralValue(DataType.UBYTE, memsizer.memorySize(dt.getOr(DataType.UNDEFINED)), position)
         }
     } else {

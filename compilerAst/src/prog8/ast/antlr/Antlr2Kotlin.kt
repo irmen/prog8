@@ -6,6 +6,9 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.parser.Prog8ANTLRParser
+import prog8.parser.SourceCode
+import java.nio.file.Path
+import kotlin.io.path.isRegularFile
 
 
 /***************** Antlr Extension methods to create AST ****************/
@@ -14,17 +17,17 @@ private data class NumericLiteral(val number: Number, val datatype: DataType)
 
 
 private fun ParserRuleContext.toPosition() : Position {
-    /*
-    val customTokensource = this.start.tokenSource as? CustomLexer
-    val filename =
-            when {
-                customTokensource!=null -> customTokensource.modulePath.toString()
-                start.tokenSource.sourceName == IntStream.UNKNOWN_SOURCE_NAME -> "@internal@"
-                else -> File(start.inputStream.sourceName).name
-            }
-    */
-    val filename = start.inputStream.sourceName
-
+    val pathString = start.inputStream.sourceName
+    val filename = if(SourceCode.isRegularFilesystemPath(pathString)) {
+        val path = Path.of(pathString)
+        if(path.isRegularFile()) {
+            SourceCode.relative(path).toString()
+        } else {
+            path.toString()
+        }
+    } else {
+        pathString
+    }
     // note: beware of TAB characters in the source text, they count as 1 column...
     return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
 }

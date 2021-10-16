@@ -17,7 +17,9 @@ import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.ICompilationTarget
 import prog8.compiler.target.asmGeneratorFor
 import prog8.optimizer.*
+import prog8.parser.ParseError
 import prog8.parser.ParsingFailedError
+import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import java.io.File
 import java.nio.file.Path
@@ -70,7 +72,7 @@ fun compileProgram(filepath: Path,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
                    compilationTarget: String,
-                   libdirs: List<String>,
+                   sourceDirs: List<String>,
                    outputDir: Path): CompilationResult {
     var programName = ""
     lateinit var programAst: Program
@@ -87,21 +89,27 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, libdirs)
+            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, sourceDirs)
             compilationOptions.slowCodegenWarnings = slowCodegenWarnings
             compilationOptions.optimize = optimize
             programAst = ast
             importedFiles = imported
             processAst(programAst, errors, compilationOptions)
             if (compilationOptions.optimize)
-                optimizeAst(programAst, errors, BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compilationOptions)
+                optimizeAst(
+                    programAst,
+                    errors,
+                    BuiltinFunctionsFacade(BuiltinFunctions),
+                    compTarget,
+                    compilationOptions
+                )
             postprocessAst(programAst, errors, compilationOptions)
 
             // printAst(programAst)
 
-            if(writeAssembly) {
+            if (writeAssembly) {
                 val result = writeAssembly(programAst, errors, outputDir, compilationOptions)
-                when(result) {
+                when (result) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
@@ -114,10 +122,13 @@ fun compileProgram(filepath: Path,
         System.err.flush()
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
         return CompilationResult(true, programAst, programName, compTarget, importedFiles)
-
-    } catch (px: ParsingFailedError) {
+    } catch (px: ParseError) {
         System.err.print("\u001b[91m")  // bright red
-        System.err.println(px.message)
+        System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
+        System.err.print("\u001b[0m")  // reset
+    } catch (pfx: ParsingFailedError) {
+        System.err.print("\u001b[91m")  // bright red
+        System.err.println(pfx.message)
         System.err.print("\u001b[0m")  // reset
     } catch (ax: AstException) {
         System.err.print("\u001b[91m")  // bright red
@@ -172,23 +183,22 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 }
 
 fun parseImports(filepath: Path,
-                         errors: IErrorReporter,
-                         compTarget: ICompilationTarget,
-                         libdirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
+                 errors: IErrorReporter,
+                 compTarget: ICompilationTarget,
+                 sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val programAst = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = programAst
 
-    val importer = ModuleImporter(programAst, compTarget.name, errors, libdirs)
+    val importer = ModuleImporter(programAst, compTarget.name, errors, sourceDirs)
     val importedModuleResult = importer.importModule(filepath)
     importedModuleResult.onFailure { throw it }
     errors.report()
 
-    val importedFiles = programAst.modules
-        .mapNotNull { it.source }
-        .filter { !it.isFromResources } // TODO: parseImports/importedFiles - maybe rather `source.isFromFilesystem`?
-        .map { Path(it.pathString()) }
+    val importedFiles = programAst.modules.map { it.source }
+        .filter { it.isFromFilesystem }
+        .map { Path(it.origin) }
     val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
@@ -365,7 +375,7 @@ fun printAst(programAst: Program) {
     println()
 }
 
-internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<String, NoSuchFileException> {
+internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
     return if (filename.startsWith(libraryFilePrefix)) {
         return runCatching {
             val stream = object {}.javaClass.getResourceAsStream("/prog8lib/${filename.substring(libraryFilePrefix.length)}") // TODO handle via SourceCode
@@ -373,7 +383,7 @@ internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<Stri
         }.mapError { NoSuchFileException(File(filename)) }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
-        val sib = sourcePath.resolveSibling(filename)
+        val sib = Path(source.origin).resolveSibling(filename)
 
         if (sib.toFile().isFile)
             Ok(sib.toFile().readText())

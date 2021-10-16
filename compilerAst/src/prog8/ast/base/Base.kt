@@ -24,16 +24,17 @@ enum class DataType {
      */
     infix fun isAssignableTo(targetType: DataType) =
             when(this) {
-                UBYTE -> targetType in setOf(UBYTE, WORD, UWORD, FLOAT)
-                BYTE -> targetType in setOf(BYTE, WORD, FLOAT)
-                UWORD -> targetType in setOf(UWORD, FLOAT)
-                WORD -> targetType in setOf(WORD, FLOAT)
+                UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, FLOAT)
+                BYTE -> targetType.oneOf(BYTE, WORD, FLOAT)
+                UWORD -> targetType.oneOf(UWORD, FLOAT)
+                WORD -> targetType.oneOf(WORD, FLOAT)
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR
                 in ArrayDatatypes -> targetType == this
                 else -> false
             }
 
+    fun oneOf(vararg types: DataType) = this in types
     infix fun isAssignableTo(targetTypes: Set<DataType>) = targetTypes.any { this isAssignableTo it }
     infix fun isNotAssignableTo(targetType: DataType) = !this.isAssignableTo(targetType)
     infix fun isNotAssignableTo(targetTypes: Set<DataType>) = !this.isAssignableTo(targetTypes)
@@ -127,13 +128,13 @@ enum class VarDeclType {
     MEMORY
 }
 
-val ByteDatatypes = setOf(DataType.UBYTE, DataType.BYTE)
-val WordDatatypes = setOf(DataType.UWORD, DataType.WORD)
-val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
-val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
-val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
-val StringlyDatatypes = setOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
-val IterableDatatypes = setOf(
+val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE)
+val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
+val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
+val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
+val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
+val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
+val IterableDatatypes = arrayOf(
     DataType.STR,
     DataType.ARRAY_UB, DataType.ARRAY_B,
     DataType.ARRAY_UW, DataType.ARRAY_W,
@@ -156,7 +157,7 @@ val ElementToArrayTypes = mapOf(
         DataType.UWORD to DataType.ARRAY_UW,
         DataType.FLOAT to DataType.ARRAY_F
 )
-val Cx16VirtualRegisters = listOf(
+val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
     RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
     RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,

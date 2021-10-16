@@ -13,6 +13,7 @@ import prog8.compiler.ZeropageType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.ICompilationTarget
+import prog8.parser.SourceCode
 import java.io.CharConversionException
 import java.io.File
 import java.util.*
@@ -44,7 +45,7 @@ internal class AstChecker(private val program: Program,
         }
 
         if(compilerOptions.floats) {
-            if (compilerOptions.zeropage !in setOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+            if (compilerOptions.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.mainModule.position)
         }
 
@@ -152,11 +153,11 @@ internal class AstChecker(private val program: Program,
                         val to = range.to as? NumericLiteralValue
                         if(from != null)
                             checkValueTypeAndRange(loopvar.datatype, from)
-                        else if(!range.from.inferType(program).istype(loopvar.datatype))
+                        else if(range.from.inferType(program) isnot loopvar.datatype)
                             errors.err("range start value is incompatible with loop variable type", range.position)
                         if(to != null)
                             checkValueTypeAndRange(loopvar.datatype, to)
-                        else if(!range.to.inferType(program).istype(loopvar.datatype))
+                        else if(range.to.inferType(program) isnot loopvar.datatype)
                             errors.err("range end value is incompatible with loop variable type", range.position)
                     }
                 }
@@ -283,11 +284,11 @@ internal class AstChecker(private val program: Program,
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
                 err("number of return registers is not the isSameAs as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
-                if(param.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                if(param.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE)
                         err("parameter '${param.first.name}' should be (u)byte")
                 }
-                else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
                             && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
                         err("parameter '${param.first.name}' should be (u)word/address")
@@ -298,11 +299,11 @@ internal class AstChecker(private val program: Program,
                 }
             }
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
-                if(pair.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                if(pair.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE)
                         err("return value #${index + 1} should be (u)byte")
                 }
-                else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                else if(pair.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (pair.first != DataType.UWORD && pair.first != DataType.WORD
                             && pair.first != DataType.STR && pair.first !in ArrayDatatypes && pair.first != DataType.FLOAT)
                         err("return value #${index + 1} should be (u)word/address")
@@ -428,12 +429,12 @@ internal class AstChecker(private val program: Program,
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
             if(targetDt.isIterable)
                 errors.err("cannot assign value to string or array", assignment.value.position)
-            else if(!(valueDt.istype(DataType.STR) && targetDt.istype(DataType.UWORD)))
+            else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD))
                 errors.err("type of value doesn't match target", assignment.value.position)
         }
 
         if(assignment.value is TypecastExpression) {
-            if(assignment.isAugmentable && targetDt.istype(DataType.FLOAT))
+            if(assignment.isAugmentable && targetDt istype DataType.FLOAT)
                 errors.err("typecasting a float value in-place makes no sense", assignment.value.position)
         }
 
@@ -518,7 +519,7 @@ internal class AstChecker(private val program: Program,
         }
 
         // FLOATS enabled?
-        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
+        if(!compilerOptions.floats && decl.datatype.oneOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
             err("floating point used, but that is not enabled via options")
 
         if(decl.datatype == DataType.FLOAT && (decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE))
@@ -596,7 +597,7 @@ internal class AstChecker(private val program: Program,
 
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR) {
-            if (!declValue.inferType(program).istype(decl.datatype)) {
+            if (declValue.inferType(program) isnot decl.datatype) {
                 err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
             }
         }
@@ -714,7 +715,7 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in setOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page")}.any { !it })
+                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page")}.any { !it })
                     err("invalid option directive argument(s)")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
@@ -726,25 +727,21 @@ internal class AstChecker(private val program: Program,
         if (File(filename).isFile)
             return
 
-        var definingModule = directive.parent   // TODO: why not just use directive.definingModule() here?
-        while (definingModule !is Module)
-            definingModule = definingModule.parent
-        if (definingModule.isLibrary)
+        val definingModule = directive.definingModule
+        if (definingModule.isLibrary || !definingModule.source.isFromFilesystem)
             return
 
-        val s = definingModule.source?.pathString()
-        if (s != null) {
-            val sourceFileCandidate = Path(s).resolveSibling(filename).toFile()
-            if (sourceFileCandidate.isFile)
-                return
-        }
-
-        errors.err("included file not found: $filename", directive.position)
+        val s = definingModule.source.origin
+        val sourceFileCandidate = Path(s).resolveSibling(filename).toFile()
+        if (sourceFileCandidate.isFile)
+            return
+        else
+            errors.err("included file not found: $filename", directive.position)
     }
 
     override fun visit(array: ArrayLiteralValue) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && array.type.getOr(DataType.UNDEFINED) in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            if (!compilerOptions.floats && array.type.oneOf(DataType.FLOAT, DataType.ARRAY_F)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
@@ -919,7 +916,7 @@ internal class AstChecker(private val program: Program,
         // warn about sgn(unsigned) this is likely a mistake
         if(functionCall.target.nameInSource.last()=="sgn") {
             val sgnArgType = functionCall.args.first().inferType(program)
-            if(sgnArgType.istype(DataType.UBYTE) || sgnArgType.istype(DataType.UWORD))
+            if(sgnArgType istype DataType.UBYTE  || sgnArgType istype DataType.UWORD)
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCall.args.first().position)
         }
 
@@ -988,12 +985,12 @@ internal class AstChecker(private val program: Program,
         if(functionCallStatement.target.nameInSource.last() == "sort") {
             // sort is not supported on float arrays
             val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
-            if(idref!=null && idref.inferType(program).istype(DataType.ARRAY_F)) {
+            if(idref!=null && idref.inferType(program) istype DataType.ARRAY_F) {
                 errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
             }
         }
 
-        if(functionCallStatement.target.nameInSource.last() in setOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
+        if(functionCallStatement.target.nameInSource.last() in arrayOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
             // in-place modification, can't be done on literals
             if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                 errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
@@ -1122,7 +1119,7 @@ internal class AstChecker(private val program: Program,
 
         // check index value 0..255
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
-        if(!dtxNum.istype(DataType.UBYTE) && !dtxNum.istype(DataType.BYTE))
+        if(dtxNum isnot DataType.UBYTE && dtxNum isnot DataType.BYTE)
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
 
         super.visit(arrayIndexedExpression)
@@ -1160,7 +1157,7 @@ internal class AstChecker(private val program: Program,
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
-                    constvalue.type != conditionType.getOr(DataType.UNDEFINED) -> errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    conditionType isnot constvalue.type -> errors.err("choice value datatype differs from condition value", whenChoice.position)
                 }
             }
         } else {
@@ -1204,7 +1201,7 @@ internal class AstChecker(private val program: Program,
             DataType.STR -> return err("string value expected")
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arraysize (of all constant values), or a range
-                if(value.type.istype(targetDt)) {
+                if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.constIndex()
@@ -1223,7 +1220,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word arraysize, or a range
-                if(value.type.istype(targetDt)) {
+                if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.constIndex()
@@ -1242,7 +1239,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arraysize
-                if(value.type.istype(targetDt)) {
+                if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySize = value.value.size
