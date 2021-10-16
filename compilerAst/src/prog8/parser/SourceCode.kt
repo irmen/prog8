@@ -34,7 +34,7 @@ sealed class SourceCode {
      * Where this [SourceCode] instance came from.
      * This can be one of the following:
      * * a normal string representation of a [java.nio.file.Path], if it originates from a file (see [File])
-     * * `<String@44c56085>` if was created via [String]
+     * * `$stringSourcePrefix44c56085>` if was created via [String]
      * * `library:/x/y/z.ext` if it is a library file that was loaded from resources (see [Resource])
      */
     abstract val origin: String
@@ -43,6 +43,7 @@ sealed class SourceCode {
     /**
      * This is really just [origin] with any stuff removed that would render it an invalid path name.
      * (Note: a *valid* path name does NOT mean that the denoted file or folder *exists*)
+     * TODO this promise doesn't work.... a "library:/...." resource path is not valid on Windows for example
      */
     fun pathString() = origin.substringAfter("<").substringBeforeLast(">") // or from plain string?
 
@@ -64,17 +65,20 @@ sealed class SourceCode {
          * filename prefix to designate library files that will be retreived from internal resources rather than disk
          */
         const val libraryFilePrefix = "library:"
+        const val stringSourcePrefix = "<String@"
         val curdir: Path = Path.of(".").toAbsolutePath()
         fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
+        fun isRegularFilesystemPath(pathString: String) =
+            !(pathString.startsWith(libraryFilePrefix) || pathString.startsWith(stringSourcePrefix))
     }
 
     /**
      * Turn a plain String into a [SourceCode] object.
-     * [origin] will be something like `<String@44c56085>`.
+     * [origin] will be something like `$stringSourcePrefix44c56085>`.
      */
     class Text(val text: String): SourceCode() {
         override val isFromResources = false
-        override val origin = "<String@${System.identityHashCode(text).toString(16)}>"
+        override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
         override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
     }
 

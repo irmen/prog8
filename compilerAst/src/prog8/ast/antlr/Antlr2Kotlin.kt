@@ -17,11 +17,16 @@ private data class NumericLiteral(val number: Number, val datatype: DataType)
 
 
 private fun ParserRuleContext.toPosition() : Position {
-    val path = Path.of(start.inputStream.sourceName)
-    val filename = if(path.isRegularFile()) {
-        SourceCode.relative(Path.of(start.inputStream.sourceName)).toString()
+    val pathString = start.inputStream.sourceName
+    val filename = if(SourceCode.isRegularFilesystemPath(pathString)) {
+        val path = Path.of(pathString)
+        if(path.isRegularFile()) {
+            SourceCode.relative(path).toString()
+        } else {
+            path.toString().substringAfter("<").substringBeforeLast(">")        // TODO fix the need to get rid of the < and >
+        }
     } else {
-        path.toString().substringAfter("<").substringBeforeLast(">")
+        pathString.substringAfter("<").substringBeforeLast(">")    // TODO fix the need to get rid of the < and >
     }
     // note: beware of TAB characters in the source text, they count as 1 column...
     return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
