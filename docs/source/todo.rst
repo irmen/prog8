@@ -3,7 +3,7 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-get rid of SourceCode.pathString() and the 'need' to strip < and > ?
+...
 
 
 Blocked by Commander-x16 v39 release

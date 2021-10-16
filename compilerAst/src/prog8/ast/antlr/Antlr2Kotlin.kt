@@ -23,10 +23,10 @@ private fun ParserRuleContext.toPosition() : Position {
         if(path.isRegularFile()) {
             SourceCode.relative(path).toString()
         } else {
-            path.toString().substringAfter("<").substringBeforeLast(">")        // TODO fix the need to get rid of the < and >
+            path.toString()
         }
     } else {
-        pathString.substringAfter("<").substringBeforeLast(">")    // TODO fix the need to get rid of the < and >
+        pathString
     }
     // note: beware of TAB characters in the source text, they count as 1 column...
     return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)

@@ -197,8 +197,8 @@ fun parseImports(filepath: Path,
     errors.report()
 
     val importedFiles = programAst.modules.map { it.source }
-        .filter { it !is SourceCode.Generated && !it.isFromResources }  // TODO: parseImports/importedFiles - maybe rather `source.isFromFilesystem`?
-        .map { Path(it.pathString()) }
+        .filter { it.isFromFilesystem }
+        .map { Path(it.origin) }
     val compilerOptions = determineCompilationOptions(programAst, compTarget)
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
@@ -383,7 +383,7 @@ internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<St
         }.mapError { NoSuchFileException(File(filename)) }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
-        val sib = Path(source.pathString()).resolveSibling(filename)
+        val sib = Path(source.origin).resolveSibling(filename)
 
         if (sib.toFile().isFile)
             Ok(sib.toFile().readText())

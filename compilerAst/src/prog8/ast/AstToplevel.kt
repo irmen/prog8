@@ -354,12 +354,10 @@ open class Module(final override var statements: MutableList<Statement>,
     override lateinit var parent: Node
     lateinit var program: Program
 
-    // the module name is derived back from the path of the source
-    override val name = source.pathString()
+    override val name = source.origin
             .substringBeforeLast(".")
             .substringAfterLast("/")
             .substringAfterLast("\\")
-            .replace("String@", "anonymous_")
 
     val loadAddress: Int by lazy {
         val address = (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int ?: 0

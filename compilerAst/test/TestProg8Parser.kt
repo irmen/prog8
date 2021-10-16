@@ -219,7 +219,7 @@ class TestProg8Parser {
             val module = parseModule(SourceCode.Text(srcText))
 
             // Note: assertContains has *actual* as first param
-            assertContains(module.name, Regex("^anonymous_[0-9a-f]+$"))
+            assertContains(module.name, Regex("^<String@[0-9a-f]+>$"))
         }
 
         @Test
@@ -312,7 +312,7 @@ class TestProg8Parser {
                 }
             """.trimIndent()
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^String@[0-9a-f]+$"), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, Regex("^<String@[0-9a-f]+>$"), 1, 0) // TODO: endCol wrong
         }
 
         @Test

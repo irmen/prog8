@@ -1339,7 +1339,7 @@ $repeatLabel    lda  $counterVar
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
                 if(stmt.definingModule.source is SourceCode.Generated)
                     TODO("%asmbinary inside non-library, non-filesystem module")
-                val sourcePath = Path(stmt.definingModule.source.pathString())
+                val sourcePath = Path(stmt.definingModule.source.origin)
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
                     .toAbsolutePath()

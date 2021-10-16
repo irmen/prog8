@@ -728,10 +728,10 @@ internal class AstChecker(private val program: Program,
             return
 
         val definingModule = directive.definingModule
-        if (definingModule.isLibrary || definingModule.source is SourceCode.Generated)
+        if (definingModule.isLibrary || !definingModule.source.isFromFilesystem)
             return
 
-        val s = definingModule.source.pathString()
+        val s = definingModule.source.origin
         val sourceFileCandidate = Path(s).resolveSibling(filename).toFile()
         if (sourceFileCandidate.isFile)
             return

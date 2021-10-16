@@ -25,10 +25,14 @@ sealed class SourceCode {
     internal abstract fun getCharStream(): CharStream
 
     /**
-     * Whether this [SourceCode] instance was created by
-     * factory method [Resource]
+     * Whether this [SourceCode] instance was created as a [Resource]
      */
     abstract val isFromResources: Boolean
+
+    /**
+     * Whether this [SourceCode] instance was created as a [File]
+     */
+    abstract val isFromFilesystem: Boolean
 
     /**
      * Where this [SourceCode] instance came from.
@@ -38,14 +42,6 @@ sealed class SourceCode {
      * * `library:/x/y/z.ext` if it is a library file that was loaded from resources (see [Resource])
      */
     abstract val origin: String
-
-
-    /**
-     * This is really just [origin] with any stuff removed that would render it an invalid path name.
-     * (Note: a *valid* path name does NOT mean that the denoted file or folder *exists*)
-     * TODO this promise doesn't work.... a "library:/...." resource path is not valid on Windows for example
-     */
-    fun pathString() = origin.substringAfter("<").substringBeforeLast(">") // or from plain string?
 
     /**
      * The source code as plain string.
@@ -78,6 +74,7 @@ sealed class SourceCode {
      */
     class Text(val text: String): SourceCode() {
         override val isFromResources = false
+        override val isFromFilesystem = false
         override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
         override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
     }
@@ -107,6 +104,7 @@ sealed class SourceCode {
         }
 
         override val isFromResources = false
+        override val isFromFilesystem = true
         override val origin = relative(normalized).toString()
         override fun getCharStream(): CharStream = CharStreams.fromPath(normalized)
     }
@@ -129,6 +127,7 @@ sealed class SourceCode {
         }
 
         override val isFromResources = true
+        override val isFromFilesystem = false
         override val origin = "$libraryFilePrefix$normalized"
         override fun getCharStream(): CharStream {
             val inpStr = object {}.javaClass.getResourceAsStream(normalized)!!
@@ -142,8 +141,9 @@ sealed class SourceCode {
      * SourceCode for internally generated nodes (usually Modules)
      */
     class Generated(name: String) : SourceCode() {
-        override fun getCharStream(): CharStream = throw IOException("generated code doesn't have a stream to read")
+        override fun getCharStream(): CharStream = throw IOException("generated code nodes doesn't have a stream to read")
         override val isFromResources: Boolean = false
+        override val isFromFilesystem: Boolean = false
         override val origin: String = name
     }
 
