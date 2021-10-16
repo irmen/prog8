@@ -1343,8 +1343,8 @@ $repeatLabel    lda  $counterVar
                 val sourcePath = Path(stmt.definingModule.source.pathString())
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
-                    .absolute() // avoid IllegalArgumentExc due to non-absolute path .relativize(absolute path)
-                    .relativize(includedPath)
+                    .toAbsolutePath()
+                    .relativize(includedPath.toAbsolutePath())
                     .normalize() // avoid assembler warnings (-Wportable; only some, not all)
                     .toString().replace('\\', '/')
                 out("  .binary \"$pathForAssembler\" $offset $length")

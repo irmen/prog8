@@ -79,7 +79,7 @@ locallabel:
         val errors = ErrorReporter()
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target)
         val zp = C64MachineDefinition.C64Zeropage(options)
-        val asmgen = AsmGen(program, errors, zp, options, C64Target, Path.of("."))
+        val asmgen = AsmGen(program, errors, zp, options, C64Target, Path.of(""))
         return asmgen
     }
 

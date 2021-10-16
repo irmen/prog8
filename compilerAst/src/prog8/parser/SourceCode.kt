@@ -65,6 +65,7 @@ sealed class SourceCode {
          * filename prefix to designate library files that will be retreived from internal resources rather than disk
          */
         const val libraryFilePrefix = "library:"
+        val curdir: Path = Path.of(".").toAbsolutePath()
     }
 
     /**
@@ -102,7 +103,7 @@ sealed class SourceCode {
         }
 
         override val isFromResources = false
-        override val origin = normalized.absolutePathString()
+        override val origin = curdir.relativize(normalized.toAbsolutePath()).normalize().toString()
         override fun getCharStream(): CharStream = CharStreams.fromPath(normalized)
     }
 

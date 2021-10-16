@@ -3,7 +3,7 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-fix github issue #64 about inconsistent absolute path usage
+re-test https://github.com/irmen/prog8/pull/54  on windows
 
 
 Blocked by Commander-x16 v39 release

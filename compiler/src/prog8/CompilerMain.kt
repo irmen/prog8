@@ -85,7 +85,7 @@ private fun compileMain(args: Array<String>): Boolean {
             for (importedFile in allImportedFiles) {
                 print("  ")
                 println(importedFile)
-                val watchDir = importedFile.parent ?: Path.of(".")
+                val watchDir = importedFile.parent ?: Path.of("")
                 watchDir.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
             }
             println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")

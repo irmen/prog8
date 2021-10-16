@@ -43,7 +43,7 @@ object Prog8Parser {
     }
 
     private class ParsedModule(source: SourceCode) :
-        Module(mutableListOf(), Position(source.origin, 1, 0, 0), source)
+        Module(mutableListOf(), Position(source.pathString(), 1, 0, 0), source)
     {
 
         /**
