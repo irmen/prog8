@@ -3,7 +3,7 @@ TODO
 
 For next compiler release
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-re-test https://github.com/irmen/prog8/pull/54  on windows
+get rid of SourceCode.pathString() and the 'need' to strip < and > ?
 
 
 Blocked by Commander-x16 v39 release
