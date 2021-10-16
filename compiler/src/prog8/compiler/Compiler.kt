@@ -375,7 +375,7 @@ fun printAst(programAst: Program) {
     println()
 }
 
-internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<String, NoSuchFileException> {
+internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
     return if (filename.startsWith(libraryFilePrefix)) {
         return runCatching {
             val stream = object {}.javaClass.getResourceAsStream("/prog8lib/${filename.substring(libraryFilePrefix.length)}") // TODO handle via SourceCode
@@ -383,7 +383,7 @@ internal fun loadAsmIncludeFile(filename: String, sourcePath: Path): Result<Stri
         }.mapError { NoSuchFileException(File(filename)) }
     } else {
         // first try in the isSameAs folder as where the containing file was imported from
-        val sib = sourcePath.resolveSibling(filename)
+        val sib = Path(source.pathString()).resolveSibling(filename)
 
         if (sib.toFile().isFile)
             Ok(sib.toFile().readText())

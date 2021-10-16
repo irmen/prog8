@@ -1328,8 +1328,7 @@ $repeatLabel    lda  $counterVar
                 val includedName = stmt.args[0].str!!
                 if(stmt.definingModule.source is SourceCode.Generated)
                     TODO("%asminclude inside non-library, non-filesystem module")
-                val sourcePath = Path(stmt.definingModule.source.pathString())
-                loadAsmIncludeFile(includedName, sourcePath).fold(
+                loadAsmIncludeFile(includedName, stmt.definingModule.source).fold(
                     success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
                     failure = { errors.err(it.toString(), stmt.position) }
                 )
