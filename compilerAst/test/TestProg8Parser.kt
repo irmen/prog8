@@ -1,6 +1,5 @@
 package prog8tests
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -18,7 +17,6 @@ import prog8.parser.SourceCode
 import prog8tests.helpers.assumeNotExists
 import prog8tests.helpers.assumeReadableFile
 import prog8tests.helpers.fixturesDir
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 import kotlin.test.assertContains
@@ -303,7 +301,7 @@ class TestProg8Parser {
             try {
                 parseModule(SourceCode.File(path))
             } catch (e: ParseError) {
-                assertPosition(e.position, path.absolutePathString(), 2, 6) // TODO: endCol wrong
+                assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6) // TODO: endCol wrong
             }
         }
 
@@ -314,15 +312,14 @@ class TestProg8Parser {
                 }
             """.trimIndent()
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^<String@[0-9a-f]+>$"), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, Regex("^String@[0-9a-f]+$"), 1, 0) // TODO: endCol wrong
         }
 
         @Test
         fun  `of Module parsed from a file`() {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
-
             val module = parseModule(SourceCode.File(path))
-            assertPositionOf(module, path.absolutePathString(), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
         }
 
         @Test
@@ -331,8 +328,7 @@ class TestProg8Parser {
 
             val module = parseModule(SourceCode.File(path))
             val mpf = module.position.file
-
-            assertPositionOf(module, path.absolutePathString(), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
             assertPositionOf(mainBlock, mpf, 1, 0)  // TODO: endCol wrong!
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]

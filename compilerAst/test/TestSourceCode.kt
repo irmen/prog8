@@ -1,13 +1,11 @@
 package prog8tests
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import prog8tests.helpers.*
 import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -53,8 +51,7 @@ class TestSourceCode {
         val filename = "simple_main.p8"
         val path = assumeReadableFile(fixturesDir, filename)
         val src = SourceCode.File(path)
-
-        val expectedOrigin = path.normalize().absolutePathString()
+        val expectedOrigin = SourceCode.relative(path).toString()
         assertEquals(expectedOrigin, src.origin)
         assertEquals(path.toFile().readText(), src.asString())
     }
@@ -65,8 +62,7 @@ class TestSourceCode {
         val path = Path(".", "test", "..", "test", "fixtures", filename)
         val srcFile = assumeReadableFile(path).toFile()
         val src = SourceCode.File(path)
-
-        val expectedOrigin = path.normalize().absolutePathString()
+        val expectedOrigin = SourceCode.relative(path).toString()
         assertEquals(expectedOrigin, src.origin)
         assertEquals(srcFile.readText(), src.asString())
     }

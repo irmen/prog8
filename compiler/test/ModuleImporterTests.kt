@@ -15,6 +15,7 @@ import prog8.ast.Program
 import prog8.compiler.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
+import prog8.parser.SourceCode
 import prog8tests.helpers.*
 import kotlin.io.path.*
 
@@ -191,7 +192,7 @@ class TestModuleImporter {
 
                     repeat(2) { n ->
                         assertFailsWith<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, equalTo(srcPath.absolutePathString()))
+                            assertThat(it.position.file, equalTo(SourceCode.relative(srcPath).toString()))
                             assertThat("line; should be 1-based", it.position.line, equalTo(2))
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
@@ -221,7 +222,7 @@ class TestModuleImporter {
 
                     repeat(repetitions) { n ->
                         assertFailsWith<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, equalTo(imported.absolutePathString()))
+                            assertThat(it.position.file, equalTo(SourceCode.relative(imported).toString()))
                             assertThat("line; should be 1-based", it.position.line, equalTo(2))
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
@@ -277,7 +278,7 @@ class TestModuleImporter {
                     repeat(2) { n ->
                         assertFailsWith<ParseError>(count[n] + " call")
                             { importer.importLibraryModule(srcPath.nameWithoutExtension) }.let {
-                                assertThat(it.position.file, equalTo(srcPath.absolutePathString()))
+                                assertThat(it.position.file, equalTo(SourceCode.relative(srcPath).toString()))
                                 assertThat("line; should be 1-based", it.position.line, equalTo(2))
                                 assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                                 assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
@@ -297,7 +298,7 @@ class TestModuleImporter {
 
                     repeat(repetitions) { n ->
                         assertFailsWith<ParseError>(count[n] + " call") { act() }.let {
-                            assertThat(it.position.file, equalTo(imported.normalize().absolutePathString()))
+                            assertThat(it.position.file, equalTo(SourceCode.relative(imported).toString()))
                             assertThat("line; should be 1-based", it.position.line, equalTo(2))
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))

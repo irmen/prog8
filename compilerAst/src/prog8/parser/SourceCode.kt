@@ -8,7 +8,6 @@ import java.nio.channels.Channels
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isReadable
@@ -66,6 +65,7 @@ sealed class SourceCode {
          */
         const val libraryFilePrefix = "library:"
         val curdir: Path = Path.of(".").toAbsolutePath()
+        fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
     }
 
     /**
@@ -103,12 +103,12 @@ sealed class SourceCode {
         }
 
         override val isFromResources = false
-        override val origin = curdir.relativize(normalized.toAbsolutePath()).normalize().toString()
+        override val origin = relative(normalized).toString()
         override fun getCharStream(): CharStream = CharStreams.fromPath(normalized)
     }
 
     /**
-     * [origin]: `<library:/x/y/z.p8>` for a given `pathString` of "x/y/z.p8"
+     * [origin]: `library:/x/y/z.p8` for a given `pathString` of "x/y/z.p8"
      */
     class Resource(pathString: String): SourceCode() {
         private val normalized = "/" + Path.of(pathString).normalize().toMutableList().joinToString("/")
