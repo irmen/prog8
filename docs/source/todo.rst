@@ -14,7 +14,7 @@ Blocked by Commander-x16 v39 release
 
 Future
 ^^^^^^
-- get rid of all TODO's and FIXME's in the code
+- get rid of all TODO's in the code
 - improve testability further, add more tests, address more questions/issues from the testability discussions.
 - replace certain uses of inferredType.getOr(DataType.UNDEFINED) by i.getOrElse({ errorhandler })
 - see if we can remove more "[InferredType].getOr(DataType.UNDEFINED)"

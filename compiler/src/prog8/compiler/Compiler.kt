@@ -280,6 +280,8 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     programAst.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
+    // NOTE: we will then lose the opportunity to do constant-folding on any expression containing a char literal, but how often will those occur?
+    // Also they might be optimized away eventually in codegen or by the assembler even
     programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget)
     errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)
