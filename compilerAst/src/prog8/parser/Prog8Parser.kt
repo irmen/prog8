@@ -98,7 +98,11 @@ object Prog8Parser {
                 TODO("no RecognitionException - create your own ParseError")
                 //throw ParseError()
             } else {
-                throw ParseError(msg, e.getPosition(src.origin), e)
+                if(e.offendingToken==null) {
+                    throw ParseError(msg, Position(src.origin, line, charPositionInLine, charPositionInLine), e)
+                } else {
+                    throw ParseError(msg, e.getPosition(src.origin), e)
+                }
             }
         }
     }
