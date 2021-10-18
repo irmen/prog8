@@ -51,7 +51,6 @@ class ModuleImporter(private val program: Program,
         return executeImportDirective(import, null)
     }
 
-    //private fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
     private fun importModule(src: SourceCode) : Module {
         val moduleAst = Prog8Parser.parseModule(src)
         program.addModule(moduleAst)

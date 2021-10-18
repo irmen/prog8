@@ -1,30 +1,32 @@
 package prog8tests
 
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.core.StringStartsWith
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import prog8tests.helpers.*
 import kotlin.io.path.Path
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSourceCode {
 
     @Test
-    fun testFactoryMethod_Of() {
+    fun testFromString() {
         val text = """
             main { }
-        """.trimIndent()
+        """
         val src = SourceCode.Text(text)
         val actualText = src.getCharStream().toString()
 
         assertContains(src.origin, Regex("^<String@[0-9a-f]+>$"))
         assertEquals(text, actualText)
+        assertFalse(src.isFromResources)
+        assertFalse(src.isFromFilesystem)
+        assertThat(src.toString(), StringStartsWith("prog8.parser.SourceCode"))
     }
 
     @Test
@@ -54,6 +56,8 @@ class TestSourceCode {
         val expectedOrigin = SourceCode.relative(path).toString()
         assertEquals(expectedOrigin, src.origin)
         assertEquals(path.toFile().readText(), src.asString())
+        assertFalse(src.isFromResources)
+        assertTrue(src.isFromFilesystem)
     }
 
     @Test
@@ -75,6 +79,8 @@ class TestSourceCode {
 
         assertEquals("$libraryFilePrefix/$pathString", src.origin)
         assertEquals(srcFile.readText(), src.asString())
+        assertTrue(src.isFromResources)
+        assertFalse(src.isFromFilesystem)
     }
 
     @Test

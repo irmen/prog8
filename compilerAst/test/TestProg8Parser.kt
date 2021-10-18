@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.IFunctionCall
+import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.base.Position
 import prog8.ast.expressions.CharLiteral
@@ -17,12 +18,11 @@ import prog8.parser.SourceCode
 import prog8tests.helpers.assumeNotExists
 import prog8tests.helpers.assumeReadableFile
 import prog8tests.helpers.fixturesDir
+import kotlin.io.path.Path
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertIs
+import kotlin.test.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -330,9 +330,9 @@ class TestProg8Parser {
             val mpf = module.position.file
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 1, 0)  // TODO: endCol wrong!
+            assertPositionOf(mainBlock, mpf, 2, 0)  // TODO: endCol wrong!
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 2, 4)  // TODO: endCol wrong!
+            assertPositionOf(startSub, mpf, 3, 4)  // TODO: endCol wrong!
         }
 
 
@@ -377,6 +377,59 @@ class TestProg8Parser {
             assertPositionOf(whenStmt.choices[2], mpf, 9, 12)  // TODO: endCol wrong!
         }
     }
+
+    @Nested
+    inner class PositionFile {
+        @Test
+        fun `isn't absolute for filesystem paths`() {
+            val path = assumeReadableFile(fixturesDir, "simple_main.p8")
+            val module = parseModule(SourceCode.File(path))
+            assertSomethingForAllNodes(module) {
+                assertFalse(Path(it.position.file).isAbsolute)
+                assertTrue(Path(it.position.file).isRegularFile())
+            }
+        }
+
+        @Test
+        fun `is mangled string id for string sources`()
+        {
+            val srcText="""
+                %zeropage basicsafe
+                main {
+                    sub start() {
+                        ubyte aa=99
+                        aa++
+                    }
+                }
+            """.trimIndent()
+            val module = parseModule(SourceCode.Text(srcText))
+            assertSomethingForAllNodes(module) {
+                assertTrue(it.position.file.startsWith(SourceCode.stringSourcePrefix))
+            }
+        }
+
+        @Test
+        fun `is library prefixed path for resources`()
+        {
+            val resource = SourceCode.Resource("prog8lib/math.p8")
+            val module = parseModule(resource)
+            assertSomethingForAllNodes(module) {
+                assertTrue(it.position.file.startsWith(SourceCode.libraryFilePrefix))
+            }
+        }
+
+        private fun assertSomethingForAllNodes(module: Module, asserter: (Node) -> Unit) {
+            asserter(module)
+            module.statements.forEach(asserter)
+            module.statements.filterIsInstance<Block>().forEach { b ->
+                asserter(b)
+                b.statements.forEach(asserter)
+                b.statements.filterIsInstance<Subroutine>().forEach { s ->
+                    asserter(s)
+                    s.statements.forEach(asserter)
+                }
+            }
+        }    }
 
     @Nested
     inner class CharLiterals {
