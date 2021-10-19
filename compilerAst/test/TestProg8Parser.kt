@@ -572,7 +572,6 @@ class TestProg8Parser {
             assertIs<CharLiteral>(it2.to, "parser should leave it as is")
 
             val it3 = iterables[3] as RangeExpr
-            // TODO: intro BoolLiteral
             assertIs<NumericLiteralValue>(it3.from, "parser should leave it as is")
             assertIs<NumericLiteralValue>(it3.to, "parser should leave it as is")
 
