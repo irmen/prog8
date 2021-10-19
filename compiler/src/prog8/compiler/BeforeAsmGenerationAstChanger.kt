@@ -39,7 +39,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
-                && compTarget.isInRegularRAM(assignment.target, program)) {
+                && compTarget.isInRegularRAM(assignment.target)) {
             val binExpr = assignment.value as? BinaryExpression
             if (binExpr != null && binExpr.operator !in comparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {

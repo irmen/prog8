@@ -71,7 +71,7 @@ locallabel:
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
-        module.linkParents(program.namespace)
+        module.linkIntoProgram(program)
         return program
     }
 

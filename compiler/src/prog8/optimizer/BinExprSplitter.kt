@@ -54,7 +54,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
 
  */
-            if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target, program)) {
+            if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target)) {
                 if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
                     return noModifications
 
@@ -77,9 +77,9 @@ X =      BinExpr                                    X   =   LeftExpr
         return noModifications
     }
 
-    private fun isSimpleTarget(target: AssignTarget, program: Program) =
+    private fun isSimpleTarget(target: AssignTarget) =
             if (target.identifier!=null || target.memoryAddress!=null)
-                compTarget.isInRegularRAM(target, program)
+                compTarget.isInRegularRAM(target)
             else
                 false
 
