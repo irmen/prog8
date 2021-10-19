@@ -31,12 +31,9 @@ object Prog8Parser {
         parser.addErrorListener(antlrErrorListener)
 
         val parseTree = parser.module()
-
         val module = ParsedModule(src)
 
-        // .linkParents called in ParsedModule.add
         parseTree.directive().forEach { module.add(it.toAst()) }
-        // TODO: remove Encoding
         parseTree.block().forEach { module.add(it.toAst(module.isLibrary)) }
 
         return module
@@ -95,10 +92,13 @@ object Prog8Parser {
     private class AntlrErrorListener(val src: SourceCode): BaseErrorListener() {
         override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
             if (e == null) {
-                TODO("no RecognitionException - create your own ParseError")
-                //throw ParseError()
+                throw ParseError(msg, Position(src.origin, line, charPositionInLine, charPositionInLine), RuntimeException("parse error"))
             } else {
-                throw ParseError(msg, e.getPosition(src.origin), e)
+                if(e.offendingToken==null) {
+                    throw ParseError(msg, Position(src.origin, line, charPositionInLine, charPositionInLine), e)
+                } else {
+                    throw ParseError(msg, e.getPosition(src.origin), e)
+                }
             }
         }
     }
@@ -107,7 +107,7 @@ object Prog8Parser {
         val offending = this.offendingToken
         val line = offending.line
         val beginCol = offending.charPositionInLine
-        val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token?
+        val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token? / why, what's wrong with endCol being inclusive
         return Position(file, line, beginCol, endCol)
     }
 

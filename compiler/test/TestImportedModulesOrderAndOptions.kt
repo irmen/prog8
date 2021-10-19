@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 class TestImportedModulesOrderAndOptions {
 
     @Test
-    fun testImportedModuleOrderCorrect() {
+    fun testImportedModuleOrderAndMainModuleCorrect() {
         val result = compileText(C64Target, false, """
 %import textio
 %import floats
@@ -30,7 +30,7 @@ main {
     }
 }
 """).assertSuccess()
-        assertTrue(result.programAst.mainModule.name.startsWith("on_the_fly_test"))
+        assertTrue(result.programAst.toplevelModule.name.startsWith("on_the_fly_test"))
 
         val moduleNames = result.programAst.modules.map { it.name }
         assertTrue(moduleNames[0].startsWith("on_the_fly_test"), "main module must be first")
@@ -43,6 +43,8 @@ main {
             "math",
             "prog8_lib"
         ), moduleNames.drop(1), "module order in parse tree")
+
+        assertTrue(result.programAst.toplevelModule.name.startsWith("on_the_fly_test"))
     }
 
     @Test
@@ -59,7 +61,7 @@ main {
     }
 }
 """).assertSuccess()
-        assertTrue(result.programAst.mainModule.name.startsWith("on_the_fly_test"))
+        assertTrue(result.programAst.toplevelModule.name.startsWith("on_the_fly_test"))
         val options = determineCompilationOptions(result.programAst, C64Target)
         assertTrue(options.floats)
         assertEquals(ZeropageType.DONTUSE, options.zeropage)
@@ -86,7 +88,7 @@ main {
         filepath.toFile().writeText(sourceText)
         val (program, options, importedfiles) = parseImports(filepath, errors, C64Target, emptyList())
 
-        assertEquals(filenameBase, program.mainModule.name)
+        assertEquals(filenameBase, program.toplevelModule.name)
         assertEquals(1, importedfiles.size, "all imports other than the test source must have been internal resources library files")
         assertEquals(listOf(
             internedStringsModuleName,
