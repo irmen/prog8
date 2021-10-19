@@ -31,12 +31,9 @@ object Prog8Parser {
         parser.addErrorListener(antlrErrorListener)
 
         val parseTree = parser.module()
-
         val module = ParsedModule(src)
 
-        // .linkParents called in ParsedModule.add
         parseTree.directive().forEach { module.add(it.toAst()) }
-        // TODO: remove Encoding
         parseTree.block().forEach { module.add(it.toAst(module.isLibrary)) }
 
         return module

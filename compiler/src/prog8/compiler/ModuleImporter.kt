@@ -35,7 +35,7 @@ class ModuleImporter(private val program: Program,
                     file = filePath.normalize().toFile(),
                     reason = "searched in $searchIn"))
             1 -> candidates.first()
-            else -> candidates.first()  // TODO: report error if more than 1 candidate?
+            else -> candidates.first()  // when more candiates, pick the one from the first location
         }
 
         val logMsg = "importing '${filePath.nameWithoutExtension}' (from file $srcPath)"
@@ -142,7 +142,7 @@ class ModuleImporter(private val program: Program,
             } else {
                 val dropCurDir = if(sourcePaths.isNotEmpty() && sourcePaths[0].name == ".") 1 else 0
                 sourcePaths.drop(dropCurDir) +
-                // TODO: won't work until Prog8Parser is fixed s.t. it fully initializes the modules it returns. ??? (what won't work?)
+                // TODO: won't work until Prog8Parser is fixed s.t. it fully initializes the modules it returns. // hm, what won't work?)
                 listOf(Path(importingModule.position.file).parent ?: Path("")) +
                 listOf(Path(".", "prog8lib"))
             }

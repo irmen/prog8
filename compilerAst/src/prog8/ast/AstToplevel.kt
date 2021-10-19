@@ -259,8 +259,7 @@ class Program(val name: String,
         require(null == _modules.firstOrNull { it.name == module.name })
             { "module '${module.name}' already present" }
         _modules.add(module)
-        module.linkParents(namespace)
-        module.program = this
+        module.linkIntoProgram(this)
         return this
     }
 
@@ -344,7 +343,7 @@ class Program(val name: String,
         require(node is Module && replacement is Module)
         val idx = _modules.indexOfFirst { it===node }
         _modules[idx] = replacement
-        replacement.parent = this // TODO: why not replacement.program = this; replacement.linkParents(namespace)?!
+        replacement.linkIntoProgram(this)
     }
 }
 
@@ -374,7 +373,6 @@ open class Module(final override var statements: MutableList<Statement>,
     fun linkIntoProgram(program: Program) {
         this.program = program
         linkParents(program.namespace)
-        // TODO do this in program.addModule() ?
     }
 
     override val definingScope: INameScope
