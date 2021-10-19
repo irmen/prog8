@@ -22,7 +22,7 @@ class TestSourceCode {
         val src = SourceCode.Text(text)
         val actualText = src.getCharStream().toString()
 
-        assertContains(src.origin, Regex("^<String@[0-9a-f]+>$"))
+        assertContains(src.origin, Regex("^<String@[0-9a-f\\-]+>$"))
         assertEquals(text, actualText)
         assertFalse(src.isFromResources)
         assertFalse(src.isFromFilesystem)

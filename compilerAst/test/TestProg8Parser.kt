@@ -219,7 +219,7 @@ class TestProg8Parser {
             val module = parseModule(SourceCode.Text(srcText))
 
             // Note: assertContains has *actual* as first param
-            assertContains(module.name, Regex("^<String@[0-9a-f]+>$"))
+            assertContains(module.name, Regex("^<String@[0-9a-f\\-]+>$"))
         }
 
         @Test
@@ -289,7 +289,7 @@ class TestProg8Parser {
             try {
                 parseModule(SourceCode.Text(srcText))
             } catch (e: ParseError) {
-                assertPosition(e.position, Regex("^<String@[0-9a-f]+>$"), 1, 4, 4)
+                assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
             }
         }
 
@@ -312,7 +312,7 @@ class TestProg8Parser {
                 }
             """.trimIndent()
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^<String@[0-9a-f]+>$"), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0) // TODO: endCol wrong
         }
 
         @Test
