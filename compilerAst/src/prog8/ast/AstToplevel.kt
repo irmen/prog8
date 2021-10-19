@@ -259,10 +259,11 @@ class Program(val name: String,
         require(null == _modules.firstOrNull { it.name == module.name })
             { "module '${module.name}' already present" }
         _modules.add(module)
-        module.linkParents(namespace)
-        module.program = this
+        module.linkIntoProgram(this)
         return this
     }
+
+    fun removeModule(module: Module) = _modules.remove(module)
 
     fun moveModuleToFront(module: Module): Program {
         require(_modules.contains(module))
@@ -285,11 +286,11 @@ class Program(val name: String,
             }
         }
 
-    val mainModule: Module // TODO: rename Program.mainModule - it's NOT necessarily the one containing the main *block*!
+    val toplevelModule: Module
         get() = modules.first { it.name!=internedStringsModuleName }
 
     val definedLoadAddress: Int
-        get() = mainModule.loadAddress
+        get() = toplevelModule.loadAddress
 
     var actualLoadAddress: Int = 0
     private val internedStringsUnique = mutableMapOf<Pair<String, Boolean>, List<String>>()
@@ -342,9 +343,8 @@ class Program(val name: String,
         require(node is Module && replacement is Module)
         val idx = _modules.indexOfFirst { it===node }
         _modules[idx] = replacement
-        replacement.parent = this // TODO: why not replacement.program = this; replacement.linkParents(namespace)?!
+        replacement.linkIntoProgram(this)
     }
-
 }
 
 open class Module(final override var statements: MutableList<Statement>,
@@ -368,6 +368,11 @@ open class Module(final override var statements: MutableList<Statement>,
         require(parent is GlobalNamespace)
         this.parent = parent
         statements.forEach {it.linkParents(this)}
+    }
+
+    fun linkIntoProgram(program: Program) {
+        this.program = program
+        linkParents(program.namespace)
     }
 
     override val definingScope: INameScope

@@ -301,7 +301,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun referencesIdentifier(vararg scopedName: String) = expression.referencesIdentifier(*scopedName)
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
+    override fun inferType(program: Program) = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
         val cast = cv.cast(type)
@@ -334,7 +334,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
 
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifier(vararg scopedName: String) = false
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UWORD)
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }
@@ -359,7 +359,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun referencesIdentifier(vararg scopedName: String) = false
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UBYTE)
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
     override fun constValue(program: Program): NumericLiteralValue? = null
 
     override fun toString(): String {
@@ -422,7 +422,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     override fun toString(): String = "NumericLiteral(${type.name}:$number)"
 
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(type)
+    override fun inferType(program: Program) = InferredTypes.knownFor(type)
 
     override fun hashCode(): Int = Objects.hash(type, number)
 
@@ -518,7 +518,7 @@ class CharLiteral(val value: Char,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String = "'${escape(value.toString())}'"
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.UNDEFINED) // FIXME: CharLiteral.inferType
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
     operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, altEncoding)
     override fun equals(other: Any?): Boolean {
@@ -550,7 +550,7 @@ class StringLiteralValue(val value: String,
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun toString(): String = "'${escape(value)}'"
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(DataType.STR)
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.STR)
     operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, altEncoding)
     override fun equals(other: Any?): Boolean {

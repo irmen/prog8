@@ -50,12 +50,12 @@ class ProgramTests {
             assertSame(program, m1.program)
             assertSame(program.namespace, m1.parent)
 
-            assertFailsWith<IllegalArgumentException> { program.addModule(m1) }
-                .let { assertThat(it.message, containsString(m1.name)) }
+            assertThat("module may not occur multiple times",
+                assertFailsWith<IllegalArgumentException> { program.addModule(m1) }.message, containsString(m1.name))
 
             val m2 = Module(mutableListOf(), m1.position, m1.source)
-            assertFailsWith<IllegalArgumentException> { program.addModule(m2) }
-                .let { assertThat(it.message, containsString(m2.name)) }
+            assertThat("other module but with same name may not occur multiple times",
+                assertFailsWith<IllegalArgumentException> { program.addModule(m2) }.message, containsString(m2.name))
         }
     }
 

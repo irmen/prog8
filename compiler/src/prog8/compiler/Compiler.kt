@@ -215,12 +215,12 @@ fun parseImports(filepath: Path,
 }
 
 fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
-    val mainModule = program.mainModule
-    val outputDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
-    val launcherDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
+    val toplevelModule = program.toplevelModule
+    val outputDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
+    val launcherDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
     val outputTypeStr = outputDirective?.args?.single()?.name?.uppercase()
     val launcherTypeStr = launcherDirective?.args?.single()?.name?.uppercase()
-    val zpoption: String? = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
+    val zpoption: String? = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.uppercase()
     val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }
         .flatMap { (it as Directive).args }.toSet()
@@ -242,7 +242,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         zpType = ZeropageType.BASICSAFE
     }
 
-    val zpReserved = mainModule.statements
+    val zpReserved = toplevelModule.statements
         .asSequence()
         .filter { it is Directive && it.directive == "%zpreserved" }
         .map { (it as Directive).args }
@@ -280,6 +280,8 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     programAst.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
+    // NOTE: we will then lose the opportunity to do constant-folding on any expression containing a char literal, but how often will those occur?
+    // Also they might be optimized away eventually in codegen or by the assembler even
     programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget)
     errors.report()
     programAst.constantFold(errors, compilerOptions.compTarget)

@@ -35,13 +35,17 @@ class ModuleImporter(private val program: Program,
                     file = filePath.normalize().toFile(),
                     reason = "searched in $searchIn"))
             1 -> candidates.first()
-            else -> candidates.first()  // TODO: report error if more than 1 candidate?
+            else -> candidates.first()  // when more candiates, pick the one from the first location
         }
 
         val logMsg = "importing '${filePath.nameWithoutExtension}' (from file $srcPath)"
         println(logMsg)
 
-        return Ok(importModule(SourceCode.File(srcPath)))
+        val module = importModule(SourceCode.File(srcPath))
+        return if(module==null)
+            Err(NoSuchFileException(srcPath.toFile()))
+        else
+            Ok(module)
     }
 
     fun importLibraryModule(name: String): Module? {
@@ -51,20 +55,24 @@ class ModuleImporter(private val program: Program,
         return executeImportDirective(import, null)
     }
 
-    //private fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
-    private fun importModule(src: SourceCode) : Module {
+    private fun importModule(src: SourceCode) : Module? {
         val moduleAst = Prog8Parser.parseModule(src)
         program.addModule(moduleAst)
 
         // accept additional imports
-        val lines = moduleAst.statements.toMutableList()
-        lines.asSequence()
+        try {
+            val lines = moduleAst.statements.toMutableList()
+            lines.asSequence()
                 .mapIndexed { i, it -> i to it }
                 .filter { (it.second as? Directive)?.directive == "%import" }
                 .forEach { executeImportDirective(it.second as Directive, moduleAst) }
-
-        moduleAst.statements = lines
-        return moduleAst
+            moduleAst.statements = lines
+            return moduleAst
+        } catch (x: Exception) {
+            // in case of error, make sure the module we're importing is no longer in the Ast
+            program.removeModule(moduleAst)
+            throw x
+        }
     }
 
     private fun executeImportDirective(import: Directive, importingModule: Module?): Module? {
@@ -104,7 +112,8 @@ class ModuleImporter(private val program: Program,
                 }
             )
 
-        removeDirectivesFromImportedModule(importedModule)
+        if(importedModule!=null)
+            removeDirectivesFromImportedModule(importedModule)
         return importedModule
     }
 
@@ -133,7 +142,7 @@ class ModuleImporter(private val program: Program,
             } else {
                 val dropCurDir = if(sourcePaths.isNotEmpty() && sourcePaths[0].name == ".") 1 else 0
                 sourcePaths.drop(dropCurDir) +
-                // FIXME: won't work until Prog8Parser is fixed s.t. it fully initialzes the modules it returns
+                // TODO: won't work until Prog8Parser is fixed s.t. it fully initializes the modules it returns. // hm, what won't work?)
                 listOf(Path(importingModule.position.file).parent ?: Path("")) +
                 listOf(Path(".", "prog8lib"))
             }
