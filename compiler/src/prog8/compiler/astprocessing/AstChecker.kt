@@ -13,7 +13,6 @@ import prog8.compiler.ZeropageType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.ICompilationTarget
-import prog8.parser.SourceCode
 import java.io.CharConversionException
 import java.io.File
 import java.util.*
@@ -46,7 +45,7 @@ internal class AstChecker(private val program: Program,
 
         if(compilerOptions.floats) {
             if (compilerOptions.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
-                errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.mainModule.position)
+                errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.toplevelModule.position)
         }
 
         super.visit(program)

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Disabled
 import prog8.ast.Program
+import prog8.ast.internedStringsModuleName
 import prog8.compiler.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
@@ -207,7 +208,6 @@ class TestModuleImporter {
                 }
 
                 @Test
-                @Disabled("TODO: module that imports faulty module should not be kept in Program.modules")
                 fun testImportingFileWithSyntaxError_twice() {
                     doTestImportingFileWithSyntaxError(2)
                 }
@@ -227,7 +227,8 @@ class TestModuleImporter {
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
-                        assertThat(program.modules.size, equalTo(2))
+                        assertThat("imported module with error in it should not be present", program.modules.size, equalTo(1))
+                        assertThat(program.modules[0].name, equalTo(internedStringsModuleName))
                     }
                 }
             }
@@ -303,7 +304,8 @@ class TestModuleImporter {
                             assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
                             assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
                         }
-                        assertThat(program.modules.size, equalTo(2))
+                        assertThat("imported module with error in it should not be present", program.modules.size, equalTo(1))
+                        assertThat(program.modules[0].name, equalTo(internedStringsModuleName))
                         importer.errors.report()
                     }
                 }
@@ -314,7 +316,6 @@ class TestModuleImporter {
                 }
 
                 @Test
-                @Disabled("TODO: module that imports faulty module should not be kept in Program.modules")
                 fun testImportingFileWithSyntaxError_twice() {
                     doTestImportingFileWithSyntaxError(2)
                 }

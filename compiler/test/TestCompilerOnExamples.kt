@@ -19,7 +19,7 @@ import kotlin.io.path.exists
  * They are not really unit tests, but rather tests of the whole process,
  * from source file loading all the way through to running 64tass.
  */
-//@Disabled("to save some time")
+// @Disabled("disable to save some time")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCompilerOnExamples {
     private val examplesDir = assumeDirectory(workingDir, "../examples")
@@ -49,7 +49,7 @@ class TestCompilerOnExamples {
     }
 
     @TestFactory
-//    @Disabled
+// @Disabled("disable to save some time")
     fun bothCx16AndC64() = mapCombinations(
         dim1 = listOf(
             "animals",
@@ -80,7 +80,7 @@ class TestCompilerOnExamples {
     )
 
     @TestFactory
-//    @Disabled
+// @Disabled("disable to save some time")
     fun onlyC64() = mapCombinations(
         dim1 = listOf(
             "balloonflight",
@@ -99,7 +99,7 @@ class TestCompilerOnExamples {
     )
 
     @TestFactory
-//    @Disabled
+// @Disabled("disable to save some time")
     fun onlyCx16() = mapCombinations(
         dim1 = listOf(
             "vtui/testvtui",

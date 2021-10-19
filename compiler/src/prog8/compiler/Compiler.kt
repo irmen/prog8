@@ -215,12 +215,12 @@ fun parseImports(filepath: Path,
 }
 
 fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
-    val mainModule = program.mainModule
-    val outputDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
-    val launcherDirective = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
+    val toplevelModule = program.toplevelModule
+    val outputDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
+    val launcherDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
     val outputTypeStr = outputDirective?.args?.single()?.name?.uppercase()
     val launcherTypeStr = launcherDirective?.args?.single()?.name?.uppercase()
-    val zpoption: String? = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
+    val zpoption: String? = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.uppercase()
     val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }
         .flatMap { (it as Directive).args }.toSet()
@@ -242,7 +242,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         zpType = ZeropageType.BASICSAFE
     }
 
-    val zpReserved = mainModule.statements
+    val zpReserved = toplevelModule.statements
         .asSequence()
         .filter { it is Directive && it.directive == "%zpreserved" }
         .map { (it as Directive).args }

@@ -264,6 +264,8 @@ class Program(val name: String,
         return this
     }
 
+    fun removeModule(module: Module) = _modules.remove(module)
+
     fun moveModuleToFront(module: Module): Program {
         require(_modules.contains(module))
             { "Not a module of this program: '${module.name}'"}
@@ -285,11 +287,11 @@ class Program(val name: String,
             }
         }
 
-    val mainModule: Module // TODO: rename Program.mainModule - it's NOT necessarily the one containing the main *block*!
+    val toplevelModule: Module
         get() = modules.first { it.name!=internedStringsModuleName }
 
     val definedLoadAddress: Int
-        get() = mainModule.loadAddress
+        get() = toplevelModule.loadAddress
 
     var actualLoadAddress: Int = 0
     private val internedStringsUnique = mutableMapOf<Pair<String, Boolean>, List<String>>()
@@ -344,7 +346,6 @@ class Program(val name: String,
         _modules[idx] = replacement
         replacement.parent = this // TODO: why not replacement.program = this; replacement.linkParents(namespace)?!
     }
-
 }
 
 open class Module(final override var statements: MutableList<Statement>,
