@@ -9,6 +9,7 @@ import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compiler.astprocessing.isInRegularRAMof
 import prog8.compiler.target.ICompilationTarget
 
 
@@ -79,7 +80,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
     private fun isSimpleTarget(target: AssignTarget) =
             if (target.identifier!=null || target.memoryAddress!=null)
-                compTarget.isInRegularRAM(target)
+                target.isInRegularRAMof(compTarget.machine)
             else
                 false
 

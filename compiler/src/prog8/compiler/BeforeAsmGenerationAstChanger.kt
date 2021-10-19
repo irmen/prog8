@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
+import prog8.compiler.astprocessing.isInRegularRAMof
 import prog8.compiler.target.ICompilationTarget
 
 
@@ -39,7 +40,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
-                && compTarget.isInRegularRAM(assignment.target)) {
+                && assignment.target.isInRegularRAMof(compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
             if (binExpr != null && binExpr.operator !in comparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
