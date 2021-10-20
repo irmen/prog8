@@ -120,13 +120,13 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
         val mods = mutableListOf<IAstModification>()
         val returnStmt = Return(null, subroutine.position)
-        if (subroutine.asmAddress == null
-                && !subroutine.inline
-                && subroutine.statements.isNotEmpty()
-                && subroutine.amountOfRtsInAsm() == 0
+        if (subroutine.asmAddress == null && !subroutine.inline) {
+            if(subroutine.statements.isEmpty() ||
+                (subroutine.amountOfRtsInAsm() == 0
                 && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
-                && subroutine.statements.last() !is Subroutine) {
-            mods += IAstModification.InsertLast(returnStmt, subroutine)
+                && subroutine.statements.last() !is Subroutine)) {
+                    mods += IAstModification.InsertLast(returnStmt, subroutine)
+            }
         }
 
         // precede a subroutine with a return to avoid falling through into the subroutine from code above it
