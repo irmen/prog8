@@ -4,9 +4,6 @@ import com.github.michaelbull.result.fold
 import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.statements.AssignTarget
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
 import prog8.compiler.IStringEncoding
@@ -15,7 +12,6 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.Petscii
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cx16.CX16MachineDefinition
-import java.io.CharConversionException
 import java.nio.file.Path
 
 
@@ -38,11 +34,7 @@ internal object C64Target: ICompilationTarget {
         )
     }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
-        try {
-            if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
-        } catch (x: CharConversionException) {
-            throw CharConversionException("can't decode string: ${x.message}")
-        }
+        if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {
@@ -66,11 +58,7 @@ internal object Cx16Target: ICompilationTarget {
         )
     }
     override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
-        try {
-            if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
-        } catch (x: CharConversionException) {
-            throw CharConversionException("can't decode string: ${x.message}")
-        }
+        if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {

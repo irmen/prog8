@@ -513,7 +513,7 @@ class CharLiteral(val value: Char,
     }
 
     override fun referencesIdentifier(vararg scopedName: String) = false
-    override fun constValue(program: Program): NumericLiteralValue? = null  // TODO: CharLiteral.constValue can't be NumericLiteralValue...
+    override fun constValue(program: Program): NumericLiteralValue? = null  // TODO: CharLiteral.constValue can't be NumericLiteralValue... unless we re-add string encoder to program?
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 

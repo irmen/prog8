@@ -1098,12 +1098,9 @@ object Petscii {
     fun decodePetscii(petscii: Iterable<Short>, lowercase: Boolean = false): String {
         return petscii.map {
             val code = it.toInt()
-            try {
-                if(lowercase) decodingPetsciiLowercase[code] else decodingPetsciiUppercase[code]
-            } catch(x: CharConversionException) {
-                // TODO this CharConversionException can never occur?? also clean up ICompilationTarget.decodeString?
-                if(lowercase) decodingPetsciiUppercase[code] else decodingPetsciiLowercase[code]
-            }
+            if(code<0 || code>=decodingPetsciiLowercase.size)
+                throw CharConversionException("petscii $code out of range 0..${decodingPetsciiLowercase.size-1}")
+            if(lowercase) decodingPetsciiLowercase[code] else decodingPetsciiUppercase[code]
         }.joinToString("")
     }
 
@@ -1140,17 +1137,15 @@ object Petscii {
     fun decodeScreencode(screencode: Iterable<Short>, lowercase: Boolean = false): String {
         return screencode.map {
             val code = it.toInt()
-            try {
-                if (lowercase) decodingScreencodeLowercase[code] else decodingScreencodeUppercase[code]
-            } catch (x: CharConversionException) {
-                // TODO this CharConversionException can never occur?? also clean up ICompilationTarget.decodeString?
-                if (lowercase) decodingScreencodeUppercase[code] else decodingScreencodeLowercase[code]
-            }
+            if(code<0 || code>=decodingScreencodeLowercase.size)
+                throw CharConversionException("screencode $code out of range 0..${decodingScreencodeLowercase.size-1}")
+            if (lowercase) decodingScreencodeLowercase[code] else decodingScreencodeUppercase[code]
         }.joinToString("")
     }
 
     fun petscii2scr(petscii_code: Short, inverseVideo: Boolean): Result<Short, CharConversionException> {
         val code = when {
+            petscii_code < 0 -> return Err(CharConversionException("petscii code out of range"))
             petscii_code <= 0x1f -> petscii_code + 128
             petscii_code <= 0x3f -> petscii_code.toInt()
             petscii_code <= 0x5f -> petscii_code - 64
@@ -1168,6 +1163,7 @@ object Petscii {
 
     fun scr2petscii(screencode: Short): Result<Short, CharConversionException> {
         val petscii = when {
+            screencode < 0 -> return Err(CharConversionException("screencode out of range"))
             screencode <= 0x1f -> screencode + 64
             screencode <= 0x3f -> screencode.toInt()
             screencode <= 0x5d -> screencode +123

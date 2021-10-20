@@ -1,15 +1,13 @@
 package prog8tests
 
 import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.expectError
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
-import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.StringLiteralValue
 import prog8.compiler.target.cbm.Petscii
+import java.io.CharConversionException
 import kotlin.test.*
 
 
@@ -34,8 +32,6 @@ class TestPetscii {
         assertThat("expect lowercase error fallback", Petscii.encodePetscii("♥", true), equalTo(Ok(listOf<Short>(0xd3))))
 
         assertThat(Petscii.decodePetscii(listOf(72, 0xd7, 0x5c, 0xfa, 0x12), true), equalTo("hW£✓\uF11A"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(-1), true) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(256), true) }
     }
 
     @Test
@@ -48,8 +44,6 @@ class TestPetscii {
         assertThat("expecting fallback", Petscii.encodePetscii("✓"), equalTo(Ok(listOf<Short>(250))))
 
         assertThat(Petscii.decodePetscii(listOf(72, 0x5c, 0xd3, 0xff)), equalTo("H£♥π"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(-1)) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(256)) }
     }
 
     @Test
@@ -62,8 +56,6 @@ class TestPetscii {
         assertThat("expect fallback", Petscii.encodeScreencode("π", true), equalTo(Ok(listOf<Short>(94))))
 
         assertThat(Petscii.decodeScreencode(listOf(0x08, 0x57, 0x1c, 0x7a), true), equalTo("hW£✓"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1), true) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(256), true) }
     }
 
     @Test
@@ -77,7 +69,29 @@ class TestPetscii {
         assertThat("expecting fallback", Petscii.encodeScreencode("✓"), equalTo(Ok(listOf<Short>(122))))
 
         assertThat(Petscii.decodeScreencode(listOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1)) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(256)) }
+    }
+
+    @Test
+    fun testErrorCases() {
+        Petscii.encodePetscii("~", true).expectError { "shouldn't be able to encode tilde" }
+        Petscii.encodePetscii("~", false).expectError { "shouldn't be able to encode tilde" }
+        Petscii.encodeScreencode("~", true).expectError { "shouldn't be able to encode tilde" }
+        Petscii.encodeScreencode("~", false).expectError { "shouldn't be able to encode tilde" }
+
+        assertFailsWith<CharConversionException> { Petscii.decodePetscii(listOf<Short>(-1), true) }
+        assertFailsWith<CharConversionException> { Petscii.decodePetscii(listOf<Short>(256), true) }
+        assertFailsWith<CharConversionException> { Petscii.decodePetscii(listOf<Short>(-1), false) }
+        assertFailsWith<CharConversionException> { Petscii.decodePetscii(listOf<Short>(256), false) }
+        assertFailsWith<CharConversionException> { Petscii.decodeScreencode(listOf<Short>(-1), true) }
+        assertFailsWith<CharConversionException> { Petscii.decodeScreencode(listOf<Short>(256), true) }
+        assertFailsWith<CharConversionException> { Petscii.decodeScreencode(listOf<Short>(-1), false) }
+        assertFailsWith<CharConversionException> { Petscii.decodeScreencode(listOf<Short>(256), false) }
+
+        Petscii.scr2petscii(-1).expectError { "-1 should error" }
+        Petscii.scr2petscii(256).expectError { "256 should error" }
+        Petscii.petscii2scr(-1, true).expectError { "-1 should error" }
+        Petscii.petscii2scr(256, true).expectError { "256 should error" }
+        Petscii.petscii2scr(-1, false).expectError { "-1 should error" }
+        Petscii.petscii2scr(256, false).expectError { "256 should error" }
     }
 }
