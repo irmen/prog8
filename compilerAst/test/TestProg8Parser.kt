@@ -6,6 +6,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
+import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.NumericLiteralValue
@@ -581,4 +582,29 @@ class TestProg8Parser {
         }
     }
 
+    @Test
+    fun testLiteralValueComparisons() {
+        val ten = NumericLiteralValue(DataType.UWORD, 10, Position.DUMMY)
+        val nine = NumericLiteralValue(DataType.UBYTE, 9, Position.DUMMY)
+        assertEquals(ten, ten)
+        assertNotEquals(ten, nine)
+        assertFalse(ten != ten)
+        assertTrue(ten != nine)
+
+        assertTrue(ten > nine)
+        assertTrue(ten >= nine)
+        assertTrue(ten >= ten)
+        assertFalse(ten > ten)
+
+        assertFalse(ten < nine)
+        assertFalse(ten <= nine)
+        assertTrue(ten <= ten)
+        assertFalse(ten < ten)
+
+        val abc = StringLiteralValue("abc", false, Position.DUMMY)
+        val abd = StringLiteralValue("abd", false, Position.DUMMY)
+        assertEquals(abc, abc)
+        assertTrue(abc!=abd)
+        assertFalse(abc!=abc)
+    }
 }
