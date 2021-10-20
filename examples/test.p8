@@ -1,18 +1,10 @@
-%import textio
-
 main {
     sub start() {
-        ubyte xx
+        uword address = &irq
+        ; cx16.set_irq(&irq, false)
+        address++
+    }
 
-        when xx {
-            2 -> {
-            }
-            3 -> {
-            }
-            50 -> {
-            }
-            else -> {
-            }
-        }
+    sub irq() {
     }
 }
