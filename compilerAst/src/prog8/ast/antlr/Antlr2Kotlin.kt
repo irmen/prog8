@@ -252,7 +252,9 @@ private fun Prog8ANTLRParser.Asmsub_returnsContext.toAst(): List<AsmSubroutineRe
 private fun Prog8ANTLRParser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
         = asmsub_param().map {
     val vardecl = it.vardecl()
-    val datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
+    var datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
+    if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
+        datatype = ElementToArrayTypes.getValue(datatype)
     val register = it.register().text
     var registerorpair: RegisterOrPair? = null
     var statusregister: Statusflag? = null
@@ -318,7 +320,9 @@ private fun Prog8ANTLRParser.Sub_return_partContext.toAst(): List<DataType> {
 
 private fun Prog8ANTLRParser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
-            val datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
+            var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
+            if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
+                datatype = ElementToArrayTypes.getValue(datatype)
             SubroutineParameter(it.varname.text, datatype, it.toPosition())
         }
 

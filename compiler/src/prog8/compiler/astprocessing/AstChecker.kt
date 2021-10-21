@@ -290,7 +290,7 @@ internal class AstChecker(private val program: Program,
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
                             && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
-                        err("parameter '${param.first.name}' should be (u)word/address")
+                        err("parameter '${param.first.name}' should be (u)word (an address) or str")
                 }
                 else if(param.second.statusflag!=null) {
                     if (param.first.type != DataType.UBYTE)
@@ -626,7 +626,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        // string assignment is not supported in a vard
         if(decl.datatype==DataType.STR) {
             if(decl.value==null)
                 err("string var must be initialized with a string literal")
