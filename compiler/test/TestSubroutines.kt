@@ -7,6 +7,7 @@ import prog8.ast.base.DataType
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.compiler.target.C64Target
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
@@ -32,8 +33,11 @@ class TestSubroutines {
                 }
             }
         """
-        val result = compileText(C64Target, false, text).assertFailure("currently str type in signature is invalid")     // TODO should not be invalid
-        // TODO: check for specific error message(s)
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, errors, false).assertFailure("currently str type in signature is invalid")     // TODO should not be invalid
+        assertEquals(0, errors.warnings.size)
+        // TODO fix extra error "string var must be initialized with a string literal"
+        assertTrue(errors.errors.single().startsWith("Pass-by-reference types (str, array) cannot occur as a parameter type directly."))
     }
 
     @Test
@@ -53,8 +57,10 @@ class TestSubroutines {
             }
         """
 
-        val result = compileText(C64Target, false, text).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
-        // TODO: check for specific error message(s)
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
+        assertEquals(0, errors.warnings.size)
+        assertTrue(errors.errors.single().startsWith("Pass-by-reference types (str, array) cannot occur as a parameter type directly."))
     }
 
     @Test
@@ -82,7 +88,7 @@ class TestSubroutines {
                 }
             }
         """
-        val result = compileText(C64Target, false, text).assertSuccess()
+        val result = compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
         val module = result.programAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
@@ -121,7 +127,7 @@ class TestSubroutines {
             }
         """
 
-        val result = compileText(C64Target, false, text).assertSuccess()
+        val result = compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
         val module = result.programAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}

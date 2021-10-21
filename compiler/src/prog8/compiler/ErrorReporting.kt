@@ -9,6 +9,10 @@ interface IErrorReporter {
     fun warn(msg: String, position: Position)
     fun noErrors(): Boolean
     fun report()
+    fun finalizeNumErrors(numErrors: Int, numWarnings: Int) {
+        if(numErrors>0)
+            throw ParsingFailedError("There are $numErrors errors and $numWarnings warnings.")
+    }
 }
 
 
@@ -49,8 +53,7 @@ internal class ErrorReporter: IErrorReporter {
             System.err.print("\u001b[0m")  // reset color
         }
         messages.clear()
-        if(numErrors>0)
-            throw ParsingFailedError("There are $numErrors errors and $numWarnings warnings.")
+        finalizeNumErrors(numErrors, numWarnings)
     }
 
     override fun noErrors() = messages.none { it.severity==MessageSeverity.ERROR }

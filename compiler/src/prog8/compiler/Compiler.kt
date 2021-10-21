@@ -73,11 +73,11 @@ fun compileProgram(filepath: Path,
                    slowCodegenWarnings: Boolean,
                    compilationTarget: String,
                    sourceDirs: List<String>,
-                   outputDir: Path): CompilationResult {
+                   outputDir: Path,
+                   errors: IErrorReporter = ErrorReporter()): CompilationResult {
     var programName = ""
     lateinit var programAst: Program
     lateinit var importedFiles: List<Path>
-    val errors = ErrorReporter()
 
     val compTarget =
         when(compilationTarget) {

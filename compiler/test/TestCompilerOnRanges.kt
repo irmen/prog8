@@ -13,10 +13,10 @@ import prog8.compiler.astprocessing.size
 import prog8.compiler.astprocessing.toConstantIntegerRange
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
+import prog8tests.helpers.*
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import prog8tests.helpers.mapCombinations
 import kotlin.test.assertEquals
 
 
@@ -224,6 +224,7 @@ class TestCompilerOnRanges {
 
     @Test
     fun testForLoopWithRange_str_downto_str() {
+        val errors = ErrorReporterForTests()
         compileText(Cx16Target, true, """
             main {
                 sub start() {
@@ -233,8 +234,10 @@ class TestCompilerOnRanges {
                     }
                 }
             }
-        """).assertFailure()
-        //TODO("test exact compile error(s)")
+        """, errors, false).assertFailure()
+        assertEquals(2, errors.errors.size)
+        assertEquals("range expression from value must be integer", errors.errors[0])
+        assertEquals("range expression to value must be integer", errors.errors[1])
     }
 
     @Test

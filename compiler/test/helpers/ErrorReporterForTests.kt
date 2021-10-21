@@ -3,7 +3,7 @@ package prog8tests.helpers
 import prog8.ast.base.Position
 import prog8.compiler.IErrorReporter
 
-class ErrorReporterForTests: IErrorReporter {
+class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true): IErrorReporter {
 
 
     val errors = mutableListOf<String>()
@@ -20,6 +20,8 @@ class ErrorReporterForTests: IErrorReporter {
     override fun noErrors(): Boolean  = errors.isEmpty()
 
     override fun report() {
+        if(throwExceptionAtReportIfErrors)
+            finalizeNumErrors(errors.size, warnings.size)
         errors.clear()
         warnings.clear()
     }

@@ -36,7 +36,7 @@ class TestModuleImporter {
     }
 
     private fun makeImporter(errors: IErrorReporter? = null, searchIn: Iterable<String>) =
-        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(), searchIn.toList())
+        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList())
 
     @Nested
     inner class Constructor {
@@ -243,7 +243,7 @@ class TestModuleImporter {
             @Test
             fun testWithNonExistingName() {
                 val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
-                val errors = ErrorReporterForTests()
+                val errors = ErrorReporterForTests(false)
                 val importer = makeImporter(errors, searchIn.invariantSeparatorsPathString)
                 val filenameNoExt = assumeNotExists(fixturesDir, "i_do_not_exist").name
                 val filenameWithExt = assumeNotExists(fixturesDir, "i_do_not_exist.p8").name
