@@ -17,6 +17,7 @@ import prog8tests.helpers.*
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 
@@ -236,8 +237,8 @@ class TestCompilerOnRanges {
             }
         """, errors, false).assertFailure()
         assertEquals(2, errors.errors.size)
-        assertEquals("range expression from value must be integer", errors.errors[0])
-        assertEquals("range expression to value must be integer", errors.errors[1])
+        assertContains(errors.errors[0], ".p8:5:29: range expression from value must be integer")
+        assertContains(errors.errors[1], ".p8:5:44: range expression to value must be integer")
     }
 
     @Test

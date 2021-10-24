@@ -24,6 +24,7 @@ class TestSubroutines {
         val text = """
             main {
                 sub start() {
+                    str zzz             ; should give uninitialized error
                 }
                 
                 asmsub asmfunc(str thing @AY) {
@@ -36,7 +37,9 @@ class TestSubroutines {
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, errors, false).assertFailure("currently str type in signature is invalid")     // TODO should not be invalid
         assertEquals(0, errors.warnings.size)
-        assertTrue(errors.errors.single().startsWith("Pass-by-reference types (str, array) cannot occur as a parameter type directly."))
+        assertEquals(2, errors.errors.size)
+        assertContains(errors.errors[0], ".p8:4:20: string var must be initialized with a string literal")
+        assertContains(errors.errors[1], ".p8:10:16: Pass-by-reference types (str, array) cannot occur as a parameter type directly")
     }
 
     @Test
@@ -59,7 +62,7 @@ class TestSubroutines {
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
         assertEquals(0, errors.warnings.size)
-        assertTrue(errors.errors.single().startsWith("Pass-by-reference types (str, array) cannot occur as a parameter type directly."))
+        assertContains(errors.errors.single(), ".p8:9:16: Pass-by-reference types (str, array) cannot occur as a parameter type directly")
     }
 
     @Test

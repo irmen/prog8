@@ -505,7 +505,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(decl: VarDecl) {
-        fun err(msg: String, position: Position?=null) = errors.err(msg, position ?: decl.position)
+        fun err(msg: String) = errors.err(msg, decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexExpr?.referencesIdentifier(decl.name) == true)
@@ -586,10 +586,10 @@ internal class AstChecker(private val program: Program,
                 val numvalue = decl.value as? NumericLiteralValue
                 if(numvalue!=null) {
                     if (numvalue.type !in IntegerDatatypes || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
-                        err("memory address must be valid integer 0..\$ffff", decl.value?.position)
+                        err("memory address must be valid integer 0..\$ffff")
                     }
                 } else {
-                    err("value of memory mapped variable can only be a fixed number, perhaps you meant to use an address pointer type instead?", decl.value?.position)
+                    err("value of memory mapped variable can only be a fixed number, perhaps you meant to use an address pointer type instead?")
                 }
             }
         }
@@ -597,7 +597,7 @@ internal class AstChecker(private val program: Program,
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR) {
             if (declValue.inferType(program) isnot decl.datatype) {
-                err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
+                err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
             }
         }
 

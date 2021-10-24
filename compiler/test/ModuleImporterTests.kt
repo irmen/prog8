@@ -252,14 +252,14 @@ class TestModuleImporter {
                     val result = importer.importLibraryModule(filenameNoExt)
                     assertThat(count[n] + " call / NO .p8 extension", result, Is(nullValue()))
                     assertFalse(errors.noErrors(), count[n] + " call / NO .p8 extension")
-                    assertEquals(errors.errors.single(), "no module found with name i_do_not_exist")
+                    assertContains(errors.errors.single(), "0:0: no module found with name i_do_not_exist")
                     errors.report()
                     assertThat(program.modules.size, equalTo(1))
 
                     val result2 = importer.importLibraryModule(filenameWithExt)
                     assertThat(count[n] + " call / with .p8 extension", result2, Is(nullValue()))
                     assertFalse(importer.errors.noErrors(), count[n] + " call / with .p8 extension")
-                    assertEquals(errors.errors.single(), "no module found with name i_do_not_exist.p8")
+                    assertContains(errors.errors.single(), "0:0: no module found with name i_do_not_exist.p8")
                     errors.report()
                     assertThat(program.modules.size, equalTo(1))
                 }
