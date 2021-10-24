@@ -597,7 +597,7 @@ class AsmGenInfo {
 // and also the predefined/ROM/register-based subroutines.
 // (multiple return types can only occur for the latter type)
 class Subroutine(override val name: String,
-                 val parameters: List<SubroutineParameter>,
+                 val parameters: MutableList<SubroutineParameter>,
                  val returntypes: List<DataType>,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
@@ -608,7 +608,7 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope, ISymbolStatement {
 
-    constructor(name: String, parameters: List<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, inline: Boolean, position: Position)
+    constructor(name: String, parameters: MutableList<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, inline: Boolean, position: Position)
             : this(name, parameters, returntypes, emptyList(), determineReturnRegisters(returntypes), emptySet(), null, false, inline, statements, position)
 
     companion object {
@@ -635,10 +635,19 @@ class Subroutine(override val name: String,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Statement)
-        val idx = statements.indexOfFirst { it===node }
-        statements[idx] = replacement
-        replacement.parent = this
+        when(replacement) {
+            is SubroutineParameter -> {
+                val idx = parameters.indexOf(node)
+                parameters[idx] = replacement
+                replacement.parent = this
+            }
+            is Statement -> {
+                val idx = statements.indexOfFirst { it===node }
+                statements[idx] = replacement
+                replacement.parent = this
+            }
+            else -> throw FatalAstException("can't replace")
+        }
     }
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)

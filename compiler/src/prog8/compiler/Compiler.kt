@@ -346,7 +346,7 @@ private fun writeAssembly(programAst: Program,
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.report()
 
-    // printAst(programAst)
+    printAst(programAst) // TODO
 
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val assembly = asmGeneratorFor(compilerOptions.compTarget,

@@ -186,7 +186,7 @@ private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
     val inline = this.inline()!=null
     val subdecl = asmsub_decl().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf()
-    return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
+    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, null, true, inline, statements, toPosition())
 }
@@ -194,7 +194,7 @@ private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
 private fun Prog8ANTLRParser.RomsubroutineContext.toAst(): Subroutine {
     val subdecl = asmsub_decl().toAst()
     val address = integerliteral().toAst().number.toInt()
-    return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
+    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, address, true, inline = false, statements = mutableListOf(), position = toPosition()
     )
@@ -306,7 +306,7 @@ private fun Prog8ANTLRParser.SubroutineContext.toAst() : Subroutine {
     val inline = inline()!=null
     val returntypes = sub_return_part()?.toAst() ?: emptyList()
     return Subroutine(identifier().text,
-            sub_params()?.toAst() ?: emptyList(),
+            sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
             returntypes,
             statement_block()?.toAst() ?: mutableListOf(),
             inline,
