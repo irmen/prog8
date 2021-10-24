@@ -627,8 +627,12 @@ internal class AstChecker(private val program: Program,
         }
 
         if(decl.datatype==DataType.STR) {
-            if(decl.value==null)
-                err("string var must be initialized with a string literal")
+            if(decl.value==null) {
+                // complain about uninitialized str, but only if it's a regular variable
+                val parameter = (decl.parent as? Subroutine)?.parameters?.singleOrNull{ it.name==decl.name }
+                if(parameter==null)
+                    err("string var must be initialized with a string literal")
+            }
             else if (decl.type==VarDeclType.VAR && decl.value !is StringLiteralValue)
                 err("string var can only be initialized with a string literal")
         }

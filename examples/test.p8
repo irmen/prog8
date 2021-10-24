@@ -1,5 +1,6 @@
 main {
     sub start() {
+        str zzz
         asmfunc("text")
         func("text")
     }

@@ -36,7 +36,6 @@ class TestSubroutines {
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, errors, false).assertFailure("currently str type in signature is invalid")     // TODO should not be invalid
         assertEquals(0, errors.warnings.size)
-        // TODO fix extra error "string var must be initialized with a string literal"
         assertTrue(errors.errors.single().startsWith("Pass-by-reference types (str, array) cannot occur as a parameter type directly."))
     }
 
