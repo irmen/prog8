@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
@@ -16,29 +17,6 @@ import kotlin.test.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestSubroutines {
-
-    @Test
-    fun arrayParameterNotYetAllowed_ButShouldPerhapsBe() {
-        // note: the *parser* accepts this as it is valid *syntax*,
-        // however, it's not (yet) valid for the compiler
-        val text = """
-            main {
-                sub start() {
-                }
-                
-                asmsub asmfunc(ubyte[] thing @AY) {
-                }
-
-                sub func(ubyte[22] thing) {
-                }
-            }
-        """
-
-        val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
-        assertEquals(0, errors.warnings.size)
-        assertContains(errors.errors.single(), ".p8:9:16: Non-string pass-by-reference types cannot occur as a parameter type directly")
-    }
 
     @Test
     fun stringParameter() {
@@ -80,11 +58,11 @@ class TestSubroutines {
         assertEquals(DataType.STR, paramvar.datatype)
         val t2var = func.statements[1] as VarDecl
         assertEquals("t2", t2var.name)
-        assertTrue(t2var.value is IdentifierReference, "str param in function body should be treated as plain uword")
-        assertEquals("thing", (t2var.value as IdentifierReference).nameInSource.single())
+        assertTrue(t2var.value is TypecastExpression, "str param in function body should not be transformed by normal compiler steps")
+        assertEquals(DataType.UWORD, (t2var.value as TypecastExpression).type)
         val call = func.statements[2] as FunctionCallStatement
         assertEquals("asmfunc", call.target.nameInSource.single())
-        assertTrue(call.args.single() is IdentifierReference, "str param in function body should be treated as plain uword")
+        assertTrue(call.args.single() is IdentifierReference, "str param in function body should not be transformed by normal compiler steps")
         assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
     }
 
@@ -131,12 +109,35 @@ class TestSubroutines {
         assertEquals(DataType.UWORD, paramvar.datatype, "pre-asmgen should have changed str to uword type")
         val t2var = func.statements[1] as VarDecl
         assertEquals("t2", t2var.name)
-        assertTrue(t2var.value is IdentifierReference, "str param in function body should be treated as plain uword")
+        assertTrue(t2var.value is IdentifierReference, "str param in function body should be treated as plain uword before asmgen")
         assertEquals("thing", (t2var.value as IdentifierReference).nameInSource.single())
         val call = func.statements[2] as FunctionCallStatement
         assertEquals("asmfunc", call.target.nameInSource.single())
-        assertTrue(call.args.single() is IdentifierReference, "str param in function body should be treated as plain uword")
+        assertTrue(call.args.single() is IdentifierReference, "str param in function body should be treated as plain uword and not been transformed")
         assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
+    }
+
+    @Test
+    fun arrayParameterNotYetAllowed_ButShouldPerhapsBe() {
+        // note: the *parser* accepts this as it is valid *syntax*,
+        // however, it's not (yet) valid for the compiler
+        val text = """
+            main {
+                sub start() {
+                }
+                
+                asmsub asmfunc(ubyte[] thing @AY) {
+                }
+
+                sub func(ubyte[22] thing) {
+                }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
+        assertEquals(0, errors.warnings.size)
+        assertContains(errors.errors.single(), ".p8:9:16: Non-string pass-by-reference types cannot occur as a parameter type directly")
     }
 
     @Test

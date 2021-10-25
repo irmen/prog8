@@ -105,7 +105,8 @@ fun compileProgram(filepath: Path,
                 )
             postprocessAst(programAst, errors, compilationOptions)
 
-            // printAst(programAst)
+//            println("*********** AST BEFORE ASSEMBLYGEN *************")
+//            printAst(programAst)
 
             if (writeAssembly) {
                 val result = writeAssembly(programAst, errors, outputDir, compilationOptions)
@@ -346,7 +347,7 @@ private fun writeAssembly(programAst: Program,
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.report()
 
-    printAst(programAst) // TODO
+//    printAst(programAst)
 
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val assembly = asmGeneratorFor(compilerOptions.compTarget,

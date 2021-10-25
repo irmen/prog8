@@ -135,11 +135,13 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                                         TypecastExpression(pair.second, requiredType, true, pair.second.position),
                                         call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
-                                // we allow STR/ARRAY values in place of UWORD parameters. Take their address instead.
-                                if(pair.second is IdentifierReference) {
+                                // We allow STR/ARRAY values in place of UWORD parameters.
+                                // Take their address instead, UNLESS it's a str parameter in the containing subroutine
+                                val identifier = pair.second as? IdentifierReference
+                                if(identifier?.isSubroutineParameter(program)==false) {
                                     modifications += IAstModification.ReplaceNode(
                                             call.args[index],
-                                            AddressOf(pair.second as IdentifierReference, pair.second.position),
+                                            AddressOf(identifier, pair.second.position),
                                             call as Node)
                                 }
                             } else if(pair.second is NumericLiteralValue) {

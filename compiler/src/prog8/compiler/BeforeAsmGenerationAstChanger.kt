@@ -5,11 +5,13 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
+import prog8.ast.internedStringsModuleName
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.astprocessing.isInRegularRAMof
+import prog8.compiler.astprocessing.isSubroutineParameter
 import prog8.compiler.target.ICompilationTarget
 
 
@@ -31,6 +33,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
                 }
             }
         }
+
         return noModifications
     }
 
@@ -77,7 +80,6 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
 
         if(!subroutine.isAsmSubroutine) {
             // change 'str' parameters into 'uword' (just treat it as an address)
-            // TODO fix [TypecastsAdder]  to treat str param vars as uword instead of adding casts/addressof (which is wrong for str *parameters*)
             val stringParams = subroutine.parameters.filter { it.type==DataType.STR }
             val parameterChanges = stringParams.map {
                 val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.position)
@@ -167,7 +169,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // see if we can remove superfluous typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword
-        // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of.
+        // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
+        //   UNLESS it's a str parameter in the containing subroutine - then we remove the typecast altogether
         val sourceDt = typecast.expression.inferType(program).getOr(DataType.UNDEFINED)
         if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
                 || typecast.type in WordDatatypes && sourceDt in WordDatatypes) {
@@ -176,22 +179,23 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             }
         }
 
-
-        // Note: for various reasons (most importantly, code simplicity), the code generator assumes/requires
-        // that the types of assignment values and their target are the same,
-        // and that the types of both operands of a binaryexpression node are the same.
-        // So, it is not easily possible to remove the typecasts that are there to make these conditions true.
-        // The only place for now where we can do this is for:
-        //    asmsub register pair parameter.
-
         if(sourceDt in PassByReferenceDatatypes) {
             if(typecast.type==DataType.UWORD) {
-                if(typecast.expression is IdentifierReference) {
-                    return listOf(IAstModification.ReplaceNode(
+                val identifier = typecast.expression as? IdentifierReference
+                if(identifier!=null) {
+                    return if(identifier.isSubroutineParameter(program)) {
+                        listOf(IAstModification.ReplaceNode(
                             typecast,
-                            AddressOf(typecast.expression as IdentifierReference, typecast.position),
+                            typecast.expression,
                             parent
-                    ))
+                        ))
+                    } else {
+                        listOf(IAstModification.ReplaceNode(
+                            typecast,
+                            AddressOf(identifier, typecast.position),
+                            parent
+                        ))
+                    }
                 } else if(typecast.expression is IFunctionCall) {
                     return listOf(IAstModification.ReplaceNode(
                             typecast,
