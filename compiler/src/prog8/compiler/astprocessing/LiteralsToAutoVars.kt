@@ -1,5 +1,6 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
@@ -44,7 +45,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
                     val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                     return listOf(
                             IAstModification.ReplaceNode(array, identifier, parent),
-                            IAstModification.InsertFirst(vardecl2, array.definingScope)
+                            IAstModification.InsertFirst(vardecl2, array.parent as IStatementContainer)
                     )
                 }
             }

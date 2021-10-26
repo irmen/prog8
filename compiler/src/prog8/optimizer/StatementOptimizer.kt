@@ -76,7 +76,7 @@ internal class StatementOptimizer(private val program: Program,
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in functions.purefunctionNames) {
                 errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
-                return listOf(IAstModification.Remove(functionCallStatement, functionCallStatement.definingScope))
+                return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
             }
         }
 
@@ -127,7 +127,7 @@ internal class StatementOptimizer(private val program: Program,
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return)
-                return listOf(IAstModification.Remove(functionCallStatement, functionCallStatement.definingScope))
+                return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
         }
 
         return noModifications
@@ -150,7 +150,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
         // remove empty if statements
         if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isEmpty())
-            return listOf(IAstModification.Remove(ifStatement, ifStatement.definingScope))
+            return listOf(IAstModification.Remove(ifStatement, parent as IStatementContainer))
 
         // empty true part? switch with the else part
         if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isNotEmpty()) {
@@ -183,12 +183,12 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         if(forLoop.body.isEmpty()) {
             errors.warn("removing empty for loop", forLoop.position)
-            return listOf(IAstModification.Remove(forLoop, forLoop.definingScope))
+            return listOf(IAstModification.Remove(forLoop, parent as IStatementContainer))
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl
             if(loopvar!=null && loopvar.name==forLoop.loopVar.nameInSource.singleOrNull()) {
                 // remove empty for loop (only loopvar decl in it)
-                return listOf(IAstModification.Remove(forLoop, forLoop.definingScope))
+                return listOf(IAstModification.Remove(forLoop, parent as IStatementContainer))
             }
         }
 
@@ -265,7 +265,7 @@ internal class StatementOptimizer(private val program: Program,
             } else {
                 // always false -> remove the while statement altogether
                 errors.warn("condition is always false", whileLoop.condition.position)
-                listOf(IAstModification.Remove(whileLoop, whileLoop.definingScope))
+                listOf(IAstModification.Remove(whileLoop, parent as IStatementContainer))
             }
         }
         return noModifications
@@ -276,12 +276,12 @@ internal class StatementOptimizer(private val program: Program,
         if(iter!=null) {
             if(repeatLoop.body.isEmpty()) {
                 errors.warn("empty loop removed", repeatLoop.position)
-                return listOf(IAstModification.Remove(repeatLoop, repeatLoop.definingScope))
+                return listOf(IAstModification.Remove(repeatLoop, parent as IStatementContainer))
             }
             val iterations = iter.constValue(program)?.number?.toInt()
             if (iterations == 0) {
                 errors.warn("iterations is always 0, removed loop", iter.position)
-                return listOf(IAstModification.Remove(repeatLoop, repeatLoop.definingScope))
+                return listOf(IAstModification.Remove(repeatLoop, parent as IStatementContainer))
             }
             if (iterations == 1) {
                 errors.warn("iterations is always 1", iter.position)
@@ -293,10 +293,10 @@ internal class StatementOptimizer(private val program: Program,
 
     override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
         // if the jump is to the next statement, remove the jump
-        val scope = jump.definingScope
+        val scope = jump.parent as IStatementContainer
         val label = jump.identifier?.targetStatement(program)
         if(label!=null && scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1)
-            return listOf(IAstModification.Remove(jump, jump.definingScope))
+            return listOf(IAstModification.Remove(jump, scope))
 
         return noModifications
     }
@@ -329,7 +329,7 @@ internal class StatementOptimizer(private val program: Program,
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
-                                        IAstModification.InsertAfter(assignment, addConstant, assignment.definingScope))
+                                        IAstModification.InsertAfter(assignment, addConstant, parent as IStatementContainer))
                             } else if (op2 == "-") {
                                 // A = A +/- B - N
                                 val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
@@ -340,7 +340,7 @@ internal class StatementOptimizer(private val program: Program,
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
-                                        IAstModification.InsertAfter(assignment, subConstant, assignment.definingScope))
+                                        IAstModification.InsertAfter(assignment, subConstant, parent as IStatementContainer))
                             }
                         }
                     }
@@ -362,7 +362,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if(assignment.target isSameAs assignment.value) {
             // remove assignment to self
-            return listOf(IAstModification.Remove(assignment, assignment.definingScope))
+            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
         }
 
         val targetIDt = assignment.target.inferType(program)
@@ -382,7 +382,7 @@ internal class StatementOptimizer(private val program: Program,
                 when (bexpr.operator) {
                     "+" -> {
                         if (rightCv == 0.0) {
-                            return listOf(IAstModification.Remove(assignment, assignment.definingScope))
+                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
                             if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0) {
                                 // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
@@ -396,7 +396,7 @@ internal class StatementOptimizer(private val program: Program,
                     }
                     "-" -> {
                         if (rightCv == 0.0) {
-                            return listOf(IAstModification.Remove(assignment, assignment.definingScope))
+                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
                             if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0) {
                                 // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
@@ -408,18 +408,18 @@ internal class StatementOptimizer(private val program: Program,
                             }
                         }
                     }
-                    "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope))
-                    "/" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope))
-                    "**" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope))
-                    "|" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope))
-                    "^" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, assignment.definingScope))
+                    "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                    "/" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                    "**" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                    "|" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                    "^" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                     "<<" -> {
                         if (rightCv == 0.0)
-                            return listOf(IAstModification.Remove(assignment, assignment.definingScope))
+                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                     }
                     ">>" -> {
                         if (rightCv == 0.0)
-                            return listOf(IAstModification.Remove(assignment, assignment.definingScope))
+                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                     }
                 }
 
