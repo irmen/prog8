@@ -20,7 +20,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.io.path.Path
-import kotlin.io.path.absolute
 import kotlin.math.absoluteValue
 
 
@@ -49,7 +48,7 @@ internal class AsmGen(private val program: Program,
     internal val loopEndLabels = ArrayDeque<String>()
     private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
     internal val slabs = mutableMapOf<String, Int>()
-    internal val removals = mutableListOf<Pair<Statement, INameScope>>()
+    internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
 
     override fun compileToAssembly(): IAssemblyProgram {
         assemblyLines.clear()
@@ -991,8 +990,7 @@ internal class AsmGen(private val program: Program,
 //        if(!booleanCondition.left.isSimple || !booleanCondition.right.isSimple)
 //            throw AssemblyError("both operands for if comparison expression should have been simplified")
 
-        if (stmt.elsepart.containsNoCodeNorVars) {
-            // empty else
+        if (stmt.elsepart.isEmpty()) {
             val endLabel = makeLabel("if_end")
             expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
             translate(stmt.truepart)
@@ -1245,7 +1243,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: BranchStatement) {
-        if(stmt.truepart.containsNoCodeNorVars && stmt.elsepart.containsCodeOrVars)
+        if(stmt.truepart.isEmpty() && stmt.elsepart.isNotEmpty())
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
         val jump = stmt.truepart.statements.first() as? Jump
@@ -1257,7 +1255,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val truePartIsJustBreak = stmt.truepart.statements.firstOrNull() is Break
             val elsePartIsJustBreak = stmt.elsepart.statements.firstOrNull() is Break
-            if(stmt.elsepart.containsNoCodeNorVars) {
+            if(stmt.elsepart.isEmpty()) {
                 if(truePartIsJustBreak) {
                     // branch with just a break (jump out of loop)
                     val instruction = branchInstruction(stmt.condition, false)
@@ -1310,7 +1308,7 @@ $repeatLabel    lda  $counterVar
                 }
                 inits.add(stmt)
             } else {
-                val next = (stmt.parent as INameScope).nextSibling(stmt)
+                val next = (stmt.parent as IStatementContainer).nextSibling(stmt)
                 if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
                     assignInitialValueToVar(stmt, listOf(stmt.name))
                 }

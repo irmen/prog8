@@ -1,6 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.INameScope
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.BinaryExpression
@@ -65,7 +65,7 @@ X =      BinExpr                                    X   =   LeftExpr
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
                     return listOf(
                         IAstModification.ReplaceNode(binExpr, augExpr, assignment),
-                        IAstModification.InsertBefore(assignment, firstAssign, assignment.parent as INameScope)
+                        IAstModification.InsertBefore(assignment, firstAssign, assignment.parent as IStatementContainer)
                     )
                 }
             }

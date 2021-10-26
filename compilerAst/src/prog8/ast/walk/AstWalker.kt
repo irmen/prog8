@@ -9,7 +9,7 @@ import prog8.ast.statements.*
 interface IAstModification {
     fun perform()
 
-    class Remove(val node: Node, val parent: INameScope) : IAstModification {
+    class Remove(val node: Node, val parent: IStatementContainer) : IAstModification {
         override fun perform() {
             if (!parent.statements.remove(node) && parent !is GlobalNamespace)
                 throw FatalAstException("attempt to remove non-existing node $node")
@@ -24,21 +24,21 @@ interface IAstModification {
         }
     }
 
-    class InsertFirst(private val stmt: Statement, private val parent: INameScope) : IAstModification {
+    class InsertFirst(private val stmt: Statement, private val parent: IStatementContainer) : IAstModification {
         override fun perform() {
             parent.statements.add(0, stmt)
             stmt.linkParents(parent as Node)
         }
     }
 
-    class InsertLast(private val stmt: Statement, private val parent: INameScope) : IAstModification {
+    class InsertLast(private val stmt: Statement, private val parent: IStatementContainer) : IAstModification {
         override fun perform() {
             parent.statements.add(stmt)
             stmt.linkParents(parent as Node)
         }
     }
 
-    class InsertAfter(private val after: Statement, private val stmt: Statement, private val parent: INameScope) :
+    class InsertAfter(private val after: Statement, private val stmt: Statement, private val parent: IStatementContainer) :
         IAstModification {
         override fun perform() {
             val idx = parent.statements.indexOfFirst { it===after } + 1
@@ -47,7 +47,7 @@ interface IAstModification {
         }
     }
 
-    class InsertBefore(private val before: Statement, private val stmt: Statement, private val parent: INameScope) :
+    class InsertBefore(private val before: Statement, private val stmt: Statement, private val parent: IStatementContainer) :
         IAstModification {
         override fun perform() {
             val idx = parent.statements.indexOfFirst { it===before }

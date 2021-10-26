@@ -188,7 +188,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     inline fun unused(label: Label) = false   // just always output labels
 
-    fun unused(stmt: ISymbolStatement): Boolean {
+    fun unused(stmt: INamedStatement): Boolean {
         return when(stmt) {
             is Subroutine -> unused(stmt)
             is Block -> unused(stmt)

@@ -28,27 +28,27 @@ internal class UnusedCodeRemover(private val program: Program,
     }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
-        reportUnreachable(breakStmt, parent as INameScope)
+        reportUnreachable(breakStmt, parent as IStatementContainer)
         return emptyList()
     }
 
     override fun before(jump: Jump, parent: Node): Iterable<IAstModification> {
-        reportUnreachable(jump, parent as INameScope)
+        reportUnreachable(jump, parent as IStatementContainer)
         return emptyList()
     }
 
     override fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> {
-        reportUnreachable(returnStmt, parent as INameScope)
+        reportUnreachable(returnStmt, parent as IStatementContainer)
         return emptyList()
     }
 
     override fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource.last() == "exit")
-            reportUnreachable(functionCallStatement, parent as INameScope)
+            reportUnreachable(functionCallStatement, parent as IStatementContainer)
         return emptyList()
     }
 
-    private fun reportUnreachable(stmt: Statement, parent: INameScope) {
+    private fun reportUnreachable(stmt: Statement, parent: IStatementContainer) {
         when(val next = parent.nextSibling(stmt)) {
             null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine -> {}
             else -> errors.warn("unreachable code", next.position)
@@ -65,11 +65,11 @@ internal class UnusedCodeRemover(private val program: Program,
             if (block.containsNoCodeNorVars) {
                 if(block.name != internedStringsModuleName)
                     errors.warn("removing unused block '${block.name}'", block.position)
-                return listOf(IAstModification.Remove(block, parent as INameScope))
+                return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
             if(callgraph.unused(block)) {
                 errors.warn("removing unused block '${block.name}'", block.position)
-                return listOf(IAstModification.Remove(block, parent as INameScope))
+                return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
         }
 

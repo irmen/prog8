@@ -278,6 +278,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 private fun processAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
+    programAst.preprocessAst()
     programAst.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR

@@ -21,116 +21,11 @@ interface IFunctionCall {
     var args: MutableList<Expression>
 }
 
-interface INameScope {
-    val name: String
+interface IStatementContainer {
     val position: Position
-    val statements: MutableList<Statement>
     val parent: Node
-
+    val statements: MutableList<Statement>
     fun linkParents(parent: Node)
-
-    fun subScope(name: String): INameScope? {
-        for(stmt in statements) {
-            when(stmt) {
-                // NOTE: if other nodes are introduced that are a scope, or contain subscopes, they must be added here!
-                is ForLoop -> if(stmt.body.name==name) return stmt.body
-                is UntilLoop -> if(stmt.body.name==name) return stmt.body
-                is WhileLoop -> if(stmt.body.name==name) return stmt.body
-                is BranchStatement -> {
-                    if(stmt.truepart.name==name) return stmt.truepart
-                    if(stmt.elsepart.containsCodeOrVars && stmt.elsepart.name==name) return stmt.elsepart
-                }
-                is IfStatement -> {
-                    if(stmt.truepart.name==name) return stmt.truepart
-                    if(stmt.elsepart.containsCodeOrVars && stmt.elsepart.name==name) return stmt.elsepart
-                }
-                is WhenStatement -> {
-                    val scope = stmt.choices.firstOrNull { it.statements.name==name }
-                    if(scope!=null)
-                        return scope.statements
-                }
-                is INameScope -> if(stmt.name==name) return stmt
-                else -> {}
-            }
-        }
-        return null
-    }
-
-    fun getLabelOrVariable(name: String): Statement? {
-        // this is called A LOT and could perhaps be optimized a bit more,
-        // but adding a memoization cache didn't make much of a practical runtime difference
-        for (stmt in statements) {
-            if (stmt is VarDecl && stmt.name==name) return stmt
-            if (stmt is Label && stmt.name==name) return stmt
-            if (stmt is AnonymousScope) {
-                val sub = stmt.getLabelOrVariable(name)
-                if(sub!=null)
-                    return sub
-            }
-        }
-        return null
-    }
-
-    val allDefinedSymbols: List<Pair<String, Statement>>
-        get() {
-            return statements.mapNotNull {
-                when (it) {
-                    is Label -> it.name to it
-                    is VarDecl -> it.name to it
-                    is Subroutine -> it.name to it
-                    is Block -> it.name to it
-                    else -> null
-                }
-            }
-        }
-
-    fun lookup(scopedName: List<String>, localContext: Node) : Statement? {
-        if(scopedName.size>1) {
-            // a scoped name refers to a name in another module.
-            // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
-            for(module in localContext.definingModule.program.modules) {
-                var scope: INameScope? = module
-                for(name in scopedName.dropLast(1)) {
-                    scope = scope?.subScope(name)
-                    if(scope==null)
-                        break
-                }
-                if(scope!=null) {
-                    val result = scope.getLabelOrVariable(scopedName.last())
-                    if(result!=null)
-                        return result
-                    return scope.subScope(scopedName.last()) as Statement?
-                }
-            }
-            return null
-        } else {
-            // unqualified name
-            // special case: the do....until statement can also look INSIDE the anonymous scope
-            if(localContext.parent.parent is UntilLoop) {
-                val symbolFromInnerScope = (localContext.parent.parent as UntilLoop).body.getLabelOrVariable(scopedName[0])
-                if(symbolFromInnerScope!=null)
-                    return symbolFromInnerScope
-            }
-
-            // find the scope the localContext is in, look in that first
-            var statementScope = localContext
-            while(statementScope !is ParentSentinel) {
-                val localScope = statementScope.definingScope
-                val result = localScope.getLabelOrVariable(scopedName[0])
-                if (result != null)
-                    return result
-                val subscope = localScope.subScope(scopedName[0]) as Statement?
-                if (subscope != null)
-                    return subscope
-                // not found in this scope, look one higher up
-                statementScope = statementScope.parent
-            }
-            return null
-        }
-    }
-
-    val containsCodeOrVars get() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm" }
-    val containsNoCodeNorVars get() = !containsCodeOrVars
 
     fun remove(stmt: Statement) {
         if(!statements.remove(stmt))
@@ -140,11 +35,11 @@ interface INameScope {
     fun getAllLabels(label: String): List<Label> {
         val result = mutableListOf<Label>()
 
-        fun find(scope: INameScope) {
+        fun find(scope: IStatementContainer) {
             scope.statements.forEach {
                 when(it) {
                     is Label -> result.add(it)
-                    is INameScope -> find(it)
+                    is IStatementContainer -> find(it)
                     is IfStatement -> {
                         find(it.truepart)
                         find(it.elsepart)
@@ -185,6 +80,77 @@ interface INameScope {
         else
             throw FatalAstException("attempt to find a non-child")
     }
+
+    fun isEmpty(): Boolean = statements.isEmpty()
+    fun isNotEmpty(): Boolean = statements.isNotEmpty()
+
+    val allDefinedSymbols: List<Pair<String, Statement>>
+        get() {
+            return statements.mapNotNull {
+                when (it) {
+                    is Label -> it.name to it
+                    is VarDecl -> it.name to it
+                    is Subroutine -> it.name to it
+                    is Block -> it.name to it
+                    else -> null
+                }
+            }
+        }
+}
+
+interface INameScope: IStatementContainer, INamedStatement {
+    fun subScope(name: String): INameScope?  = statements.firstOrNull { it is INameScope && it.name==name } as? INameScope
+
+    fun getLabelOrVariable(name: String): Statement? {
+        // this is called A LOT and could perhaps be optimized a bit more,
+        // but adding a memoization cache didn't make much of a practical runtime difference
+        for (stmt in statements) {
+            if (stmt is VarDecl && stmt.name==name) return stmt
+            if (stmt is Label && stmt.name==name) return stmt
+        }
+        return null
+    }
+
+    fun lookup(scopedName: List<String>, localContext: Node) : Statement? {
+        if(scopedName.size>1) {
+            // a scoped name refers to a name in another module.
+            // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
+            for(module in localContext.definingModule.program.modules) {
+                var scope: INameScope? = module
+                for(name in scopedName.dropLast(1)) {
+                    scope = scope?.subScope(name)
+                    if(scope==null)
+                        break
+                }
+                if(scope!=null) {
+                    val result = scope.getLabelOrVariable(scopedName.last())
+                    if(result!=null)
+                        return result
+                    return scope.subScope(scopedName.last()) as Statement?
+                }
+            }
+            return null
+        } else {
+            // unqualified name
+            // find the scope the localContext is in, look in that first
+            var statementScope = localContext
+            while(statementScope !is ParentSentinel) {
+                val localScope = statementScope.definingScope
+                val result = localScope.getLabelOrVariable(scopedName[0])
+                if (result != null)
+                    return result
+                val subscope = localScope.subScope(scopedName[0]) as Statement?
+                if (subscope != null)
+                    return subscope
+                // not found in this scope, look one higher up
+                statementScope = statementScope.parent
+            }
+            return null
+        }
+    }
+
+    val containsCodeOrVars get() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm" }
+    val containsNoCodeNorVars get() = !containsCodeOrVars
 }
 
 
@@ -202,6 +168,7 @@ interface Node {
 
     val definingSubroutine: Subroutine? get() = findParentNode<Subroutine>(this)
 
+    // TODO CHECK IF THIS IS ACTUALLY WHAT'S DESIRED: (namescope v.s. statementcontainer)
     val definingScope: INameScope
         get() {
             val scope = findParentNode<INameScope>(this)
@@ -413,13 +380,6 @@ class GlobalNamespace(val modules: Iterable<Module>, private val builtinFunction
             val builtinPlaceholder = Label("builtin::${scopedName.last()}", localContext.position)
             builtinPlaceholder.parent = ParentSentinel
             return builtinPlaceholder
-        }
-
-        // special case: the do....until statement can also look INSIDE the anonymous scope
-        if(localContext.parent.parent is UntilLoop) {
-            val symbolFromInnerScope = (localContext.parent.parent as UntilLoop).body.lookup(scopedName, localContext)
-            if(symbolFromInnerScope!=null)
-                return symbolFromInnerScope
         }
 
         // lookup something from the module.

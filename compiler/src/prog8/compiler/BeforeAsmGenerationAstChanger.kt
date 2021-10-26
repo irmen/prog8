@@ -1,11 +1,8 @@
 package prog8.compiler
 
-import prog8.ast.IFunctionCall
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.internedStringsModuleName
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -25,7 +22,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
             // This allows you to restart the program and have the same starting values of the variables
             if(decl.allowInitializeWithZero)
             {
-                val nextAssign = decl.definingScope.nextSibling(decl) as? Assignment
+                val nextAssign = decl.nextSibling() as? Assignment
                 if (nextAssign != null && nextAssign.target isSameAs IdentifierReference(listOf(decl.name), Position.DUMMY))
                     decl.value = null
                 else {
@@ -55,14 +52,14 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
                             // use the other part of the expression to split.
                             val assignRight = Assignment(assignment.target, binExpr.right, assignment.position)
                             return listOf(
-                                    IAstModification.InsertBefore(assignment, assignRight, assignment.definingScope),
+                                    IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
                                     IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
                                     IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
                         }
                     } else {
                         val assignLeft = Assignment(assignment.target, binExpr.left, assignment.position)
                         return listOf(
-                                IAstModification.InsertBefore(assignment, assignLeft, assignment.definingScope),
+                                IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
                                 IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
                     }
                 }
@@ -101,29 +98,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
     }
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+        if(scope.statements.any { it is VarDecl || it is IStatementContainer })
+            throw FatalAstException("anonymousscope may no longer contain any vardecls or subscopes")
+
         val decls = scope.statements.filterIsInstance<VarDecl>().filter { it.type == VarDeclType.VAR }
         subroutineVariables.addAll(decls.map { it.name to it })
-
-        val sub = scope.definingSubroutine
-        if (sub != null) {
-            // move any remaining vardecls of the scope into the upper scope. Make sure the position remains the same!
-            val replacements = mutableListOf<IAstModification>()
-            val movements = mutableListOf<IAstModification.InsertFirst>()
-
-            for(decl in decls) {
-                if(decl.value!=null && decl.datatype in NumericDatatypes) {
-                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                    val assign = Assignment(target, decl.value!!, decl.position)
-                    replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
-                    decl.value = null
-                    decl.allowInitializeWithZero = false
-                } else {
-                    replacements.add(IAstModification.Remove(decl, scope))
-                }
-                movements.add(IAstModification.InsertFirst(decl, sub))
-            }
-            return replacements + movements
-        }
         return noModifications
     }
 
@@ -372,7 +351,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // assign the indexing expression to the helper variable, but only if that hasn't been done already
         val target = AssignTarget(IdentifierReference(listOf("cx16", register), expr.indexer.position), null, null, expr.indexer.position)
         val assign = Assignment(target, expr.indexer.indexExpr, expr.indexer.position)
-        modifications.add(IAstModification.InsertBefore(statement, assign, statement.definingScope))
+        modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
         modifications.add(IAstModification.ReplaceNode(expr.indexer.indexExpr, target.identifier!!.copy(), expr.indexer))
         return modifications
     }

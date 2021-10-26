@@ -1,6 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.INameScope
+import prog8.ast.IStatementContainer
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -196,7 +197,7 @@ internal class AstChecker(private val program: Program,
                 is Label,
                 is VarDecl,
                 is InlineAssembly,
-                is INameScope,
+                is IStatementContainer,
                 is NopStatement -> true
                 else -> false
             }
@@ -217,7 +218,7 @@ internal class AstChecker(private val program: Program,
         super.visit(label)
     }
 
-    private fun hasReturnOrJump(scope: INameScope): Boolean {
+    private fun hasReturnOrJump(scope: IStatementContainer): Boolean {
         class Searcher: IAstVisitor
         {
             var count=0

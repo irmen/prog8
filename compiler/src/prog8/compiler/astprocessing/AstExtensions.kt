@@ -113,6 +113,14 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
+internal fun Program.preprocessAst() {
+    val transforms = AstPreprocessor()
+    transforms.visit(this)
+    var mods = transforms.applyModifications()
+    while(mods>0)
+        mods = transforms.applyModifications()
+}
+
 internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {
 
     val checker2 = AstIdentifiersChecker(this, errors, options.compTarget)

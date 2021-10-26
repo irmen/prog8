@@ -1,9 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.IBuiltinFunctions
-import prog8.ast.INameScope
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -23,7 +20,7 @@ internal class StatementOptimizer(private val program: Program,
                                   private val functions: IBuiltinFunctions,
                                   private val compTarget: ICompilationTarget) : AstWalker() {
 
-    private val subsThatNeedReturnVariable = mutableSetOf<Triple<INameScope, DataType, Position>>()
+    private val subsThatNeedReturnVariable = mutableSetOf<Triple<IStatementContainer, DataType, Position>>()
 
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
@@ -117,7 +114,7 @@ internal class StatementOptimizer(private val program: Program,
                             functionCallStatement.void, pos
                         )
                         return listOf(
-                            IAstModification.InsertBefore(functionCallStatement, chrout1, parent as INameScope),
+                            IAstModification.InsertBefore(functionCallStatement, chrout1, parent as IStatementContainer),
                             IAstModification.ReplaceNode(functionCallStatement, chrout2, parent)
                         )
                     }
@@ -152,11 +149,11 @@ internal class StatementOptimizer(private val program: Program,
 
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
         // remove empty if statements
-        if(ifStatement.truepart.containsNoCodeNorVars && ifStatement.elsepart.containsNoCodeNorVars)
+        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isEmpty())
             return listOf(IAstModification.Remove(ifStatement, ifStatement.definingScope))
 
         // empty true part? switch with the else part
-        if(ifStatement.truepart.containsNoCodeNorVars && ifStatement.elsepart.containsCodeOrVars) {
+        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isNotEmpty()) {
             val invertedCondition = PrefixExpression("not", ifStatement.condition, ifStatement.condition.position)
             val emptyscope = AnonymousScope(mutableListOf(), ifStatement.elsepart.position)
             val truepart = AnonymousScope(ifStatement.elsepart.statements, ifStatement.truepart.position)
@@ -184,7 +181,7 @@ internal class StatementOptimizer(private val program: Program,
     }
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
-        if(forLoop.body.containsNoCodeNorVars) {
+        if(forLoop.body.isEmpty()) {
             errors.warn("removing empty for loop", forLoop.position)
             return listOf(IAstModification.Remove(forLoop, forLoop.definingScope))
         } else if(forLoop.body.statements.size==1) {
@@ -277,7 +274,7 @@ internal class StatementOptimizer(private val program: Program,
     override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
         val iter = repeatLoop.iterations
         if(iter!=null) {
-            if(repeatLoop.body.containsNoCodeNorVars) {
+            if(repeatLoop.body.isEmpty()) {
                 errors.warn("empty loop removed", repeatLoop.position)
                 return listOf(IAstModification.Remove(repeatLoop, repeatLoop.definingScope))
             }
@@ -445,7 +442,7 @@ internal class StatementOptimizer(private val program: Program,
                 val assign = Assignment(tgt, value, returnStmt.position)
                 val returnReplacement = Return(returnValueIntermediary2, returnStmt.position)
                 return listOf(
-                    IAstModification.InsertBefore(returnStmt, assign, parent as INameScope),
+                    IAstModification.InsertBefore(returnStmt, assign, parent as IStatementContainer),
                     IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
                 )
             }
@@ -469,7 +466,7 @@ internal class StatementOptimizer(private val program: Program,
         return super.after(returnStmt, parent)
     }
 
-    private fun hasBreak(scope: INameScope): Boolean {
+    private fun hasBreak(scope: IStatementContainer): Boolean {
 
         class Searcher: IAstVisitor
         {

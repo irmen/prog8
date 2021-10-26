@@ -1,6 +1,5 @@
 package prog8.optimizer
 
-import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -18,6 +17,10 @@ import prog8.compiler.target.ICompilationTarget
 internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+
+        if(decl.parent is AnonymousScope)
+            throw FatalAstException("vardecl may no longer occur in anonymousscope")
+
         try {
             val declConstValue = decl.value?.constValue(program)
             if(declConstValue!=null && (decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST)
@@ -31,28 +34,6 @@ internal class VarConstantValueTypeAdjuster(private val program: Program, privat
             errors.err(x.message, x.position)
         }
 
-        // move vardecl to the containing subroutine and add initialization assignment in its place if needed
-        if(decl.type == VarDeclType.VAR && decl.datatype in NumericDatatypes) {
-            val subroutine = decl.definingSubroutine as? INameScope
-            if(subroutine!=null && subroutine!==parent) {
-                val declValue = decl.value
-                decl.value = null
-                decl.allowInitializeWithZero = false
-                return if (declValue == null) {
-                    listOf(
-                        IAstModification.Remove(decl, parent as INameScope),
-                        IAstModification.InsertFirst(decl, subroutine)
-                    )
-                } else {
-                    val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                    val assign = Assignment(target, declValue, decl.position)
-                    listOf(
-                        IAstModification.ReplaceNode(decl, assign, parent),
-                        IAstModification.InsertFirst(decl, subroutine)
-                    )
-                }
-            }
-        }
         return noModifications
     }
 
