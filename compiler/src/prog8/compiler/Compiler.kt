@@ -131,6 +131,10 @@ fun compileProgram(filepath: Path,
         System.err.print("\u001b[91m")  // bright red
         System.err.println(pfx.message)
         System.err.print("\u001b[0m")  // reset
+    } catch (nsf: NoSuchFileException) {
+        System.err.print("\u001b[91m")  // bright red
+        System.err.println("File not found: ${nsf.message}")
+        System.err.print("\u001b[0m")  // reset
     } catch (ax: AstException) {
         System.err.print("\u001b[91m")  // bright red
         System.err.println(ax.toString())
