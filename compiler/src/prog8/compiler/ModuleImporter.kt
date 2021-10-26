@@ -33,7 +33,7 @@ class ModuleImporter(private val program: Program,
         val srcPath = when (candidates.size) {
             0 -> return Err(NoSuchFileException(
                     file = filePath.normalize().toFile(),
-                    reason = "searched in $searchIn"))
+                    reason = "Searched in $searchIn"))
             1 -> candidates.first()
             else -> candidates.first()  // when more candiates, pick the one from the first location
         }
@@ -105,7 +105,7 @@ class ModuleImporter(private val program: Program,
                             importModule(it)
                         },
                         failure = {
-                            errors.err("no module found with name $moduleName", import.position)
+                            errors.err("no module found with name $moduleName. Searched in: $sourcePaths (and internal libraries)", import.position)
                             return null
                         }
                     )
