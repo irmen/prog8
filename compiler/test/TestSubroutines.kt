@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
@@ -12,7 +13,10 @@ import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.*
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -177,5 +181,34 @@ class TestSubroutines {
         assertFalse(func.isAsmSubroutine)
         assertEquals(DataType.ARRAY_UB, func.parameters.single().type)
         assertTrue(func.statements.isEmpty())
+    }
+
+    @Test
+    fun testAnonScopeVarsMovedIntoSubroutineScope() {
+        val src = """
+            main {
+                sub start() {
+                    repeat {
+                        ubyte xx = 99
+                        xx++
+                    }
+                }
+            }
+        """
+
+        val result = compileText(C64Target, false, src, writeAssembly = false).assertSuccess()
+        val module = result.programAst.toplevelModule
+        val mainBlock = module.statements.single() as Block
+        val start = mainBlock.statements.single() as Subroutine
+        val repeatbody = start.statements.filterIsInstance<RepeatLoop>().single().body
+        assertFalse(mainBlock.statements.any { it is VarDecl }, "no vars moved to main block")
+        val subroutineVars = start.statements.filterIsInstance<VarDecl>()
+        assertEquals(1, subroutineVars.size, "var from repeat anonscope must be moved up to subroutine")
+        assertEquals("xx", subroutineVars[0].name)
+        assertFalse(repeatbody.statements.any { it is VarDecl }, "var should have been removed from repeat anonscope")
+        val initassign = repeatbody.statements[0] as? Assignment
+        assertEquals(listOf("xx"), initassign?.target?.identifier?.nameInSource, "vardecl in repeat should be replaced by init assignment")
+        assertEquals(99, (initassign?.value as? NumericLiteralValue)?.number?.toInt(), "vardecl in repeat should be replaced by init assignment")
+        assertTrue(repeatbody.statements[1] is PostIncrDecr)
     }
 }

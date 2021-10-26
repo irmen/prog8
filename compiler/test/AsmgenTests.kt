@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.DataType
+import prog8.ast.base.Position
+import prog8.ast.base.RegisterOrPair
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue

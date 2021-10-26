@@ -7,7 +7,9 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -17,7 +17,7 @@ import prog8.compiler.target.ICompilationTarget
 import java.io.CharConversionException
 import java.io.File
 import java.util.*
-import kotlin.io.path.*
+import kotlin.io.path.Path
 
 internal class AstChecker(private val program: Program,
                           private val compilerOptions: CompilationOptions,

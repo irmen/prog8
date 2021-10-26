@@ -607,4 +607,29 @@ class TestProg8Parser {
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)
     }
+
+    @Test
+    fun testAnonScopeStillContainsVarsDirectlyAfterParse() {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    repeat {
+                        ubyte xx = 99
+                        xx++
+                    }
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val mainBlock = module.statements.single() as Block
+        val start = mainBlock.statements.single() as Subroutine
+        val repeatbody = (start.statements.single() as RepeatLoop).body
+        assertFalse(mainBlock.statements.any { it is VarDecl }, "no vars moved to main block")
+        assertFalse(start.statements.any { it is VarDecl }, "no vars moved to start sub")
+        assertTrue(repeatbody.statements[0] is VarDecl, "var is still in repeat block (anonymousscope)")
+        val initvalue = (repeatbody.statements[0] as VarDecl).value as? NumericLiteralValue
+        assertEquals(99, initvalue?.number?.toInt())
+        assertTrue(repeatbody.statements[1] is PostIncrDecr)
+        // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
+    }
 }

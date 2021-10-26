@@ -1,16 +1,12 @@
 package prog8tests
 
-import kotlin.test.*
 import com.github.michaelbull.result.getErrorOrElse
 import com.github.michaelbull.result.getOrElse
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.*
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.nullValue
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.*
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
 import prog8.compiler.IErrorReporter
@@ -19,6 +15,10 @@ import prog8.parser.ParseError
 import prog8.parser.SourceCode
 import prog8tests.helpers.*
 import kotlin.io.path.*
+import kotlin.test.assertContains
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.fail
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

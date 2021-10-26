@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
-import prog8tests.helpers.*
+import prog8tests.helpers.assumeNotExists
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import prog8tests.helpers.resourcesDir
 import kotlin.io.path.Path
 import kotlin.test.*
 

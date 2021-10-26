@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.compiler.target.cbm.Petscii
 import java.io.CharConversionException
-import kotlin.test.*
+import kotlin.test.assertFailsWith
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

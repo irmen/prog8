@@ -3,7 +3,10 @@ package prog8.compiler.target
 import com.github.michaelbull.result.fold
 import prog8.ast.IMemSizer
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.ByteDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.PassByReferenceDatatypes
+import prog8.ast.base.WordDatatypes
 import prog8.compiler.CompilationOptions
 import prog8.compiler.IErrorReporter
 import prog8.compiler.IStringEncoding

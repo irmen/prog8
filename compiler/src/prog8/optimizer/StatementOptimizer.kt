@@ -1,6 +1,9 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.IBuiltinFunctions
+import prog8.ast.IStatementContainer
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*

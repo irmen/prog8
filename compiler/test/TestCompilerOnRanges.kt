@@ -14,9 +14,6 @@ import prog8.compiler.astprocessing.toConstantIntegerRange
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8tests.helpers.*
-import prog8tests.helpers.assertFailure
-import prog8tests.helpers.assertSuccess
-import prog8tests.helpers.compileText
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
