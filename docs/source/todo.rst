@@ -3,12 +3,7 @@ TODO
 
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-make AnonymousScope no longer a INameScope as the vars are scoped to the parent subroutine.
-requires to hoist all vardecls in all AnonymousScopes up to Subroutine level somewhere,
-and changing all lookups that now look into the anonymousscope (no longer needed).
-Do this after AstIdentifiersChecker so that we know that there are no problems with
-variable name clashes.
-
+...
 
 
 Blocked by Commander-x16 v39 release
