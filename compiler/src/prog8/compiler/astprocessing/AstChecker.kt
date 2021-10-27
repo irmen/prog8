@@ -456,7 +456,7 @@ internal class AstChecker(private val program: Program,
         val targetIdentifier = assignTarget.identifier
         if (targetIdentifier != null) {
             val targetName = targetIdentifier.nameInSource
-            when (val targetSymbol = program.namespace.lookup(targetName, assignment)) {
+            when (val targetSymbol = program.namespace.lookup(targetName, assignment.definingScope)) {
                 null -> {
                     errors.err("undefined symbol: ${targetIdentifier.nameInSource.joinToString(".")}", targetIdentifier.position)
                     return
@@ -1073,7 +1073,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(postIncrDecr: PostIncrDecr) {
         if(postIncrDecr.target.identifier != null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
-            val target = program.namespace.lookup(targetName, postIncrDecr)
+            val target = program.namespace.lookup(targetName, postIncrDecr.definingScope)
             if(target==null) {
                 val symbol = postIncrDecr.target.identifier!!
                 errors.err("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)

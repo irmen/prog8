@@ -62,7 +62,7 @@ class TestScoping {
                             goto labeloutside
                             goto iflabel
                             goto main.start.nested.nestedlabel
-                            ; goto nested.nestedlabel         ; TODO should also work!!
+                            goto nested.nestedlabel
                         }
             iflabel:
                     }

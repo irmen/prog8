@@ -42,7 +42,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
-        val existing = program.namespace.lookup(listOf(decl.name), decl)
+        val existing = program.namespace.lookup(listOf(decl.name), decl.definingScope)
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
@@ -75,7 +75,8 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             val paramNames = subroutine.parameters.map { it.name }.toSet()
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
-                val labelOrVar = subroutine.searchLabelOrVariableNotSubscoped(name)
+                // TODO clean this up? no two separate lookups?
+                val labelOrVar = subroutine.searchLabelOrVariableNotSubscoped(name, false)
                 if(labelOrVar!=null && labelOrVar.position != subroutine.position)
                     nameError(name, labelOrVar.position, subroutine)
                 val sub = subroutine.statements.firstOrNull { it is Subroutine && it.name==name}
