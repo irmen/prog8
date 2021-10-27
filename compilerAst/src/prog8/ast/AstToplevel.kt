@@ -84,6 +84,71 @@ interface IStatementContainer {
     fun isEmpty(): Boolean = statements.isEmpty()
     fun isNotEmpty(): Boolean = statements.isNotEmpty()
 
+    fun searchLabelOrVariableNotSubscoped(name: String): Statement? {         // TODO return INamedStatement instead?  and rename to searchSymbol ?
+        // this is called quite a lot and could perhaps be optimized a bit more,
+        // but adding a memoization cache didn't make much of a practical runtime difference...
+        for (stmt in statements) {
+            when(stmt) {
+//                is INamedStatement -> {
+//                    if(stmt.name==name) return stmt
+//                }
+                is VarDecl -> {
+                    if(stmt.name==name) return stmt
+                }
+                is Label -> {
+                    if(stmt.name==name) return stmt
+                }
+                is AnonymousScope -> {
+                    val found = stmt.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is IfStatement -> {
+                    val found = stmt.truepart.searchLabelOrVariableNotSubscoped(name) ?: stmt.elsepart.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is BranchStatement -> {
+                    val found = stmt.truepart.searchLabelOrVariableNotSubscoped(name) ?: stmt.elsepart.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is ForLoop -> {
+                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is WhileLoop -> {
+                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is RepeatLoop -> {
+                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is UntilLoop -> {
+                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name)
+                    if(found!=null)
+                        return found
+                }
+                is WhenStatement -> {
+                    stmt.choices.forEach {
+                        val found = it.statements.searchLabelOrVariableNotSubscoped(name)
+                        if(found!=null)
+                            return found
+                    }
+                }
+                else -> {
+                    // NOTE: when other nodes containing AnonymousScope are introduced,
+                    //       these should be added here as well to look into!
+                }
+            }
+        }
+        return null
+    }
+
     val allDefinedSymbols: List<Pair<String, Statement>>
         get() {
             return statements.mapNotNull {
@@ -101,17 +166,7 @@ interface IStatementContainer {
 interface INameScope: IStatementContainer, INamedStatement {
     fun subScope(name: String): INameScope?  = statements.firstOrNull { it is INameScope && it.name==name } as? INameScope
 
-    fun getLabelOrVariable(name: String): Statement? {
-        // this is called A LOT and could perhaps be optimized a bit more,
-        // but adding a memoization cache didn't make much of a practical runtime difference
-        for (stmt in statements) {
-            if (stmt is VarDecl && stmt.name==name) return stmt
-            if (stmt is Label && stmt.name==name) return stmt
-        }
-        return null
-    }
-
-    fun lookup(scopedName: List<String>, localContext: Node) : Statement? {
+    fun lookup(scopedName: List<String>, localContext: Node) : Statement? {             // TODO return INamedStatement instead?
         if(scopedName.size>1) {
             // a scoped name refers to a name in another module.
             // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
@@ -123,7 +178,7 @@ interface INameScope: IStatementContainer, INamedStatement {
                         break
                 }
                 if(scope!=null) {
-                    val result = scope.getLabelOrVariable(scopedName.last())
+                    val result = scope.searchLabelOrVariableNotSubscoped(scopedName.last())
                     if(result!=null)
                         return result
                     return scope.subScope(scopedName.last()) as Statement?
@@ -136,7 +191,7 @@ interface INameScope: IStatementContainer, INamedStatement {
             var statementScope = localContext
             while(statementScope !is ParentSentinel) {
                 val localScope = statementScope.definingScope
-                val result = localScope.getLabelOrVariable(scopedName[0])
+                val result = localScope.searchLabelOrVariableNotSubscoped(scopedName[0])
                 if (result != null)
                     return result
                 val subscope = localScope.subScope(scopedName[0]) as Statement?
@@ -168,7 +223,6 @@ interface Node {
 
     val definingSubroutine: Subroutine? get() = findParentNode<Subroutine>(this)
 
-    // TODO CHECK IF THIS IS ACTUALLY WHAT'S DESIRED: (namescope v.s. statementcontainer)
     val definingScope: INameScope
         get() {
             val scope = findParentNode<INameScope>(this)
@@ -374,7 +428,7 @@ class GlobalNamespace(val modules: Iterable<Module>, private val builtinFunction
         throw FatalAstException("cannot replace anything in the namespace")
     }
 
-    override fun lookup(scopedName: List<String>, localContext: Node): Statement? {
+    override fun lookup(scopedName: List<String>, localContext: Node): Statement? {         // TODO return INamedStatement instead?
         if (scopedName.size == 1 && scopedName[0] in builtinFunctionNames) {
             // builtin functions always exist, return a dummy localContext for them
             val builtinPlaceholder = Label("builtin::${scopedName.last()}", localContext.position)

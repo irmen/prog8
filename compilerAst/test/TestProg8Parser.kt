@@ -632,4 +632,35 @@ class TestProg8Parser {
         assertTrue(repeatbody.statements[1] is PostIncrDecr)
         // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
     }
+
+    @Test
+    fun testLabelsWithAnonScopesParsesFine() {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    goto mylabeloutside
+        
+                    if true {
+                        if true {
+                            goto labeloutside
+                            goto iflabel
+                        }
+            iflabel:
+                    }
+        
+                    repeat {
+                        goto labelinside
+            labelinside:
+                    }
+        
+            labeloutside:
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val mainBlock = module.statements.single() as Block
+        val start = mainBlock.statements.single() as Subroutine
+        val labels = start.statements.filterIsInstance<Label>()
+        assertEquals(1, labels.size, "only one label in subroutine scope")
+    }
 }

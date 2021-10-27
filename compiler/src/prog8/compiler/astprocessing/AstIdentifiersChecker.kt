@@ -75,7 +75,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             val paramNames = subroutine.parameters.map { it.name }.toSet()
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
-                val labelOrVar = subroutine.getLabelOrVariable(name)
+                val labelOrVar = subroutine.searchLabelOrVariableNotSubscoped(name)
                 if(labelOrVar!=null && labelOrVar.position != subroutine.position)
                     nameError(name, labelOrVar.position, subroutine)
                 val sub = subroutine.statements.firstOrNull { it is Subroutine && it.name==name}
