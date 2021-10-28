@@ -42,7 +42,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
-        val existing = program.namespace.lookup(listOf(decl.name), decl.definingScope)
+        val existing = decl.definingScope.lookup(listOf(decl.name), decl.definingScope)
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
@@ -65,7 +65,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             // if (subroutine.parameters.any { it.name in BuiltinFunctions })
             //    checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
-            val existing = program.namespace.lookup(listOf(subroutine.name), subroutine)
+            val existing = subroutine.lookup(listOf(subroutine.name), subroutine)
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 

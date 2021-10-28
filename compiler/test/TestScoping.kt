@@ -58,7 +58,7 @@ class TestScoping {
                             addr = &labelinside
                             addr = &labeloutside
                             addr = &main.start.nested.nestedlabel
-                            ; addr = &nested.nestedlabel      ; TODO should also work!!
+                            addr = &nested.nestedlabel
                             goto labeloutside
                             goto iflabel
                             goto main.start.nested.nestedlabel
@@ -72,11 +72,11 @@ class TestScoping {
                         addr = &labelinside
                         addr = &labeloutside
                         addr = &main.start.nested.nestedlabel
-                        ; addr = &nested.nestedlabel      ; TODO should also work!!
+                        addr = &nested.nestedlabel
                         goto iflabel
                         goto labelinside
                         goto main.start.nested.nestedlabel
-                        ; goto nested.nestedlabel         ; TODO should also work!!
+                        goto nested.nestedlabel
             labelinside:
                     }
 
@@ -92,9 +92,9 @@ class TestScoping {
                     addr = &labelinside
                     addr = &labeloutside
                     addr = &main.start.nested.nestedlabel
-                    ; addr = &nested.nestedlabel      ; TODO should also work!!
+                    addr = &nested.nestedlabel
                     goto main.start.nested.nestedlabel
-                    ; goto nested.nestedlabel     ; TODO should also work!!
+                    goto nested.nestedlabel
                 }
             }
         """
@@ -105,8 +105,6 @@ class TestScoping {
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
         assertEquals(1, labels.size, "only one label in subroutine scope")
-
-        TODO("fix the partial scoped lookups above as well")
     }
 
 }

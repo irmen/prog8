@@ -730,7 +730,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
             BuiltinFunctionStatementPlaceholder(nameInSource[0], position, parent)
         else
-            program.namespace.lookup(nameInSource, this.definingScope)
+            definingScope.lookup(nameInSource, definingScope)
 
     fun targetVarDecl(program: Program): VarDecl? = targetStatement(program) as? VarDecl
     fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
@@ -747,8 +747,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 
     override fun constValue(program: Program): NumericLiteralValue? {
-        val node = program.namespace.lookup(nameInSource, this.definingScope)
-                ?: throw UndefinedSymbolError(this)
+        val node = definingScope.lookup(nameInSource, definingScope) ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
             return null

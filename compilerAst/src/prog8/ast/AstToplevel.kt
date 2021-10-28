@@ -162,7 +162,9 @@ interface IStatementContainer {
 interface INameScope: IStatementContainer, INamedStatement {
     fun subScope(name: String): INameScope?  = statements.firstOrNull { it is INameScope && it.name==name } as? INameScope
 
-    fun lookup(scopedName: List<String>, localScope: INameScope) : Statement? {             // TODO return INamedStatement instead?
+    // TODO is localscope really needed?
+    // TODO return INamedStatement instead?
+    fun lookup(scopedName: List<String>, localScope: INameScope) : Statement? {
         return if(scopedName.size>1)
             lookupQualified(scopedName, localScope)
         else {
@@ -173,22 +175,14 @@ interface INameScope: IStatementContainer, INamedStatement {
     private fun lookupQualified(scopedName: List<String>, startScope: INameScope): Statement? {
         // a scoped name refers to a name in another namespace.
         // look "up" from our current scope to search for the correct one.
-        if(scopedName==listOf("nested", "nestedlabel"))
-            println("$scopedName")      // TODO weg
-
-        // TODO FIX qualified lookup.
+        val localScope = this.subScope(scopedName[0])
+        if(localScope!=null)
+            return resolveLocally(localScope, scopedName.drop(1))
 
         var statementScope = startScope
         while(statementScope !is GlobalNamespace) {
             if(statementScope !is Module && statementScope.name==scopedName[0]) {
-                // drill down to get the full scope
-                var scope: INameScope? = statementScope
-                for (name in scopedName.drop(1).dropLast(1)) {
-                    scope = scope!!.subScope(name)
-                    if (scope == null)
-                        return null
-                }
-                return scope!!.searchLabelOrVariableNotSubscoped(scopedName.last(), true)
+                return resolveLocally(statementScope, scopedName.drop(1))
             } else {
                 statementScope = (statementScope as Node).definingScope
             }
@@ -202,6 +196,16 @@ interface INameScope: IStatementContainer, INamedStatement {
             }
         }
         return null
+    }
+
+    private fun resolveLocally(startScope: INameScope, name: List<String>): Statement? {
+        var scope: INameScope? = startScope
+        for(part in name.dropLast(1)) {
+            scope = scope!!.subScope(part)
+            if(scope==null)
+                return null
+        }
+        return scope!!.searchLabelOrVariableNotSubscoped(name.last(), true)
     }
 
     private fun lookupUnqualified(name: String, startScope: INameScope): Statement? {
@@ -444,6 +448,10 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used
     override var parent: Node = ParentSentinel
+
+    override fun lookup(scopedName: List<String>, localScope: INameScope): Statement? {
+        throw NotImplementedError("use lookup on actual ast node instead")
+    }
 
     override fun linkParents(parent: Node) {
         modules.forEach { it.linkParents(this) }
