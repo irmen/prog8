@@ -88,7 +88,7 @@ internal fun Program.reorderStatements(errors: IErrorReporter) {
     }
 }
 
-internal fun Program.charLiteralsToUByteLiterals(errors: IErrorReporter, enc: IStringEncoding) {
+internal fun Program.charLiteralsToUByteLiterals(enc: IStringEncoding) {
     val walker = object : AstWalker() {
         override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {
             return listOf(IAstModification.ReplaceNode(
@@ -123,7 +123,7 @@ internal fun Program.preprocessAst() {
 
 internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {
 
-    val checker2 = AstIdentifiersChecker(this, errors, options.compTarget)
+    val checker2 = AstIdentifiersChecker(errors, options.compTarget)
     checker2.visit(this)
 
     if(errors.noErrors()) {

@@ -84,7 +84,7 @@ interface IStatementContainer {
     fun isEmpty(): Boolean = statements.isEmpty()
     fun isNotEmpty(): Boolean = statements.isNotEmpty()
 
-    fun searchLabelOrVariableNotSubscoped(name: String, alsoSubroutine: Boolean): Statement? {         // TODO return INamedStatement instead?  and rename to searchSymbol ?
+    fun searchSymbol(name: String): Statement? {
         // this is called quite a lot and could perhaps be optimized a bit more,
         // but adding a memoization cache didn't make much of a practical runtime difference...
         for (stmt in statements) {
@@ -99,47 +99,47 @@ interface IStatementContainer {
                     if(stmt.name==name) return stmt
                 }
                 is Subroutine -> {
-                    if(alsoSubroutine && stmt.name==name)
+                    if(stmt.name==name)
                         return stmt
                 }
                 is AnonymousScope -> {
-                    val found = stmt.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is IfStatement -> {
-                    val found = stmt.truepart.searchLabelOrVariableNotSubscoped(name, alsoSubroutine) ?: stmt.elsepart.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is BranchStatement -> {
-                    val found = stmt.truepart.searchLabelOrVariableNotSubscoped(name, alsoSubroutine) ?: stmt.elsepart.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is ForLoop -> {
-                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.body.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is WhileLoop -> {
-                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.body.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is RepeatLoop -> {
-                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.body.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is UntilLoop -> {
-                    val found = stmt.body.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                    val found = stmt.body.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
                 is WhenStatement -> {
                     stmt.choices.forEach {
-                        val found = it.statements.searchLabelOrVariableNotSubscoped(name, alsoSubroutine)
+                        val found = it.statements.searchSymbol(name)
                         if(found!=null)
                             return found
                     }
@@ -203,7 +203,7 @@ interface INameScope: IStatementContainer, INamedStatement {
             if(scope==null)
                 return null
         }
-        return scope!!.searchLabelOrVariableNotSubscoped(name.last(), true)
+        return scope!!.searchSymbol(name.last())
     }
 
     private fun lookupUnqualified(name: String): Statement? {
@@ -219,7 +219,7 @@ interface INameScope: IStatementContainer, INamedStatement {
         // if it's not found there, jump up one higher in the namespaces and try again.
         var statementScope = this
         while(statementScope !is GlobalNamespace) {
-            val symbol = statementScope.searchLabelOrVariableNotSubscoped(name, true)
+            val symbol = statementScope.searchSymbol(name)
             if(symbol!=null)
                 return symbol
             else

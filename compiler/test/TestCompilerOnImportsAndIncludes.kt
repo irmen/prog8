@@ -105,8 +105,8 @@ class TestCompilerOnImportsAndIncludes {
                 val (where, p8Str, binStr) = it
                 dynamicTest("%asmbinary from ${where}folder") {
                     val p8Path = assumeReadableFile(fixturesDir, p8Str)
-                    val binPath = assumeReadableFile(fixturesDir, binStr)
-                    assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workinDir
+                    // val binPath = assumeReadableFile(fixturesDir, binStr)
+                    assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workingDir
                         workingDir.normalize().toAbsolutePath(),
                         outputDir.normalize().toAbsolutePath(),
                         "sanity check: workingDir and outputDir should not be the same folder"

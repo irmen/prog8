@@ -1,6 +1,5 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
@@ -9,7 +8,7 @@ import prog8.compiler.IErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.target.ICompilationTarget
 
-internal class AstIdentifiersChecker(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
+internal class AstIdentifiersChecker(private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()
 
     private fun nameError(name: String, position: Position, existing: Statement) {
@@ -69,19 +68,15 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 
-            // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters. Blocks are okay.
+            // check that there are no local symbols (variables, labels, subs) that redefine the subroutine's parameters.
             val symbolsInSub = subroutine.allDefinedSymbols
             val namesInSub = symbolsInSub.map{ it.first }.toSet()
             val paramNames = subroutine.parameters.map { it.name }.toSet()
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
-                // TODO clean this up? no two separate lookups?
-                val labelOrVar = subroutine.searchLabelOrVariableNotSubscoped(name, false)
-                if(labelOrVar!=null && labelOrVar.position != subroutine.position)
-                    nameError(name, labelOrVar.position, subroutine)
-                val sub = subroutine.statements.firstOrNull { it is Subroutine && it.name==name}
-                if(sub!=null)
-                    nameError(name, subroutine.position, sub)
+                val symbol = subroutine.searchSymbol(name)
+                if(symbol!=null && symbol.position != subroutine.position)
+                    nameError(name, symbol.position, subroutine)
             }
 
             if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {
