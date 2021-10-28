@@ -2,7 +2,7 @@ package prog8tests
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.AstToSourceCode
+import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
@@ -15,14 +15,14 @@ import kotlin.test.assertContains
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestAstToSourceCode {
+class TestAstToSourceText {
 
     private fun generateP8(module: Module) : String {
         val program = Program("test", DummyFunctions, DummyMemsizer)
             .addModule(module)
 
         var generatedText = ""
-        val it = AstToSourceCode({ str -> generatedText += str }, program)
+        val it = AstToSourceTextConverter({ str -> generatedText += str }, program)
         it.visit(program)
 
         return generatedText

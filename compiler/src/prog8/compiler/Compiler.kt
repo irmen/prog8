@@ -1,7 +1,7 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.*
-import prog8.ast.AstToSourceCode
+import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IMemSizer
 import prog8.ast.Program
@@ -378,7 +378,7 @@ private fun writeAssembly(programAst: Program,
 
 fun printAst(programAst: Program) {
     println()
-    val printer = AstToSourceCode(::print, programAst)
+    val printer = AstToSourceTextConverter(::print, programAst)
     printer.visit(programAst)
     println()
 }
