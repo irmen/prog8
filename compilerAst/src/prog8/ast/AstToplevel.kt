@@ -162,24 +162,22 @@ interface IStatementContainer {
 interface INameScope: IStatementContainer, INamedStatement {
     fun subScope(name: String): INameScope?  = statements.firstOrNull { it is INameScope && it.name==name } as? INameScope
 
-    // TODO is localscope really needed?
-    // TODO return INamedStatement instead?
-    fun lookup(scopedName: List<String>, localScope: INameScope) : Statement? {
+    fun lookup(scopedName: List<String>) : Statement? {
         return if(scopedName.size>1)
-            lookupQualified(scopedName, localScope)
+            lookupQualified(scopedName)
         else {
-            lookupUnqualified(scopedName[0], localScope)
+            lookupUnqualified(scopedName[0])
         }
     }
 
-    private fun lookupQualified(scopedName: List<String>, startScope: INameScope): Statement? {
+    private fun lookupQualified(scopedName: List<String>): Statement? {
         // a scoped name refers to a name in another namespace.
         // look "up" from our current scope to search for the correct one.
         val localScope = this.subScope(scopedName[0])
         if(localScope!=null)
             return resolveLocally(localScope, scopedName.drop(1))
 
-        var statementScope = startScope
+        var statementScope = this
         while(statementScope !is GlobalNamespace) {
             if(statementScope !is Module && statementScope.name==scopedName[0]) {
                 return resolveLocally(statementScope, scopedName.drop(1))
@@ -189,10 +187,10 @@ interface INameScope: IStatementContainer, INamedStatement {
         }
 
         // not found, try again but now assume it's a globally scoped name starting with the name of a block
-        for(module in (startScope as Node).definingModule.program.modules) {
+        for(module in (this as Node).definingModule.program.modules) {
             module.statements.forEach {
                 if(it is Block && it.name==scopedName[0])
-                    return it.lookup(scopedName, it)
+                    return it.lookup(scopedName)
             }
         }
         return null
@@ -208,18 +206,18 @@ interface INameScope: IStatementContainer, INamedStatement {
         return scope!!.searchLabelOrVariableNotSubscoped(name.last(), true)
     }
 
-    private fun lookupUnqualified(name: String, startScope: INameScope): Statement? {
-        val builtinFunctionsNames = (startScope as Node).definingModule.program.builtinFunctions.names
+    private fun lookupUnqualified(name: String): Statement? {
+        val builtinFunctionsNames = (this as Node).definingModule.program.builtinFunctions.names
         if(name in builtinFunctionsNames) {
             // builtin functions always exist, return a dummy placeholder for them
-            val builtinPlaceholder = Label("builtin::$name", startScope.position)
+            val builtinPlaceholder = Label("builtin::$name", this.position)
             builtinPlaceholder.parent = ParentSentinel
             return builtinPlaceholder
         }
 
         // search for the unqualified name in the current scope (and possibly in any anonymousscopes it may contain)
         // if it's not found there, jump up one higher in the namespaces and try again.
-        var statementScope = startScope
+        var statementScope = this
         while(statementScope !is GlobalNamespace) {
             val symbol = statementScope.searchLabelOrVariableNotSubscoped(name, true)
             if(symbol!=null)
@@ -449,7 +447,7 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
     override val statements = mutableListOf<Statement>()        // not used
     override var parent: Node = ParentSentinel
 
-    override fun lookup(scopedName: List<String>, localScope: INameScope): Statement? {
+    override fun lookup(scopedName: List<String>): Statement? {
         throw NotImplementedError("use lookup on actual ast node instead")
     }
 

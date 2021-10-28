@@ -395,7 +395,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun inferType(program: Program): InferredTypes.InferredType {
         if (identifier != null) {
-            val symbol = definingScope.lookup(identifier!!.nameInSource, definingScope) ?: return InferredTypes.unknown()
+            val symbol = definingScope.lookup(identifier!!.nameInSource) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
         }
 
