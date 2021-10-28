@@ -19,41 +19,6 @@ import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.collections.Iterable
-import kotlin.collections.List
-import kotlin.collections.MutableList
-import kotlin.collections.MutableSet
-import kotlin.collections.any
-import kotlin.collections.chunked
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.contains
-import kotlin.collections.drop
-import kotlin.collections.filter
-import kotlin.collections.filterIsInstance
-import kotlin.collections.first
-import kotlin.collections.firstOrNull
-import kotlin.collections.forEach
-import kotlin.collections.getValue
-import kotlin.collections.isNotEmpty
-import kotlin.collections.iterator
-import kotlin.collections.joinToString
-import kotlin.collections.last
-import kotlin.collections.listOf
-import kotlin.collections.map
-import kotlin.collections.mutableListOf
-import kotlin.collections.mutableMapOf
-import kotlin.collections.mutableSetOf
-import kotlin.collections.partition
-import kotlin.collections.plus
-import kotlin.collections.removeLast
-import kotlin.collections.set
-import kotlin.collections.setOf
-import kotlin.collections.single
-import kotlin.collections.sortedBy
-import kotlin.collections.toList
-import kotlin.collections.toMutableList
-import kotlin.collections.zip
 import kotlin.io.path.Path
 import kotlin.math.absoluteValue
 
@@ -1357,7 +1322,6 @@ $repeatLabel    lda  $counterVar
     private fun translate(stmt: Directive) {
         when(stmt.directive) {
             "%asminclude" -> {
-                // TODO: handle %asminclude with SourceCode
                 val includedName = stmt.args[0].str!!
                 if(stmt.definingModule.source is SourceCode.Generated)
                     TODO("%asminclude inside non-library, non-filesystem module")

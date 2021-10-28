@@ -5,12 +5,5 @@ main {
     }
 
     sub fubar(ubyte aa, ubyte bb, ubyte cc, ubyte dd) {
-        ubyte aa
-
-bb:
-
-        sub cc() {
-            dd++
-        }
     }
 }

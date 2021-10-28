@@ -8,9 +8,7 @@ import java.nio.channels.Channels
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
-import kotlin.io.path.exists
-import kotlin.io.path.isDirectory
-import kotlin.io.path.isReadable
+import kotlin.io.path.*
 
 /**
  * Encapsulates - and ties together - actual source code (=text)
@@ -45,9 +43,8 @@ sealed class SourceCode {
 
     /**
      * The source code as plain string.
-     * *Note: this is meant for testing and debugging, do NOT use in application code!*
      */
-    fun asString() = this.getCharStream().toString()
+    abstract fun readText(): String
 
     /**
      * Deliberately does NOT return the actual text.
@@ -62,7 +59,7 @@ sealed class SourceCode {
          */
         const val libraryFilePrefix = "library:"
         const val stringSourcePrefix = "<String@"
-        val curdir: Path = Path.of(".").toAbsolutePath()
+        val curdir: Path = Path(".").toAbsolutePath()
         fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
         fun isRegularFilesystemPath(pathString: String) =
             !(pathString.startsWith(libraryFilePrefix) || pathString.startsWith(stringSourcePrefix))
@@ -77,6 +74,7 @@ sealed class SourceCode {
         override val isFromFilesystem = false
         override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
         override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
+        override fun readText() = text
     }
 
     /**
@@ -107,6 +105,7 @@ sealed class SourceCode {
         override val isFromFilesystem = true
         override val origin = relative(normalized).toString()
         override fun getCharStream(): CharStream = CharStreams.fromPath(normalized)
+        override fun readText() = normalized.readText()
     }
 
     /**
@@ -129,11 +128,16 @@ sealed class SourceCode {
         override val isFromResources = true
         override val isFromFilesystem = false
         override val origin = "$libraryFilePrefix$normalized"
-        override fun getCharStream(): CharStream {
+        public override fun getCharStream(): CharStream {
             val inpStr = object {}.javaClass.getResourceAsStream(normalized)!!
             // CharStreams.fromStream() doesn't allow us to set the stream name properly, so we use a lower level api
             val channel = Channels.newChannel(inpStr)
             return CharStreams.fromChannel(channel, StandardCharsets.UTF_8, 4096, CodingErrorAction.REPLACE, origin, -1);
+        }
+
+        override fun readText(): String {
+            val stream = object {}.javaClass.getResourceAsStream(normalized)
+            return stream!!.bufferedReader().use { r -> r.readText() }
         }
     }
 
@@ -145,6 +149,7 @@ sealed class SourceCode {
         override val isFromResources: Boolean = false
         override val isFromFilesystem: Boolean = false
         override val origin: String = name
+        override fun readText() = throw IOException("generated code nodes don't have a text representation")
     }
 
     // TODO: possibly more, like fromURL(..)

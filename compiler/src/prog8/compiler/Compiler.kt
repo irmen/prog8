@@ -24,6 +24,7 @@ import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
 
@@ -385,16 +386,13 @@ fun printAst(programAst: Program) {
 internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
     return if (filename.startsWith(libraryFilePrefix)) {
         return runCatching {
-            val stream = object {}.javaClass.getResourceAsStream("/prog8lib/${filename.substring(libraryFilePrefix.length)}") // TODO handle via SourceCode
-            stream!!.bufferedReader().use { r -> r.readText() }
+            SourceCode.Resource("/prog8lib/${filename.substring(libraryFilePrefix.length)}").readText()
         }.mapError { NoSuchFileException(File(filename)) }
     } else {
-        // first try in the isSameAs folder as where the containing file was imported from
         val sib = Path(source.origin).resolveSibling(filename)
-
-        if (sib.toFile().isFile)
-            Ok(sib.toFile().readText())
+        if (sib.isRegularFile())
+            Ok(SourceCode.File(sib).readText())
         else
-            Ok(File(filename).readText())
+            Ok(SourceCode.File(Path(filename)).readText())
     }
 }
