@@ -2,7 +2,6 @@ package prog8tests.helpers
 
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
-import prog8.compilerinterface.ErrorReporter
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8tests.ast.helpers.assumeReadableFile
@@ -46,7 +45,7 @@ internal fun compileFile(
         platform.name,
         sourceDirs = listOf(),
         outputDir,
-        errors = errors ?: ErrorReporter()
+        errors = errors ?: ErrorReporterForTests()
     )
 }
 

@@ -21,6 +21,7 @@ import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import prog8tests.asmgen.helpers.DummyFunctions
 import prog8tests.asmgen.helpers.DummyMemsizer
+import prog8tests.asmgen.helpers.ErrorReporterForTests
 import java.nio.file.Path
 
 
@@ -79,7 +80,7 @@ locallabel:
     }
 
     private fun createTestAsmGen(program: Program): AsmGen {
-        val errors = ErrorReporter()
+        val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target)
         val zp = C64MachineDefinition.C64Zeropage(options)
         val asmgen = AsmGen(program, errors, zp, options, C64Target, Path.of(""))

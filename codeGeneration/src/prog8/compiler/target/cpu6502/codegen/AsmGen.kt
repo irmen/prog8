@@ -274,7 +274,6 @@ class AsmGen(private val program: Program,
                         && variable.datatype != DataType.FLOAT
                         && options.zeropage != ZeropageType.DONTUSE) {
                     try {
-                        val errors = ErrorReporter()    // TODO why not just use this.errors?  then we can clean up the visibility of ErrorReporter class again too
                         val address = zeropage.allocate(fullName, variable.datatype, null, errors)
                         errors.report()
                         out("${variable.name} = $address\t; auto zp ${variable.datatype}")

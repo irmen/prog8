@@ -6,9 +6,9 @@ import prog8.ast.internedStringsModuleName
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
 import prog8.compiler.target.C64Target
-import prog8.compilerinterface.ErrorReporter
 import prog8.compilerinterface.ZeropageType
 import prog8tests.ast.helpers.outputDir
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 import kotlin.test.assertEquals
@@ -70,7 +70,7 @@ main {
 
     @Test
     fun testModuleOrderAndCompilationOptionsCorrectWithJustImports() {
-        val errors = ErrorReporter()
+        val errors = ErrorReporterForTests()
         val sourceText = """
 %import textio
 %import floats

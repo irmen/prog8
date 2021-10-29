@@ -1,4 +1,4 @@
-package prog8tests.helpers
+package prog8tests.asmgen.helpers
 
 import prog8.ast.base.Position
 import prog8.compilerinterface.IErrorReporter
