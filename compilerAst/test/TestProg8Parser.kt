@@ -6,6 +6,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.CharLiteral
@@ -16,9 +17,9 @@ import prog8.ast.statements.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8tests.ast.helpers.assumeNotExists
-import prog8tests.ast.helpers.assumeReadableFile
-import prog8tests.ast.helpers.fixturesDir
+import prog8tests.ast.helpers.*
+import prog8tests.ast.helpers.DummyFunctions
+import prog8tests.ast.helpers.DummyMemsizer
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
@@ -580,6 +581,16 @@ class TestProg8Parser {
             assertIs<NumericLiteralValue>(it4.from, "parser should leave it as is")
             assertIs<NumericLiteralValue>(it4.to, "parser should leave it as is")
         }
+    }
+
+    @Test
+    fun testCharLiteralConstValue() {
+        val char1 = CharLiteral('A', false, Position.DUMMY)
+        val char2 = CharLiteral('z', true, Position.DUMMY)
+
+        val program = Program("test", DummyFunctions, DummyMemsizer, AsciiStringEncoder)
+        assertEquals(65, char1.constValue(program).number.toInt())
+        assertEquals(122, char2.constValue(program).number.toInt())
     }
 
     @Test

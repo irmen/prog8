@@ -17,6 +17,7 @@ import prog8.compilerinterface.isInRegularRAMof
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -70,7 +71,7 @@ class TestMemory {
 
     @Test
     fun testInValidRamC64_memory_identifiers() {
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         var target = createTestProgramForMemoryRefViaVar(program, 0x1000, VarDeclType.VAR)
 
         assertTrue(target.isInRegularRAMof(C64Target.machine))
@@ -109,7 +110,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         assertTrue(target.isInRegularRAMof(C64Target.machine))
@@ -123,7 +124,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         assertTrue(target.isInRegularRAMof(C64Target.machine))
@@ -137,7 +138,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         assertFalse(target.isInRegularRAMof(C64Target.machine))
@@ -151,7 +152,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         assertTrue(target.isInRegularRAMof(C64Target.machine))
@@ -166,7 +167,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         assertTrue(target.isInRegularRAMof(C64Target.machine))
@@ -181,7 +182,7 @@ class TestMemory {
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         assertFalse(target.isInRegularRAMof(C64Target.machine))

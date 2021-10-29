@@ -115,7 +115,7 @@ fun compileProgram(filepath: Path,
         throw x
     }
 
-    val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
+    val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compTarget)
     return CompilationResult(false, failedProgram, programName, compTarget, emptyList())
 }
 
@@ -155,7 +155,7 @@ fun parseImports(filepath: Path,
                  sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val programAst = Program(filepath.nameWithoutExtension, bf, compTarget)
+    val programAst = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = programAst
 
     val importer = ModuleImporter(programAst, compTarget.name, errors, sourceDirs)

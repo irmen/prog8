@@ -21,6 +21,7 @@ import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import prog8tests.asmgen.helpers.DummyFunctions
 import prog8tests.asmgen.helpers.DummyMemsizer
+import prog8tests.asmgen.helpers.DummyStringEncoder
 import prog8tests.asmgen.helpers.ErrorReporterForTests
 import java.nio.file.Path
 
@@ -73,7 +74,7 @@ locallabel:
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         module.linkIntoProgram(program)
         return program

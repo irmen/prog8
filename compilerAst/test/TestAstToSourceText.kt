@@ -11,6 +11,7 @@ import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
 import prog8tests.ast.helpers.DummyFunctions
 import prog8tests.ast.helpers.DummyMemsizer
+import prog8tests.ast.helpers.DummyStringEncoder
 import kotlin.test.assertContains
 
 
@@ -18,7 +19,7 @@ import kotlin.test.assertContains
 class TestAstToSourceText {
 
     private fun generateP8(module: Module) : String {
-        val program = Program("test", DummyFunctions, DummyMemsizer)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
 
         var generatedText = ""

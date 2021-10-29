@@ -17,6 +17,7 @@ import prog8tests.ast.helpers.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
 import kotlin.io.path.*
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
@@ -31,7 +32,7 @@ class TestModuleImporter {
     private lateinit var program: Program
     @BeforeEach
     fun beforeEach() {
-        program = Program("foo", DummyFunctions, DummyMemsizer)
+        program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
     }
 
     private fun makeImporter(errors: IErrorReporter?, vararg searchIn: String): ModuleImporter {
