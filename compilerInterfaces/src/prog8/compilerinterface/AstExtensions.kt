@@ -74,6 +74,7 @@ fun RangeExpr.toConstantIntegerRange(encoding: IStringEncoding): IntProgression?
     val fromString = from as? StringLiteralValue
     val toString = to as? StringLiteralValue
     if(fromString!=null && toString!=null ) {
+        // TODO WHAT IS A STRING RANGE??????
         // string range -> int range over character values
         fromVal = encoding.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
         toVal = encoding.encodeString(toString.value, fromString.altEncoding)[0].toInt()
