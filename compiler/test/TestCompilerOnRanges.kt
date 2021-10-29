@@ -9,12 +9,15 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.compilerinterface.size
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
+import prog8.compilerinterface.size
 import prog8.compilerinterface.toConstantIntegerRange
 import prog8tests.ast.helpers.mapCombinations
-import prog8tests.helpers.*
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.assertFailure
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileText
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 

@@ -4,15 +4,15 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.TestInstance
-import prog8.compilerinterface.ICompilationTarget
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
+import prog8.compilerinterface.ICompilationTarget
 import prog8tests.ast.helpers.assumeDirectory
 import prog8tests.ast.helpers.mapCombinations
 import prog8tests.ast.helpers.outputDir
 import prog8tests.ast.helpers.workingDir
-import prog8tests.helpers.*
+import prog8tests.helpers.assertSuccess
 import kotlin.io.path.absolute
 import kotlin.io.path.exists
 

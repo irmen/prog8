@@ -7,7 +7,7 @@ import prog8.ast.base.PassByReferenceDatatypes
 import prog8.ast.base.WordDatatypes
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.Petscii
-import prog8.compilerinterface.*
+import prog8.compilerinterface.ICompilationTarget
 
 
 object C64Target: ICompilationTarget {

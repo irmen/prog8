@@ -1,6 +1,7 @@
 package prog8tests.helpers
 
-import prog8.compiler.*
+import prog8.compiler.CompilationResult
+import prog8.compiler.compileProgram
 import prog8.compilerinterface.ErrorReporter
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter

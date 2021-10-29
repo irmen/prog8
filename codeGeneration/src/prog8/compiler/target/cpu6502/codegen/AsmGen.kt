@@ -6,8 +6,9 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.*
-import prog8.compiler.target.*
+import prog8.compiler.target.AssemblyError
+import prog8.compiler.target.C64Target
+import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cbm.loadAsmIncludeFile
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment

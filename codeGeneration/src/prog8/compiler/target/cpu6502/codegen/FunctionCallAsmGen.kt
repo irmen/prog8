@@ -10,11 +10,11 @@ import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
 import prog8.compiler.target.AssemblyError
-import prog8.compilerinterface.CpuType
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
+import prog8.compilerinterface.CpuType
 
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {

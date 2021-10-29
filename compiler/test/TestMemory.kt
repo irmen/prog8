@@ -12,8 +12,8 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
-import prog8.compilerinterface.isInRegularRAMof
 import prog8.compiler.target.C64Target
+import prog8.compilerinterface.isInRegularRAMof
 import prog8.parser.SourceCode
 import prog8tests.ast.helpers.DummyFunctions
 import prog8tests.ast.helpers.DummyMemsizer

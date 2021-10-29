@@ -9,12 +9,12 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.*
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
-import prog8.compilerinterface.IErrorReporter
 import prog8.compiler.ModuleImporter
+import prog8.compilerinterface.IErrorReporter
 import prog8.parser.ParseError
 import prog8.parser.SourceCode
 import prog8tests.ast.helpers.*
-import prog8tests.helpers.*
+import prog8tests.helpers.ErrorReporterForTests
 import kotlin.io.path.*
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

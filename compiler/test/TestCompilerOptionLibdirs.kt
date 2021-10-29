@@ -10,7 +10,7 @@ import prog8tests.ast.helpers.assumeReadableFile
 import prog8tests.ast.helpers.fixturesDir
 import prog8tests.ast.helpers.outputDir
 import prog8tests.ast.helpers.workingDir
-import prog8tests.helpers.*
+import prog8tests.helpers.assertSuccess
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.createTempFile

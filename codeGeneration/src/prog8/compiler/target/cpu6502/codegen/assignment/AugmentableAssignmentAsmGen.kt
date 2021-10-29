@@ -6,9 +6,9 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.target.AssemblyError
-import prog8.compilerinterface.CpuType
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
+import prog8.compilerinterface.CpuType
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,

@@ -3,11 +3,12 @@ package prog8.compiler.astprocessing
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.expressions.*
+import prog8.ast.expressions.CharLiteral
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget

@@ -1,6 +1,5 @@
 package prog8.compiler.target.cx16
 
-import prog8.compiler.*
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.viceMonListPostfix
 import prog8.compilerinterface.*

@@ -5,7 +5,8 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.Position
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.RangeExpr
-import prog8.compilerinterface.*
+import prog8.compilerinterface.IStringEncoding
+import prog8.compilerinterface.size
 import kotlin.test.assertEquals
 
 

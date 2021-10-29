@@ -9,7 +9,9 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
 import prog8.compiler.target.Cx16Target
 import prog8tests.ast.helpers.*
-import prog8tests.helpers.*
+import prog8tests.helpers.assertFailure
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileFile
 import kotlin.io.path.name
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
