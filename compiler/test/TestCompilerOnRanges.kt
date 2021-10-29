@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
+import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.Subroutine
@@ -265,5 +266,15 @@ class TestCompilerOnRanges {
         assertEquals(DataType.STR, iterable.inferType(program).getOr(DataType.UNDEFINED))
     }
 
+    @Test
+    fun testRangeExprNumericSize() {
+        val expr = RangeExpr(
+            NumericLiteralValue.optimalInteger(10, Position.DUMMY),
+            NumericLiteralValue.optimalInteger(20, Position.DUMMY),
+            NumericLiteralValue.optimalInteger(2, Position.DUMMY),
+            Position.DUMMY)
+        assertEquals(6, expr.size())
+        expr.toConstantIntegerRange()
+    }
 }
 
