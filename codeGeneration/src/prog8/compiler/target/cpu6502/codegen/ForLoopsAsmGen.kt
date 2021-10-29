@@ -20,7 +20,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
             throw AssemblyError("unknown dt")
         when(stmt.iterable) {
             is RangeExpr -> {
-                val range = (stmt.iterable as RangeExpr).toConstantIntegerRange(asmgen.options.compTarget)
+                val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()
                 if(range==null) {
                     translateForOverNonconstRange(stmt, iterableDt.getOr(DataType.UNDEFINED), stmt.iterable as RangeExpr)
                 } else {

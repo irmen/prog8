@@ -141,9 +141,9 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array
                         val declArraySize = decl.arraysize?.constIndex()
-                        if(declArraySize!=null && declArraySize!=rangeExpr.size(compTarget))
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
-                        val constRange = rangeExpr.toConstantIntegerRange(compTarget)
+                        val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
                             val newValue = if(eltType in ByteDatatypes) {
@@ -195,9 +195,9 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array of floats
                         val declArraySize = decl.arraysize?.constIndex()
-                        if(declArraySize!=null && declArraySize!=rangeExpr.size(compTarget))
-                            errors.err("range expression size (${rangeExpr.size(compTarget)}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
-                        val constRange = rangeExpr.toConstantIntegerRange(compTarget)
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size())
+                            errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
+                        val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
                             val newValue = ArrayLiteralValue(InferredTypes.InferredType.known(DataType.ARRAY_F),
                                     constRange.map { NumericLiteralValue(DataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),

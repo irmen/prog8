@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.asmgen
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test

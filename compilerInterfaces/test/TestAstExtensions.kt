@@ -5,7 +5,6 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.Position
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.RangeExpr
-import prog8.compilerinterface.IStringEncoding
 import prog8.compilerinterface.size
 import kotlin.test.assertEquals
 
@@ -20,18 +19,6 @@ class TestAstExtensions {
             NumericLiteralValue.optimalInteger(20, Position.DUMMY),
             NumericLiteralValue.optimalInteger(2, Position.DUMMY),
             Position.DUMMY)
-        val encoding = DummyStringEncoding()
-        assertEquals(6, expr.size(encoding))
-    }
-
-    class DummyStringEncoding : IStringEncoding {
-        override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
-            TODO("Not yet implemented")
-        }
-
-        override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
-            TODO("Not yet implemented")
-        }
-
+        assertEquals(6, expr.size())
     }
 }

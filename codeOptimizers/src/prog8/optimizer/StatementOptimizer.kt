@@ -198,7 +198,7 @@ class StatementOptimizer(private val program: Program,
 
         val range = forLoop.iterable as? RangeExpr
         if(range!=null) {
-            if (range.size(compTarget) == 1) {
+            if (range.size() == 1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)

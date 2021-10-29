@@ -63,8 +63,7 @@ fun compileProgram(filepath: Path,
                     programAst,
                     errors,
                     BuiltinFunctionsFacade(BuiltinFunctions),
-                    compTarget,
-                    compilationOptions
+                    compTarget
                 )
             postprocessAst(programAst, errors, compilationOptions)
 
@@ -266,7 +265,7 @@ private fun processAst(programAst: Program, errors: IErrorReporter, compilerOpti
     errors.report()
 }
 
-private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget, options: CompilationOptions) {
+private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
     // optimize the parse tree
     println("Optimizing...")
 

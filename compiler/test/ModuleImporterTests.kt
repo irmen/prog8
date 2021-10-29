@@ -15,6 +15,8 @@ import prog8.parser.ParseError
 import prog8.parser.SourceCode
 import prog8tests.ast.helpers.*
 import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
 import kotlin.io.path.*
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

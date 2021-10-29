@@ -164,10 +164,10 @@ class TestCompilerOnRanges {
         val expectedEnd = platform.encodeString("f", false)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
-        val intProgression = rangeExpr.toConstantIntegerRange(platform)
+        val intProgression = rangeExpr.toConstantIntegerRange()
         val actualStr = "${intProgression?.first} .. ${intProgression?.last}"
         assertEquals(expectedStr, actualStr,".first .. .last")
-        assertEquals(expectedEnd - expectedStart + 1, rangeExpr.size(platform), "rangeExpr.size()")
+        assertEquals(expectedEnd - expectedStart + 1, rangeExpr.size(), "rangeExpr.size()")
     }
 
     @Test
@@ -191,8 +191,8 @@ class TestCompilerOnRanges {
             .map { it.iterable }
             .filterIsInstance<RangeExpr>()[0]
 
-        assertEquals(2, rangeExpr.size(platform))
-        val intProgression = rangeExpr.toConstantIntegerRange(platform)
+        assertEquals(2, rangeExpr.size())
+        val intProgression = rangeExpr.toConstantIntegerRange()
         assertEquals(0, intProgression?.first)
         assertEquals(1, intProgression?.last)
     }
@@ -218,8 +218,8 @@ class TestCompilerOnRanges {
             .map { it.iterable }
             .filterIsInstance<RangeExpr>()[0]
 
-        assertEquals(9, rangeExpr.size(platform))
-        val intProgression = rangeExpr.toConstantIntegerRange(platform)
+        assertEquals(9, rangeExpr.size())
+        val intProgression = rangeExpr.toConstantIntegerRange()
         assertEquals(1, intProgression?.first)
         assertEquals(9, intProgression?.last)
     }

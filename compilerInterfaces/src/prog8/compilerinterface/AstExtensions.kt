@@ -4,7 +4,6 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.RangeExpr
-import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.AssignTarget
 import kotlin.math.abs
 
@@ -52,7 +51,7 @@ fun AssignTarget.isInRegularRAMof(machine: IMachineDefinition): Boolean {
     }
 }
 
-fun RangeExpr.toConstantIntegerRange(encoding: IStringEncoding): IntProgression? {
+fun RangeExpr.toConstantIntegerRange(): IntProgression? {
 
     fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
         return when {
@@ -69,32 +68,20 @@ fun RangeExpr.toConstantIntegerRange(encoding: IStringEncoding): IntProgression?
         }
     }
 
-    val fromVal: Int
-    val toVal: Int
-    val fromString = from as? StringLiteralValue
-    val toString = to as? StringLiteralValue
-    if(fromString!=null && toString!=null ) {
-        // TODO WHAT IS A STRING RANGE??????
-        // string range -> int range over character values
-        fromVal = encoding.encodeString(fromString.value, fromString.altEncoding)[0].toInt()
-        toVal = encoding.encodeString(toString.value, fromString.altEncoding)[0].toInt()
-    } else {
-        val fromLv = from as? NumericLiteralValue
-        val toLv = to as? NumericLiteralValue
-        if(fromLv==null || toLv==null)
-            return null         // non-constant range
-        // integer range
-        fromVal = fromLv.number.toInt()
-        toVal = toLv.number.toInt()
-    }
+    val fromLv = from as? NumericLiteralValue
+    val toLv = to as? NumericLiteralValue
+    if(fromLv==null || toLv==null)
+        return null
+    val fromVal = fromLv.number.toInt()
+    val toVal = toLv.number.toInt()
     val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
     return makeRange(fromVal, toVal, stepVal)
 }
 
-fun RangeExpr.size(encoding: IStringEncoding): Int? {
+fun RangeExpr.size(): Int? {
     val fromLv = (from as? NumericLiteralValue)
     val toLv = (to as? NumericLiteralValue)
     if(fromLv==null || toLv==null)
         return null
-    return toConstantIntegerRange(encoding)?.count()
+    return toConstantIntegerRange()?.count()
 }

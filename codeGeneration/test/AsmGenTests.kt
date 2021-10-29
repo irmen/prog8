@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.asmgen
 
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
@@ -19,11 +19,9 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
-import prog8tests.ast.helpers.DummyFunctions
-import prog8tests.ast.helpers.DummyMemsizer
+import prog8tests.asmgen.helpers.DummyFunctions
+import prog8tests.asmgen.helpers.DummyMemsizer
 import java.nio.file.Path
-
-// TODO move to codegen project, readjust symbol protection levels
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
