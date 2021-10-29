@@ -26,10 +26,10 @@ class TestOptimization {
             }
         """
         val result = compileText(C64Target, true, sourcecode).assertSuccess()
-        val toplevelModule = result.programAst.toplevelModule
+        val toplevelModule = result.program.toplevelModule
         val mainBlock = toplevelModule.statements.single() as Block
         val startSub = mainBlock.statements.single() as Subroutine
-        assertSame(result.programAst.entrypoint, startSub)
+        assertSame(result.program.entrypoint, startSub)
         assertEquals("start", startSub.name, "only start sub should remain")
         assertTrue(startSub.statements.single() is Return, "compiler has inserted return in empty subroutines")
     }
@@ -48,11 +48,11 @@ class TestOptimization {
             }
         """
         val result = compileText(C64Target, true, sourcecode).assertSuccess()
-        val toplevelModule = result.programAst.toplevelModule
+        val toplevelModule = result.program.toplevelModule
         val mainBlock = toplevelModule.statements.single() as Block
         val startSub = mainBlock.statements[0] as Subroutine
         val emptySub = mainBlock.statements[1] as Subroutine
-        assertSame(result.programAst.entrypoint, startSub)
+        assertSame(result.program.entrypoint, startSub)
         assertEquals("start", startSub.name)
         assertEquals("empty", emptySub.name)
         assertTrue(emptySub.statements.single() is Return, "compiler has inserted return in empty subroutines")

@@ -46,7 +46,7 @@ class TestSubroutines {
             }
         """
         val result = compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
-        val module = result.programAst.toplevelModule
+        val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -94,7 +94,7 @@ class TestSubroutines {
             }
         """
         val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
-        val module = result.programAst.toplevelModule
+        val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -170,7 +170,7 @@ class TestSubroutines {
         """
 
         val result = compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
-        val module = result.programAst.toplevelModule
+        val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}

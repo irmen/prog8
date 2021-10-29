@@ -37,7 +37,7 @@ class TestCompilerOnImportsAndIncludes {
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
                 .assertSuccess()
 
-            val program = result.programAst
+            val program = result.program
             val startSub = program.entrypoint
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
@@ -62,7 +62,7 @@ class TestCompilerOnImportsAndIncludes {
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
                 .assertSuccess()
 
-            val program = result.programAst
+            val program = result.program
             val startSub = program.entrypoint
             val args = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()

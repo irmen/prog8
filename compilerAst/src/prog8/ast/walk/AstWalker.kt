@@ -2,6 +2,7 @@ package prog8.ast.walk
 
 import prog8.ast.*
 import prog8.ast.base.FatalAstException
+import prog8.ast.base.ParentSentinel
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 
@@ -105,7 +106,7 @@ abstract class AstWalker {
     open fun before(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(program: Program, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(program: Program): Iterable<IAstModification> = noModifications
     open fun before(range: RangeExpr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
@@ -146,7 +147,7 @@ abstract class AstWalker {
     open fun after(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(program: Program, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(program: Program): Iterable<IAstModification> = noModifications
     open fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
@@ -196,9 +197,9 @@ abstract class AstWalker {
     }
 
     fun visit(program: Program) {
-        track(before(program, program), program, program)
-        program.modules.forEach { it.accept(this, program) }
-        track(after(program, program), program, program)
+        track(before(program), ParentSentinel, program.namespace)
+        program.modules.forEach { it.accept(this, program.namespace) }
+        track(after(program), ParentSentinel, program.namespace)
     }
 
     fun visit(module: Module, parent: Node) {

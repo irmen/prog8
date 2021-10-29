@@ -30,9 +30,9 @@ main {
     }
 }
 """).assertSuccess()
-        assertTrue(result.programAst.toplevelModule.name.startsWith("on_the_fly_test"))
+        assertTrue(result.program.toplevelModule.name.startsWith("on_the_fly_test"))
 
-        val moduleNames = result.programAst.modules.map { it.name }
+        val moduleNames = result.program.modules.map { it.name }
         assertTrue(moduleNames[0].startsWith("on_the_fly_test"), "main module must be first")
         assertEquals(listOf(
             "prog8_interned_strings",
@@ -44,7 +44,7 @@ main {
             "prog8_lib"
         ), moduleNames.drop(1), "module order in parse tree")
 
-        assertTrue(result.programAst.toplevelModule.name.startsWith("on_the_fly_test"))
+        assertTrue(result.program.toplevelModule.name.startsWith("on_the_fly_test"))
     }
 
     @Test
@@ -61,8 +61,8 @@ main {
     }
 }
 """).assertSuccess()
-        assertTrue(result.programAst.toplevelModule.name.startsWith("on_the_fly_test"))
-        val options = determineCompilationOptions(result.programAst, C64Target)
+        assertTrue(result.program.toplevelModule.name.startsWith("on_the_fly_test"))
+        val options = determineCompilationOptions(result.program, C64Target)
         assertTrue(options.floats)
         assertEquals(ZeropageType.DONTUSE, options.zeropage)
         assertTrue(options.noSysInit)

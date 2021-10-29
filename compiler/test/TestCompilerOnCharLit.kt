@@ -34,7 +34,7 @@ class TestCompilerOnCharLit {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
@@ -58,7 +58,7 @@ class TestCompilerOnCharLit {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
@@ -93,7 +93,7 @@ class TestCompilerOnCharLit {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 

@@ -2,18 +2,34 @@ package prog8tests
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import prog8.ast.GlobalNamespace
+import prog8.ast.base.ParentSentinel
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestScoping {
+
+    @Test
+    fun testModulesParentIsGlobalNamespace() {
+        val src = """
+            main {
+                sub start() {
+                }
+            }
+        """
+
+        val result = compileText(C64Target, false, src, writeAssembly = false).assertSuccess()
+        val module = result.program.toplevelModule
+        assertIs<GlobalNamespace>(module.parent)
+        assertSame(result.program, module.program)
+        assertIs<ParentSentinel>(module.parent.parent)
+    }
 
     @Test
     fun testAnonScopeVarsMovedIntoSubroutineScope() {
@@ -29,7 +45,7 @@ class TestScoping {
         """
 
         val result = compileText(C64Target, false, src, writeAssembly = false).assertSuccess()
-        val module = result.programAst.toplevelModule
+        val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val repeatbody = start.statements.filterIsInstance<RepeatLoop>().single().body
@@ -100,7 +116,7 @@ class TestScoping {
         """
 
         val result = compileText(C64Target, false, src, writeAssembly = true).assertSuccess()
-        val module = result.programAst.toplevelModule
+        val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
