@@ -19,6 +19,13 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     val allowedDatatypes = NumericDatatypes
 
+    fun removeReservedFromFreePool() {
+        for (reserved in options.zpReserved)
+            reserve(reserved)
+
+        free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
+    }
+
     fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size
     fun hasByteAvailable() = if(options.zeropage== ZeropageType.DONTUSE) false else free.isNotEmpty()
     fun availableWords(): Int {

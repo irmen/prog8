@@ -4,6 +4,7 @@ TODO
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - fix the asm-labels problem (github issue #62)
+- find a way to optimize if-statement codegen so that "if var & %10000" doesn't use stack & subroutine call, but also that the simple case "if X {...}" remains fast
 
 
 Blocked by Commander-x16 v39 release
@@ -15,7 +16,7 @@ Blocked by Commander-x16 v39 release
 Future
 ^^^^^^
 - get rid of all TODO's in the code
-- improve testability further, add more tests, address more questions/issues from the testability discussions.
+- improve testability further, add more tests
 - replace certain uses of inferredType.getOr(DataType.UNDEFINED) by i.getOrElse({ errorhandler })
 - see if we can remove more "[InferredType].getOr(DataType.UNDEFINED)"
 - use more of Result<> and Either<> to handle errors/ nulls better
@@ -37,7 +38,6 @@ Future
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- a way to optimize if-statement codegen so that "if var & %10000" doesn't use stack & subroutine call, but also that the simple case "if X {...}" remains fast
 - detect variables that are written but never read - mark those as unused too and remove them, such as ``uword unused = memory("unused222", 20)`` - also remove this memory slab allocation
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
 - this removes the need for the BinExprSplitter (which is problematic now)

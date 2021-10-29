@@ -104,16 +104,13 @@ object CX16MachineDefinition: IMachineDefinition {
             when (options.zeropage) {
                 ZeropageType.FULL -> {
                     free.addAll(0x22..0xff)
-                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.KERNALSAFE -> {
                     free.addAll(0x22..0x7f)
                     free.addAll(0xa9..0xff)
-                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.BASICSAFE -> {
                     free.addAll(0x22..0x7f)
-                    free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 }
                 ZeropageType.DONTUSE -> {
                     free.clear() // don't use zeropage at all
@@ -121,13 +118,7 @@ object CX16MachineDefinition: IMachineDefinition {
                 else -> throw CompilerException("for this machine target, zero page type 'floatsafe' is not available. ${options.zeropage}")
             }
 
-            require(SCRATCH_B1 !in free)
-            require(SCRATCH_REG !in free)
-            require(SCRATCH_W1 !in free)
-            require(SCRATCH_W2 !in free)
-
-            for (reserved in options.zpReserved)
-                reserve(reserved)
+            removeReservedFromFreePool()
         }
     }
 }

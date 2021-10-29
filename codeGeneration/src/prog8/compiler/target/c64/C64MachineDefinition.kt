@@ -89,7 +89,6 @@ object C64MachineDefinition: IMachineDefinition {
             if (options.zeropage == ZeropageType.FULL) {
                 free.addAll(0x04..0xf9)
                 free.add(0xff)
-                free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1, SCRATCH_W2, SCRATCH_W2 + 1))
                 free.removeAll(listOf(0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6))        // these are updated by IRQ
             } else {
                 if (options.zeropage == ZeropageType.KERNALSAFE || options.zeropage == ZeropageType.FLOATSAFE) {
@@ -133,13 +132,8 @@ object C64MachineDefinition: IMachineDefinition {
                     free.clear()
                 }
             }
-            require(SCRATCH_B1 !in free)
-            require(SCRATCH_REG !in free)
-            require(SCRATCH_W1 !in free)
-            require(SCRATCH_W2 !in free)
 
-            for (reserved in options.zpReserved)
-                reserve(reserved)
+            removeReservedFromFreePool()
         }
     }
 
