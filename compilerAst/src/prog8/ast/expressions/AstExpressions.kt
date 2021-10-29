@@ -6,7 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.IMemSizer
+import prog8.compilerinterface.IMemSizer
 import java.util.*
 
 
@@ -816,7 +816,7 @@ class FunctionCall(override var target: IdentifierReference,
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1)
             return null
-        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position, program.memsizer)
+        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
             if(resultValue==null || resultDt istype resultValue.type)

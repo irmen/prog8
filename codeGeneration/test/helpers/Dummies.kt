@@ -5,7 +5,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.compiler.IMemSizer
+import prog8.compilerinterface.IMemSizer
 import prog8.ast.base.DataType
 
 
@@ -16,7 +16,6 @@ internal val DummyFunctions = object : IBuiltinFunctions {
         name: String,
         args: List<Expression>,
         position: Position,
-        memsizer: IMemSizer
     ): NumericLiteralValue? = null
 
     override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()

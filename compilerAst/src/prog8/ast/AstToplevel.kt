@@ -7,7 +7,7 @@ import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.IMemSizer
+import prog8.compilerinterface.IMemSizer
 import prog8.parser.SourceCode
 
 const val internedStringsModuleName = "prog8_interned_strings"

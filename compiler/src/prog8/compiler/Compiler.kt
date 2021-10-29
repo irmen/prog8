@@ -125,13 +125,13 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val names = functions.keys
     override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
 
-    override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? {
+    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? {
         val func = BuiltinFunctions[name]
         if(func!=null) {
             val exprfunc = func.constExpressionFunc
             if(exprfunc!=null) {
                 return try {
-                    exprfunc(args, position, program, memsizer)
+                    exprfunc(args, position, program)
                 } catch(x: NotConstArgumentException) {
                     // const-evaluating the builtin function call failed.
                     null

@@ -1,7 +1,5 @@
 package prog8.compilerinterface
 
-import prog8.compiler.IMemSizer
-
 interface ICompilationTarget: IStringEncoding, IMemSizer {
     val name: String
     val machine: IMachineDefinition
