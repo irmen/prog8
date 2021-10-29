@@ -12,7 +12,7 @@ import prog8.ast.walk.IAstModification
 import kotlin.math.pow
 
 
-internal class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
+class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
         // @( &thing )  -->  thing

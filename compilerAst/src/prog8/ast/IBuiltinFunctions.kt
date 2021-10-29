@@ -4,6 +4,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
+import prog8.compiler.IMemSizer
 
 interface IBuiltinFunctions {
     val names: Set<String>

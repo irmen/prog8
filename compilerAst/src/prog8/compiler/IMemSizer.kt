@@ -1,4 +1,4 @@
-package prog8.ast
+package prog8.compiler
 
 import prog8.ast.base.DataType
 

@@ -1,5 +1,7 @@
 include ':parser'
+include ':compilerInterfaces'
 include ':compilerAst'
+include ':codeOptimizers'
 include ':compiler'
 include ':dbusCompilerService'
 include ':httpCompilerService'

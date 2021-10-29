@@ -9,11 +9,11 @@ import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.astprocessing.isInRegularRAMof
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.isInRegularRAMof
 
 
-internal class BinExprSplitter(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
+class BinExprSplitter(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
 
 //    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 // TODO somehow if we do this, the resulting code for some programs (cube3d.p8) gets hundreds of bytes larger...:

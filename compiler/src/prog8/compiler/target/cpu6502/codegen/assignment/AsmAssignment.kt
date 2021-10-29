@@ -1,11 +1,11 @@
 package prog8.compiler.target.cpu6502.codegen.assignment
 
-import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.AssemblyError
+import prog8.compiler.IMemSizer
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 
 

@@ -3,7 +3,6 @@ package prog8.compiler
 import com.github.michaelbull.result.*
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
-import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
@@ -14,8 +13,8 @@ import prog8.compiler.astprocessing.*
 import prog8.compiler.functions.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
-import prog8.compiler.target.ICompilationTarget
-import prog8.compiler.target.asmGeneratorFor
+import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.compilerinterface.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
 import prog8.parser.ParsingFailedError
@@ -28,38 +27,6 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
 
-
-enum class OutputType {
-    RAW,
-    PRG
-}
-
-enum class LauncherType {
-    BASIC,
-    NONE
-}
-
-enum class ZeropageType {
-    BASICSAFE,
-    FLOATSAFE,
-    KERNALSAFE,
-    FULL,
-    DONTUSE
-}
-
-data class CompilationOptions(val output: OutputType,
-                              val launcher: LauncherType,
-                              val zeropage: ZeropageType,
-                              val zpReserved: List<IntRange>,
-                              val floats: Boolean,
-                              val noSysInit: Boolean,
-                              val compTarget: ICompilationTarget) {
-    var slowCodegenWarnings = false
-    var optimize = false
-}
-
-
-class CompilerException(message: String?) : Exception(message)
 
 class CompilationResult(val success: Boolean,
                         val programAst: Program,
@@ -347,7 +314,8 @@ private sealed class WriteAssemblyResult {
 private fun writeAssembly(programAst: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
-                          compilerOptions: CompilationOptions): WriteAssemblyResult {
+                          compilerOptions: CompilationOptions
+): WriteAssemblyResult {
     // asm generation directly from the Ast
     programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
     errors.report()
@@ -395,4 +363,17 @@ internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<St
         else
             Ok(SourceCode.File(Path(filename)).readText())
     }
+}
+
+internal fun asmGeneratorFor(
+    compTarget: ICompilationTarget,
+    program: Program,
+    errors: IErrorReporter,
+    zp: Zeropage,
+    options: CompilationOptions,
+    outputDir: Path
+): IAssemblyGenerator
+{
+    // at the moment we only have one code generation backend (for 6502 and 65c02)
+    return AsmGen(program, errors, zp, options, compTarget, outputDir)
 }

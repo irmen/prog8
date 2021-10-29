@@ -2,11 +2,11 @@ package prog8.optimizer
 
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
-import prog8.compiler.IErrorReporter
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
 
 
-internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget) {
+fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget) {
     val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
     valuetypefixer.visit(this)
     if(errors.noErrors()) {
@@ -40,9 +40,10 @@ internal fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilati
 }
 
 
-internal fun Program.optimizeStatements(errors: IErrorReporter,
-                                        functions: IBuiltinFunctions,
-                                        compTarget: ICompilationTarget): Int {
+fun Program.optimizeStatements(errors: IErrorReporter,
+                               functions: IBuiltinFunctions,
+                               compTarget: ICompilationTarget
+): Int {
     val optimizer = StatementOptimizer(this, errors, functions, compTarget)
     optimizer.visit(this)
     val optimizationCount = optimizer.applyModifications()
@@ -52,13 +53,13 @@ internal fun Program.optimizeStatements(errors: IErrorReporter,
     return optimizationCount
 }
 
-internal fun Program.simplifyExpressions() : Int {
+fun Program.simplifyExpressions() : Int {
     val opti = ExpressionSimplifier(this)
     opti.visit(this)
     return opti.applyModifications()
 }
 
-internal fun Program.splitBinaryExpressions(compTarget: ICompilationTarget) : Int {
+fun Program.splitBinaryExpressions(compTarget: ICompilationTarget) : Int {
     val opti = BinExprSplitter(this, compTarget)
     opti.visit(this)
     return opti.applyModifications()

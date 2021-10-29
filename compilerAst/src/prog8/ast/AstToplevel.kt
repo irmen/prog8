@@ -7,6 +7,7 @@ import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.compiler.IMemSizer
 import prog8.parser.SourceCode
 
 const val internedStringsModuleName = "prog8_interned_strings"
@@ -286,7 +287,8 @@ interface Node {
 
 class Program(val name: String,
               val builtinFunctions: IBuiltinFunctions,
-              val memsizer: IMemSizer): Node {
+              val memsizer: IMemSizer
+): Node {
     private val _modules = mutableListOf<Module>()
 
     val modules: List<Module> = _modules

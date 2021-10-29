@@ -6,6 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.compiler.IMemSizer
 import java.util.*
 
 

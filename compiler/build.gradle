@@ -18,6 +18,8 @@ repositories {
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {
+    implementation project(':compilerInterfaces')
+    implementation project(':codeOptimizers')
     implementation project(':compilerAst')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"

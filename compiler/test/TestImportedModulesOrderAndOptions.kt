@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.internedStringsModuleName
 import prog8.compiler.ErrorReporter
-import prog8.compiler.ZeropageType
+import prog8.compilerinterface.ZeropageType
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
 import prog8.compiler.target.C64Target

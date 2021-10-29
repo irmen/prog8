@@ -1,7 +1,7 @@
 package prog8tests.helpers
 
 import prog8.ast.base.Position
-import prog8.compiler.IErrorReporter
+import prog8.compilerinterface.IErrorReporter
 
 class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true): IErrorReporter {
 

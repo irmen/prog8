@@ -4,10 +4,10 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.TestInstance
+import prog8.compilerinterface.ICompilationTarget
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
-import prog8.compiler.target.ICompilationTarget
 import prog8tests.helpers.*
 import kotlin.io.path.absolute
 import kotlin.io.path.exists

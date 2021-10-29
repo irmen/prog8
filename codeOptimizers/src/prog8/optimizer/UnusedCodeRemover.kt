@@ -9,14 +9,15 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.IErrorReporter
-import prog8.compiler.astprocessing.isInRegularRAMof
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.isInRegularRAMof
 
 
-internal class UnusedCodeRemover(private val program: Program,
-                                 private val errors: IErrorReporter,
-                                 private val compTarget: ICompilationTarget): AstWalker() {
+class UnusedCodeRemover(private val program: Program,
+                        private val errors: IErrorReporter,
+                        private val compTarget: ICompilationTarget
+): AstWalker() {
 
     private val callgraph = CallGraph(program)
 

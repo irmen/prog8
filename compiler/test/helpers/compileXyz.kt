@@ -1,10 +1,8 @@
 package prog8tests.helpers
 
-import prog8.compiler.CompilationResult
-import prog8.compiler.ErrorReporter
-import prog8.compiler.IErrorReporter
-import prog8.compiler.compileProgram
-import prog8.compiler.target.ICompilationTarget
+import prog8.compiler.*
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
 import java.nio.file.Path
 import kotlin.io.path.name
 import kotlin.test.assertFalse

@@ -10,18 +10,19 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.IErrorReporter
-import prog8.compiler.astprocessing.size
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.size
 import kotlin.math.floor
 
 internal const val retvarName = "prog8_retval"
 
 
-internal class StatementOptimizer(private val program: Program,
+class StatementOptimizer(private val program: Program,
                                   private val errors: IErrorReporter,
                                   private val functions: IBuiltinFunctions,
-                                  private val compTarget: ICompilationTarget) : AstWalker() {
+                                  private val compTarget: ICompilationTarget
+) : AstWalker() {
 
     private val subsThatNeedReturnVariable = mutableSetOf<Triple<IStatementContainer, DataType, Position>>()
 

@@ -22,7 +22,7 @@ import kotlin.math.pow
  */
 
 
-internal class ExpressionSimplifier(private val program: Program) : AstWalker() {
+class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 

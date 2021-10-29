@@ -1,10 +1,8 @@
 package prog8.compiler.target.c64
 
 import prog8.compiler.*
-import prog8.compiler.target.CpuType
-import prog8.compiler.target.IMachineDefinition
-import prog8.compiler.target.IMachineFloat
 import prog8.compiler.target.cbm.viceMonListPostfix
+import prog8.compilerinterface.*
 import java.io.IOException
 import java.nio.file.Path
 import kotlin.math.absoluteValue
@@ -30,7 +28,7 @@ internal object C64MachineDefinition: IMachineDefinition {
 
     override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
 
-    override fun importLibs(compilerOptions: CompilationOptions,compilationTargetName: String): List<String> {
+    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             listOf("syslib")
         else
@@ -125,7 +123,7 @@ internal object C64MachineDefinition: IMachineDefinition {
                     ))
                 }
 
-                if(options.zeropage!=ZeropageType.DONTUSE) {
+                if(options.zeropage!= ZeropageType.DONTUSE) {
                     // add the free Zp addresses
                     // these are valid for the C-64 but allow BASIC to keep running fully *as long as you don't use tape I/O*
                     free.addAll(listOf(0x04, 0x05, 0x06, 0x0a, 0x0e,
@@ -146,7 +144,8 @@ internal object C64MachineDefinition: IMachineDefinition {
         }
     }
 
-    internal data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short): IMachineFloat {
+    internal data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short):
+        IMachineFloat {
 
         companion object {
             val zero = Mflpt5(0, 0, 0, 0, 0)

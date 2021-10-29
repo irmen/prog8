@@ -6,9 +6,9 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compilerinterface.CpuType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
-import prog8.compiler.target.CpuType
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
 

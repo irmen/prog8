@@ -13,6 +13,7 @@ import prog8.compiler.target.*
 import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
+import prog8.compilerinterface.*
 import prog8.optimizer.CallGraph
 import prog8.parser.SourceCode
 import java.nio.file.Path

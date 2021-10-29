@@ -3,7 +3,6 @@ plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm"
-    id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
 targetCompatibility = 11
@@ -16,27 +15,11 @@ repositories {
 }
 
 dependencies {
-    implementation project(':compilerInterfaces')
-    implementation project(':compiler')
+    implementation project(':compilerAst')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
-    implementation "org.takes:takes:1.19"
-    implementation "javax.json:javax.json-api:1.1.4"
-    implementation "org.glassfish:javax.json:1.1.4"
-    implementation "org.slf4j:slf4j-simple:1.7.30"
 
-    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
-    testImplementation 'org.hamcrest:hamcrest:2.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 }
-
-configurations.all {
-    exclude group: 'com.ibm.icu', module: 'icu4j'
-    exclude group: "org.antlr", module: "antlr4"
-}
-
 
 compileKotlin {
     kotlinOptions {
@@ -66,24 +49,6 @@ sourceSets {
             srcDirs = ["${project.projectDir}/test"]
         }
     }
-}
-
-startScripts.enabled = true
-
-application {
-    mainClass = 'prog8.http.TestHttpKt'
-    applicationName = 'prog8compilerservicehttp'
-}
-
-artifacts {
-    archives shadowJar
-}
-
-
-shadowJar {
-    archiveBaseName = 'prog8compilerservicehttp'
-    archiveVersion = '1.0'
-    // minimize()
 }
 
 

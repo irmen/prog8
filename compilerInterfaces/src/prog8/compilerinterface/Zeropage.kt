@@ -1,4 +1,4 @@
-package prog8.compiler
+package prog8.compilerinterface
 
 import prog8.ast.base.*
 
@@ -19,10 +19,10 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     val allowedDatatypes = NumericDatatypes
 
-    fun availableBytes() = if(options.zeropage==ZeropageType.DONTUSE) 0 else free.size
-    fun hasByteAvailable() = if(options.zeropage==ZeropageType.DONTUSE) false else free.isNotEmpty()
+    fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size
+    fun hasByteAvailable() = if(options.zeropage== ZeropageType.DONTUSE) false else free.isNotEmpty()
     fun availableWords(): Int {
-        if(options.zeropage==ZeropageType.DONTUSE)
+        if(options.zeropage== ZeropageType.DONTUSE)
             return 0
 
         val words = free.windowed(2).filter { it[0] == it[1]-1 }
@@ -37,7 +37,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return nonOverlappingWordsCount
     }
     fun hasWordAvailable(): Boolean {
-        if(options.zeropage==ZeropageType.DONTUSE)
+        if(options.zeropage== ZeropageType.DONTUSE)
             return false
 
         return free.windowed(2).any { it[0] == it[1] - 1 }
@@ -46,7 +46,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     fun allocate(scopedname: String, datatype: DataType, position: Position?, errors: IErrorReporter): Int {
         assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
 
-        if(options.zeropage==ZeropageType.DONTUSE)
+        if(options.zeropage== ZeropageType.DONTUSE)
             throw CompilerException("zero page usage has been disabled")
 
         val size =

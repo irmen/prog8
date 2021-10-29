@@ -8,12 +8,12 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.CompilationOptions
-import prog8.compiler.IErrorReporter
-import prog8.compiler.ZeropageType
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.ZeropageType
 import prog8.compiler.functions.BuiltinFunctions
 import prog8.compiler.functions.builtinFunctionReturnType
-import prog8.compiler.target.ICompilationTarget
 import java.io.CharConversionException
 import java.io.File
 import java.util.*

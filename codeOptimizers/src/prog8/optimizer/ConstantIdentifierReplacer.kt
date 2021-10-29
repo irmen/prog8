@@ -7,14 +7,14 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.IErrorReporter
-import prog8.compiler.astprocessing.size
-import prog8.compiler.astprocessing.toConstantIntegerRange
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.size
+import prog8.compilerinterface.toConstantIntegerRange
 
 // Fix up the literal value's type to match that of the vardecl
 //   (also check range literal operands types before they get expanded into arrays for instance)
-internal class VarConstantValueTypeAdjuster(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+class VarConstantValueTypeAdjuster(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 

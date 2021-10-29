@@ -11,11 +11,11 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.AssemblyError
+import prog8.compilerinterface.CpuType
 import prog8.compiler.functions.FSignature
-import prog8.compiler.target.CpuType
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cpu6502.codegen.assignment.*
-import prog8.compiler.target.subroutineFloatEvalResultVar2
+import prog8.compilerinterface.subroutineFloatEvalResultVar2
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
 
@@ -785,7 +785,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             && (firstOffset is NumericLiteralValue || firstOffset is IdentifierReference || firstOffset is TypecastExpression)
                             && (secondOffset is NumericLiteralValue || secondOffset is IdentifierReference || secondOffset is TypecastExpression)
                         ) {
-                            val pointerVar = firstExpr.left as IdentifierReference
                             if(firstOffset is NumericLiteralValue && secondOffset is NumericLiteralValue) {
                                 if(firstOffset!=secondOffset) {
                                     swapArrayValues(

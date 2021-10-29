@@ -22,5 +22,7 @@
     <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
     <orderEntry type="library" name="junit.jupiter" level="project" />
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
+    <orderEntry type="module" module-name="codeOptimizers" />
+    <orderEntry type="module" module-name="compilerInterfaces" />
   </component>
 </module>

@@ -9,7 +9,7 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.*
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
-import prog8.compiler.IErrorReporter
+import prog8.compilerinterface.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8.parser.SourceCode

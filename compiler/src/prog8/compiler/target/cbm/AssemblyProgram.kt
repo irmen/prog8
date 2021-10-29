@@ -1,9 +1,9 @@
 package prog8.compiler.target.cbm
 
-import prog8.compiler.CompilationOptions
-import prog8.compiler.OutputType
-import prog8.compiler.target.IAssemblyProgram
-import prog8.compiler.target.generatedLabelPrefix
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.IAssemblyProgram
+import prog8.compilerinterface.OutputType
+import prog8.compilerinterface.generatedLabelPrefix
 import java.nio.file.Path
 
 

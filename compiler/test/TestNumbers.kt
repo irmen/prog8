@@ -6,7 +6,7 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.toHex
-import prog8.compiler.CompilerException
+import prog8.compilerinterface.CompilerException
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5

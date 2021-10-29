@@ -4,9 +4,9 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.IErrorReporter
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
 import prog8.compiler.functions.BuiltinFunctions
-import prog8.compiler.target.ICompilationTarget
 
 internal class AstIdentifiersChecker(private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()

@@ -1,11 +1,11 @@
 package prog8.compiler.functions
 
-import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
-import prog8.compiler.CompilerException
+import prog8.compilerinterface.CompilerException
+import prog8.compiler.IMemSizer
 import kotlin.math.*
 
 

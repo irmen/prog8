@@ -7,6 +7,7 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.compilerinterface.IErrorReporter
 import prog8.parser.Prog8Parser
 import prog8.parser.SourceCode
 import java.io.File

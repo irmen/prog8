@@ -10,9 +10,11 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.astprocessing.isInRegularRAMof
 import prog8.compiler.astprocessing.isSubroutineParameter
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.CompilerException
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.isInRegularRAMof
 
 
 internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {

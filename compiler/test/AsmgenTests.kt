@@ -18,6 +18,10 @@ import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.LauncherType
+import prog8.compilerinterface.OutputType
+import prog8.compilerinterface.ZeropageType
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
