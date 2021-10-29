@@ -1,4 +1,4 @@
-package prog8tests.ast
+package prog8tests.ast.ast
 
 
 import org.hamcrest.MatcherAssert.assertThat
@@ -12,8 +12,8 @@ import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.internedStringsModuleName
 import prog8.parser.SourceCode
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
+import prog8tests.ast.helpers.DummyFunctions
+import prog8tests.ast.helpers.DummyMemsizer
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame

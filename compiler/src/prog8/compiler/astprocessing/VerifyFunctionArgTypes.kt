@@ -8,8 +8,8 @@ import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CompilerException
-import prog8.compiler.functions.BuiltinFunctions
 
 class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 

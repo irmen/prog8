@@ -8,6 +8,10 @@ import prog8.compilerinterface.ICompilationTarget
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
+import prog8tests.ast.helpers.assumeDirectory
+import prog8tests.ast.helpers.mapCombinations
+import prog8tests.ast.helpers.outputDir
+import prog8tests.ast.helpers.workingDir
 import prog8tests.helpers.*
 import kotlin.io.path.absolute
 import kotlin.io.path.exists

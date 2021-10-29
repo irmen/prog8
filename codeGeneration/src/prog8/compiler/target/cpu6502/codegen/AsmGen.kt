@@ -7,14 +7,12 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*
-import prog8.compiler.functions.BuiltinFunctions
-import prog8.compiler.functions.FSignature
 import prog8.compiler.target.*
 import prog8.compiler.target.cbm.AssemblyProgram
+import prog8.compiler.target.cbm.loadAsmIncludeFile
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.compilerinterface.*
-import prog8.optimizer.CallGraph
 import prog8.parser.SourceCode
 import java.nio.file.Path
 import java.time.LocalDate
@@ -24,7 +22,7 @@ import kotlin.io.path.Path
 import kotlin.math.absoluteValue
 
 
-internal class AsmGen(private val program: Program,
+class AsmGen(private val program: Program,
                       val errors: IErrorReporter,
                       val zeropage: Zeropage,
                       val options: CompilationOptions,
@@ -275,7 +273,7 @@ internal class AsmGen(private val program: Program,
                         && variable.datatype != DataType.FLOAT
                         && options.zeropage != ZeropageType.DONTUSE) {
                     try {
-                        val errors = ErrorReporter()
+                        val errors = ErrorReporter()    // TODO why not just use this.errors?  then we can clean up the visibility of ErrorReporter class again too
                         val address = zeropage.allocate(fullName, variable.datatype, null, errors)
                         errors.report()
                         out("${variable.name} = $address\t; auto zp ${variable.datatype}")
@@ -500,7 +498,7 @@ internal class AsmGen(private val program: Program,
         return newName
     }
 
-    internal fun asmSymbolName(identifier: IdentifierReference): String {
+    fun asmSymbolName(identifier: IdentifierReference): String {
         if(identifier.nameInSource.size==2 && identifier.nameInSource[0]=="prog8_slabs")
             return identifier.nameInSource.joinToString(".")
 
@@ -531,7 +529,7 @@ internal class AsmGen(private val program: Program,
         }
     }
 
-    internal fun asmVariableName(identifier: IdentifierReference) =
+    fun asmVariableName(identifier: IdentifierReference) =
         fixNameSymbols(identifier.nameInSource.joinToString("."))
 
     private fun getScopedSymbolNameForTarget(actualName: String, target: Statement): MutableList<String> {
@@ -546,16 +544,16 @@ internal class AsmGen(private val program: Program,
         return scopedName
     }
 
-    internal fun asmSymbolName(regs: RegisterOrPair): String =
+    fun asmSymbolName(regs: RegisterOrPair): String =
         if (regs in Cx16VirtualRegisters)
             "cx16." + regs.toString().lowercase()
         else
             throw AssemblyError("no symbol name for register $regs")
 
-    internal fun asmSymbolName(name: String) = fixNameSymbols(name)
-    internal fun asmVariableName(name: String) = fixNameSymbols(name)
-    internal fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
-    internal fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
+    fun asmSymbolName(name: String) = fixNameSymbols(name)
+    fun asmVariableName(name: String) = fixNameSymbols(name)
+    fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
+    fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
 
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): String {

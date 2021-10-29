@@ -10,11 +10,11 @@ import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
-import prog8.compiler.AssemblyError
 import prog8.compilerinterface.CpuType
-import prog8.compiler.functions.FSignature
+import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cpu6502.codegen.assignment.*
+import prog8.compilerinterface.FSignature
 import prog8.compilerinterface.subroutineFloatEvalResultVar2
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
@@ -1532,7 +1532,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                             AsmAssignSource.fromAstSource(value, program, asmgen)
                         }
                     }
-                    val tgt = AsmAssignTarget.fromRegisters(conv.reg, null, program, asmgen)
+                    val tgt = AsmAssignTarget.fromRegisters(conv.reg!!, null, program, asmgen)
                     val assign = AsmAssignment(src, tgt, false, program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }

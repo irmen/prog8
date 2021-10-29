@@ -1,4 +1,4 @@
-package prog8tests.helpers
+package prog8tests.ast.helpers
 
 import java.nio.file.Path
 import kotlin.io.path.*

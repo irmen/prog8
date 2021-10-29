@@ -5,7 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
-import prog8.compiler.AssemblyError
+import prog8.compiler.target.AssemblyError
 import prog8.compilerinterface.CpuType
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
@@ -246,19 +246,37 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         indexVar!=null -> {
                             when (target.datatype) {
                                 in ByteDatatypes -> {
-                                    val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.A, null, program, asmgen)
+                                    val tgt =
+                                        prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget.fromRegisters(
+                                            RegisterOrPair.A,
+                                            null,
+                                            program,
+                                            asmgen
+                                        )
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
                                 }
                                 in WordDatatypes -> {
-                                    val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.AY, null, program, asmgen)
+                                    val tgt =
+                                        prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget.fromRegisters(
+                                            RegisterOrPair.AY,
+                                            null,
+                                            program,
+                                            asmgen
+                                        )
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                                 }
                                 DataType.FLOAT -> {
-                                    val tgt = AsmAssignTarget.fromRegisters(RegisterOrPair.FAC1, null, program, asmgen)
+                                    val tgt =
+                                        prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget.fromRegisters(
+                                            RegisterOrPair.FAC1,
+                                            null,
+                                            program,
+                                            asmgen
+                                        )
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
                                     assignmentAsmGen.translateNormalAssignment(assign)
                                     assignmentAsmGen.assignFAC1float(target)

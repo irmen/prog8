@@ -13,6 +13,7 @@ import prog8.compilerinterface.size
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compilerinterface.toConstantIntegerRange
+import prog8tests.ast.helpers.mapCombinations
 import prog8tests.helpers.*
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

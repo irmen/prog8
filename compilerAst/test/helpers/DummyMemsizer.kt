@@ -1,4 +1,4 @@
-package prog8tests.helpers
+package prog8tests.ast.helpers
 
 import prog8.ast.base.DataType
 import prog8.compiler.IMemSizer

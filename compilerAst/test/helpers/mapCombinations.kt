@@ -1,4 +1,4 @@
-package prog8tests.helpers
+package prog8tests.ast.helpers
 
 fun <A, B, R> mapCombinations(dim1: Iterable<A>, dim2: Iterable<B>, combine2: (A, B) -> R) =
     sequence {

@@ -5,12 +5,12 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.toHex
-import prog8.compiler.AssemblyError
+import prog8.compiler.target.AssemblyError
 import prog8.compilerinterface.CpuType
-import prog8.compiler.functions.BuiltinFunctions
-import prog8.compiler.functions.builtinFunctionReturnType
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
+import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.builtinFunctionReturnType
 
 
 internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen,
@@ -21,7 +21,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     fun translate(assignment: Assignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
-        val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
+        val source = AsmAssignSource.Companion.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
 
         val assign = AsmAssignment(source, target, assignment.isAugmentable, program.memsizer, assignment.position)
         target.origAssign = assign
@@ -1363,7 +1363,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         // these will be correctly typecasted from a byte to a word value
         if(target.register !in Cx16VirtualRegisters &&
             target.register!=RegisterOrPair.AX && target.register!=RegisterOrPair.AY && target.register!=RegisterOrPair.XY) {
-            if(target.kind==TargetStorageKind.VARIABLE) {
+            if(target.kind== TargetStorageKind.VARIABLE) {
                 val parts = target.asmVarname.split('.')
                 if (parts.size != 2 || parts[0] != "cx16")
                     require(target.datatype in ByteDatatypes)
@@ -2158,14 +2158,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) {
-        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
+        val src = AsmAssignSource.Companion.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
 
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
-        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
+        val src = AsmAssignSource.Companion.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)

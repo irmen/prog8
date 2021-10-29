@@ -5,7 +5,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.compiler.target.C64Target
-import prog8.optimizer.CallGraph
+import prog8.compilerinterface.CallGraph
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 import kotlin.test.assertEquals

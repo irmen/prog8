@@ -13,6 +13,7 @@ import prog8.compilerinterface.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8.parser.SourceCode
+import prog8tests.ast.helpers.*
 import prog8tests.helpers.*
 import kotlin.io.path.*
 import kotlin.test.assertContains

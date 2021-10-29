@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.ast
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -9,8 +9,8 @@ import prog8.ast.internedStringsModuleName
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
+import prog8tests.ast.helpers.DummyFunctions
+import prog8tests.ast.helpers.DummyMemsizer
 import kotlin.test.assertContains
 
 

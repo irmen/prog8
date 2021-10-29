@@ -1,4 +1,4 @@
-package prog8.optimizer
+package prog8.compilerinterface
 
 import prog8.ast.Module
 import prog8.ast.Node
@@ -10,7 +10,6 @@ import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.IErrorReporter
 
 
 class CallGraph(private val program: Program) : IAstVisitor {

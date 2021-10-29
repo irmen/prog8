@@ -6,7 +6,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.PostIncrDecr
 import prog8.ast.toHex
-import prog8.compiler.AssemblyError
+import prog8.compiler.target.AssemblyError
 
 
 internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {

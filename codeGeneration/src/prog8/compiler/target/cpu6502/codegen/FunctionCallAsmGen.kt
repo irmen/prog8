@@ -9,7 +9,7 @@ import prog8.ast.statements.InlineAssembly
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
-import prog8.compiler.AssemblyError
+import prog8.compiler.target.AssemblyError
 import prog8.compilerinterface.CpuType
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget

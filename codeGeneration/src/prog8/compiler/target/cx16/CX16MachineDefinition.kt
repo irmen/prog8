@@ -8,7 +8,7 @@ import java.io.IOException
 import java.nio.file.Path
 
 
-internal object CX16MachineDefinition: IMachineDefinition {
+object CX16MachineDefinition: IMachineDefinition {
 
     override val cpu = CpuType.CPU65c02
 
@@ -88,7 +88,7 @@ internal object CX16MachineDefinition: IMachineDefinition {
             "rmb", "smb", "stp", "wai")
 
 
-    internal class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
+    class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         override val SCRATCH_B1 = 0x7a      // temp storage for a single byte
         override val SCRATCH_REG = 0x7b     // temp storage for a register, must be B1+1

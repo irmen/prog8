@@ -26,7 +26,6 @@ Future
 - add a flood fill routine to gfx2?
 - add a diskio.f_seek() routine for the Cx16 that uses its seek dos api?
 - make it possible for diskio to read and write from more than one file at the same time (= use multiple io channels)?
-- refactor the asmgen into own project submodule
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?

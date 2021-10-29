@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.ast
 
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.StringStartsWith
@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
-import prog8tests.helpers.assumeNotExists
-import prog8tests.helpers.assumeReadableFile
-import prog8tests.helpers.fixturesDir
-import prog8tests.helpers.resourcesDir
+import prog8tests.ast.helpers.assumeNotExists
+import prog8tests.ast.helpers.assumeReadableFile
+import prog8tests.ast.helpers.fixturesDir
+import prog8tests.ast.helpers.resourcesDir
 import kotlin.io.path.Path
 import kotlin.test.*
 

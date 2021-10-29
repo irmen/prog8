@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.interfaces
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance

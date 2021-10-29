@@ -4,8 +4,8 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.AssemblyError
 import prog8.compiler.IMemSizer
+import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 
 
@@ -61,9 +61,9 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 throw AssemblyError("unknown dt")
             val dt = idt.getOr(DataType.UNDEFINED)
             when {
-                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
-                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
-                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
+                identifier != null -> AsmAssignTarget(prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                arrayindexed != null -> AsmAssignTarget(prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
+                memoryAddress != null -> AsmAssignTarget(prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
                 else -> throw AssemblyError("weird target")
             }
         }

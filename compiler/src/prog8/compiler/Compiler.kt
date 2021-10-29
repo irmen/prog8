@@ -10,7 +10,6 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.compiler.astprocessing.*
-import prog8.compiler.functions.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cpu6502.codegen.AsmGen
@@ -18,12 +17,8 @@ import prog8.compilerinterface.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
 import prog8.parser.ParsingFailedError
-import prog8.parser.SourceCode
-import prog8.parser.SourceCode.Companion.libraryFilePrefix
-import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
 
@@ -349,20 +344,6 @@ fun printAst(programAst: Program) {
     val printer = AstToSourceTextConverter(::print, programAst)
     printer.visit(programAst)
     println()
-}
-
-internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
-    return if (filename.startsWith(libraryFilePrefix)) {
-        return runCatching {
-            SourceCode.Resource("/prog8lib/${filename.substring(libraryFilePrefix.length)}").readText()
-        }.mapError { NoSuchFileException(File(filename)) }
-    } else {
-        val sib = Path(source.origin).resolveSibling(filename)
-        if (sib.isRegularFile())
-            Ok(SourceCode.File(sib).readText())
-        else
-            Ok(SourceCode.File(Path(filename)).readText())
-    }
 }
 
 internal fun asmGeneratorFor(

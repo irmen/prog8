@@ -1,11 +1,11 @@
-package prog8tests
+package prog8tests.ast
 
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.`is`
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8tests.helpers.*
+import prog8tests.ast.helpers.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.test.assertFailsWith

@@ -1,6 +1,5 @@
 package prog8.compiler.target.c64
 
-import prog8.compiler.*
 import prog8.compiler.target.cbm.viceMonListPostfix
 import prog8.compilerinterface.*
 import java.io.IOException
@@ -8,7 +7,7 @@ import java.nio.file.Path
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
-internal object C64MachineDefinition: IMachineDefinition {
+object C64MachineDefinition: IMachineDefinition {
 
     override val cpu = CpuType.CPU6502
 
@@ -75,7 +74,7 @@ internal object C64MachineDefinition: IMachineDefinition {
             "sta", "stx", "sty", "tas", "tax", "tay", "tsx", "txa", "txs", "tya", "xaa")
 
 
-    internal class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
+    class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         override val SCRATCH_B1 = 0x02      // temp storage for a single byte
         override val SCRATCH_REG = 0x03     // temp storage for a register, must be B1+1
@@ -144,7 +143,7 @@ internal object C64MachineDefinition: IMachineDefinition {
         }
     }
 
-    internal data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short):
+    data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short):
         IMachineFloat {
 
         companion object {

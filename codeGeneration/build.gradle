@@ -1,13 +1,12 @@
+
 plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm"
-    id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
 targetCompatibility = 11
 sourceCompatibility = 11
-
 
 repositories {
     mavenLocal()
@@ -15,42 +14,23 @@ repositories {
     maven { url "https://kotlin.bintray.com/kotlinx" }
 }
 
-def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
-
 dependencies {
     implementation project(':compilerInterfaces')
-    implementation project(':codeOptimizers')
     implementation project(':compilerAst')
-    implementation project(':codeGeneration')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.12"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
-}
 
-configurations.all {
-    exclude group: 'com.ibm.icu', module: 'icu4j'
-    exclude group: "org.antlr", module: "antlr4"
 }
-
-configurations {
-    // strange antlr plugin issue, see https://github.com/gradle/gradle/issues/820
-    // this avoids linking in the complete antlr binary jar
-    compile {
-        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
-    }
-}
-
 
 compileKotlin {
     kotlinOptions {
         jvmTarget = "11"
-        useIR = true
         // verbose = true
         // freeCompilerArgs += "-XXLanguage:+NewInference"
     }
@@ -59,7 +39,6 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions {
         jvmTarget = "11"
-        useIR = true
     }
 }
 
@@ -74,28 +53,9 @@ sourceSets {
     }
     test {
         java {
-            srcDir "${project.projectDir}/test"
-            srcDir "${project(':compilerAst').projectDir}/test/helpers"
+            srcDirs = ["${project.projectDir}/test"]
         }
     }
-}
-
-startScripts.enabled = true
-
-application {
-    mainClass = 'prog8.CompilerMainKt'
-    applicationName = 'p8compile'
-}
-
-artifacts {
-    archives shadowJar
-}
-
-
-shadowJar {
-    archiveBaseName = 'prog8compiler'
-    archiveVersion = prog8version
-    // minimize()
 }
 
 

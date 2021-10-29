@@ -5,16 +5,16 @@ import prog8.ast.base.ByteDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.PassByReferenceDatatypes
 import prog8.ast.base.WordDatatypes
-import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.Petscii
+import prog8.compiler.target.cx16.CX16MachineDefinition
 import prog8.compilerinterface.*
 
 
-internal object C64Target: ICompilationTarget {
-    override val name = "c64"
-    override val machine = C64MachineDefinition
+object Cx16Target: ICompilationTarget {
+    override val name = "cx16"
+    override val machine = CX16MachineDefinition
     override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
-        val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        val coded= if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         return coded.fold(
             failure = { throw it },
             success = { it }
@@ -33,3 +33,4 @@ internal object C64Target: ICompilationTarget {
         }
     }
 }
+

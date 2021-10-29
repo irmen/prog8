@@ -1,8 +1,11 @@
 package prog8tests.helpers
 
 import prog8.compiler.*
+import prog8.compilerinterface.ErrorReporter
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
+import prog8tests.ast.helpers.assumeReadableFile
+import prog8tests.ast.helpers.outputDir
 import java.nio.file.Path
 import kotlin.io.path.name
 import kotlin.test.assertFalse
@@ -28,7 +31,7 @@ internal fun compileFile(
     optimize: Boolean,
     fileDir: Path,
     fileName: String,
-    outputDir: Path = prog8tests.helpers.outputDir,
+    outputDir: Path = prog8tests.ast.helpers.outputDir,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true
 ) : CompilationResult {

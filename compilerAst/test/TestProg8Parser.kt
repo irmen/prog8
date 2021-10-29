@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.ast
 
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -16,9 +16,9 @@ import prog8.ast.statements.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8tests.helpers.assumeNotExists
-import prog8tests.helpers.assumeReadableFile
-import prog8tests.helpers.fixturesDir
+import prog8tests.ast.helpers.assumeNotExists
+import prog8tests.ast.helpers.assumeReadableFile
+import prog8tests.ast.helpers.fixturesDir
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name

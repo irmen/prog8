@@ -1098,7 +1098,7 @@ object Petscii {
     fun decodePetscii(petscii: Iterable<Short>, lowercase: Boolean = false): String {
         return petscii.map {
             val code = it.toInt()
-            if(code<0 || code>=decodingPetsciiLowercase.size)
+            if(code<0 || code>= decodingPetsciiLowercase.size)
                 throw CharConversionException("petscii $code out of range 0..${decodingPetsciiLowercase.size-1}")
             if(lowercase) decodingPetsciiLowercase[code] else decodingPetsciiUppercase[code]
         }.joinToString("")
@@ -1137,7 +1137,7 @@ object Petscii {
     fun decodeScreencode(screencode: Iterable<Short>, lowercase: Boolean = false): String {
         return screencode.map {
             val code = it.toInt()
-            if(code<0 || code>=decodingScreencodeLowercase.size)
+            if(code<0 || code>= decodingScreencodeLowercase.size)
                 throw CharConversionException("screencode $code out of range 0..${decodingScreencodeLowercase.size-1}")
             if (lowercase) decodingScreencodeLowercase[code] else decodingScreencodeUppercase[code]
         }.joinToString("")

@@ -1,10 +1,17 @@
 package prog8.compiler.target.cbm
 
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
+import com.github.michaelbull.result.mapError
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IAssemblyProgram
 import prog8.compilerinterface.OutputType
 import prog8.compilerinterface.generatedLabelPrefix
+import prog8.parser.SourceCode
+import java.io.File
 import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.isRegularFile
 
 
 internal const val viceMonListPostfix = "vice-mon-list"
@@ -74,5 +81,20 @@ class AssemblyProgram(
         breakpoints.add(1, "; $num breakpoints have been defined")
         breakpoints.add(2, "del")
         viceMonListFile.toFile().appendText(breakpoints.joinToString("\n") + "\n")
+    }
+}
+
+
+internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
+    return if (filename.startsWith(SourceCode.libraryFilePrefix)) {
+        return com.github.michaelbull.result.runCatching {
+            SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.libraryFilePrefix.length)}").readText()
+        }.mapError { NoSuchFileException(File(filename)) }
+    } else {
+        val sib = Path(source.origin).resolveSibling(filename)
+        if (sib.isRegularFile())
+            Ok(SourceCode.File(sib).readText())
+        else
+            Ok(SourceCode.File(Path(filename)).readText())
     }
 }

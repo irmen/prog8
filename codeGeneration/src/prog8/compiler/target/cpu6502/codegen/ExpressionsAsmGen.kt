@@ -7,9 +7,9 @@ import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
-import prog8.compiler.AssemblyError
 import prog8.compilerinterface.CpuType
-import prog8.compiler.functions.BuiltinFunctions
+import prog8.compiler.target.AssemblyError
+import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.subroutineFloatEvalResultVar1
 import kotlin.math.absoluteValue
 

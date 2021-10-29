@@ -1,13 +1,11 @@
-package prog8.compiler.functions
+package prog8.compilerinterface
 
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
-import prog8.compilerinterface.CompilerException
 import prog8.compiler.IMemSizer
 import kotlin.math.*
-
 
 class FParam(val name: String, val possibleDatatypes: Array<DataType>)
 
@@ -27,11 +25,11 @@ class CallConvention(val params: List<ParamConvention>, val returns: ReturnConve
             }
         }
         val returnConv =
-                when {
-                    returns.reg!=null -> returns.reg.toString()
-                    returns.floatFac1 -> "floatFAC1"
-                    else -> "<no returnvalue>"
-                }
+            when {
+                returns.reg!=null -> returns.reg.toString()
+                returns.floatFac1 -> "floatFAC1"
+                else -> "<no returnvalue>"
+            }
         return "CallConvention[" + paramConvs.joinToString() + " ; returns: $returnConv]"
     }
 }
@@ -52,7 +50,7 @@ class FSignature(val name: String,
             else -> {
                 val paramType = actualParamTypes.first()
                 if(pure)
-                    // return type depends on arg type
+                // return type depends on arg type
                     when(paramType) {
                         DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A, false)
                         DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY, false)
@@ -87,9 +85,12 @@ class FSignature(val name: String,
     }
 }
 
+
+
+
 @Suppress("UNUSED_ANONYMOUS_PARAMETER")
 private val functionSignatures: List<FSignature> = listOf(
-        // this set of function have no return value and operate in-place:
+    // this set of function have no return value and operate in-place:
     FSignature("rol"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     FSignature("ror"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     FSignature("rol2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
@@ -97,14 +98,14 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
-        // these few have a return value depending on the argument(s):
+    // these few have a return value depending on the argument(s):
     FSignature("max"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
     FSignature("min"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
     FSignature("sum"         , true, listOf(FParam("values", ArrayDatatypes)), null) { a, p, prg, ct -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
     FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
     FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), DataType.UBYTE, ::builtinSizeof),
-        // normal functions follow:
+    // normal functions follow:
     FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
     FSignature("sin"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg, ct -> oneDoubleArg(a, p, prg, Math::sin) },
     FSignature("sin8"        , true, listOf(FParam("angle8", arrayOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
@@ -144,7 +145,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
     FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
 
-)
+    )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }
 
@@ -297,7 +298,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
         val target = (args[0] as IdentifierReference).targetStatement(program)
-                ?: throw CannotEvaluateException("sizeof", "no target")
+            ?: throw CannotEvaluateException("sizeof", "no target")
 
         return when {
             dt.isArray -> {
@@ -328,7 +329,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier", position)
     val target = (args[0] as IdentifierReference).targetVarDecl(program)
-            ?: throw CannotEvaluateException("len", "no target vardecl")
+        ?: throw CannotEvaluateException("len", "no target vardecl")
 
     return when(target.datatype) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
@@ -440,10 +441,10 @@ private fun builtinSgn(args: List<Expression>, position: Position, program: Prog
 private fun numericLiteral(value: Number, position: Position): NumericLiteralValue {
     val floatNum=value.toDouble()
     val tweakedValue: Number =
-            if(floatNum== floor(floatNum) && (floatNum>=-32768 && floatNum<=65535))
-                floatNum.toInt()  // we have an integer disguised as a float.
-            else
-                floatNum
+        if(floatNum== floor(floatNum) && (floatNum>=-32768 && floatNum<=65535))
+            floatNum.toInt()  // we have an integer disguised as a float.
+        else
+            floatNum
 
     return when(tweakedValue) {
         is Int -> NumericLiteralValue.optimalInteger(value.toInt(), position)

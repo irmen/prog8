@@ -14,18 +14,16 @@ import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
-import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.LauncherType
-import prog8.compilerinterface.OutputType
-import prog8.compilerinterface.ZeropageType
+import prog8.compilerinterface.*
 import prog8.parser.SourceCode
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
+import prog8tests.ast.helpers.DummyFunctions
+import prog8tests.ast.helpers.DummyMemsizer
 import java.nio.file.Path
+
+// TODO move to codegen project, readjust symbol protection levels
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

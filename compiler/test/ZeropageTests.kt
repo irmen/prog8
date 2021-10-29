@@ -3,7 +3,6 @@ package prog8tests
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
-import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage

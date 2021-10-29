@@ -8,7 +8,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.ForLoop
 import prog8.ast.toHex
-import prog8.compiler.AssemblyError
+import prog8.compiler.target.AssemblyError
 import prog8.compilerinterface.toConstantIntegerRange
 import kotlin.math.absoluteValue
 
