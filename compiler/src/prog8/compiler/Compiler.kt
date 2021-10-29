@@ -248,8 +248,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
-    // NOTE: we will then lose the opportunity to do constant-folding on any expression containing a char literal, but how often will those occur?
-    // Also they might be optimized away eventually in codegen or by the assembler even
+    //       ...but what do we gain from this? We can leave it as it is now: where a char literal is no more than syntactic sugar for an UBYTE value.
+    //       By introduction a CHAR dt, we will also lose the opportunity to do constant-folding on any expression containing a char literal.
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget)
     program.constantFold(errors, compilerOptions.compTarget)
     errors.report()

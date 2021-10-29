@@ -151,14 +151,4 @@ sealed class SourceCode {
         override val origin: String = name
         override fun readText() = throw IOException("generated code nodes don't have a text representation")
     }
-
-    // TODO: possibly more, like fromURL(..)
-/*      // For `jar:..` URLs
-        // see https://stackoverflow.com/questions/22605666/java-access-files-in-jar-causes-java-nio-file-filesystemnotfoundexception
-        var url = URL("jar:file:/E:/x16/prog8(meisl)/compiler/build/libs/prog8compiler-7.0-BETA3-all.jar!/prog8lib/c64/textio.p8")
-        val uri = url.toURI()
-        val parts = uri.toString().split("!")
-        val fs = FileSystems.newFileSystem(URI.create(parts[0]), mutableMapOf(Pair("", "")) )
-        val path = fs.getPath(parts[1])
-*/
 }

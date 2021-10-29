@@ -32,8 +32,7 @@ Future
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
   There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
-- introduce byte-index operator to avoid index multiplications in loops over arrays?
-  see https://www.reddit.com/r/programming/comments/alhj59/creating_a_programming_language_and_cross/eg898b9?utm_source=share&utm_medium=web2x&context=3
+- introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
 
 
 More code optimization ideas
