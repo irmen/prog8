@@ -16,7 +16,6 @@ import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
-import prog8.parser.ParsingFailedError
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
@@ -90,10 +89,12 @@ fun compileProgram(filepath: Path,
         System.err.print("\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
         System.err.print("\u001b[0m")  // reset
-    } catch (pfx: ParsingFailedError) {
-        System.err.print("\u001b[91m")  // bright red
-        System.err.println(pfx.message)
-        System.err.print("\u001b[0m")  // reset
+    } catch (ac: AbortCompilation) {
+        if(!ac.message.isNullOrEmpty()) {
+            System.err.print("\u001b[91m")  // bright red
+            System.err.println(ac.message)
+            System.err.print("\u001b[0m")  // reset
+        }
     } catch (nsf: NoSuchFileException) {
         System.err.print("\u001b[91m")  // bright red
         System.err.println("File not found: ${nsf.message}")
@@ -168,9 +169,6 @@ fun parseImports(filepath: Path,
         .filter { it.isFromFilesystem }
         .map { Path(it.origin) }
     val compilerOptions = determineCompilationOptions(program, compTarget)
-    if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
-        throw ParsingFailedError("${program.modules.first().position} BASIC launcher requires output type PRG.")
-
     // depending on the machine and compiler options we may have to include some libraries
     for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
         importer.importLibraryModule(lib)
@@ -178,7 +176,11 @@ fun parseImports(filepath: Path,
     // always import prog8_lib and math
     importer.importLibraryModule("math")
     importer.importLibraryModule("prog8_lib")
+
+    if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
+        errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
     errors.report()
+
     return Triple(program, compilerOptions, importedFiles)
 }
 

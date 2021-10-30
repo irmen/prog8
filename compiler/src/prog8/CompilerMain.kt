@@ -6,7 +6,6 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
-import prog8.parser.ParsingFailedError
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -119,8 +118,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     compilationTarget, srcdirs, outputPath)
                 if(!compilationResult.success)
                     return false
-            } catch (x: ParsingFailedError) {
-                return false
             } catch (x: AstException) {
                 return false
             }

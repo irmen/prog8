@@ -9,20 +9,20 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.CompilerException
+import prog8.compilerinterface.InternalCompilerException
 
 class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
     override fun visit(functionCall: FunctionCall) {
         val error = checkTypes(functionCall as IFunctionCall, program)
         if(error!=null)
-            throw CompilerException(error)
+            throw InternalCompilerException(error)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
         val error = checkTypes(functionCallStatement as IFunctionCall, program)
         if (error!=null)
-            throw CompilerException(error)
+            throw InternalCompilerException(error)
     }
 
     companion object {

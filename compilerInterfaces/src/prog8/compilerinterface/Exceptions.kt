@@ -1,3 +1,5 @@
 package prog8.compilerinterface
 
-class CompilerException(message: String?) : Exception(message)
+class InternalCompilerException(message: String?) : Exception(message)
+
+class AbortCompilation(message: String?) : Exception(message)

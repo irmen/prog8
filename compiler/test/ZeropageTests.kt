@@ -91,11 +91,11 @@ class TestC64Zeropage {
     @Test
     fun testZpFloatEnable() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             zp.allocate("", DataType.FLOAT, null, errors)
         }
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, C64Target))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             zp2.allocate("", DataType.FLOAT, null, errors)
         }
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
@@ -110,10 +110,10 @@ class TestC64Zeropage {
         C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, C64Target))
         C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
         C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true, false, C64Target))
         }
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, false, C64Target))
         }
     }
@@ -123,7 +123,7 @@ class TestC64Zeropage {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false, C64Target))
         println(zp.free)
         assertEquals(0, zp.availableBytes())
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             zp.allocate("", DataType.BYTE, null, errors)
         }
     }

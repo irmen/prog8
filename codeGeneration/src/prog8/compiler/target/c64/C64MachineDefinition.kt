@@ -84,7 +84,7 @@ object C64MachineDefinition: IMachineDefinition {
 
         init {
             if (options.floats && options.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
-                throw CompilerException("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'")
+                throw InternalCompilerException("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'")
 
             if (options.zeropage == ZeropageType.FULL) {
                 free.addAll(0x04..0xf9)
@@ -149,7 +149,7 @@ object C64MachineDefinition: IMachineDefinition {
 
                 val flt = num.toDouble()
                 if (flt < FLOAT_MAX_NEGATIVE || flt > FLOAT_MAX_POSITIVE)
-                    throw CompilerException("floating point number out of 5-byte mflpt range: $this")
+                    throw InternalCompilerException("floating point number out of 5-byte mflpt range: $this")
                 if (flt == 0.0)
                     return zero
 
@@ -170,7 +170,7 @@ object C64MachineDefinition: IMachineDefinition {
 
                 return when {
                     exponent < 0 -> zero  // underflow, use zero instead
-                    exponent > 255 -> throw CompilerException("floating point overflow: $this")
+                    exponent > 255 -> throw InternalCompilerException("floating point overflow: $this")
                     exponent == 0 -> zero
                     else -> {
                         val mantLong = mantissa.toLong()

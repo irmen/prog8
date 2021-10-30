@@ -9,7 +9,7 @@ import prog8.ast.toHex
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
-import prog8.compilerinterface.CompilerException
+import prog8.compilerinterface.InternalCompilerException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
@@ -81,10 +81,10 @@ class TestNumbers {
         assertThat(Mflpt5.fromNumber(1.7e-39), equalTo(Mflpt5(0x00, 0x00, 0x00, 0x00, 0x00)))
         assertThat(Mflpt5.fromNumber(-1.7e-38), equalTo(Mflpt5(0x03, 0xb9, 0x1d, 0x15, 0x63)))
         assertThat(Mflpt5.fromNumber(-1.7e-39), equalTo(Mflpt5(0x00, 0x00, 0x00, 0x00, 0x00)))
-        assertFailsWith<CompilerException> { Mflpt5.fromNumber(1.7014118346e+38) }
-        assertFailsWith<CompilerException> { Mflpt5.fromNumber(-1.7014118346e+38) }
-        assertFailsWith<CompilerException> { Mflpt5.fromNumber(1.7014118347e+38) }
-        assertFailsWith<CompilerException> { Mflpt5.fromNumber(-1.7014118347e+38) }
+        assertFailsWith<InternalCompilerException> { Mflpt5.fromNumber(1.7014118346e+38) }
+        assertFailsWith<InternalCompilerException> { Mflpt5.fromNumber(-1.7014118346e+38) }
+        assertFailsWith<InternalCompilerException> { Mflpt5.fromNumber(1.7014118347e+38) }
+        assertFailsWith<InternalCompilerException> { Mflpt5.fromNumber(-1.7014118347e+38) }
     }
 
     @Test

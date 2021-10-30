@@ -54,7 +54,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
-            throw CompilerException("zero page usage has been disabled")
+            throw InternalCompilerException("zero page usage has been disabled")
 
         val size =
                 when (datatype) {
@@ -67,9 +67,9 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                             else
                                 errors.warn("$scopedname: allocated a large value (float) in zeropage", position ?: Position.DUMMY)
                             5
-                        } else throw CompilerException("floating point option not enabled")
+                        } else throw InternalCompilerException("floating point option not enabled")
                     }
-                    else -> throw CompilerException("cannot put datatype $datatype in zeropage")
+                    else -> throw InternalCompilerException("cannot put datatype $datatype in zeropage")
                 }
 
         if(free.size > 0) {

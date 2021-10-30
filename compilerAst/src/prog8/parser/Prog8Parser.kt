@@ -8,14 +8,7 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
 
 
-open class ParsingFailedError(override var message: String) : Exception(message)
-
-class ParseError(override var message: String, val position: Position, cause: RuntimeException)
-    : ParsingFailedError("${position.toClickableStr()}$message") {
-    init {
-        initCause(cause)
-    }
-}
+class ParseError(override var message: String, val position: Position, cause: RuntimeException): Exception(message, cause)
 
 object Prog8Parser {
 

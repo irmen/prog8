@@ -339,7 +339,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
         }
         in NumericDatatypes -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
-        else -> throw CompilerException("weird datatype")
+        else -> throw InternalCompilerException("weird datatype")
     }
 }
 

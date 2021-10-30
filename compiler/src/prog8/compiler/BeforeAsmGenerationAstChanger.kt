@@ -11,7 +11,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.astprocessing.isSubroutineParameter
-import prog8.compilerinterface.CompilerException
+import prog8.compilerinterface.InternalCompilerException
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.isInRegularRAMof
@@ -206,7 +206,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         if((binExpr.operator=="==" || binExpr.operator=="!=") &&
             (binExpr.left as? NumericLiteralValue)?.number==0 &&
             (binExpr.right as? NumericLiteralValue)?.number!=0)
-            throw CompilerException("if 0==X should have been swapped to if X==0")
+            throw InternalCompilerException("if 0==X should have been swapped to if X==0")
 
         // split the conditional expression into separate variables if the operand(s) is not simple.
         // DISABLED FOR NOW AS IT GENEREATES LARGER CODE IN THE SIMPLE CASES LIKE    IF X {...}  or  IF NOT X {...}
