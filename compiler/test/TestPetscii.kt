@@ -1,13 +1,16 @@
 package prog8tests
 
 import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.expect
 import com.github.michaelbull.result.expectError
+import com.github.michaelbull.result.getOrElse
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.compiler.target.cbm.Petscii
 import java.io.CharConversionException
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 
@@ -94,4 +97,104 @@ class TestPetscii {
         Petscii.petscii2scr(-1, false).expectError { "-1 should error" }
         Petscii.petscii2scr(256, false).expectError { "256 should error" }
     }
+
+    @Test
+    fun testSpecialReplacements()
+    {
+        fun encodeP(c: Char, lower: Boolean) = Petscii.encodePetscii(c.toString(), lower).getOrElse { throw it }.single()
+        fun encodeS(c: Char, lower: Boolean) = Petscii.encodeScreencode(c.toString(), lower).getOrElse { throw it }.single()
+
+        Petscii.encodePetscii("`", false).expectError { "shouldn't have translation for backtick" }
+        Petscii.encodePetscii("`", true).expectError { "shouldn't have translation for backtick" }
+        Petscii.encodePetscii("~", false).expectError { "shouldn't have translation for tilde" }
+        Petscii.encodePetscii("~", true).expectError { "shouldn't have translation for tilde" }
+
+        assertEquals(94, encodeP('^', false))
+        assertEquals(94, encodeP('^', true))
+        assertEquals(30, encodeS('^', false))
+        assertEquals(30, encodeS('^', true))
+        assertEquals(228, encodeP('_', false))
+        assertEquals(228, encodeP('_', true))
+        assertEquals(100, encodeS('_', false))
+        assertEquals(100, encodeS('_', true))
+        assertEquals(243, encodeP('{', false))
+        assertEquals(243, encodeP('{', true))
+        assertEquals(115, encodeS('{', false))
+        assertEquals(115, encodeS('{', true))
+        assertEquals(235, encodeP('}', false))
+        assertEquals(235, encodeP('}', true))
+        assertEquals(107, encodeS('}', false))
+        assertEquals(107, encodeS('}', true))
+        assertEquals(221, encodeP('|', false))
+        assertEquals(221, encodeP('|', true))
+        assertEquals(93, encodeS('|', false))
+        assertEquals(93, encodeS('|', true))
+        assertEquals(205, encodeP('\\', false))
+        assertEquals(205, encodeP('\\', true))
+        assertEquals(77, encodeS('\\', false))
+        assertEquals(77, encodeS('\\', true))
+    }
+
+    @Test
+    fun testBoxDrawingCharsEncoding() {
+        fun encodeP(c: Char, lower: Boolean) = Petscii.encodePetscii(c.toString(), lower).getOrElse { throw it }.single()
+        fun encodeS(c: Char, lower: Boolean) = Petscii.encodeScreencode(c.toString(), lower).getOrElse { throw it }.single()
+
+        // pipe char
+        assertEquals(221, encodeP('|', false))
+        assertEquals(221, encodeP('|', true))
+        assertEquals(93, encodeS('|', false))
+        assertEquals(93, encodeS('|', true))
+        // ... same as '│', 0x7D -> BOX DRAWINGS LIGHT VERTICAL
+        assertEquals(221, encodeP('│', false))
+        assertEquals(221, encodeP('│', true))
+        assertEquals(93, encodeS('│', false))
+        assertEquals(93, encodeS('│', true))
+
+        // underscore
+        assertEquals(228, encodeP('_', false))
+        assertEquals(228, encodeP('_', true))
+        assertEquals(100, encodeS('_', false))
+        assertEquals(100, encodeS('_', true))
+        // ... same as '▁',  0xE4 LOWER ONE EIGHTH BLOCK
+        assertEquals(228, encodeP('▁', false))
+        assertEquals(228, encodeP('▁', true))
+        assertEquals(100, encodeS('▁', false))
+        assertEquals(100, encodeS('▁', true))
+
+        // ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
+        assertEquals(195, encodeP('─', false))      // TODO problem?
+        assertEquals(192, encodeP('─', true))
+        assertEquals(67, encodeS('─', false))       // TODO problem?
+        assertEquals(64, encodeS('─', true))
+        // │    0x62 -> BOX DRAWINGS LIGHT VERTICAL
+        assertEquals(221, encodeP('│', false))
+        assertEquals(221, encodeP('│', true))
+        assertEquals(93, encodeS('│', false))
+        assertEquals(93, encodeS('│', true))
+    }
+
+    @Test
+    fun testBoxDrawingCharsDecoding() {
+        // ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
+        assertEquals('─', Petscii.decodePetscii(listOf(195), false).single())
+        assertEquals('C', Petscii.decodePetscii(listOf(195), true).single())
+        assertEquals('─', Petscii.decodePetscii(listOf(192), false).single())
+        assertEquals('─', Petscii.decodePetscii(listOf(192), true).single())
+        assertEquals('─', Petscii.decodeScreencode(listOf(67), false).single())
+        assertEquals('C', Petscii.decodeScreencode(listOf(67), true).single())
+        assertEquals('─', Petscii.decodeScreencode(listOf(64), false).single())
+        assertEquals('─', Petscii.decodeScreencode(listOf(64), true).single())
+
+        // │    0x62 -> BOX DRAWINGS LIGHT VERTICAL
+        assertEquals('│', Petscii.decodePetscii(listOf(125), false).single())
+        assertEquals('│', Petscii.decodePetscii(listOf(125), true).single())
+        assertEquals('│', Petscii.decodePetscii(listOf(221), false).single())
+        assertEquals('│', Petscii.decodePetscii(listOf(221), true).single())
+        assertEquals('│', Petscii.decodeScreencode(listOf(93), false).single())
+        assertEquals('│', Petscii.decodeScreencode(listOf(93), true).single())
+        assertEquals('│', Petscii.decodeScreencode(listOf(66), false).single())
+        assertEquals('B', Petscii.decodeScreencode(listOf(66), true).single())
+    }
+
 }
