@@ -1,8 +1,10 @@
-include ':parser'
-include ':compilerInterfaces'
-include ':compilerAst'
-include ':codeOptimizers'
-include ':codeGeneration'
-include ':compiler'
-include ':dbusCompilerService'
-include ':httpCompilerService'
+include(
+    ':parser',
+    ':compilerInterfaces',
+    ':compilerAst',
+    ':codeOptimizers',
+    ':codeGeneration',
+    ':compiler',
+    ':dbusCompilerService',
+    ':httpCompilerService'
+)
