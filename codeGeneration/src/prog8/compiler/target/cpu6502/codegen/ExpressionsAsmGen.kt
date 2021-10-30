@@ -33,13 +33,16 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     internal fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-         // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
+        // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
         // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
+
         var left = expr.left
         var right = expr.right
         var operator = expr.operator
         var leftConstVal = left.constValue(program)
         var rightConstVal = right.constValue(program)
+
+        // make sure the constant value is on the right of the comparison expression
         if(leftConstVal!=null) {
             val tmp = left
             left = right
@@ -55,32 +58,90 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
         }
 
-        val idt = left.inferType(program)
-        if(!idt.isKnown)
-            throw AssemblyError("unknown dt")
-        val dt = idt.getOr(DataType.UNDEFINED)
-        when (operator) {
-            "==" -> {
-                // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
-                // and use the result value directly to determine the boolean result. Shortcut only for integers.
-                if(rightConstVal?.number?.toDouble() == 0.0) {
-                    if(dt in ByteDatatypes) {
-                        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                        if(left is FunctionCall && !left.isSimple)
+        if (rightConstVal!=null && rightConstVal.number.toDouble() == 0.0)
+            jumpIfZeroOrNot(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+        else
+            jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+    }
+
+    private fun jumpIfZeroOrNot(
+        left: Expression,
+        operator: String,
+        right: Expression,
+        jumpIfFalseLabel: String,
+        leftConstVal: NumericLiteralValue?,
+        rightConstVal: NumericLiteralValue?
+    ) {
+        val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
+        when(dt) {
+            DataType.UBYTE, DataType.BYTE -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                when (operator) {
+                    "==", "!=" -> {
+                        // simple zero (in)equality check
+                        if (left is FunctionCall && !left.isSimple)
                             asmgen.out("  cmp  #0")
-                        asmgen.out("  bne  $jumpIfFalseLabel")
-                        return
+                        if (operator == "==")
+                            asmgen.out("  bne  $jumpIfFalseLabel")
+                        else
+                            asmgen.out("  beq  $jumpIfFalseLabel")
                     }
-                    else if(dt in WordDatatypes) {
-                        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-                        asmgen.out("""
-                            sty  P8ZP_SCRATCH_B1
-                            ora  P8ZP_SCRATCH_B1
-                            bne  $jumpIfFalseLabel""")
-                        return
+                    else -> {
+                        // TODO optimize byte other operators
+                        jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
                     }
                 }
+            }
+            DataType.UWORD, DataType.WORD -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                when (operator) {
+                    "==" -> {
+                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
+                    }
+                    "!=" -> {
+                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
+                    }
+                    else -> {
+                        // TODO optimize word other operators
+                        jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+                    }
+                }
+            }
+            DataType.FLOAT -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+                when (operator) {
+                    "==" -> {
+                        asmgen.out("  jsr  floats.SIGN")   // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+                        asmgen.out("  bne  $jumpIfFalseLabel")
+                    }
+                    "!=" -> {
+                        asmgen.out("  jsr  floats.SIGN")   // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+                        asmgen.out("  beq  $jumpIfFalseLabel")
+                    }
+                    else -> {
+                        // TODO optimize float other operators?
+                        jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+                    }
+                }
+            }
+            else -> {
+                throw AssemblyError("invalid dt")
+            }
+        }
+    }
 
+    private fun jumpIfComparison(
+        left: Expression,
+        operator: String,
+        right: Expression,
+        jumpIfFalseLabel: String,
+        leftConstVal: NumericLiteralValue?,
+        rightConstVal: NumericLiteralValue?
+    ) {
+        val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
+
+        when (operator) {
+            "==" -> {
                 when (dt) {
                     in ByteDatatypes -> translateByteEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
@@ -90,26 +151,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             "!=" -> {
-                // if the left operand is an expression, and the right is 0, we can just evaluate that expression,
-                // and use the result value directly to determine the boolean result. Shortcut only for integers.
-                if(rightConstVal?.number?.toDouble() == 0.0) {
-                    if(dt in ByteDatatypes) {
-                        asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                        if(left is FunctionCall && !left.isSimple)
-                            asmgen.out("  cmp  #0")
-                        asmgen.out("  beq  $jumpIfFalseLabel")
-                        return
-                    }
-                    else if(dt in WordDatatypes) {
-                        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-                        asmgen.out("""
-                            sty  P8ZP_SCRATCH_B1
-                            ora  P8ZP_SCRATCH_B1
-                            beq  $jumpIfFalseLabel""")
-                        return
-                    }
-                }
-
                 when (dt) {
                     in ByteDatatypes -> translateByteNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)

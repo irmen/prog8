@@ -982,7 +982,7 @@ class AsmGen(private val program: Program,
             }
 
     private fun translate(stmt: IfStatement) {
-        checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
+        requireComparisonExpression(stmt.condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
 
         // DISABLED FOR NOW:
@@ -1008,9 +1008,9 @@ class AsmGen(private val program: Program,
         }
     }
 
-    private fun checkBooleanExpression(condition: Expression) {
+    private fun requireComparisonExpression(condition: Expression) {
         if(condition !is BinaryExpression || condition.operator !in comparisonOperators)
-            throw AssemblyError("expected boolean expression $condition")
+            throw AssemblyError("expected boolean comparison expression $condition")
     }
 
     private fun translate(stmt: RepeatLoop) {
@@ -1161,7 +1161,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: WhileLoop) {
-        checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
+        requireComparisonExpression(stmt.condition)  // WhileLoop: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
         val whileLabel = makeLabel("while")
         val endLabel = makeLabel("whileend")
@@ -1175,7 +1175,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: UntilLoop) {
-        checkBooleanExpression(stmt.condition)  // we require the condition to be of the form  'x <comparison> <value>'
+        requireComparisonExpression(stmt.condition)  // UntilLoop: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")

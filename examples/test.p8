@@ -1,41 +1,55 @@
-%import string
+%import floats
 %import textio
 %zeropage basicsafe
 
 main {
+
     sub start() {
-        uword[] values = [1111,2222,3333,4444]
+        ubyte xx
+        float ff
 
-        @($2000) = 'a'
-        @($2001) = 'b'
-        @($2002) = 'c'
-        @($2003) = 0
+        ff=0
 
-        asmfunc([999,888,777])
-        asmfunc(values)
-        asmfunc($2000)
-        txt.nl()
-        func([999,888,777])
-        func(values)
-        func($2000)
-    }
+        if ff==0 {
+            txt.print("ff=0\n")
+        }
+        if ff!=0 {
+            txt.print("ff!=0 (error!)\n")
+        }
+        ff=-0.22
+        if ff==0 {
+            txt.print("ff=0 (error!)\n")
+        }
+        if ff!=0 {
+            txt.print("ff!=0\n")
+        }
 
-    asmsub asmfunc(uword[] thing @AY) {
-        %asm {{
-            sta  func.thing
-            sty  func.thing+1
-            jmp  func
-        }}
-    }
 
-    sub func(uword[] thing) {
-        uword t2 = thing as uword
-        ubyte length = string.length(thing)
-        txt.print_uwhex(thing, true)
-        txt.nl()
-        txt.print_ub(length)
-        txt.nl()
-        txt.print(thing)
-        txt.nl()
+        if xx {             ; doesn't use stack...
+            xx++
+        }
+
+        xx = xx+1           ; doesn't use stack...
+
+        if 8<xx {
+        }
+
+        if xx+1 {             ; TODO why does this use stack?
+            xx++
+        }
+
+        xx = xx & %0001     ; doesn't use stack...
+
+        if xx & %0001 {     ; TODO why does this use stack?
+            xx--
+        }
+
+        do {
+            xx++
+        } until xx+1
+
+        while xx+1 {
+            xx++
+        }
     }
 }
