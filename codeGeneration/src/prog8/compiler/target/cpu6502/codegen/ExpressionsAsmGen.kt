@@ -59,7 +59,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
 
         if (rightConstVal!=null && rightConstVal.number.toDouble() == 0.0)
-            jumpIfZeroOrNot(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+            jumpIfZeroOrNot(left, operator, jumpIfFalseLabel)
         else
             jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
     }
@@ -67,71 +67,46 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     private fun jumpIfZeroOrNot(
         left: Expression,
         operator: String,
-        right: Expression,
-        jumpIfFalseLabel: String,
-        leftConstVal: NumericLiteralValue?,
-        rightConstVal: NumericLiteralValue?
+        jumpIfFalseLabel: String
     ) {
-        when(left.inferType(program).getOr(DataType.UNDEFINED)) {
-            DataType.UBYTE, DataType.BYTE -> {
-                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                if (left is FunctionCall && !left.isSimple)
-                    asmgen.out("  cmp  #0")
+        when(val dt = left.inferType(program).getOr(DataType.UNDEFINED)) {
+            DataType.UBYTE, DataType.UWORD -> {
+                if(operator=="<") {
+                    asmgen.out("  jmp  $jumpIfFalseLabel")
+                    return
+                } else if(operator==">=") {
+                    return
+                }
+                if(dt==DataType.UBYTE) {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                    if (left is FunctionCall && !left.isSimple)
+                        asmgen.out("  cmp  #0")
+                } else {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                    asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
+                }
                 when (operator) {
-                    "==" -> {
-                        asmgen.out("  bne  $jumpIfFalseLabel")
-                    }
-                    "!=" -> {
-                        asmgen.out("  beq  $jumpIfFalseLabel")
-                    }
-                    else -> {
-                        // TODO optimize byte other operators
-                        jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
-                    }
+                    "==" -> asmgen.out("  bne  $jumpIfFalseLabel")
+                    "!=" -> asmgen.out("  beq  $jumpIfFalseLabel")
+                    ">" -> asmgen.out("  beq  $jumpIfFalseLabel")
+                    "<=" -> asmgen.out("  bne  $jumpIfFalseLabel")
+                    else -> throw AssemblyError("invalid comparison operator $operator")
                 }
             }
-            DataType.UWORD, DataType.WORD -> {
-                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-                asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
-                when (operator) {
-                    "==" -> {
-                        asmgen.out("  bne  $jumpIfFalseLabel")
-                    }
-                    "!=" -> {
-                        asmgen.out("  beq  $jumpIfFalseLabel")
-                    }
-                    else -> {
-                        // TODO optimize word other operators
-                        jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
-                    }
-                }
+            DataType.BYTE, DataType.WORD -> {
+                TODO("signed BYTE/UWORD comparison $operator")
             }
             DataType.FLOAT -> {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
-                asmgen.out("  jsr  floats.SIGN")
+                asmgen.out("  jsr  floats.SIGN")   // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
                 when (operator) {
-                    "==" -> {
-                        // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
-                        asmgen.out("  bne  $jumpIfFalseLabel")
-                    }
-                    "!=" -> {
-                        asmgen.out("  beq  $jumpIfFalseLabel")
-                    }
-                    ">" -> {
-                        asmgen.out("  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
-                    }
-                    "<" -> {
-                        asmgen.out("  bpl  $jumpIfFalseLabel")
-                    }
-                    ">=" -> {
-                        asmgen.out("  bmi  $jumpIfFalseLabel")
-                    }
-                    "<=" -> {
-                        asmgen.out("  cmp  #1 |  beq  $jumpIfFalseLabel")
-                    }
-                    else -> {
-                        throw AssemblyError("invalid comparison operator $operator")
-                    }
+                    "==" -> asmgen.out("  bne  $jumpIfFalseLabel")
+                    "!=" -> asmgen.out("  beq  $jumpIfFalseLabel")
+                    ">" -> asmgen.out("  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
+                    "<" -> asmgen.out("  bpl  $jumpIfFalseLabel")
+                    ">=" -> asmgen.out("  bmi  $jumpIfFalseLabel")
+                    "<=" -> asmgen.out("  cmp  #1 |  beq  $jumpIfFalseLabel")
+                    else -> throw AssemblyError("invalid comparison operator $operator")
                 }
             }
             else -> {
