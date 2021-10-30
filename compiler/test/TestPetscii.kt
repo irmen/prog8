@@ -163,9 +163,9 @@ class TestPetscii {
         assertEquals(100, encodeS('▁', true))
 
         // ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
-        assertEquals(195, encodeP('─', false))      // TODO problem?
+        assertEquals(192, encodeP('─', false))
         assertEquals(192, encodeP('─', true))
-        assertEquals(67, encodeS('─', false))       // TODO problem?
+        assertEquals(64, encodeS('─', false))
         assertEquals(64, encodeS('─', true))
         // │    0x62 -> BOX DRAWINGS LIGHT VERTICAL
         assertEquals(221, encodeP('│', false))
@@ -177,11 +177,11 @@ class TestPetscii {
     @Test
     fun testBoxDrawingCharsDecoding() {
         // ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
-        assertEquals('─', Petscii.decodePetscii(listOf(195), false).single())
+        assertEquals('\uf13b', Petscii.decodePetscii(listOf(195), false).single(), "BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)")
         assertEquals('C', Petscii.decodePetscii(listOf(195), true).single())
         assertEquals('─', Petscii.decodePetscii(listOf(192), false).single())
         assertEquals('─', Petscii.decodePetscii(listOf(192), true).single())
-        assertEquals('─', Petscii.decodeScreencode(listOf(67), false).single())
+        assertEquals('\uf13b', Petscii.decodeScreencode(listOf(67), false).single(), "BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)")
         assertEquals('C', Petscii.decodeScreencode(listOf(67), true).single())
         assertEquals('─', Petscii.decodeScreencode(listOf(64), false).single())
         assertEquals('─', Petscii.decodeScreencode(listOf(64), true).single())
@@ -193,7 +193,7 @@ class TestPetscii {
         assertEquals('│', Petscii.decodePetscii(listOf(221), true).single())
         assertEquals('│', Petscii.decodeScreencode(listOf(93), false).single())
         assertEquals('│', Petscii.decodeScreencode(listOf(93), true).single())
-        assertEquals('│', Petscii.decodeScreencode(listOf(66), false).single())
+        assertEquals('\uf13c', Petscii.decodeScreencode(listOf(66), false).single(), "BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)")
         assertEquals('B', Petscii.decodeScreencode(listOf(66), true).single())
     }
 

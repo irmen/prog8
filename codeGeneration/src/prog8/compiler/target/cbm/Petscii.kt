@@ -11,7 +11,7 @@ object Petscii {
     // decoding:  from Petscii/Screencodes (0-255) to unicode
     // character tables used from https://github.com/dj51d/cbmcodecs
 
-    private val decodingPetsciiLowercase = arrayOf(
+    private val decodingPetsciiLowercase = charArrayOf(
         '\u0000',    //       0x00 -> \u0000
         '\ufffe',    //       0x01 -> UNDEFINED
         '\ufffe',    //       0x02 -> UNDEFINED
@@ -270,7 +270,7 @@ object Petscii {
         '\u2592'     //  ▒    0xFF -> MEDIUM SHADE
     )
 
-    private val decodingPetsciiUppercase = arrayOf(
+    private val decodingPetsciiUppercase = charArrayOf(
         '\u0000',    //       0x00 -> \u0000
         '\ufffe',    //       0x01 -> UNDEFINED
         '\ufffe',    //       0x02 -> UNDEFINED
@@ -369,13 +369,13 @@ object Petscii {
         '\u2190',    //  ←    0x5F -> LEFTWARDS ARROW
         '\u2500',    //  ─    0x60 -> BOX DRAWINGS LIGHT HORIZONTAL
         '\u2660',    //  ♠    0x61 -> BLACK SPADE SUIT
-        '\u2502',    //  │    0x62 -> BOX DRAWINGS LIGHT VERTICAL
-        '\u2500',    //  ─    0x63 -> BOX DRAWINGS LIGHT HORIZONTAL
-        '\uf122',    //      0x64 -> BOX DRAWINGS LIGHT HORIZONTAL ONE QUARTER UP (CUS)
-        '\uf123',    //      0x65 -> BOX DRAWINGS LIGHT HORIZONTAL TWO QUARTERS UP (CUS)
-        '\uf124',    //      0x66 -> BOX DRAWINGS LIGHT HORIZONTAL ONE QUARTER DOWN (CUS)
-        '\uf126',    //      0x67 -> BOX DRAWINGS LIGHT VERTICAL ONE QUARTER LEFT (CUS)
-        '\uf128',    //      0x68 -> BOX DRAWINGS LIGHT VERTICAL ONE QUARTER RIGHT (CUS)
+        '\uf13c',    //  │    0x62 -> BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)
+        '\uf13b',    //  ─    0x63 -> BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)
+        '\uf122',    //      0x64 -> BOX DRAWINGS LIGHT HORIZONTAL TWO EIGHTHS UP (CUS)
+        '\uf123',    //      0x65 -> BOX DRAWINGS LIGHT HORIZONTAL THREE EIGHTHS UP (CUS)
+        '\uf124',    //      0x66 -> BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH DOWN (CUS)
+        '\uf126',    //      0x67 -> BOX DRAWINGS LIGHT VERTICAL TWO EIGHTHS LEFT (CUS)
+        '\uf128',    //      0x68 -> BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH RIGHT (CUS)
         '\u256e',    //  ╮    0x69 -> BOX DRAWINGS LIGHT ARC DOWN AND LEFT
         '\u2570',    //  ╰    0x6A -> BOX DRAWINGS LIGHT ARC UP AND RIGHT
         '\u256f',    //  ╯    0x6B -> BOX DRAWINGS LIGHT ARC UP AND LEFT
@@ -385,14 +385,14 @@ object Petscii {
         '\uf12b',    //      0x6F -> ONE EIGHTH BLOCK DOWN AND RIGHT (CUS)
         '\uf12c',    //      0x70 -> ONE EIGHTH BLOCK DOWN AND LEFT (CUS)
         '\u25cf',    //  ●    0x71 -> BLACK CIRCLE
-        '\uf125',    //      0x72 -> BOX DRAWINGS LIGHT HORIZONTAL TWO QUARTERS DOWN (CUS)
+        '\uf125',    //      0x72 -> BOX DRAWINGS LIGHT HORIZONTAL TWO EIGHTHS DOWN (CUS)
         '\u2665',    //  ♥    0x73 -> BLACK HEART SUIT
-        '\uf127',    //      0x74 -> BOX DRAWINGS LIGHT VERTICAL TWO QUARTERS LEFT (CUS)
+        '\uf127',    //      0x74 -> BOX DRAWINGS LIGHT VERTICAL THREE EIGHTHS LEFT (CUS)
         '\u256d',    //  ╭    0x75 -> BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
         '\u2573',    //  ╳    0x76 -> BOX DRAWINGS LIGHT DIAGONAL CROSS
         '\u25cb',    //  ○    0x77 -> WHITE CIRCLE
         '\u2663',    //  ♣    0x78 -> BLACK CLUB SUIT
-        '\uf129',    //      0x79 -> BOX DRAWINGS LIGHT VERTICAL TWO QUARTERS RIGHT (CUS)
+        '\uf129',    //      0x79 -> BOX DRAWINGS LIGHT VERTICAL TWO EIGHTS RIGHT (CUS)
         '\u2666',    //  ♦    0x7A -> BLACK DIAMOND SUIT
         '\u253c',    //  ┼    0x7B -> BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
         '\uf12e',    //      0x7C -> LEFT HALF BLOCK MEDIUM SHADE (CUS)
@@ -465,13 +465,13 @@ object Petscii {
         '\u259a',    //  ▚    0xBF -> QUADRANT UPPER LEFT AND LOWER RIGHT
         '\u2500',    //  ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
         '\u2660',    //  ♠    0xC1 -> BLACK SPADE SUIT
-        '\u2502',    //  │    0xC2 -> BOX DRAWINGS LIGHT VERTICAL
-        '\u2500',    //  ─    0xC3 -> BOX DRAWINGS LIGHT HORIZONTAL
-        '\uf122',    //      0xC4 -> BOX DRAWINGS LIGHT HORIZONTAL ONE QUARTER UP (CUS)
-        '\uf123',    //      0xC5 -> BOX DRAWINGS LIGHT HORIZONTAL TWO QUARTERS UP (CUS)
-        '\uf124',    //      0xC6 -> BOX DRAWINGS LIGHT HORIZONTAL ONE QUARTER DOWN (CUS)
-        '\uf126',    //      0xC7 -> BOX DRAWINGS LIGHT VERTICAL ONE QUARTER LEFT (CUS)
-        '\uf128',    //      0xC8 -> BOX DRAWINGS LIGHT VERTICAL ONE QUARTER RIGHT (CUS)
+        '\uf13c',    //  │    0xC2 -> BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)
+        '\uf13b',    //  ─    0xC3 -> BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)
+        '\uf122',    //      0xC4 -> BOX DRAWINGS LIGHT HORIZONTAL TWO EIGHTHS UP (CUS)
+        '\uf123',    //      0xC5 -> BOX DRAWINGS LIGHT HORIZONTAL THREE EIGHTHS UP (CUS)
+        '\uf124',    //      0xC6 -> BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH DOWN (CUS)
+        '\uf126',    //      0xC7 -> BOX DRAWINGS LIGHT VERTICAL TWO EIGHTHS LEFT (CUS)
+        '\uf128',    //      0xC8 -> BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH RIGHT (CUS)
         '\u256e',    //  ╮    0xC9 -> BOX DRAWINGS LIGHT ARC DOWN AND LEFT
         '\u2570',    //  ╰    0xCA -> BOX DRAWINGS LIGHT ARC UP AND RIGHT
         '\u256f',    //  ╯    0xCB -> BOX DRAWINGS LIGHT ARC UP AND LEFT
@@ -481,14 +481,14 @@ object Petscii {
         '\uf12b',    //      0xCF -> ONE EIGHTH BLOCK DOWN AND RIGHT (CUS)
         '\uf12c',    //      0xD0 -> ONE EIGHTH BLOCK DOWN AND LEFT (CUS)
         '\u25cf',    //  ●    0xD1 -> BLACK CIRCLE
-        '\uf125',    //      0xD2 -> BOX DRAWINGS LIGHT HORIZONTAL TWO QUARTERS DOWN (CUS)
+        '\uf125',    //      0xD2 -> BOX DRAWINGS LIGHT HORIZONTAL TWO EIGHTS DOWN (CUS)
         '\u2665',    //  ♥    0xD3 -> BLACK HEART SUIT
-        '\uf127',    //      0xD4 -> BOX DRAWINGS LIGHT VERTICAL TWO QUARTERS LEFT (CUS)
+        '\uf127',    //      0xD4 -> BOX DRAWINGS LIGHT VERTICAL THREE EIGHTS LEFT (CUS)
         '\u256d',    //  ╭    0xD5 -> BOX DRAWINGS LIGHT ARC DOWN AND LEFT
         '\u2573',    //  ╳    0xD6 -> BOX DRAWINGS LIGHT DIAGONAL CROSS
         '\u25cb',    //  ○    0xD7 -> WHITE CIRCLE
         '\u2663',    //  ♣    0xD8 -> BLACK CLUB SUIT
-        '\uf129',    //      0xD9 -> BOX DRAWINGS LIGHT VERTICAL TWO QUARTERS RIGHT (CUS)
+        '\uf129',    //      0xD9 -> BOX DRAWINGS LIGHT VERTICAL TWO EIGHTS RIGHT (CUS)
         '\u2666',    //  ♦    0xDA -> BLACK DIAMOND SUIT
         '\u253c',    //  ┼    0xDB -> BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
         '\uf12e',    //      0xDC -> LEFT HALF BLOCK MEDIUM SHADE (CUS)
@@ -529,7 +529,7 @@ object Petscii {
         '\u03c0'     //  π    0xFF -> GREEK SMALL LETTER PI
     )
 
-    private val decodingScreencodeLowercase = arrayOf(
+    private val decodingScreencodeLowercase = charArrayOf(
         '@'     ,    //  @    0x00 -> COMMERCIAL AT
         'a'     ,    //  a    0x01 -> LATIN SMALL LETTER A
         'b'     ,    //  b    0x02 -> LATIN SMALL LETTER B
@@ -788,7 +788,7 @@ object Petscii {
         '\ufffe'     //       0xFF -> UNDEFINED
     )
 
-    private val decodingScreencodeUppercase = arrayOf(
+    private val decodingScreencodeUppercase = charArrayOf(
         '@'     ,    //  @    0x00 -> COMMERCIAL AT
         'A'     ,    //  A    0x01 -> LATIN CAPITAL LETTER A
         'B'     ,    //  B    0x02 -> LATIN CAPITAL LETTER B
@@ -855,13 +855,13 @@ object Petscii {
         '?'     ,    //  ?    0x3F -> QUESTION MARK
         '\u2500',    //  ─    0x40 -> BOX DRAWINGS LIGHT HORIZONTAL
         '\u2660',    //  ♠    0x41 -> BLACK SPADE SUIT
-        '\u2502',    //  │    0x42 -> BOX DRAWINGS LIGHT VERTICAL
-        '\u2500',    //  ─    0x43 -> BOX DRAWINGS LIGHT HORIZONTAL
-        '\uf122',    //      0x44 -> BOX DRAWINGS LIGHT HORIZONTAL ONE QUARTER UP (CUS)
-        '\uf123',    //      0x45 -> BOX DRAWINGS LIGHT HORIZONTAL TWO QUARTERS UP (CUS)
-        '\uf124',    //      0x46 -> BOX DRAWINGS LIGHT HORIZONTAL ONE QUARTER DOWN (CUS)
-        '\uf126',    //      0x47 -> BOX DRAWINGS LIGHT VERTICAL ONE QUARTER LEFT (CUS)
-        '\uf128',    //      0x48 -> BOX DRAWINGS LIGHT VERTICAL ONE QUARTER RIGHT (CUS)
+        '\uf13c',    //  │    0x42 -> BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)
+        '\uf13b',    //  ─    0x43 -> BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)
+        '\uf122',    //      0x44 -> BOX DRAWINGS LIGHT HORIZONTAL TWO EIGHTHS UP (CUS)
+        '\uf123',    //      0x45 -> BOX DRAWINGS LIGHT HORIZONTAL THREE EIGHTHS UP (CUS
+        '\uf124',    //      0x46 -> BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH DOWN (CUS)
+        '\uf126',    //      0x47 -> BOX DRAWINGS LIGHT VERTICAL TWO EIGHTHS LEFT (CUS)
+        '\uf128',    //      0x48 -> BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH RIGHT (CUS)
         '\u256e',    //  ╮    0x49 -> BOX DRAWINGS LIGHT ARC DOWN AND LEFT
         '\u2570',    //  ╰    0x4A -> BOX DRAWINGS LIGHT ARC UP AND RIGHT
         '\u256f',    //  ╯    0x4B -> BOX DRAWINGS LIGHT ARC UP AND LEFT
@@ -871,14 +871,14 @@ object Petscii {
         '\uf12b',    //      0x4F -> ONE EIGHTH BLOCK DOWN AND RIGHT (CUS)
         '\uf12c',    //      0x50 -> ONE EIGHTH BLOCK DOWN AND LEFT (CUS)
         '\u25cf',    //  ●    0x51 -> BLACK CIRCLE
-        '\uf125',    //      0x52 -> BOX DRAWINGS LIGHT HORIZONTAL TWO QUARTERS DOWN (CUS)
+        '\uf125',    //      0x52 -> BOX DRAWINGS LIGHT HORIZONTAL TWO EIGHTS DOWN (CUS)
         '\u2665',    //  ♥    0x53 -> BLACK HEART SUIT
-        '\uf127',    //      0x54 -> BOX DRAWINGS LIGHT VERTICAL TWO QUARTERS LEFT (CUS)
+        '\uf127',    //      0x54 -> BOX DRAWINGS LIGHT VERTICAL THREE EIGHTS LEFT (CUS)
         '\u256d',    //  ╭    0x55 -> BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
         '\u2573',    //  ╳    0x56 -> BOX DRAWINGS LIGHT DIAGONAL CROSS
         '\u25cb',    //  ○    0x57 -> WHITE CIRCLE
         '\u2663',    //  ♣    0x58 -> BLACK CLUB SUIT
-        '\uf129',    //      0x59 -> BOX DRAWINGS LIGHT VERTICAL TWO QUARTERS RIGHT (CUS)
+        '\uf129',    //      0x59 -> BOX DRAWINGS LIGHT VERTICAL TWO EIGHTS RIGHT (CUS)
         '\u2666',    //  ♦    0x5A -> BLACK DIAMOND SUIT
         '\u253c',    //  ┼    0x5B -> BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
         '\uf12e',    //      0x5C -> LEFT HALF BLOCK MEDIUM SHADE (CUS)
