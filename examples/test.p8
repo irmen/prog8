@@ -10,19 +10,73 @@ main {
 
         ff=0
 
-        if ff==0 {
-            txt.print("ff=0\n")
+        if ff>=0 {
+            txt.print("ff>=0\n")
+        } else {
+            txt.print("error1\n")
         }
-        if ff!=0 {
-            txt.print("ff!=0 (error!)\n")
+        if ff<=0 {
+            txt.print("ff<=0\n")
+        } else {
+            txt.print("error1\n")
         }
-        ff=-0.22
-        if ff==0 {
-            txt.print("ff=0 (error!)\n")
+        if ff>0 {
+            txt.print("ff>0 error\n")
+        } else {
+            txt.print("ok1\n")
         }
-        if ff!=0 {
-            txt.print("ff!=0\n")
+        if ff<0 {
+            txt.print("ff<0 error\n")
+        } else {
+            txt.print("ok1\n")
         }
+        txt.nl()
+
+        ff=0.22
+        if ff>=0 {
+            txt.print("ff>=0\n")
+        } else {
+            txt.print("error2\n")
+        }
+        if ff<=0 {
+            txt.print("ff<=0 error\n")
+        } else {
+            txt.print("ok2\n")
+        }
+        if ff>0 {
+            txt.print("ff>0\n")
+        } else {
+            txt.print("error2\n")
+        }
+        if ff<0 {
+            txt.print("ff<0 error\n")
+        } else {
+            txt.print("ok2\n")
+        }
+        txt.nl()
+
+        ff=-1.11
+        if ff>=0 {
+            txt.print("ff>=0 error\n")
+        } else {
+            txt.print("ok3\n")
+        }
+        if ff<=0 {
+            txt.print("ff<=0\n")
+        } else {
+            txt.print("error3\n")
+        }
+        if ff>0 {
+            txt.print("ff>0 error\n")
+        } else {
+            txt.print("ok3\n")
+        }
+        if ff<0 {
+            txt.print("ff<0\n")
+        } else {
+            txt.print("error3\n")
+        }
+
 
 
         if xx {             ; doesn't use stack...

@@ -72,19 +72,17 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         leftConstVal: NumericLiteralValue?,
         rightConstVal: NumericLiteralValue?
     ) {
-        val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
-        when(dt) {
+        when(left.inferType(program).getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                if (left is FunctionCall && !left.isSimple)
+                    asmgen.out("  cmp  #0")
                 when (operator) {
-                    "==", "!=" -> {
-                        // simple zero (in)equality check
-                        if (left is FunctionCall && !left.isSimple)
-                            asmgen.out("  cmp  #0")
-                        if (operator == "==")
-                            asmgen.out("  bne  $jumpIfFalseLabel")
-                        else
-                            asmgen.out("  beq  $jumpIfFalseLabel")
+                    "==" -> {
+                        asmgen.out("  bne  $jumpIfFalseLabel")
+                    }
+                    "!=" -> {
+                        asmgen.out("  beq  $jumpIfFalseLabel")
                     }
                     else -> {
                         // TODO optimize byte other operators
@@ -94,12 +92,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             DataType.UWORD, DataType.WORD -> {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
                 when (operator) {
                     "==" -> {
-                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
+                        asmgen.out("  bne  $jumpIfFalseLabel")
                     }
                     "!=" -> {
-                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
+                        asmgen.out("  beq  $jumpIfFalseLabel")
                     }
                     else -> {
                         // TODO optimize word other operators
@@ -109,18 +108,29 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             }
             DataType.FLOAT -> {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)
+                asmgen.out("  jsr  floats.SIGN")
                 when (operator) {
                     "==" -> {
-                        asmgen.out("  jsr  floats.SIGN")   // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+                        // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
                         asmgen.out("  bne  $jumpIfFalseLabel")
                     }
                     "!=" -> {
-                        asmgen.out("  jsr  floats.SIGN")   // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
                         asmgen.out("  beq  $jumpIfFalseLabel")
                     }
+                    ">" -> {
+                        asmgen.out("  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
+                    }
+                    "<" -> {
+                        asmgen.out("  bpl  $jumpIfFalseLabel")
+                    }
+                    ">=" -> {
+                        asmgen.out("  bmi  $jumpIfFalseLabel")
+                    }
+                    "<=" -> {
+                        asmgen.out("  cmp  #1 |  beq  $jumpIfFalseLabel")
+                    }
                     else -> {
-                        // TODO optimize float other operators?
-                        jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+                        throw AssemblyError("invalid comparison operator $operator")
                     }
                 }
             }
