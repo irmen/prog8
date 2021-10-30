@@ -94,7 +94,26 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.BYTE, DataType.WORD -> {
-                TODO("signed BYTE/UWORD comparison $operator")
+                if(dt==DataType.BYTE) {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                    if (left is FunctionCall && !left.isSimple)
+                        asmgen.out("  cmp  #0")
+                } else {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                    asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")        // TODO PROBABLY NOT OKAY FOR WORDS
+                }
+                when (operator) {
+                    "==" -> asmgen.out("  bne  $jumpIfFalseLabel")
+                    "!=" -> asmgen.out("  beq  $jumpIfFalseLabel")
+                    ">" -> asmgen.out("  beq  $jumpIfFalseLabel |  bmi  $jumpIfFalseLabel")
+                    "<" -> asmgen.out("  bpl  $jumpIfFalseLabel")
+                    ">=" -> asmgen.out("  bmi  $jumpIfFalseLabel")
+                    "<=" -> asmgen.out("""
+                          beq  +
+                          bpl  $jumpIfFalseLabel
+                      +   """)
+                    else -> throw AssemblyError("invalid comparison operator $operator")
+                }
             }
             DataType.FLOAT -> {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1)

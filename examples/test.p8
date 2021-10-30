@@ -4,7 +4,7 @@
 main {
 
     sub start() {
-        ubyte xx
+        byte xx
 
         xx=0
 
@@ -16,7 +16,7 @@ main {
         if xx<=0 {
             txt.print("xx<=0\n")
         } else {
-            txt.print("error1\n")
+            txt.print("error1qq\n")
         }
         if xx>0 {
             txt.print("xx>0 error\n")
@@ -53,27 +53,27 @@ main {
         }
         txt.nl()
 
-;        xx=-11
-;        if xx>=0 {
-;            txt.print("xx>=0 error\n")
-;        } else {
-;            txt.print("ok3\n")
-;        }
-;        if xx<=0 {
-;            txt.print("xx<=0\n")
-;        } else {
-;            txt.print("error3\n")
-;        }
-;        if xx>0 {
-;            txt.print("xx>0 error\n")
-;        } else {
-;            txt.print("ok3\n")
-;        }
-;        if xx<0 {
-;            txt.print("xx<0\n")
-;        } else {
-;            txt.print("error3\n")
-;        }
+        xx=-11
+        if xx>=0 {
+            txt.print("xx>=0 error\n")
+        } else {
+            txt.print("ok3\n")
+        }
+        if xx<=0 {
+            txt.print("xx<=0\n")
+        } else {
+            txt.print("error3\n")
+        }
+        if xx>0 {
+            txt.print("xx>0 error\n")
+        } else {
+            txt.print("ok3\n")
+        }
+        if xx<0 {
+            txt.print("xx<0\n")
+        } else {
+            txt.print("error3\n")
+        }
 
 
 
