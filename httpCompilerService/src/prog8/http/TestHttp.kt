@@ -35,7 +35,8 @@ class RequestParser : Take {
             slowCodegenWarnings = true,
             compilationTarget = "c64",
             sourceDirs = emptyList(),
-            outputDir = Path.of("")
+            outputDir = Path.of(""),
+            quietAssembler = false
         )
         return RsJson(Jsonding())
     }

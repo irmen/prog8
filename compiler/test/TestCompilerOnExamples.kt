@@ -44,6 +44,7 @@ class TestCompilerOnExamples {
                 optimize,
                 writeAssembly = true,
                 slowCodegenWarnings = false,
+                quietAssembler = true,
                 compilationTarget = platform.name,
                 sourceDirs = listOf(),
                 outputDir

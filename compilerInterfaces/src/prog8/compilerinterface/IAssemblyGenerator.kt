@@ -11,5 +11,5 @@ const val subroutineFloatEvalResultVar2 = "_prog8_float_eval_result2"
 interface IAssemblyProgram {
     val valid: Boolean
     val name: String
-    fun assemble(options: CompilationOptions): Int
+    fun assemble(quiet: Boolean, options: CompilationOptions): Int
 }

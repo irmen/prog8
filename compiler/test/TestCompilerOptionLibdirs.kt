@@ -49,6 +49,7 @@ class TestCompilerOptionSourcedirs {
             optimize = false,
             writeAssembly = true,
             slowCodegenWarnings = false,
+            quietAssembler = true,
             compilationTarget = Cx16Target.name,
             sourceDirs,
             outputDir

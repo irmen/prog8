@@ -42,6 +42,7 @@ internal fun compileFile(
         optimize,
         writeAssembly = writeAssembly,
         slowCodegenWarnings = false,
+        quietAssembler = true,
         platform.name,
         sourceDirs = listOf(),
         outputDir,

@@ -27,11 +27,14 @@ class AssemblyProgram(
     private val binFile = outputDir.resolve("$name.bin")
     private val viceMonListFile = outputDir.resolve("$name.$viceMonListPostfix")
 
-    override fun assemble(options: CompilationOptions): Int {
+    override fun assemble(quiet: Boolean, options: CompilationOptions): Int {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                 "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
                 "--dump-labels", "--vice-labels", "-l", viceMonListFile.toString(), "--no-monitor")
+
+        if(quiet)
+            command.add("--quiet")
 
         val outFile = when (options.output) {
             OutputType.PRG -> {

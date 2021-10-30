@@ -34,6 +34,7 @@ fun compileProgram(filepath: Path,
                    optimize: Boolean,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
+                   quietAssembler: Boolean,
                    compilationTarget: String,
                    sourceDirs: List<String>,
                    outputDir: Path,
@@ -71,7 +72,7 @@ fun compileProgram(filepath: Path,
 //            printAst(program)
 
             if (writeAssembly) {
-                val result = writeAssembly(program, errors, outputDir, compilationOptions)
+                val result = writeAssembly(program, errors, outputDir, quietAssembler, compilationOptions)
                 when (result) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
@@ -308,6 +309,7 @@ private sealed class WriteAssemblyResult {
 private fun writeAssembly(program: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
+                          quietAssembler: Boolean,
                           compilerOptions: CompilationOptions
 ): WriteAssemblyResult {
     // asm generation directly from the Ast
@@ -325,7 +327,7 @@ private fun writeAssembly(program: Program,
             outputDir).compileToAssembly()
 
     return if(assembly.valid && errors.noErrors()) {
-        val assemblerReturnStatus = assembly.assemble(compilerOptions)
+        val assemblerReturnStatus = assembly.assemble(quietAssembler, compilerOptions)
         if(assemblerReturnStatus!=0)
             WriteAssemblyResult.Fail("assembler step failed with return code $assemblerReturnStatus")
         else {
