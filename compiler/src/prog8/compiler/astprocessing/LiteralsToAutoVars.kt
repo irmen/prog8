@@ -41,6 +41,8 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
                 // this array literal is part of an expression, turn it into an identifier reference
                 val litval2 = array.cast(arrayDt.getOr(DataType.UNDEFINED))
                 if(litval2!=null) {
+                    if(array.parent !is IStatementContainer)
+                        return noModifications
                     val vardecl2 = VarDecl.createAuto(litval2)
                     val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                     return listOf(
