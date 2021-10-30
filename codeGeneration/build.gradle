@@ -5,13 +5,10 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
-targetCompatibility = 11
-sourceCompatibility = 11
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url "https://kotlin.bintray.com/kotlinx" }
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
 }
 
 dependencies {
@@ -26,20 +23,6 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 
-}
-
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-        // verbose = true
-        // freeCompilerArgs += "-XXLanguage:+NewInference"
-    }
-}
-
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-    }
 }
 
 sourceSets {

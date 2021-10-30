@@ -6,12 +6,13 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
-targetCompatibility = 11
-sourceCompatibility = 11
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
 
 repositories {
-    mavenLocal()
-    mavenCentral()
     maven { url "https://kotlin.bintray.com/kotlinx" }
 }
 
@@ -37,21 +38,6 @@ configurations.all {
     exclude group: "org.antlr", module: "antlr4"
 }
 
-
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-        // verbose = true
-        // freeCompilerArgs += "-XXLanguage:+NewInference"
-    }
-}
-
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-}
-
 sourceSets {
     main {
         java {
@@ -75,11 +61,6 @@ application {
     applicationName = 'prog8compilerservicehttp'
 }
 
-artifacts {
-    archives shadowJar
-}
-
-
 shadowJar {
     archiveBaseName = 'prog8compilerservicehttp'
     archiveVersion = '1.0'
@@ -99,3 +80,5 @@ test {
         events "skipped", "failed"
     }
 }
+
+build.finalizedBy installDist, installShadowDist

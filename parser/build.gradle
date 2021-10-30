@@ -3,11 +3,10 @@ plugins {
     id 'java'
 }
 
-targetCompatibility = 11
-sourceCompatibility = 11
-
-repositories {
-    mavenCentral()
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
 }
 
 dependencies {

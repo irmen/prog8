@@ -21,8 +21,9 @@ Then you can choose a few ways to get a compiler:
 The Gradle build system is used to build the compiler.
 The most interesting gradle commands to run are probably:
 
-    ``./gradlew check``
+    ``./gradlew build``
         Builds the compiler code and runs all available checks and unit-tests.
+        Also automatically runs the installDist and installShadowDist tasks.
     ``./gradlew installDist``
         Builds the compiler and installs it with scripts to run it, in the directory
         ``./compiler/build/install/p8compile``
@@ -34,8 +35,7 @@ The most interesting gradle commands to run are probably:
         Creates a zipfile with the above in it, for easy distribution.
         This file can be found in ``./compiler/build/distributions/``
 
-For normal use, the ``installDist`` target should suffice and ater succesful completion
-of that build task, you can start the compiler with:
+For normal use, the ``installDist`` target should suffice and after succesful completion, you can start the compiler with:
 
     ``./compiler/build/install/p8compile/bin/p8compile <options> <sourcefile>``
 
@@ -44,7 +44,7 @@ of that build task, you can start the compiler with:
 .. hint::
     Development and testing is done on Linux using the IntelliJ IDEA IDE,
     but the compiler should run on most operating systems that provide a fairly modern
-    java runtime. If you do have trouble building or running the compiler on your
+    java runtime (11 or newer). If you do have trouble building or running the compiler on your
     operating system, please let me know!
 
 
