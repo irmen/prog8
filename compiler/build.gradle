@@ -11,10 +11,6 @@ java {
     }
 }
 
-repositories {
-    maven { url "https://kotlin.bintray.com/kotlinx" }
-}
-
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {

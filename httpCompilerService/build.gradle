@@ -12,10 +12,6 @@ java {
     }
 }
 
-repositories {
-    maven { url "https://kotlin.bintray.com/kotlinx" }
-}
-
 dependencies {
     implementation project(':compilerInterfaces')
     implementation project(':compiler')

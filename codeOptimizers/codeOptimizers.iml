@@ -9,7 +9,7 @@
     </content>
     <orderEntry type="jdk" jdkName="openjdk-11" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="KotlinJavaRuntime (2)" level="project" />
+    <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="compilerInterfaces" />
     <orderEntry type="module" module-name="compilerAst" />
     <orderEntry type="library" scope="TEST" name="hamcrest" level="project" />
