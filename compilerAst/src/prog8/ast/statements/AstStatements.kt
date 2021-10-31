@@ -41,6 +41,15 @@ sealed class Statement : Node {
         else
             null
     }
+
+    fun previousSibling(): Statement? {
+        val statements = (parent as? IStatementContainer)?.statements ?: return null
+        val previousIdx = statements.indexOfFirst { it===this } - 1
+        return if(previousIdx >= 0)
+            statements[previousIdx]
+        else
+            null
+    }
 }
 
 

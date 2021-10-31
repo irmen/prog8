@@ -20,6 +20,8 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
     override fun noErrors(): Boolean  = errors.isEmpty()
 
     override fun report() {
+        warnings.forEach { println("UNITTEST COMPILATION REPORT: WARNING: $it") }
+        errors.forEach { println("UNITTEST COMPILATION REPORT: ERROR: $it") }
         if(throwExceptionAtReportIfErrors)
             finalizeNumErrors(errors.size, warnings.size)
         errors.clear()

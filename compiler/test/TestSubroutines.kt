@@ -55,15 +55,15 @@ class TestSubroutines {
         assertTrue(asmfunc.statements.isEmpty())
         assertFalse(func.isAsmSubroutine)
         assertEquals(DataType.STR, func.parameters.single().type)
-        assertEquals(3, func.statements.size)
+        assertEquals(4, func.statements.size)
         val paramvar = func.statements[0] as VarDecl
         assertEquals("thing", paramvar.name)
         assertEquals(DataType.STR, paramvar.datatype)
-        val t2var = func.statements[1] as VarDecl
-        assertEquals("t2", t2var.name)
-        assertTrue(t2var.value is TypecastExpression, "str param in function body should not be transformed by normal compiler steps")
-        assertEquals(DataType.UWORD, (t2var.value as TypecastExpression).type)
-        val call = func.statements[2] as FunctionCallStatement
+        val assign = func.statements[2] as Assignment
+        assertEquals(listOf("t2"), assign.target.identifier!!.nameInSource)
+        assertTrue(assign.value is TypecastExpression, "str param in function body should not be transformed by normal compiler steps")
+        assertEquals(DataType.UWORD, (assign.value as TypecastExpression).type)
+        val call = func.statements[3] as FunctionCallStatement
         assertEquals("asmfunc", call.target.nameInSource.single())
         assertTrue(call.args.single() is IdentifierReference, "str param in function body should not be transformed by normal compiler steps")
         assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
@@ -105,16 +105,16 @@ class TestSubroutines {
         assertEquals(DataType.UWORD, func.parameters.single().type, "asmgen should have changed str to uword type")
         assertTrue(asmfunc.statements.last() is Return)
 
-        assertEquals(4, func.statements.size)
-        assertTrue(func.statements[3] is Return)
+        assertEquals(5, func.statements.size)
+        assertTrue(func.statements[4] is Return)
         val paramvar = func.statements[0] as VarDecl
         assertEquals("thing", paramvar.name)
         assertEquals(DataType.UWORD, paramvar.datatype, "pre-asmgen should have changed str to uword type")
-        val t2var = func.statements[1] as VarDecl
-        assertEquals("t2", t2var.name)
-        assertTrue(t2var.value is IdentifierReference, "str param in function body should be treated as plain uword before asmgen")
-        assertEquals("thing", (t2var.value as IdentifierReference).nameInSource.single())
-        val call = func.statements[2] as FunctionCallStatement
+        val assign = func.statements[2] as Assignment
+        assertEquals(listOf("t2"), assign.target.identifier!!.nameInSource)
+        assertTrue(assign.value is IdentifierReference, "str param in function body should be treated as plain uword before asmgen")
+        assertEquals("thing", (assign.value as IdentifierReference).nameInSource.single())
+        val call = func.statements[3] as FunctionCallStatement
         assertEquals("asmfunc", call.target.nameInSource.single())
         assertTrue(call.args.single() is IdentifierReference, "str param in function body should be treated as plain uword and not been transformed")
         assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())

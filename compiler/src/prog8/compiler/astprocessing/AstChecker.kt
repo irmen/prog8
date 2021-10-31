@@ -194,6 +194,10 @@ internal class AstChecker(private val program: Program,
                 is InlineAssembly,
                 is IStatementContainer,
                 is NopStatement -> true
+                is Assignment -> {
+                    val target = statement.target.identifier!!.targetStatement(program)
+                    target === statement.previousSibling()      // an initializer assignment is okay
+                }
                 else -> false
             }
             if (!ok) {

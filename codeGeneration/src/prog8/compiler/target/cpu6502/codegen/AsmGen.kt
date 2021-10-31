@@ -46,7 +46,6 @@ class AsmGen(private val program: Program,
     private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
-    private val blockLevelVarInits = mutableMapOf<Block, MutableSet<VarDecl>>()
     internal val slabs = mutableMapOf<String, Int>()
     internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
 
@@ -218,24 +217,15 @@ class AsmGen(private val program: Program,
         stmts.forEach { translate(it) }
         subroutine.forEach { translateSubroutine(it as Subroutine) }
 
-        // if any global vars need to be initialized, generate a subroutine that does this
-        // it will be called from program init.
-        if(block in blockLevelVarInits) {
+        // generate subroutine to initialize block-level variables
+        val initializers = block.statements.filterIsInstance<Assignment>()
+        if(initializers.isNotEmpty()) {
             out("prog8_init_vars\t.proc\n")
-            blockLevelVarInits.getValue(block).forEach { decl ->
-                val scopedFullName = decl.makeScopedName(decl.name).split('.')
-                require(scopedFullName.first()==block.name)
-                assignInitialValueToVar(decl, scopedFullName.drop(1))
-            }
+            initializers.forEach { assign -> translate(assign) }
             out("  rts\n  .pend")
         }
 
         out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
-    }
-
-    private fun assignInitialValueToVar(decl: VarDecl, variableName: List<String>) {
-        val asmName = asmVariableName(variableName)
-        assignmentAsmGen.assignExpressionToVariable(decl.value!!, asmName, decl.datatype, decl.definingSubroutine)
     }
 
     private var generatedLabelSequenceNumber: Int = 0
@@ -905,7 +895,7 @@ class AsmGen(private val program: Program,
                 out("; program startup initialization")
                 out("  cld")
                 program.allBlocks.forEach {
-                    if(it.statements.filterIsInstance<VarDecl>().any { vd->vd.value!=null && vd.type==VarDeclType.VAR && vd.datatype in NumericDatatypes})
+                    if(it.statements.any { stmt -> stmt is Assignment })
                         out("  jsr  ${it.name}.prog8_init_vars")
                 }
                 out("""
@@ -1291,25 +1281,10 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translate(stmt: VarDecl) {
-        if(stmt.value!=null && stmt.type==VarDeclType.VAR && stmt.datatype in NumericDatatypes) {
-            // generate an assignment statement to (re)initialize the variable's value.
-            // if the vardecl is not in a subroutine however, we have to initialize it globally.
-            if(stmt.definingSubroutine ==null) {
-                val block = stmt.definingBlock
-                var inits = blockLevelVarInits[block]
-                if(inits==null) {
-                    inits = mutableSetOf()
-                    blockLevelVarInits[block] = inits
-                }
-                inits.add(stmt)
-            } else {
-                val next = stmt.nextSibling()
-                if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
-                    assignInitialValueToVar(stmt, listOf(stmt.name))
-                }
-            }
-        }
+    private fun translate(decl: VarDecl) {
+        if(decl.type==VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
+            throw AssemblyError("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+        // at this time, nothing has to be done here anymore code-wise
     }
 
     /**
