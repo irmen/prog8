@@ -93,15 +93,10 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     else -> throw AssemblyError("invalid comparison operator $operator")
                 }
             }
-            DataType.BYTE, DataType.WORD -> {
-                if(dt==DataType.BYTE) {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
-                    if (left is FunctionCall && !left.isSimple)
-                        asmgen.out("  cmp  #0")
-                } else {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
-                    asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")        // TODO PROBABLY NOT OKAY FOR WORDS
-                }
+            DataType.BYTE -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                if (left is FunctionCall && !left.isSimple)
+                    asmgen.out("  cmp  #0")
                 when (operator) {
                     "==" -> asmgen.out("  bne  $jumpIfFalseLabel")
                     "!=" -> asmgen.out("  beq  $jumpIfFalseLabel")
@@ -112,6 +107,30 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                           beq  +
                           bpl  $jumpIfFalseLabel
                       +   """)
+                    else -> throw AssemblyError("invalid comparison operator $operator")
+                }
+            }
+            DataType.WORD -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                when (operator) {
+                    "==" -> asmgen.out("  bne  $jumpIfFalseLabel |  cpy  #0 |  bne  $jumpIfFalseLabel")
+                    "!=" -> asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
+                    ">" -> asmgen.out("""
+                            cpy  #0
+                            bmi  $jumpIfFalseLabel
+                            bne  +
+                            cmp  #0
+                            beq  $jumpIfFalseLabel
+                        +   """)
+                    "<" -> asmgen.out("  cpy  #0 |  bpl  $jumpIfFalseLabel")
+                    ">=" -> asmgen.out("  cpy  #0 |  bmi  $jumpIfFalseLabel")
+                    "<=" -> asmgen.out("""
+                            cpy  #0
+                            bmi  +
+                            bne  $jumpIfFalseLabel
+                            cmp  #0
+                            bne  $jumpIfFalseLabel
+                        +   """)
                     else -> throw AssemblyError("invalid comparison operator $operator")
                 }
             }
