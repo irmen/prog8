@@ -64,7 +64,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     argumentViaVariable(sub, arg.first, arg.second)
                 }
             } else {
-                // via registers
+                require(sub.isAsmSubroutine)
                 if(sub.parameters.size==1) {
                     // just a single parameter, no risk of clobbering registers
                     argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), stmt.args[0])
@@ -104,6 +104,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         }
                         else -> {
                             // Risk of clobbering due to complex expression args. Evaluate first, then assign registers.
+                            // TODO find another way to prepare the arguments, without using the eval stack
                             registerArgsViaStackEvaluation(stmt, sub)
                         }
                     }

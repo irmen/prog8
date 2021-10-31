@@ -24,21 +24,27 @@ internal class ErrorReporter: IErrorReporter {
         var numErrors = 0
         var numWarnings = 0
         messages.forEach {
+            val printer = when(it.severity) {
+                MessageSeverity.WARNING -> System.out
+                MessageSeverity.ERROR -> System.err
+            }
             when(it.severity) {
-                MessageSeverity.ERROR -> System.err.print("\u001b[91m")  // bright red
-                MessageSeverity.WARNING -> System.err.print("\u001b[93m")  // bright yellow
+                MessageSeverity.ERROR -> printer.print("\u001b[91m")  // bright red
+                MessageSeverity.WARNING -> printer.print("\u001b[93m")  // bright yellow
             }
             val msg = "${it.position.toClickableStr()} ${it.severity} ${it.message}".trim()
             if(msg !in alreadyReportedMessages) {
-                System.err.println(msg)
+                printer.println(msg)
                 alreadyReportedMessages.add(msg)
                 when(it.severity) {
                     MessageSeverity.WARNING -> numWarnings++
                     MessageSeverity.ERROR -> numErrors++
                 }
             }
-            System.err.print("\u001b[0m")  // reset color
+            printer.print("\u001b[0m")      // reset color
         }
+        System.out.flush()
+        System.err.flush()
         messages.clear()
         finalizeNumErrors(numErrors, numWarnings)
     }

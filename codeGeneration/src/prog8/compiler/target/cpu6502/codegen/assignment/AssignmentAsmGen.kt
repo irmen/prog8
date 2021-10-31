@@ -21,7 +21,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     fun translate(assignment: Assignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
-        val source = AsmAssignSource.Companion.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
+        val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
 
         val assign = AsmAssignment(source, target, assignment.isAugmentable, program.memsizer, assignment.position)
         target.origAssign = assign
@@ -171,13 +171,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                             DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
                                                 // copy the actual string result into the target string variable
                                                 asmgen.out("""
-                                                                        pha
-                                                                        lda  #<${assign.target.asmVarname}
-                                                                        sta  P8ZP_SCRATCH_W1
-                                                                        lda  #>${assign.target.asmVarname}
-                                                                        sta  P8ZP_SCRATCH_W1+1
-                                                                        pla
-                                                                        jsr  prog8_lib.strcpy""")
+                                                    pha
+                                                    lda  #<${assign.target.asmVarname}
+                                                    sta  P8ZP_SCRATCH_W1
+                                                    lda  #>${assign.target.asmVarname}
+                                                    sta  P8ZP_SCRATCH_W1+1
+                                                    pla
+                                                    jsr  prog8_lib.strcpy""")
                                             }
                                             else -> throw AssemblyError("weird target dt")
                                         }
@@ -251,12 +251,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     else -> {
                         // Everything else just evaluate via the stack.
-                        // (we can't use the assignment helper functions to do it via registers here,
+                        // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                         // because the code here is the implementation of exactly that...)
-                        if (value.parent is Return) {
-                            if (this.asmgen.options.slowCodegenWarnings)
-                                println("warning: slow stack evaluation used for return: $value  target=${assign.target.kind} at ${value.position}")
-                        }
+                        // TODO FIX THIS... by using a temp var? so that it becomes augmentable assignment expression?
                         exprAsmgen.translateExpression(value)
                         if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
                             asmgen.signExtendStackLsb(assign.source.datatype)
@@ -373,7 +370,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
                 DataType.FLOAT -> {
                     assignExpressionToRegister(value, RegisterOrPair.FAC1)
-                    assignTypecastedFloatFAC1(target.asmVarname, targetDt)
+                    assignTypeCastedFloatFAC1(target.asmVarname, targetDt)
                 }
                 in PassByReferenceDatatypes -> {
                     // str/array value cast (most likely to UWORD, take address-of)
@@ -433,8 +430,6 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         // give up, do it via eval stack
         // note: cannot use assignTypeCastedValue because that is ourselves :P
         // TODO optimize typecasts for more special cases?
-        if(this.asmgen.options.slowCodegenWarnings)
-            println("warning: slow stack evaluation used for typecast: $value into $targetDt (target=${target.kind} at ${value.position}")
         asmgen.translateExpression(origTypeCastExpression)      // this performs the actual type cast in translateExpression(Typecast)
         assignStackValue(target)
     }
@@ -447,7 +442,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         translateNormalAssignment(assign)
     }
 
-    private fun assignTypecastedFloatFAC1(targetAsmVarName: String, targetDt: DataType) {
+    private fun assignTypeCastedFloatFAC1(targetAsmVarName: String, targetDt: DataType) {
 
         if(targetDt==DataType.FLOAT)
             throw AssemblyError("typecast to identical type")
@@ -2158,14 +2153,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) {
-        val src = AsmAssignSource.Companion.fromAstSource(expr, program, asmgen)
+        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
 
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
-        val src = AsmAssignSource.Companion.fromAstSource(expr, program, asmgen)
+        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)

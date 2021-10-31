@@ -4,7 +4,7 @@ TODO
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - fix the asm-labels problem (github issue #62)
-- find a way to optimize if-statement codegen so that "if var & %10000" doesn't use stack & subroutine call, but also that the simple case "if X {...}" remains fast
+- find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
 
 
 Blocked by Commander-x16 v39 release
@@ -20,6 +20,7 @@ Future
 - replace certain uses of inferredType.getOr(DataType.UNDEFINED) by i.getOrElse({ errorhandler })
 - see if we can remove more "[InferredType].getOr(DataType.UNDEFINED)"
 - use more of Result<> and Either<> to handle errors/ nulls better
+- [complicated] find a way to optimize if-statement codegen so that "if var & %10000" doesn't use evalstack & subroutine call, but also that the simple case "if X {...}" remains fast
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?

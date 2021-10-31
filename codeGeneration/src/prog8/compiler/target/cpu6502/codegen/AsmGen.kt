@@ -838,9 +838,6 @@ class AsmGen(private val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateExpression(indexer: ArrayIndex) =
-            expressionsAsmGen.translateExpression(indexer)
-
     internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack, resultRegister)
 

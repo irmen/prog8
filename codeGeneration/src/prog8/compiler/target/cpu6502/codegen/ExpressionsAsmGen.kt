@@ -3,7 +3,6 @@ package prog8.compiler.target.cpu6502.codegen
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
@@ -15,7 +14,15 @@ import kotlin.math.absoluteValue
 
 internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
-    internal fun translateExpression(expression: Expression) {
+    internal fun translateExpression(expression:Expression) {
+        if (this.asmgen.options.slowCodegenWarnings) {
+            asmgen.errors.warn("slow stack evaluation used for expression $expression", expression.position)
+        }
+        translateExpressionInternal(expression)
+    }
+
+    private fun translateExpressionInternal(expression: Expression) {
+
         when(expression) {
             is PrefixExpression -> translateExpression(expression)
             is BinaryExpression -> translateExpression(expression)
@@ -1690,7 +1697,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(typecast: TypecastExpression) {
-        translateExpression(typecast.expression)
+        translateExpressionInternal(typecast.expression)
         when(typecast.expression.inferType(program).getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 when(typecast.type) {
@@ -1856,7 +1863,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     val leftVal = expr.left.constValue(program)?.number?.toInt()
                     val rightVal = expr.right.constValue(program)?.number?.toInt()
                     if (leftVal!=null && leftVal in -4..4) {
-                        translateExpression(expr.right)
+                        translateExpressionInternal(expr.right)
                         if(rightDt in ByteDatatypes) {
                             val incdec = if(leftVal<0) "dec" else "inc"
                             repeat(leftVal.absoluteValue) {
@@ -1886,7 +1893,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     }
                     else if (rightVal!=null && rightVal in -4..4)
                     {
-                        translateExpression(expr.left)
+                        translateExpressionInternal(expr.left)
                         if(leftDt in ByteDatatypes) {
                             val incdec = if(rightVal<0) "dec" else "inc"
                             repeat(rightVal.absoluteValue) {
@@ -1921,7 +1928,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     val rightVal = expr.right.constValue(program)?.number?.toInt()
                     if (rightVal!=null && rightVal in -4..4)
                     {
-                        translateExpression(expr.left)
+                        translateExpressionInternal(expr.left)
                         if(leftDt in ByteDatatypes) {
                             val incdec = if(rightVal<0) "inc" else "dec"
                             repeat(rightVal.absoluteValue) {
@@ -1954,7 +1961,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             ">>" -> {
                 val amount = expr.right.constValue(program)?.number?.toInt()
                 if(amount!=null) {
-                    translateExpression(expr.left)
+                    translateExpressionInternal(expr.left)
                     when (leftDt) {
                         DataType.UBYTE -> {
                             if (amount <= 2)
@@ -2025,7 +2032,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             "<<" -> {
                 val amount = expr.right.constValue(program)?.number?.toInt()
                 if(amount!=null) {
-                    translateExpression(expr.left)
+                    translateExpressionInternal(expr.left)
                     if (leftDt in ByteDatatypes) {
                         if (amount <= 2)
                             repeat(amount) { asmgen.out("  asl  P8ESTACK_LO+1,x") }
@@ -2062,7 +2069,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         val amount = value.number.toInt()
                         if(amount==2) {
                             // optimize x*2 common case
-                            translateExpression(expr.left)
+                            translateExpressionInternal(expr.left)
                             if(leftDt in ByteDatatypes) {
                                 asmgen.out("  asl  P8ESTACK_LO+1,x")
                             } else {
@@ -2073,38 +2080,38 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         when(rightDt) {
                             DataType.UBYTE -> {
                                 if(amount in asmgen.optimizedByteMultiplications) {
-                                    translateExpression(expr.left)
+                                    translateExpressionInternal(expr.left)
                                     asmgen.out(" jsr  math.stack_mul_byte_$amount")
                                     return
                                 }
                             }
                             DataType.BYTE -> {
                                 if(amount in asmgen.optimizedByteMultiplications) {
-                                    translateExpression(expr.left)
+                                    translateExpressionInternal(expr.left)
                                     asmgen.out(" jsr  math.stack_mul_byte_$amount")
                                     return
                                 }
                                 if(amount.absoluteValue in asmgen.optimizedByteMultiplications) {
-                                    translateExpression(expr.left)
+                                    translateExpressionInternal(expr.left)
                                     asmgen.out(" jsr  prog8_lib.neg_b |  jsr  math.stack_mul_byte_${amount.absoluteValue}")
                                     return
                                 }
                             }
                             DataType.UWORD -> {
                                 if(amount in asmgen.optimizedWordMultiplications) {
-                                    translateExpression(expr.left)
+                                    translateExpressionInternal(expr.left)
                                     asmgen.out(" jsr  math.stack_mul_word_$amount")
                                     return
                                 }
                             }
                             DataType.WORD -> {
                                 if(amount in asmgen.optimizedWordMultiplications) {
-                                    translateExpression(expr.left)
+                                    translateExpressionInternal(expr.left)
                                     asmgen.out(" jsr  math.stack_mul_word_$amount")
                                     return
                                 }
                                 if(amount.absoluteValue in asmgen.optimizedWordMultiplications) {
-                                    translateExpression(expr.left)
+                                    translateExpressionInternal(expr.left)
                                     asmgen.out(" jsr  prog8_lib.neg_w |  jsr  math.stack_mul_word_${amount.absoluteValue}")
                                     return
                                 }
@@ -2118,7 +2125,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
                     val rightVal = expr.right.constValue(program)?.number?.toInt()
                     if(rightVal!=null && rightVal==2) {
-                        translateExpression(expr.left)
+                        translateExpressionInternal(expr.left)
                         when(leftDt) {
                             DataType.UBYTE -> asmgen.out("  lsr  P8ESTACK_LO+1,x")
                             DataType.BYTE -> asmgen.out("  asl  P8ESTACK_LO+1,x |  ror  P8ESTACK_LO+1,x")
@@ -2141,8 +2148,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
         else {
             // the general, non-optimized cases  TODO optimize more cases....
-            translateExpression(expr.left)
-            translateExpression(expr.right)
+            translateExpressionInternal(expr.left)
+            translateExpressionInternal(expr.right)
             when (leftDt) {
                 in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
                 in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
@@ -2169,7 +2176,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: PrefixExpression) {
-        translateExpression(expr.expression)
+        translateExpressionInternal(expr.expression)
         val itype = expr.inferType(program)
         if(!itype.isKnown)
             throw AssemblyError("unknown dt")
@@ -2253,8 +2260,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 
         }
     }
-
-    fun translateExpression(indexer: ArrayIndex) = asmgen.translateExpression(indexer.indexExpr)
 
     private fun translateBinaryOperatorBytes(operator: String, types: DataType) {
         when(operator) {
