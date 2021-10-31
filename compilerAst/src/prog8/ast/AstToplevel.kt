@@ -56,22 +56,6 @@ interface IStatementContainer {
         return result
     }
 
-    fun nextSibling(stmt: Statement): Statement? {
-        val nextIdx = statements.indexOfFirst { it===stmt } + 1
-        return if(nextIdx < statements.size)
-            statements[nextIdx]
-        else
-            null
-    }
-
-    fun previousSibling(stmt: Statement): Statement? {
-        val previousIdx = statements.indexOfFirst { it===stmt } - 1
-        return if(previousIdx>=0)
-            statements[previousIdx]
-        else
-            null
-    }
-
     fun indexOfChild(stmt: Statement): Int {
         val idx = statements.indexOfFirst { it===stmt }
         if(idx>=0)

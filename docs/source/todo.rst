@@ -4,6 +4,7 @@ TODO
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - fix the asm-labels problem (github issue #62)
+- fix that "uword qq =$1000+xx" uses stack eval, while "uword qq;  qq=$1000+xx" uses optimized code
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
 
 

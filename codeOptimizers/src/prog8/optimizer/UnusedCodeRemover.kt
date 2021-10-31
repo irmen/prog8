@@ -51,7 +51,7 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     private fun reportUnreachable(stmt: Statement, parent: IStatementContainer) {
-        when(val next = parent.nextSibling(stmt)) {
+        when(val next = stmt.nextSibling()) {
             null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine -> {}
             else -> errors.warn("unreachable code", next.position)
         }

@@ -1,23 +1,26 @@
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
 
     sub start() {
 
-
         ubyte xx = 100
-        ubyte cv
+        uword qq =$1234+xx  ; TODO FIX THAT THIS USES STACK
 
-        sys.memset($1000+xx, 10, 255)       ; TODO uses stack eval now to precalc parameters
+        uword ww
+        ww=$1234+xx
 
-        xx = xx & %0001     ; doesn't use stack...      because it uses AugmentableAssignmentAsmGen
-        ;yy = xx & %0001     ; doesn't use stack...      because it uses AugmentableAssignmentAsmGen
-
-        ;ubyte yy = xx & %0001       ; TODO uses stack eval....
-        if xx & %0001 {     ; TODO why does this use stack?   because it uses asmgen.assignExpressionToRegister   eventually line 253 in AssignmentAsmGen   no augmentable-assignment.
-            xx--
-        }
+;        ubyte cv
+;        sys.memset($1000+xx, 10, 255)       ; TODO uses stack eval now to precalc parameters
+;
+;        xx = xx & %0001     ; doesn't use stack...      because it uses AugmentableAssignmentAsmGen
+;        ;yy = xx & %0001     ; doesn't use stack...      because it uses AugmentableAssignmentAsmGen
+;
+;        ;ubyte yy = xx & %0001       ; TODO uses stack eval....
+;        if xx & %0001 {     ; TODO why does this use stack?   because it uses asmgen.assignExpressionToRegister   eventually line 253 in AssignmentAsmGen   no augmentable-assignment.
+;            xx--
+;        }
 
 ;        if xx+1 {             ; TODO why does this use stack? see above
 ;            xx++

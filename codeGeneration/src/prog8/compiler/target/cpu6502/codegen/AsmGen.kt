@@ -1304,7 +1304,7 @@ $repeatLabel    lda  $counterVar
                 }
                 inits.add(stmt)
             } else {
-                val next = (stmt.parent as IStatementContainer).nextSibling(stmt)
+                val next = stmt.nextSibling()
                 if (next !is ForLoop || next.loopVar.nameInSource.single() != stmt.name) {
                     assignInitialValueToVar(stmt, listOf(stmt.name))
                 }
