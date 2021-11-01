@@ -437,9 +437,18 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     class CastValue(val isValid: Boolean, private val value: NumericLiteralValue?) {
         fun valueOrZero() = if(isValid) value!! else NumericLiteralValue(DataType.UBYTE, 0, Position.DUMMY)
+        fun linkParent(parent: Node) {
+            value?.linkParents(parent)
+        }
     }
 
     fun cast(targettype: DataType): CastValue {
+        val result = internalCast(targettype)
+        result.linkParent(this.parent)
+        return result
+    }
+
+    private fun internalCast(targettype: DataType): CastValue {
         if(type==targettype)
             return CastValue(true, this)
         val numval = number.toDouble()

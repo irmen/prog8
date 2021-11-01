@@ -78,10 +78,10 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                             TypecastExpression(assignment.value, targettype, true, assignment.value.position),
                             assignment))
                 } else {
-                    fun castLiteral(cvalue: NumericLiteralValue): List<IAstModification.ReplaceNode> {
-                        val cast = cvalue.cast(targettype)
+                    fun castLiteral(cvalue2: NumericLiteralValue): List<IAstModification.ReplaceNode> {
+                        val cast = cvalue2.cast(targettype)
                         return if(cast.isValid)
-                            listOf(IAstModification.ReplaceNode(cvalue, cast.valueOrZero(), cvalue.parent))
+                            listOf(IAstModification.ReplaceNode(assignment.value, cast.valueOrZero(), assignment))
                         else
                             emptyList()
                     }

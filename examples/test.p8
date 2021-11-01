@@ -11,6 +11,15 @@
 
 
 main {
+    sub start() {
+        const ubyte TEST = 10
+        ubyte y1
+        y1 = TEST + 1 as byte
+    }
+}
+
+mainzzzzzz {
+
 
     ubyte globalvar1
     ubyte globalvar2 = 99
