@@ -1,16 +1,21 @@
 TODO
 ====
 
+
+
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* FIX CRASH BUG *
+when compiling petaxian:
+Exception in thread "main" prog8.ast.base.FatalAstException: parent node mismatch at IdentifierRef([eRef])
+        at prog8.compiler.astprocessing.VariousCleanups.after(VariousCleanups.kt:118)
+        at prog8.ast.walk.AstWalker.visit(AstWalker.kt:264)
+
+- analyze (and fix?): TODO why are these bigger now than before the var-initializer optimization:
+    ;    cube3d-float (THIS ONE IS A LOT BIGGER!!)
+
 - fix the asm-labels problem (github issue #62)
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
-- analyze (and fix?): TODO why are these bigger now than before the var-initializer optimization:
-    ;    wormfood
-    ;    cube3d-float (THIS ONE IS A LOT BIGGER!!)
-    ;    cube3d-sprites
-    ;    textelite
-    ;    etc.
 
 
 

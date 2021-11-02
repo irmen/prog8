@@ -1,15 +1,6 @@
 %import textio
 %zeropage dontuse
 
-; TODO why are these bigger now than before the var-initializer optimization:
-;    wizzine
-;    wormfood
-;    cube3d-float (THIS ONE IS A LOT BIGGER!!)
-;    cube3d-sprites
-;    textelite
-;    etc.
-
-
 main {
     sub start() {
         const ubyte TEST = 10
