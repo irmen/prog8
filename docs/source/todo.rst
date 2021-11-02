@@ -5,6 +5,14 @@ For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - fix the asm-labels problem (github issue #62)
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
+- analyze (and fix?): TODO why are these bigger now than before the var-initializer optimization:
+    ;    wizzine
+    ;    wormfood
+    ;    cube3d-float (THIS ONE IS A LOT BIGGER!!)
+    ;    cube3d-sprites
+    ;    textelite
+    ;    etc.
+
 
 
 Blocked by Commander-x16 v39 release
