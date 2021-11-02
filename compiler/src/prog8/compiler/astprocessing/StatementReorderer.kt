@@ -128,7 +128,12 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        return replacePointerVarIndexWithMemread(program, arrayIndexedExpression, parent)
+        if(parent !is VarDecl) {
+            // don't replace the initializer value in a vardecl - this will be moved to a separate
+            // assignment statement soon in after(VarDecl)
+            return replacePointerVarIndexWithMemreadOrMemwrite(program, arrayIndexedExpression, parent)
+        }
+        return noModifications
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {

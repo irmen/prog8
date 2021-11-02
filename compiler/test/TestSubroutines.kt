@@ -4,18 +4,14 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -180,5 +176,80 @@ class TestSubroutines {
         assertFalse(func.isAsmSubroutine)
         assertEquals(DataType.ARRAY_UB, func.parameters.single().type)
         assertTrue(func.statements.isEmpty())
+    }
+
+    @Test
+    fun testUwordParameterAndNormalVarIndexedAsArrayWorkAsDirectMemoryRead() {
+        val text="""
+            main {
+              sub thing(uword rr) {
+                ubyte xx = rr[1]    ; should still work as var initializer that will be rewritten
+                ubyte yy
+                yy = rr[2]
+                uword other
+                ubyte zz = other[3]
+              }
+            
+              sub start() {
+                ubyte[] array=[1,2,3]
+                thing(array)
+              }
+            }
+        """
+
+        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        val module = result.program.toplevelModule
+        val block = module.statements.single() as Block
+        val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
+        assertEquals("main", block.name)
+        assertEquals(10, thing.statements.size, "rr, xx, xx assign, yy, yy assign, other, other assign 0, zz, zz assign, return")
+        val xx = thing.statements[1] as VarDecl
+        assertNull(xx.value, "vardecl init values must have been moved to separate assignments")
+        val assignXX = thing.statements[2] as Assignment
+        val assignYY = thing.statements[4] as Assignment
+        val assignZZ = thing.statements[8] as Assignment
+        assertEquals(listOf("xx"), assignXX.target.identifier!!.nameInSource)
+        assertEquals(listOf("yy"), assignYY.target.identifier!!.nameInSource)
+        assertEquals(listOf("zz"), assignZZ.target.identifier!!.nameInSource)
+        val valueXXexpr = (assignXX.value as DirectMemoryRead).addressExpression as BinaryExpression
+        val valueYYexpr = (assignYY.value as DirectMemoryRead).addressExpression as BinaryExpression
+        val valueZZexpr = (assignZZ.value as DirectMemoryRead).addressExpression as BinaryExpression
+        assertEquals(listOf("rr"), (valueXXexpr.left as IdentifierReference).nameInSource)
+        assertEquals(listOf("rr"), (valueYYexpr.left as IdentifierReference).nameInSource)
+        assertEquals(listOf("other"), (valueZZexpr.left as IdentifierReference).nameInSource)
+        assertEquals(1, (valueXXexpr.right as NumericLiteralValue).number.toInt())
+        assertEquals(2, (valueYYexpr.right as NumericLiteralValue).number.toInt())
+        assertEquals(3, (valueZZexpr.right as NumericLiteralValue).number.toInt())
+    }
+
+    @Test
+    fun testUwordParameterAndNormalVarIndexedAsArrayWorkAsMemoryWrite() {
+        val text="""
+            main {
+              sub thing(uword rr) {
+                rr[10] = 42
+              }
+            
+              sub start() {
+                ubyte[] array=[1,2,3]
+                thing(array)
+              }
+            }
+        """
+
+        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        val module = result.program.toplevelModule
+        val block = module.statements.single() as Block
+        val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
+        assertEquals("main", block.name)
+        assertEquals(3, thing.statements.size, "rr, rr assign, return void")
+        val assignRR = thing.statements[1] as Assignment
+        assertEquals(42, (assignRR.value as NumericLiteralValue).number.toInt())
+        val memwrite = assignRR.target.memoryAddress
+        assertNotNull(memwrite, "memwrite to set byte array value")
+        val addressExpr = memwrite.addressExpression as BinaryExpression
+        assertEquals(listOf("rr"), (addressExpr.left as IdentifierReference).nameInSource)
+        assertEquals("+", addressExpr.operator)
+        assertEquals(10, (addressExpr.right as NumericLiteralValue).number.toInt())
     }
 }

@@ -67,7 +67,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        return replacePointerVarIndexWithMemread(program, arrayIndexedExpression, parent)
+        return replacePointerVarIndexWithMemreadOrMemwrite(program, arrayIndexedExpression, parent)
     }
 
     private fun concatString(expr: BinaryExpression): StringLiteralValue? {
@@ -99,12 +99,12 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
 
 
 
-internal fun replacePointerVarIndexWithMemread(program: Program, arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+internal fun replacePointerVarIndexWithMemreadOrMemwrite(program: Program, arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
     val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
     if(arrayVar!=null && arrayVar.datatype ==  DataType.UWORD) {
         // rewrite   pointervar[index]  into  @(pointervar+index)
         val indexer = arrayIndexedExpression.indexer
-        val add = BinaryExpression(arrayIndexedExpression.arrayvar, "+", indexer.indexExpr, arrayIndexedExpression.position)
+        val add = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)
         return if(parent is AssignTarget) {
             // we're part of the target of an assignment, we have to actually change the assign target itself
             val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)

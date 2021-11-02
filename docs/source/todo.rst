@@ -6,10 +6,13 @@ TODO
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * FIX CRASH BUG *
-when compiling petaxian:
-Exception in thread "main" prog8.ast.base.FatalAstException: parent node mismatch at IdentifierRef([eRef])
-        at prog8.compiler.astprocessing.VariousCleanups.after(VariousCleanups.kt:118)
-        at prog8.ast.walk.AstWalker.visit(AstWalker.kt:264)
+when compiling petaxian: (attack.p8)
+Exception in thread "main" prog8.ast.base.FatalAstException: vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment VarDecl(name=attack_num, vartype=VAR, datatype=UBYTE, value=DirectMemoryRead([IdentifierRef([eRef]) + NumericLiteral(UWORD:11)]), pos=[attack.p8: line 72 col 5-45])
+        at prog8.compiler.BeforeAsmGenerationAstChanger.after(BeforeAsmGenerationAstChanger.kt:24)
+        at prog8.ast.walk.AstWalker.visit(AstWalker.kt:239)
+        at prog8.ast.statements.VarDecl.accept(AstStatements.kt:248)
+
+
 
 - analyze (and fix?): TODO why are these bigger now than before the var-initializer optimization:
     ;    cube3d-float (THIS ONE IS A LOT BIGGER!!)
