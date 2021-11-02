@@ -10,6 +10,7 @@ prog8_lib {
 	word @zp retval_interm_w        ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
 	ubyte @zp retval_interm_ub      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
 	byte @zp retval_interm_b        ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
+	; NOTE: these variables are checked in the StatementReorderer (in fun after(decl: VarDecl)), for these exact names!
 
 	asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> ubyte @A {
 		%asm {{
