@@ -48,6 +48,7 @@ class AsmGen(private val program: Program,
     internal val loopEndLabels = ArrayDeque<String>()
     internal val slabs = mutableMapOf<String, Int>()
     internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
+    private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
     override fun compileToAssembly(): IAssemblyProgram {
         assemblyLines.clear()
@@ -59,8 +60,11 @@ class AsmGen(private val program: Program,
         val allBlocks = program.allBlocks
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
-        for(b in program.allBlocks)
+
+        for(b in program.allBlocks) {
+            b.statements.removeAll(blockVariableInitializers.getValue(b))  // no longer output the initialization assignments as regular statements in the block!
             block2asm(b)
+        }
 
         for(removal in removals.toList()) {
             removal.second.remove(removal.first)
@@ -218,7 +222,7 @@ class AsmGen(private val program: Program,
         subroutine.forEach { translateSubroutine(it as Subroutine) }
 
         // generate subroutine to initialize block-level variables
-        val initializers = block.statements.filterIsInstance<Assignment>()
+        val initializers = blockVariableInitializers.getValue(block)
         if(initializers.isNotEmpty()) {
             out("prog8_init_vars\t.proc\n")
             initializers.forEach { assign -> translate(assign) }
@@ -894,9 +898,9 @@ class AsmGen(private val program: Program,
             if(sub.name=="start" && sub.definingBlock.name=="main") {
                 out("; program startup initialization")
                 out("  cld")
-                program.allBlocks.forEach {
-                    if(it.statements.any { stmt -> stmt is Assignment })
-                        out("  jsr  ${it.name}.prog8_init_vars")
+                blockVariableInitializers.forEach {
+                    if(it.value.isNotEmpty())
+                        out("  jsr  ${it.key.name}.prog8_init_vars")
                 }
                 out("""
                     tsx
