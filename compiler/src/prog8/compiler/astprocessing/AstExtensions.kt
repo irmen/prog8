@@ -11,18 +11,17 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.IStringEncoding
 
 
-internal fun Program.checkValid(compilerOptions: CompilationOptions, errors: IErrorReporter, compTarget: ICompilationTarget) {
-    val checker = AstChecker(this, compilerOptions, errors, compTarget)
+internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    val checker = AstChecker(this, errors, compilerOptions)
     checker.visit(this)
 }
 
-internal fun Program.processAstBeforeAsmGeneration(errors: IErrorReporter, compTarget: ICompilationTarget) {
-    val fixer = BeforeAsmGenerationAstChanger(this, errors, compTarget)
+internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
+    val fixer = BeforeAsmGenerationAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
     while(errors.noErrors() && fixer.applyModifications()>0) {
         fixer.visit(this)

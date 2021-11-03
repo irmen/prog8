@@ -31,6 +31,7 @@ class RequestParser : Take {
         val a = form.param("a").single()
         val compilationResult = compileProgram(Path.of(a),
             optimize = true,
+            optimizeFloatExpressions = false,
             writeAssembly = true,
             slowCodegenWarnings = true,
             compilationTarget = "c64",

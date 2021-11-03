@@ -104,6 +104,8 @@ Also it is possible to specify more than one main module to compile:
 this can be useful to quickly recompile multiple separate programs quickly.
 (compiling in a batch like this is a lot faster than invoking the compiler again once per main file)
 
+A short list and explanation of the options is printed if you launch the compiler with ``-h`` or ``-help``.
+
 
 Module source code files
 ------------------------

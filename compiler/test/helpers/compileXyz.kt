@@ -40,6 +40,7 @@ internal fun compileFile(
     return compileProgram(
         filepath,
         optimize,
+        optimizeFloatExpressions = false,
         writeAssembly = writeAssembly,
         slowCodegenWarnings = false,
         quietAssembler = true,

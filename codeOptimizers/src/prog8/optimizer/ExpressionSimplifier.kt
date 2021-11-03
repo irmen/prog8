@@ -15,9 +15,20 @@ import kotlin.math.log2
 import kotlin.math.pow
 
 /*
-    todo add more expression optimizations
+    todo add more peephole expression optimizations
 
     Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
+
+*(&X)  =>  X
+X % 1  => 0
+X / 1  =>  X
+X ^ -1  =>  ~x
+X >= 1  =>  X > 0
+X <  1  =>  X <= 0
+X + С1 == C2  =>  X == C2 - C1
+((X + C1) + C2)  =>  (X + (C1 + C2))
+((X + C1) + (Y + C2))  =>  ((X + Y) + (C1 + C2))
+
 
  */
 

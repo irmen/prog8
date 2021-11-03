@@ -11,13 +11,11 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.astprocessing.isSubroutineParameter
-import prog8.compilerinterface.InternalCompilerException
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.isInRegularRAMof
+import prog8.compilerinterface.*
 
 
-internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
+internal class BeforeAsmGenerationAstChanger(val program: Program, private val options: CompilationOptions,
+                                             private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.type==VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
@@ -33,8 +31,12 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, val errors: I
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
-                && assignment.target.isInRegularRAMof(compTarget.machine)) {
+                && assignment.target.isInRegularRAMof(options.compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
+
+            if(binExpr!=null && binExpr.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
+                return noModifications
+
             if (binExpr != null && binExpr.operator !in comparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
                     if (binExpr.right.referencesIdentifier(*assignment.target.identifier!!.nameInSource.toTypedArray())) {

@@ -15,9 +15,8 @@ import java.util.*
 import kotlin.io.path.Path
 
 internal class AstChecker(private val program: Program,
-                          private val compilerOptions: CompilationOptions,
                           private val errors: IErrorReporter,
-                          private val compTarget: ICompilationTarget
+                          private val compilerOptions: CompilationOptions
 ) : IAstVisitor {
 
     override fun visit(program: Program) {
@@ -773,7 +772,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(char: CharLiteral) {
         try {  // just *try* if it can be encoded, don't actually do it
-            compTarget.encodeString(char.value.toString(), char.altEncoding)
+            compilerOptions.compTarget.encodeString(char.value.toString(), char.altEncoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode character", char.position)
         }
@@ -785,7 +784,7 @@ internal class AstChecker(private val program: Program,
         checkValueTypeAndRangeString(DataType.STR, string)
 
         try {  // just *try* if it can be encoded, don't actually do it
-            compTarget.encodeString(string.value, string.altEncoding)
+            compilerOptions.compTarget.encodeString(string.value, string.altEncoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode string", string.position)
         }
@@ -1259,7 +1258,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    if(doubles.any { it < compTarget.machine.FLOAT_MAX_NEGATIVE || it > compTarget.machine.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < compilerOptions.compTarget.machine.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.machine.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }

@@ -28,4 +28,5 @@ data class CompilationOptions(val output: OutputType,
 ) {
     var slowCodegenWarnings = false
     var optimize = false
+    var optimizeFloatExpressions = false
 }

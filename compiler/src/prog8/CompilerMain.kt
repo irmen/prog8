@@ -35,6 +35,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
+    val optimizeFloatExpressions by cli.option(ArgType.Boolean, fullName = "optfloatx", description = "optimize float expressions (warning: can increase program size)")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
@@ -75,7 +76,8 @@ private fun compileMain(args: Array<String>): Boolean {
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
                 val compilationResult = compileProgram(filepath,
-                    dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
+                    dontOptimize!=true, optimizeFloatExpressions==true,
+                    dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
                     compilationTarget, srcdirs, outputPath)
                 results.add(compilationResult)
             }
@@ -114,7 +116,8 @@ private fun compileMain(args: Array<String>): Boolean {
             val compilationResult: CompilationResult
             try {
                 compilationResult = compileProgram(filepath,
-                    dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
+                    dontOptimize!=true, optimizeFloatExpressions==true,
+                    dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
                     compilationTarget, srcdirs, outputPath)
                 if(!compilationResult.success)
                     return false

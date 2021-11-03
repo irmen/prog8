@@ -29,8 +29,10 @@ class CompilationResult(val success: Boolean,
                         val importedFiles: List<Path>)
 
 
+// TODO refactor the gigantic list of parameters
 fun compileProgram(filepath: Path,
                    optimize: Boolean,
+                   optimizeFloatExpressions: Boolean,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
                    quietAssembler: Boolean,
@@ -53,14 +55,18 @@ fun compileProgram(filepath: Path,
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
             val (programresult, compilationOptions, imported) = parseImports(filepath, errors, compTarget, sourceDirs)
-            compilationOptions.slowCodegenWarnings = slowCodegenWarnings
-            compilationOptions.optimize = optimize
+            with(compilationOptions) {
+                this.slowCodegenWarnings = slowCodegenWarnings
+                this.optimize = optimize
+                this.optimizeFloatExpressions = optimizeFloatExpressions
+            }
             program = programresult
             importedFiles = imported
             processAst(program, errors, compilationOptions)
             if (compilationOptions.optimize)
                 optimizeAst(
                     program,
+                    compilationOptions,
                     errors,
                     BuiltinFunctionsFacade(BuiltinFunctions),
                     compTarget
@@ -262,13 +268,13 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.variousCleanups(program, errors)
     errors.report()
-    program.checkValid(compilerOptions, errors, compilerOptions.compTarget)
+    program.checkValid(errors, compilerOptions)
     errors.report()
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
 }
 
-private fun optimizeAst(program: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
+private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
     // optimize the parse tree
     println("Optimizing...")
 
@@ -279,7 +285,7 @@ private fun optimizeAst(program: Program, errors: IErrorReporter, functions: IBu
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions()
-        val optsDone2 = program.splitBinaryExpressions(compTarget)
+        val optsDone2 = program.splitBinaryExpressions(compilerOptions, compTarget)
         val optsDone3 = program.optimizeStatements(errors, functions, compTarget)
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
@@ -294,7 +300,7 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.addTypecasts(errors)
     errors.report()
     program.variousCleanups(program, errors)
-    program.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
+    program.checkValid(errors, compilerOptions)          // check if final tree is still valid
     errors.report()
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
@@ -315,7 +321,7 @@ private fun writeAssembly(program: Program,
                           compilerOptions: CompilationOptions
 ): WriteAssemblyResult {
     // asm generation directly from the Ast
-    program.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
+    program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
 
     // printAst(program)

@@ -42,6 +42,7 @@ class TestCompilerOnExamples {
             compileProgram(
                 filepath,
                 optimize,
+                optimizeFloatExpressions = false,
                 writeAssembly = true,
                 slowCodegenWarnings = false,
                 quietAssembler = true,

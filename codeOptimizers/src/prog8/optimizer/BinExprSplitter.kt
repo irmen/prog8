@@ -3,17 +3,19 @@ package prog8.optimizer
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.DataType
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.augmentAssignmentOperators
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.isInRegularRAMof
 
 
-class BinExprSplitter(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
+class BinExprSplitter(private val program: Program, private val options: CompilationOptions, private val compTarget: ICompilationTarget) : AstWalker() {
 
 //    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 // TODO somehow if we do this, the resulting code for some programs (cube3d.p8) gets hundreds of bytes larger...:
@@ -38,6 +40,11 @@ class BinExprSplitter(private val program: Program, private val compTarget: ICom
 
         val binExpr = assignment.value as? BinaryExpression
         if (binExpr != null) {
+
+            if(binExpr.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
+                return noModifications
+
+
 /*
 
 Reduce the complexity of a (binary) expression that has to be evaluated on the eval stack,

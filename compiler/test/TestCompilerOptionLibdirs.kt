@@ -47,6 +47,7 @@ class TestCompilerOptionSourcedirs {
         compileProgram(
             filepath = filePath,
             optimize = false,
+            optimizeFloatExpressions = false,
             writeAssembly = true,
             slowCodegenWarnings = false,
             quietAssembler = true,
