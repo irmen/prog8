@@ -949,7 +949,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     lda  #<$sourceName
                     ldy  #>$sourceName+1
                     sta  P8ESTACK_LO,x
-                    sty  P8ESTACK_HI,x
+                    tya
+                    sta  P8ESTACK_HI,x
                     dex""")
             }
             else -> throw AssemblyError("string-assign to weird target")
@@ -1581,7 +1582,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.STACK -> {
                 when(regs) {
-                    RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
+                    RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
                     RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't use X here")
                     in Cx16VirtualRegisters -> {
                         val srcReg = asmgen.asmSymbolName(regs)

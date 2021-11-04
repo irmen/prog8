@@ -41,11 +41,12 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
     val constArrayIndexValue by lazy { array?.indexer?.constIndex() }
-    val asmVarname: String
-        get() = if(array==null)
+    val asmVarname: String by lazy {
+        if (array == null)
             variableAsmName!!
         else
             asmgen.asmVariableName(array.arrayvar)
+    }
 
     lateinit var origAssign: AsmAssignment
 
