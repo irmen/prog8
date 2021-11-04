@@ -13,6 +13,7 @@ import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
+import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
 import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compilerinterface.CpuType
 
@@ -104,7 +105,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         }
                         else -> {
                             // Risk of clobbering due to complex expression args. Evaluate first, then assign registers.
-                            // TODO find another way to prepare the arguments, without using the eval stack
                             registerArgsViaStackEvaluation(stmt, sub)
                         }
                     }
@@ -136,13 +136,43 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
+        // TODO find another way to prepare the arguments, without using the eval stack
 
         if(sub.parameters.isEmpty())
             return
 
+
         // 1. load all arguments reversed onto the stack: first arg goes last (is on top).
-        for (arg in stmt.args.reversed())
-            asmgen.translateExpression(arg)
+
+        for (arg in stmt.args.reversed()) {
+            if(arg.isSimple) {  // TODO FOR ALL ARG TYPES?
+                // note this stuff below is needed to (eventually) avoid calling asmgen.translateExpression()
+                // TODO but This STILL requires the translateNormalAssignment() to be fixed to avoid stack eval for expressions...
+                when (val dt = arg.inferType(program).getOr(DataType.UNDEFINED)) {
+                    in ByteDatatypes -> {
+                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.A)
+                        asmgen.assignRegister(RegisterOrPair.A, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub))
+                    }
+                    in WordDatatypes, in PassByReferenceDatatypes -> {
+                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
+                        asmgen.translateNormalAssignment(
+                            AsmAssignment(
+                                AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, dt, register=RegisterOrPair.AY),
+                                AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub),
+                                false, program.memsizer, arg.position
+                            )
+                        )
+                    }
+                    DataType.FLOAT -> {
+                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.FAC1)
+                        asmgen.assignRegister(RegisterOrPair.FAC1, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub))
+                    }
+                    else -> throw AssemblyError("weird dt $dt")
+                }
+            } else {
+                asmgen.translateExpression(arg)     // TODO GET RID OF THIS, if the above actually produces compact code
+            }
+        }
 
         var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
         var argForXregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null

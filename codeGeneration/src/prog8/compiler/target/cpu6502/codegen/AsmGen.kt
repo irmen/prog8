@@ -11,6 +11,7 @@ import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cbm.loadAsmIncludeFile
+import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.compilerinterface.*
@@ -855,6 +856,21 @@ class AsmGen(private val program: Program,
 
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) =
             assignmentAsmGen.assignVariableToRegister(asmVarName, register)
+
+    internal fun assignRegister(reg: RegisterOrPair, target: AsmAssignTarget) {
+        when(reg) {
+            RegisterOrPair.A,
+            RegisterOrPair.X,
+            RegisterOrPair.Y -> assignmentAsmGen.assignRegisterByte(target, reg.asCpuRegister())
+            RegisterOrPair.AX,
+            RegisterOrPair.AY,
+            RegisterOrPair.XY,
+            in Cx16VirtualRegisters -> assignmentAsmGen.assignRegisterpairWord(target, reg)
+            RegisterOrPair.FAC1 -> assignmentAsmGen.assignFAC1float(target)
+            RegisterOrPair.FAC2 -> throw AssemblyError("no support yet to assign FAC2 directly to something")
+            else -> throw AssemblyError("invalid register")
+        }
+    }
 
 
     private fun translateSubroutine(sub: Subroutine) {

@@ -263,9 +263,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             SourceStorageKind.REGISTER -> {
                 when(assign.source.datatype) {
-                    DataType.UBYTE -> assignRegisterByte(assign.target, assign.source.register!!.asCpuRegister())
-                    DataType.UWORD -> assignRegisterpairWord(assign.target, assign.source.register!!)
-                    else -> throw AssemblyError("invalid register dt")
+                    DataType.UBYTE, DataType.BYTE -> assignRegisterByte(assign.target, assign.source.register!!.asCpuRegister())
+                    DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> assignRegisterpairWord(assign.target, assign.source.register!!)
+                    else -> throw AssemblyError("invalid register dt ${assign.source.datatype}")
                 }
             }
             SourceStorageKind.STACK -> {
@@ -1455,7 +1455,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     internal fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype in NumericDatatypes)
+        require(target.datatype in NumericDatatypes || target.datatype in PassByReferenceDatatypes)
         if(target.datatype==DataType.FLOAT)
             throw AssemblyError("float value should be from FAC1 not from registerpair memory pointer")
 
