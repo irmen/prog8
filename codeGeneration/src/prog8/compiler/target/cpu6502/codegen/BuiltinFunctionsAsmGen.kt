@@ -876,6 +876,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             }
             DataType.FLOAT -> {
                 // via evaluation stack
+                // TODO use 2 temporary variables instead
                 asmgen.translateExpression(first)
                 asmgen.translateExpression(second)
                 val assignFirst = AsmAssignment(

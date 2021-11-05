@@ -181,8 +181,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
-                        // TODO OTHER EVALUATION HERE
-                        asmgen.translateExpression(memory.addressExpression)
+                        // TODO OTHER EVALUATION HERE, don't use the estack
+                        asmgen.assignExpressionTo(memory.addressExpression, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, memory.definingSubroutine))
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")      // TODO don't use estack to transfer the address to read from
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
