@@ -13,7 +13,6 @@ import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
-import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
 import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compilerinterface.CpuType
 
@@ -148,28 +147,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             if(arg.isSimple) {  // TODO FOR ALL ARG TYPES?
                 // note this stuff below is needed to (eventually) avoid calling asmgen.translateExpression()
                 // TODO but This STILL requires the translateNormalAssignment() to be fixed to avoid stack eval for expressions...
-                // println("*** ALT PARAM PASSING FOR ASMSUB $stmt     $arg")  // TODO DEBUG
-                when (val dt = arg.inferType(program).getOr(DataType.UNDEFINED)) {
-                    in ByteDatatypes -> {
-                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.A)
-                        asmgen.assignRegister(RegisterOrPair.A, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub))
-                    }
-                    in WordDatatypes, in PassByReferenceDatatypes -> {
-                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
-                        asmgen.translateNormalAssignment(
-                            AsmAssignment(
-                                AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, dt, register=RegisterOrPair.AY),
-                                AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub),
-                                false, program.memsizer, arg.position
-                            )
-                        )
-                    }
-                    DataType.FLOAT -> {
-                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.FAC1)
-                        asmgen.assignRegister(RegisterOrPair.FAC1, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub))
-                    }
-                    else -> throw AssemblyError("weird dt $dt")
-                }
+                println("*** ALT PARAM PASSING FOR ASMSUB $stmt     $arg")  // TODO DEBUG
+                val dt = arg.inferType(program).getOr(DataType.UNDEFINED)
+                val target = AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub)
+                asmgen.assignExpressionTo(arg, target)
             } else {
                 asmgen.translateExpression(arg)     // TODO GET RID OF THIS, if the above actually produces compact code
             }

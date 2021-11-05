@@ -11,9 +11,12 @@ import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cbm.loadAsmIncludeFile
+import prog8.compiler.target.cpu6502.codegen.assignment.*
+import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
+import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import java.nio.file.Path
@@ -869,6 +872,30 @@ class AsmGen(private val program: Program,
             RegisterOrPair.FAC1 -> assignmentAsmGen.assignFAC1float(target)
             RegisterOrPair.FAC2 -> throw AssemblyError("no support yet to assign FAC2 directly to something")
             else -> throw AssemblyError("invalid register")
+        }
+    }
+
+    internal fun assignExpressionTo(value: Expression, target: AsmAssignTarget) {
+        // don't use asmgen.translateExpression() to avoid evalstack
+        when (target.datatype) {
+            in ByteDatatypes -> {
+                assignExpressionToRegister(value, RegisterOrPair.A)
+                assignRegister(RegisterOrPair.A, target)
+            }
+            in WordDatatypes, in PassByReferenceDatatypes -> {
+                assignExpressionToRegister(value, RegisterOrPair.AY)
+                translateNormalAssignment(
+                    AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.REGISTER, program, this, target.datatype, register=RegisterOrPair.AY),
+                        target, false, program.memsizer, value.position
+                    )
+                )
+            }
+            DataType.FLOAT -> {
+                assignExpressionToRegister(value, RegisterOrPair.FAC1)
+                assignRegister(RegisterOrPair.FAC1, target)
+            }
+            else -> throw AssemblyError("weird dt ${target.datatype}")
         }
     }
 

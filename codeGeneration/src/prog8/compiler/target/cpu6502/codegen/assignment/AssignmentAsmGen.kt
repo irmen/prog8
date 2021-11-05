@@ -427,11 +427,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
         }
 
-        // give up, do it via eval stack
+        // No more special optmized cases yet. Do the rest via more complex evaluation
         // note: cannot use assignTypeCastedValue because that is ourselves :P
-        // TODO optimize typecasts for more special cases?
-        asmgen.translateExpression(origTypeCastExpression)      // this performs the actual type cast in translateExpression(Typecast)
-        assignStackValue(target)
+        asmgen.assignExpressionTo(origTypeCastExpression, target)
     }
 
     private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {

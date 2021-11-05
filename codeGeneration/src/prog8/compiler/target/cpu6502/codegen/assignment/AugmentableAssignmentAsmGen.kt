@@ -181,8 +181,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
+                        // TODO OTHER EVALUATION HERE
                         asmgen.translateExpression(memory.addressExpression)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")      // TODO don't use estack to transfer the address to read from
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, ident)
@@ -193,7 +194,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                             else -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value)
                         }
-                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")  // TODO don't use estack to transfer the address to read from
                     }
                 }
             }
