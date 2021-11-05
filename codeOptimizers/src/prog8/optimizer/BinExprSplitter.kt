@@ -18,7 +18,7 @@ import prog8.compilerinterface.isInRegularRAMof
 class BinExprSplitter(private val program: Program, private val options: CompilationOptions, private val compTarget: ICompilationTarget) : AstWalker() {
 
 //    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-// TODO somehow if we do this, the resulting code for some programs (cube3d.p8) gets hundreds of bytes larger...:
+// TODO somehow if we do this, the resulting code for some programs (cube3d.p8) gets hundreds of bytes larger...: [ IS THIS STILL TRUE AFTER ALL CHANGES? ]
 //        if(decl.type==VarDeclType.VAR ) {
 //            val binExpr = decl.value as? BinaryExpression
 //            if (binExpr != null && binExpr.operator in augmentAssignmentOperators) {

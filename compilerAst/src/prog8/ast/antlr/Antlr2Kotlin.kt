@@ -29,7 +29,7 @@ private fun ParserRuleContext.toPosition() : Position {
         pathString
     }
     // note: beware of TAB characters in the source text, they count as 1 column...
-    return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
+    return Position(filename, start.line, start.charPositionInLine, start.charPositionInLine + start.stopIndex - start.startIndex)
 }
 
 internal fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean) : Block {

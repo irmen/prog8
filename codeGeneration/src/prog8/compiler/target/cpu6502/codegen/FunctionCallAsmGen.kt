@@ -148,6 +148,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             if(arg.isSimple) {  // TODO FOR ALL ARG TYPES?
                 // note this stuff below is needed to (eventually) avoid calling asmgen.translateExpression()
                 // TODO but This STILL requires the translateNormalAssignment() to be fixed to avoid stack eval for expressions...
+                // println("*** ALT PARAM PASSING FOR ASMSUB $stmt     $arg")  // TODO DEBUG
                 when (val dt = arg.inferType(program).getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> {
                         asmgen.assignExpressionToRegister(arg, RegisterOrPair.A)

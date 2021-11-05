@@ -100,7 +100,7 @@ object Prog8Parser {
         val offending = this.offendingToken
         val line = offending.line
         val beginCol = offending.charPositionInLine
-        val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token? / why, what's wrong with endCol being inclusive
+        val endCol = beginCol + offending.stopIndex - offending.startIndex
         return Position(file, line, beginCol, endCol)
     }
 

@@ -180,7 +180,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
 
 private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
-    // TODO this is not true if X is not a regular RAM memory address (but instead mapped I/O or ROM)
+    // TODO this is not true if X is not a regular RAM memory address (but instead mapped I/O or ROM) but how does this code know?
     val mods = mutableListOf<Modification>()
     for (pair in linesByFour) {
         val first = pair[0].value.trimStart()

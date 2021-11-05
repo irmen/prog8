@@ -287,24 +287,16 @@ class TestProg8Parser {
         fun `in ParseError from bad string source code`() {
             val srcText = "bad * { }\n"
 
-            assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcText)) }
-            try {
-                parseModule(SourceCode.Text(srcText))
-            } catch (e: ParseError) {
-                assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
-            }
+            val e = assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcText)) }
+            assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
         }
 
         @Test
         fun `in ParseError from bad file source code`() {
             val path = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
-            assertFailsWith<ParseError> { parseModule(SourceCode.File(path)) }
-            try {
-                parseModule(SourceCode.File(path))
-            } catch (e: ParseError) {
-                assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6) // TODO: endCol wrong
-            }
+            val e = assertFailsWith<ParseError> { parseModule(SourceCode.File(path)) }
+            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6)
         }
 
         @Test
@@ -312,16 +304,16 @@ class TestProg8Parser {
             val srcText = """
                 main {
                 }
-            """.trimIndent()
+            """
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0)
         }
 
         @Test
         fun  `of Module parsed from a file`() {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
         }
 
         @Test
@@ -330,27 +322,24 @@ class TestProg8Parser {
 
             val module = parseModule(SourceCode.File(path))
             val mpf = module.position.file
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 0)  // TODO: endCol wrong!
+            assertPositionOf(mainBlock, mpf, 2, 0, 3)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 4)  // TODO: endCol wrong!
+            assertPositionOf(startSub, mpf, 3, 4, 6)
         }
 
 
-        /**
-         * TODO: this test is testing way too much at once
-         */
         @Test
         fun `of non-root Nodes parsed from a string`() {
             val srcText = """
-                %zeropage basicsafe ; DirectiveArg directly inherits from Node - neither an Expression nor a Statement..?
+                %zeropage basicsafe
                 main {
                     sub start() {
                         ubyte foo = 42
                         ubyte bar
                         when (foo) {
-                            23 -> bar = 'x' ; WhenChoice, also directly inheriting Node
+                            23 -> bar = 'x'
                             42 -> bar = 'y'
                             else -> bar = 'z'
                         }
@@ -361,22 +350,22 @@ class TestProg8Parser {
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
-            assertPositionOf(targetDirective, mpf, 1, 0)  // TODO: endCol wrong!
+            assertPositionOf(targetDirective, mpf, 1, 0, 8)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 0)  // TODO: endCol wrong!
+            assertPositionOf(mainBlock, mpf, 2, 0, 3)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 4)  // TODO: endCol wrong!
+            assertPositionOf(startSub, mpf, 3, 4, 6)
             val declFoo = startSub.statements.filterIsInstance<VarDecl>()[0]
-            assertPositionOf(declFoo, mpf, 4, 8)  // TODO: endCol wrong!
+            assertPositionOf(declFoo, mpf, 4, 8, 12)
             val rhsFoo = declFoo.value!!
-            assertPositionOf(rhsFoo, mpf, 4, 20)  // TODO: endCol wrong!
+            assertPositionOf(rhsFoo, mpf, 4, 20, 21)
             val declBar = startSub.statements.filterIsInstance<VarDecl>()[1]
-            assertPositionOf(declBar, mpf, 5, 8)  // TODO: endCol wrong!
+            assertPositionOf(declBar, mpf, 5, 8, 12)
             val whenStmt = startSub.statements.filterIsInstance<WhenStatement>()[0]
-            assertPositionOf(whenStmt, mpf, 6, 8)  // TODO: endCol wrong!
-            assertPositionOf(whenStmt.choices[0], mpf, 7, 12)  // TODO: endCol wrong!
-            assertPositionOf(whenStmt.choices[1], mpf, 8, 12)  // TODO: endCol wrong!
-            assertPositionOf(whenStmt.choices[2], mpf, 9, 12)  // TODO: endCol wrong!
+            assertPositionOf(whenStmt, mpf, 6, 8, 11)
+            assertPositionOf(whenStmt.choices[0], mpf, 7, 12, 13)
+            assertPositionOf(whenStmt.choices[1], mpf, 8, 12, 13)
+            assertPositionOf(whenStmt.choices[2], mpf, 9, 12, 15)
         }
     }
 
