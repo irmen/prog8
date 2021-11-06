@@ -6,6 +6,7 @@ prog8_lib {
 	%asminclude "library:prog8_lib.asm"
 	%asminclude "library:prog8_funcs.asm"
 
+        ; TODO these retval variables are no longer used???
 	uword @zp retval_interm_uw      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
 	word @zp retval_interm_w        ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
 	ubyte @zp retval_interm_ub      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)

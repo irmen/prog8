@@ -875,22 +875,23 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 asmgen.translateNormalAssignment(assignSecond)
             }
             DataType.FLOAT -> {
-                // via evaluation stack
-                // TODO use 2 temporary variables instead
-                asmgen.translateExpression(first)
-                asmgen.translateExpression(second)
-                val assignFirst = AsmAssignment(
-                        AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
+                // via temp variable and FAC1
+                asmgen.assignExpressionTo(first, AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.FLOAT, first.definingSubroutine, "floats.tempvar_swap_float"))
+                asmgen.assignExpressionTo(second, AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.FLOAT, null, register=RegisterOrPair.FAC1))
+                asmgen.translateNormalAssignment(
+                    AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, datatype, register = RegisterOrPair.FAC1),
                         targetFromExpr(first, datatype),
-                        false, program.memsizer, first.position
+                        true, program.memsizer, first.position
+                    )
                 )
-                val assignSecond = AsmAssignment(
-                        AsmAssignSource(SourceStorageKind.STACK, program, asmgen, DataType.FLOAT),
+                asmgen.translateNormalAssignment(
+                    AsmAssignment(
+                        AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, "floats.tempvar_swap_float"),
                         targetFromExpr(second, datatype),
-                        false, program.memsizer, second.position
+                        true, program.memsizer, second.position
+                    )
                 )
-                asmgen.translateNormalAssignment(assignFirst)
-                asmgen.translateNormalAssignment(assignSecond)
             }
             else -> throw AssemblyError("weird swap dt")
         }

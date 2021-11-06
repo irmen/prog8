@@ -254,7 +254,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                         // because the code here is the implementation of exactly that...)
                         // TODO FIX THIS... by using a temp var? so that it becomes augmentable assignment expression?
-                        exprAsmgen.translateExpression(value)
+                        asmgen.translateExpression(value)
                         if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
                             asmgen.signExtendStackLsb(assign.source.datatype)
                         assignStackValue(assign.target)
@@ -262,11 +262,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 }
             }
             SourceStorageKind.REGISTER -> {
-                when(assign.source.datatype) {
-                    DataType.UBYTE, DataType.BYTE -> assignRegisterByte(assign.target, assign.source.register!!.asCpuRegister())
-                    DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> assignRegisterpairWord(assign.target, assign.source.register!!)
-                    else -> throw AssemblyError("invalid register dt ${assign.source.datatype}")
-                }
+                asmgen.assignRegister(assign.source.register!!, assign.target)
             }
             SourceStorageKind.STACK -> {
                 assignStackValue(assign.target)

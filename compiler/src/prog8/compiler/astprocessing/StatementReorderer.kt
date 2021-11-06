@@ -53,6 +53,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                         decl.value = null
                         if(decl.name.startsWith("retval_interm_") && decl.definingScope.name=="prog8_lib") {
                             // no need to zero out the special internal returnvalue intermediates.
+                            // TODO these variables are no longer used???
                             return noModifications
                         }
                         val nextStmt  = decl.nextSibling()

@@ -870,7 +870,7 @@ class AsmGen(private val program: Program,
             RegisterOrPair.XY,
             in Cx16VirtualRegisters -> assignmentAsmGen.assignRegisterpairWord(target, reg)
             RegisterOrPair.FAC1 -> assignmentAsmGen.assignFAC1float(target)
-            RegisterOrPair.FAC2 -> throw AssemblyError("no support yet to assign FAC2 directly to something")
+            RegisterOrPair.FAC2 -> TODO("no support yet to assign FAC2 directly to something")
             else -> throw AssemblyError("invalid register")
         }
     }

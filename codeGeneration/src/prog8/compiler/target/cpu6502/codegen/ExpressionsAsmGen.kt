@@ -1847,7 +1847,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     }
 
     private fun translateExpression(expr: BinaryExpression) {
-        // TODO needs to use optimized assembly generation like the assignment instructions. But avoid code duplication.... rewrite all expressions into assignment form?
+        // Uses evalstack to evaluate the given expression.
+        // TODO we're slowly reducing the number of places where this is called and instead replace that by more efficient assignment-form code (using temp var or register for instance).
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
         if(!leftIDt.isKnown || !rightIDt.isKnown)
@@ -1856,7 +1857,6 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         val leftDt = leftIDt.getOr(DataType.UNDEFINED)
         val rightDt = rightIDt.getOr(DataType.UNDEFINED)
         // see if we can apply some optimized routines
-        // TODO avoid using evaluation on stack everywhere
         when(expr.operator) {
             "+" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
@@ -2147,7 +2147,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             translateCompareStrings(expr.left, expr.operator, expr.right)
         }
         else {
-            // the general, non-optimized cases  TODO optimize more cases....
+            // the general, non-optimized cases  TODO optimize more cases.... (or one day just don't use the evalstack at all anymore)
             translateExpressionInternal(expr.left)
             translateExpressionInternal(expr.right)
             when (leftDt) {
