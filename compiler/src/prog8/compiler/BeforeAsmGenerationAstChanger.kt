@@ -185,7 +185,15 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         return noModifications
     }
 
+    @Suppress("DuplicatedCode")
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
+        val prefixExpr = ifStatement.condition as? PrefixExpression
+        if(prefixExpr!=null && prefixExpr.operator=="not") {
+            // if not x -> if x==0
+            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
+        }
+
         val binExpr = ifStatement.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in comparisonOperators) {
             // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
@@ -201,7 +209,15 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         return noModifications
     }
 
+    @Suppress("DuplicatedCode")
     override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+        val prefixExpr = untilLoop.condition as? PrefixExpression
+        if(prefixExpr!=null && prefixExpr.operator=="not") {
+            // until not x -> until x==0
+            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, untilLoop.condition.position), untilLoop.condition.position)
+            return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
+        }
+
         val binExpr = untilLoop.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in comparisonOperators) {
             // until x  ->  until x!=0,    until x+5  ->  until x+5 != 0
@@ -211,7 +227,15 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         return noModifications
     }
 
+    @Suppress("DuplicatedCode")
     override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        val prefixExpr = whileLoop.condition as? PrefixExpression
+        if(prefixExpr!=null && prefixExpr.operator=="not") {
+            // while not x -> while x==0
+            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, whileLoop.condition.position), whileLoop.condition.position)
+            return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))
+        }
+
         val binExpr = whileLoop.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in comparisonOperators) {
             // while x  ->  while x!=0,    while x+5  ->  while x+5 != 0

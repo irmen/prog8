@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- optimize "if not x" / "while not x" to not actually calculate the whole "not x" value first --> transform in to "x==0" in these conditional statements?
+...
 
 
 Blocked by Commander-x16 v39 release
