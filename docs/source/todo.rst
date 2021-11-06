@@ -7,6 +7,7 @@ For next compiler release (7.2)
 - [complicated?] find a way to optimize if-statement codegen so that "if var & %10000" doesn't use evalstack & subroutine call, but also that the simple case "if X {...}" remains fast
 - fix the asm-labels problem (github issue #62)
 - start migrating to KoTest library (github issue #70)
+- optimize "if not x" / "while not x" to not actually calculate the whole "not x" value first --> transform in to "x==0" in these conditional statements?
 
 
 Blocked by Commander-x16 v39 release

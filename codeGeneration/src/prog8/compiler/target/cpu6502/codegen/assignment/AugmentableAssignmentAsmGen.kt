@@ -1768,7 +1768,28 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                         }
                     }
-                    TargetStorageKind.REGISTER -> TODO("missing codegen for byte reg not")
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.A -> asmgen.out("""
+                                cmp  #0
+                                beq  +
+                                lda  #1
+    +                           eor  #1""")
+                            RegisterOrPair.X -> asmgen.out("""
+                                txa
+                                beq  +
+                                lda  #1
+    +                           eor  #1
+                                tax""")
+                            RegisterOrPair.Y -> asmgen.out("""
+                                tya
+                                beq  +
+                                lda  #1
+    +                           eor  #1
+                                tay""")
+                            else -> throw AssemblyError("invalid reg dt for byte not")
+                        }
+                    }
                     TargetStorageKind.STACK -> TODO("missing codegen for byte stack not")
                     else -> throw AssemblyError("missing codegen for in-place not of ubyte ${target.kind}")
                 }
@@ -1786,8 +1807,47 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             lsr  a
                             sta  ${target.asmVarname}+1""")
                     }
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.AX -> {
+                                asmgen.out("""
+                                    stx  P8ZP_SCRATCH_REG
+                                    ora  P8ZP_SCRATCH_REG
+                                    beq  +
+                                    lda  #0
+                                    tax
+                                    beq  ++
+        +                           lda  #1
+        +""")
+                            }
+                            RegisterOrPair.AY -> {
+                                asmgen.out("""
+                                    sty  P8ZP_SCRATCH_REG
+                                    ora  P8ZP_SCRATCH_REG
+                                    beq  +
+                                    lda  #0
+                                    tay
+                                    beq  ++
+        +                           lda  #1
+        +""")
+                            }
+                            RegisterOrPair.XY -> {
+                                asmgen.out("""
+                                    stx  P8ZP_SCRATCH_REG
+                                    tya
+                                    ora  P8ZP_SCRATCH_REG
+                                    beq  +
+                                    ldy  #0
+                                    ldx  #0
+                                    beq  ++
+        +                           ldx  #1
+        +""")
+                            }
+                            in Cx16VirtualRegisters -> TODO()
+                            else -> throw AssemblyError("invalid reg dt for word not")
+                        }
+                    }
                     TargetStorageKind.MEMORY -> TODO("no asm gen for uword-memory not")
-                    TargetStorageKind.REGISTER -> TODO("missing codegen for word reg not")
                     TargetStorageKind.STACK -> TODO("missing codegen for word stack not")
                     else -> throw AssemblyError("missing codegen for in-place not of uword for ${target.kind}")
                 }

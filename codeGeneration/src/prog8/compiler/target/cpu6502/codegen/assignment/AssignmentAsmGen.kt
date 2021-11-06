@@ -254,22 +254,21 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             }
                         }
                     }
-// TODO OPTIMIZE PREFIX EXPRESSION:
-//                    is PrefixExpression -> {
-//                        // first assign the value to the target then apply the operator in place on the target.
-//                        translateNormalAssignment(AsmAssignment(
-//                            AsmAssignSource.fromAstSource(value.expression, program, asmgen),
-//                            assign.target,
-//                            false, program.memsizer, assign.position
-//                        ))
-//                        when(value.operator) {
-//                            "+" -> {}
-//                            "-" -> augmentableAsmGen.inplaceNegate(assign.target, assign.target.datatype)
-//                            "~" -> augmentableAsmGen.inplaceInvert(assign.target, assign.target.datatype)
-//                            "not" -> augmentableAsmGen.inplaceBooleanNot(assign.target, assign.target.datatype)
-//                            else -> throw AssemblyError("invalid prefix operator")
-//                        }
-//                    }
+                    is PrefixExpression -> {
+                        // first assign the value to the target then apply the operator in place on the target.
+                        translateNormalAssignment(AsmAssignment(
+                            AsmAssignSource.fromAstSource(value.expression, program, asmgen),
+                            assign.target,
+                            false, program.memsizer, assign.position
+                        ))
+                        when(value.operator) {
+                            "+" -> {}
+                            "-" -> augmentableAsmGen.inplaceNegate(assign.target, assign.target.datatype)
+                            "~" -> augmentableAsmGen.inplaceInvert(assign.target, assign.target.datatype)
+                            "not" -> augmentableAsmGen.inplaceBooleanNot(assign.target, assign.target.datatype)
+                            else -> throw AssemblyError("invalid prefix operator")
+                        }
+                    }
                     else -> {
                         // Everything else just evaluate via the stack.
                         // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
