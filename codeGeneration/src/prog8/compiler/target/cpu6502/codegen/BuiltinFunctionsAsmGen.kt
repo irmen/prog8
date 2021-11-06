@@ -882,14 +882,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     AsmAssignment(
                         AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, datatype, register = RegisterOrPair.FAC1),
                         targetFromExpr(first, datatype),
-                        true, program.memsizer, first.position
+                        false, program.memsizer, first.position
                     )
                 )
                 asmgen.translateNormalAssignment(
                     AsmAssignment(
                         AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, datatype, "floats.tempvar_swap_float"),
                         targetFromExpr(second, datatype),
-                        true, program.memsizer, second.position
+                        false, program.memsizer, second.position
                     )
                 )
             }
