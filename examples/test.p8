@@ -9,6 +9,10 @@ main {
     ubyte zz=9
     sys.memset(xx+200, yy*2, ~yy)
 
+    if yy & %10000 {
+        yy++
+    }
+
     @($c030) = 10
     @(~xx) *= 2
     txt.print_ub(@($c030))

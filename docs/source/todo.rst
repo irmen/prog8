@@ -3,10 +3,6 @@ TODO
 
 For next compiler release (7.2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
-- [complicated?] find a way to optimize if-statement codegen so that "if var & %10000" doesn't use evalstack & subroutine call, but also that the simple case "if X {...}" remains fast
-- fix the asm-labels problem (github issue #62)
-- start migrating to KoTest library (github issue #70)
 - optimize "if not x" / "while not x" to not actually calculate the whole "not x" value first --> transform in to "x==0" in these conditional statements?
 
 
@@ -18,6 +14,10 @@ Blocked by Commander-x16 v39 release
 
 Future
 ^^^^^^
+- fix the asm-labels problem (github issue #62)
+- start migrating to KoTest library (github issue #70)
+- find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
+- [complicated?] find a way to optimize if-statement codegen so that "if var & %10000" doesn't use evalstack & subroutine call, but also that the simple case "if X {...}" remains fast
 - document the various compiler command line options in more detail. See "Compiling program code" in the docs
 - get rid of all TODO's in the code
 - improve testability further, add more tests
