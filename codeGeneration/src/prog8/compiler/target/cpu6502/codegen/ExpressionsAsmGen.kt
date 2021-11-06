@@ -86,11 +86,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     return
                 }
                 if(dt==DataType.UBYTE) {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.A, false)
                     if (left is FunctionCall && !left.isSimple)
                         asmgen.out("  cmp  #0")
                 } else {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, false)
                     asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
                 }
                 when (operator) {
@@ -102,7 +102,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.BYTE -> {
-                asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, true)
                 if (left is FunctionCall && !left.isSimple)
                     asmgen.out("  cmp  #0")
                 when (operator) {
@@ -119,7 +119,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
             }
             DataType.WORD -> {
-                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, true)
                 when (operator) {
                     "==" -> asmgen.out("  bne  $jumpIfFalseLabel |  cpy  #0 |  bne  $jumpIfFalseLabel")
                     "!=" -> asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")

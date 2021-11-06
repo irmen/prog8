@@ -248,9 +248,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             when (target.datatype) {
                                 in ByteDatatypes -> {
                                     val tgt =
-                                        prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget.fromRegisters(
+                                        AsmAssignTarget.fromRegisters(
                                             RegisterOrPair.A,
-                                            null,
+                                            target.datatype == DataType.BYTE, null,
                                             program,
                                             asmgen
                                         )
@@ -260,9 +260,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 }
                                 in WordDatatypes -> {
                                     val tgt =
-                                        prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget.fromRegisters(
+                                        AsmAssignTarget.fromRegisters(
                                             RegisterOrPair.AY,
-                                            null,
+                                            target.datatype == DataType.WORD, null,
                                             program,
                                             asmgen
                                         )
@@ -272,9 +272,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 }
                                 DataType.FLOAT -> {
                                     val tgt =
-                                        prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget.fromRegisters(
+                                        AsmAssignTarget.fromRegisters(
                                             RegisterOrPair.FAC1,
-                                            null,
+                                            true, null,
                                             program,
                                             asmgen
                                         )
@@ -1945,7 +1945,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sbc  ${target.asmVarname}
                             sta  ${target.asmVarname}""")
                     }
-                    TargetStorageKind.REGISTER -> TODO("missing codegen for byte reg negate")
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.A -> asmgen.out("  sta  P8ZP_SCRATCH_B1 |  lda  #0 |  sec |  sbc  P8ZP_SCRATCH_B1")
+                            RegisterOrPair.X -> asmgen.out("  stx  P8ZP_SCRATCH_B1 |  lda  #0 |  sec |  sbc  P8ZP_SCRATCH_B1 |  tax")
+                            RegisterOrPair.Y -> asmgen.out("  sty  P8ZP_SCRATCH_B1 |  lda  #0 |  sec |  sbc  P8ZP_SCRATCH_B1 |  tay")
+                            else -> throw AssemblyError("invalid reg dt for byte negate")
+                        }
+                    }
                     TargetStorageKind.MEMORY -> TODO("can't in-place negate memory ubyte")
                     TargetStorageKind.STACK -> TODO("missing codegen for byte stack negate")
                     else -> throw AssemblyError("missing codegen for in-place negate byte array")
@@ -1963,7 +1970,52 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sbc  ${target.asmVarname}+1
                             sta  ${target.asmVarname}+1""")
                     }
-                    TargetStorageKind.REGISTER -> TODO("missing codegen for word reg negate")
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) { //P8ZP_SCRATCH_REG
+                            RegisterOrPair.AX -> {
+                                asmgen.out("""
+                                    sta  P8ZP_SCRATCH_REG
+                                    stx  P8ZP_SCRATCH_REG+1
+                                    lda  #0
+                                    sec
+                                    sbc  P8ZP_SCRATCH_REG
+                                    pha
+                                    lda  #0
+                                    sbc  P8ZP_SCRATCH_REG+1
+                                    tax
+                                    pla""")
+                            }
+                            RegisterOrPair.AY -> {
+                                asmgen.out("""
+                                    sta  P8ZP_SCRATCH_REG
+                                    sty  P8ZP_SCRATCH_REG+1
+                                    lda  #0
+                                    sec
+                                    sbc  P8ZP_SCRATCH_REG
+                                    pha
+                                    lda  #0
+                                    sbc  P8ZP_SCRATCH_REG+1
+                                    tay
+                                    pla""")
+                            }
+                            RegisterOrPair.XY -> {
+                                asmgen.out("""
+                                    stx  P8ZP_SCRATCH_REG
+                                    sty  P8ZP_SCRATCH_REG+1
+                                    lda  #0
+                                    sec
+                                    sbc  P8ZP_SCRATCH_REG
+                                    tax
+                                    lda  #0
+                                    sbc  P8ZP_SCRATCH_REG+1
+                                    tay""")
+                            }
+                            in Cx16VirtualRegisters -> {
+                                TODO("codegen for cx16 word register negate")
+                            }
+                            else -> throw AssemblyError("invalid reg dt for word neg")
+                        }
+                    }
                     TargetStorageKind.MEMORY -> TODO("no asm gen for word memory negate")
                     TargetStorageKind.STACK -> TODO("missing codegen for word stack negate")
                     else -> throw AssemblyError("missing codegen for in-place negate word array")

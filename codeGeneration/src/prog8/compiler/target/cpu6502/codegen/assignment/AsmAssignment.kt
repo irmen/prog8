@@ -62,21 +62,21 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 throw AssemblyError("unknown dt")
             val dt = idt.getOr(DataType.UNDEFINED)
             when {
-                identifier != null -> AsmAssignTarget(prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
-                arrayindexed != null -> AsmAssignTarget(prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
-                memoryAddress != null -> AsmAssignTarget(prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
+                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
+                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
                 else -> throw AssemblyError("weird target")
             }
         }
 
-        fun fromRegisters(registers: RegisterOrPair, scope: Subroutine?, program: Program, asmgen: AsmGen): AsmAssignTarget =
+        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, scope: Subroutine?, program: Program, asmgen: AsmGen): AsmAssignTarget =
                 when(registers) {
                     RegisterOrPair.A,
                     RegisterOrPair.X,
-                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UBYTE, scope, register = registers)
+                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, if(signed) DataType.BYTE else DataType.UBYTE, scope, register = registers)
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
-                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, scope, register = registers)
+                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, register = registers)
                     RegisterOrPair.FAC1,
                     RegisterOrPair.FAC2 -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.FLOAT, scope, register = registers)
                     RegisterOrPair.R0,
@@ -94,7 +94,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R12,
                     RegisterOrPair.R13,
                     RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, DataType.UWORD, scope, register = registers)
+                    RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, register = registers)
                 }
     }
 }

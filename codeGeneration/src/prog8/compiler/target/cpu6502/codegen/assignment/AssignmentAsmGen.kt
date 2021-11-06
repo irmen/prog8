@@ -379,15 +379,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
             when (valueDt) {
                 in ByteDatatypes -> {
-                    assignExpressionToRegister(value, RegisterOrPair.A)
+                    assignExpressionToRegister(value, RegisterOrPair.A, valueDt==DataType.BYTE)
                     assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
                 }
                 in WordDatatypes -> {
-                    assignExpressionToRegister(value, RegisterOrPair.AY)
+                    assignExpressionToRegister(value, RegisterOrPair.AY, valueDt==DataType.WORD)
                     assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
                 }
                 DataType.FLOAT -> {
-                    assignExpressionToRegister(value, RegisterOrPair.FAC1)
+                    assignExpressionToRegister(value, RegisterOrPair.FAC1, true)
                     assignTypeCastedFloatFAC1(target.asmVarname, targetDt)
                 }
                 in PassByReferenceDatatypes -> {
@@ -414,14 +414,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.X,
                 RegisterOrPair.Y -> {
                     // 'cast' an ubyte value to a byte register; no cast needed at all
-                    return assignExpressionToRegister(value, target.register)
+                    return assignExpressionToRegister(value, target.register, false)
                 }
                 RegisterOrPair.AX,
                 RegisterOrPair.AY,
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
                     // cast an ubyte value to a 16 bits register, just assign it and make use of the value extension
-                    return assignExpressionToRegister(value, target.register!!)
+                    return assignExpressionToRegister(value, target.register!!, false)
                 }
                 else -> {}
             }
@@ -439,7 +439,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
                     // 'cast' uword into a 16 bits register, just assign it
-                    return assignExpressionToRegister(value, target.register!!)
+                    return assignExpressionToRegister(value, target.register!!, false)
                 }
                 else -> {}
             }
@@ -2169,9 +2169,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) {
+    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair, signed: Boolean) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
-        val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
+        val tgt = AsmAssignTarget.fromRegisters(register, signed, null, program, asmgen)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
@@ -2183,8 +2183,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         translateNormalAssignment(assign)
     }
 
-    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) {
-        val tgt = AsmAssignTarget.fromRegisters(register, null, program, asmgen)
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean) {
+        val tgt = AsmAssignTarget.fromRegisters(register, signed, null, program, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, Position.DUMMY)
         translateNormalAssignment(assign)

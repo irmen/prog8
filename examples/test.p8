@@ -4,7 +4,23 @@
 
 main {
   sub start() {
-    uword xx=$2000
+    ubyte xx=$20
+
+    if not xx {
+        xx++
+    }
+
+    if ~xx {
+        xx++
+    }
+
+    byte yy=3
+
+    if -yy {
+        xx++
+    }
+
+
 
     @(~xx) *= 2
 

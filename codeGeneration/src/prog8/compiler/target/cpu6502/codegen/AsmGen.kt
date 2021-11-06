@@ -11,7 +11,6 @@ import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cbm.AssemblyProgram
 import prog8.compiler.target.cbm.loadAsmIncludeFile
-import prog8.compiler.target.cpu6502.codegen.assignment.*
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
@@ -852,14 +851,14 @@ class AsmGen(private val program: Program,
     internal fun translateNormalAssignment(assign: AsmAssignment) =
             assignmentAsmGen.translateNormalAssignment(assign)
 
-    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair) =
-            assignmentAsmGen.assignExpressionToRegister(expr, register)
+    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair, signed: Boolean=false) =
+            assignmentAsmGen.assignExpressionToRegister(expr, register, signed)
 
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) =
             assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt, scope)
 
-    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair) =
-            assignmentAsmGen.assignVariableToRegister(asmVarName, register)
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean=false) =
+            assignmentAsmGen.assignVariableToRegister(asmVarName, register, signed)
 
     internal fun assignRegister(reg: RegisterOrPair, target: AsmAssignTarget) {
         when(reg) {
@@ -1400,7 +1399,7 @@ $label              nop""")
                 else -> {
                     // all else take its address and assign that also to AY register pair
                     val addrofValue = AddressOf(returnvalue as IdentifierReference, returnvalue.position)
-                    assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!)
+                    assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!, false)
                 }
             }
         }
