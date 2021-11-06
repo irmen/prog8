@@ -793,11 +793,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: PrefixExpression) {
-        val idt = expr.inferType(program)
-        if(!idt.isKnown)
+        val dt = expr.expression.inferType(program).getOr(DataType.UNDEFINED)
+        if(dt==DataType.UNDEFINED)
             return  // any error should be reported elsewhere
 
-        val dt = idt.getOr(DataType.UNDEFINED)
         if(expr.operator=="-") {
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 errors.err("can only take negative of a signed number type", expr.position)
