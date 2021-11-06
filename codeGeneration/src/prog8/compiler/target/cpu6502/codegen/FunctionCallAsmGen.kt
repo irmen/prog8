@@ -143,18 +143,16 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         // 1. load all arguments reversed onto the stack: first arg goes last (is on top).
 
-        for (arg in stmt.args.reversed()) {
-            if(arg.isSimple) {  // TODO FOR ALL ARG TYPES?
-                // note this stuff below is needed to (eventually) avoid calling asmgen.translateExpression()
-                // TODO but This STILL requires the translateNormalAssignment() to be fixed to avoid stack eval for expressions...
-                // println("*** ALT PARAM PASSING FOR ASMSUB $stmt     $arg")  // TODO DEBUG
-                val dt = arg.inferType(program).getOr(DataType.UNDEFINED)
-                val target = AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub)
-                asmgen.assignExpressionTo(arg, target)
-            } else {
-                asmgen.translateExpression(arg)     // TODO GET RID OF THIS, if the above actually produces compact code
-            }
-        }
+        for (arg in stmt.args.reversed())
+            asmgen.translateExpression(arg)
+
+        // TODO here's an alternative to the above, but for now generates bigger code due to intermediate register steps:
+//        for (arg in stmt.args.reversed()) {
+//            // note this stuff below is needed to (eventually) avoid calling asmgen.translateExpression()
+//            // TODO also This STILL requires the translateNormalAssignment() to be fixed to avoid stack eval for expressions...
+//            val dt = arg.inferType(program).getOr(DataType.UNDEFINED)
+//            asmgen.assignExpressionTo(arg, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub))
+//        }
 
         var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
         var argForXregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null

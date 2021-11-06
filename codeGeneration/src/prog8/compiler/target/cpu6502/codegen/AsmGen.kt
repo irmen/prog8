@@ -833,6 +833,7 @@ class AsmGen(private val program: Program,
         }
     }
 
+    @Deprecated("avoid calling this as it generates slow evalstack based code")
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 

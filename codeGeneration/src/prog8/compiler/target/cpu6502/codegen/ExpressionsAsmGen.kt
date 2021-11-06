@@ -14,6 +14,7 @@ import kotlin.math.absoluteValue
 
 internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
+    @Deprecated("avoid calling this as it generates slow evalstack based code")
     internal fun translateExpression(expression:Expression) {
         if (this.asmgen.options.slowCodegenWarnings) {
             asmgen.errors.warn("slow stack evaluation used for expression $expression", expression.position)
