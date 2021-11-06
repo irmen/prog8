@@ -7,11 +7,13 @@ import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.statements.Assignment
 import prog8.compiler.target.Cx16Target
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 
 /**
@@ -34,7 +36,7 @@ class TestCompilerOnCharLit {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
@@ -58,7 +60,7 @@ class TestCompilerOnCharLit {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
@@ -73,9 +75,11 @@ class TestCompilerOnCharLit {
         //       val initializerValue = decl.value as CharLiteral
         //       assertEquals('\n', (initializerValue as CharLiteral).value)
 
-        assertIs<NumericLiteralValue>(decl.value,
-            "char literal should have been replaced by ubyte literal")
-        val initializerValue = decl.value as NumericLiteralValue
+        assertNull(decl.value, "initializer value should have been moved to separate assignment")
+        val assignInitialValue = decl.nextSibling() as Assignment
+        assertEquals(listOf("ch"), assignInitialValue.target.identifier!!.nameInSource)
+        assertIs<NumericLiteralValue>(assignInitialValue.value, "char literal should have been replaced by ubyte literal")
+        val initializerValue = assignInitialValue.value as NumericLiteralValue
         assertEquals(DataType.UBYTE, initializerValue.type)
         assertEquals(platform.encodeString("\n", false)[0], initializerValue.number.toShort())
     }
@@ -93,7 +97,7 @@ class TestCompilerOnCharLit {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 

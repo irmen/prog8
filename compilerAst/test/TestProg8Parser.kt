@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.ast
 
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -6,6 +6,8 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
+import prog8.ast.Program
+import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.NumericLiteralValue
@@ -15,9 +17,9 @@ import prog8.ast.statements.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8tests.helpers.assumeNotExists
-import prog8tests.helpers.assumeReadableFile
-import prog8tests.helpers.fixturesDir
+import prog8tests.ast.helpers.*
+import prog8tests.ast.helpers.DummyFunctions
+import prog8tests.ast.helpers.DummyMemsizer
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
@@ -285,24 +287,16 @@ class TestProg8Parser {
         fun `in ParseError from bad string source code`() {
             val srcText = "bad * { }\n"
 
-            assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcText)) }
-            try {
-                parseModule(SourceCode.Text(srcText))
-            } catch (e: ParseError) {
-                assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
-            }
+            val e = assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcText)) }
+            assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
         }
 
         @Test
         fun `in ParseError from bad file source code`() {
             val path = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
-            assertFailsWith<ParseError> { parseModule(SourceCode.File(path)) }
-            try {
-                parseModule(SourceCode.File(path))
-            } catch (e: ParseError) {
-                assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6) // TODO: endCol wrong
-            }
+            val e = assertFailsWith<ParseError> { parseModule(SourceCode.File(path)) }
+            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6)
         }
 
         @Test
@@ -310,16 +304,16 @@ class TestProg8Parser {
             val srcText = """
                 main {
                 }
-            """.trimIndent()
+            """
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0)
         }
 
         @Test
         fun  `of Module parsed from a file`() {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
         }
 
         @Test
@@ -328,27 +322,24 @@ class TestProg8Parser {
 
             val module = parseModule(SourceCode.File(path))
             val mpf = module.position.file
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0) // TODO: endCol wrong
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 0)  // TODO: endCol wrong!
+            assertPositionOf(mainBlock, mpf, 2, 0, 3)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 4)  // TODO: endCol wrong!
+            assertPositionOf(startSub, mpf, 3, 4, 6)
         }
 
 
-        /**
-         * TODO: this test is testing way too much at once
-         */
         @Test
         fun `of non-root Nodes parsed from a string`() {
             val srcText = """
-                %zeropage basicsafe ; DirectiveArg directly inherits from Node - neither an Expression nor a Statement..?
+                %zeropage basicsafe
                 main {
                     sub start() {
                         ubyte foo = 42
                         ubyte bar
                         when (foo) {
-                            23 -> bar = 'x' ; WhenChoice, also directly inheriting Node
+                            23 -> bar = 'x'
                             42 -> bar = 'y'
                             else -> bar = 'z'
                         }
@@ -359,22 +350,22 @@ class TestProg8Parser {
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
-            assertPositionOf(targetDirective, mpf, 1, 0)  // TODO: endCol wrong!
+            assertPositionOf(targetDirective, mpf, 1, 0, 8)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 0)  // TODO: endCol wrong!
+            assertPositionOf(mainBlock, mpf, 2, 0, 3)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 4)  // TODO: endCol wrong!
+            assertPositionOf(startSub, mpf, 3, 4, 6)
             val declFoo = startSub.statements.filterIsInstance<VarDecl>()[0]
-            assertPositionOf(declFoo, mpf, 4, 8)  // TODO: endCol wrong!
+            assertPositionOf(declFoo, mpf, 4, 8, 12)
             val rhsFoo = declFoo.value!!
-            assertPositionOf(rhsFoo, mpf, 4, 20)  // TODO: endCol wrong!
+            assertPositionOf(rhsFoo, mpf, 4, 20, 21)
             val declBar = startSub.statements.filterIsInstance<VarDecl>()[1]
-            assertPositionOf(declBar, mpf, 5, 8)  // TODO: endCol wrong!
+            assertPositionOf(declBar, mpf, 5, 8, 12)
             val whenStmt = startSub.statements.filterIsInstance<WhenStatement>()[0]
-            assertPositionOf(whenStmt, mpf, 6, 8)  // TODO: endCol wrong!
-            assertPositionOf(whenStmt.choices[0], mpf, 7, 12)  // TODO: endCol wrong!
-            assertPositionOf(whenStmt.choices[1], mpf, 8, 12)  // TODO: endCol wrong!
-            assertPositionOf(whenStmt.choices[2], mpf, 9, 12)  // TODO: endCol wrong!
+            assertPositionOf(whenStmt, mpf, 6, 8, 11)
+            assertPositionOf(whenStmt.choices[0], mpf, 7, 12, 13)
+            assertPositionOf(whenStmt.choices[1], mpf, 8, 12, 13)
+            assertPositionOf(whenStmt.choices[2], mpf, 9, 12, 15)
         }
     }
 
@@ -581,4 +572,95 @@ class TestProg8Parser {
         }
     }
 
+    @Test
+    fun testCharLiteralConstValue() {
+        val char1 = CharLiteral('A', false, Position.DUMMY)
+        val char2 = CharLiteral('z', true, Position.DUMMY)
+
+        val program = Program("test", DummyFunctions, DummyMemsizer, AsciiStringEncoder)
+        assertEquals(65, char1.constValue(program).number.toInt())
+        assertEquals(122, char2.constValue(program).number.toInt())
+    }
+
+    @Test
+    fun testLiteralValueComparisons() {
+        val ten = NumericLiteralValue(DataType.UWORD, 10, Position.DUMMY)
+        val nine = NumericLiteralValue(DataType.UBYTE, 9, Position.DUMMY)
+        assertEquals(ten, ten)
+        assertNotEquals(ten, nine)
+        assertFalse(ten != ten)
+        assertTrue(ten != nine)
+
+        assertTrue(ten > nine)
+        assertTrue(ten >= nine)
+        assertTrue(ten >= ten)
+        assertFalse(ten > ten)
+
+        assertFalse(ten < nine)
+        assertFalse(ten <= nine)
+        assertTrue(ten <= ten)
+        assertFalse(ten < ten)
+
+        val abc = StringLiteralValue("abc", false, Position.DUMMY)
+        val abd = StringLiteralValue("abd", false, Position.DUMMY)
+        assertEquals(abc, abc)
+        assertTrue(abc!=abd)
+        assertFalse(abc!=abc)
+    }
+
+    @Test
+    fun testAnonScopeStillContainsVarsDirectlyAfterParse() {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    repeat {
+                        ubyte xx = 99
+                        xx++
+                    }
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val mainBlock = module.statements.single() as Block
+        val start = mainBlock.statements.single() as Subroutine
+        val repeatbody = (start.statements.single() as RepeatLoop).body
+        assertFalse(mainBlock.statements.any { it is VarDecl }, "no vars moved to main block")
+        assertFalse(start.statements.any { it is VarDecl }, "no vars moved to start sub")
+        assertTrue(repeatbody.statements[0] is VarDecl, "var is still in repeat block (anonymousscope)")
+        val initvalue = (repeatbody.statements[0] as VarDecl).value as? NumericLiteralValue
+        assertEquals(99, initvalue?.number?.toInt())
+        assertTrue(repeatbody.statements[1] is PostIncrDecr)
+        // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
+    }
+
+    @Test
+    fun testLabelsWithAnonScopesParsesFine() {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    goto mylabeloutside
+        
+                    if true {
+                        if true {
+                            goto labeloutside
+                            goto iflabel
+                        }
+            iflabel:
+                    }
+        
+                    repeat {
+                        goto labelinside
+            labelinside:
+                    }
+        
+            labeloutside:
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val mainBlock = module.statements.single() as Block
+        val start = mainBlock.statements.single() as Subroutine
+        val labels = start.statements.filterIsInstance<Label>()
+        assertEquals(1, labels.size, "only one label in subroutine scope")
+    }
 }

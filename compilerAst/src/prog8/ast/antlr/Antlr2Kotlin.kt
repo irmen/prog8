@@ -29,7 +29,7 @@ private fun ParserRuleContext.toPosition() : Position {
         pathString
     }
     // note: beware of TAB characters in the source text, they count as 1 column...
-    return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine + stop.text.length)
+    return Position(filename, start.line, start.charPositionInLine, start.charPositionInLine + start.stopIndex - start.startIndex)
 }
 
 internal fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean) : Block {
@@ -186,7 +186,7 @@ private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
     val inline = this.inline()!=null
     val subdecl = asmsub_decl().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf()
-    return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
+    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, null, true, inline, statements, toPosition())
 }
@@ -194,7 +194,7 @@ private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
 private fun Prog8ANTLRParser.RomsubroutineContext.toAst(): Subroutine {
     val subdecl = asmsub_decl().toAst()
     val address = integerliteral().toAst().number.toInt()
-    return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
+    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, address, true, inline = false, statements = mutableListOf(), position = toPosition()
     )
@@ -252,7 +252,9 @@ private fun Prog8ANTLRParser.Asmsub_returnsContext.toAst(): List<AsmSubroutineRe
 private fun Prog8ANTLRParser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
         = asmsub_param().map {
     val vardecl = it.vardecl()
-    val datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
+    var datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
+    if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
+        datatype = ElementToArrayTypes.getValue(datatype)
     val register = it.register().text
     var registerorpair: RegisterOrPair? = null
     var statusregister: Statusflag? = null
@@ -304,7 +306,7 @@ private fun Prog8ANTLRParser.SubroutineContext.toAst() : Subroutine {
     val inline = inline()!=null
     val returntypes = sub_return_part()?.toAst() ?: emptyList()
     return Subroutine(identifier().text,
-            sub_params()?.toAst() ?: emptyList(),
+            sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
             returntypes,
             statement_block()?.toAst() ?: mutableListOf(),
             inline,
@@ -318,7 +320,9 @@ private fun Prog8ANTLRParser.Sub_return_partContext.toAst(): List<DataType> {
 
 private fun Prog8ANTLRParser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
-            val datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
+            var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
+            if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
+                datatype = ElementToArrayTypes.getValue(datatype)
             SubroutineParameter(it.varname.text, datatype, it.toPosition())
         }
 

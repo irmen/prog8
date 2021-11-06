@@ -8,7 +8,10 @@ import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
 import prog8.compiler.target.Cx16Target
-import prog8tests.helpers.*
+import prog8tests.ast.helpers.*
+import prog8tests.helpers.assertFailure
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileFile
 import kotlin.io.path.name
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -34,7 +37,7 @@ class TestCompilerOnImportsAndIncludes {
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
                 .assertSuccess()
 
-            val program = result.programAst
+            val program = result.program
             val startSub = program.entrypoint
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
@@ -59,7 +62,7 @@ class TestCompilerOnImportsAndIncludes {
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
                 .assertSuccess()
 
-            val program = result.programAst
+            val program = result.program
             val startSub = program.entrypoint
             val args = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
@@ -105,8 +108,8 @@ class TestCompilerOnImportsAndIncludes {
                 val (where, p8Str, binStr) = it
                 dynamicTest("%asmbinary from ${where}folder") {
                     val p8Path = assumeReadableFile(fixturesDir, p8Str)
-                    val binPath = assumeReadableFile(fixturesDir, binStr)
-                    assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workinDir
+                    // val binPath = assumeReadableFile(fixturesDir, binStr)
+                    assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workingDir
                         workingDir.normalize().toAbsolutePath(),
                         outputDir.normalize().toAbsolutePath(),
                         "sanity check: workingDir and outputDir should not be the same folder"

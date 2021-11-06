@@ -2,7 +2,10 @@ package prog8tests.helpers
 
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8tests.ast.helpers.assumeReadableFile
+import prog8tests.ast.helpers.outputDir
 import java.nio.file.Path
 import kotlin.io.path.name
 import kotlin.test.assertFalse
@@ -28,18 +31,23 @@ internal fun compileFile(
     optimize: Boolean,
     fileDir: Path,
     fileName: String,
-    outputDir: Path = prog8tests.helpers.outputDir
+    outputDir: Path = prog8tests.ast.helpers.outputDir,
+    errors: IErrorReporter? = null,
+    writeAssembly: Boolean = true
 ) : CompilationResult {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
     return compileProgram(
         filepath,
         optimize,
-        writeAssembly = true,
+        optimizeFloatExpressions = false,
+        writeAssembly = writeAssembly,
         slowCodegenWarnings = false,
+        quietAssembler = true,
         platform.name,
         sourceDirs = listOf(),
-        outputDir
+        outputDir,
+        errors = errors ?: ErrorReporterForTests()
     )
 }
 
@@ -51,10 +59,12 @@ internal fun compileFile(
 internal fun compileText(
     platform: ICompilationTarget,
     optimize: Boolean,
-    sourceText: String
+    sourceText: String,
+    errors: IErrorReporter? = null,
+    writeAssembly: Boolean = true
 ) : CompilationResult {
     val filePath = outputDir.resolve("on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
-    return compileFile(platform, optimize, filePath.parent, filePath.name)
+    return compileFile(platform, optimize, filePath.parent, filePath.name, errors=errors, writeAssembly=writeAssembly)
 }

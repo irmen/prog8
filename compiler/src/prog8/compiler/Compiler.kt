@@ -1,9 +1,8 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.*
-import prog8.ast.AstToSourceCode
+import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
-import prog8.ast.IMemSizer
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
@@ -11,73 +10,39 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.compiler.astprocessing.*
-import prog8.compiler.functions.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
-import prog8.compiler.target.ICompilationTarget
-import prog8.compiler.target.asmGeneratorFor
+import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.compilerinterface.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
-import prog8.parser.ParsingFailedError
-import prog8.parser.SourceCode
-import prog8.parser.SourceCode.Companion.libraryFilePrefix
-import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
 
 
-enum class OutputType {
-    RAW,
-    PRG
-}
-
-enum class LauncherType {
-    BASIC,
-    NONE
-}
-
-enum class ZeropageType {
-    BASICSAFE,
-    FLOATSAFE,
-    KERNALSAFE,
-    FULL,
-    DONTUSE
-}
-
-data class CompilationOptions(val output: OutputType,
-                              val launcher: LauncherType,
-                              val zeropage: ZeropageType,
-                              val zpReserved: List<IntRange>,
-                              val floats: Boolean,
-                              val noSysInit: Boolean,
-                              val compTarget: ICompilationTarget) {
-    var slowCodegenWarnings = false
-    var optimize = false
-}
-
-
-class CompilerException(message: String?) : Exception(message)
-
 class CompilationResult(val success: Boolean,
-                        val programAst: Program,
+                        val program: Program,
                         val programName: String,
                         val compTarget: ICompilationTarget,
                         val importedFiles: List<Path>)
 
 
+// TODO refactor the gigantic list of parameters
 fun compileProgram(filepath: Path,
                    optimize: Boolean,
+                   optimizeFloatExpressions: Boolean,
                    writeAssembly: Boolean,
                    slowCodegenWarnings: Boolean,
+                   quietAssembler: Boolean,
                    compilationTarget: String,
                    sourceDirs: List<String>,
-                   outputDir: Path): CompilationResult {
+                   outputDir: Path,
+                   errors: IErrorReporter = ErrorReporter()): CompilationResult {
     var programName = ""
-    lateinit var programAst: Program
+    lateinit var program: Program
     lateinit var importedFiles: List<Path>
-    val errors = ErrorReporter()
 
     val compTarget =
         when(compilationTarget) {
@@ -89,31 +54,35 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (ast, compilationOptions, imported) = parseImports(filepath, errors, compTarget, sourceDirs)
-            compilationOptions.slowCodegenWarnings = slowCodegenWarnings
-            compilationOptions.optimize = optimize
-            programAst = ast
+            val (programresult, compilationOptions, imported) = parseImports(filepath, errors, compTarget, sourceDirs)
+            with(compilationOptions) {
+                this.slowCodegenWarnings = slowCodegenWarnings
+                this.optimize = optimize
+                this.optimizeFloatExpressions = optimizeFloatExpressions
+            }
+            program = programresult
             importedFiles = imported
-            processAst(programAst, errors, compilationOptions)
+            processAst(program, errors, compilationOptions)
             if (compilationOptions.optimize)
                 optimizeAst(
-                    programAst,
+                    program,
+                    compilationOptions,
                     errors,
                     BuiltinFunctionsFacade(BuiltinFunctions),
-                    compTarget,
-                    compilationOptions
+                    compTarget
                 )
-            postprocessAst(programAst, errors, compilationOptions)
+            postprocessAst(program, errors, compilationOptions)
 
-            // printAst(programAst)
+//            println("*********** AST BEFORE ASSEMBLYGEN *************")
+//            printAst(program)
 
             if (writeAssembly) {
-                val result = writeAssembly(programAst, errors, outputDir, compilationOptions)
+                val result = writeAssembly(program, errors, outputDir, quietAssembler, compilationOptions)
                 when (result) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
-                        return CompilationResult(false, programAst, programName, compTarget, importedFiles)
+                        return CompilationResult(false, program, programName, compTarget, importedFiles)
                     }
                 }
             }
@@ -121,14 +90,20 @@ fun compileProgram(filepath: Path,
         System.out.flush()
         System.err.flush()
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
-        return CompilationResult(true, programAst, programName, compTarget, importedFiles)
+        return CompilationResult(true, program, programName, compTarget, importedFiles)
     } catch (px: ParseError) {
         System.err.print("\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
         System.err.print("\u001b[0m")  // reset
-    } catch (pfx: ParsingFailedError) {
+    } catch (ac: AbortCompilation) {
+        if(!ac.message.isNullOrEmpty()) {
+            System.err.print("\u001b[91m")  // bright red
+            System.err.println(ac.message)
+            System.err.print("\u001b[0m")  // reset
+        }
+    } catch (nsf: NoSuchFileException) {
         System.err.print("\u001b[91m")  // bright red
-        System.err.println(pfx.message)
+        System.err.println("File not found: ${nsf.message}")
         System.err.print("\u001b[0m")  // reset
     } catch (ax: AstException) {
         System.err.print("\u001b[91m")  // bright red
@@ -148,7 +123,7 @@ fun compileProgram(filepath: Path,
         throw x
     }
 
-    val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget)
+    val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compTarget)
     return CompilationResult(false, failedProgram, programName, compTarget, emptyList())
 }
 
@@ -158,13 +133,13 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val names = functions.keys
     override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
 
-    override fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue? {
+    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? {
         val func = BuiltinFunctions[name]
         if(func!=null) {
             val exprfunc = func.constExpressionFunc
             if(exprfunc!=null) {
                 return try {
-                    exprfunc(args, position, program, memsizer)
+                    exprfunc(args, position, program)
                 } catch(x: NotConstArgumentException) {
                     // const-evaluating the builtin function call failed.
                     null
@@ -188,21 +163,18 @@ fun parseImports(filepath: Path,
                  sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     println("Compiler target: ${compTarget.name}. Parsing...")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val programAst = Program(filepath.nameWithoutExtension, bf, compTarget)
-    bf.program = programAst
+    val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
+    bf.program = program
 
-    val importer = ModuleImporter(programAst, compTarget.name, errors, sourceDirs)
+    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs)
     val importedModuleResult = importer.importModule(filepath)
     importedModuleResult.onFailure { throw it }
     errors.report()
 
-    val importedFiles = programAst.modules.map { it.source }
+    val importedFiles = program.modules.map { it.source }
         .filter { it.isFromFilesystem }
         .map { Path(it.origin) }
-    val compilerOptions = determineCompilationOptions(programAst, compTarget)
-    if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
-        throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
-
+    val compilerOptions = determineCompilationOptions(program, compTarget)
     // depending on the machine and compiler options we may have to include some libraries
     for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
         importer.importLibraryModule(lib)
@@ -210,8 +182,12 @@ fun parseImports(filepath: Path,
     // always import prog8_lib and math
     importer.importLibraryModule("math")
     importer.importLibraryModule("prog8_lib")
+
+    if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
+        errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
     errors.report()
-    return Triple(programAst, compilerOptions, importedFiles)
+
+    return Triple(program, compilerOptions, importedFiles)
 }
 
 fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
@@ -274,44 +250,44 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
     )
 }
 
-private fun processAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
+private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
-    programAst.checkIdentifiers(errors, compilerOptions)
+    program.preprocessAst()
+    program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
-    // NOTE: we will then lose the opportunity to do constant-folding on any expression containing a char literal, but how often will those occur?
-    // Also they might be optimized away eventually in codegen or by the assembler even
-    programAst.charLiteralsToUByteLiterals(errors, compilerOptions.compTarget)
+    //       ...but what do we gain from this? We can leave it as it is now: where a char literal is no more than syntactic sugar for an UBYTE value.
+    //       By introduction a CHAR dt, we will also lose the opportunity to do constant-folding on any expression containing a char literal.
+    program.charLiteralsToUByteLiterals(compilerOptions.compTarget)
+    program.constantFold(errors, compilerOptions.compTarget)
     errors.report()
-    programAst.constantFold(errors, compilerOptions.compTarget)
+    program.reorderStatements(errors)
     errors.report()
-    programAst.reorderStatements(errors)
+    program.addTypecasts(errors)
     errors.report()
-    programAst.addTypecasts(errors)
+    program.variousCleanups(program, errors)
     errors.report()
-    programAst.variousCleanups(programAst, errors)
+    program.checkValid(errors, compilerOptions)
     errors.report()
-    programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)
-    errors.report()
-    programAst.checkIdentifiers(errors, compilerOptions)
+    program.checkIdentifiers(errors, compilerOptions)
     errors.report()
 }
 
-private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget, options: CompilationOptions) {
+private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
     // optimize the parse tree
     println("Optimizing...")
 
-    val remover = UnusedCodeRemover(programAst, errors, compTarget)
-    remover.visit(programAst)
+    val remover = UnusedCodeRemover(program, errors, compTarget)
+    remover.visit(program)
     remover.applyModifications()
 
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = programAst.simplifyExpressions()
-        val optsDone2 = programAst.splitBinaryExpressions(compTarget)
-        val optsDone3 = programAst.optimizeStatements(errors, functions, compTarget)
-        programAst.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
+        val optsDone1 = program.simplifyExpressions()
+        val optsDone2 = program.splitBinaryExpressions(compilerOptions, compTarget)
+        val optsDone3 = program.optimizeStatements(errors, functions, compTarget)
+        program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
@@ -320,17 +296,17 @@ private fun optimizeAst(programAst: Program, errors: IErrorReporter, functions: 
     errors.report()
 }
 
-private fun postprocessAst(programAst: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    programAst.addTypecasts(errors)
+private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    program.addTypecasts(errors)
     errors.report()
-    programAst.variousCleanups(programAst, errors)
-    programAst.checkValid(compilerOptions, errors, compilerOptions.compTarget)          // check if final tree is still valid
+    program.variousCleanups(program, errors)
+    program.checkValid(errors, compilerOptions)          // check if final tree is still valid
     errors.report()
-    val callGraph = CallGraph(programAst)
+    val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
     errors.report()
-    programAst.verifyFunctionArgTypes()
-    programAst.moveMainAndStartToFirst()
+    program.verifyFunctionArgTypes()
+    program.moveMainAndStartToFirst()
 }
 
 private sealed class WriteAssemblyResult {
@@ -338,58 +314,56 @@ private sealed class WriteAssemblyResult {
     class Fail(val error: String): WriteAssemblyResult()
 }
 
-private fun writeAssembly(programAst: Program,
+private fun writeAssembly(program: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
-                          compilerOptions: CompilationOptions): WriteAssemblyResult {
+                          quietAssembler: Boolean,
+                          compilerOptions: CompilationOptions
+): WriteAssemblyResult {
     // asm generation directly from the Ast
-    programAst.processAstBeforeAsmGeneration(errors, compilerOptions.compTarget)
+    program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
 
-    // printAst(programAst)
+//    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//    printAst(program)
 
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val assembly = asmGeneratorFor(compilerOptions.compTarget,
-            programAst,
+            program,
             errors,
             compilerOptions.compTarget.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly()
+    errors.report()
 
     return if(assembly.valid && errors.noErrors()) {
-        val assemblerReturnStatus = assembly.assemble(compilerOptions)
+        val assemblerReturnStatus = assembly.assemble(quietAssembler, compilerOptions)
         if(assemblerReturnStatus!=0)
             WriteAssemblyResult.Fail("assembler step failed with return code $assemblerReturnStatus")
         else {
-            errors.report()
             WriteAssemblyResult.Ok(assembly.name)
         }
     } else {
-        errors.report()
         WriteAssemblyResult.Fail("compiler failed with errors")
     }
 }
 
-fun printAst(programAst: Program) {
+fun printAst(program: Program) {
     println()
-    val printer = AstToSourceCode(::print, programAst)
-    printer.visit(programAst)
+    val printer = AstToSourceTextConverter(::print, program)
+    printer.visit(program)
     println()
 }
 
-internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
-    return if (filename.startsWith(libraryFilePrefix)) {
-        return runCatching {
-            val stream = object {}.javaClass.getResourceAsStream("/prog8lib/${filename.substring(libraryFilePrefix.length)}") // TODO handle via SourceCode
-            stream!!.bufferedReader().use { r -> r.readText() }
-        }.mapError { NoSuchFileException(File(filename)) }
-    } else {
-        // first try in the isSameAs folder as where the containing file was imported from
-        val sib = Path(source.origin).resolveSibling(filename)
-
-        if (sib.toFile().isFile)
-            Ok(sib.toFile().readText())
-        else
-            Ok(File(filename).readText())
-    }
+internal fun asmGeneratorFor(
+    compTarget: ICompilationTarget,
+    program: Program,
+    errors: IErrorReporter,
+    zp: Zeropage,
+    options: CompilationOptions,
+    outputDir: Path
+): IAssemblyGenerator
+{
+    // at the moment we only have one code generation backend (for 6502 and 65c02)
+    return AsmGen(program, errors, zp, options, compTarget, outputDir)
 }

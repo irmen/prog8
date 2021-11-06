@@ -8,8 +8,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.IErrorReporter
-import prog8.compiler.functions.BuiltinFunctions
+import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.IErrorReporter
 
 
 class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalker() {
@@ -78,10 +78,10 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                             TypecastExpression(assignment.value, targettype, true, assignment.value.position),
                             assignment))
                 } else {
-                    fun castLiteral(cvalue: NumericLiteralValue): List<IAstModification.ReplaceNode> {
-                        val cast = cvalue.cast(targettype)
+                    fun castLiteral(cvalue2: NumericLiteralValue): List<IAstModification.ReplaceNode> {
+                        val cast = cvalue2.cast(targettype)
                         return if(cast.isValid)
-                            listOf(IAstModification.ReplaceNode(cvalue, cast.valueOrZero(), cvalue.parent))
+                            listOf(IAstModification.ReplaceNode(assignment.value, cast.valueOrZero(), assignment))
                         else
                             emptyList()
                     }
@@ -135,11 +135,13 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                                         TypecastExpression(pair.second, requiredType, true, pair.second.position),
                                         call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
-                                // we allow STR/ARRAY values in place of UWORD parameters. Take their address instead.
-                                if(pair.second is IdentifierReference) {
+                                // We allow STR/ARRAY values in place of UWORD parameters.
+                                // Take their address instead, UNLESS it's a str parameter in the containing subroutine
+                                val identifier = pair.second as? IdentifierReference
+                                if(identifier?.isSubroutineParameter(program)==false) {
                                     modifications += IAstModification.ReplaceNode(
                                             call.args[index],
-                                            AddressOf(pair.second as IdentifierReference, pair.second.position),
+                                            AddressOf(identifier, pair.second.position),
                                             call as Node)
                                 }
                             } else if(pair.second is NumericLiteralValue) {

@@ -14,5 +14,6 @@
     <orderEntry type="library" name="glassfish.javax.json" level="project" />
     <orderEntry type="library" name="takes" level="project" />
     <orderEntry type="library" name="slf4j.simple" level="project" />
+    <orderEntry type="module" module-name="compilerInterfaces" />
   </component>
 </module>

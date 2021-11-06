@@ -1,27 +1,22 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.INameScope
+import prog8.ast.IStatementContainer
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.CompilationOptions
-import prog8.compiler.IErrorReporter
-import prog8.compiler.ZeropageType
-import prog8.compiler.functions.BuiltinFunctions
-import prog8.compiler.functions.builtinFunctionReturnType
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.*
 import java.io.CharConversionException
 import java.io.File
 import java.util.*
-import kotlin.io.path.*
+import kotlin.io.path.Path
 
 internal class AstChecker(private val program: Program,
-                          private val compilerOptions: CompilationOptions,
                           private val errors: IErrorReporter,
-                          private val compTarget: ICompilationTarget
+                          private val compilerOptions: CompilationOptions
 ) : IAstVisitor {
 
     override fun visit(program: Program) {
@@ -31,7 +26,7 @@ internal class AstChecker(private val program: Program,
         if(mainBlocks.size>1)
             errors.err("more than one 'main' block", mainBlocks[0].position)
         if(mainBlocks.isEmpty())
-            errors.err("there is no 'main' block", program.modules.firstOrNull()?.position ?: program.position)
+            errors.err("there is no 'main' block", program.modules.firstOrNull()?.position ?: Position.DUMMY)
 
         for(mainBlock in mainBlocks) {
             val startSub = mainBlock.subScope("start") as? Subroutine
@@ -196,8 +191,12 @@ internal class AstChecker(private val program: Program,
                 is Label,
                 is VarDecl,
                 is InlineAssembly,
-                is INameScope,
+                is IStatementContainer,
                 is NopStatement -> true
+                is Assignment -> {
+                    val target = statement.target.identifier!!.targetStatement(program)
+                    target === statement.previousSibling()      // an initializer assignment is okay
+                }
                 else -> false
             }
             if (!ok) {
@@ -217,7 +216,7 @@ internal class AstChecker(private val program: Program,
         super.visit(label)
     }
 
-    private fun hasReturnOrJump(scope: INameScope): Boolean {
+    private fun hasReturnOrJump(scope: IStatementContainer): Boolean {
         class Searcher: IAstVisitor
         {
             var count=0
@@ -245,8 +244,8 @@ internal class AstChecker(private val program: Program,
         if(subroutine.name in BuiltinFunctions)
             err("cannot redefine a built-in function")
 
-        if(subroutine.parameters.size>16)
-            err("subroutines are limited to 16 parameters")
+        if(subroutine.parameters.size>6 && !subroutine.isAsmSubroutine)
+            errors.warn("subroutine has a large number of parameters, this slows down code execution a lot", subroutine.position)
 
         val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
@@ -290,7 +289,7 @@ internal class AstChecker(private val program: Program,
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
                             && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
-                        err("parameter '${param.first.name}' should be (u)word/address")
+                        err("parameter '${param.first.name}' should be (u)word (an address) or str")
                 }
                 else if(param.second.statusflag!=null) {
                     if (param.first.type != DataType.UBYTE)
@@ -382,10 +381,12 @@ internal class AstChecker(private val program: Program,
                 err("can only use Carry as status flag parameter")
 
         } else {
-            // Pass-by-reference datatypes can not occur as parameters to a subroutine directly
+            // Non-string Pass-by-reference datatypes can not occur as parameters to a subroutine directly
             // Instead, their reference (address) should be passed (as an UWORD).
-            if(subroutine.parameters.any{it.type in PassByReferenceDatatypes }) {
-                err("Pass-by-reference types (str, array) cannot occur as a parameter type directly. Instead, use an uword to receive their address, or access the variable from the outer scope directly.")
+            for(p in subroutine.parameters) {
+                if(p.type in PassByReferenceDatatypes && p.type != DataType.STR) {
+                    err("Non-string pass-by-reference types cannot occur as a parameter type directly. Instead, use an uword to receive their address, or access the variable from the outer scope directly.")
+                }
             }
         }
     }
@@ -453,7 +454,7 @@ internal class AstChecker(private val program: Program,
         val targetIdentifier = assignTarget.identifier
         if (targetIdentifier != null) {
             val targetName = targetIdentifier.nameInSource
-            when (val targetSymbol = program.namespace.lookup(targetName, assignment)) {
+            when (val targetSymbol = assignment.definingScope.lookup(targetName)) {
                 null -> {
                     errors.err("undefined symbol: ${targetIdentifier.nameInSource.joinToString(".")}", targetIdentifier.position)
                     return
@@ -505,7 +506,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(decl: VarDecl) {
-        fun err(msg: String, position: Position?=null) = errors.err(msg, position ?: decl.position)
+        fun err(msg: String) = errors.err(msg, decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexExpr?.referencesIdentifier(decl.name) == true)
@@ -586,10 +587,10 @@ internal class AstChecker(private val program: Program,
                 val numvalue = decl.value as? NumericLiteralValue
                 if(numvalue!=null) {
                     if (numvalue.type !in IntegerDatatypes || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
-                        err("memory address must be valid integer 0..\$ffff", decl.value?.position)
+                        err("memory address must be valid integer 0..\$ffff")
                     }
                 } else {
-                    err("value of memory mapped variable can only be a fixed number, perhaps you meant to use an address pointer type instead?", decl.value?.position)
+                    err("value of memory mapped variable can only be a fixed number, perhaps you meant to use an address pointer type instead?")
                 }
             }
         }
@@ -597,7 +598,7 @@ internal class AstChecker(private val program: Program,
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR) {
             if (declValue.inferType(program) isnot decl.datatype) {
-                err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})", declValue.position)
+                err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
             }
         }
 
@@ -626,10 +627,13 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        // string assignment is not supported in a vard
         if(decl.datatype==DataType.STR) {
-            if(decl.value==null)
-                err("string var must be initialized with a string literal")
+            if(decl.value==null) {
+                // complain about uninitialized str, but only if it's a regular variable
+                val parameter = (decl.parent as? Subroutine)?.parameters?.singleOrNull{ it.name==decl.name }
+                if(parameter==null)
+                    err("string var must be initialized with a string literal")
+            }
             else if (decl.type==VarDeclType.VAR && decl.value !is StringLiteralValue)
                 err("string var can only be initialized with a string literal")
         }
@@ -768,7 +772,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(char: CharLiteral) {
         try {  // just *try* if it can be encoded, don't actually do it
-            compTarget.encodeString(char.value.toString(), char.altEncoding)
+            compilerOptions.compTarget.encodeString(char.value.toString(), char.altEncoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode character", char.position)
         }
@@ -780,7 +784,7 @@ internal class AstChecker(private val program: Program,
         checkValueTypeAndRangeString(DataType.STR, string)
 
         try {  // just *try* if it can be encoded, don't actually do it
-            compTarget.encodeString(string.value, string.altEncoding)
+            compilerOptions.compTarget.encodeString(string.value, string.altEncoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode string", string.position)
         }
@@ -789,11 +793,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: PrefixExpression) {
-        val idt = expr.inferType(program)
-        if(!idt.isKnown)
+        val dt = expr.expression.inferType(program).getOr(DataType.UNDEFINED)
+        if(dt==DataType.UNDEFINED)
             return  // any error should be reported elsewhere
 
-        val dt = idt.getOr(DataType.UNDEFINED)
         if(expr.operator=="-") {
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 errors.err("can only take negative of a signed number type", expr.position)
@@ -1067,7 +1070,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(postIncrDecr: PostIncrDecr) {
         if(postIncrDecr.target.identifier != null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
-            val target = program.namespace.lookup(targetName, postIncrDecr)
+            val target = postIncrDecr.definingScope.lookup(targetName)
             if(target==null) {
                 val symbol = postIncrDecr.target.identifier!!
                 errors.err("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
@@ -1254,7 +1257,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    if(doubles.any { it < compTarget.machine.FLOAT_MAX_NEGATIVE || it > compTarget.machine.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < compilerOptions.compTarget.machine.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.machine.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }

@@ -1,7 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
-import prog8.ast.INameScope
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
@@ -10,23 +10,23 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.IErrorReporter
+import prog8.compilerinterface.IErrorReporter
 
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter): AstWalker() {
 
     override fun before(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> {
-        return listOf(IAstModification.Remove(nopStatement, parent as INameScope))
+        return listOf(IAstModification.Remove(nopStatement, parent as IStatementContainer))
     }
 
     override fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
-        return if(parent is INameScope)
-            listOf(ScopeFlatten(scope, parent as INameScope))
+        return if(parent is IStatementContainer)
+            listOf(ScopeFlatten(scope, parent as IStatementContainer))
         else
             noModifications
     }
 
-    class ScopeFlatten(val scope: AnonymousScope, val into: INameScope) : IAstModification {
+    class ScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : IAstModification {
         override fun perform() {
             val idx = into.statements.indexOf(scope)
             if(idx>=0) {

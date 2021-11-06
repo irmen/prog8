@@ -357,7 +357,7 @@ The ``&`` (address-of operator) used in front of a data type keyword, indicates 
 should be allocated by the compiler. Instead, the (mandatory) value assigned to the variable
 should be the *memory address* where the value is located::
 
-	&byte BORDERCOLOR = $d020
+    &byte BORDERCOLOR = $d020
     &ubyte[5*40]  top5screenrows = $0400        ; works for array as well
 
 

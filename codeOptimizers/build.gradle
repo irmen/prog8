@@ -1,0 +1,54 @@
+
+plugins {
+    id 'java'
+    id 'application'
+    id "org.jetbrains.kotlin.jvm"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
+
+dependencies {
+    implementation project(':compilerInterfaces')
+    implementation project(':compilerAst')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    // implementation "org.jetbrains.kotlin:kotlin-reflect"
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["${project.projectDir}/src"]
+        }
+        resources {
+            srcDirs = ["${project.projectDir}/res"]
+        }
+    }
+    test {
+        java {
+            srcDirs = ["${project.projectDir}/test"]
+        }
+    }
+}
+
+test {
+    // Enable JUnit 5 (Gradle 4.6+).
+    useJUnitPlatform()
+
+    // Always run tests, even when nothing changed.
+    dependsOn 'cleanTest'
+
+    // Show test results.
+    testLogging {
+        events "skipped", "failed"
+    }
+}

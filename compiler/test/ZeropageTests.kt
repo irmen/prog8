@@ -3,11 +3,12 @@ package prog8tests
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
-import prog8.compiler.*
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
 import prog8.compiler.target.cx16.CX16MachineDefinition.CX16Zeropage
+import prog8.compilerinterface.*
+import prog8tests.helpers.ErrorReporterForTests
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -15,9 +16,64 @@ import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class TestAbstractZeropage {
+
+    @Test
+    fun testAbstractZeropage() {
+        val compTarget = DummyCompilationTarget()
+        val zp = DummyZeropage(
+            CompilationOptions(
+                OutputType.RAW,
+                LauncherType.NONE,
+                ZeropageType.FULL,
+                listOf((0x50..0x5f)),
+                false,
+                false,
+                compTarget
+            )
+        )
+        assertEquals(256-6-16, zp.free.size)
+    }
+
+    class DummyCompilationTarget: ICompilationTarget {
+        override val name: String = "dummy"
+        override val machine: IMachineDefinition
+            get() = throw NotImplementedError("dummy")
+
+        override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
+            throw NotImplementedError("dummy")
+        }
+
+        override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
+            throw NotImplementedError("dummy")
+        }
+
+        override fun memorySize(dt: DataType): Int {
+            throw NotImplementedError("dummy")
+        }
+
+    }
+
+    class DummyZeropage(options: CompilationOptions) : Zeropage(options) {
+        override val SCRATCH_B1: Int = 0x10
+        override val SCRATCH_REG: Int = 0x11
+        override val SCRATCH_W1: Int= 0x20
+        override val SCRATCH_W2: Int = 0x30
+
+        init {
+            free.addAll(0..255)
+
+            removeReservedFromFreePool()
+        }
+    }
+
+}
+
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestC64Zeropage {
 
-    private val errors = ErrorReporter()
+    private val errors = ErrorReporterForTests()
 
     @Test
     fun testNames() {
@@ -35,11 +91,11 @@ class TestC64Zeropage {
     @Test
     fun testZpFloatEnable() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             zp.allocate("", DataType.FLOAT, null, errors)
         }
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, C64Target))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             zp2.allocate("", DataType.FLOAT, null, errors)
         }
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
@@ -54,10 +110,10 @@ class TestC64Zeropage {
         C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, C64Target))
         C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
         C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true, false, C64Target))
         }
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, false, C64Target))
         }
     }
@@ -67,7 +123,7 @@ class TestC64Zeropage {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false, C64Target))
         println(zp.free)
         assertEquals(0, zp.availableBytes())
-        assertFailsWith<CompilerException> {
+        assertFailsWith<InternalCompilerException> {
             zp.allocate("", DataType.BYTE, null, errors)
         }
     }
@@ -216,7 +272,7 @@ class TestC64Zeropage {
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestCx16Zeropage {
-    private val errors = ErrorReporter()
+    private val errors = ErrorReporterForTests()
 
     @Test
     fun testReservedLocations() {

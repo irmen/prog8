@@ -1,24 +1,28 @@
 package prog8tests
 
-import kotlin.test.*
 import com.github.michaelbull.result.getErrorOrElse
 import com.github.michaelbull.result.getOrElse
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.*
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.nullValue
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.*
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
-import prog8.compiler.IErrorReporter
 import prog8.compiler.ModuleImporter
+import prog8.compilerinterface.IErrorReporter
 import prog8.parser.ParseError
 import prog8.parser.SourceCode
-import prog8tests.helpers.*
+import prog8tests.ast.helpers.*
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
 import kotlin.io.path.*
+import kotlin.test.assertContains
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.fail
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -28,7 +32,7 @@ class TestModuleImporter {
     private lateinit var program: Program
     @BeforeEach
     fun beforeEach() {
-        program = Program("foo", DummyFunctions, DummyMemsizer)
+        program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
     }
 
     private fun makeImporter(errors: IErrorReporter?, vararg searchIn: String): ModuleImporter {
@@ -36,7 +40,7 @@ class TestModuleImporter {
     }
 
     private fun makeImporter(errors: IErrorReporter? = null, searchIn: Iterable<String>) =
-        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(), searchIn.toList())
+        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList())
 
     @Nested
     inner class Constructor {
@@ -243,7 +247,7 @@ class TestModuleImporter {
             @Test
             fun testWithNonExistingName() {
                 val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
-                val errors = ErrorReporterForTests()
+                val errors = ErrorReporterForTests(false)
                 val importer = makeImporter(errors, searchIn.invariantSeparatorsPathString)
                 val filenameNoExt = assumeNotExists(fixturesDir, "i_do_not_exist").name
                 val filenameWithExt = assumeNotExists(fixturesDir, "i_do_not_exist.p8").name
@@ -252,14 +256,14 @@ class TestModuleImporter {
                     val result = importer.importLibraryModule(filenameNoExt)
                     assertThat(count[n] + " call / NO .p8 extension", result, Is(nullValue()))
                     assertFalse(errors.noErrors(), count[n] + " call / NO .p8 extension")
-                    assertEquals(errors.errors.single(), "no module found with name i_do_not_exist")
+                    assertContains(errors.errors.single(), "0:0: no module found with name i_do_not_exist")
                     errors.report()
                     assertThat(program.modules.size, equalTo(1))
 
                     val result2 = importer.importLibraryModule(filenameWithExt)
                     assertThat(count[n] + " call / with .p8 extension", result2, Is(nullValue()))
                     assertFalse(importer.errors.noErrors(), count[n] + " call / with .p8 extension")
-                    assertEquals(errors.errors.single(), "no module found with name i_do_not_exist.p8")
+                    assertContains(errors.errors.single(), "0:0: no module found with name i_do_not_exist.p8")
                     errors.report()
                     assertThat(program.modules.size, equalTo(1))
                 }

@@ -3,13 +3,12 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
-targetCompatibility = 11
-sourceCompatibility = 11
 
-repositories {
-    mavenCentral()
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
 }
-
 
 dependencies {
     implementation 'org.antlr:antlr4-runtime:4.9.2'
@@ -24,22 +23,6 @@ dependencies {
 
 configurations.all {
     exclude group: 'com.ibm.icu', module: 'icu4j'
-}
-
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-        useIR = true
-        // verbose = true
-        // freeCompilerArgs += "-XXLanguage:+NewInference"
-    }
-}
-
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-        useIR = true
-    }
 }
 
 sourceSets {

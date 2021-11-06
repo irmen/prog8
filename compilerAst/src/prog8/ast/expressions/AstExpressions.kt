@@ -6,6 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.IMemSizer
 import java.util.*
 
 
@@ -436,9 +437,18 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 
     class CastValue(val isValid: Boolean, private val value: NumericLiteralValue?) {
         fun valueOrZero() = if(isValid) value!! else NumericLiteralValue(DataType.UBYTE, 0, Position.DUMMY)
+        fun linkParent(parent: Node) {
+            value?.linkParents(parent)
+        }
     }
 
     fun cast(targettype: DataType): CastValue {
+        val result = internalCast(targettype)
+        result.linkParent(this.parent)
+        return result
+    }
+
+    private fun internalCast(targettype: DataType): CastValue {
         if(type==targettype)
             return CastValue(true, this)
         val numval = number.toDouble()
@@ -513,7 +523,10 @@ class CharLiteral(val value: Char,
     }
 
     override fun referencesIdentifier(vararg scopedName: String) = false
-    override fun constValue(program: Program): NumericLiteralValue? = null  // TODO: CharLiteral.constValue can't be NumericLiteralValue...
+    override fun constValue(program: Program): NumericLiteralValue {
+        val bytevalue = program.encoding.encodeString(value.toString(), altEncoding).single()
+        return NumericLiteralValue(DataType.UBYTE, bytevalue, position)
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
@@ -730,7 +743,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
             BuiltinFunctionStatementPlaceholder(nameInSource[0], position, parent)
         else
-            program.namespace.lookup(nameInSource, this)
+            definingScope.lookup(nameInSource)
 
     fun targetVarDecl(program: Program): VarDecl? = targetStatement(program) as? VarDecl
     fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
@@ -747,8 +760,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 
     override fun constValue(program: Program): NumericLiteralValue? {
-        val node = program.namespace.lookup(nameInSource, this)
-                ?: throw UndefinedSymbolError(this)
+        val node = definingScope.lookup(nameInSource) ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
             return null
@@ -816,7 +828,7 @@ class FunctionCall(override var target: IdentifierReference,
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1)
             return null
-        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position, program.memsizer)
+        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
             if(resultValue==null || resultDt istype resultValue.type)

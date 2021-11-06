@@ -5,18 +5,21 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
+import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.compiler.astprocessing.size
-import prog8.compiler.astprocessing.toConstantIntegerRange
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
+import prog8.compilerinterface.size
+import prog8.compilerinterface.toConstantIntegerRange
+import prog8tests.ast.helpers.mapCombinations
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import prog8tests.helpers.mapCombinations
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 
@@ -40,7 +43,7 @@ class TestCompilerOnRanges {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
@@ -69,7 +72,7 @@ class TestCompilerOnRanges {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
@@ -151,7 +154,7 @@ class TestCompilerOnRanges {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val iterable = startSub
             .statements.filterIsInstance<ForLoop>()
@@ -162,10 +165,10 @@ class TestCompilerOnRanges {
         val expectedEnd = platform.encodeString("f", false)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
-        val intProgression = rangeExpr.toConstantIntegerRange(platform)
+        val intProgression = rangeExpr.toConstantIntegerRange()
         val actualStr = "${intProgression?.first} .. ${intProgression?.last}"
         assertEquals(expectedStr, actualStr,".first .. .last")
-        assertEquals(expectedEnd - expectedStart + 1, rangeExpr.size(platform), "rangeExpr.size()")
+        assertEquals(expectedEnd - expectedStart + 1, rangeExpr.size(), "rangeExpr.size()")
     }
 
     @Test
@@ -182,15 +185,15 @@ class TestCompilerOnRanges {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val rangeExpr = startSub
             .statements.filterIsInstance<ForLoop>()
             .map { it.iterable }
             .filterIsInstance<RangeExpr>()[0]
 
-        assertEquals(2, rangeExpr.size(platform))
-        val intProgression = rangeExpr.toConstantIntegerRange(platform)
+        assertEquals(2, rangeExpr.size())
+        val intProgression = rangeExpr.toConstantIntegerRange()
         assertEquals(0, intProgression?.first)
         assertEquals(1, intProgression?.last)
     }
@@ -209,21 +212,22 @@ class TestCompilerOnRanges {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val rangeExpr = startSub
             .statements.filterIsInstance<ForLoop>()
             .map { it.iterable }
             .filterIsInstance<RangeExpr>()[0]
 
-        assertEquals(9, rangeExpr.size(platform))
-        val intProgression = rangeExpr.toConstantIntegerRange(platform)
+        assertEquals(9, rangeExpr.size())
+        val intProgression = rangeExpr.toConstantIntegerRange()
         assertEquals(1, intProgression?.first)
         assertEquals(9, intProgression?.last)
     }
 
     @Test
     fun testForLoopWithRange_str_downto_str() {
+        val errors = ErrorReporterForTests()
         compileText(Cx16Target, true, """
             main {
                 sub start() {
@@ -233,8 +237,10 @@ class TestCompilerOnRanges {
                     }
                 }
             }
-        """).assertFailure()
-        //TODO("test exact compile error(s)")
+        """, errors, false).assertFailure()
+        assertEquals(2, errors.errors.size)
+        assertContains(errors.errors[0], ".p8:5:29: range expression from value must be integer")
+        assertContains(errors.errors[1], ".p8:5:44: range expression to value must be integer")
     }
 
     @Test
@@ -250,7 +256,7 @@ class TestCompilerOnRanges {
             }
         """).assertSuccess()
 
-        val program = result.programAst
+        val program = result.program
         val startSub = program.entrypoint
         val iterable = startSub
             .statements.filterIsInstance<ForLoop>()
@@ -260,5 +266,15 @@ class TestCompilerOnRanges {
         assertEquals(DataType.STR, iterable.inferType(program).getOr(DataType.UNDEFINED))
     }
 
+    @Test
+    fun testRangeExprNumericSize() {
+        val expr = RangeExpr(
+            NumericLiteralValue.optimalInteger(10, Position.DUMMY),
+            NumericLiteralValue.optimalInteger(20, Position.DUMMY),
+            NumericLiteralValue.optimalInteger(2, Position.DUMMY),
+            Position.DUMMY)
+        assertEquals(6, expr.size())
+        expr.toConstantIntegerRange()
+    }
 }
 

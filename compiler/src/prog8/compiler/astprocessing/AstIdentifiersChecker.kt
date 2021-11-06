@@ -1,15 +1,14 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.IErrorReporter
-import prog8.compiler.functions.BuiltinFunctions
-import prog8.compiler.target.ICompilationTarget
+import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
 
-internal class AstIdentifiersChecker(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
+internal class AstIdentifiersChecker(private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()
 
     private fun nameError(name: String, position: Position, existing: Statement) {
@@ -42,7 +41,7 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
         if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
-        val existing = program.namespace.lookup(listOf(decl.name), decl)
+        val existing = decl.definingScope.lookup(listOf(decl.name))
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
@@ -65,22 +64,19 @@ internal class AstIdentifiersChecker(private val program: Program, private val e
             // if (subroutine.parameters.any { it.name in BuiltinFunctions })
             //    checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
-            val existing = program.namespace.lookup(listOf(subroutine.name), subroutine)
+            val existing = subroutine.lookup(listOf(subroutine.name))
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 
-            // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters. Blocks are okay.
+            // check that there are no local symbols (variables, labels, subs) that redefine the subroutine's parameters.
             val symbolsInSub = subroutine.allDefinedSymbols
             val namesInSub = symbolsInSub.map{ it.first }.toSet()
             val paramNames = subroutine.parameters.map { it.name }.toSet()
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
-                val labelOrVar = subroutine.getLabelOrVariable(name)
-                if(labelOrVar!=null && labelOrVar.position != subroutine.position)
-                    nameError(name, labelOrVar.position, subroutine)
-                val sub = subroutine.statements.firstOrNull { it is Subroutine && it.name==name}
-                if(sub!=null)
-                    nameError(name, subroutine.position, sub)
+                val symbol = subroutine.searchSymbol(name)
+                if(symbol!=null && symbol.position != subroutine.position)
+                    nameError(name, symbol.position, subroutine)
             }
 
             if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly}) {

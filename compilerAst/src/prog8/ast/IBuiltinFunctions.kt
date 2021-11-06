@@ -8,6 +8,6 @@ import prog8.ast.expressions.NumericLiteralValue
 interface IBuiltinFunctions {
     val names: Set<String>
     val purefunctionNames: Set<String>
-    fun constValue(name: String, args: List<Expression>, position: Position, memsizer: IMemSizer): NumericLiteralValue?
+    fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue?
     fun returnType(name: String, args: MutableList<Expression>): InferredTypes.InferredType
 }

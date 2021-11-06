@@ -1,22 +1,22 @@
 <component name="libraryTable">
   <library name="github.hypfvieh.dbus.java" type="repository">
-    <properties maven-id="com.github.hypfvieh:dbus-java:3.3.0" />
+    <properties maven-id="com.github.hypfvieh:dbus-java:3.3.1" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/hypfvieh/dbus-java/3.3.0/dbus-java-3.3.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-unixsocket/0.38.5/jnr-unixsocket-0.38.5.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-ffi/2.2.1/jnr-ffi-2.2.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/hypfvieh/dbus-java/3.3.1/dbus-java-3.3.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-unixsocket/0.38.6/jnr-unixsocket-0.38.6.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-ffi/2.2.2/jnr-ffi-2.2.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jffi/1.3.1/jffi-1.3.1.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jffi/1.3.1/jffi-1.3.1-native.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm/9.0/asm-9.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-commons/9.0/asm-commons-9.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-analysis/9.0/asm-analysis-9.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-tree/9.0/asm-tree-9.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-util/9.0/asm-util-9.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm/9.1/asm-9.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-commons/9.1/asm-commons-9.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-analysis/9.1/asm-analysis-9.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-tree/9.1/asm-tree-9.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/ow2/asm/asm-util/9.1/asm-util-9.1.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-a64asm/1.0.0/jnr-a64asm-1.0.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-constants/0.10.1/jnr-constants-0.10.1.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-enxio/0.32.3/jnr-enxio-0.32.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-posix/3.1.4/jnr-posix-3.1.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-enxio/0.32.4/jnr-enxio-0.32.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/jnr/jnr-posix/3.1.5/jnr-posix-3.1.5.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar!/" />
     </CLASSES>
     <JAVADOC />

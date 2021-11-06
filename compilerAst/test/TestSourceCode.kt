@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.ast
 
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.StringStartsWith
@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
-import prog8tests.helpers.*
+import prog8tests.ast.helpers.assumeNotExists
+import prog8tests.ast.helpers.assumeReadableFile
+import prog8tests.ast.helpers.fixturesDir
+import prog8tests.ast.helpers.resourcesDir
 import kotlin.io.path.Path
 import kotlin.test.*
 
@@ -55,7 +58,7 @@ class TestSourceCode {
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         assertEquals(expectedOrigin, src.origin)
-        assertEquals(path.toFile().readText(), src.asString())
+        assertEquals(path.toFile().readText(), src.readText())
         assertFalse(src.isFromResources)
         assertTrue(src.isFromFilesystem)
     }
@@ -68,7 +71,7 @@ class TestSourceCode {
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         assertEquals(expectedOrigin, src.origin)
-        assertEquals(srcFile.readText(), src.asString())
+        assertEquals(srcFile.readText(), src.readText())
     }
 
     @Test
@@ -78,7 +81,7 @@ class TestSourceCode {
         val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix/$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.asString())
+        assertEquals(srcFile.readText(), src.readText())
         assertTrue(src.isFromResources)
         assertFalse(src.isFromFilesystem)
     }
@@ -90,7 +93,7 @@ class TestSourceCode {
         val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.asString())
+        assertEquals(srcFile.readText(), src.readText())
     }
 
     @Test
@@ -100,7 +103,7 @@ class TestSourceCode {
         val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix/$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.asString())
+        assertEquals(srcFile.readText(), src.readText())
         assertTrue(src.isFromResources, ".isFromResources")
     }
 
@@ -111,7 +114,7 @@ class TestSourceCode {
         val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.asString())
+        assertEquals(srcFile.readText(), src.readText())
     }
 
     @Test
@@ -121,7 +124,7 @@ class TestSourceCode {
         val src = SourceCode.Resource(pathString)
 
         assertEquals("$libraryFilePrefix/prog8lib/math.p8", src.origin)
-        assertEquals(srcFile.readText(), src.asString())
+        assertEquals(srcFile.readText(), src.readText())
         assertTrue(src.isFromResources, ".isFromResources")
     }
 

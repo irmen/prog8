@@ -8,14 +8,7 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
 
 
-open class ParsingFailedError(override var message: String) : Exception(message)
-
-class ParseError(override var message: String, val position: Position, cause: RuntimeException)
-    : ParsingFailedError("${position.toClickableStr()}$message") {
-    init {
-        initCause(cause)
-    }
-}
+class ParseError(override var message: String, val position: Position, cause: RuntimeException): Exception(message, cause)
 
 object Prog8Parser {
 
@@ -107,7 +100,7 @@ object Prog8Parser {
         val offending = this.offendingToken
         val line = offending.line
         val beginCol = offending.charPositionInLine
-        val endCol = beginCol + offending.stopIndex - offending.startIndex  // TODO: point to col *after* token? / why, what's wrong with endCol being inclusive
+        val endCol = beginCol + offending.stopIndex - offending.startIndex
         return Position(file, line, beginCol, endCol)
     }
 

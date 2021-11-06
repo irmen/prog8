@@ -5,7 +5,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.compiler.target.C64Target
-import prog8.optimizer.CallGraph
+import prog8.compilerinterface.CallGraph
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 import kotlin.test.assertEquals
@@ -26,11 +26,11 @@ class TestCallgraph {
             }
         """
         val result = compileText(C64Target, false, sourcecode).assertSuccess()
-        val graph = CallGraph(result.programAst)
+        val graph = CallGraph(result.program)
 
         assertEquals(1, graph.imports.size)
         assertEquals(1, graph.importedBy.size)
-        val toplevelModule = result.programAst.toplevelModule
+        val toplevelModule = result.program.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
         assertEquals("string", importedModule.name)
         val importedBy = graph.importedBy.getValue(importedModule).single()
@@ -45,7 +45,7 @@ class TestCallgraph {
             assertFalse(sub in graph.calls)
             assertFalse(sub in graph.calledBy)
 
-            if(sub === result.programAst.entrypoint)
+            if(sub === result.program.entrypoint)
                 assertFalse(graph.unused(sub), "start() should always be marked as used to avoid having it removed")
             else
                 assertTrue(graph.unused(sub))
@@ -66,11 +66,11 @@ class TestCallgraph {
             }
         """
         val result = compileText(C64Target, false, sourcecode).assertSuccess()
-        val graph = CallGraph(result.programAst)
+        val graph = CallGraph(result.program)
 
         assertEquals(1, graph.imports.size)
         assertEquals(1, graph.importedBy.size)
-        val toplevelModule = result.programAst.toplevelModule
+        val toplevelModule = result.program.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
         assertEquals("string", importedModule.name)
         val importedBy = graph.importedBy.getValue(importedModule).single()

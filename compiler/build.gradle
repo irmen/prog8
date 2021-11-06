@@ -5,20 +5,19 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
-targetCompatibility = 11
-sourceCompatibility = 11
-
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url "https://kotlin.bintray.com/kotlinx" }
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
 }
 
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {
+    implementation project(':compilerInterfaces')
+    implementation project(':codeOptimizers')
     implementation project(':compilerAst')
+    implementation project(':codeGeneration')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
@@ -44,22 +43,6 @@ configurations {
 }
 
 
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-        useIR = true
-        // verbose = true
-        // freeCompilerArgs += "-XXLanguage:+NewInference"
-    }
-}
-
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "11"
-        useIR = true
-    }
-}
-
 sourceSets {
     main {
         java {
@@ -84,11 +67,6 @@ application {
     applicationName = 'p8compile'
 }
 
-artifacts {
-    archives shadowJar
-}
-
-
 shadowJar {
     archiveBaseName = 'prog8compiler'
     archiveVersion = prog8version
@@ -108,3 +86,5 @@ test {
         events "skipped", "failed"
     }
 }
+
+build.finalizedBy installDist, installShadowDist

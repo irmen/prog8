@@ -6,7 +6,6 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
-import prog8.parser.ParsingFailedError
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -36,10 +35,12 @@ private fun compileMain(args: Array<String>): Boolean {
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
+    val optimizeFloatExpressions by cli.option(ArgType.Boolean, fullName = "optfloatx", description = "optimize float expressions (warning: can increase program size)")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
+    val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
-    val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths to search in for imported modules").multiple().delimiter(File.pathSeparator)
+    val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -74,7 +75,10 @@ private fun compileMain(args: Array<String>): Boolean {
             val results = mutableListOf<CompilationResult>()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, srcdirs, outputPath)
+                val compilationResult = compileProgram(filepath,
+                    dontOptimize!=true, optimizeFloatExpressions==true,
+                    dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
+                    compilationTarget, srcdirs, outputPath)
                 results.add(compilationResult)
             }
 
@@ -111,11 +115,12 @@ private fun compileMain(args: Array<String>): Boolean {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath, dontOptimize!=true, dontWriteAssembly!=true, slowCodegenWarnings==true, compilationTarget, srcdirs, outputPath)
+                compilationResult = compileProgram(filepath,
+                    dontOptimize!=true, optimizeFloatExpressions==true,
+                    dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
+                    compilationTarget, srcdirs, outputPath)
                 if(!compilationResult.success)
                     return false
-            } catch (x: ParsingFailedError) {
-                return false
             } catch (x: AstException) {
                 return false
             }

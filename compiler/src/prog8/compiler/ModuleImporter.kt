@@ -7,6 +7,7 @@ import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.compilerinterface.IErrorReporter
 import prog8.parser.Prog8Parser
 import prog8.parser.SourceCode
 import java.io.File
@@ -33,7 +34,7 @@ class ModuleImporter(private val program: Program,
         val srcPath = when (candidates.size) {
             0 -> return Err(NoSuchFileException(
                     file = filePath.normalize().toFile(),
-                    reason = "searched in $searchIn"))
+                    reason = "Searched in $searchIn"))
             1 -> candidates.first()
             else -> candidates.first()  // when more candiates, pick the one from the first location
         }
@@ -105,7 +106,7 @@ class ModuleImporter(private val program: Program,
                             importModule(it)
                         },
                         failure = {
-                            errors.err("no module found with name $moduleName", import.position)
+                            errors.err("no module found with name $moduleName. Searched in: $sourcePaths (and internal libraries)", import.position)
                             return null
                         }
                     )
@@ -142,7 +143,6 @@ class ModuleImporter(private val program: Program,
             } else {
                 val dropCurDir = if(sourcePaths.isNotEmpty() && sourcePaths[0].name == ".") 1 else 0
                 sourcePaths.drop(dropCurDir) +
-                // TODO: won't work until Prog8Parser is fixed s.t. it fully initializes the modules it returns. // hm, what won't work?)
                 listOf(Path(importingModule.position.file).parent ?: Path("")) +
                 listOf(Path(".", "prog8lib"))
             }
