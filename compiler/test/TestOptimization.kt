@@ -1,7 +1,6 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ParentSentinel
@@ -17,10 +16,8 @@ import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 import kotlin.test.*
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestOptimization {
-    @Test
-    fun testRemoveEmptySubroutineExceptStart() {
+class TestOptimization: FunSpec({
+    test("testRemoveEmptySubroutineExceptStart") {
         val sourcecode = """
             main {
                 sub start() {
@@ -39,8 +36,7 @@ class TestOptimization {
         assertTrue(startSub.statements.single() is Return, "compiler has inserted return in empty subroutines")
     }
 
-    @Test
-    fun testDontRemoveEmptySubroutineIfItsReferenced() {
+    test("testDontRemoveEmptySubroutineIfItsReferenced") {
         val sourcecode = """
             main {
                 sub start() {
@@ -63,9 +59,7 @@ class TestOptimization {
         assertTrue(emptySub.statements.single() is Return, "compiler has inserted return in empty subroutines")
     }
 
-    @Test
-    fun testGeneratedConstvalueInheritsProperParentLinkage()
-    {
+    test("testGeneratedConstvalueInheritsProperParentLinkage") {
         val number = NumericLiteralValue(DataType.UBYTE, 11, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -80,8 +74,7 @@ class TestOptimization {
         assertSame(tc, constvalue.parent)
     }
 
-    @Test
-    fun testConstantFoldedAndSilentlyTypecastedForInitializerValues() {
+    test("testConstantFoldedAndSilentlyTypecastedForInitializerValues") {
         val sourcecode = """
             main {
                 sub start() {
@@ -120,4 +113,4 @@ class TestOptimization {
         assertEquals(DataType.UBYTE, (initY2.value as NumericLiteralValue).type)
         assertEquals(11.0, (initY2.value as NumericLiteralValue).number.toDouble())
     }
-}
+})

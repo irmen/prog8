@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
-  <component name="FacetManager">
-    <facet type="Python" name="Python">
-      <configuration sdkName="Python 3.9" />
-    </facet>
-  </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
@@ -17,7 +12,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="compilerAst" />
-    <orderEntry type="library" name="Python 3.9 interpreter library" level="application" />
     <orderEntry type="library" name="hamcrest" level="project" />
     <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
     <orderEntry type="library" name="junit.jupiter" level="project" />

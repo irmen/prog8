@@ -1,7 +1,6 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteralValue
@@ -13,17 +12,15 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestNumericLiteralValue {
+class TestNumericLiteralValue: FunSpec({
 
-    private fun sameValueAndType(lv1: NumericLiteralValue, lv2: NumericLiteralValue): Boolean {
+    fun sameValueAndType(lv1: NumericLiteralValue, lv2: NumericLiteralValue): Boolean {
         return lv1.type==lv2.type && lv1==lv2
     }
 
-    private val dummyPos = Position("test", 0, 0, 0)
+    val dummyPos = Position("test", 0, 0, 0)
 
-    @Test
-    fun testIdentity() {
+    test("testIdentity") {
         val v = NumericLiteralValue(DataType.UWORD, 12345, dummyPos)
         assertEquals(v, v)
         assertFalse(v != v)
@@ -35,8 +32,7 @@ class TestNumericLiteralValue {
         assertTrue(sameValueAndType(NumericLiteralValue(DataType.UWORD, 12345, dummyPos), NumericLiteralValue(DataType.UWORD, 12345, dummyPos)))
     }
 
-    @Test
-    fun testEqualsAndNotEquals() {
+    test("testEqualsAndNotEquals") {
         assertEquals(NumericLiteralValue(DataType.UBYTE, 100, dummyPos), NumericLiteralValue(DataType.UBYTE, 100, dummyPos))
         assertEquals(NumericLiteralValue(DataType.UBYTE, 100, dummyPos), NumericLiteralValue(DataType.UWORD, 100, dummyPos))
         assertEquals(NumericLiteralValue(DataType.UBYTE, 100, dummyPos), NumericLiteralValue(DataType.FLOAT, 100.0, dummyPos))
@@ -80,8 +76,7 @@ class TestNumericLiteralValue {
 
     }
 
-    @Test
-    fun testEqualsRef() {
+    test("testEqualsRef") {
         assertEquals(StringLiteralValue("hello", false, dummyPos), StringLiteralValue("hello", false, dummyPos))
         assertNotEquals(StringLiteralValue("hello", false, dummyPos), StringLiteralValue("bye", false, dummyPos))
         assertEquals(StringLiteralValue("hello", true, dummyPos), StringLiteralValue("hello", true, dummyPos))
@@ -102,8 +97,7 @@ class TestNumericLiteralValue {
         assertNotEquals(lv1, lv3)
     }
 
-    @Test
-    fun testGreaterThan(){
+    test("testGreaterThan") {
         assertTrue(NumericLiteralValue(DataType.UBYTE, 100, dummyPos) > NumericLiteralValue(DataType.UBYTE, 99, dummyPos))
         assertTrue(NumericLiteralValue(DataType.UWORD, 254, dummyPos) > NumericLiteralValue(DataType.UWORD, 253, dummyPos))
         assertTrue(NumericLiteralValue(DataType.FLOAT, 100.0, dummyPos) > NumericLiteralValue(DataType.FLOAT, 99.9, dummyPos))
@@ -121,8 +115,7 @@ class TestNumericLiteralValue {
         assertFalse(NumericLiteralValue(DataType.FLOAT, 100.0, dummyPos) >= NumericLiteralValue(DataType.FLOAT, 100.1, dummyPos))
     }
 
-    @Test
-    fun testLessThan() {
+    test("testLessThan") {
         assertTrue(NumericLiteralValue(DataType.UBYTE, 100, dummyPos) < NumericLiteralValue(DataType.UBYTE, 101, dummyPos))
         assertTrue(NumericLiteralValue(DataType.UWORD, 254, dummyPos) < NumericLiteralValue(DataType.UWORD, 255, dummyPos))
         assertTrue(NumericLiteralValue(DataType.FLOAT, 100.0, dummyPos) < NumericLiteralValue(DataType.FLOAT, 100.1, dummyPos))
@@ -140,5 +133,4 @@ class TestNumericLiteralValue {
         assertFalse(NumericLiteralValue(DataType.FLOAT, 100.0, dummyPos) <= NumericLiteralValue(DataType.FLOAT, 99.9, dummyPos))
     }
 
-}
-
+})

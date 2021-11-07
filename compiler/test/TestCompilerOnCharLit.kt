@@ -1,7 +1,10 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.instanceOf
+import org.junit.jupiter.api.Assertions.fail
 import prog8.ast.IFunctionCall
 import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
@@ -11,9 +14,6 @@ import prog8.ast.statements.Assignment
 import prog8.compiler.target.Cx16Target
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNull
 
 
 /**
@@ -21,11 +21,9 @@ import kotlin.test.assertNull
  * They are not really unit tests, but rather tests of the whole process,
  * from source file loading all the way through to running 64tass.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestCompilerOnCharLit {
+class TestCompilerOnCharLit: FunSpec({
 
-    @Test
-    fun testCharLitAsRomsubArg() {
+    test("testCharLitAsRomsubArg") {
         val platform = Cx16Target
         val result = compileText(platform, false, """
             main {
@@ -40,15 +38,15 @@ class TestCompilerOnCharLit {
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
-        assertIs<NumericLiteralValue>(funCall.args[0],
-            "char literal should have been replaced by ubyte literal")
+        withClue("char literal should have been replaced by ubyte literal") {
+            funCall.args[0] shouldBe instanceOf<NumericLiteralValue>()
+        }
         val arg = funCall.args[0] as NumericLiteralValue
-        assertEquals(DataType.UBYTE, arg.type)
-        assertEquals(platform.encodeString("\n", false)[0], arg.number.toShort())
+        arg.type shouldBe DataType.UBYTE
+        arg.number.toShort() shouldBe platform.encodeString("\n", false)[0]
     }
 
-    @Test
-    fun testCharVarAsRomsubArg() {
+    test("testCharVarAsRomsubArg") {
         val platform = Cx16Target
         val result = compileText(platform, false, """
             main {
@@ -64,28 +62,31 @@ class TestCompilerOnCharLit {
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
-        assertIs<IdentifierReference>(funCall.args[0])
+        funCall.args[0] shouldBe instanceOf<IdentifierReference>()
         val arg = funCall.args[0] as IdentifierReference
         val decl = arg.targetVarDecl(program)!!
-        assertEquals(VarDeclType.VAR, decl.type)
-        assertEquals(DataType.UBYTE, decl.datatype)
+        decl.type shouldBe VarDeclType.VAR
+        decl.datatype shouldBe DataType.UBYTE
 
         // TODO: assertIs<CharLiteral>(decl.value,
         //          "char literals should be kept until code gen")
         //       val initializerValue = decl.value as CharLiteral
         //       assertEquals('\n', (initializerValue as CharLiteral).value)
 
-        assertNull(decl.value, "initializer value should have been moved to separate assignment")
+        withClue("initializer value should have been moved to separate assignment"){
+            decl.value shouldBe null
+        }
         val assignInitialValue = decl.nextSibling() as Assignment
-        assertEquals(listOf("ch"), assignInitialValue.target.identifier!!.nameInSource)
-        assertIs<NumericLiteralValue>(assignInitialValue.value, "char literal should have been replaced by ubyte literal")
+        assignInitialValue.target.identifier!!.nameInSource shouldBe listOf("ch")
+        withClue("char literal should have been replaced by ubyte literal") {
+            assignInitialValue.value shouldBe instanceOf<NumericLiteralValue>()
+        }
         val initializerValue = assignInitialValue.value as NumericLiteralValue
-        assertEquals(DataType.UBYTE, initializerValue.type)
-        assertEquals(platform.encodeString("\n", false)[0], initializerValue.number.toShort())
+        initializerValue.type shouldBe DataType.UBYTE
+        initializerValue.number.toShort() shouldBe platform.encodeString("\n", false)[0]
     }
 
-    @Test
-    fun testCharConstAsRomsubArg() {
+    test("testCharConstAsRomsubArg") {
         val platform = Cx16Target
         val result = compileText(platform, false, """
             main {
@@ -105,20 +106,15 @@ class TestCompilerOnCharLit {
         when (val arg = funCall.args[0]) {
             is IdentifierReference -> {
                 val decl = arg.targetVarDecl(program)!!
-                assertEquals(VarDeclType.CONST, decl.type)
-                assertEquals(DataType.UBYTE, decl.datatype)
-                assertEquals(
-                    platform.encodeString("\n", false)[0],
-                    (decl.value as NumericLiteralValue).number.toShort())
+                decl.type shouldBe VarDeclType.CONST
+                decl.datatype shouldBe DataType.UBYTE
+                (decl.value as NumericLiteralValue).number.toShort() shouldBe platform.encodeString("\n", false)[0]
             }
             is NumericLiteralValue -> {
-                assertEquals(
-                    platform.encodeString("\n", false)[0],
-                    arg.number.toShort())
+                arg.number.toShort() shouldBe platform.encodeString("\n", false)[0]
             }
-            else -> assertIs<IdentifierReference>(funCall.args[0]) // make test fail
+            else -> fail("invalid arg type") // funCall.args[0] shouldBe instanceOf<IdentifierReference>() // make test fail
         }
     }
 
-}
-
+})

@@ -1,20 +1,16 @@
 package prog8tests
 
-import org.junit.jupiter.api.DynamicTest.dynamicTest
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestFactory
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
-import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compilerinterface.size
 import prog8.compilerinterface.toConstantIntegerRange
-import prog8tests.ast.helpers.mapCombinations
+import prog8tests.ast.helpers.cartesianProduct
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
@@ -28,11 +24,9 @@ import kotlin.test.assertEquals
  * They are not really unit tests, but rather tests of the whole process,
  * from source file loading all the way through to running 64tass.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestCompilerOnRanges {
+class TestCompilerOnRanges: FunSpec({
 
-    @Test
-    fun testUByteArrayInitializerWithRange_char_to_char() {
+    test("testUByteArrayInitializerWithRange_char_to_char") {
         val platform = Cx16Target
         val result = compileText(platform, true, """
             main {
@@ -59,8 +53,7 @@ class TestCompilerOnRanges {
         assertEquals(expectedEnd - expectedStart + 1, rhsValues.last() - rhsValues.first() + 1, "rangeExpr.size()")
     }
 
-    @Test
-    fun testFloatArrayInitializerWithRange_char_to_char() {
+    test("testFloatArrayInitializerWithRange_char_to_char") {
         val platform = C64Target
         val result = compileText(platform, optimize = false, """
             %option enable_floats
@@ -88,46 +81,31 @@ class TestCompilerOnRanges {
         assertEquals(expectedEnd - expectedStart + 1, rhsValues.size, "rangeExpr.size()")
     }
 
-    fun Subroutine.decl(varName: String): VarDecl {
-        return statements.filterIsInstance<VarDecl>()
-            .first { it.name == varName }
-    }
-    inline fun <reified T : Expression> VarDecl.rhs() : T {
-        return value as T
-    }
-    inline fun <reified T : Expression> ArrayLiteralValue.elements() : List<T> {
-        return value.map { it as T }
-    }
+    context("floatArrayInitializerWithRange") {
+        val combos = cartesianProduct(
+            listOf("", "42", "41"),                 // sizeInDecl
+            listOf("%option enable_floats", ""),    // optEnableFloats
+            listOf(Cx16Target, C64Target),          // platform
+            listOf(false, true)                    // optimize
+        )
 
-    fun <N : Number> assertEndpoints(expFirst: N, expLast: N, actual: Iterable<N>, msg: String = ".first .. .last") {
-        val expectedStr = "$expFirst .. $expLast"
-        val actualStr = "${actual.first()} .. ${actual.last()}"
-        assertEquals(expectedStr, actualStr,".first .. .last")
-    }
-
-
-    @TestFactory
-    fun floatArrayInitializerWithRange() = mapCombinations(
-        dim1 = listOf("", "42", "41"),                 // sizeInDecl
-        dim2 = listOf("%option enable_floats", ""),    // optEnableFloats
-        dim3 = listOf(Cx16Target, C64Target),          // platform
-        dim4 = listOf(false, true),                    // optimize
-        combine4 = { sizeInDecl, optEnableFloats, platform, optimize ->
+        combos.forEach {
+            val (sizeInDecl, optEnableFloats, platform, optimize) = it
             val displayName =
-                "test failed for: " +
                 when (sizeInDecl) {
                     "" -> "no"
                     "42" -> "correct"
                     else -> "wrong"
                 } + " array size given" +
-                ", " + (if (optEnableFloats == "") "without" else "with") + " %option enable_floats" +
-                ", ${platform.name}, optimize: $optimize"
-            dynamicTest(displayName) {
+                        ", " + (if (optEnableFloats == "") "without" else "with") + " %option enable_floats" +
+                        ", ${platform.name}, optimize: $optimize"
+
+            test(displayName) {
                 val result = compileText(platform, optimize, """
                     $optEnableFloats
                     main {
                         sub start() {
-                            float[$sizeInDecl] cs = 1 to 42 ; values are computed at compile time 
+                            float[$sizeInDecl] cs = 1 to 42 ; values are computed at compile time
                             cs[0] = 23 ; keep optimizer from removing it
                         }
                     }
@@ -136,12 +114,12 @@ class TestCompilerOnRanges {
                     result.assertSuccess()
                 else
                     result.assertFailure()
+
             }
         }
-    )
+    }
 
-    @Test
-    fun testForLoopWithRange_char_to_char() {
+    test("testForLoopWithRange_char_to_char") {
         val platform = Cx16Target
         val result = compileText(platform, optimize = true, """
             main {
@@ -171,8 +149,7 @@ class TestCompilerOnRanges {
         assertEquals(expectedEnd - expectedStart + 1, rangeExpr.size(), "rangeExpr.size()")
     }
 
-    @Test
-    fun testForLoopWithRange_bool_to_bool() {
+    test("testForLoopWithRange_bool_to_bool") {
         val platform = Cx16Target
         val result = compileText(platform, optimize = true, """
             main {
@@ -198,8 +175,7 @@ class TestCompilerOnRanges {
         assertEquals(1, intProgression?.last)
     }
 
-    @Test
-    fun testForLoopWithRange_ubyte_to_ubyte() {
+    test("testForLoopWithRange_ubyte_to_ubyte") {
         val platform = Cx16Target
         val result = compileText(platform, optimize = true, """
             main {
@@ -225,8 +201,7 @@ class TestCompilerOnRanges {
         assertEquals(9, intProgression?.last)
     }
 
-    @Test
-    fun testForLoopWithRange_str_downto_str() {
+    test("testForLoopWithRange_str_downto_str") {
         val errors = ErrorReporterForTests()
         compileText(Cx16Target, true, """
             main {
@@ -243,8 +218,7 @@ class TestCompilerOnRanges {
         assertContains(errors.errors[1], ".p8:5:44: range expression to value must be integer")
     }
 
-    @Test
-    fun testForLoopWithIterable_str() {
+    test("testForLoopWithIterable_str") {
         val result = compileText(Cx16Target, false, """
             main {
                 sub start() {
@@ -266,8 +240,7 @@ class TestCompilerOnRanges {
         assertEquals(DataType.STR, iterable.inferType(program).getOr(DataType.UNDEFINED))
     }
 
-    @Test
-    fun testRangeExprNumericSize() {
+    test("testRangeExprNumericSize") {
         val expr = RangeExpr(
             NumericLiteralValue.optimalInteger(10, Position.DUMMY),
             NumericLiteralValue.optimalInteger(20, Position.DUMMY),
@@ -276,5 +249,4 @@ class TestCompilerOnRanges {
         assertEquals(6, expr.size())
         expr.toConstantIntegerRange()
     }
-}
-
+})

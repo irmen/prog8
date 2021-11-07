@@ -1,7 +1,6 @@
 package prog8tests
 
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.DynamicTest.dynamicTest
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteralValue
@@ -22,14 +21,11 @@ import kotlin.test.assertNotEquals
  * They are not really unit tests, but rather tests of the whole process,
  * from source file loading all the way through to running 64tass.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestCompilerOnImportsAndIncludes {
+class TestCompilerOnImportsAndIncludes: FunSpec({
 
-    @Nested
-    inner class Import {
+    context("Import") {
 
-        @Test
-        fun testImportFromSameFolder() {
+        test("testImportFromSameFolder") {
             val filepath = assumeReadableFile(fixturesDir, "importFromSameFolder.p8")
             assumeReadableFile(fixturesDir, "foo_bar.p8")
 
@@ -51,10 +47,8 @@ class TestCompilerOnImportsAndIncludes {
         }
     }
 
-    @Nested
-    inner class AsmInclude {
-        @Test
-        fun testAsmIncludeFromSameFolder() {
+    context("AsmInclude") {
+        test("testAsmIncludeFromSameFolder") {
             val filepath = assumeReadableFile(fixturesDir, "asmIncludeFromSameFolder.p8")
             assumeReadableFile(fixturesDir, "foo_bar.asm")
 
@@ -79,10 +73,8 @@ class TestCompilerOnImportsAndIncludes {
         }
     }
 
-    @Nested
-    inner class Asmbinary {
-        @Test
-        fun testAsmbinaryDirectiveWithNonExistingFile() {
+    context("Asmbinary") {
+        test("testAsmbinaryDirectiveWithNonExistingFile") {
             val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonExisting.p8")
             assumeNotExists(fixturesDir, "i_do_not_exist.bin")
 
@@ -90,8 +82,7 @@ class TestCompilerOnImportsAndIncludes {
                 .assertFailure()
         }
 
-        @Test
-        fun testAsmbinaryDirectiveWithNonReadableFile() {
+        test("testAsmbinaryDirectiveWithNonReadableFile") {
             val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonReadable.p8")
             assumeDirectory(fixturesDir, "subFolder")
 
@@ -99,31 +90,30 @@ class TestCompilerOnImportsAndIncludes {
                 .assertFailure()
         }
 
-        @TestFactory
-        fun asmbinaryDirectiveWithExistingBinFile(): Iterable<DynamicTest> =
-            listOf(
+        val tests = listOf(
                 Triple("same ", "asmBinaryFromSameFolder.p8", "do_nothing1.bin"),
                 Triple("sub", "asmBinaryFromSubFolder.p8", "subFolder/do_nothing2.bin"),
-            ).map {
-                val (where, p8Str, binStr) = it
-                dynamicTest("%asmbinary from ${where}folder") {
-                    val p8Path = assumeReadableFile(fixturesDir, p8Str)
-                    // val binPath = assumeReadableFile(fixturesDir, binStr)
-                    assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workingDir
-                        workingDir.normalize().toAbsolutePath(),
-                        outputDir.normalize().toAbsolutePath(),
-                        "sanity check: workingDir and outputDir should not be the same folder"
+            )
+
+        tests.forEach {
+            val (where, p8Str, binStr) = it
+            test("%asmbinary from ${where}folder") {
+                val p8Path = assumeReadableFile(fixturesDir, p8Str)
+                // val binPath = assumeReadableFile(fixturesDir, binStr)
+                assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workingDir
+                    workingDir.normalize().toAbsolutePath(),
+                    outputDir.normalize().toAbsolutePath(),
+                    "sanity check: workingDir and outputDir should not be the same folder"
+                )
+
+                compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+                    .assertSuccess(
+                        "argument to assembler directive .binary " +
+                                "should be relative to the generated .asm file (in output dir), " +
+                                "NOT relative to .p8 neither current working dir"
                     )
-
-                    compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
-                        .assertSuccess(
-                            "argument to assembler directive .binary " +
-                                    "should be relative to the generated .asm file (in output dir), " +
-                                    "NOT relative to .p8 neither current working dir"
-                        )
-                }
             }
-
+        }
     }
 
-}
+})

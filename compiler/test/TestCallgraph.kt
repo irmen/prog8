@@ -1,21 +1,19 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.maps.shouldContainKey
+import io.kotest.matchers.maps.shouldNotContainKey
+import io.kotest.matchers.shouldBe
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.CallGraph
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestCallgraph {
-    @Test
-    fun testGraphForEmptySubs() {
+class TestCallgraph: FunSpec({
+    test("testGraphForEmptySubs") {
         val sourcecode = """
             %import string
             main {
@@ -28,32 +26,33 @@ class TestCallgraph {
         val result = compileText(C64Target, false, sourcecode).assertSuccess()
         val graph = CallGraph(result.program)
 
-        assertEquals(1, graph.imports.size)
-        assertEquals(1, graph.importedBy.size)
+        graph.imports.size shouldBe 1
+        graph.importedBy.size shouldBe 1
         val toplevelModule = result.program.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
-        assertEquals("string", importedModule.name)
+        importedModule.name shouldBe "string"
         val importedBy = graph.importedBy.getValue(importedModule).single()
-        assertTrue(importedBy.name.startsWith("on_the_fly_test"))
+        importedBy.name.startsWith("on_the_fly_test") shouldBe true
 
-        assertFalse(graph.unused(toplevelModule))
-        assertFalse(graph.unused(importedModule))
+        graph.unused(toplevelModule) shouldBe false
+        graph.unused(importedModule) shouldBe false
 
         val mainBlock = toplevelModule.statements.filterIsInstance<Block>().single()
         for(stmt in mainBlock.statements) {
             val sub = stmt as Subroutine
-            assertFalse(sub in graph.calls)
-            assertFalse(sub in graph.calledBy)
+            graph.calls shouldNotContainKey sub
+            graph.calledBy shouldNotContainKey sub
 
             if(sub === result.program.entrypoint)
-                assertFalse(graph.unused(sub), "start() should always be marked as used to avoid having it removed")
+                withClue("start() should always be marked as used to avoid having it removed") {
+                    graph.unused(sub) shouldBe false
+                }
             else
-                assertTrue(graph.unused(sub))
+                graph.unused(sub) shouldBe true
         }
     }
 
-    @Test
-    fun testGraphForEmptyButReferencedSub() {
+    test("testGraphForEmptyButReferencedSub") {
         val sourcecode = """
             %import string
             main {
@@ -68,24 +67,32 @@ class TestCallgraph {
         val result = compileText(C64Target, false, sourcecode).assertSuccess()
         val graph = CallGraph(result.program)
 
-        assertEquals(1, graph.imports.size)
-        assertEquals(1, graph.importedBy.size)
+        graph.imports.size shouldBe 1
+        graph.importedBy.size shouldBe 1
         val toplevelModule = result.program.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
-        assertEquals("string", importedModule.name)
+        importedModule.name shouldBe "string"
         val importedBy = graph.importedBy.getValue(importedModule).single()
-        assertTrue(importedBy.name.startsWith("on_the_fly_test"))
+        importedBy.name.startsWith("on_the_fly_test") shouldBe true
 
-        assertFalse(graph.unused(toplevelModule))
-        assertFalse(graph.unused(importedModule))
+        graph.unused(toplevelModule) shouldBe false
+        graph.unused(importedModule) shouldBe false
 
         val mainBlock = toplevelModule.statements.filterIsInstance<Block>().single()
         val startSub = mainBlock.statements.filterIsInstance<Subroutine>().single{it.name=="start"}
         val emptySub = mainBlock.statements.filterIsInstance<Subroutine>().single{it.name=="empty"}
 
-        assertTrue(startSub in graph.calls, "start 'calls' (references) empty")
-        assertFalse(emptySub in graph.calls, "empty doesn't call anything")
-        assertTrue(emptySub in graph.calledBy, "empty gets 'called'")
-        assertFalse(startSub in graph.calledBy, "start doesn't get called (except as entrypoint ofc.)")
+        withClue("start 'calls' (references) empty") {
+            graph.calls shouldContainKey startSub
+        }
+        withClue("empty doesn't call anything") {
+            graph.calls shouldNotContainKey emptySub
+        }
+        withClue("empty gets 'called'") {
+            graph.calledBy shouldContainKey emptySub
+        }
+        withClue( "start doesn't get called (except as entrypoint ofc.)") {
+            graph.calledBy shouldNotContainKey startSub
+        }
     }
-}
+})

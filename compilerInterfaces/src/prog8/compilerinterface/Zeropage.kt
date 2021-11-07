@@ -51,7 +51,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     }
 
     fun allocate(scopedname: String, datatype: DataType, position: Position?, errors: IErrorReporter): Int {
-        assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
+        require(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
             throw InternalCompilerException("zero page usage has been disabled")

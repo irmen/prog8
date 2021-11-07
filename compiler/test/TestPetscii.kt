@@ -1,32 +1,27 @@
 package prog8tests
 
 import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.expect
 import com.github.michaelbull.result.expectError
 import com.github.michaelbull.result.getOrElse
+import io.kotest.core.spec.style.FunSpec
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
 import prog8.compiler.target.cbm.Petscii
 import java.io.CharConversionException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestPetscii {
+class TestPetscii: FunSpec({
 
-    @Test
-    fun testZero() {
+    test("testZero") {
         assertThat(Petscii.encodePetscii("\u0000", true), equalTo(Ok(listOf<Short>(0))))
         assertThat(Petscii.encodePetscii("\u0000", false), equalTo(Ok(listOf<Short>(0))))
         assertThat(Petscii.decodePetscii(listOf(0), true), equalTo("\u0000"))
         assertThat(Petscii.decodePetscii(listOf(0), false), equalTo("\u0000"))
     }
 
-    @Test
-    fun testLowercase() {
+    test("testLowercase") {
         assertThat(Petscii.encodePetscii("hello WORLD 123 @!£", true), equalTo(
                 Ok(listOf<Short>(72, 69, 76, 76, 79, 32, 0xd7, 0xcf, 0xd2, 0xcc, 0xc4, 32, 49, 50, 51, 32, 64, 33, 0x5c))))
         assertThat(Petscii.encodePetscii("\uf11a", true), equalTo(Ok(listOf<Short>(0x12))))   // reverse vid
@@ -37,8 +32,7 @@ class TestPetscii {
         assertThat(Petscii.decodePetscii(listOf(72, 0xd7, 0x5c, 0xfa, 0x12), true), equalTo("hW£✓\uF11A"))
     }
 
-    @Test
-    fun testUppercase() {
+    test("testUppercase") {
         assertThat(Petscii.encodePetscii("HELLO 123 @!£"), equalTo(
                 Ok(listOf<Short>(72, 69, 76, 76, 79, 32, 49, 50, 51, 32, 64, 33, 0x5c))))
         assertThat(Petscii.encodePetscii("\uf11a"), equalTo(Ok(listOf<Short>(0x12))))   // reverse vid
@@ -49,8 +43,7 @@ class TestPetscii {
         assertThat(Petscii.decodePetscii(listOf(72, 0x5c, 0xd3, 0xff)), equalTo("H£♥π"))
     }
 
-    @Test
-    fun testScreencodeLowercase() {
+    test("testScreencodeLowercase") {
         assertThat(Petscii.encodeScreencode("hello WORLD 123 @!£", true), equalTo(
                 Ok(listOf<Short>(0x08, 0x05, 0x0c, 0x0c, 0x0f, 0x20, 0x57, 0x4f, 0x52, 0x4c, 0x44, 0x20, 0x31, 0x32, 0x33, 0x20, 0x00, 0x21, 0x1c))
         ))
@@ -61,8 +54,7 @@ class TestPetscii {
         assertThat(Petscii.decodeScreencode(listOf(0x08, 0x57, 0x1c, 0x7a), true), equalTo("hW£✓"))
     }
 
-    @Test
-    fun testScreencodeUppercase() {
+    test("testScreencodeUppercase") {
         assertThat(Petscii.encodeScreencode("WORLD 123 @!£"), equalTo(
                 Ok(listOf<Short>(0x17, 0x0f, 0x12, 0x0c, 0x04, 0x20, 0x31, 0x32, 0x33, 0x20, 0x00, 0x21, 0x1c))))
         assertThat(Petscii.encodeScreencode("♥"), equalTo(Ok(listOf<Short>(0x53))))
@@ -74,8 +66,7 @@ class TestPetscii {
         assertThat(Petscii.decodeScreencode(listOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
     }
 
-    @Test
-    fun testErrorCases() {
+    test("testErrorCases") {
         Petscii.encodePetscii("~", true).expectError { "shouldn't be able to encode tilde" }
         Petscii.encodePetscii("~", false).expectError { "shouldn't be able to encode tilde" }
         Petscii.encodeScreencode("~", true).expectError { "shouldn't be able to encode tilde" }
@@ -98,9 +89,7 @@ class TestPetscii {
         Petscii.petscii2scr(256, false).expectError { "256 should error" }
     }
 
-    @Test
-    fun testSpecialReplacements()
-    {
+    test("testSpecialReplacements") {
         fun encodeP(c: Char, lower: Boolean) = Petscii.encodePetscii(c.toString(), lower).getOrElse { throw it }.single()
         fun encodeS(c: Char, lower: Boolean) = Petscii.encodeScreencode(c.toString(), lower).getOrElse { throw it }.single()
 
@@ -135,8 +124,7 @@ class TestPetscii {
         assertEquals(77, encodeS('\\', true))
     }
 
-    @Test
-    fun testBoxDrawingCharsEncoding() {
+    test("testBoxDrawingCharsEncoding") {
         fun encodeP(c: Char, lower: Boolean) = Petscii.encodePetscii(c.toString(), lower).getOrElse { throw it }.single()
         fun encodeS(c: Char, lower: Boolean) = Petscii.encodeScreencode(c.toString(), lower).getOrElse { throw it }.single()
 
@@ -174,8 +162,7 @@ class TestPetscii {
         assertEquals(93, encodeS('│', true))
     }
 
-    @Test
-    fun testBoxDrawingCharsDecoding() {
+    test("testBoxDrawingCharsDecoding") {
         // ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
         assertEquals('\uf13b', Petscii.decodePetscii(listOf(195), false).single(), "BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)")
         assertEquals('C', Petscii.decodePetscii(listOf(195), true).single())
@@ -197,4 +184,4 @@ class TestPetscii {
         assertEquals('B', Petscii.decodeScreencode(listOf(66), true).single())
     }
 
-}
+})

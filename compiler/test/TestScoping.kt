@@ -1,7 +1,6 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.GlobalNamespace
 import prog8.ast.base.ParentSentinel
 import prog8.ast.expressions.NumericLiteralValue
@@ -12,11 +11,9 @@ import prog8tests.helpers.compileText
 import kotlin.test.*
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestScoping {
+class TestScoping: FunSpec({
 
-    @Test
-    fun testModulesParentIsGlobalNamespace() {
+    test("testModulesParentIsGlobalNamespace") {
         val src = """
             main {
                 sub start() {
@@ -31,8 +28,7 @@ class TestScoping {
         assertIs<ParentSentinel>(module.parent.parent)
     }
 
-    @Test
-    fun testAnonScopeVarsMovedIntoSubroutineScope() {
+    test("testAnonScopeVarsMovedIntoSubroutineScope") {
         val src = """
             main {
                 sub start() {
@@ -60,8 +56,7 @@ class TestScoping {
         assertTrue(repeatbody.statements[1] is PostIncrDecr)
     }
 
-    @Test
-    fun testLabelsWithAnonScopes() {
+    test("testLabelsWithAnonScopes") {
         val src = """
             main {
                 sub start() {
@@ -123,4 +118,4 @@ class TestScoping {
         assertEquals(1, labels.size, "only one label in subroutine scope")
     }
 
-}
+})

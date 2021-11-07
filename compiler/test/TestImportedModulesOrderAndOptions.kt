@@ -1,7 +1,6 @@
 package prog8tests
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.internedStringsModuleName
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
@@ -15,11 +14,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestImportedModulesOrderAndOptions {
+class TestImportedModulesOrderAndOptions: FunSpec({
 
-    @Test
-    fun testImportedModuleOrderAndMainModuleCorrect() {
+    test("testImportedModuleOrderAndMainModuleCorrect") {
         val result = compileText(C64Target, false, """
 %import textio
 %import floats
@@ -47,8 +44,7 @@ main {
         assertTrue(result.program.toplevelModule.name.startsWith("on_the_fly_test"))
     }
 
-    @Test
-    fun testCompilationOptionsCorrectFromMain() {
+    test("testCompilationOptionsCorrectFromMain") {
         val result = compileText(C64Target, false, """
 %import textio
 %import floats
@@ -68,8 +64,7 @@ main {
         assertTrue(options.noSysInit)
     }
 
-    @Test
-    fun testModuleOrderAndCompilationOptionsCorrectWithJustImports() {
+    test("testModuleOrderAndCompilationOptionsCorrectWithJustImports") {
         val errors = ErrorReporterForTests()
         val sourceText = """
 %import textio
@@ -100,5 +95,4 @@ main {
         assertTrue(options.noSysInit)
     }
 
-
-}
+})

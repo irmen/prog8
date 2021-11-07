@@ -1,8 +1,6 @@
 package prog8tests
 
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.base.DataType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -14,11 +12,9 @@ import prog8tests.helpers.compileText
 import kotlin.test.*
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSubroutines {
+class TestSubroutines: FunSpec({
 
-    @Test
-    fun stringParameter() {
+    test("stringParameter") {
         val text = """
             main {
                 sub start() {
@@ -65,8 +61,7 @@ class TestSubroutines {
         assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
     }
 
-    @Test
-    fun stringParameterAsmGen() {
+    test("stringParameterAsmGen") {
         val text = """
             main {
                 sub start() {
@@ -116,8 +111,7 @@ class TestSubroutines {
         assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
     }
 
-    @Test
-    fun arrayParameterNotYetAllowed_ButShouldPerhapsBe() {
+    test("arrayParameterNotYetAllowed_ButShouldPerhapsBe") {
         // note: the *parser* accepts this as it is valid *syntax*,
         // however, it's not (yet) valid for the compiler
         val text = """
@@ -139,9 +133,8 @@ class TestSubroutines {
         assertContains(errors.errors.single(), ".p8:9:16: Non-string pass-by-reference types cannot occur as a parameter type directly")
     }
 
-    @Test
-    @Disabled("TODO: allow array parameter in signature")           // TODO allow this?
-    fun arrayParameter() {
+    // TODO allow this?
+    xtest("arrayParameter") {
         val text = """
             main {
                 sub start() {
@@ -178,8 +171,7 @@ class TestSubroutines {
         assertTrue(func.statements.isEmpty())
     }
 
-    @Test
-    fun testUwordParameterAndNormalVarIndexedAsArrayWorkAsDirectMemoryRead() {
+    test("testUwordParameterAndNormalVarIndexedAsArrayWorkAsDirectMemoryRead") {
         val text="""
             main {
               sub thing(uword rr) {
@@ -222,8 +214,7 @@ class TestSubroutines {
         assertEquals(3, (valueZZexpr.right as NumericLiteralValue).number.toInt())
     }
 
-    @Test
-    fun testUwordParameterAndNormalVarIndexedAsArrayWorkAsMemoryWrite() {
+    test("testUwordParameterAndNormalVarIndexedAsArrayWorkAsMemoryWrite") {
         val text="""
             main {
               sub thing(uword rr) {
@@ -252,4 +243,4 @@ class TestSubroutines {
         assertEquals("+", addressExpr.operator)
         assertEquals(10, (addressExpr.right as NumericLiteralValue).number.toInt())
     }
-}
+})

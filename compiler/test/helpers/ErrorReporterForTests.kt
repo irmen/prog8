@@ -5,7 +5,6 @@ import prog8.compilerinterface.IErrorReporter
 
 internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true): IErrorReporter {
 
-
     val errors = mutableListOf<String>()
     val warnings = mutableListOf<String>()
 

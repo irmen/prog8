@@ -1,5 +1,7 @@
 package prog8tests.helpers
 
+import io.kotest.assertions.withClue
+import io.kotest.matchers.shouldBe
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
 import prog8.compilerinterface.ICompilationTarget
@@ -8,17 +10,19 @@ import prog8tests.ast.helpers.assumeReadableFile
 import prog8tests.ast.helpers.outputDir
 import java.nio.file.Path
 import kotlin.io.path.name
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 
 internal fun CompilationResult.assertSuccess(description: String = ""): CompilationResult {
-    assertTrue(success, "expected successful compilation but failed $description")
+    withClue("expected successful compilation but failed $description") {
+        success shouldBe true
+    }
     return this
 }
 
 internal fun CompilationResult.assertFailure(description: String = ""): CompilationResult {
-    assertFalse(success, "expected failure to compile but succeeded $description")
+    withClue("expected failure to compile but succeeded $description") {
+        success shouldBe false
+    }
     return this
 }
 

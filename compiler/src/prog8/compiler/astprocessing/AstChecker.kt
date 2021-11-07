@@ -20,7 +20,7 @@ internal class AstChecker(private val program: Program,
 ) : IAstVisitor {
 
     override fun visit(program: Program) {
-        assert(program === this.program)
+        require(program === this.program)
         // there must be a single 'main' block with a 'start' subroutine for the program entry point.
         val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
         if(mainBlocks.size>1)
