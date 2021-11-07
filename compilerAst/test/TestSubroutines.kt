@@ -1,7 +1,6 @@
 package prog8tests.ast
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.AnnotationSpec
 import prog8.ast.base.DataType
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
@@ -12,8 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSubroutines {
+class TestSubroutines: AnnotationSpec() {
 
     @Test
     fun stringParameterAcceptedInParser() {

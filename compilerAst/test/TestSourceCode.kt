@@ -1,9 +1,6 @@
 package prog8tests.ast
 
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.core.StringStartsWith
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.AnnotationSpec
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import prog8tests.ast.helpers.assumeNotExists
@@ -14,8 +11,7 @@ import kotlin.io.path.Path
 import kotlin.test.*
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSourceCode {
+class TestSourceCode: AnnotationSpec() {
 
     @Test
     fun testFromString() {
@@ -29,7 +25,7 @@ class TestSourceCode {
         assertEquals(text, actualText)
         assertFalse(src.isFromResources)
         assertFalse(src.isFromFilesystem)
-        assertThat(src.toString(), StringStartsWith("prog8.parser.SourceCode"))
+        assertTrue(src.toString().startsWith("prog8.parser.SourceCode"))
     }
 
     @Test

@@ -1,8 +1,6 @@
 package prog8tests.ast
 
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.FunSpec
 import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
@@ -27,36 +25,28 @@ import kotlin.io.path.nameWithoutExtension
 import kotlin.test.*
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestProg8Parser {
+class TestProg8Parser: FunSpec( {
 
-    @Nested
-    inner class Newline {
+    context("Newline at end") {
+        test("is not required - #40, fixed by #45") {
+            val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
+            val src = SourceCode.Text("foo {" + nl + "}")   // source ends with '}' (= NO newline, issue #40)
 
-        @Nested
-        inner class AtEnd {
-
-            @Test
-            fun `is not required - #40, fixed by #45`() {
-                val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
-                val src = SourceCode.Text("foo {" + nl + "}")   // source ends with '}' (= NO newline, issue #40)
-
-                // #40: Prog8ANTLRParser would report (throw) "missing <EOL> at '<EOF>'"
-                val module = parseModule(src)
-                assertEquals(1, module.statements.size)
-            }
-
-            @Test
-            fun `is still accepted - #40, fixed by #45`() {
-                val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
-                val srcText = "foo {" + nl + "}" + nl  // source does end with a newline (issue #40)
-                val module = parseModule(SourceCode.Text(srcText))
-                assertEquals(1, module.statements.size)
-            }
+            // #40: Prog8ANTLRParser would report (throw) "missing <EOL> at '<EOF>'"
+            val module = parseModule(src)
+            assertEquals(1, module.statements.size)
         }
 
-        @Test
-        fun `is required after each block except the last`() {
+        test("is still accepted - #40, fixed by #45") {
+            val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
+            val srcText = "foo {" + nl + "}" + nl  // source does end with a newline (issue #40)
+            val module = parseModule(SourceCode.Text(srcText))
+            assertEquals(1, module.statements.size)
+        }
+    }
+
+    context("Newline") {
+        test("is required after each block except the last") {
             val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
 
             // BAD: 2nd block `bar` does NOT start on new line; however, there's is a nl at the very end
@@ -70,8 +60,7 @@ class TestProg8Parser {
             assertEquals(2, module.statements.size)
         }
 
-        @Test
-        fun `is required between two Blocks or Directives - #47`() {
+        test("is required between two Blocks or Directives - #47") {
             // block and block
             assertFailsWith<ParseError>{ parseModule(SourceCode.Text("""
                 blockA {
@@ -99,8 +88,7 @@ class TestProg8Parser {
             """)) }
         }
 
-        @Test
-        fun `can be Win, Unix or mixed, even mixed`() {
+        test("can be Win, Unix or mixed, even mixed") {
             val nlWin = "\r\n"
             val nlUnix = "\n"
             val nlMac = "\r"
@@ -128,11 +116,9 @@ class TestProg8Parser {
         }
     }
 
-    @Nested
-    inner class EOLsInterleavedWithComments {
+    context("EOLsInterleavedWithComments") {
 
-        @Test
-        fun `are ok before first block - #47`() {
+        test("are ok before first block - #47") {
             // issue: #47
             val srcText = """
                 ; comment
@@ -146,8 +132,7 @@ class TestProg8Parser {
             assertEquals(1, module.statements.size)
         }
 
-        @Test
-        fun `are ok between blocks - #47`() {
+        test("are ok between blocks - #47") {
             // issue: #47
             val srcText = """
                 blockA {
@@ -163,8 +148,7 @@ class TestProg8Parser {
             assertEquals(2, module.statements.size)
         }
 
-        @Test
-        fun `are ok after last block - #47`() {
+        test("are ok after last block - #47") {
             // issue: #47
             val srcText = """
                 blockA {            
@@ -179,11 +163,8 @@ class TestProg8Parser {
         }
     }
 
-
-    @Nested
-    inner class ImportDirectives {
-        @Test
-        fun `should not be looked into by the parser`() {
+    context("ImportDirectives") {
+        test("should not be looked into by the parser") {
             val importedNoExt = assumeNotExists(fixturesDir, "i_do_not_exist")
             assumeNotExists(fixturesDir, "i_do_not_exist.p8")
             val text = "%import ${importedNoExt.name}"
@@ -193,27 +174,21 @@ class TestProg8Parser {
         }
     }
 
-
-    @Nested
-    inner class EmptySourcecode {
-        @Test
-        fun `from an empty string should result in empty Module`() {
+    context("EmptySourcecode") {
+        test("from an empty string should result in empty Module") {
             val module = parseModule(SourceCode.Text(""))
             assertEquals(0, module.statements.size)
         }
 
-        @Test
-        fun `from an empty file should result in empty Module`() {
+        test("from an empty file should result in empty Module") {
             val path = assumeReadableFile(fixturesDir, "empty.p8")
             val module = parseModule(SourceCode.File(path))
             assertEquals(0, module.statements.size)
         }
     }
 
-    @Nested
-    inner class NameOfModule {
-        @Test
-        fun `parsed from a string`() {
+    context("NameOfModule") {
+        test("parsed from a string") {
             val srcText = """
                 main {
                 }
@@ -224,18 +199,16 @@ class TestProg8Parser {
             assertContains(module.name, Regex("^<String@[0-9a-f\\-]+>$"))
         }
 
-        @Test
-        fun `parsed from a file`() {
+        test("parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             assertEquals(path.nameWithoutExtension, module.name)
         }
     }
 
-    @Nested
-    inner class PositionOfAstNodesAndParseErrors {
+    context("PositionOfAstNodesAndParseErrors") {
 
-        private fun assertPosition(
+        fun assertPosition(
             actual: Position,
             expFile: String? = null,
             expLine: Int? = null,
@@ -249,7 +222,7 @@ class TestProg8Parser {
             if (expFile != null) assertEquals(expFile, actual.file, ".position.file")
         }
 
-        private fun assertPosition(
+        fun assertPosition(
             actual: Position,
             expFile: Regex? = null,
             expLine: Int? = null,
@@ -264,7 +237,7 @@ class TestProg8Parser {
             if (expFile != null) assertContains(actual.file, expFile, ".position.file")
         }
 
-        private fun assertPositionOf(
+        fun assertPositionOf(
             actual: Node,
             expFile: String? = null,
             expLine: Int? = null,
@@ -273,7 +246,7 @@ class TestProg8Parser {
         ) =
             assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol)
 
-        private fun assertPositionOf(
+        fun assertPositionOf(
             actual: Node,
             expFile: Regex? = null,
             expLine: Int? = null,
@@ -283,24 +256,21 @@ class TestProg8Parser {
             assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol)
 
 
-        @Test
-        fun `in ParseError from bad string source code`() {
+        test("in ParseError from bad string source code") {
             val srcText = "bad * { }\n"
 
             val e = assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcText)) }
             assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
         }
 
-        @Test
-        fun `in ParseError from bad file source code`() {
+        test("in ParseError from bad file source code") {
             val path = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
             val e = assertFailsWith<ParseError> { parseModule(SourceCode.File(path)) }
             assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6)
         }
 
-        @Test
-        fun  `of Module parsed from a string`() {
+        test("of Module parsed from a string") {
             val srcText = """
                 main {
                 }
@@ -309,15 +279,13 @@ class TestProg8Parser {
             assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0)
         }
 
-        @Test
-        fun  `of Module parsed from a file`() {
+        test("of Module parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
         }
 
-        @Test
-        fun `of non-root Nodes parsed from file`() {
+        test("of non-root Nodes parsed from file") {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
 
             val module = parseModule(SourceCode.File(path))
@@ -329,9 +297,7 @@ class TestProg8Parser {
             assertPositionOf(startSub, mpf, 3, 4, 6)
         }
 
-
-        @Test
-        fun `of non-root Nodes parsed from a string`() {
+        test("of non-root Nodes parsed from a string") {
             val srcText = """
                 %zeropage basicsafe
                 main {
@@ -369,10 +335,21 @@ class TestProg8Parser {
         }
     }
 
-    @Nested
-    inner class PositionFile {
-        @Test
-        fun `isn't absolute for filesystem paths`() {
+    context("PositionFile") {
+        fun assertSomethingForAllNodes(module: Module, asserter: (Node) -> Unit) {
+            asserter(module)
+            module.statements.forEach(asserter)
+            module.statements.filterIsInstance<Block>().forEach { b ->
+                asserter(b)
+                b.statements.forEach(asserter)
+                b.statements.filterIsInstance<Subroutine>().forEach { s ->
+                    asserter(s)
+                    s.statements.forEach(asserter)
+                }
+            }
+        }
+
+        test("isn't absolute for filesystem paths") {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             assertSomethingForAllNodes(module) {
@@ -381,8 +358,7 @@ class TestProg8Parser {
             }
         }
 
-        @Test
-        fun `is mangled string id for string sources`()
+        test("is mangled string id for string sources")
         {
             val srcText="""
                 %zeropage basicsafe
@@ -399,8 +375,7 @@ class TestProg8Parser {
             }
         }
 
-        @Test
-        fun `is library prefixed path for resources`()
+        test("is library prefixed path for resources")
         {
             val resource = SourceCode.Resource("prog8lib/math.p8")
             val module = parseModule(resource)
@@ -408,25 +383,11 @@ class TestProg8Parser {
                 assertTrue(it.position.file.startsWith(SourceCode.libraryFilePrefix))
             }
         }
+    }
 
-        private fun assertSomethingForAllNodes(module: Module, asserter: (Node) -> Unit) {
-            asserter(module)
-            module.statements.forEach(asserter)
-            module.statements.filterIsInstance<Block>().forEach { b ->
-                asserter(b)
-                b.statements.forEach(asserter)
-                b.statements.filterIsInstance<Subroutine>().forEach { s ->
-                    asserter(s)
-                    s.statements.forEach(asserter)
-                }
-            }
-        }    }
+    context("CharLiterals") {
 
-    @Nested
-    inner class CharLiterals {
-
-        @Test
-        fun `in argument position, no altEnc`() {
+        test("in argument position, no altEnc") {
             val src = SourceCode.Text("""
                  main {
                     sub start() {
@@ -446,8 +407,7 @@ class TestProg8Parser {
             assertEquals('\n', char.value)
         }
 
-        @Test
-        fun `on rhs of block-level var decl, no AltEnc`() {
+        test("on rhs of block-level var decl, no AltEnc") {
             val src = SourceCode.Text("""
                 main {
                     ubyte c = 'x'
@@ -463,8 +423,7 @@ class TestProg8Parser {
             assertEquals(false, rhs.altEncoding, "char literal's .altEncoding")
         }
 
-        @Test
-        fun `on rhs of block-level const decl, with AltEnc`() {
+        test("on rhs of block-level const decl, with AltEnc") {
             val src = SourceCode.Text("""
                 main {
                     const ubyte c = @'x'
@@ -480,8 +439,7 @@ class TestProg8Parser {
             assertEquals(true, rhs.altEncoding, "char literal's .altEncoding")
         }
 
-        @Test
-        fun `on rhs of subroutine-level var decl, no AltEnc`() {
+        test("on rhs of subroutine-level var decl, no AltEnc") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -500,8 +458,7 @@ class TestProg8Parser {
             assertEquals(false, rhs.altEncoding, "char literal's .altEncoding")
         }
 
-        @Test
-        fun `on rhs of subroutine-level const decl, with AltEnc`() {
+        test("on rhs of subroutine-level const decl, with AltEnc") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -521,11 +478,9 @@ class TestProg8Parser {
         }
     }
 
-    @Nested
-    inner class Ranges {
+    context("Ranges") {
 
-        @Test
-        fun `in for-loops`() {
+        test("in for-loops") {
             val module = parseModule(SourceCode.Text("""
                 main {
                     sub start() {
@@ -572,8 +527,7 @@ class TestProg8Parser {
         }
     }
 
-    @Test
-    fun testCharLiteralConstValue() {
+    test("testCharLiteralConstValue") {
         val char1 = CharLiteral('A', false, Position.DUMMY)
         val char2 = CharLiteral('z', true, Position.DUMMY)
 
@@ -582,8 +536,7 @@ class TestProg8Parser {
         assertEquals(122, char2.constValue(program).number.toInt())
     }
 
-    @Test
-    fun testLiteralValueComparisons() {
+    test("testLiteralValueComparisons") {
         val ten = NumericLiteralValue(DataType.UWORD, 10, Position.DUMMY)
         val nine = NumericLiteralValue(DataType.UBYTE, 9, Position.DUMMY)
         assertEquals(ten, ten)
@@ -608,8 +561,7 @@ class TestProg8Parser {
         assertFalse(abc!=abc)
     }
 
-    @Test
-    fun testAnonScopeStillContainsVarsDirectlyAfterParse() {
+    test("testAnonScopeStillContainsVarsDirectlyAfterParse") {
         val src = SourceCode.Text("""
             main {
                 sub start() {
@@ -633,8 +585,7 @@ class TestProg8Parser {
         // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
     }
 
-    @Test
-    fun testLabelsWithAnonScopesParsesFine() {
+    test("testLabelsWithAnonScopesParsesFine") {
         val src = SourceCode.Text("""
             main {
                 sub start() {
@@ -663,4 +614,4 @@ class TestProg8Parser {
         val labels = start.statements.filterIsInstance<Label>()
         assertEquals(1, labels.size, "only one label in subroutine scope")
     }
-}
+})

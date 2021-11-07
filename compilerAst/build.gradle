@@ -1,8 +1,8 @@
 plugins {
-    id 'java'
+    id "java"
     id "org.jetbrains.kotlin.jvm"
+    id "io.kotest" version "0.3.8"
 }
-
 
 java {
     toolchain {
@@ -15,9 +15,8 @@ dependencies {
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.12"
     implementation project(':parser')
 
+    testImplementation 'io.kotest:kotest-runner-junit5-jvm:4.6.3'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
-    testImplementation 'org.hamcrest:hamcrest:2.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 }
 
@@ -42,7 +41,6 @@ sourceSets {
 }
 
 test {
-    // Enable JUnit 5 (Gradle 4.6+).
     useJUnitPlatform()
 
     // Always run tests, even when nothing changed.

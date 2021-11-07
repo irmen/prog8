@@ -1,7 +1,7 @@
 package prog8tests.ast
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
@@ -12,11 +12,9 @@ import prog8.parser.SourceCode
 import prog8tests.ast.helpers.DummyFunctions
 import prog8tests.ast.helpers.DummyMemsizer
 import prog8tests.ast.helpers.DummyStringEncoder
-import kotlin.test.assertContains
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestAstToSourceText {
+class TestAstToSourceText: AnnotationSpec() {
 
     private fun generateP8(module: Module) : String {
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -44,24 +42,21 @@ class TestAstToSourceText {
     fun testMentionsInternedStringsModule() {
         val orig = SourceCode.Text("\n")
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex(";.*$internedStringsModuleName"))
+        txt shouldContain Regex(";.*$internedStringsModuleName")
     }
 
     @Test
     fun testImportDirectiveWithLib() {
         val orig = SourceCode.Text("%import textio\n")
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("%import +textio"))
+        txt shouldContain Regex("%import +textio")
     }
 
     @Test
     fun testImportDirectiveWithUserModule() {
         val orig = SourceCode.Text("%import my_own_stuff\n")
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("%import +my_own_stuff"))
+        txt shouldContain Regex("%import +my_own_stuff")
     }
 
 
@@ -73,8 +68,7 @@ class TestAstToSourceText {
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("str +s += +\"fooBar\\\\n\""))
+        txt shouldContain Regex("str +s += +\"fooBar\\\\n\"")
     }
 
     @Test
@@ -85,8 +79,7 @@ class TestAstToSourceText {
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("str +sAlt += +@\"fooBar\\\\n\""))
+        txt shouldContain Regex("str +sAlt += +@\"fooBar\\\\n\"")
     }
 
     @Test
@@ -97,8 +90,7 @@ class TestAstToSourceText {
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("ubyte +c += +'x'"), "char literal")
+        txt shouldContain Regex("ubyte +c += +'x'")
     }
 
     @Test
@@ -109,8 +101,7 @@ class TestAstToSourceText {
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        // assertContains has *actual* first!
-        assertContains(txt, Regex("ubyte +cAlt += +@'x'"), "alt char literal")
+        txt shouldContain Regex("ubyte +cAlt += +@'x'")
     }
 
 }

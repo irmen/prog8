@@ -3,6 +3,7 @@ plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm"
+    id "io.kotest" version "0.3.8"
 }
 
 java {
