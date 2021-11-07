@@ -3,24 +3,36 @@
 %zeropage basicsafe
 
 main {
+    uword xw
+    ubyte xb
+
+  sub sub1() -> uword {
+    return xw+xb
+  }
+
   sub start() {
-    word xx=0
 
-    if not xx {
-        txt.print("xx is zero\n")
-    }
+    xw=sub1()
 
-    while not xx {
-        xx ++
-    }
-
-    do {
-        xx--
-    } until not xx
-
-    if not xx {
-        txt.print("xx is zero\n")
-    }
+;    word xx=0
+;    word[] xarr = [1,2,3]
+;    ubyte ai
+;
+;    if not @($c000) {
+;        txt.print("xx is zero\n")
+;    }
+;
+;    while not xarr[ai] {
+;        xx ++
+;    }
+;
+;    do {
+;        xx--
+;    } until not xarr[ai]
+;
+;    if not xarr[ai] {
+;        txt.print("xx is zero\n")
+;    }
 
 ;    ubyte yy=$30
 ;    ubyte zz=9

@@ -1,0 +1,24 @@
+<component name="libraryTable">
+  <library name="io.kotest.property.jvm" type="repository">
+    <properties maven-id="io.kotest:kotest-property-jvm:4.6.3" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-property-jvm/4.6.3/kotest-property-jvm-4.6.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.5.0/kotlin-stdlib-jdk8-1.5.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.5.0/kotlin-stdlib-1.5.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.5.0/kotlin-stdlib-jdk7-1.5.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-common-jvm/4.6.3/kotest-common-jvm-4.6.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-shared-jvm/4.6.3/kotest-assertions-shared-jvm-4.6.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-api-jvm/4.6.3/kotest-assertions-api-jvm-4.6.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-jdk8/1.5.0/kotlinx-coroutines-jdk8-1.5.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/github/java-diff-utils/java-diff-utils/4.9/java-diff-utils-4.9.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/mifmif/generex/1.0.2/generex-1.0.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1.11-8/automaton-1.11-8.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-reflect/1.5.0/kotlin-reflect-1.5.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.5.0/kotlinx-coroutines-core-jvm-1.5.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.5.0/kotlin-stdlib-common-1.5.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

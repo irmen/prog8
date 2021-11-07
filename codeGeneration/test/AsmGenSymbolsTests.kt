@@ -1,9 +1,8 @@
 package prog8tests.asmgen
 
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.equalTo
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.DataType
@@ -25,22 +24,19 @@ import prog8tests.asmgen.helpers.DummyStringEncoder
 import prog8tests.asmgen.helpers.ErrorReporterForTests
 import java.nio.file.Path
 
-
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestAsmGen6502 {
-
-    private fun createTestProgram(): Program {
+class AsmGenSymbolsTests: StringSpec({
+    fun createTestProgram(): Program {
         /*
-main  {
+    main  {
 
-label_outside:
+    label_outside:
     uword var_outside
 
     sub start () {
         uword localvar = 1234
         uword tgt
 
-locallabel:
+    locallabel:
         tgt = localvar
         tgt = &locallabel
         tgt = &var_outside
@@ -50,7 +46,7 @@ locallabel:
         tgt = &main.var_outside
         tgt = &main.label_outside
     }
-}
+    }
 
          */
         val varInSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteralValue.optimalInteger(1234, Position.DUMMY), false, false, false, Position.DUMMY)
@@ -80,7 +76,7 @@ locallabel:
         return program
     }
 
-    private fun createTestAsmGen(program: Program): AsmGen {
+    fun createTestAsmGen(program: Program): AsmGen {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target)
         val zp = C64MachineDefinition.C64Zeropage(options)
@@ -88,64 +84,69 @@ locallabel:
         return asmgen
     }
 
-    @Test
-    fun testSymbolNameFromStrings() {
+    "symbol names from strings" {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
-
-        assertThat(asmgen.asmSymbolName("name"), equalTo("name"))
-        assertThat(asmgen.asmSymbolName("<name>"), equalTo("prog8_name"))
-        assertThat(asmgen.asmSymbolName(RegisterOrPair.R15), equalTo("cx16.r15"))
-        assertThat(asmgen.asmSymbolName(listOf("a", "b", "name")), equalTo("a.b.name"))
-        assertThat(asmgen.asmVariableName("name"), equalTo("name"))
-        assertThat(asmgen.asmVariableName("<name>"), equalTo("prog8_name"))
-        assertThat(asmgen.asmVariableName(listOf("a", "b", "name")), equalTo("a.b.name"))
+        asmgen.asmSymbolName("name") shouldBe "name"
+        asmgen.asmSymbolName("name") shouldBe "name"
+        asmgen.asmSymbolName("<name>") shouldBe "prog8_name"
+        asmgen.asmSymbolName(RegisterOrPair.R15) shouldBe "cx16.r15"
+        asmgen.asmSymbolName(listOf("a", "b", "name")) shouldBe "a.b.name"
+        asmgen.asmVariableName("name") shouldBe "name"
+        asmgen.asmVariableName("<name>") shouldBe "prog8_name"
+        asmgen.asmVariableName(listOf("a", "b", "name")) shouldBe "a.b.name"
     }
 
-    @Test
-    fun testSymbolNameFromVarIdentifier() {
+    "symbol names from variable identifiers" {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
 
         // local variable
         val localvarIdent = sub.statements.filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
-        assertThat(asmgen.asmSymbolName(localvarIdent), equalTo("localvar"))
-        assertThat(asmgen.asmVariableName(localvarIdent), equalTo("localvar"))
+        asmgen.asmSymbolName(localvarIdent) shouldBe "localvar"
+        asmgen.asmVariableName(localvarIdent) shouldBe "localvar"
         val localvarIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "start", "localvar") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(localvarIdentScoped), equalTo("main.start.localvar"))
-        assertThat(asmgen.asmVariableName(localvarIdentScoped), equalTo("main.start.localvar"))
+        asmgen.asmSymbolName(localvarIdentScoped) shouldBe "main.start.localvar"
+        asmgen.asmVariableName(localvarIdentScoped) shouldBe "main.start.localvar"
 
         // variable from outer scope (note that for Variables, no scoping prefix symbols are required,
         //   because they're not outputted as locally scoped symbols for the assembler
         val scopedVarIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("var_outside") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(scopedVarIdent), equalTo("main.var_outside"))
-        assertThat(asmgen.asmVariableName(scopedVarIdent), equalTo("var_outside"))
+        asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
+        asmgen.asmVariableName(scopedVarIdent) shouldBe "var_outside"
         val scopedVarIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "var_outside") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(scopedVarIdentScoped), equalTo("main.var_outside"))
-        assertThat(asmgen.asmVariableName(scopedVarIdentScoped), equalTo("main.var_outside"))
+        asmgen.asmSymbolName(scopedVarIdentScoped) shouldBe "main.var_outside"
+        asmgen.asmVariableName(scopedVarIdentScoped) shouldBe "main.var_outside"
     }
 
-    @Test
-    fun testSymbolNameFromLabelIdentifier() {
+    "symbol names from label identifiers" {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
 
         // local label
         val localLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(localLabelIdent), equalTo("_locallabel"))
-        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(localLabelIdent), equalTo("locallabel"))
+        asmgen.asmSymbolName(localLabelIdent) shouldBe "_locallabel"
+        withClue("as a variable it uses different naming rules (no underscore prefix)") {
+            asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
+        }
         val localLabelIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","start","locallabel") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(localLabelIdentScoped), equalTo("main.start._locallabel"))
-        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(localLabelIdentScoped), equalTo("main.start.locallabel"))
+        asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start._locallabel"
+        withClue("as a variable it uses different naming rules (no underscore prefix)") {
+            asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
+        }
 
         // label from outer scope needs sope prefixes because it is outputted as a locally scoped symbol for the assembler
         val scopedLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(scopedLabelIdent), equalTo("main._label_outside"))
-        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(scopedLabelIdent), equalTo("label_outside"))
+        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main._label_outside"
+        withClue("as a variable it uses different naming rules (no underscore prefix)") {
+            asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
+        }
         val scopedLabelIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
-        assertThat(asmgen.asmSymbolName(scopedLabelIdentScoped), equalTo("main._label_outside"))
-        assertThat("as a variable it uses different naming rules (no underscore prefix)", asmgen.asmVariableName(scopedLabelIdentScoped), equalTo("main.label_outside"))
+        asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main._label_outside"
+        withClue("as a variable it uses different naming rules (no underscore prefix)") {
+            asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"
+        }
     }
-}
+})
