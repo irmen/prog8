@@ -1,14 +1,12 @@
 package prog8tests.ast
 
 import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.matchers.shouldBe
 import prog8.ast.base.DataType
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 
 class TestSubroutines: AnnotationSpec() {
@@ -31,12 +29,12 @@ class TestSubroutines: AnnotationSpec() {
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
-        assertTrue(asmfunc.isAsmSubroutine)
-        assertEquals(DataType.STR, asmfunc.parameters.single().type)
-        assertTrue(asmfunc.statements.isEmpty())
-        assertFalse(func.isAsmSubroutine)
-        assertEquals(DataType.STR, func.parameters.single().type)
-        assertTrue(func.statements.isEmpty())
+        asmfunc.isAsmSubroutine shouldBe true
+        asmfunc.parameters.single().type shouldBe DataType.STR
+        asmfunc.statements.isEmpty() shouldBe true
+        func.isAsmSubroutine shouldBe false
+        func.parameters.single().type shouldBe DataType.STR
+        func.statements.isEmpty() shouldBe true
     }
 
     @Test
@@ -57,11 +55,11 @@ class TestSubroutines: AnnotationSpec() {
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
-        assertTrue(asmfunc.isAsmSubroutine)
-        assertEquals(DataType.ARRAY_UB, asmfunc.parameters.single().type)
-        assertTrue(asmfunc.statements.isEmpty())
-        assertFalse(func.isAsmSubroutine)
-        assertEquals(DataType.ARRAY_UB, func.parameters.single().type)
-        assertTrue(func.statements.isEmpty())
+        asmfunc.isAsmSubroutine shouldBe true
+        asmfunc.parameters.single().type shouldBe DataType.ARRAY_UB
+        asmfunc.statements.isEmpty() shouldBe true
+        func.isAsmSubroutine shouldBe false
+        func.parameters.single().type shouldBe DataType.ARRAY_UB
+        func.statements.isEmpty() shouldBe true
     }
 }

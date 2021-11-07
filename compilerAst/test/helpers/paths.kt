@@ -1,10 +1,10 @@
 package prog8tests.ast.helpers
 
+import io.kotest.assertions.withClue
+import io.kotest.matchers.shouldBe
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 
 val workingDir = assumeDirectory("").absolute()   // Note: "." does NOT work..!
@@ -20,7 +20,9 @@ fun createIfNotExists(workingDir: Path, path: String): Path {
 }
 
 fun assumeNotExists(path: Path): Path {
-    assertFalse(path.exists(), "sanity check: should not exist: ${path.absolute()}")
+    withClue("sanity check: should not exist: ${path.absolute()}") {
+        path.exists() shouldBe false
+    }
     return path
 }
 
@@ -28,12 +30,16 @@ fun assumeNotExists(pathStr: String): Path = assumeNotExists(Path(pathStr))
 fun assumeNotExists(path: Path, other: String): Path = assumeNotExists(path / other)
 
 fun assumeReadable(path: Path): Path {
-    assertTrue(path.isReadable(), "sanity check: should be readable: ${path.absolute()}")
+    withClue("sanity check: should be readable: ${path.absolute()}") {
+        path.isReadable() shouldBe true
+    }
     return path
 }
 
 fun assumeReadableFile(path: Path): Path {
-    assertTrue(path.isRegularFile(), "sanity check: should be normal file: ${path.absolute()}")
+    withClue("sanity check: should be normal file: ${path.absolute()}") {
+        path.isRegularFile() shouldBe true
+    }
     return assumeReadable(path)
 }
 
@@ -44,7 +50,9 @@ fun assumeReadableFile(path: Path, other: String): Path = assumeReadableFile(pat
 fun assumeReadableFile(path: Path, other: Path): Path = assumeReadableFile(path / other)
 
 fun assumeDirectory(path: Path): Path {
-    assertTrue(path.isDirectory(), "sanity check; should be directory: $path")
+    withClue("sanity check; should be directory: $path") {
+        path.isDirectory() shouldBe true
+    }
     return path
 }
 

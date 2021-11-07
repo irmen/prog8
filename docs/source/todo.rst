@@ -3,8 +3,6 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- replace all old asserts in compilerAst tests by kotest equivalents
-- remove kotlin.test and junit dependencies in compilerAst module
 - migrate Compiler tests to KoTest library (this will close github issue #70)
 ...
 

@@ -1,12 +1,12 @@
 package prog8tests.ast
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import prog8tests.ast.helpers.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 
 // Do not move into folder helpers/!
@@ -22,18 +22,18 @@ class PathsHelpersTests: FunSpec({
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
                 withClue("should return the path") {
-                    assertEquals(path, assumeNotExists(path))
+                    assumeNotExists(path) shouldBe path
                 }
             }
 
             test("on existing file") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir / "simple_main.p8")
                 }
             }
 
             test("on existing directory") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir)
                 }
             }
@@ -44,19 +44,19 @@ class PathsHelpersTests: FunSpec({
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
                 withClue("should return the path") {
-                    assertEquals(path, assumeNotExists("$path"))
+                    assumeNotExists("$path") shouldBe path
                 }
             }
 
             test("on existing file") {
                 val path = fixturesDir / "simple_main.p8"
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeNotExists("$path")
                 }
             }
 
             test("on existing directory") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeNotExists("$fixturesDir")
                 }
             }
@@ -67,18 +67,18 @@ class PathsHelpersTests: FunSpec({
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
                 withClue("should return the path") {
-                    assertEquals(path, assumeNotExists(fixturesDir, "i_do_not_exist"))
+                    assumeNotExists(fixturesDir / "i_do_not_exist") shouldBe path
                 }
             }
 
             test("on existing file") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir, "simple_main.p8")
                 }
             }
 
             test("on existing directory") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeNotExists(fixturesDir, "..")
                 }
             }
@@ -90,14 +90,14 @@ class PathsHelpersTests: FunSpec({
         context("WithOnePathArg") {
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory(path)
                 }
             }
 
             test("on existing file") {
                 val path = fixturesDir / "simple_main.p8"
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory(path)
                 }
             }
@@ -105,7 +105,7 @@ class PathsHelpersTests: FunSpec({
             test("on existing directory") {
                 val path = workingDir
                 withClue("should return the path") {
-                    assertEquals(path, assumeDirectory(path))
+                    assumeDirectory(path) shouldBe path
                 }
             }
         }
@@ -113,14 +113,14 @@ class PathsHelpersTests: FunSpec({
         context("WithOneStringArg") {
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory("$path")
                 }
             }
 
             test("on existing file") {
                 val path = fixturesDir / "simple_main.p8"
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory("$path")
                 }
             }
@@ -128,20 +128,20 @@ class PathsHelpersTests: FunSpec({
             test("on existing directory") {
                 val path = workingDir
                 withClue("should return the path") {
-                    assertEquals(path, assumeDirectory("$path"))
+                    assumeDirectory("$path") shouldBe path
                 }
             }
         }
 
         context("WithPathAndStringArgs") {
             test("on non-existing path") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory(fixturesDir, "i_do_not_exist")
                 }
             }
 
             test("on existing file") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory(fixturesDir, "simple_main.p8")
                 }
             }
@@ -149,20 +149,20 @@ class PathsHelpersTests: FunSpec({
             test("on existing directory") {
                 val path = workingDir / ".."
                 withClue("should return resulting path") {
-                    assertEquals(path, assumeDirectory(workingDir, ".."))
+                    assumeDirectory(workingDir / "..") shouldBe path
                 }
             }
         }
 
         context("WithStringAndStringArgs") {
             test("on non-existing path") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory("$fixturesDir", "i_do_not_exist")
                 }
             }
 
             test("on existing file") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory("$fixturesDir", "simple_main.p8")
                 }
             }
@@ -170,20 +170,20 @@ class PathsHelpersTests: FunSpec({
             test("on existing directory") {
                 val path = workingDir / ".."
                 withClue("should return resulting path") {
-                    assertEquals(path, assumeDirectory("$workingDir", ".."))
+                    assumeDirectory(workingDir / "..") shouldBe path
                 }
             }
         }
 
         context("WithStringAndPathArgs") {
             test("on non-existing path") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory("$fixturesDir", Path("i_do_not_exist"))
                 }
             }
 
             test("on existing file") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeDirectory("$fixturesDir", Path("simple_main.p8"))
                 }
             }
@@ -191,7 +191,7 @@ class PathsHelpersTests: FunSpec({
             test("on existing directory") {
                 val path = workingDir / ".."
                 withClue("should return resulting path") {
-                    assertEquals(path, assumeDirectory("$workingDir", Path("..")))
+                    assumeDirectory(workingDir / Path("..")) shouldBe path
                 }
             }
         }
@@ -203,7 +203,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile(path)
                 }
             }
@@ -211,12 +211,12 @@ class PathsHelpersTests: FunSpec({
             test("on readable file") {
                 val path = fixturesDir / "simple_main.p8"
                 withClue("should return the path") {
-                    assertEquals(path, assumeReadableFile(path))
+                    assumeReadableFile(path) shouldBe path
                 }
             }
 
             test("on directory") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile(fixturesDir)
                 }
             }
@@ -226,7 +226,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on non-existing path") {
                 val path = fixturesDir / "i_do_not_exist"
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile("$path")
                 }
             }
@@ -234,12 +234,12 @@ class PathsHelpersTests: FunSpec({
             test("on readable file") {
                 val path = fixturesDir / "simple_main.p8"
                 withClue("should return the resulting path") {
-                    assertEquals(path, assumeReadableFile("$path"))
+                    assumeReadableFile("$path") shouldBe path
                 }
             }
 
             test("on directory") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile("$fixturesDir")
                 }
             }
@@ -247,7 +247,7 @@ class PathsHelpersTests: FunSpec({
 
         context("WithPathAndStringArgs") {
             test("on non-existing path") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeReadableFile(fixturesDir, "i_do_not_exist")
                 }
             }
@@ -255,12 +255,12 @@ class PathsHelpersTests: FunSpec({
             test("on readable file") {
                 val path = fixturesDir / "simple_main.p8"
                 withClue("should return the resulting path") {
-                    assertEquals(path, assumeReadableFile(fixturesDir, "simple_main.p8"))
+                    assumeReadableFile(fixturesDir / "simple_main.p8") shouldBe path
                 }
             }
 
             test("on directory") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile(fixturesDir, "..")
                 }
             }
@@ -268,19 +268,19 @@ class PathsHelpersTests: FunSpec({
 
         context("WithPathAndPathArgs") {
             test("on non-existing path") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeReadableFile(fixturesDir, Path("i_do_not_exist"))
                 }
             }
 
             test("on readable file") {
                 withClue("should return the resulting path") {
-                    assertEquals(fixturesDir / "simple_main.p8", assumeReadableFile(fixturesDir, Path("simple_main.p8")))
+                    assumeReadableFile(fixturesDir / Path("simple_main.p8")) shouldBe fixturesDir / "simple_main.p8"
                 }
             }
 
             test("on directory") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile(fixturesDir, Path(".."))
                 }
             }
@@ -288,19 +288,19 @@ class PathsHelpersTests: FunSpec({
 
         context("WithStringAndStringArgs") {
             test("on non-existing path") {
-                assertFailsWith<java.lang.AssertionError> {
+                shouldThrow<java.lang.AssertionError> {
                     assumeReadableFile("$fixturesDir", "i_do_not_exist")
                 }
             }
 
             test("on readable file") {
                 withClue("should return the resulting path") {
-                    assertEquals( fixturesDir / "simple_main.p8", assumeReadableFile(fixturesDir.toString(), "simple_main.p8"))
+                    assumeReadableFile(fixturesDir / "simple_main.p8") shouldBe  fixturesDir / "simple_main.p8"
                 }
             }
 
             test("on directory") {
-                assertFailsWith<AssertionError> {
+                shouldThrow<AssertionError> {
                     assumeReadableFile("$fixturesDir", "..")
                 }
             }

@@ -1,6 +1,13 @@
 package prog8tests.ast
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldStartWith
+import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
@@ -22,7 +29,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
-import kotlin.test.*
 
 
 class TestProg8Parser: FunSpec( {
@@ -34,14 +40,14 @@ class TestProg8Parser: FunSpec( {
 
             // #40: Prog8ANTLRParser would report (throw) "missing <EOL> at '<EOF>'"
             val module = parseModule(src)
-            assertEquals(1, module.statements.size)
+            module.statements.size shouldBe 1
         }
 
         test("is still accepted - #40, fixed by #45") {
             val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
             val srcText = "foo {" + nl + "}" + nl  // source does end with a newline (issue #40)
             val module = parseModule(SourceCode.Text(srcText))
-            assertEquals(1, module.statements.size)
+            module.statements.size shouldBe 1
         }
     }
 
@@ -55,21 +61,21 @@ class TestProg8Parser: FunSpec( {
             // GOOD: 2nd block `bar` does start on a new line; however, a nl at the very end ain't needed
             val srcGood = "foo {" + nl + "}" + nl + "bar {" + nl + "}"
 
-            assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcBad)) }
+            shouldThrow<ParseError> { parseModule(SourceCode.Text(srcBad)) }
             val module = parseModule(SourceCode.Text(srcGood))
-            assertEquals(2, module.statements.size)
+            module.statements.size shouldBe 2
         }
 
         test("is required between two Blocks or Directives - #47") {
             // block and block
-            assertFailsWith<ParseError>{ parseModule(SourceCode.Text("""
+            shouldThrow<ParseError>{ parseModule(SourceCode.Text("""
                 blockA {
                 } blockB {            
                 }            
             """)) }
 
             // block and directive
-            assertFailsWith<ParseError>{ parseModule(SourceCode.Text("""
+            shouldThrow<ParseError>{ parseModule(SourceCode.Text("""
                 blockB {            
                 } %import textio            
             """)) }
@@ -78,12 +84,12 @@ class TestProg8Parser: FunSpec( {
             // Leaving them in anyways.
 
             // dir and block
-            assertFailsWith<ParseError>{ parseModule(SourceCode.Text("""
+            shouldThrow<ParseError>{ parseModule(SourceCode.Text("""
                 %import textio blockB {            
                 }            
             """)) }
 
-            assertFailsWith<ParseError>{ parseModule(SourceCode.Text("""
+            shouldThrow<ParseError>{ parseModule(SourceCode.Text("""
                 %import textio %import syslib            
             """)) }
         }
@@ -112,7 +118,7 @@ class TestProg8Parser: FunSpec( {
                 nlUnix      // end with newline (see testModuleSourceNeedNotEndWithNewline)
 
             val module = parseModule(SourceCode.Text(srcText))
-            assertEquals(2, module.statements.size)
+            module.statements.size shouldBe 2
         }
     }
 
@@ -129,7 +135,7 @@ class TestProg8Parser: FunSpec( {
                 }
             """
             val module = parseModule(SourceCode.Text(srcText))
-            assertEquals(1, module.statements.size)
+            module.statements.size shouldBe 1
         }
 
         test("are ok between blocks - #47") {
@@ -145,7 +151,7 @@ class TestProg8Parser: FunSpec( {
                 }
             """
             val module = parseModule(SourceCode.Text(srcText))
-            assertEquals(2, module.statements.size)
+            module.statements.size shouldBe 2
         }
 
         test("are ok after last block - #47") {
@@ -159,7 +165,7 @@ class TestProg8Parser: FunSpec( {
                 
             """
             val module = parseModule(SourceCode.Text(srcText))
-            assertEquals(1, module.statements.size)
+            module.statements.size shouldBe 1
         }
     }
 
@@ -170,20 +176,20 @@ class TestProg8Parser: FunSpec( {
             val text = "%import ${importedNoExt.name}"
             val module = parseModule(SourceCode.Text(text))
 
-            assertEquals(1, module.statements.size)
+            module.statements.size shouldBe 1
         }
     }
 
     context("EmptySourcecode") {
         test("from an empty string should result in empty Module") {
             val module = parseModule(SourceCode.Text(""))
-            assertEquals(0, module.statements.size)
+            module.statements.size shouldBe 0
         }
 
         test("from an empty file should result in empty Module") {
             val path = assumeReadableFile(fixturesDir, "empty.p8")
             val module = parseModule(SourceCode.File(path))
-            assertEquals(0, module.statements.size)
+            module.statements.size shouldBe 0
         }
     }
 
@@ -196,13 +202,13 @@ class TestProg8Parser: FunSpec( {
             val module = parseModule(SourceCode.Text(srcText))
 
             // Note: assertContains has *actual* as first param
-            assertContains(module.name, Regex("^<String@[0-9a-f\\-]+>$"))
+            module.name shouldContain Regex("^<String@[0-9a-f\\-]+>$")
         }
 
         test("parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
-            assertEquals(path.nameWithoutExtension, module.name)
+            module.name shouldBe path.nameWithoutExtension
         }
     }
 
@@ -216,10 +222,10 @@ class TestProg8Parser: FunSpec( {
             expEndCol: Int? = null
         ) {
             require(!listOf(expLine, expStartCol, expEndCol).all { it == null })
-            if (expLine != null) assertEquals(expLine, actual.line, ".position.line (1-based)")
-            if (expStartCol != null) assertEquals(expStartCol, actual.startCol, ".position.startCol (0-based)")
-            if (expEndCol != null) assertEquals(expEndCol, actual.endCol, ".position.endCol (0-based)")
-            if (expFile != null) assertEquals(expFile, actual.file, ".position.file")
+            if (expLine != null) actual.line shouldBe expLine
+            if (expStartCol != null) actual.startCol shouldBe expStartCol
+            if (expEndCol != null) actual.endCol shouldBe expEndCol
+            if (expFile != null) actual.file shouldBe expFile
         }
 
         fun assertPosition(
@@ -230,11 +236,10 @@ class TestProg8Parser: FunSpec( {
             expEndCol: Int? = null
         ) {
             require(!listOf(expLine, expStartCol, expEndCol).all { it == null })
-            if (expLine != null) assertEquals(expLine, actual.line, ".position.line (1-based)")
-            if (expStartCol != null) assertEquals(expStartCol, actual.startCol, ".position.startCol (0-based)")
-            if (expEndCol != null) assertEquals(expEndCol, actual.endCol, ".position.endCol (0-based)")
-            // Note: assertContains expects *actual* value first
-            if (expFile != null) assertContains(actual.file, expFile, ".position.file")
+            if (expLine != null) actual.line shouldBe expLine
+            if (expStartCol != null) actual.startCol shouldBe expStartCol
+            if (expEndCol != null) actual.endCol shouldBe expEndCol
+            if (expFile != null) actual.file shouldContain expFile
         }
 
         fun assertPositionOf(
@@ -259,14 +264,14 @@ class TestProg8Parser: FunSpec( {
         test("in ParseError from bad string source code") {
             val srcText = "bad * { }\n"
 
-            val e = assertFailsWith<ParseError> { parseModule(SourceCode.Text(srcText)) }
+            val e = shouldThrow<ParseError> { parseModule(SourceCode.Text(srcText)) }
             assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
         }
 
         test("in ParseError from bad file source code") {
             val path = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
-            val e = assertFailsWith<ParseError> { parseModule(SourceCode.File(path)) }
+            val e = shouldThrow<ParseError> { parseModule(SourceCode.File(path)) }
             assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6)
         }
 
@@ -353,8 +358,8 @@ class TestProg8Parser: FunSpec( {
             val path = assumeReadableFile(fixturesDir, "simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             assertSomethingForAllNodes(module) {
-                assertFalse(Path(it.position.file).isAbsolute)
-                assertTrue(Path(it.position.file).isRegularFile())
+                Path(it.position.file).isAbsolute shouldBe false
+                Path(it.position.file).isRegularFile() shouldBe true
             }
         }
 
@@ -371,7 +376,7 @@ class TestProg8Parser: FunSpec( {
             """.trimIndent()
             val module = parseModule(SourceCode.Text(srcText))
             assertSomethingForAllNodes(module) {
-                assertTrue(it.position.file.startsWith(SourceCode.stringSourcePrefix))
+                it.position.file shouldStartWith SourceCode.stringSourcePrefix
             }
         }
 
@@ -380,7 +385,7 @@ class TestProg8Parser: FunSpec( {
             val resource = SourceCode.Resource("prog8lib/math.p8")
             val module = parseModule(resource)
             assertSomethingForAllNodes(module) {
-                assertTrue(it.position.file.startsWith(SourceCode.libraryFilePrefix))
+                it.position.file shouldStartWith SourceCode.libraryFilePrefix
             }
         }
     }
@@ -402,9 +407,9 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<Subroutine>()[0]
             val funCall = startSub.statements.filterIsInstance<IFunctionCall>().first()
 
-            assertIs<CharLiteral>(funCall.args[0])
+            funCall.args[0] shouldBe(instanceOf<CharLiteral>())
             val char = funCall.args[0] as CharLiteral
-            assertEquals('\n', char.value)
+            char.value shouldBe '\n'
         }
 
         test("on rhs of block-level var decl, no AltEnc") {
@@ -419,8 +424,8 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
-            assertEquals('x', rhs.value, "char literal's .value")
-            assertEquals(false, rhs.altEncoding, "char literal's .altEncoding")
+            rhs.value shouldBe 'x'
+            rhs.altEncoding shouldBe false
         }
 
         test("on rhs of block-level const decl, with AltEnc") {
@@ -435,8 +440,8 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
-            assertEquals('x', rhs.value, "char literal's .value")
-            assertEquals(true, rhs.altEncoding, "char literal's .altEncoding")
+            rhs.value shouldBe 'x'
+            rhs.altEncoding shouldBe true
         }
 
         test("on rhs of subroutine-level var decl, no AltEnc") {
@@ -454,8 +459,8 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
-            assertEquals('x', rhs.value, "char literal's .value")
-            assertEquals(false, rhs.altEncoding, "char literal's .altEncoding")
+            rhs.value shouldBe 'x'
+            rhs.altEncoding shouldBe false
         }
 
         test("on rhs of subroutine-level const decl, with AltEnc") {
@@ -473,8 +478,8 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
-            assertEquals('x', rhs.value, "char literal's .value")
-            assertEquals(true, rhs.altEncoding, "char literal's .altEncoding")
+            rhs.value shouldBe 'x'
+            rhs.altEncoding shouldBe true
         }
     }
 
@@ -504,26 +509,26 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<ForLoop>()
                 .map { it.iterable }
 
-            assertEquals(5, iterables.size)
+            iterables.size shouldBe 5
 
             val it0 = iterables[0] as RangeExpr
-            assertIs<StringLiteralValue>(it0.from, "parser should leave it as is")
-            assertIs<StringLiteralValue>(it0.to, "parser should leave it as is")
+            it0.from shouldBe instanceOf<StringLiteralValue>()
+            it0.to shouldBe instanceOf<StringLiteralValue>()
 
             val it1 = iterables[1] as StringLiteralValue
-            assertEquals("something", it1.value, "parser should leave it as is")
+            it1.value shouldBe "something"
 
             val it2 = iterables[2] as RangeExpr
-            assertIs<CharLiteral>(it2.from, "parser should leave it as is")
-            assertIs<CharLiteral>(it2.to, "parser should leave it as is")
+            it2.from shouldBe instanceOf<CharLiteral>()
+            it2.to shouldBe instanceOf<CharLiteral>()
 
             val it3 = iterables[3] as RangeExpr
-            assertIs<NumericLiteralValue>(it3.from, "parser should leave it as is")
-            assertIs<NumericLiteralValue>(it3.to, "parser should leave it as is")
+            it3.from shouldBe instanceOf<NumericLiteralValue>()
+            it3.to shouldBe instanceOf<NumericLiteralValue>()
 
             val it4 = iterables[4] as RangeExpr
-            assertIs<NumericLiteralValue>(it4.from, "parser should leave it as is")
-            assertIs<NumericLiteralValue>(it4.to, "parser should leave it as is")
+            it4.from shouldBe instanceOf<NumericLiteralValue>()
+            it4.to shouldBe instanceOf<NumericLiteralValue>()
         }
     }
 
@@ -532,33 +537,33 @@ class TestProg8Parser: FunSpec( {
         val char2 = CharLiteral('z', true, Position.DUMMY)
 
         val program = Program("test", DummyFunctions, DummyMemsizer, AsciiStringEncoder)
-        assertEquals(65, char1.constValue(program).number.toInt())
-        assertEquals(122, char2.constValue(program).number.toInt())
+        char1.constValue(program).number.toInt() shouldBe 65
+        char2.constValue(program).number.toInt() shouldBe 122
     }
 
     test("testLiteralValueComparisons") {
         val ten = NumericLiteralValue(DataType.UWORD, 10, Position.DUMMY)
         val nine = NumericLiteralValue(DataType.UBYTE, 9, Position.DUMMY)
-        assertEquals(ten, ten)
-        assertNotEquals(ten, nine)
-        assertFalse(ten != ten)
-        assertTrue(ten != nine)
+        ten shouldBe ten
+        nine shouldNotBe ten
+        (ten != ten) shouldBe false
+        (ten != nine) shouldBe true
 
-        assertTrue(ten > nine)
-        assertTrue(ten >= nine)
-        assertTrue(ten >= ten)
-        assertFalse(ten > ten)
+        (ten > nine) shouldBe true
+        (ten >= nine) shouldBe true
+        (ten >= ten) shouldBe true
+        (ten > ten) shouldBe false
 
-        assertFalse(ten < nine)
-        assertFalse(ten <= nine)
-        assertTrue(ten <= ten)
-        assertFalse(ten < ten)
+        (ten < nine) shouldBe false
+        (ten <= nine) shouldBe false
+        (ten <= ten) shouldBe true
+        (ten < ten) shouldBe false
 
         val abc = StringLiteralValue("abc", false, Position.DUMMY)
         val abd = StringLiteralValue("abd", false, Position.DUMMY)
-        assertEquals(abc, abc)
-        assertTrue(abc!=abd)
-        assertFalse(abc!=abc)
+        abc shouldBe abc
+        (abc!=abd) shouldBe true
+        (abc!=abc) shouldBe false
     }
 
     test("testAnonScopeStillContainsVarsDirectlyAfterParse") {
@@ -576,12 +581,18 @@ class TestProg8Parser: FunSpec( {
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val repeatbody = (start.statements.single() as RepeatLoop).body
-        assertFalse(mainBlock.statements.any { it is VarDecl }, "no vars moved to main block")
-        assertFalse(start.statements.any { it is VarDecl }, "no vars moved to start sub")
-        assertTrue(repeatbody.statements[0] is VarDecl, "var is still in repeat block (anonymousscope)")
+        withClue("no vars moved to main block") {
+            mainBlock.statements.any { it is VarDecl } shouldBe false
+        }
+        withClue("no vars moved to start sub") {
+            start.statements.any { it is VarDecl } shouldBe false
+        }
+        withClue("\"var is still in repeat block (anonymousscope") {
+            repeatbody.statements[0] shouldBe instanceOf<VarDecl>()
+        }
         val initvalue = (repeatbody.statements[0] as VarDecl).value as? NumericLiteralValue
-        assertEquals(99, initvalue?.number?.toInt())
-        assertTrue(repeatbody.statements[1] is PostIncrDecr)
+        initvalue?.number?.toInt() shouldBe 99
+        repeatbody.statements[1] shouldBe instanceOf<PostIncrDecr>()
         // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
     }
 
@@ -612,6 +623,6 @@ class TestProg8Parser: FunSpec( {
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
-        assertEquals(1, labels.size, "only one label in subroutine scope")
+        labels.size shouldBe 1
     }
 })

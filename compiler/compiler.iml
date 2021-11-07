@@ -25,5 +25,8 @@
     <orderEntry type="module" module-name="codeOptimizers" />
     <orderEntry type="module" module-name="compilerInterfaces" />
     <orderEntry type="module" module-name="codeGeneration" />
+    <orderEntry type="library" name="io.kotest.assertions.core.jvm" level="project" />
+    <orderEntry type="library" name="io.kotest.property.jvm" level="project" />
+    <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
   </component>
 </module>

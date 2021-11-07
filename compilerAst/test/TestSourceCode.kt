@@ -1,6 +1,9 @@
 package prog8tests.ast
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
 import prog8tests.ast.helpers.assumeNotExists
@@ -8,7 +11,6 @@ import prog8tests.ast.helpers.assumeReadableFile
 import prog8tests.ast.helpers.fixturesDir
 import prog8tests.ast.helpers.resourcesDir
 import kotlin.io.path.Path
-import kotlin.test.*
 
 
 class TestSourceCode: AnnotationSpec() {
@@ -21,30 +23,30 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Text(text)
         val actualText = src.getCharStream().toString()
 
-        assertContains(src.origin, Regex("^<String@[0-9a-f\\-]+>$"))
-        assertEquals(text, actualText)
-        assertFalse(src.isFromResources)
-        assertFalse(src.isFromFilesystem)
-        assertTrue(src.toString().startsWith("prog8.parser.SourceCode"))
+        src.origin shouldContain Regex("^<String@[0-9a-f\\-]+>$")
+        actualText shouldBe text
+        src.isFromResources shouldBe false
+        src.isFromFilesystem shouldBe false
+        src.toString().startsWith("prog8.parser.SourceCode") shouldBe true
     }
 
     @Test
     fun testFromPathWithNonExistingPath() {
         val filename = "i_do_not_exist.p8"
         val path = assumeNotExists(fixturesDir, filename)
-        assertFailsWith<NoSuchFileException> { SourceCode.File(path) }
+        shouldThrow<NoSuchFileException> { SourceCode.File(path) }
     }
 
     @Test
     fun testFromPathWithMissingExtension_p8() {
         val pathWithoutExt = assumeNotExists(fixturesDir,"simple_main")
         assumeReadableFile(fixturesDir,"simple_main.p8")
-        assertFailsWith<NoSuchFileException> { SourceCode.File(pathWithoutExt) }
+        shouldThrow<NoSuchFileException> { SourceCode.File(pathWithoutExt) }
     }
 
     @Test
     fun testFromPathWithDirectory() {
-        assertFailsWith<AccessDeniedException> { SourceCode.File(fixturesDir) }
+        shouldThrow<AccessDeniedException> { SourceCode.File(fixturesDir) }
     }
 
     @Test
@@ -53,10 +55,10 @@ class TestSourceCode: AnnotationSpec() {
         val path = assumeReadableFile(fixturesDir, filename)
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
-        assertEquals(expectedOrigin, src.origin)
-        assertEquals(path.toFile().readText(), src.readText())
-        assertFalse(src.isFromResources)
-        assertTrue(src.isFromFilesystem)
+        src.origin shouldBe expectedOrigin
+        src.readText() shouldBe path.toFile().readText()
+        src.isFromResources shouldBe false
+        src.isFromFilesystem shouldBe true
     }
 
     @Test
@@ -66,8 +68,8 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(path).toFile()
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
-        assertEquals(expectedOrigin, src.origin)
-        assertEquals(srcFile.readText(), src.readText())
+        src.origin shouldBe expectedOrigin
+        src.readText() shouldBe srcFile.readText()
     }
 
     @Test
@@ -76,10 +78,10 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.Resource(pathString)
 
-        assertEquals("$libraryFilePrefix/$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.readText())
-        assertTrue(src.isFromResources)
-        assertFalse(src.isFromFilesystem)
+        src.origin shouldBe "$libraryFilePrefix/$pathString"
+        src.readText() shouldBe srcFile.readText()
+        src.isFromResources shouldBe true
+        src.isFromFilesystem shouldBe false
     }
 
     @Test
@@ -88,8 +90,8 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
-        assertEquals("$libraryFilePrefix$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.readText())
+        src.origin shouldBe "$libraryFilePrefix$pathString"
+        src.readText() shouldBe srcFile.readText()
     }
 
     @Test
@@ -98,9 +100,9 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.Resource(pathString)
 
-        assertEquals("$libraryFilePrefix/$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.readText())
-        assertTrue(src.isFromResources, ".isFromResources")
+        src.origin shouldBe "$libraryFilePrefix/$pathString"
+        src.readText() shouldBe srcFile.readText()
+        src.isFromResources shouldBe true
     }
 
     @Test
@@ -109,8 +111,8 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
-        assertEquals("$libraryFilePrefix$pathString", src.origin)
-        assertEquals(srcFile.readText(), src.readText())
+        src.origin shouldBe "$libraryFilePrefix$pathString"
+        src.readText() shouldBe srcFile.readText()
     }
 
     @Test
@@ -119,9 +121,9 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
-        assertEquals("$libraryFilePrefix/prog8lib/math.p8", src.origin)
-        assertEquals(srcFile.readText(), src.readText())
-        assertTrue(src.isFromResources, ".isFromResources")
+        src.origin shouldBe "$libraryFilePrefix/prog8lib/math.p8"
+        src.readText() shouldBe srcFile.readText()
+        src.isFromResources shouldBe true
     }
 
 
@@ -130,13 +132,13 @@ class TestSourceCode: AnnotationSpec() {
         val pathString = "/prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString.substring(1))
 
-        assertFailsWith<NoSuchFileException> { SourceCode.Resource(pathString) }
+        shouldThrow<NoSuchFileException> { SourceCode.Resource(pathString) }
     }
     @Test
     fun testFromResourcesWithNonExistingFile_withoutLeadingSlash() {
         val pathString = "prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString)
 
-        assertFailsWith<NoSuchFileException> { SourceCode.Resource(pathString) }
+        shouldThrow<NoSuchFileException> { SourceCode.Resource(pathString) }
     }
 }
