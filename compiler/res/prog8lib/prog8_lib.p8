@@ -6,12 +6,13 @@ prog8_lib {
 	%asminclude "library:prog8_lib.asm"
 	%asminclude "library:prog8_funcs.asm"
 
-        ; TODO these retval variables are no longer used???
-	uword @zp retval_interm_uw      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
-	word @zp retval_interm_w        ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
-	ubyte @zp retval_interm_ub      ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
-	byte @zp retval_interm_b        ; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size)
-	; NOTE: these variables are checked in the StatementReorderer (in fun after(decl: VarDecl)), for these exact names!
+	; to store intermediary expression results for return values (hopefully allocated on ZP to reduce code size):
+	; NOTE: these variables are used in the StatementReorderer and StatementOptimizer
+	uword @zp retval_interm_uw
+	word @zp retval_interm_w
+	ubyte @zp retval_interm_ub
+	byte @zp retval_interm_b
+
 
 	asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> ubyte @A {
 		%asm {{
