@@ -5,6 +5,7 @@ For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - replace all old asserts in compilerAst tests by kotest equivalents
 - remove kotlin.test and junit dependencies in compilerAst module
+- migrate Compiler tests to KoTest library (this will close github issue #70)
 ...
 
 
@@ -17,7 +18,6 @@ Blocked by Commander-x16 v39 release
 Future
 ^^^^^^
 - fix the asm-labels problem (github issue #62)
-- start migrating to KoTest library (github issue #70)
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
 - [complicated?] find a way to optimize if-statement codegen so that "if var & %10000" doesn't use evalstack & subroutine call, but also that the simple case "if X {...}" remains fast
 - document the various compiler command line options in more detail. See "Compiling program code" in the docs

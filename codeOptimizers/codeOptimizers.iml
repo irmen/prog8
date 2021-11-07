@@ -12,7 +12,5 @@
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="compilerInterfaces" />
     <orderEntry type="module" module-name="compilerAst" />
-    <orderEntry type="library" scope="TEST" name="hamcrest" level="project" />
-    <orderEntry type="library" name="junit.jupiter" level="project" />
   </component>
 </module>
