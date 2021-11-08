@@ -182,10 +182,10 @@ expression :
 	| left = expression EOL? bop = '|' EOL? right = expression
 	| left = expression EOL? bop = ('==' | '!=') EOL? right = expression
 	| rangefrom = expression rto = ('to'|'downto') rangeto = expression ('step' rangestep = expression)?	// can't create separate rule due to mutual left-recursion
+	| prefix = 'not' expression
 	| left = expression EOL? bop = 'and' EOL? right = expression
 	| left = expression EOL? bop = 'or' EOL? right = expression
 	| left = expression EOL? bop = 'xor' EOL? right = expression
-	| prefix = 'not' expression
 	| literalvalue
 	| scoped_identifier
 	| arrayindexed

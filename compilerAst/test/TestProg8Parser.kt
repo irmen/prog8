@@ -14,10 +14,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.expressions.CharLiteral
-import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.RangeExpr
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
@@ -624,5 +621,37 @@ class TestProg8Parser: FunSpec( {
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
         labels.size shouldBe 1
+    }
+
+    test("logical operator 'not' priority") {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    ubyte xx
+                    xx = not 4 and not 5
+                    xx = not 4 or not 5
+                    xx = not 4 xor not 5
+                }
+            }
+        """)
+        val module = parseModule(src)
+        val start = (module.statements.single() as Block).statements.single() as Subroutine
+        val andAssignmentExpr = (start.statements[1] as Assignment).value
+        val orAssignmentExpr = (start.statements[2] as Assignment).value
+        val xorAssignmentExpr = (start.statements[3] as Assignment).value
+
+        fun correctPrios(expr: Expression, operator: String) {
+            withClue("not should have higher prio as the other logical operators") {
+                expr shouldBe instanceOf<BinaryExpression>()
+                val binExpr = expr as BinaryExpression
+                binExpr.operator shouldBe operator
+                (binExpr.left as PrefixExpression).operator shouldBe "not"
+                (binExpr.right as PrefixExpression).operator shouldBe "not"
+            }
+        }
+
+        correctPrios(andAssignmentExpr, "and")
+        correctPrios(orAssignmentExpr, "or")
+        correctPrios(xorAssignmentExpr, "xor")
     }
 })
