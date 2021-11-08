@@ -7,17 +7,14 @@ import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.AsmGen
-import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.builtinFunctionReturnType
 
 
-internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen,
-                                private val exprAsmgen: ExpressionsAsmGen
-) {
+internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
-    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, exprAsmgen, asmgen)
+    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
 
     fun translate(assignment: Assignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)

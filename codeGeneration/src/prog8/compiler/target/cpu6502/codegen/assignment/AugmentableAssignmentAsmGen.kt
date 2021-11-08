@@ -7,12 +7,10 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.AsmGen
-import prog8.compiler.target.cpu6502.codegen.ExpressionsAsmGen
 import prog8.compilerinterface.CpuType
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
-                                           private val exprAsmGen: ExpressionsAsmGen,
                                            private val asmgen: AsmGen
 ) {
     fun translate(assign: AsmAssignment) {
@@ -657,14 +655,14 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_byte_memread_to_variable(name: String, dt: DataType, operator: String, memread: DirectMemoryRead) {
         when (operator) {
             "+" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("""
                     clc
                     adc  $name
                     sta  $name""")
             }
             "-" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_B1
                     lda  $name
@@ -673,15 +671,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sta  $name""")
             }
             "|", "or" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  ora  $name  |  sta  $name")
             }
             "&", "and" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  and  $name  |  sta  $name")
             }
             "^", "xor" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
             // TODO: tuned code for more operators
@@ -694,7 +692,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun inplaceModification_word_memread_to_variable(name: String, dt: DataType, operator: String, memread: DirectMemoryRead) {
         when (operator) {
             "+" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("""
                     clc
                     adc  $name
@@ -704,7 +702,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
             }
             "-" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_B1
                     lda  $name
@@ -716,11 +714,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
             }
             "|", "or" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  ora  $name  |  sta  $name")
             }
             "&", "and" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  and  $name  |  sta  $name")
                 if(dt in WordDatatypes) {
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -730,7 +728,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 }
             }
             "^", "xor" -> {
-                exprAsmGen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
             // TODO: tuned code for more operators

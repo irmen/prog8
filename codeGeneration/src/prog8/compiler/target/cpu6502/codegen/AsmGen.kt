@@ -46,7 +46,7 @@ class AsmGen(private val program: Program,
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this, expressionsAsmGen)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
     internal val slabs = mutableMapOf<String, Int>()
@@ -876,7 +876,7 @@ class AsmGen(private val program: Program,
     }
 
     internal fun assignExpressionTo(value: Expression, target: AsmAssignTarget) {
-        // don't use asmgen.translateExpression() to avoid evalstack
+        // don't use translateExpression() to avoid evalstack
         when (target.datatype) {
             in ByteDatatypes -> {
                 assignExpressionToRegister(value, RegisterOrPair.A)
@@ -1021,7 +1021,7 @@ class AsmGen(private val program: Program,
 
         if (stmt.elsepart.isEmpty()) {
             val endLabel = makeLabel("if_end")
-            expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
+            translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
             translate(stmt.truepart)
             out(endLabel)
         }
@@ -1029,7 +1029,7 @@ class AsmGen(private val program: Program,
             // both true and else parts
             val elseLabel = makeLabel("if_else")
             val endLabel = makeLabel("if_end")
-            expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, elseLabel)
+            translateComparisonExpressionWithJumpIfFalse(booleanCondition, elseLabel)
             translate(stmt.truepart)
             jmp(endLabel)
             out(elseLabel)
@@ -1198,7 +1198,7 @@ $repeatLabel    lda  $counterVar
         val endLabel = makeLabel("whileend")
         loopEndLabels.push(endLabel)
         out(whileLabel)
-        expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
+        translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
         translate(stmt.body)
         jmp(whileLabel)
         out(endLabel)
@@ -1214,7 +1214,7 @@ $repeatLabel    lda  $counterVar
         loopEndLabels.push(endLabel)
         out(repeatLabel)
         translate(stmt.body)
-        expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, repeatLabel)
+        translateComparisonExpressionWithJumpIfFalse(booleanCondition, repeatLabel)
         out(endLabel)
         loopEndLabels.pop()
     }
@@ -1563,4 +1563,1611 @@ $label              nop""")
         }
         return false
     }
+
+
+
+    private fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
+        // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
+        // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
+
+        var left = expr.left
+        var right = expr.right
+        var operator = expr.operator
+        var leftConstVal = left.constValue(program)
+        var rightConstVal = right.constValue(program)
+
+        // make sure the constant value is on the right of the comparison expression
+        if(leftConstVal!=null) {
+            val tmp = left
+            left = right
+            right = tmp
+            val tmp2 = leftConstVal
+            leftConstVal = rightConstVal
+            rightConstVal = tmp2
+            when(expr.operator) {
+                "<" -> operator = ">"
+                "<=" -> operator = ">="
+                ">" -> operator = "<"
+                ">=" -> operator = "<="
+            }
+        }
+
+        if (rightConstVal!=null && rightConstVal.number.toDouble() == 0.0)
+            jumpIfZeroOrNot(left, operator, jumpIfFalseLabel)
+        else
+            jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+    }
+
+    private fun jumpIfZeroOrNot(
+        left: Expression,
+        operator: String,
+        jumpIfFalseLabel: String
+    ) {
+        when(val dt = left.inferType(program).getOr(DataType.UNDEFINED)) {
+            DataType.UBYTE, DataType.UWORD -> {
+                if(operator=="<") {
+                    out("  jmp  $jumpIfFalseLabel")
+                    return
+                } else if(operator==">=") {
+                    return
+                }
+                if(dt==DataType.UBYTE) {
+                    assignExpressionToRegister(left, RegisterOrPair.A, false)
+                    if (left is FunctionCall && !left.isSimple)
+                        out("  cmp  #0")
+                } else {
+                    assignExpressionToRegister(left, RegisterOrPair.AY, false)
+                    out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
+                }
+                when (operator) {
+                    "==" -> out("  bne  $jumpIfFalseLabel")
+                    "!=" -> out("  beq  $jumpIfFalseLabel")
+                    ">" -> out("  beq  $jumpIfFalseLabel")
+                    "<=" -> out("  bne  $jumpIfFalseLabel")
+                    else -> throw AssemblyError("invalid comparison operator $operator")
+                }
+            }
+            DataType.BYTE -> {
+                assignExpressionToRegister(left, RegisterOrPair.A, true)
+                if (left is FunctionCall && !left.isSimple)
+                    out("  cmp  #0")
+                when (operator) {
+                    "==" -> out("  bne  $jumpIfFalseLabel")
+                    "!=" -> out("  beq  $jumpIfFalseLabel")
+                    ">" -> out("  beq  $jumpIfFalseLabel |  bmi  $jumpIfFalseLabel")
+                    "<" -> out("  bpl  $jumpIfFalseLabel")
+                    ">=" -> out("  bmi  $jumpIfFalseLabel")
+                    "<=" -> out("""
+                          beq  +
+                          bpl  $jumpIfFalseLabel
+                      +   """)
+                    else -> throw AssemblyError("invalid comparison operator $operator")
+                }
+            }
+            DataType.WORD -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY, true)
+                when (operator) {
+                    "==" -> out("  bne  $jumpIfFalseLabel |  cpy  #0 |  bne  $jumpIfFalseLabel")
+                    "!=" -> out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1 |  beq  $jumpIfFalseLabel")
+                    ">" -> out("""
+                            cpy  #0
+                            bmi  $jumpIfFalseLabel
+                            bne  +
+                            cmp  #0
+                            beq  $jumpIfFalseLabel
+                        +   """)
+                    "<" -> out("  cpy  #0 |  bpl  $jumpIfFalseLabel")
+                    ">=" -> out("  cpy  #0 |  bmi  $jumpIfFalseLabel")
+                    "<=" -> out("""
+                            cpy  #0
+                            bmi  +
+                            bne  $jumpIfFalseLabel
+                            cmp  #0
+                            bne  $jumpIfFalseLabel
+                        +   """)
+                    else -> throw AssemblyError("invalid comparison operator $operator")
+                }
+            }
+            DataType.FLOAT -> {
+                assignExpressionToRegister(left, RegisterOrPair.FAC1)
+                out("  jsr  floats.SIGN")   // SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+                when (operator) {
+                    "==" -> out("  bne  $jumpIfFalseLabel")
+                    "!=" -> out("  beq  $jumpIfFalseLabel")
+                    ">" -> out("  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
+                    "<" -> out("  bpl  $jumpIfFalseLabel")
+                    ">=" -> out("  bmi  $jumpIfFalseLabel")
+                    "<=" -> out("  cmp  #1 |  beq  $jumpIfFalseLabel")
+                    else -> throw AssemblyError("invalid comparison operator $operator")
+                }
+            }
+            else -> {
+                throw AssemblyError("invalid dt")
+            }
+        }
+    }
+
+    private fun jumpIfComparison(
+        left: Expression,
+        operator: String,
+        right: Expression,
+        jumpIfFalseLabel: String,
+        leftConstVal: NumericLiteralValue?,
+        rightConstVal: NumericLiteralValue?
+    ) {
+        val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
+
+        when (operator) {
+            "==" -> {
+                when (dt) {
+                    in ByteDatatypes -> translateByteEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringEqualsJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            "!=" -> {
+                when (dt) {
+                    in ByteDatatypes -> translateByteNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringNotEqualsJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            "<" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringLessJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            "<=" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringLessOrEqualJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            ">" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringGreaterJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+            ">=" -> {
+                when(dt) {
+                    DataType.UBYTE -> translateUbyteGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringGreaterOrEqualJump(left as IdentifierReference, right as IdentifierReference, jumpIfFalseLabel)
+                    else -> throw AssemblyError("weird operand datatype")
+                }
+            }
+        }
+    }
+
+    private fun translateFloatLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmVariableName(left)
+            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmVariableName(left)
+            val rightName = asmVariableName(right)
+            out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            val subroutine = left.definingSubroutine!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            out("""
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
+                jsr  floats.var_fac1_less_f
+                beq  $jumpIfFalseLabel""")
+        }
+    }
+
+    private fun translateFloatLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmVariableName(left)
+            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmVariableName(left)
+            val rightName = asmVariableName(right)
+            out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            val subroutine = left.definingSubroutine!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            out("""
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
+                jsr  floats.var_fac1_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        }
+    }
+
+    private fun translateFloatGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmVariableName(left)
+            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmVariableName(left)
+            val rightName = asmVariableName(right)
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_less_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            val subroutine = left.definingSubroutine!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            out("""
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
+                jsr  floats.var_fac1_greater_f
+                beq  $jumpIfFalseLabel""")
+        }
+    }
+
+    private fun translateFloatGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmVariableName(left)
+            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmVariableName(left)
+            val rightName = asmVariableName(right)
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_lesseq_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            val subroutine = left.definingSubroutine!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            out("""
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
+                jsr  floats.var_fac1_greatereq_f
+                beq  $jumpIfFalseLabel""")
+        }
+    }
+
+    private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            out("  cmp  $cmpOperand |  bcs  $jumpIfFalseLabel")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.A)
+                        code("#${rightConstVal.number}")
+                    }
+                    else
+                        jmp(jumpIfFalseLabel)
+                }
+                else if (left is DirectMemoryRead) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        translateDirectMemReadExpressionToRegAorStack(left, false)
+                        code("#${rightConstVal.number}")
+                    }
+                    else
+                        jmp(jumpIfFalseLabel)
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateByteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(sbcOperand: String) {
+            out("""
+                sec
+                sbc  $sbcOperand
+                bvc  +
+                eor  #$80
++               bpl  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bpl  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateUwordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            out("""
+                cpy  $msbCpyOperand
+                bcc  +
+                bne  $jumpIfFalseLabel
+                cmp  $lsbCmpOperand
+                bcs  $jumpIfFalseLabel
++""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY)
+                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                    }
+                    else
+                        jmp(jumpIfFalseLabel)
+                }
+            }
+        }
+
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(left, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            out("""
+                cmp  $lsbCmpOperand
+                tya
+                sbc  $msbCpyOperand
+                bvc  +
+                eor  #$80
++               bpl  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY)
+                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                    }
+                    else {
+                        val name = asmVariableName(left)
+                        out("  lda  $name+1 |  bpl  $jumpIfFalseLabel")
+                    }
+                }
+            }
+        }
+
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(left, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateUbyteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            out("""
+                cmp  $cmpOperand
+                bcc  $jumpIfFalseLabel
+                beq  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  beq $jumpIfFalseLabel")
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  beq  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateByteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(sbcOperand: String) {
+            out("""
+                clc
+                sbc  $sbcOperand
+                bvc  +
+                eor  #$80
++               bpl  +
+                bmi  $jumpIfFalseLabel
++""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bmi  $jumpIfFalseLabel |  beq  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            out("""
+                cpy  $msbCpyOperand
+                bcc  $jumpIfFalseLabel
+                bne  +
+                cmp  $lsbCmpOperand
+                bcc  $jumpIfFalseLabel
++               beq  $jumpIfFalseLabel
+""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY)
+                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                    }
+                    else {
+                        val name = asmVariableName(left)
+                        out("""
+                            lda  $name
+                            ora  $name+1
+                            beq  $jumpIfFalseLabel""")
+                    }
+                }
+            }
+        }
+
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(left, RegisterOrPair.AY)
+        return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
+    }
+
+    private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCmpOperand: String, lsbCmpOperand: String) {
+            out("""
+                cmp  $lsbCmpOperand
+                tya
+                sbc  $msbCmpOperand
+                bvc  +
+                eor  #$80
++               bpl  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(right, RegisterOrPair.AY)
+                        val varname = asmVariableName(left)
+                        code("$varname+1", varname)
+                    }
+                    else {
+                        val name = asmVariableName(left)
+                        out("""
+                            lda  $name+1
+                            bmi  $jumpIfFalseLabel
+                            lda  $name
+                            beq  $jumpIfFalseLabel""")
+                    }
+                }
+            }
+        }
+
+        if(wordJumpForSimpleLeftOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(right, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateUbyteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            out("""
+                cmp  $cmpOperand
+                beq  +
+                bcs  $jumpIfFalseLabel
++""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bne  $jumpIfFalseLabel")
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bne  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateByteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        fun code(sbcOperand: String) {
+            out("""
+                clc
+                sbc  $sbcOperand
+                bvc  +
+                eor  #$80
++               bpl  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("""
+                            beq  +
+                            bpl  $jumpIfFalseLabel
++""")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            out("""
+                cpy  $msbCpyOperand
+                beq  +
+                bcc  ++
+                bcs  $jumpIfFalseLabel
++               cmp  $lsbCmpOperand
+                bcc  +
+                beq  +
+                bne  $jumpIfFalseLabel
++""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY)
+                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                    }
+                    else {
+                        val name = asmVariableName(left)
+                        out("""
+                            lda  $name
+                            ora  $name+1
+                            bne  $jumpIfFalseLabel""")
+                    }
+                }
+            }
+        }
+
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(left, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateWordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(leftName: String) {
+            out("""
+                cmp  $leftName
+                tya
+                sbc  $leftName+1
+                bvc  +
+                eor  #$80
++	        	bmi  $jumpIfFalseLabel
+""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal>leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(right, RegisterOrPair.AY)
+                        code(asmVariableName(left))
+                    }
+                    else {
+                        val name = asmVariableName(left)
+                        out("""
+                            lda  $name+1
+                            bmi  +
+                            bne  $jumpIfFalseLabel
+                            lda  $name
+                            bne  $jumpIfFalseLabel
++""")
+                    }
+                }
+            }
+        }
+
+        if(left is IdentifierReference) {
+            assignExpressionToRegister(right, RegisterOrPair.AY)
+            return code(asmVariableName(left))
+        }
+
+        assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(right, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateUbyteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            out("  cmp  $cmpOperand |  bcc  $jumpIfFalseLabel")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.A)
+                        code("#${rightConstVal.number}")
+                    }
+                    return
+                }
+                else if (left is DirectMemoryRead) {
+                    if(rightConstVal.number.toInt()!=0) {
+                        translateDirectMemReadExpressionToRegAorStack(left, false)
+                        code("#${rightConstVal.number}")
+                    }
+                    return
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateByteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        fun code(sbcOperand: String) {
+            out("""
+                sec
+                sbc  $sbcOperand
+                bvc  +
+                eor  #$80
++               bmi  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bmi  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            out("""
+                cpy  $msbCpyOperand
+                bcc  $jumpIfFalseLabel
+                bne  +
+                cmp  $lsbCmpOperand
+                bcc  $jumpIfFalseLabel
++""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY)
+                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                    }
+                }
+            }
+        }
+
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
+
+        assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(right, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateWordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(msbCpyOperand: String, lsbCmpOperand: String) {
+            out("""
+        		cmp  $lsbCmpOperand
+        		tya
+        		sbc  $msbCpyOperand
+        		bvc  +
+        		eor  #$80
++       		bmi  $jumpIfFalseLabel""")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal<leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    return if(rightConstVal.number.toInt()!=0) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY)
+                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                    }
+                    else {
+                        val name = asmVariableName(left)
+                        out(" lda  $name+1 |  bmi  $jumpIfFalseLabel")
+                    }
+                }
+            }
+        }
+
+        if(wordJumpForSimpleRightOperands(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+        assignExpressionToRegister(left, RegisterOrPair.AY)
+        return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
+    }
+
+    private fun translateByteEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        fun code(cmpOperand: String) {
+            out("  cmp  $cmpOperand |  bne  $jumpIfFalseLabel")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal!=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bne  $jumpIfFalseLabel")
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  bne  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
+    }
+
+    private fun translateByteNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        fun code(cmpOperand: String) {
+            out("  cmp  $cmpOperand |  beq  $jumpIfFalseLabel")
+        }
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    assignExpressionToRegister(left, RegisterOrPair.A)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  beq  $jumpIfFalseLabel")
+                }
+                else if (left is DirectMemoryRead) {
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    return if(rightConstVal.number.toInt()!=0)
+                        code("#${rightConstVal.number}")
+                    else
+                        out("  beq  $jumpIfFalseLabel")
+                }
+            }
+        }
+
+        if(byteJumpForSimpleRightOperand(left, right, ::code))
+            return
+
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        assignExpressionToRegister(left, RegisterOrPair.A)
+        return code("P8ZP_SCRATCH_B1")
+    }
+
+    private fun translateWordEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal!=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        out("""
+                        lda  $name
+                        cmp  #<${rightConstVal.number}
+                        bne  $jumpIfFalseLabel
+                        lda  $name+1
+                        cmp  #>${rightConstVal.number}
+                        bne  $jumpIfFalseLabel""")
+                    else
+                        out("""
+                        lda  $name
+                        bne  $jumpIfFalseLabel
+                        lda  $name+1
+                        bne  $jumpIfFalseLabel""")
+                    return
+                }
+            }
+        }
+
+        when (right) {
+            is NumericLiteralValue -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val number = right.number.toHex()
+                out("""
+                    cmp  #<$number
+                    bne  $jumpIfFalseLabel
+                    cpy  #>$number
+                    bne  $jumpIfFalseLabel
+                    """)
+            }
+            is IdentifierReference -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                out("""
+                    cmp  ${asmVariableName(right)}
+                    bne  $jumpIfFalseLabel
+                    cpy  ${asmVariableName(right)}+1
+                    bne  $jumpIfFalseLabel
+                    """)
+            }
+            is AddressOf -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val name = asmSymbolName(right.identifier)
+                out("""
+                    cmp  #<$name
+                    bne  $jumpIfFalseLabel
+                    cpy  #>$name
+                    bne  $jumpIfFalseLabel
+                    """)
+            }
+            else -> {
+                assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                out("""
+                    cmp  P8ZP_SCRATCH_W2
+                    bne  $jumpIfFalseLabel
+                    cpy  P8ZP_SCRATCH_W2+1
+                    bne  $jumpIfFalseLabel""")
+            }
+        }
+
+    }
+
+    private fun translateWordNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmVariableName(left)
+                    if(rightConstVal.number.toInt()!=0)
+                        out("""
+                        lda  $name
+                        cmp  #<${rightConstVal.number}
+                        bne  +
+                        lda  $name+1
+                        cmp  #>${rightConstVal.number}
+                        beq  $jumpIfFalseLabel
++""")
+                    else
+                        out("""
+                        lda  $name
+                        bne  +
+                        lda  $name+1
+                        beq  $jumpIfFalseLabel
++""")
+                    return
+                }
+            }
+        }
+
+        when (right) {
+            is NumericLiteralValue -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val number = right.number.toHex()
+                out("""
+                    cmp  #<$number
+                    bne  +
+                    cpy  #>$number
+                    beq  $jumpIfFalseLabel
++""")
+            }
+            is IdentifierReference -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                out("""
+                    cmp  ${asmVariableName(right)}
+                    bne  +
+                    cpy  ${asmVariableName(right)}+1
+                    beq  $jumpIfFalseLabel
++""")
+            }
+            is AddressOf -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val name = asmSymbolName(right.identifier)
+                out("""
+                    cmp  #<$name
+                    bne  +
+                    cpy  #>$name
+                    beq  $jumpIfFalseLabel
++""")
+            }
+            else -> {
+                assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                out("""
+                    cmp  P8ZP_SCRATCH_W2
+                    bne  +
+                    cpy  P8ZP_SCRATCH_W2+1
+                    beq  $jumpIfFalseLabel
++"""
+                )
+            }
+        }
+
+    }
+
+    private fun translateFloatEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal!=leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmVariableName(left)
+                    when(rightConstVal.number.toDouble())
+                    {
+                        0.0 -> {
+                            out("""
+                                lda  $name
+                                clc
+                                adc  $name+1
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                bne  $jumpIfFalseLabel""")
+                            return
+                        }
+                        1.0 -> {
+                            out("""
+                                lda  $name
+                                cmp  #129
+                                bne  $jumpIfFalseLabel
+                                lda  $name+1
+                                clc
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                bne  $jumpIfFalseLabel""")
+                            return
+                        }
+                    }
+                }
+            }
+        }
+
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmVariableName(left)
+            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                beq  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmVariableName(left)
+            val rightName = asmVariableName(right)
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                beq  $jumpIfFalseLabel""")
+        } else {
+            val subroutine = left.definingSubroutine!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            out("""
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
+                jsr  floats.var_fac1_notequal_f
+                bne  $jumpIfFalseLabel""")
+        }
+    }
+
+    private fun translateFloatNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+        if(rightConstVal!=null) {
+            if(leftConstVal!=null) {
+                if(rightConstVal==leftConstVal)
+                    jmp(jumpIfFalseLabel)
+                return
+            } else {
+                if (left is IdentifierReference) {
+                    val name = asmVariableName(left)
+                    when(rightConstVal.number.toDouble())
+                    {
+                        0.0 -> {
+                            out("""
+                                lda  $name
+                                clc
+                                adc  $name+1
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                beq  $jumpIfFalseLabel""")
+                            return
+                        }
+                        1.0 -> {
+                            out("""
+                                lda  $name
+                                cmp  #129
+                                bne  +
+                                lda  $name+1
+                                clc
+                                adc  $name+2
+                                adc  $name+3
+                                adc  $name+4
+                                beq  $jumpIfFalseLabel
++""")
+                            return
+                        }
+                    }
+                }
+            }
+        }
+
+        if(leftConstVal!=null && rightConstVal!=null) {
+            throw AssemblyError("const-compare should have been optimized away")
+        }
+        else if(leftConstVal!=null && right is IdentifierReference) {
+            throw AssemblyError("const-compare should have been optimized to have const as right operand")
+        }
+        else if(left is IdentifierReference && rightConstVal!=null) {
+            val leftName = asmVariableName(left)
+            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                bne  $jumpIfFalseLabel""")
+        }
+        else if(left is IdentifierReference && right is IdentifierReference) {
+            val leftName = asmVariableName(left)
+            val rightName = asmVariableName(right)
+            out("""
+                lda  #<$leftName
+                ldy  #>$leftName
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<$rightName
+                ldy  #>$rightName
+                jsr  floats.vars_equal_f
+                bne  $jumpIfFalseLabel""")
+        } else {
+            val subroutine = left.definingSubroutine!!
+            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToRegister(left, RegisterOrPair.FAC1)
+            out("""
+                lda  #<$subroutineFloatEvalResultVar1
+                ldy  #>$subroutineFloatEvalResultVar1
+                jsr  floats.var_fac1_notequal_f
+                beq  $jumpIfFalseLabel""")
+        }
+    }
+
+    private fun translateStringEqualsJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmVariableName(left)
+        val rightNam = asmVariableName(right)
+        out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            cmp  #0
+            bne  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringNotEqualsJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmVariableName(left)
+        val rightNam = asmVariableName(right)
+        out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            cmp  #0
+            beq  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringLessJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmVariableName(left)
+        val rightNam = asmVariableName(right)
+        out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            bpl  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringGreaterJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmVariableName(left)
+        val rightNam = asmVariableName(right)
+        out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            beq  $jumpIfFalseLabel
+            bmi  $jumpIfFalseLabel""")
+    }
+
+    private fun translateStringLessOrEqualJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmVariableName(left)
+        val rightNam = asmVariableName(right)
+        out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            beq  +
+            bpl  $jumpIfFalseLabel
++""")
+    }
+
+    private fun translateStringGreaterOrEqualJump(left: IdentifierReference, right: IdentifierReference, jumpIfFalseLabel: String) {
+        val leftNam = asmVariableName(left)
+        val rightNam = asmVariableName(right)
+        out("""
+            lda  #<$rightNam
+            sta  P8ZP_SCRATCH_W2
+            lda  #>$rightNam
+            sta  P8ZP_SCRATCH_W2+1
+            lda  #<$leftNam
+            ldy  #>$leftNam
+            jsr  prog8_lib.strcmp_mem
+            beq  +
+            bmi  $jumpIfFalseLabel
++""")
+    }
+
+    internal fun translateDirectMemReadExpressionToRegAorStack(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
+
+        fun assignViaExprEval() {
+            assignExpressionToVariable(expr.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            if (isTargetCpu(CpuType.CPU65c02)) {
+                if (pushResultOnEstack) {
+                    out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")
+                } else {
+                    out("  lda  (P8ZP_SCRATCH_W2)")
+                }
+            } else {
+                if (pushResultOnEstack) {
+                    out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  dex |  sta  P8ESTACK_LO+1,x")
+                } else {
+                    out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                }
+            }
+        }
+
+        when(expr.addressExpression) {
+            is NumericLiteralValue -> {
+                val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
+                out("  lda  ${address.toHex()}")
+                if(pushResultOnEstack)
+                    out("  sta  P8ESTACK_LO,x |  dex")
+            }
+            is IdentifierReference -> {
+                // the identifier is a pointer variable, so read the value from the address in it
+                loadByteFromPointerIntoA(expr.addressExpression as IdentifierReference)
+                if(pushResultOnEstack)
+                    out("  sta  P8ESTACK_LO,x |  dex")
+            }
+            is BinaryExpression -> {
+                if(tryOptimizedPointerAccessWithA(expr.addressExpression as BinaryExpression, false)) {
+                    if(pushResultOnEstack)
+                        out("  sta  P8ESTACK_LO,x |  dex")
+                } else {
+                    assignViaExprEval()
+                }
+            }
+            else -> assignViaExprEval()
+        }
+    }
+
+    private fun wordJumpForSimpleLeftOperand(left: Expression, right: Expression, code: (String, String)->Unit): Boolean {
+        when (left) {
+            is NumericLiteralValue -> {
+                assignExpressionToRegister(right, RegisterOrPair.AY)
+                val number = left.number.toHex()
+                code("#>$number", "#<$number")
+                return true
+            }
+            is AddressOf -> {
+                assignExpressionToRegister(right, RegisterOrPair.AY)
+                val name = asmSymbolName(left.identifier)
+                code("#>$name", "#<$name")
+                return true
+            }
+            is IdentifierReference -> {
+                assignExpressionToRegister(right, RegisterOrPair.AY)
+                val varname = asmVariableName(left)
+                code("$varname+1", varname)
+                return true
+            }
+            else -> return false
+        }
+    }
+
+    private fun byteJumpForSimpleRightOperand(left: Expression, right: Expression, code: (String)->Unit): Boolean {
+        if(right is NumericLiteralValue) {
+            assignExpressionToRegister(left, RegisterOrPair.A)
+            code("#${right.number.toHex()}")
+            return true
+        }
+        if(right is IdentifierReference) {
+            assignExpressionToRegister(left, RegisterOrPair.A)
+            code(asmVariableName(right))
+            return true
+        }
+        var memread = right as? DirectMemoryRead
+        if(memread==null && right is TypecastExpression)
+            memread = right.expression as? DirectMemoryRead
+        if(memread!=null) {
+            val address = memread.addressExpression as? NumericLiteralValue
+            if(address!=null) {
+                assignExpressionToRegister(left, RegisterOrPair.A)
+                code(address.number.toHex())
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun wordJumpForSimpleRightOperands(left: Expression, right: Expression, code: (String, String)->Unit): Boolean {
+        when (right) {
+            is NumericLiteralValue -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val number = right.number.toHex()
+                code("#>$number", "#<$number")
+                return true
+            }
+            is AddressOf -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val name = asmSymbolName(right.identifier)
+                code("#>$name", "#<$name")
+                return true
+            }
+            is IdentifierReference -> {
+                assignExpressionToRegister(left, RegisterOrPair.AY)
+                val varname = asmVariableName(right)
+                code("$varname+1", varname)
+                return true
+            }
+            else -> return false
+        }
+    }
+
 }
