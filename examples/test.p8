@@ -3,16 +3,18 @@
 %zeropage basicsafe
 
 main {
-    uword xw
-    ubyte xb
-
-  sub sub1() -> uword {
-    return xw+xb
-  }
 
   sub start() {
 
-    xw=sub1()
+    ubyte unused        ; TODO FIX : why is this not removed as an unused variable?
+
+    ubyte iteration_in_progress
+    uword num_bytes
+
+    ubyte qq = not iteration_in_progress or not num_bytes       ; TODO FIX COMPILER CRASH (STORAGE SIZE)
+
+    if not iteration_in_progress or not num_bytes
+        return
 
 ;    word xx=0
 ;    word[] xarr = [1,2,3]
@@ -34,13 +36,14 @@ main {
 ;        txt.print("xx is zero\n")
 ;    }
 
-;    ubyte yy=$30
+    ubyte yy=$30
 ;    ubyte zz=9
 ;    sys.memset(xx+200, yy*2, ~yy)
 ;
-;    if yy & %10000 {
-;        yy++
-;    }
+
+    if yy & %10000 {
+        yy++
+    }
 ;
 ;    @($c030) = 10
 ;    @(~xx) *= 2

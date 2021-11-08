@@ -161,7 +161,6 @@ internal class AstChecker(private val program: Program,
         super.visit(forLoop)
     }
 
-
     override fun visit(jump: Jump) {
         val ident = jump.identifier
         if(ident!=null) {

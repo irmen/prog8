@@ -1019,10 +1019,6 @@ class AsmGen(private val program: Program,
         requireComparisonExpression(stmt.condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
 
-        // DISABLED FOR NOW:
-//        if(!booleanCondition.left.isSimple || !booleanCondition.right.isSimple)
-//            throw AssemblyError("both operands for if comparison expression should have been simplified")
-
         if (stmt.elsepart.isEmpty()) {
             val endLabel = makeLabel("if_end")
             expressionsAsmGen.translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
@@ -1197,6 +1193,7 @@ $repeatLabel    lda  $counterVar
     private fun translate(stmt: WhileLoop) {
         requireComparisonExpression(stmt.condition)  // WhileLoop: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
+
         val whileLabel = makeLabel("while")
         val endLabel = makeLabel("whileend")
         loopEndLabels.push(endLabel)
@@ -1211,6 +1208,7 @@ $repeatLabel    lda  $counterVar
     private fun translate(stmt: UntilLoop) {
         requireComparisonExpression(stmt.condition)  // UntilLoop: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
+
         val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         loopEndLabels.push(endLabel)

@@ -30,7 +30,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is ArrayIndexedExpression -> translateExpression(expression)
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
-            is DirectMemoryRead -> translateDirectMemReadExpression(expression, true)
+            is DirectMemoryRead -> translateDirectMemReadExpressionToRegAorStack(expression, true)
             is NumericLiteralValue -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCall -> translateFunctionCallResultOntoStack(expression)
@@ -40,6 +40,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         }
     }
 
+    // TODO move this function to AsmGen class so that this one only exposes the toplevel translateExpression()
     internal fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
         // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
         // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
@@ -439,7 +440,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
                 else if (left is DirectMemoryRead) {
                     return if(rightConstVal.number.toInt()!=0) {
-                        translateDirectMemReadExpression(left, false)
+                        translateDirectMemReadExpressionToRegAorStack(left, false)
                         code("#${rightConstVal.number}")
                     }
                     else
@@ -663,7 +664,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out("  beq $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
-                    translateDirectMemReadExpression(left, false)
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number}")
                     else
@@ -828,7 +829,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
-                    translateDirectMemReadExpression(left, false)
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number}")
                     else
@@ -996,7 +997,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 }
                 else if (left is DirectMemoryRead) {
                     if(rightConstVal.number.toInt()!=0) {
-                        translateDirectMemReadExpression(left, false)
+                        translateDirectMemReadExpressionToRegAorStack(left, false)
                         code("#${rightConstVal.number}")
                     }
                     return
@@ -1139,7 +1140,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
-                    translateDirectMemReadExpression(left, false)
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number}")
                     else
@@ -1176,7 +1177,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         asmgen.out("  beq  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
-                    translateDirectMemReadExpression(left, false)
+                    translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number}")
                     else
@@ -1766,7 +1767,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
-    internal fun translateDirectMemReadExpression(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
+    // TODO move this function to another class so that this one only exposes the toplevel translateExpression()
+    internal fun translateDirectMemReadExpressionToRegAorStack(expr: DirectMemoryRead, pushResultOnEstack: Boolean) {
 
         fun assignViaExprEval() {
             asmgen.assignExpressionToVariable(expr.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)

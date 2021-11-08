@@ -3,7 +3,8 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+- if-statement expression simplification sometimes increases code size (Petaxian) FIX THIS!
+- add expression simplification to while and until loops as well.
 
 
 Blocked by Commander-x16 v39 release
@@ -16,7 +17,6 @@ Future
 ^^^^^^
 - fix the asm-labels problem (github issue #62)
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
-- [complicated?] find a way to optimize if-statement codegen so that "if var & %10000" doesn't use evalstack & subroutine call, but also that the simple case "if X {...}" remains fast
 - document the various compiler command line options in more detail. See "Compiling program code" in the docs
 - get rid of all TODO's in the code
 - improve testability further, add more tests

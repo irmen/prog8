@@ -11,6 +11,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.astprocessing.isSubroutineParameter
+import prog8.compiler.target.AssemblyError
 import prog8.compilerinterface.*
 
 
@@ -201,12 +202,74 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
         }
 
-        if((binExpr.operator=="==" || binExpr.operator=="!=") &&
-            (binExpr.left as? NumericLiteralValue)?.number==0 &&
+        if((binExpr.left as? NumericLiteralValue)?.number==0 &&
             (binExpr.right as? NumericLiteralValue)?.number!=0)
-            throw InternalCompilerException("if 0==X should have been swapped to if X==0")
+            throw FatalAstException("0==X should have been swapped to if X==0")
 
-        return noModifications
+        // simplify the conditional expression, introduce simple assignments if required.
+        // TODO sometimes this increases code size significantly (Petaxian) !!! FIX THIS
+        val simplify = simplifyConditionalExpression(binExpr)
+        val modifications = mutableListOf<IAstModification>()
+        if(simplify.rightVarAssignment!=null) {
+            modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
+            modifications += IAstModification.InsertBefore(ifStatement, simplify.rightVarAssignment, parent as IStatementContainer)
+        }
+        if(simplify.leftVarAssignment!=null) {
+            modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
+            modifications += IAstModification.InsertBefore(ifStatement, simplify.leftVarAssignment, parent as IStatementContainer)
+        }
+
+        return modifications
+    }
+
+    private class CondExprSimplificationResult(
+        val leftVarAssignment: Assignment?,
+        val leftOperandReplacement: Expression?,
+        val rightVarAssignment: Assignment?,
+        val rightOperandReplacement: Expression?
+    )
+
+    private fun simplifyConditionalExpression(expr: BinaryExpression): CondExprSimplificationResult {
+        var leftAssignment: Assignment? = null
+        var leftOperandReplacement: Expression? = null
+        var rightAssignment: Assignment? = null
+        var rightOperandReplacement: Expression? = null
+        if(!expr.left.isSimple) {
+            val dt = expr.left.inferType(program)
+            val name = when {
+                dt.istype(DataType.UBYTE) -> listOf("cx16","r15L")
+                dt.istype(DataType.UWORD) -> listOf("cx16","r15")
+                dt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b")
+                dt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w")
+                else -> throw AssemblyError("invalid dt")
+            }
+            leftOperandReplacement = IdentifierReference(name, expr.position)
+            leftAssignment = Assignment(
+                AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
+                expr.left,
+                expr.position
+            )
+        }
+        if(!expr.right.isSimple) {
+            val dt = expr.right.inferType(program)
+            val name = when {
+                dt.istype(DataType.UBYTE) -> listOf("prog8_lib","retval_interm_ub")
+                dt.istype(DataType.UWORD) -> listOf("prog8_lib","retval_interm_uw")
+                dt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b2")
+                dt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w2")
+                else -> throw AssemblyError("invalid dt")
+            }
+            rightOperandReplacement = IdentifierReference(name, expr.position)
+            rightAssignment = Assignment(
+                AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
+                expr.right,
+                expr.position
+            )
+        }
+        return CondExprSimplificationResult(
+            leftAssignment, leftOperandReplacement,
+            rightAssignment, rightOperandReplacement
+        )
     }
 
     @Suppress("DuplicatedCode")
@@ -224,6 +287,13 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             val booleanExpr = BinaryExpression(untilLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, untilLoop.condition.position), untilLoop.condition.position)
             return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
         }
+
+        if((binExpr.left as? NumericLiteralValue)?.number==0 &&
+            (binExpr.right as? NumericLiteralValue)?.number!=0)
+            throw FatalAstException("0==X should have been swapped to if X==0")
+
+        // TODO simplify conditional expression like in if-statement
+
         return noModifications
     }
 
@@ -242,6 +312,13 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             val booleanExpr = BinaryExpression(whileLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, whileLoop.condition.position), whileLoop.condition.position)
             return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))
         }
+
+        if((binExpr.left as? NumericLiteralValue)?.number==0 &&
+            (binExpr.right as? NumericLiteralValue)?.number!=0)
+            throw FatalAstException("0==X should have been swapped to if X==0")
+
+        // TODO simplify conditional expression like in if-statement
+
         return noModifications
     }
 
